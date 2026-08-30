@@ -180,7 +180,15 @@ def _resolve_backend(task: Task, sandbox_backend: str | None) -> str:
     return sandbox_backend or task.metadata.get("sandbox_backend") or "docker"
 
 
-def _create_base_sandbox(task: Task, backend: str, *, image: str | None = None, name: str | None = None, **backend_kwargs) -> Sandbox:
+def _create_base_sandbox(
+    task: Task,
+    backend: str,
+    *,
+    image: str | None = None,
+    name: str | None = None,
+    mounts: list[dict] | None = None,
+    **backend_kwargs,
+) -> Sandbox:
     """Create a sandbox from a base ``image`` — no Dockerfile RUN replay.
 
     ``image`` defaults to the task's resolved base image; pass a snapshot
@@ -193,7 +201,7 @@ def _create_base_sandbox(task: Task, backend: str, *, image: str | None = None, 
     if name is None:
         safe_id = re.sub(r"[^a-zA-Z0-9_.-]", "-", task.id)
         name = f"rllm-{safe_id}-{uuid.uuid4().hex[:6]}"
-    return create_sandbox(backend, name=name, image=image, **_sandbox_resource_kwargs(task, backend), **backend_kwargs)
+    return create_sandbox(backend, name=name, image=image, mounts=mounts, **_sandbox_resource_kwargs(task, backend), **backend_kwargs)
 
 
 def _replay_dockerfile(task: Task, sandbox: Sandbox, backend: str) -> None:
@@ -210,10 +218,10 @@ def _replay_dockerfile(task: Task, sandbox: Sandbox, backend: str) -> None:
         _safe_exec(sandbox, cmd, timeout=900)
 
 
-def _create_sandbox_for_task(task: Task, sandbox_backend: str | None) -> Sandbox:
+def _create_sandbox_for_task(task: Task, sandbox_backend: str | None, *, mounts: list[dict] | None = None) -> Sandbox:
     """Cold-path sandbox creation: base image + RUN replay (today's behavior)."""
     backend = _resolve_backend(task, sandbox_backend)
-    sandbox = _create_base_sandbox(task, backend)
+    sandbox = _create_base_sandbox(task, backend, mounts=mounts)
     _replay_dockerfile(task, sandbox, backend)
     return sandbox
 

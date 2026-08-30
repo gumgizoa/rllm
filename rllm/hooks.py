@@ -243,29 +243,57 @@ class SandboxTaskHooks:
         return self._registry
 
     def setup(self, task: Task, agent_flow: AgentFlow, uid: str) -> TaskContext:
+        import time
+
         from rllm.engine.agentflow_engine import TaskContext
         from rllm.eval._resolution import _resolve_backend, _setup_task_environment
 
         plan = resolve_rollout_plan(task, agent_flow, self.evaluation)
+        setup_metrics: dict[str, float] = {}
 
         sandbox = None
         env_backend = None
         try:
             if plan.needs_env:
                 from rllm.env import env_int
+                from rllm.sandbox.agent_image import resolve_agent_mount_image
                 from rllm.sandbox.snapshot import get_sandbox, install_script_for
 
                 install = install_script_for(agent_flow)
-                sandbox = self.warm_queue.pop(task) if self.warm_queue is not None else get_sandbox(task, self.sandbox_backend, self._registry, install)
                 env_backend = _resolve_backend(task, self.sandbox_backend)
+                agent_mount_image = resolve_agent_mount_image(agent_flow, env_backend)
+
+                t0 = time.perf_counter()
+                sandbox = (
+                    self.warm_queue.pop(task)
+                    if self.warm_queue is not None
+                    else get_sandbox(task, self.sandbox_backend, self._registry, install, agent_mount_image=agent_mount_image)
+                )
+                setup_metrics["time/env_create_s"] = time.perf_counter() - t0
+
+                if agent_mount_image and install:
+                    sandbox.baked_install = install
+
+                t0 = time.perf_counter()
                 _setup_task_environment(task, sandbox)
+                setup_metrics["time/env_setup_s"] = time.perf_counter() - t0
+
                 # CLI install, unless the image already contains exactly this
-                # script (baked_install, recorded at snapshot boot).
+                # script (baked_install, recorded at snapshot boot) or an agent
+                # sidecar mount pre-provisioned the CLI.
                 if install and getattr(sandbox, "baked_install", "") != install:
                     try:
-                        sandbox.exec(install, timeout=getattr(agent_flow, "install_timeout", env_int("RLLM_HARNESS_INSTALL_TIMEOUT_S", 600)), user="root")
+                        t0 = time.perf_counter()
+                        sandbox.exec(
+                            install,
+                            timeout=getattr(agent_flow, "install_timeout", env_int("RLLM_HARNESS_INSTALL_TIMEOUT_S", 600)),
+                            user="root",
+                        )
+                        setup_metrics["time/env_install_s"] = time.perf_counter() - t0
                     except Exception as e:
                         raise RuntimeError(f"Failed to install {getattr(agent_flow, 'name', type(agent_flow).__name__)} in sandbox: {e}") from e
+                elif install:
+                    setup_metrics["time/env_install_s"] = 0.0
 
             evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
         except BaseException:
@@ -288,7 +316,7 @@ class SandboxTaskHooks:
             except Exception:
                 logger.exception("sandbox.close failed")
 
-        return TaskContext(evaluator=evaluator, env=sandbox, env_backend=env_backend, teardown=teardown)
+        return TaskContext(evaluator=evaluator, env=sandbox, env_backend=env_backend, teardown=teardown, setup_metrics=setup_metrics)
 
 
 class FixedEvaluatorHooks:

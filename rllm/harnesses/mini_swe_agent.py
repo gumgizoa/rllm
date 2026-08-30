@@ -14,6 +14,7 @@ from __future__ import annotations
 import shlex
 
 from rllm.harnesses.cli_harness import BaseCliHarness
+from rllm.sandbox.agent_image import agent_path_prefix
 from rllm.sandbox.protocol import Sandbox
 from rllm.types import AgentConfig, Task
 
@@ -78,6 +79,7 @@ class MiniSweAgentHarness(BaseCliHarness):
     """Run mini-swe-agent inside the sandbox."""
 
     name = "mini-swe-agent"
+    use_agent_mount = True
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/mini-swe-agent.log"
 
@@ -166,7 +168,7 @@ class MiniSweAgentHarness(BaseCliHarness):
         # URL into the agent's environment so litellm picks it up.
         return (
             f"{self._cd_prefix(task)}"
-            f'export PATH="$HOME/.local/bin:$PATH"; '
+            f"{agent_path_prefix(self.name)}"
             f"mini-swe-agent --yolo "
             f"--model={shlex.quote(qualified)} "
             f"--task={shlex.quote(instruction)} "

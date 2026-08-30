@@ -118,11 +118,21 @@ async def run_dataset(
         # Negative size means "match concurrency"; it only helps when sandboxes
         # are actually created, so gate on a chosen sandbox backend.
         if warm_queue_size != 0 and sandbox_backend:
+            from rllm.sandbox.agent_image import resolve_agent_mount_image
             from rllm.sandbox.snapshot import install_script_for
             from rllm.sandbox.warm_queue import WarmQueue
 
             size = effective_concurrency if warm_queue_size < 0 else warm_queue_size
-            warm_queue = WarmQueue(list(tasks), sandbox_backend, hooks.registry, size, install_script=install_script_for(agent_flow))
+            install = install_script_for(agent_flow)
+            agent_mount = resolve_agent_mount_image(agent_flow, sandbox_backend)
+            warm_queue = WarmQueue(
+                list(tasks),
+                sandbox_backend,
+                hooks.registry,
+                size,
+                install_script=install,
+                agent_mount_image=agent_mount,
+            )
             hooks.warm_queue = warm_queue
             warm_queue.start()
 

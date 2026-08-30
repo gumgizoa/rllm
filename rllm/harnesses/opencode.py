@@ -16,6 +16,7 @@ import os
 import shlex
 
 from rllm.harnesses.cli_harness import BaseCliHarness
+from rllm.sandbox.agent_image import agent_path_prefix
 from rllm.sandbox.protocol import Sandbox
 from rllm.types import AgentConfig, Task
 
@@ -66,6 +67,7 @@ class OpenCodeHarness(BaseCliHarness):
     """Run opencode-ai inside the sandbox."""
 
     name = "opencode"
+    use_agent_mount = True
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/opencode.log"
 
@@ -165,7 +167,7 @@ class OpenCodeHarness(BaseCliHarness):
         # hangs after the DB-migration log line with no further output.
         return (
             f"{self._cd_prefix(task)}"
-            f". $HOME/.nvm/nvm.sh 2>/dev/null; "
+            f"{agent_path_prefix(self.name)}"
             f"opencode --model={shlex.quote(qualified)} run "
             f"--dangerously-skip-permissions "
             f"-- {shlex.quote(instruction)} "

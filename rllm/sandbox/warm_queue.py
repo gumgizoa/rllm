@@ -97,12 +97,21 @@ class WarmQueue:
     stays within ``size`` of how many pops have happened.
     """
 
-    def __init__(self, schedule: list[Task], backend: str | None, registry: SnapshotRegistry | None, size: int, install_script: str = "") -> None:
+    def __init__(
+        self,
+        schedule: list[Task],
+        backend: str | None,
+        registry: SnapshotRegistry | None,
+        size: int,
+        install_script: str = "",
+        agent_mount_image: str | None = None,
+    ) -> None:
         self._schedule = schedule
         self._backend = backend
         self._registry = registry
         self._size = size
         self._install_script = install_script
+        self._agent_mount_image = agent_mount_image
 
         self._cond = threading.Condition()
         self._ready: dict[str, list[_WarmEntry]] = {}
@@ -161,7 +170,7 @@ class WarmQueue:
                         self._credits[key] = self._credits.get(key, 0) + 1
                         self._cond.notify_all()
             if entry is None:
-                return get_sandbox(task, self._backend, self._registry, self._install_script)
+                return get_sandbox(task, self._backend, self._registry, self._install_script, agent_mount_image=self._agent_mount_image)
             if _is_alive(entry.sandbox):  # backend API call, outside the lock
                 return entry.sandbox
             replacing = True
@@ -233,7 +242,7 @@ class WarmQueue:
             sandbox = None
             for attempt in (1, 2):
                 try:
-                    sandbox = get_sandbox(task, self._backend, self._registry, self._install_script)
+                    sandbox = get_sandbox(task, self._backend, self._registry, self._install_script, agent_mount_image=self._agent_mount_image)
                     break
                 except Exception:
                     logger.exception("warm queue: prefetch failed for task %s (attempt %d/2)", getattr(task, "id", "?"), attempt)

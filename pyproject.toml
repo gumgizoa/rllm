@@ -41,6 +41,7 @@ dependencies = [
     "codetiming",
     "tinker>=0.22.2 ; python_version >= '3.11'",
     "tinker-cookbook>=0.4.1 ; python_version >= '3.11'",
+    "docker>=7.2.0",
 ]
 
 [project.scripts]
@@ -227,4 +228,9 @@ exclude = [
     "scripts/.*",
     "tests/.*",
     "docs/.*",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
 ]

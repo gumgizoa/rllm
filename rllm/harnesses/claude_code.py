@@ -25,6 +25,7 @@ from __future__ import annotations
 import shlex
 
 from rllm.harnesses.cli_harness import BaseCliHarness
+from rllm.sandbox.agent_image import agent_path_prefix
 from rllm.types import AgentConfig, Task
 
 # Install strategy mirrors harbor: Alpine → npm (the install script's
@@ -101,6 +102,7 @@ class ClaudeCodeHarness(BaseCliHarness):
     """Run Anthropic's Claude Code CLI inside the sandbox."""
 
     name = "claude-code"
+    use_agent_mount = True
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/claude-code.log"
 
@@ -163,7 +165,7 @@ class ClaudeCodeHarness(BaseCliHarness):
         # missing.
         return (
             f"{self._cd_prefix(task)}"
-            f'export PATH="$HOME/.local/bin:$PATH"; '
+            f"{agent_path_prefix(self.name)}"
             f"mkdir -p {shlex.quote(_CLAUDE_CONFIG_DIR)}; "
             f"claude --verbose --output-format=stream-json "
             f"--permission-mode=bypassPermissions "

@@ -26,7 +26,7 @@ import time
 import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from tqdm import tqdm
@@ -75,6 +75,7 @@ class TaskContext:
     env: Any = None  # Sandbox | None — kept loose for the import-cycle reason below
     env_backend: str | None = None  # backend that actually provisioned env
     teardown: Any = None  # Callable[[], None] | None — kept loose to avoid Callable import loop
+    setup_metrics: dict[str, float] = field(default_factory=dict)
 
     def run_teardown(self) -> None:
         if self.teardown is None:
@@ -279,6 +280,9 @@ def _summarize_llm_latencies(traces: list[Any], agentflow_s: float) -> tuple[flo
 
 _TIMING_PHASES_DISPLAY: tuple[tuple[str, str], ...] = (
     ("setup", "time/setup_s"),
+    ("env_create", "time/env_create_s"),
+    ("env_setup", "time/env_setup_s"),
+    ("env_install", "time/env_install_s"),
     ("agentflow", "time/agentflow_s"),
     ("evaluator", "time/evaluator_s"),
     ("teardown", "time/teardown_s"),
@@ -599,6 +603,8 @@ class AgentFlowEngine:
             uid,
         )
         _timings["time/setup_s"] = time.perf_counter() - t
+        if ctx.setup_metrics:
+            _timings.update(ctx.setup_metrics)
 
         try:
             if getattr(self.agent_flow, "needs_env", False) and ctx.env is None:

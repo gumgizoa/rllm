@@ -9,6 +9,12 @@ import tarfile
 
 logger = logging.getLogger(__name__)
 
+# Linux Docker does not define ``host.docker.internal`` unless the container
+# is started with ``--add-host=host.docker.internal:host-gateway``.
+# CLI harnesses inside sandboxes reach the rLLM gateway via that hostname
+# after ``container_reachable_url`` rewrites loopback addresses.
+_DOCKER_EXTRA_HOSTS = {"host.docker.internal": "host-gateway"}
+
 
 class DockerSandbox:
     """Sandbox implementation using Docker containers.
@@ -20,20 +26,33 @@ class DockerSandbox:
     separately when using ``backend=docker``).
     """
 
-    def __init__(self, name: str, image: str = "python:3.11-slim", **kwargs):
+    def __init__(self, name: str, image: str = "python:3.11-slim", *, mounts: list[dict] | None = None, **kwargs):
         import docker
 
         self.name = name
         self.image = image
         self._client = docker.from_env()
-        self._container = self._client.containers.run(
-            image,
-            command="sleep infinity",
-            name=f"rllm-sandbox-{name}",
-            detach=True,
-            remove=False,
-        )
-        logger.info("DockerSandbox %s created (container: %s, image: %s)", name, self._container.short_id, image)
+        run_kwargs: dict = {
+            "command": "sleep infinity",
+            "name": f"rllm-sandbox-{name}",
+            "detach": True,
+            "remove": False,
+            "extra_hosts": _DOCKER_EXTRA_HOSTS,
+        }
+        if mounts:
+            run_kwargs["mounts"] = mounts
+        self._container = self._client.containers.run(image, **run_kwargs)
+        agent_mounts = [m.get("source") for m in mounts or [] if m.get("type") == "image"]
+        if agent_mounts:
+            logger.info(
+                "DockerSandbox %s created (container: %s, image: %s, agent_mount=%s)",
+                name,
+                self._container.short_id,
+                image,
+                agent_mounts[0],
+            )
+        else:
+            logger.info("DockerSandbox %s created (container: %s, image: %s)", name, self._container.short_id, image)
 
     def exec(self, command: str, timeout: float | None = None, user: str | None = None) -> str:
         """Execute a command inside the container.

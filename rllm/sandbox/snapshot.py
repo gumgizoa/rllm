@@ -114,7 +114,14 @@ def _make_group_id(dataset: str, slice_spec: dict, task_count: int) -> str:
     return f"{_slug(dataset)}-{_slice_id_token(slice_spec, task_count)}-{os.urandom(4).hex()}"
 
 
-def get_sandbox(task: Task, backend: str | None, registry: SnapshotRegistry | None = None, install_script: str = "") -> Sandbox:
+def get_sandbox(
+    task: Task,
+    backend: str | None,
+    registry: SnapshotRegistry | None = None,
+    install_script: str = "",
+    *,
+    agent_mount_image: str | None = None,
+) -> Sandbox:
     """Return a ready sandbox for ``task`` — from a snapshot when available, else cold.
 
     Snapshots are used iff ``registry`` is given. Two cheap gates before the cold
@@ -130,9 +137,11 @@ def get_sandbox(task: Task, backend: str | None, registry: SnapshotRegistry | No
     attribute unset.
     """
     from rllm.eval._resolution import _create_base_sandbox, _create_sandbox_for_task, _resolve_backend
+    from rllm.sandbox.agent_image import docker_image_mount
     from rllm.sandbox.protocol import SnapshotNotFound
 
     backend = _resolve_backend(task, backend)
+    mounts = [docker_image_mount(agent_mount_image)] if agent_mount_image else None
     if registry is not None and backend not in _NO_SNAPSHOT_BACKENDS:
         key = env_key_for(task, backend, install_script)
         candidates = [key]
@@ -143,14 +152,14 @@ def get_sandbox(task: Task, backend: str | None, registry: SnapshotRegistry | No
             if ref is None:
                 continue
             try:
-                sandbox = _create_base_sandbox(task, backend, image=ref)  # snapshot has RUN baked — no replay
+                sandbox = _create_base_sandbox(task, backend, image=ref, mounts=mounts)  # snapshot has RUN baked — no replay
             except SnapshotNotFound:
                 logger.info("snapshot %s gone on %s — cold fallback", ref, backend)
                 registry.discard(candidate)  # so sibling tasks this run skip the doomed boot
                 continue
             sandbox.baked_install = install_script if candidate == key else ""
             return sandbox
-    return _create_sandbox_for_task(task, backend)
+    return _create_sandbox_for_task(task, backend, mounts=mounts)
 
 
 class SnapshotRegistry:

@@ -556,6 +556,15 @@ def _run_eval(
 )
 @click.option("--sandbox-concurrency", "sandbox_concurrency", default=None, type=int, help="Override max concurrent sandboxes (default: agent's max_concurrent).")
 @click.option(
+    "--agent-image",
+    "agent_image",
+    default=None,
+    help=(
+        "Pre-built CLI agent image for Docker: 'auto' (default), 'skip' (per-task install), "
+        "or a local repo:tag. Supported harnesses: mini-swe-agent, opencode, claude-code."
+    ),
+)
+@click.option(
     "--snapshot/--no-snapshot",
     "use_snapshot",
     default=True,
@@ -589,6 +598,7 @@ def eval_cmd(
     output_path: str | None,
     sandbox_backend: str | None,
     sandbox_concurrency: int | None,
+    agent_image: str | None,
     use_snapshot: bool,
     warm_queue_size: int,
     enable_ui: bool | None,
@@ -671,6 +681,8 @@ def eval_cmd(
         agent_metadata["sandbox_backend"] = sandbox_backend
     if sandbox_concurrency is not None:
         agent_metadata["sandbox_concurrency"] = sandbox_concurrency
+    if agent_image is not None:
+        agent_metadata["agent_image"] = agent_image
 
     parsed_indices = parse_index_spec(task_indices) if task_indices is not None else None
 

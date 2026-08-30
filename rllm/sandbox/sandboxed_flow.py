@@ -41,6 +41,9 @@ class SandboxedAgentFlow(ABC):
     # truth for sandboxed flows. Subclasses override only to deviate;
     # ``--sandbox-concurrency`` overrides it per-run.
     max_concurrent: int = 64
+    # When True, Docker sandboxes may mount a pre-built agent image (see
+    # ``rllm.sandbox.agent_image.SUPPORTED_AGENT_IMAGE_HARNESSES``).
+    use_agent_mount: bool = False
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -59,6 +62,10 @@ class SandboxedAgentFlow(ABC):
         concurrency = leftovers.pop("sandbox_concurrency", None)
         if concurrency is not None:
             self.max_concurrent = concurrency
+        agent_image = leftovers.pop("agent_image", None)
+        if agent_image is not None:
+            import os
+            os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
         return leftovers
 
     def get_image(self, task: dict) -> str:
@@ -69,12 +76,12 @@ class SandboxedAgentFlow(ABC):
     def run(self, task: Task, config: AgentConfig, *, env: Sandbox) -> Episode: ...
 
 
-def create_sandbox(backend: str, name: str, image: str, **kwargs) -> Sandbox:
+def create_sandbox(backend: str, name: str, image: str, *, mounts: list[dict] | None = None, **kwargs) -> Sandbox:
     """Factory: create a Sandbox from a backend name. Lazy imports."""
     if backend == "docker":
         from rllm.sandbox.backends.docker import DockerSandbox
 
-        return DockerSandbox(name=name, image=image, **kwargs)
+        return DockerSandbox(name=name, image=image, mounts=mounts, **kwargs)
     elif backend == "local":
         from rllm.sandbox.backends.local import LocalSandbox
 
