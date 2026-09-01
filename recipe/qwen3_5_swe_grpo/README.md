@@ -359,7 +359,57 @@ termination_reason/error       0.000
 So 64K is exercised for real and 128K has headroom. Throughput drops (169 vs 215 tok/s)
 because the sequences are longer, which is the expected trade rather than a problem.
 
-#### `ulysses_sequence_parallel_size > 1` does not work with Qwen3.5
+#### Both of those are fixed by a backported verl patch
+
+verl **v0.9.0** carries [PR #6660](https://github.com/verl-project/verl/pull/6660),
+*"[model, fsdp] fix: support Qwen3.5 linear attention under Ulysses SP"* (merged
+2026-07-20), whose opening sentence describes exactly the two problems measured below:
+
+> Current Qwen3.5/Qwen3.5-MoE training with FSDP remove-padding + Ulysses SP does not pass
+> packed sequence boundaries into linear attention, so packed samples can share
+> linear-attention state across sequence boundaries; the Qwen3.5 fused PPO loss can also
+> re-slice already SP-sliced labels.
+
+rLLM pins `verl==0.8.0` (upstream `rllm-org/rllm` does too), and v0.9.0 makes the V1 PPO
+trainer the default — which collides with the verl internals rLLM imports — so the fix is
+**backported** rather than picked up by upgrading:
+
+```bash
+bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh          # idempotent
+bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --check  # report state
+bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --revert # undo
+```
+
+`patches/verl-pr6660-qwen3_5-ulysses-sp.patch` touches three verl files plus the PR's own
+distributed regression test. It stays clear of the PPO trainer, which is why it grafts onto
+0.8.0 cleanly.
+
+One adjustment was needed for our stack: the PR was validated against transformers
+5.3.0.dev0, where `cache_params.has_previous_state` is a property. In 5.5.3 it is
+`has_previous_state(layer_idx)`. Inert during training (`cache_params` is always `None`
+under `use_cache=False`) but wrong for a cached forward, so the backport calls it correctly.
+The PR is otherwise defensive about version drift — it introspects with
+`inspect.signature` before passing new kwargs, which is why the rest applied unchanged.
+
+Verification on this stack (transformers 5.5.3, FLA 0.5.2 — both newer than the PR's):
+
+```
+torchrun --nproc_per_node=2 -m pytest tests/special_distributed/ \
+    test_qwen35_linear_attention_ulysses_sp.py          ->  2 passed
+```
+
+The test compares a full forward against the Ulysses-SP forward on boundary-aligned,
+sequence-cut, single-sequence and many-short packed cases, asserting
+`grad_err_ratio < 2e-3`. Both the `causal_conv1d_fn` and torch-fallback paths pass.
+
+Note the packing half of the fix is **not** gated on SP —
+`if packed_cu_seqlens is not None and pass_packed_cu_seqlens:` in
+`transformer_impl.py`, with `use_ulysses_sp` only adjusting the SP padding. So it also
+lifts the `ppo_micro_batch_size_per_gpu=1` constraint documented above. The engagement flag
+is derived by introspection (`"cu_seqlens" in signature(module.forward).parameters`); all
+three `forward_with_*_backend` variants declare it, so it does turn on.
+
+#### What was measured before the patch
 
 Two independent reasons, both measured.
 
