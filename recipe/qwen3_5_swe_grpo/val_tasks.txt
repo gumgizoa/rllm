@@ -1,0 +1,27 @@
+# SWE-bench Verified instances this recipe validates on, pinned so the split
+# does not drift when another base image lands in the local Docker daemon.
+# Build with: prepare_datasets.py --val-only --val-ids recipe/qwen3_5_swe_grpo/val_tasks.txt
+#
+# Balanced across SWE-bench Verified's own `difficulty` field. An earlier set
+# took the smallest-test-scope instance from the `<15 min fix` bucket only, and
+# the untrained 4B policy scored 8/10 on it -- a val set with no headroom
+# measures nothing. Tasks whose test names contain an empty pytest param id
+# `[]` are still excluded: that is the static signature of astropy-7606, whose
+# PASS_TO_PASS the SWE-bench log parser can never match.
+
+# <15 min fix -- kept from the first set, already oracle-screened at 1.0
+pydata__xarray-4629
+pytest-dev__pytest-5809
+scikit-learn__scikit-learn-14141
+
+# 15 min - 1 hour
+astropy__astropy-7671
+django__django-16877
+pylint-dev__pylint-4661
+sphinx-doc__sphinx-8593
+sympy__sympy-24443
+
+# 1-4 hours (this bucket spans only 8 repos, all already represented above,
+# so these two reuse a repo rather than drop the bucket)
+django__django-13212
+sympy__sympy-13852

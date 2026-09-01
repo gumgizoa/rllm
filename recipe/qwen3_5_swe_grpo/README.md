@@ -56,13 +56,21 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   500-task set needs ~2 TB of images, so validation is pinned to what is pre-pulled. Task dirs
   are copied out of the Harbor cache so this recipe owns their timeouts.
 
-  This run validates on **10 tasks, one per repo** (`--val-limit 10`, and the builder sorts by
-  task id, so ten repos each contribute their single locally-available instance). They were
-  chosen off SWE-bench Verified's own `difficulty` field (`<15 min fix`) with the smallest
-  `FAIL_TO_PASS` + `PASS_TO_PASS` lists, skipping any whose test names contain an empty pytest
-  param id `[]` -- the static signature of the `astropy__astropy-7606` failure below. Ten is
-  small, but it moves resolve-rate granularity from 1/3 to 1/10, which is the difference
-  between a step-to-step curve and noise.
+  Pin the split with `--val-ids` (a file of task ids, or a comma-separated list). Without a pin
+  the split is *whatever is currently pulled*, so landing one more base image silently changes
+  what the val numbers mean; with one, a missing image is a hard error instead of a quietly
+  smaller set. `recipe/qwen3_5_swe_grpo/val_tasks.txt` is the pinned ten.
+
+  **Pick for headroom, not for scorability.** The first ten were the smallest-test-scope
+  instance per repo out of the `<15 min fix` bucket -- chosen to avoid unscorable tasks, but
+  that filter selects the easiest of the easy, and the *untrained* 4B policy scored 8/10 on
+  them. A val set at 0.8 before training measures nothing: RL has two points of headroom and
+  six steps to show them. `val_tasks.txt` rebalances across `difficulty` (3 easy / 5 medium /
+  2 hard) and still oracle-screens 10/10.
+
+  `--val-name` builds a variant side by side. Rebuilding a name deletes and recopies its task
+  dirs, which pulls them out from under a run already pointing at them -- the val twin of the
+  same warning on `--train-name`.
 * **`rllm_swesmith_small/train`** — a round-robin slice of `kylemontgomery/swesmith-filtered`,
   one task per repo, so a smoke run sees repo diversity without pulling all ~4.7K images.
 

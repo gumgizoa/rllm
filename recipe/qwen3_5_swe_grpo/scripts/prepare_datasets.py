@@ -123,7 +123,22 @@ def set_timeouts(task_dir: Path, *, agent: float, verifier: float) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def build_val(out_root: Path, limit: int | None, keep_unscorable: bool) -> int:
+def read_val_ids(spec: str | None) -> list[str] | None:
+    """Parse --val-ids: a comma-separated list, or a file with one id per line."""
+    if not spec:
+        return None
+    path = Path(spec)
+    if path.exists():
+        lines = (ln.split("#", 1)[0].strip() for ln in path.read_text(encoding="utf-8").splitlines())
+        ids = [ln for ln in lines if ln]
+    else:
+        ids = [t.strip() for t in spec.split(",") if t.strip()]
+    if not ids:
+        sys.exit(f"--val-ids {spec!r} yielded no task ids.")
+    return ids
+
+
+def build_val(out_root: Path, limit: int | None, keep_unscorable: bool, pinned: list[str] | None, name: str) -> int:
     from rllm.data import DatasetRegistry
 
     src = DatasetRegistry.load_dataset(VAL_SOURCE, "default")
@@ -131,15 +146,34 @@ def build_val(out_root: Path, limit: int | None, keep_unscorable: bool) -> int:
         sys.exit(f"'{VAL_SOURCE}' not found. Run: rllm dataset pull harbor:{VAL_SOURCE}")
 
     have = local_images()
+    wanted = set(pinned) if pinned else None
     picked: list[tuple[str, Path, str]] = []
+    missing_image: list[str] = []
     for row in src:
         task_id = row["task_id"]
+        if wanted is not None and task_id not in wanted:
+            continue
         if task_id in UNSCORABLE and not keep_unscorable:
             continue
         cached = Path(row["task_path"])
         img = base_image(cached)
-        if img and img in have:
+        if not img:
+            continue
+        if img in have:
             picked.append((task_id, cached, img))
+        elif wanted is not None:
+            missing_image.append(f"docker pull {img}   # {task_id}")
+
+    # A pinned set is a promise about *which* tasks the run validates on, so a
+    # missing image is an error rather than a silently smaller val set. Without
+    # a pin the set is "whatever is pulled", which is fine for exploring but
+    # means adding one image quietly changes what the numbers mean.
+    if wanted is not None:
+        unknown = wanted - {t for t, _, _ in picked} - {m.rsplit("# ", 1)[-1] for m in missing_image}
+        if unknown:
+            sys.exit(f"--val-ids names tasks that are not in '{VAL_SOURCE}': {sorted(unknown)}")
+        if missing_image:
+            sys.exit("Pinned val tasks whose base image is not local:\n  " + "\n  ".join(missing_image))
 
     picked.sort()
     if limit is not None:
@@ -150,7 +184,7 @@ def build_val(out_root: Path, limit: int | None, keep_unscorable: bool) -> int:
             "  docker pull swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest"
         )
 
-    out = out_root / VAL_NAME
+    out = out_root / name
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -173,14 +207,14 @@ def build_val(out_root: Path, limit: int | None, keep_unscorable: bool) -> int:
         )
 
     DatasetRegistry.register_dataset(
-        name=VAL_NAME,
+        name=name,
         data=rows,
         split=VAL_SPLIT,
         source=f"harbor:{VAL_SOURCE} (local-image subset)",
         description="SWE-bench Verified subset restricted to locally available Docker images",
         category="agentic",
     )
-    print(f"[val] {VAL_NAME}/{VAL_SPLIT}: {len(rows)} tasks -> {out}")
+    print(f"[val] {name}/{VAL_SPLIT}: {len(rows)} tasks -> {out}")
     for r in rows:
         print(f"       {r['task_id']}  <- {r['docker_image']}")
     return len(rows)
@@ -267,6 +301,25 @@ def main() -> None:
     )
     ap.add_argument("--rebuild-train", action="store_true", help="Re-download and rebuild the SWE-smith benchmark dir.")
     ap.add_argument("--keep-unscorable", action="store_true", help="Keep val tasks that even the oracle cannot score.")
+    ap.add_argument(
+        "--val-name",
+        default=VAL_NAME,
+        help=(
+            f"Registry name for the val split (default: {VAL_NAME}). Rebuilding a name deletes and "
+            "recopies its task dirs, so a run already pointing at them loses the task dirs mid-flight "
+            "-- build a variant under a distinct name instead."
+        ),
+    )
+    ap.add_argument(
+        "--val-ids",
+        default=None,
+        help=(
+            "Pin the val split to an explicit task-id list: either a comma-separated list or a path "
+            "to a file with one id per line (blank lines and '#' comments ignored). Without it the "
+            "split is 'every locally pulled task', so pulling one more image silently changes what "
+            "the val numbers mean. A pinned id whose image is missing is a hard error."
+        ),
+    )
     ap.add_argument("--val-only", action="store_true")
     ap.add_argument("--train-only", action="store_true")
     args = ap.parse_args()
@@ -278,7 +331,7 @@ def main() -> None:
 
     summary: dict[str, int] = {}
     if not args.train_only:
-        summary["val"] = build_val(out_root, args.val_limit, args.keep_unscorable)
+        summary["val"] = build_val(out_root, args.val_limit, args.keep_unscorable, read_val_ids(args.val_ids), args.val_name)
     if not args.val_only:
         summary["train"] = build_train(out_root, args.train_limit, args.rebuild_train, args.train_name)
     print(json.dumps(summary))
