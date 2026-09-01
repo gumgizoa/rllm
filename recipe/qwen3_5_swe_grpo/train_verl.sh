@@ -8,8 +8,8 @@
 # lives in config/ so that one decision is not split across two files:
 #
 #   config/config.yaml     Hydra entry + recipe.* (datasets, turn budget, sandbox)
-#   config/grpo_verl.yaml  rLLM side  (data lengths, sampling, gateway, GRPO)
-#   config/verl_fsdp.yaml  verl side  (model, FSDP actor/ref, vLLM rollout)
+#   config/rllm_grpo.yaml  rLLM side  (data lengths, sampling, gateway, GRPO)
+#   config/verl_trainer.yaml  verl side  (model, FSDP actor/ref, vLLM rollout)
 #
 # Prerequisites (see README.md):
 #   source recipe/qwen3_5_swe_grpo/env.sh
@@ -25,7 +25,7 @@
 #   TRAIN_LOG         transcript destination
 #   HF_HUB_OFFLINE    set 0 to consult the hub
 #
-# Hardware: 8x 80GB GPU, single node (config/verl_fsdp.yaml).
+# Hardware: 8x 80GB GPU, single node (config/verl_trainer.yaml).
 
 set -euo pipefail
 

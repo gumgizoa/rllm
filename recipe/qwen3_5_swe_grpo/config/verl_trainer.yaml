@@ -1,7 +1,10 @@
 # @package _global_
 #
-# verl-native settings for this recipe: model, FSDP actor/ref, and the vLLM
-# rollout engine. Kept in YAML rather than as CLI flags in train_verl.sh so that
+# Everything verl reads natively -- `model`, `actor_rollout_ref`, `trainer` --
+# for this recipe: FSDP2 actor/ref and the vLLM rollout engine. The `rllm.*`
+# half is the sibling file `rllm_grpo.yaml`.
+#
+# Kept in YAML rather than as CLI flags in train_verl.sh so that
 # a single decision lives in a single place -- the length budget below spans
 # rllm.data.* and actor_rollout_ref.rollout.*, and when those sat in different
 # files they drifted (train.py now asserts they agree).

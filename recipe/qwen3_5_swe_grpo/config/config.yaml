@@ -6,12 +6,12 @@
 # it declares a searchpath of its own and Hydra rejects that from a non-primary
 # config. So this file inlines what `unified` composes -- rllm/base plus the
 # verl backend (which itself pulls in verl's ppo_trainer) -- and then layers
-# this recipe's overrides from `grpo_verl.yaml`.
+# this recipe's overrides from `rllm_grpo.yaml`.
 defaults:
   - rllm: base
   - rllm/backend: verl
-  - grpo_verl      # rLLM-side: data, rollout sampling, gateway, GRPO, filtering
-  - verl_fsdp      # verl-side: model, FSDP actor/ref, vLLM rollout engine
+  - rllm_grpo      # the `rllm.*` tree: data, rollout sampling, gateway, GRPO, filtering
+  - verl_trainer   # verl-native: model, FSDP2 actor/ref, vLLM rollout engine
   - _self_
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).

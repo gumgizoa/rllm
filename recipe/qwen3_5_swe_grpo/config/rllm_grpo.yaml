@@ -1,8 +1,12 @@
 # @package _global_
 #
-# rLLM-side defaults for native SWE GRPO on verl.
-# verl-side knobs (actor/rollout/FSDP) live in train_verl.sh, next to the
-# hardware assumptions they encode.
+# Everything under the `rllm.*` config tree: the data budget, rollout
+# sampling, the model gateway, GRPO, and episode filtering/logging.
+#
+# The verl-native half of the run -- model, actor/ref FSDP, the vLLM rollout
+# engine -- is the sibling file `verl_trainer.yaml`. The split is by config
+# tree, not by topic, so any key here starts with `rllm.` and no key there
+# does.
 
 rllm:
   data:

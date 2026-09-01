@@ -101,8 +101,8 @@ bash recipe/qwen3_5_swe_grpo/train_verl.sh \
 **Where the knobs live.** All of them are in `config/`; `train_verl.sh` only sets up the
 environment, opens a transcript and execs. The split across the three YAML files is by
 *owner* (recipe / rLLM / verl), but a decision that spans owners is kept together and
-checked: the length budget lives in `grpo_verl.yaml` (`max_prompt_length`,
-`max_response_length`) and `verl_fsdp.yaml` (`max_model_len`), and `train.py` refuses to
+checked: the length budget lives in `rllm_grpo.yaml` (`max_prompt_length`,
+`max_response_length`) and `verl_trainer.yaml` (`max_model_len`), and `train.py` refuses to
 start if they disagree with each other or with `recipe.agent_step_limit`.
 
 **Batch shape.** `rllm.data.train_batch_size=8` (tasks per step; verl's `sync_config`
@@ -806,8 +806,8 @@ recipe/qwen3_5_swe_grpo/
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/
 │   ├── config.yaml               # Hydra entry + recipe.* (datasets, turn budget, sandbox)
-│   ├── grpo_verl.yaml            # rLLM side (data lengths, sampling, gateway, GRPO)
-│   └── verl_fsdp.yaml            # verl side (model, FSDP actor/ref, vLLM rollout)
+│   ├── rllm_grpo.yaml            # the `rllm.*` tree (data, sampling, gateway, GRPO)
+│   └── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
