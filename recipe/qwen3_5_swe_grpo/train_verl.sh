@@ -40,7 +40,19 @@ export RLLM_AGENT_IMAGE="${RLLM_AGENT_IMAGE:-auto}"
 # Stale sockets from a previous colocated run make vLLM's ZMQ handshake hang.
 rm -f /tmp/rl-colocate-zmq-*.sock
 
-exec python "${RECIPE_DIR}/train.py" \
+# Metrics reach stdout only (rllm.trainer.logger=['console']) and most are
+# printed from inside a Ray actor, so Hydra's own train.log captures almost
+# nothing -- a few hundred bytes. Keep a full transcript instead: a multi-hour
+# run whose pearson_corr / pg_loss / groups.* numbers scrolled off the terminal
+# cannot be reasoned about afterwards. Override with TRAIN_LOG=/path.
+LOG_DIR="${RLLM_RUN_DIR:-${REPO_ROOT}/outputs}/logs"
+mkdir -p "${LOG_DIR}"
+TRAIN_LOG="${TRAIN_LOG:-${LOG_DIR}/train_$(date +%Y%m%d_%H%M%S).log}"
+echo "Transcript: ${TRAIN_LOG}"
+
+# No `exec`, so the pipeline survives; `set -o pipefail` above keeps python's
+# exit status rather than tee's.
+python "${RECIPE_DIR}/train.py" \
     rllm/backend=verl \
     +model.name="${MODEL_PATH}" \
     actor_rollout_ref.model.path="${MODEL_PATH}" \
@@ -103,4 +115,4 @@ exec python "${RECIPE_DIR}/train.py" \
     trainer.nnodes=1 \
     trainer.default_hdfs_dir=null \
     trainer.resume_mode=disable \
-    "$@"
+    "$@" 2>&1 | tee -a "${TRAIN_LOG}"
