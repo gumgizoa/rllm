@@ -40,7 +40,14 @@ export PATH="$VENV/bin:$PATH"
 # and raylet starts refusing work at 95% full ("is over 95% full" in the log),
 # so keep Ray on the scratch volume too.
 export RAY_TMPDIR="${RAY_TMPDIR:-$RLLM_SCRATCH/ray}"
-mkdir -p "$RAY_TMPDIR"
+
+# Same reasoning for the other defaults that land on the container's writable
+# layer rather than a mounted volume: torch.compile writes /tmp/torchinductor_*,
+# uv caches wheels under ~/.cache. In a container both of those are the small
+# filesystem. Check any path with: findmnt -no SOURCE,FSTYPE -T <path>
+export TMPDIR="${TMPDIR:-$RLLM_SCRATCH/tmp}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$RLLM_SCRATCH/uv}"
+mkdir -p "$RAY_TMPDIR" "$TMPDIR" "$UV_CACHE_DIR"
 
 mkdir -p "$HF_HOME" "$RLLM_HOME"
 unset _RECIPE_REPO_ROOT
