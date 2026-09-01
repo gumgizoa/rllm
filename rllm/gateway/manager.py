@@ -28,6 +28,7 @@ For Tinker backends, an in-process handler is injected into the gateway
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import socket
@@ -37,6 +38,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
+from omegaconf import OmegaConf
 from rllm_model_gateway.client import AsyncGatewayClient, GatewayClient
 from rllm_model_gateway.models import TraceRecord
 
@@ -168,6 +170,11 @@ class GatewayManager:
         # renderer_family must be set explicitly (e.g. "qwen3", "glm-5").
         self.cumulative_token_mode: bool = gw_cfg.get("cumulative_token_mode", False)
         self.renderer_family: str = gw_cfg.get("renderer_family", "auto")
+        # Overrides on the family's default renderer config, e.g.
+        # {"preserve_thinking": true} so a qwen3.6 bridge keeps historical
+        # <think> blocks instead of forcing a full re-render every user turn.
+        renderer_kwargs = gw_cfg.get("renderer_kwargs", None)
+        self.renderer_kwargs: dict = dict(OmegaConf.to_container(renderer_kwargs, resolve=True) if OmegaConf.is_config(renderer_kwargs) else (renderer_kwargs or {}))
 
         self.mode = mode
 
@@ -361,6 +368,8 @@ class GatewayManager:
             cmd.append("--cumulative-token-mode")
             if self.renderer_family != "auto":
                 cmd.extend(["--renderer-family", self.renderer_family])
+            if self.renderer_kwargs:
+                cmd.extend(["--renderer-kwargs", json.dumps(self.renderer_kwargs)])
 
         logger.info("Starting gateway subprocess: %s", " ".join(cmd))
         # Inherit parent's stdout/stderr so gateway logs are visible for debugging.
@@ -400,6 +409,7 @@ class GatewayManager:
             add_return_token_ids=self.add_return_token_ids,
             cumulative_token_mode=self.cumulative_token_mode,
             renderer_family=self.renderer_family,
+            renderer_kwargs=self.renderer_kwargs,
         )
         app = create_app(config=gw_config, local_handler=local_handler)
 

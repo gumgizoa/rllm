@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import uuid
@@ -158,7 +159,7 @@ def create_app(
         if not config.model:
             raise ValueError("cumulative_token_mode=True requires 'model' to be set in GatewayConfig (path to the served HuggingFace checkpoint).")
         try:
-            from renderers import create_renderer
+            from renderers import config_from_name, create_renderer
             from transformers import AutoTokenizer
         except ImportError as err:
             raise ImportError("cumulative_token_mode requires the 'renderers' and 'transformers' packages. Install them with: pip install renderers transformers") from err
@@ -173,11 +174,30 @@ def create_app(
         # serving from a path, set renderer_family explicitly. Supported families /
         # MODEL_RENDERER_MAP:
         #   https://github.com/PrimeIntellect-ai/renderers/blob/main/renderers/base.py
-        renderer = create_renderer(tokenizer, renderer=config.renderer_family)
+        renderer_config = config_from_name(config.renderer_family)
+        if config.renderer_kwargs:
+            if renderer_config is None:
+                raise ValueError(
+                    "renderer_kwargs requires an explicit renderer_family; "
+                    "'auto' resolves the family only after the tokenizer is inspected, "
+                    "so there is no config to override."
+                )
+            try:
+                renderer_config = type(renderer_config).model_validate(
+                    {**renderer_config.model_dump(), **dict(config.renderer_kwargs)}
+                )
+            except Exception as err:
+                raise ValueError(
+                    f"Invalid renderer_kwargs {dict(config.renderer_kwargs)!r} for "
+                    f"renderer_family={config.renderer_family!r}: {err}"
+                ) from err
+
+        renderer = create_renderer(tokenizer, config=renderer_config)
         logger.info(
-            "Built %s (family=%r) from %s for cumulative token mode",
+            "Built %s (family=%r, kwargs=%r) from %s for cumulative token mode",
             type(renderer).__name__,
             config.renderer_family,
+            dict(config.renderer_kwargs),
             config.model,
         )
         if type(renderer).__name__ == "DefaultRenderer":
@@ -503,6 +523,8 @@ def _load_config(args: argparse.Namespace) -> GatewayConfig:
         data["cumulative_token_mode"] = True
     if getattr(args, "renderer_family", None) is not None:
         data["renderer_family"] = args.renderer_family
+    if getattr(args, "renderer_kwargs", None):
+        data["renderer_kwargs"] = json.loads(args.renderer_kwargs)
 
     # Workers from CLI --worker flags (WorkerConfig validator auto-splits URLs)
     worker_urls = getattr(args, "worker", None) or []
@@ -536,6 +558,16 @@ def main() -> None:
         type=str,
         default=None,
         help="If set, the gateway rewrites every request body's 'model' field to this value before forwarding.",
+    )
+    parser.add_argument(
+        "--renderer-kwargs",
+        type=str,
+        default=None,
+        help=(
+            "JSON object of overrides applied on top of --renderer-family's default renderer "
+            'config, e.g. \'{"preserve_thinking": true}\' for qwen3.6. Requires an explicit '
+            "--renderer-family."
+        ),
     )
     parser.add_argument(
         "--cumulative-token-mode",

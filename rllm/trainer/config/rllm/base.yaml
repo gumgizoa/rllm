@@ -165,6 +165,11 @@ gateway:
                          # path, you must set this explicitly (e.g. qwen3, qwen3.5, qwen3.6, glm-5, 
                          # deepseek-v3, gpt-oss). Check supported model families in MODEL_RENDERER_MAP of 
                          # https://github.com/PrimeIntellect-ai/renderers/blob/main/renderers/base.py
+  renderer_kwargs: {}  # Overrides on the family's default renderer config, e.g.
+                       # {preserve_thinking: true} for qwen3.6 so the cross-turn bridge keeps
+                       # historical <think> blocks (otherwise every new user message forces a
+                       # full re-render and the prefix-extension chain breaks). Requires an
+                       # explicit renderer_family.
 
 # Async Training Configuration
 async_training:

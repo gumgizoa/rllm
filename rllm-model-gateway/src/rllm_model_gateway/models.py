@@ -126,3 +126,7 @@ class GatewayConfig(BaseModel):
     # renderers family for the cumulative-mode bridge. Check supported model families
     # in MODEL_RENDERER_MAP of https://github.com/PrimeIntellect-ai/renderers/blob/main/renderers/base.py
     renderer_family: str = "auto"
+    # Overrides applied on top of the family's default renderer config, e.g.
+    # {"preserve_thinking": true} for qwen3.6. Keys must be fields of that
+    # family's config class; unknown keys are rejected at startup.
+    renderer_kwargs: dict[str, Any] = Field(default_factory=dict)
