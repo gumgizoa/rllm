@@ -27,7 +27,7 @@ recipe:
   # Turn budget per rollout. A merged row grows ~1150 tokens/turn, so this and
   # the length budget move together -- train.py refuses to start if they drift.
   # 80 turns => ~92K of response; the budget below leaves headroom on top.
-  agent_step_limit: 80
+  agent_step_limit: 100
   agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
 
 hydra:
