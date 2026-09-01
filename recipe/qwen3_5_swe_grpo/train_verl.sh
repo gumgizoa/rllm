@@ -55,12 +55,21 @@ exec python "${RECIPE_DIR}/train.py" \
     actor_rollout_ref.model.use_fused_kernels=true \
     actor_rollout_ref.model.fused_kernel_options.impl_backend=torch \
     actor_rollout_ref.model.use_remove_padding=true \
-    `# ...and ONE sequence per micro-batch is what makes that packing safe here:` \
-    `# Qwen3.5 interleaves GatedDeltaNet (linear-attention) layers with full` \
-    `# attention, and a recurrent layer would carry state straight across a` \
-    `# packed sample boundary. Full attention has cu_seqlens; linear attention` \
-    `# does not. Do not raise ppo_micro_batch_size_per_gpu or turn on dynamic` \
-    `# (token-budget) batching without checking that first.` \
+    `# ...and ONE sequence per micro-batch is what makes that packing safe.` \
+    `# The packed forward is input_ids.values().unsqueeze(0) -> (1, total_nnz)` \
+    `# (verl fsdp/transformer_impl.py), so sequence boundaries survive only in` \
+    `# position_ids. Full attention recovers them via cu_seqlens; Qwen3.5's` \
+    `# GatedDeltaNet layers (24 of 32) cannot -- HF's forward signature is` \
+    `# (hidden_states, cache_params, attention_mask) and its fla call passes no` \
+    `# cu_seqlens -- so a recurrent layer carries state across the boundary.` \
+    `#` \
+    `# This does NOT crash. Measured at ppo_micro_batch_size_per_gpu=2:` \
+    `#   rollout_actor_probs_pearson_corr  0.9998 -> 0.9697` \
+    `#   rollout_probs_diff_max            0.23   -> 1.00` \
+    `# i.e. the actor's log-probs stop matching what the policy sampled, while` \
+    `# throughput barely moves (193 -> 203 tok/s). Silent corruption for ~5%.` \
+    `# Same constraint applies to ref/rollout log_prob_micro_batch_size_per_gpu:` \
+    `# all three forwards share this model-level packing setting.` \
     actor_rollout_ref.actor.use_dynamic_bsz=false \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.actor.ppo_mini_batch_size=4 \

@@ -98,12 +98,11 @@ Env knobs: `RLLM_SCRATCH` (storage root), `SANDBOX_BACKEND` (default `docker`),
 `Qwen3_5GatedDeltaNet` **linear-attention** layers with full-attention layers (3:1). Two
 consequences:
 
-* **`ppo_micro_batch_size_per_gpu=1`, `use_dynamic_bsz=false`.** Packing several sequences into
-  one flat batch is fine for full-attention layers (`cu_seqlens`) but a gated-delta-net layer
-  would carry recurrent state straight across the sample boundary. One sequence per
-  micro-batch sidesteps that entirely, which is also what makes `use_remove_padding=true` safe
-  here (see the memory section — the packed layout is not optional). Raising the micro-batch
-  size or switching on token-budget batching needs that checked first.
+* **A micro-batch must hold exactly one sequence.** The recurrent layers make sequence packing
+  unsafe, which pins `ppo_micro_batch_size_per_gpu=1` and `use_dynamic_bsz=false`. Raising either
+  does not crash — it silently decorrelates training from the rollout. This is the one knob most
+  worth understanding before tuning throughput, so it has its own section:
+  [Batch shape](#batch-shape-why-micro_batch_size_per_gpu-must-stay-1).
 * **`flash-linear-attention` must be installed.** 24 of the 32 layers are linear attention, and
   HF's `Qwen3_5GatedDeltaNet` falls back to a pure-PyTorch `torch_chunk_gated_delta_rule` when
   the fused kernels are missing. It is correct but slow, and it dominates the training step.
@@ -169,6 +168,92 @@ trajectories. With 8 GPUs:
 |---|---|---|---|---|---|
 | `train_verl.sh` | 4 | 8 | 32 | 4 | 1 (on-policy) |
 | `smoke_test.sh` | 2 | 4 | 8  | 2 | 1 |
+
+### Batch shape: why `micro_batch_size_per_gpu` must stay 1
+
+Short version: **1 is not a memory concession you can trade away, it is a correctness
+requirement**, and raising it is not even faster.
+
+#### With `use_remove_padding=true` (our config) — runs, silently wrong
+
+verl's packed forward flattens the whole micro-batch into a single row
+(`verl/workers/engine/fsdp/transformer_impl.py`):
+
+```python
+input_ids_rmpad = input_ids.values().unsqueeze(0)   # (1, total_nnz) -- every sequence concatenated
+```
+
+Sequence boundaries then survive only in `position_ids`. Full-attention layers recover them via
+`cu_seqlens`; the 24 gated-delta-net layers cannot:
+
+```python
+# transformers/models/qwen3_5/modeling_qwen3_5.py
+def forward(self, hidden_states, cache_params=None, attention_mask=None):   # no cu_seqlens
+    ...
+    self.chunk_gated_delta_rule(query, key, value, g=g, beta=beta, ...)     # none passed either
+```
+
+fla's `chunk_gated_delta_rule` *does* accept `cu_seqlens` — HF simply never supplies it. So a
+recurrent layer carries state straight from the end of one sample into the start of the next.
+
+Measured A/B, one step, identical config apart from the micro-batch:
+
+| | micro=1 | micro=2 |
+| --- | --- | --- |
+| `training/rollout_actor_probs_pearson_corr` | 0.999761 | **0.969670** |
+| `training/rollout_probs_diff_mean` | 0.002748 | **0.016976** |
+| `training/rollout_probs_diff_max` | 0.229 | **0.999968** |
+| `timing_s/update_actor` | 69.4 s | 55.6 s |
+| `perf/throughput` | 193 tok/s | 203 tok/s |
+
+No exception, no warning; the run completes and reports a loss. What breaks is the thing GRPO
+depends on: the actor's recomputed log-probs no longer match what the policy actually sampled. A
+`probs_diff_max` of ~1.0 means some token's probability is off by the entire range. The payment
+for that is ~5% throughput.
+
+The same packing setting is read by all three forwards — old-log-prob, reference, and the actor
+update all consume the output of `left_right_2_no_padding`, and `use_remove_padding` lives on the
+*model* config shared by every worker (`transformer_impl.py:125`). So
+`ref.log_prob_micro_batch_size_per_gpu` and `rollout.log_prob_micro_batch_size_per_gpu` are bound
+by the same rule, not just the actor's knob.
+
+#### With `use_remove_padding=false` — safe in principle, unusable in practice
+
+The other branch pads instead of packing:
+
+```python
+input_ids = torch.nested.to_padded_tensor(input_ids, ...)        # (B, max_seq_len)
+attention_mask = build_attention_mask_from_nested(...)           # real per-row mask
+```
+
+Each row is independent, and `apply_mask_to_padding_states()` at the top of the gated-delta-net
+forward zeroes the padded positions — so `micro_batch > 1` here would be numerically fine. It
+still does not work for this model, for two measured reasons:
+
+1. **It is incompatible with the fused kernels.** `use_remove_padding=false` +
+   `use_fused_kernels=true` dies at `verl/workers/utils/padding.py:131` —
+   `assert sequence_offsets[-1].item() == values.shape[0]`, i.e. rLLM's `no_padding_2_padding`
+   received model output whose leading dimension is not the packed token count. (Observed, not
+   traced further — the combination was abandoned rather than debugged.)
+2. **Without the fused kernels it OOMs on logits.** Unfused, the head materializes
+   `B x T x 248320 x 4 bytes`. At `B=1` and this recipe's sequence lengths that is already a
+   single 21.48 GiB allocation that fails on an 80 GB card. `B=2` doubles it, and padding sets
+   `T` to the batch maximum for *every* row rather than each row's own length — so the padded
+   path is strictly worse than packing at this vocabulary size, before any correctness
+   argument.
+
+#### Summary
+
+| config | correct? | works? | note |
+| --- | --- | --- | --- |
+| `remove_padding=true`, micro=1 | ✅ | ✅ | **what this recipe uses** |
+| `remove_padding=true`, micro>1 | ❌ silently | ✅ runs | pearson 0.9998 → 0.9697, for ~5% throughput |
+| `remove_padding=false`, micro=1 | ✅ | ❌ | OOM at this recipe's lengths (21.48 GiB logits alloc) |
+| `remove_padding=false`, micro>1 | ✅ | ❌ | assert with fused kernels; worse OOM without |
+
+To actually raise the micro-batch you would have to teach HF's `Qwen3_5GatedDeltaNet` to thread
+`cu_seqlens` (derivable from `position_ids`) into fla's kernel, which already accepts it. Until
+then, throughput comes from `flash-linear-attention` and the fused head, not from batch shape.
 
 ### Memory: the vocabulary is the wall
 
