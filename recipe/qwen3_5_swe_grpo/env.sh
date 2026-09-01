@@ -35,5 +35,12 @@ export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-0}"
 export VENV="${VENV:-$_RECIPE_REPO_ROOT/.venv}"
 export PATH="$VENV/bin:$PATH"
 
+# Ray puts its session dir, logs and object-store spill under /tmp by default.
+# A container root filesystem is usually far smaller than the scratch volume,
+# and raylet starts refusing work at 95% full ("is over 95% full" in the log),
+# so keep Ray on the scratch volume too.
+export RAY_TMPDIR="${RAY_TMPDIR:-$RLLM_SCRATCH/ray}"
+mkdir -p "$RAY_TMPDIR"
+
 mkdir -p "$HF_HOME" "$RLLM_HOME"
 unset _RECIPE_REPO_ROOT
