@@ -18,6 +18,13 @@ rllm:
   algorithm:
     adv_estimator: grpo
     norm_adv_by_std_in_grpo: true
+    # kl_beta=0 is the real switch, and it does more than zero a loss term:
+    # verl's need_reference_policy() is (use_kl_in_reward or use_kl_loss), and
+    # use_kl_loss is *derived* from kl_beta by sync_config. At 0 the reference
+    # policy worker is never created, so each batch skips a full 4B forward
+    # pass and its memory. Do not set actor.use_kl_loss directly -- that
+    # suppresses the derivation and hides where the knob lives.
+    kl_beta: 0.0
 
   rollout:
     n: 8        # GRPO group size
