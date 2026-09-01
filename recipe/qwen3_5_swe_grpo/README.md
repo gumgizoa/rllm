@@ -308,6 +308,93 @@ without it rLLM's `no_padding_2_padding` fails on
 `assert sequence_offsets[-1].item() == values.shape[0]`. That is safe here only because a
 micro-batch holds exactly one sequence — see the hybrid-attention note above.
 
+### Long context, sequence parallelism, and FSDP version
+
+These three interact, so they were measured together. Summary: **fsdp2 + a large
+`max_model_len` gets you to 128K; sequence parallelism does not work with this model
+and is not needed.**
+
+#### fsdp2 is strictly better here — it is the default
+
+`fsdp` (FSDP1, `FSDP(module, ...)`, FlatParameter) vs `fsdp2` (`fully_shard`,
+per-parameter DTensor sharding), same config otherwise, one step:
+
+| | fsdp | fsdp2 |
+| --- | --- | --- |
+| `rollout_actor_probs_pearson_corr` | 0.999662 | **0.999745** |
+| `perf/max_memory_allocated_gb` | 27.1 | **22.8** |
+| `perf/throughput` | 210 tok/s | **215 tok/s** |
+| `timing_s/update_actor` | 62.8 s | **46.9 s** |
+| `timing_s/old_log_probs` | 24.9 s | **13.9 s** |
+| FSDP1 `state_dict_type` deprecation warnings | many | **none** |
+
+verl also patches this model's vision tower specifically for the fsdp2 cpu-offload
+path (`monkey_patch.py`: *"Step 2: patch vision model to fix fsdp2 cpu_offload bug"*),
+so fsdp2 is the path upstream expects for Qwen3.5.
+
+#### Context length: 128K fits without sequence parallelism
+
+Activation memory for one sequence, fwd+bwd, measured with
+`scripts/mem_scaling.py` (single GPU, params unsharded — the real run shards and
+offloads them, so subtract ~8 GB):
+
+| seq_len | peak GB | activation GB | GB / 1K tok |
+| --- | --- | --- | --- |
+| 32768 | 23.7 | 8.0 | 0.251 |
+| 65536 | 34.9 | 19.3 | 0.301 |
+| 131072 | 60.7 | 45.1 | 0.352 |
+
+End-to-end at `max_model_len=131072`, `max_response_length=122880`,
+`agent_step_limit=100`:
+
+```
+response_length/max            73542      one merged row of 73.5K tokens
+batch/n_turns                  64.7       merge_compression_ratio identical -> still one row
+perf/max_memory_allocated_gb   36.2       reserved 40.1, on 80 GB cards
+pearson_corr                   0.999707   correctness holds at length
+maximum-context 400s           0
+termination_reason/error       0.000
+```
+
+So 64K is exercised for real and 128K has headroom. Throughput drops (169 vs 215 tok/s)
+because the sequences are longer, which is the expected trade rather than a problem.
+
+#### `ulysses_sequence_parallel_size > 1` does not work with Qwen3.5
+
+Two independent reasons, both measured.
+
+**It crashes.** `ulysses_sp=2` dies in the fused head:
+
+```
+flash_attn/ops/triton/cross_entropy.py:171
+    assert labels.shape == (n_rows,)
+```
+
+`patch_vlm_for_ulysses_input_slicing` slices `inputs_embeds` with
+`padding=False`, while verl's `forward_with_torch_backend` pads *then* slices the
+labels via `ulysses_pad_and_slice_inputs`. The two disagree whenever `total_nnz` is
+not divisible by the SP size.
+
+**And it would be wrong anyway.** Ulysses gives each rank a contiguous slice of the
+sequence. Full attention recovers the global view through its all-to-all; the 24
+`Qwen3_5GatedDeltaNet` layers cannot, because HF calls
+`chunk_gated_delta_rule(..., initial_state=None)` — every rank restarts the recurrence
+from zero. Measured on the op directly, two ranks over a 1024-token sequence:
+
+| second chunk computed with | max abs error | relative |
+| --- | --- | --- |
+| `initial_state=None` (what ulysses gives it) | 0.006767 | **10.9%** |
+| `cp_context` from `fla.ops.cp.context.get_cp_cu_seqlens` | 0.000000 | **0.00%** |
+
+The fix therefore exists and is exact — `flash-linear-attention` ships a real
+context-parallel gated delta rule — but nothing wires it up: HF passes neither
+`cu_seqlens` nor `cp_context`, and fla's CP path only engages in varlen mode. Making
+SP usable would mean patching `Qwen3_5GatedDeltaNet` to build an `FLACPContext` from
+verl's ulysses process group (plus the same treatment for the depthwise conv, which
+also crosses the rank boundary), and reconciling verl's label padding. That is upstream
+work, and unnecessary at these context lengths — hence
+`ulysses_sequence_parallel_size=1` is pinned in `train_verl.sh`.
+
 ### Compact filtering: removal, not masking
 
 The config keys are named `mask_*`, but nothing is masked — the episode is dropped
@@ -518,5 +605,8 @@ recipe/qwen3_5_swe_grpo/
 ├── config/
 │   ├── config.yaml               # Hydra primary: rllm/base + rllm/backend=verl + grpo_verl
 │   └── grpo_verl.yaml            # rLLM-side defaults (data, rollout, gateway, GRPO, filtering)
-└── scripts/prepare_datasets.py   # builds + registers the train/val benchmarks
+└── scripts/
+    ├── prepare_datasets.py       # builds + registers the train/val benchmarks
+    ├── verify_cumulative.py      # asserts the renderer / cumulative-token invariants
+    └── mem_scaling.py            # activation memory vs sequence length
 ```

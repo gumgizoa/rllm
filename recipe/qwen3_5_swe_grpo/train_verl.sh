@@ -57,6 +57,20 @@ python "${RECIPE_DIR}/train.py" \
     +model.name="${MODEL_PATH}" \
     actor_rollout_ref.model.path="${MODEL_PATH}" \
     actor_rollout_ref.model.trust_remote_code=true \
+    `# fsdp2 (per-parameter DTensor sharding) beats fsdp1 on every axis measured` \
+    `# here: 22.8 vs 27.1 GB peak, 215 vs 210 tok/s, update_actor 46.9 vs 62.8 s,` \
+    `# pearson 0.999745 vs 0.999662, and none of FSDP1's state_dict deprecation` \
+    `# warnings. verl also patches this model's vision tower specifically for the` \
+    `# fsdp2 cpu_offload path.` \
+    actor_rollout_ref.actor.strategy=fsdp2 \
+    actor_rollout_ref.ref.strategy=fsdp2 \
+    `# Sequence parallelism is NOT usable with this model. ulysses_sp>1 slices` \
+    `# inputs_embeds without padding while verl's fused head pads-then-slices the` \
+    `# labels, so it dies in flash_attn cross_entropy on a shape mismatch; and even` \
+    `# past that, the 24 GatedDeltaNet layers would each restart from a zero` \
+    `# recurrent state (measured 10.9% error on the op). Long context is handled by` \
+    `# raising max_model_len instead -- 73.5K sequences train at 36 GB/GPU.` \
+    actor_rollout_ref.actor.ulysses_sequence_parallel_size=1 \
     actor_rollout_ref.model.enable_gradient_checkpointing=true \
     actor_rollout_ref.hybrid_engine=true \
     `# Qwen3.5's vocab is 248320 tokens: one 23K-token sequence's logits in fp32` \
