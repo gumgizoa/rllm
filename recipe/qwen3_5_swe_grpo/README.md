@@ -311,8 +311,9 @@ micro-batch holds exactly one sequence — see the hybrid-attention note above.
 ### Long context, sequence parallelism, and FSDP version
 
 These three interact, so they were measured together. Summary: **fsdp2 + a large
-`max_model_len` gets you to 128K; sequence parallelism does not work with this model
-and is not needed.**
+`max_model_len` gets you to 128K on its own. Sequence parallelism is broken on verl
+0.8.0 and repaired by a backported patch, but even repaired it is not worth enabling
+at this model size — carry it for when the model outgrows one card.**
 
 #### fsdp2 is strictly better here — it is the default
 
@@ -436,14 +437,39 @@ from zero. Measured on the op directly, two ranks over a 1024-token sequence:
 | `initial_state=None` (what ulysses gives it) | 0.006767 | **10.9%** |
 | `cp_context` from `fla.ops.cp.context.get_cp_cu_seqlens` | 0.000000 | **0.00%** |
 
-The fix therefore exists and is exact — `flash-linear-attention` ships a real
-context-parallel gated delta rule — but nothing wires it up: HF passes neither
-`cu_seqlens` nor `cp_context`, and fla's CP path only engages in varlen mode. Making
-SP usable would mean patching `Qwen3_5GatedDeltaNet` to build an `FLACPContext` from
-verl's ulysses process group (plus the same treatment for the depthwise conv, which
-also crosses the rank boundary), and reconciling verl's label padding. That is upstream
-work, and unnecessary at these context lengths — hence
-`ulysses_sequence_parallel_size=1` is pinned in `train_verl.sh`.
+The fix is exactly what PR #6660 does: `flash-linear-attention` ships a real
+context-parallel gated delta rule, and the patch builds an `FLACPContext` from verl's
+ulysses process group (handling the depthwise conv boundary too, via
+`conv_kernel_size`) and reconciles the label padding.
+
+> A trap worth recording: constructing `FLACPContext(...)` by hand and passing it is a
+> **silent no-op**. fla's CP path only engages in varlen mode, and the per-rank metadata
+> has to come from `get_cp_cu_seqlens()`. A first attempt at this reproduced the same
+> 10.9% error with `cp_context` supplied, which looks like "the fix doesn't work" rather
+> than "the fix wasn't wired".
+
+#### What it looks like after the patch
+
+Same one-step measurement, `ulysses_sequence_parallel_size=2`:
+
+| | sp=1 | sp=2 |
+| --- | --- | --- |
+| result | ok | **ok** (was: crash) |
+| `rollout_actor_probs_pearson_corr` | 0.999745 | **0.999605** |
+| `rollout_probs_diff_max` | 0.229 | 0.167 |
+| `perf/max_memory_allocated_gb` | 22.8 | **15.9** |
+| `perf/throughput` | 215 tok/s | 153 tok/s |
+| `timing_s/update_actor` | 46.9 s | 146.5 s |
+
+So SP is now **correct** — and for a 4B model at ~37K sequences, still not worth turning
+on: it buys 30% of activation memory for 3.1x the actor update time, and memory is not
+the binding constraint here. `train_verl.sh` therefore keeps
+`ulysses_sequence_parallel_size=1`. The reason to carry the patch is that the trade
+inverts once activation memory *is* the constraint — a larger model, or context past
+what one card holds.
+
+`ppo_micro_batch_size_per_gpu=2` is likewise correct now (pearson 0.999412) but slower
+than 1 (`update_actor` 91.4 s vs 46.9 s), so that default stands as well.
 
 ### Compact filtering: removal, not masking
 
