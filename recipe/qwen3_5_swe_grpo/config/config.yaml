@@ -19,7 +19,7 @@ recipe:
   train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
-  val_dataset: swebench_verified_local
+  val_dataset: swebench_verified_balanced   # difficulty-balanced; see val_tasks.txt
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
