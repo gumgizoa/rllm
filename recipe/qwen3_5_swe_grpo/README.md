@@ -169,6 +169,40 @@ trajectories. With 8 GPUs:
 | `train_verl.sh` | 4 | 8 | 32 | 4 | 1 (on-policy) |
 | `smoke_test.sh` | 2 | 4 | 8  | 2 | 1 |
 
+### Verifying the renderer / cumulative-token path
+
+The whole multi-turn story rests on three things being simultaneously true, and
+none of them fails loudly. `scripts/verify_cumulative.py` checks all three against
+*real* rollout tokens rather than a synthetic fixture:
+
+```bash
+bash recipe/qwen3_5_swe_grpo/smoke_test.sh \
+    rllm.gateway.store=sqlite \
+    rllm.gateway.db_path="$RLLM_SCRATCH/traces/verify.db"
+python recipe/qwen3_5_swe_grpo/scripts/verify_cumulative.py
+```
+
+| check | what it asserts | measured |
+| --- | --- | --- |
+| `enable_thinking` | the generation prompt opens `<think>` and the completion closes it | 10/10, 8/8, 15/15, 9/9 turns |
+| prefix extension | turn N's `prompt_ids` literally begins with turn N-1's `prompt_ids + completion_ids` | 9/9, 7/7, 14/14, 8/8 transitions |
+| `preserve_thinking` | earlier turns' `<think>` blocks are still in turn N's prompt | 15-turn session: 15 `<think>` / 14 `</think>` in the final prompt |
+| loss mask | replaying `transform.py`'s merge, `mask==1` covers exactly the sampled completions | token **ids** match, not just counts |
+
+`enable_thinking` needs no configuration: Qwen3.5-4B's own template already ends the
+generation prompt with `<think>\n`, so the renderer auto-resolves it to `True`. What
+does need configuring is `preserve_thinking` — see above.
+
+The loss-mask check is worth reading the output of, because counts alone can agree by
+accident. It compares the actual token ids, and prints what each side decodes to:
+
+```
+mask=1 head: 'The user wants me to fix an issue where the `exceptions` property of ...'
+mask=0 head: '\n<|im_start|>user\n<tool_response>\n{\n  "returncode": 0, ...'
+```
+
+Model-generated tokens are trained on; shell output is not.
+
 ### Batch shape: why `micro_batch_size_per_gpu` must stay 1
 
 Short version: **1 is not a memory concession you can trade away, it is a correctness
