@@ -34,6 +34,10 @@ RLLM_SCRATCH=/mnt/big/rllm-work source recipe/qwen3_5_swe_grpo/env.sh
 # Fused kernels for Qwen3.5's linear-attention layers -- not optional, see below.
 uv pip install flash-linear-attention==0.5.2
 
+# Backport verl PR #6660 (in v0.9.0; rLLM pins verl==0.8.0). Fixes Qwen3.5 linear
+# attention under sequence packing and Ulysses SP. Idempotent; --revert undoes it.
+bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh
+
 rllm dataset pull harbor:swebench-verified            # 500 task dirs (text only)
 python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
 xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
@@ -470,6 +474,20 @@ what one card holds.
 
 `ppo_micro_batch_size_per_gpu=2` is likewise correct now (pearson 0.999412) but slower
 than 1 (`update_actor` 91.4 s vs 46.9 s), so that default stands as well.
+
+The patch is safe to leave applied. It routes the default path through the packed
+kernels too (a single sequence becomes `cu_seqlens=[0, T]`), so the default config was
+re-measured for regression — there is none:
+
+| | before patch | after patch |
+| --- | --- | --- |
+| `rollout_actor_probs_pearson_corr` | 0.999745 | 0.999384 |
+| `rollout_probs_diff_max` | 0.229 | 0.174 |
+| `perf/max_memory_allocated_gb` | 22.8 | 22.4 |
+| `perf/throughput` | 215 tok/s | 220 tok/s |
+| `timing_s/update_actor` | 46.9 s | 45.2 s |
+
+All within run-to-run variation across different rollout content.
 
 ### Compact filtering: removal, not masking
 
