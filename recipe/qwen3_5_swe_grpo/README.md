@@ -55,6 +55,14 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   `swebench/sweb.eval.x86_64.*` base image is already in the local Docker daemon. The full
   500-task set needs ~2 TB of images, so validation is pinned to what is pre-pulled. Task dirs
   are copied out of the Harbor cache so this recipe owns their timeouts.
+
+  This run validates on **10 tasks, one per repo** (`--val-limit 10`, and the builder sorts by
+  task id, so ten repos each contribute their single locally-available instance). They were
+  chosen off SWE-bench Verified's own `difficulty` field (`<15 min fix`) with the smallest
+  `FAIL_TO_PASS` + `PASS_TO_PASS` lists, skipping any whose test names contain an empty pytest
+  param id `[]` -- the static signature of the `astropy__astropy-7606` failure below. Ten is
+  small, but it moves resolve-rate granularity from 1/3 to 1/10, which is the difference
+  between a step-to-step curve and noise.
 * **`rllm_swesmith_small/train`** — a round-robin slice of `kylemontgomery/swesmith-filtered`,
   one task per repo, so a smoke run sees repo diversity without pulling all ~4.7K images.
 
@@ -78,7 +86,11 @@ the ones found that way — see `UNSCORABLE` (currently `astropy__astropy-7606`,
 `PASS_TO_PASS` list names `test_compose_roundtrip[]`, a pytest param id that never appears in
 the classic-style output the SWE-bench log parser reads).
 
-Measured on this setup: SWE-bench Verified subset 4/4, SWE-smith 1/1.
+Note the `--base-url`/`--model` flags: the oracle never calls an LLM, but `rllm eval` still
+refuses to start without a configured provider, so point it at a dead port.
+
+Measured on this setup: SWE-bench Verified 12/12 candidates scored 1.0 (the 10 kept plus two
+`sympy` instances held in reserve), SWE-smith 1/1.
 
 ## Run
 

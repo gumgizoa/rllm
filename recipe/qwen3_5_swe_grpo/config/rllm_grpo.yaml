@@ -91,7 +91,7 @@ rllm:
   trainer:
     project_name: qwen3_5-swe-grpo
     experiment_name: qwen3_5-4b-mini-swe-native-verl
-    logger: ['console']
+    logger: ['console', 'wandb']
     val_before_train: true
     test_freq: 5
     save_freq: -1

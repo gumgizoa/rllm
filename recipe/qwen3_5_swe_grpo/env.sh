@@ -10,6 +10,16 @@
 
 _RECIPE_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# Falling back to $HOME/rllm-work silently puts ~40 GB on a container root
+# filesystem that usually cannot hold it, and -- worse -- a *second* scratch
+# root appears next to the real one, so datasets built earlier look missing.
+# Prefer an rllm-work that already exists on a mounted volume.
+if [ -z "${RLLM_SCRATCH:-}" ]; then
+    for _cand in /raid/rllm-work /mnt/rllm-work "$HOME/rllm-work"; do
+        if [ -d "$_cand" ]; then RLLM_SCRATCH="$_cand"; break; fi
+    done
+    unset _cand
+fi
 export RLLM_SCRATCH="${RLLM_SCRATCH:-$HOME/rllm-work}"
 
 # train_verl.sh re-sources this file, so sourcing twice must not pin stale
