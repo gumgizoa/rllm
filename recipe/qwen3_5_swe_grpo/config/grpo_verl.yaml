@@ -90,3 +90,9 @@ rllm:
 
   episode_logging:
     log_episodes: true
+    # Default is `logs/<project>/<experiment>` relative to cwd, i.e. inside the
+    # repo. Episodes carry the full chat history, so they run ~2.5 MB each --
+    # 32 per step adds up to gigabytes on whatever filesystem the repo lives on,
+    # which in a container is usually the small one. Keep them on the scratch
+    # volume with the rest of the run's bulk.
+    episode_log_dir: ${oc.env:RLLM_SCRATCH,${oc.env:HOME}/rllm-work}/episodes/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}
