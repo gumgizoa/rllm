@@ -55,8 +55,12 @@ rllm:
     renderer_kwargs:
       preserve_thinking: true
 
-  # Zero out the loss on trajectories that were cut off rather than finished,
-  # so truncation/timeouts don't get learned as if they were policy choices.
+  # Despite the `mask_*` names these DROP the episode (transform.py:120 does a
+  # `continue`), before TrajectoryGroups are built -- so a filtered rollout also
+  # stops contributing to its GRPO group's mean/std, not just to the loss.
+  # Token-level masking of observation tokens is a separate, always-on thing.
+  # NB: in this recipe's runs only `error` ever fired; context overruns are
+  # removed a stage earlier as zero-step episodes. See README.
   compact_filtering:
     enable: true
     mask_max_prompt_length_exceeded: true

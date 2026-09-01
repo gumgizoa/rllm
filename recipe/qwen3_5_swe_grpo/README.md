@@ -274,6 +274,67 @@ without it rLLM's `no_padding_2_padding` fails on
 `assert sequence_offsets[-1].item() == values.shape[0]`. That is safe here only because a
 micro-batch holds exactly one sequence — see the hybrid-attention note above.
 
+### Compact filtering: removal, not masking
+
+The config keys are named `mask_*`, but nothing is masked — the episode is dropped
+(`rllm/trainer/algorithms/transform.py:120`):
+
+```python
+for episode in episodes:
+    termination_reason = episode.termination_reason or TerminationReason.UNKNOWN
+    if compact_filtering_config and compact_filtering_config.should_mask(termination_reason):
+        continue                       # episode never becomes a trajectory
+```
+
+This runs *before* `TrajectoryGroup`s are built, which has a consequence worth being explicit
+about: **a filtered rollout does not contribute to its GRPO group's mean and std either.** GRPO
+normalizes reward within a group, so removing members changes the baseline the survivors are
+scored against. At `rollout.n=8` with two rollouts filtered, the remaining six form the group.
+That is usually what you want — a timed-out rollout is not evidence about the policy — but it is
+not the same thing as "its loss is zeroed".
+
+Token-level loss masking is a **separate**, always-on mechanism
+(`rllm/trainer/verl/transform.py:385`):
+
+```python
+seg["mask"].extend([0] * len(delta_obs))   # shell output — not the policy's tokens
+seg["mask"].extend([1] * len(action))      # what the model generated
+```
+
+When the turns of an episode merge into one row, observation tokens get mask 0 and action tokens
+get mask 1, regardless of how the episode ended.
+
+#### There are three removal stages, and the first one does most of the work
+
+| stage | where | condition |
+| --- | --- | --- |
+| 1 | `rllm/engine/agent_workflow_engine.py:262` | `all(len(t.steps) == 0 ...)` → "has no valid trajectories, dropping it from the batch" |
+| 2 | `rllm/trainer/algorithms/transform.py:120` | `compact_filtering.should_mask(termination_reason)` → episode dropped |
+| 3 | `rllm/trainer/buffer.py:203` | `len(g.trajectories) < min_trajs_per_group` → whole **group** dropped |
+
+**In every run measured here, stage 2 removed nothing.** `num_trajs_before_filter` equalled
+`num_trajs_after_filter`, and the termination histogram was all `env_done` plus some `error` —
+`max_response_length_exceeded`, `timeout` and `max_turns_exceeded` were **0.000 throughout**. So
+the `mask_timeout` / `mask_max_response_length_exceeded` paths are configured but unexercised.
+
+What actually happened to context overruns, traced through `train3` (`max_model_len=32768`,
+64 rollouts over 2 steps):
+
+```
+44  vLLM HTTP 400 "maximum context length is 32768 tokens"
+43  EnrichMismatchError (traces=N agent_steps=0 empty_prompt_ids=1 ...)
+25  Attempt 1/2 failed   →  7 recovered on retry
+18  Attempt 2/2 failed   →  18 episodes with zero steps
+18  "has no valid trajectories, dropping it from the batch"     ← stage 1
+    termination_reason/error: 0.125 (step 1) + 0.4375 (step 2) = 18/64 ✓
+```
+
+An overrun is **not** a graceful truncation. vLLM rejects the request, litellm's retries all fail
+against the same ceiling, the agent produces no usable step, and the episode is discarded whole
+before compact filtering is ever consulted. That is why `max_model_len` is sized to the training
+row width rather than left to `compact_filtering` to clean up — see
+[Turn budget](#turn-budget) and [Lengths](#lengths).
+
 ### Turn budget
 
 Upstream mini-swe-agent defaults to `agent.step_limit: 0` (unlimited) and relies on
@@ -294,8 +355,8 @@ so 50 turns ≈ 33K tokens under the 40960 ceiling.
 An AgentFlow batch row is one **merged trajectory**: the prompt is turn 1's prompt and the
 response accumulates every later turn's observation + action delta. So `max_response_length`
 (24576) has to cover a whole episode, while `rllm.rollout.train.max_tokens` (4096) caps a single
-turn. `rllm.compact_filtering` zeroes the loss on trajectories that were truncated or timed out
-rather than finished, so those don't get learned as if they were policy choices.
+turn. Rollouts that end badly rather than finishing are removed by
+[compact filtering](#compact-filtering-removal-not-masking).
 
 ### HuggingFace rate limits
 
