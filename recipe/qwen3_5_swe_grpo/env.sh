@@ -11,8 +11,25 @@
 _RECIPE_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 export RLLM_SCRATCH="${RLLM_SCRATCH:-$HOME/rllm-work}"
-export HF_HOME="${HF_HOME:-$RLLM_SCRATCH/hf}"
-export RLLM_HOME="${RLLM_HOME:-$RLLM_SCRATCH/rllm-home}"
+
+# train_verl.sh re-sources this file, so sourcing twice must not pin stale
+# paths: a plain ${HF_HOME:-...} would keep whatever the first sourcing
+# exported even after RLLM_SCRATCH changed. Recompute a value this script
+# derived itself; leave an explicitly set one alone.
+# The sentinel records that *this script* derived the value, so a path you set
+# yourself is never recomputed while a derived one always tracks RLLM_SCRATCH.
+if [ -z "${HF_HOME:-}" ] || [ "${HF_HOME:-}" = "${_RLLM_ENV_HF_HOME:-}" ]; then
+    export HF_HOME="$RLLM_SCRATCH/hf"
+    export _RLLM_ENV_HF_HOME="$HF_HOME"
+else
+    unset _RLLM_ENV_HF_HOME
+fi
+if [ -z "${RLLM_HOME:-}" ] || [ "${RLLM_HOME:-}" = "${_RLLM_ENV_RLLM_HOME:-}" ]; then
+    export RLLM_HOME="$RLLM_SCRATCH/rllm-home"
+    export _RLLM_ENV_RLLM_HOME="$RLLM_HOME"
+else
+    unset _RLLM_ENV_RLLM_HOME
+fi
 export HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER:-0}"
 
 export VENV="${VENV:-$_RECIPE_REPO_ROOT/.venv}"
