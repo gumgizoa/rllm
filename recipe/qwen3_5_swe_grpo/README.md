@@ -98,12 +98,18 @@ bash recipe/qwen3_5_swe_grpo/train_verl.sh \
     rllm.trainer.test_freq=5
 ```
 
-**Batch shape.** `rllm.data.train_batch_size=4` (tasks per step, in `config/grpo_verl.yaml`
-— verl's `sync_config` mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 32
-trajectories per step, and `ppo_mini_batch_size=4` x 8 = 32 makes that exactly one
-optimizer update: strictly on-policy GRPO. The rLLM-side knobs live in the YAML and the
-verl/hardware ones in `train_verl.sh`, which is why `train_batch_size` is not on the
-command line.
+**Where the knobs live.** All of them are in `config/`; `train_verl.sh` only sets up the
+environment, opens a transcript and execs. The split across the three YAML files is by
+*owner* (recipe / rLLM / verl), but a decision that spans owners is kept together and
+checked: the length budget lives in `grpo_verl.yaml` (`max_prompt_length`,
+`max_response_length`) and `verl_fsdp.yaml` (`max_model_len`), and `train.py` refuses to
+start if they disagree with each other or with `recipe.agent_step_limit`.
+
+**Batch shape.** `rllm.data.train_batch_size=8` (tasks per step; verl's `sync_config`
+mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 64 trajectories per step,
+and `ppo_mini_batch_size=8` x 8 = 64 makes that exactly one optimizer update — strictly
+on-policy GRPO. That is 8 rows per GPU against `ppo_micro_batch_size_per_gpu=1`, i.e.
+gradient accumulation of 8 (relevant only when scaling to an untied model, see below).
 
 Any Hydra override passes through:
 
@@ -796,11 +802,12 @@ recipe/qwen3_5_swe_grpo/
 ├── README.md
 ├── env.sh                        # RLLM_SCRATCH / HF_HOME / RLLM_HOME / venv
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl")
-├── train_verl.sh                 # verl/vLLM/FSDP knobs + hardware assumptions
+├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/
-│   ├── config.yaml               # Hydra primary: rllm/base + rllm/backend=verl + grpo_verl
-│   └── grpo_verl.yaml            # rLLM-side defaults (data, rollout, gateway, GRPO, filtering)
+│   ├── config.yaml               # Hydra entry + recipe.* (datasets, turn budget, sandbox)
+│   ├── grpo_verl.yaml            # rLLM side (data lengths, sampling, gateway, GRPO)
+│   └── verl_fsdp.yaml            # verl side (model, FSDP actor/ref, vLLM rollout)
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/

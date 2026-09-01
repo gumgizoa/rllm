@@ -10,10 +10,15 @@ rllm:
     # prompt is the first turn's prompt and the response accumulates every
     # later turn's observation + action deltas. Response length therefore
     # has to cover a whole multi-turn episode, not a single completion.
-    train_batch_size: 4
+    # 8 tasks x rollout.n=8 = 64 trajectories per step. verl requires
+    # train_batch_size * rollout.n to divide n_gpus (64 % 8 = 0).
+    train_batch_size: 8
     val_batch_size: -1
+    # max_prompt_length + max_response_length must equal
+    # actor_rollout_ref.rollout.max_model_len -- see the sizing section in the
+    # README. At agent_step_limit=80 (~92K of response) this leaves headroom.
     max_prompt_length: 8192
-    max_response_length: 40960
+    max_response_length: 122880
 
   algorithm:
     adv_estimator: grpo
