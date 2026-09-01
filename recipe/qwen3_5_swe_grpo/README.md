@@ -41,6 +41,12 @@ bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh
 rllm dataset pull harbor:swebench-verified            # 500 task dirs (text only)
 python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
 xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
+
+# A larger training split for real runs. --train-name keeps it beside the smoke set
+# rather than overwriting it; the image sets overlap heavily (50 tasks -> 26 images).
+python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py \
+    --train-only --train-limit 50 --train-name rllm_swesmith_50
+xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull {}
 ```
 
 `prepare_datasets.py` registers two small benchmarks under `$RLLM_HOME/datasets`:
@@ -77,9 +83,27 @@ Measured on this setup: SWE-bench Verified subset 4/4, SWE-smith 1/1.
 ## Run
 
 ```bash
-bash recipe/qwen3_5_swe_grpo/smoke_test.sh    # 1 batch, 2 tasks x 4 rollouts — "does it run?"
-bash recipe/qwen3_5_swe_grpo/train_verl.sh    # 24 tasks x 8 rollouts, 1 epoch
+# 1 batch, 2 tasks x 4 rollouts -- "does it run?"
+bash recipe/qwen3_5_swe_grpo/smoke_test.sh
+
+# 24-task smoke split, 1 epoch
+bash recipe/qwen3_5_swe_grpo/train_verl.sh
+
+# a real run: 50 tasks / 4 per step = 13 steps, validating every 5
+bash recipe/qwen3_5_swe_grpo/train_verl.sh \
+    recipe.train_dataset=rllm_swesmith_50 \
+    rllm.trainer.logger="['console','wandb']" \
+    rllm.trainer.experiment_name=qwen3_5-4b-swesmith50-grpo \
+    rllm.trainer.val_before_train=true \
+    rllm.trainer.test_freq=5
 ```
+
+**Batch shape.** `rllm.data.train_batch_size=4` (tasks per step, in `config/grpo_verl.yaml`
+— verl's `sync_config` mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 32
+trajectories per step, and `ppo_mini_batch_size=4` x 8 = 32 makes that exactly one
+optimizer update: strictly on-policy GRPO. The rLLM-side knobs live in the YAML and the
+verl/hardware ones in `train_verl.sh`, which is why `train_batch_size` is not on the
+command line.
 
 Any Hydra override passes through:
 
@@ -472,8 +496,28 @@ the binding constraint here. `train_verl.sh` therefore keeps
 inverts once activation memory *is* the constraint — a larger model, or context past
 what one card holds.
 
-`ppo_micro_batch_size_per_gpu=2` is likewise correct now (pearson 0.999412) but slower
-than 1 (`update_actor` 91.4 s vs 46.9 s), so that default stands as well.
+`ppo_micro_batch_size_per_gpu=2` is likewise correct now (pearson 0.999412) but slower,
+so that default stands too — for a different reason than before. Normalized against token
+count (both runs processed ~710K tokens and did identical work: 32 rollouts, 32 mini-batch
+rows, one update):
+
+| | µs / token | vs micro=1 |
+| --- | --- | --- |
+| `ppo_micro_batch_size_per_gpu=1` | 64.0 | — |
+| `ppo_micro_batch_size_per_gpu=2` | 128.6 | **2.01x** |
+| `ulysses_sequence_parallel_size=2` | 198.2 | 3.10x |
+
+The kernels are **not** the cause. `scripts/pack_cost.py` times the real model's fwd+bwd
+under the four layouts that matter and finds no packing penalty at all:
+
+```
+B / A  = 1.00x   turning on the varlen path (cu_seqlens=[0,2T]) costs nothing
+C / D  = 0.97x   two rows packed is marginally *faster* than two separate passes
+A/(2E) = 1.03x   attention is not quadratic across a packed row
+```
+
+So the 2x lives somewhere in verl's micro-batch plumbing, not in the model. It was not
+isolated further — the knob stays at 1 either way, which is both correct and fastest.
 
 The patch is safe to leave applied. It routes the default path through the packed
 kernels too (a single sequence becomes `cu_seqlens=[0, T]`), so the default config was
@@ -488,6 +532,24 @@ re-measured for regression — there is none:
 | `timing_s/update_actor` | 46.9 s | 45.2 s |
 
 All within run-to-run variation across different rollout content.
+
+#### Before scaling to a larger model
+
+Two things to check, neither of which bites Qwen3.5-4B.
+
+**verl [#7520](https://github.com/verl-project/verl/issues/7520)** (open, unassigned):
+an **untied** `lm_head` + FSDP2 + `use_fused_kernels=true` + gradient accumulation crashes
+with `AttributeError: 'FSDPParam' object has no attribute '_unsharded_param'` during the
+backward of a non-final micro-batch. Qwen3.5-4B sets `tie_word_embeddings: true` so it is
+unaffected, but 9B and up are untied and would hit exactly this recipe's configuration.
+Until it is fixed, a larger model needs either no gradient accumulation
+(`ppo_mini_batch_size * rollout.n == the whole batch`, which is what this recipe already
+does) or fused kernels off — and fused kernels are not really optional at this vocabulary
+size, so prefer the former.
+
+**Sequence parallelism becomes worth its cost.** At 4B it buys 30% of activation memory
+for 3.1x the actor update. Once activation memory is what binds — a bigger model, or
+context past one card — that inverts, and the backported patch is what makes it available.
 
 ### Compact filtering: removal, not masking
 
@@ -549,6 +611,46 @@ against the same ceiling, the agent produces no usable step, and the episode is 
 before compact filtering is ever consulted. That is why `max_model_len` is sized to the training
 row width rather than left to `compact_filtering` to clean up — see
 [Turn budget](#turn-budget) and [Lengths](#lengths).
+
+### Picking `agent_step_limit` and `max_model_len` together
+
+These two are one decision. Every mini-swe-agent turn appends its observation and action
+to a prompt that is never re-rendered, so the cumulative prompt grows roughly linearly and
+the ceiling has to be sized for the *last* turn, not the first.
+
+Measured across runs (`response_length/max` is one merged training row):
+
+| `agent_step_limit` | `max_model_len` | turns reached | longest merged row | 400s |
+| --- | --- | --- | --- | --- |
+| 25 | 32768 | 25.0 | 18,557 | 0 |
+| 40 | **32768** | ~40 | — | **44** ← lost 18 episodes |
+| 40 | 49152 | 36–40 | 41,686 | 0 |
+| 100 | 131072 | 64.7 | 73,542 | 0 |
+
+About **1,100 tokens per turn** of merged response, so:
+
+```
+max_response_length  ≈  1150 × agent_step_limit
+max_model_len         =  max_prompt_length + max_response_length
+```
+
+Two rules behind that arithmetic:
+
+* **`max_model_len` must be ≥ the training row width.** Going over it is not a graceful
+  truncation — vLLM returns HTTP 400 mid-rollout, litellm's retries all hit the same wall,
+  and the episode is discarded whole (see the compact-filtering section). Going *under* the
+  row width just means compact filtering masks the overflow, which is the survivable
+  failure. So err generous.
+* **Being generous is cheap.** Activation memory runs 0.25–0.35 GB per 1K tokens, so even
+  131072 lands at ~47 GB per 80 GB card. Throughput is what you actually pay: 220 tok/s at
+  49152 versus 169 at 131072, because the sequences are longer.
+
+**Defaults in this recipe:** `agent_step_limit=40`, `max_model_len=49152`
+(= 8192 + 40960). Validated over six runs with zero context-length errors. That is the
+tightest pairing that holds — 32768 at the same step limit lost 28% of its rollouts.
+
+Raising the turn budget means raising both, e.g. `agent_step_limit=60` wants
+`max_response_length≈69632`, `max_model_len=77824`.
 
 ### Turn budget
 
@@ -699,8 +801,12 @@ recipe/qwen3_5_swe_grpo/
 ├── config/
 │   ├── config.yaml               # Hydra primary: rllm/base + rllm/backend=verl + grpo_verl
 │   └── grpo_verl.yaml            # rLLM-side defaults (data, rollout, gateway, GRPO, filtering)
+├── patches/
+│   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
     ├── prepare_datasets.py       # builds + registers the train/val benchmarks
+    ├── apply_verl_patches.sh     # applies patches/ to the installed verl
     ├── verify_cumulative.py      # asserts the renderer / cumulative-token invariants
-    └── mem_scaling.py            # activation memory vs sequence length
+    ├── mem_scaling.py            # activation memory vs sequence length
+    └── pack_cost.py              # fwd+bwd cost of packed vs separate micro-batches
 ```
