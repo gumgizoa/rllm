@@ -71,8 +71,19 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   `--val-name` builds a variant side by side. Rebuilding a name deletes and recopies its task
   dirs, which pulls them out from under a run already pointing at them -- the val twin of the
   same warning on `--train-name`.
-* **`rllm_swesmith_small/train`** — a round-robin slice of `kylemontgomery/swesmith-filtered`,
+* **`rllm_swesmith_fn50/train`** — a round-robin slice of `kylemontgomery/swesmith-filtered`,
   one task per repo, so a smoke run sees repo diversity without pulling all ~4.7K images.
+
+  **Filter by mutation kind or the run learns nothing.** SWE-smith names tasks
+  `<repo>.<sha>.<kind>__<hash>`, and the kind is the only difficulty signal there is -- the
+  adapter stamps `difficulty = "hard"` on every task, so `task.toml` cannot separate them. An
+  unfiltered round-robin comes out ~47% `combine_file` (several bugs merged into one file). On
+  such a 50-task slice the untrained 4B policy scored **0/88**: every GRPO group had reward std
+  0, so `advantage/mean`, `actor/pg_loss` and `grad_norm` were all exactly `0.0` and the weights
+  never moved, while the oracle scored 50/50 on the same tasks. The default `--train-kinds`
+  keeps `func_pm_*` (single-line edits to one function) and `func_basic` (one function
+  rewritten). `--train-pool` sets how many task dirs to download before filtering -- the filter
+  discards most of the pool, so it wants to be several times `--train-limit`.
 
 For both, the script patches `[agent].timeout_sec=900` / `[verifier].timeout_sec=1800` into
 each `task.toml` (upstream ships 3000/3000, which at `rollout.n=8` makes one batch take hours).

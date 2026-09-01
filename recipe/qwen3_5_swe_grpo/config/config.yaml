@@ -16,7 +16,7 @@ defaults:
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
-  train_dataset: rllm_swesmith_small
+  train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
   val_dataset: swebench_verified_local

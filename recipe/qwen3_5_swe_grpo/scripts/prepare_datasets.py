@@ -41,6 +41,19 @@ VAL_NAME = "swebench_verified_local"
 VAL_SPLIT = "test"
 
 SWESMITH_BENCH = "rllm-swesmith"  # raw builder output
+
+# SWE-smith names every task <repo>.<sha>.<mutation kind>__<hash>, and the kind
+# is the only difficulty signal available: the adapter stamps
+# `difficulty = "hard"` on all of them, so task.toml cannot tell them apart.
+# It matters more than it looks. A round-robin slice of the raw pool is ~47%
+# `combine_file` (several bugs merged into one file) and the untrained 4B policy
+# scored 0/88 on such a slice -- every GRPO group had reward std 0, so
+# advantage, pg_loss and grad_norm were all exactly 0.0 and the weights never
+# moved. The `func_pm_*` kinds are single-line edits to one function and
+# `func_basic` rewrites one function, which is where a small policy can
+# actually land some successes and give the group something to rank.
+KIND_RE = re.compile(r"\.([a-z_]+)__[a-z0-9]+$")
+SINGLE_FUNCTION_KINDS = ("func_pm_", "func_basic")
 TRAIN_NAME = "rllm_swesmith_small"
 TRAIN_SPLIT = "train"
 
@@ -225,7 +238,7 @@ def row_instruction(task_dir: Path) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
-def build_train(out_root: Path, limit: int, rebuild: bool, name: str = TRAIN_NAME) -> int:
+def build_train(out_root: Path, limit: int, rebuild: bool, name: str = TRAIN_NAME, kinds: tuple[str, ...] | None = None, local_images_only: bool = False, pool: int | None = None) -> int:
     from rllm.data.swesmith_builder import build_benchmark
 
     bench = out_root / SWESMITH_BENCH
@@ -234,16 +247,40 @@ def build_train(out_root: Path, limit: int, rebuild: bool, name: str = TRAIN_NAM
             name=SWESMITH_BENCH,
             split=TRAIN_SPLIT,
             out_dir=bench,
-            limit=limit,
+            limit=pool or limit,
             clean=rebuild,
             register=False,
         )
 
     from rllm.data import DatasetRegistry
 
-    task_dirs = sorted(d for d in bench.iterdir() if d.is_dir() and (d / "task.toml").exists())[:limit]
+    candidates = sorted(d for d in bench.iterdir() if d.is_dir() and (d / "task.toml").exists())
+    if kinds:
+        candidates = [d for d in candidates if (m := KIND_RE.search(d.name)) and m.group(1).startswith(kinds)]
+    if local_images_only:
+        have = local_images()
+        candidates = [d for d in candidates if base_image(d) in have]
+
+    # Round-robin across repos so a slice of N is N repos where possible, rather
+    # than N mutations of whichever repo sorts first.
+    by_repo: dict[str, list[Path]] = {}
+    for d in candidates:
+        by_repo.setdefault(d.name.split(".", 1)[0], []).append(d)
+    task_dirs = []
+    while len(task_dirs) < limit and any(by_repo.values()):
+        for repo in sorted(by_repo):
+            if len(task_dirs) >= limit:
+                break
+            if by_repo[repo]:
+                task_dirs.append(by_repo[repo].pop(0))
+
     if not task_dirs:
-        sys.exit(f"No SWE-smith tasks built under {bench}")
+        sys.exit(
+            f"No SWE-smith tasks under {bench} matched kinds={kinds} local_images_only={local_images_only}. "
+            f"Raise --train-pool, or drop the filters."
+        )
+    if len(task_dirs) < limit:
+        print(f"[train] warning: only {len(task_dirs)} of {limit} requested tasks matched the filters")
 
     out = out_root / name
     if out.exists():
@@ -300,6 +337,30 @@ def main() -> None:
         ),
     )
     ap.add_argument("--rebuild-train", action="store_true", help="Re-download and rebuild the SWE-smith benchmark dir.")
+    ap.add_argument(
+        "--train-pool",
+        type=int,
+        default=None,
+        help=(
+            "Task dirs to download into the raw SWE-smith benchmark before filtering (default: --train-limit). "
+            "The kind filters throw most of the pool away, so this needs to be several times --train-limit."
+        ),
+    )
+    ap.add_argument(
+        "--train-kinds",
+        default=",".join(SINGLE_FUNCTION_KINDS),
+        help=(
+            "Comma-separated SWE-smith mutation-kind prefixes to keep (default: %(default)s). "
+            "Pass an empty string to keep every kind -- but see KIND_RE above: an unfiltered slice is "
+            "mostly `combine_file`, which a small policy solves 0%% of the time, and a task no rollout "
+            "ever solves contributes exactly nothing to GRPO."
+        ),
+    )
+    ap.add_argument(
+        "--train-any-image",
+        action="store_true",
+        help="Keep tasks whose base image is not pulled yet (default: local images only, so no surprise pulls).",
+    )
     ap.add_argument("--keep-unscorable", action="store_true", help="Keep val tasks that even the oracle cannot score.")
     ap.add_argument(
         "--val-name",
@@ -333,7 +394,15 @@ def main() -> None:
     if not args.train_only:
         summary["val"] = build_val(out_root, args.val_limit, args.keep_unscorable, read_val_ids(args.val_ids), args.val_name)
     if not args.val_only:
-        summary["train"] = build_train(out_root, args.train_limit, args.rebuild_train, args.train_name)
+        summary["train"] = build_train(
+            out_root,
+            args.train_limit,
+            args.rebuild_train,
+            args.train_name,
+            kinds=tuple(k for k in args.train_kinds.split(",") if k),
+            local_images_only=not args.train_any_image,
+            pool=args.train_pool,
+        )
     print(json.dumps(summary))
 
 
