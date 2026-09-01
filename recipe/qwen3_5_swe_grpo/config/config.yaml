@@ -1,0 +1,37 @@
+# Hydra entry point for the Qwen3.5-4B native SWE GRPO recipe.
+#
+# `hydra.searchpath` is what lets a config living outside the rllm package
+# reference rLLM's and verl's config groups. It also has to live here, in the
+# *primary* config, which is why `unified.yaml` is not pulled in as a default:
+# it declares a searchpath of its own and Hydra rejects that from a non-primary
+# config. So this file inlines what `unified` composes -- rllm/base plus the
+# verl backend (which itself pulls in verl's ppo_trainer) -- and then layers
+# this recipe's overrides from `grpo_verl.yaml`.
+defaults:
+  - rllm: base
+  - rllm/backend: verl
+  - grpo_verl
+  - _self_
+
+# Recipe-level knobs read by train.py (not part of rLLM's schema).
+recipe:
+  train_dataset: rllm_swesmith_small
+  train_split: train
+  train_limit: -1          # <=0 keeps the whole registered split
+  val_dataset: swebench_verified_local
+  val_split: test
+  val_limit: -1
+  sandbox_backend: docker  # SANDBOX_BACKEND env var wins
+  sandbox_concurrency: 16     # caps live sandboxes AND the warm-queue prefetch depth
+  # Turn budget per rollout. Sized so the cumulative prompt stays inside
+  # actor_rollout_ref.rollout.max_model_len (~620 tokens/turn measured on
+  # SWE-smith with a 4B policy).
+  agent_step_limit: 40
+  agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
+
+hydra:
+  run:
+    dir: ${oc.env:RLLM_RUN_DIR,outputs}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  searchpath:
+    - pkg://rllm.trainer.config
+    - pkg://verl.trainer.config
