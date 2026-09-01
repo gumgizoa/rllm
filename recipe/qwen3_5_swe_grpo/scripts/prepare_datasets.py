@@ -191,7 +191,7 @@ def row_instruction(task_dir: Path) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
-def build_train(out_root: Path, limit: int, rebuild: bool) -> int:
+def build_train(out_root: Path, limit: int, rebuild: bool, name: str = TRAIN_NAME) -> int:
     from rllm.data.swesmith_builder import build_benchmark
 
     bench = out_root / SWESMITH_BENCH
@@ -211,7 +211,7 @@ def build_train(out_root: Path, limit: int, rebuild: bool) -> int:
     if not task_dirs:
         sys.exit(f"No SWE-smith tasks built under {bench}")
 
-    out = out_root / TRAIN_NAME
+    out = out_root / name
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -234,7 +234,7 @@ def build_train(out_root: Path, limit: int, rebuild: bool) -> int:
         )
 
     DatasetRegistry.register_dataset(
-        name=TRAIN_NAME,
+        name=name,
         data=rows,
         split=TRAIN_SPLIT,
         source="kylemontgomery/swesmith-filtered",
@@ -245,7 +245,7 @@ def build_train(out_root: Path, limit: int, rebuild: bool) -> int:
     images = sorted({r["docker_image"] for r in rows if r["docker_image"]})
     (out / "images.txt").write_text("\n".join(images) + "\n", encoding="utf-8")
     missing = [i for i in images if i not in local_images()]
-    print(f"[train] {TRAIN_NAME}/{TRAIN_SPLIT}: {len(rows)} tasks -> {out}")
+    print(f"[train] {name}/{TRAIN_SPLIT}: {len(rows)} tasks -> {out}")
     print(f"[train] base images: {len(images)} total, {len(missing)} not yet pulled")
     if missing:
         print(f"[train] pull them with:\n        xargs -a {out / 'images.txt'} -P 4 -I{{}} docker pull {{}}")
@@ -256,6 +256,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--val-limit", type=int, default=None, help="Cap the val subset (default: every locally available, oracle-scorable task).")
     ap.add_argument("--train-limit", type=int, default=24, help="Number of SWE-smith training tasks.")
+    ap.add_argument(
+        "--train-name",
+        default=TRAIN_NAME,
+        help=(
+            f"Registry name for the training split (default: {TRAIN_NAME}). Use a distinct name to "
+            "keep several sizes side by side -- rebuilding a name deletes its task dirs, which would "
+            "break a run already pointing at them."
+        ),
+    )
     ap.add_argument("--rebuild-train", action="store_true", help="Re-download and rebuild the SWE-smith benchmark dir.")
     ap.add_argument("--keep-unscorable", action="store_true", help="Keep val tasks that even the oracle cannot score.")
     ap.add_argument("--val-only", action="store_true")
@@ -271,7 +280,7 @@ def main() -> None:
     if not args.train_only:
         summary["val"] = build_val(out_root, args.val_limit, args.keep_unscorable)
     if not args.val_only:
-        summary["train"] = build_train(out_root, args.train_limit, args.rebuild_train)
+        summary["train"] = build_train(out_root, args.train_limit, args.rebuild_train, args.train_name)
     print(json.dumps(summary))
 
 
