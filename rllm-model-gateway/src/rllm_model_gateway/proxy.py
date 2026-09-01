@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -63,6 +64,30 @@ def _strip_logprobs(response: dict[str, Any]) -> dict[str, Any]:
         **response,
         "choices": [{k: v for k, v in choice.items() if k != "logprobs"} for choice in response["choices"]],
     }
+
+
+def _tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+    """Flatten OpenAI ``tools`` into the renderers ``ToolSpec`` shape.
+
+    The parser consults each parameter's declared JSON-schema type to
+    disambiguate XML-rendered argument values (``true`` the bool vs. ``"true"``
+    the string), so passing the specs through matters for correctness.
+    """
+    if not tools:
+        return None
+    specs = []
+    for tool in tools:
+        fn = tool.get("function") if isinstance(tool, dict) else None
+        if not isinstance(fn, dict) or not fn.get("name"):
+            continue
+        specs.append(
+            {
+                "name": fn["name"],
+                "description": fn.get("description", ""),
+                "parameters": fn.get("parameters", {}) or {},
+            }
+        )
+    return specs or None
 
 
 class ReverseProxy:
@@ -288,6 +313,10 @@ class ReverseProxy:
         completions_body["add_special_tokens"] = False
 
         if is_stream:
+            if request_body.get("tools"):
+                return await self._handle_cumulative_buffered_stream(
+                    request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
+                )
             return await self._handle_cumulative_streaming(request, request_body, completions_body, session_id, acc, token_ids)
         return await self._handle_cumulative_non_streaming(
             request,
@@ -299,7 +328,59 @@ class ReverseProxy:
             originally_requested_logprobs,
         )
 
-    async def _handle_cumulative_non_streaming(
+    def _completion_to_chat_message(
+        self,
+        text: str,
+        completion_token_ids: list[int] | None,
+        tools: list[dict[str, Any]] | None,
+    ) -> dict[str, Any]:
+        """Structure a ``/v1/completions`` result as an OpenAI chat message.
+
+        Cumulative token mode bypasses ``/v1/chat/completions``, and with it
+        vLLM's reasoning and tool-call parsers — the raw text comes back with
+        ``</think>`` and ``<tool_call>`` markup inline. A tool-calling agent
+        (mini-swe-agent, opencode, ...) then sees no ``tool_calls`` on every
+        turn past the first and stalls. The renderer that builds the cumulative
+        prompt also knows how to parse that model family's completion, so use
+        it here to recover ``content`` / ``reasoning_content`` / ``tool_calls``.
+        """
+        fallback = {"role": "assistant", "content": text}
+        if self.renderer is None or not completion_token_ids:
+            return fallback
+
+        try:
+            from renderers.base import ToolCallParseStatus
+
+            parsed = self.renderer.parse_response(list(completion_token_ids), tools=_tool_specs(tools))
+        except Exception:
+            logger.warning("Renderer could not parse a cumulative-turn completion; forwarding raw text", exc_info=True)
+            return fallback
+
+        tool_calls = [
+            {
+                "id": tc.id or f"call_{uuid.uuid4().hex[:16]}",
+                "type": "function",
+                "function": {
+                    "name": tc.name,
+                    "arguments": tc.arguments if isinstance(tc.arguments, str) else json.dumps(tc.arguments or {}, ensure_ascii=False),
+                },
+            }
+            for tc in parsed.tool_calls
+            if tc.status == ToolCallParseStatus.OK and tc.name
+        ]
+
+        message: dict[str, Any] = {"role": "assistant", "content": parsed.content or None}
+        if parsed.reasoning_content:
+            message["reasoning_content"] = parsed.reasoning_content
+        if tool_calls:
+            message["tool_calls"] = tool_calls
+        elif message["content"] is None:
+            # Nothing recovered at all — better to hand back the raw text than
+            # an empty message the agent cannot act on.
+            message["content"] = text
+        return message
+
+    async def _cumulative_completion(
         self,
         request: Request,
         request_body: dict[str, Any],
@@ -308,8 +389,17 @@ class ReverseProxy:
         acc: TokenAccumulator,
         token_ids: list[int],
         originally_requested_logprobs: bool = False,
-    ) -> Response:
-        """Non-streaming cumulative turn: send non-streaming to vLLM, return JSON."""
+    ) -> tuple[dict[str, Any], int]:
+        """Run one cumulative turn against ``/v1/completions``.
+
+        Owns everything that is independent of how the result is delivered:
+        the upstream call, accumulator ingest, chat-shaping (including
+        renderer-based tool-call parsing) and trace capture. Both the JSON and
+        the SSE delivery paths go through here, so a tool-calling agent sees the
+        same message either way.
+
+        Returns the sanitized chat-completion body and the upstream status code.
+        """
         t0 = time.perf_counter()
 
         worker = self.router.route(session_id)
@@ -345,7 +435,13 @@ class ReverseProxy:
         choices = response_body.get("choices") or []
         if choices:
             first_choice = choices[0]
-            first_choice["message"] = {"role": "assistant", "content": first_choice.pop("text", "")}
+            first_choice["message"] = self._completion_to_chat_message(
+                first_choice.pop("text", ""),
+                completion_token_ids,
+                request_body.get("tools"),
+            )
+            if first_choice["message"].get("tool_calls") and first_choice.get("finish_reason") in (None, "stop"):
+                first_choice["finish_reason"] = "tool_calls"
         response_body["object"] = "chat.completion"
 
         if session_id and response_body:
@@ -359,10 +455,96 @@ class ReverseProxy:
             if not originally_requested_logprobs:
                 sanitized = _strip_logprobs(sanitized)
 
+        return sanitized, status_code
+
+    async def _handle_cumulative_non_streaming(
+        self,
+        request: Request,
+        request_body: dict[str, Any],
+        completions_body: dict[str, Any],
+        session_id: str,
+        acc: TokenAccumulator,
+        token_ids: list[int],
+        originally_requested_logprobs: bool = False,
+    ) -> Response:
+        """Non-streaming cumulative turn: return the chat completion as JSON."""
+        body, status_code = await self._cumulative_completion(
+            request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
+        )
         return Response(
-            content=json.dumps(sanitized),
+            content=json.dumps(body),
             status_code=status_code,
             media_type="application/json",
+        )
+
+    @staticmethod
+    def _sse_frames(body: dict[str, Any], include_usage: bool):
+        """Re-emit a finished chat completion as chat.completion.chunk SSE frames.
+
+        Used by the buffered streaming path: the message is already complete, so
+        the frames carry it in one pass (role, then reasoning / content /
+        tool_calls, then finish_reason) rather than incrementally. The wire
+        protocol a streaming client expects is unchanged; only the timing is.
+        """
+        choice = (body.get("choices") or [{}])[0]
+        message = choice.get("message") or {}
+        base = {
+            "id": body.get("id", ""),
+            "object": "chat.completion.chunk",
+            "created": body.get("created", 0),
+            "model": body.get("model", ""),
+        }
+
+        def frame(delta: dict[str, Any], finish_reason: Any = None) -> str:
+            chunk = {**base, "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}]}
+            return f"data: {json.dumps(chunk)}\n\n"
+
+        yield frame({"role": "assistant"})
+        if message.get("reasoning_content"):
+            yield frame({"reasoning_content": message["reasoning_content"]})
+        if message.get("content"):
+            yield frame({"content": message["content"]})
+        for i, tool_call in enumerate(message.get("tool_calls") or []):
+            yield frame({"tool_calls": [{"index": i, **tool_call}]})
+        yield frame({}, choice.get("finish_reason"))
+        if include_usage and body.get("usage"):
+            yield f"data: {json.dumps({**base, 'choices': [], 'usage': body['usage']})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    async def _handle_cumulative_buffered_stream(
+        self,
+        request: Request,
+        request_body: dict[str, Any],
+        completions_body: dict[str, Any],
+        session_id: str,
+        acc: TokenAccumulator,
+        token_ids: list[int],
+        originally_requested_logprobs: bool = False,
+    ) -> StreamingResponse:
+        """Streaming turn for a tool-calling request: buffer upstream, then emit SSE.
+
+        Tool calls in this family are *markup* inside the completion
+        (``<tool_call><function=..>``), so they cannot be recognised from a
+        partial text delta without a per-family incremental parser. Rather than
+        stream raw markup as ``content`` -- which is what a tool-calling agent
+        chokes on -- take the completion non-streaming, parse it with the
+        renderer, and hand the client well-formed chunks. The client keeps its
+        SSE contract; it just receives everything at the end.
+        """
+        completions_body = {**completions_body, "stream": False}
+        body, status_code = await self._cumulative_completion(
+            request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
+        )
+        include_usage = bool((request_body.get("stream_options") or {}).get("include_usage"))
+
+        async def event_generator():
+            for chunk in self._sse_frames(body, include_usage):
+                yield chunk
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            status_code=status_code,
         )
 
     async def _handle_cumulative_streaming(
@@ -374,7 +556,13 @@ class ReverseProxy:
         acc: TokenAccumulator,
         token_ids: list[int],
     ) -> StreamingResponse:
-        """Streaming cumulative turn: stream from vLLM, translate chunks to chat format."""
+        """Streaming cumulative turn: stream from vLLM, translate chunks to chat format.
+
+        True incremental streaming, used when the request carries no ``tools``.
+        Requests that do carry tools are routed to
+        :meth:`_handle_cumulative_buffered_stream` instead, because their tool
+        calls are markup that cannot be recognised from a partial text delta.
+        """
         completions_body["stream"] = True
 
         worker = self.router.route(session_id)
