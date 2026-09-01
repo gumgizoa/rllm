@@ -500,6 +500,7 @@ class UnifiedTrainer:
         if hooks is None or not getattr(hooks, "sandbox_backend", None) or warm_queue_size == 0:
             return None
 
+        from rllm.sandbox.agent_image import resolve_agent_mount_image
         from rllm.sandbox.snapshot import install_script_for
         from rllm.sandbox.train_schedule import build_train_schedule
         from rllm.sandbox.warm_queue import WarmQueue
@@ -512,7 +513,20 @@ class UnifiedTrainer:
         if use_total_batches:
             remaining = min(remaining, self.rllm_config.trainer.total_batches - consumed)
         schedule = build_train_schedule(train_dataloader, group_size=self.rllm_config.rollout.n, total_epochs=total_epochs, remaining_batches=remaining)
-        warm_queue = WarmQueue(schedule, hooks.sandbox_backend, hooks.registry, size, install_script=install_script_for(flow))
+        # The agent-image mount has to be handed to the queue too: SandboxTaskHooks
+        # marks the CLI as pre-provisioned (``baked_install``) whenever a mount image
+        # resolves, and skips the per-task install. A warm sandbox created without the
+        # mount would then have neither, and every rollout dies with
+        # "mini-swe-agent: command not found" (zero traces, reward 0). Mirrors
+        # ``rllm/eval/runner.py``.
+        warm_queue = WarmQueue(
+            schedule,
+            hooks.sandbox_backend,
+            hooks.registry,
+            size,
+            install_script=install_script_for(flow),
+            agent_mount_image=resolve_agent_mount_image(flow, hooks.sandbox_backend),
+        )
         hooks.warm_queue = warm_queue
         warm_queue.start()
         logger.info("training warm queue started: %d ahead over %d scheduled tasks", size, len(schedule))
