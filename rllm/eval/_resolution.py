@@ -20,6 +20,7 @@ import base64
 import importlib
 import inspect
 import logging
+import os
 import re
 import uuid
 from collections.abc import Callable
@@ -226,18 +227,72 @@ def _create_sandbox_for_task(task: Task, sandbox_backend: str | None, *, mounts:
     return sandbox
 
 
+# Harbor's ``EnvironmentConfig`` defaults (harbor/models/task/config.py). rLLM
+# reads the same ``task.toml``, so a field the task leaves out should land on the
+# value Harbor would have used rather than on "unlimited".
+_HARBOR_DEFAULT_CPUS = 1
+_HARBOR_DEFAULT_MEMORY_MB = 2048
+
+
+def _parse_size_mb(value: object) -> int | None:
+    """Megabytes from Harbor's deprecated ``memory`` / ``storage`` size strings.
+
+    Harbor's ``EnvironmentConfig`` canonicalizes on ``memory_mb`` / ``storage_mb``
+    and keeps ``memory`` / ``storage`` as deprecated string fields, mapped through
+    ``_parse_size_to_mb``. Task dirs in the wild still use both spellings --
+    swesmith and swebench-pro write ``memory_mb = 4096``, swebench-verified writes
+    ``memory = '4G'`` -- so both have to be read here.
+
+    Accepts the same units Harbor does (G/M/K, case-insensitive) and, like
+    Harbor, rejects anything else rather than guessing: a size the task author
+    wrote wrong should be visible, not silently reinterpreted as bytes.
+    """
+    if value is None:
+        return None
+    text = str(value).strip().upper()
+    if text.endswith("G"):
+        scale = 1024.0
+    elif text.endswith("M"):
+        scale = 1.0
+    elif text.endswith("K"):
+        scale = 1 / 1024
+    else:
+        raise ValueError(f"Invalid size format: {value!r}. Expected a Harbor size string like '4G', '512M' or '1024K'.")
+    return int(float(text[:-1]) * scale)
+
+
+def _env_size_mb(env: dict, mb_key: str, size_key: str) -> int | None:
+    """Read ``<x>_mb`` if present, else the deprecated ``<x>`` size string."""
+    raw = env.get(mb_key)
+    if raw is not None:
+        return int(float(raw))
+    return _parse_size_mb(env.get(size_key))
+
+
 def _sandbox_resource_kwargs(task: Task, backend: str) -> dict:
     """Map a harbor task's declared ``[environment]`` resources to backend kwargs.
 
-    Harbor task.toml declares ``cpus`` / ``memory_mb`` / ``storage_mb``; without
-    these a remote sandbox runs at the backend default (Daytona: 1 GiB), which
-    OOM-kills compile-heavy graders (e.g. ``go test ./...``). Modal takes memory
-    in MB; Daytona takes memory/disk in GB. Docker/local ignore the values.
+    Without these a remote sandbox runs at the backend default (Daytona: 1 GiB),
+    which OOM-kills compile-heavy graders (e.g. ``go test ./...``), and a docker
+    sandbox runs with no limit at all -- one runaway verifier pytest reached
+    519 GB RSS and stalled a training run.
+
+    Docker mirrors what Harbor's compose applies: ``deploy.resources.limits``
+    sets only ``cpus`` and ``memory``, so this sets only ``nano_cpus`` and
+    ``mem_limit``. ``storage_mb`` is skipped -- Docker would need
+    ``--storage-opt size=``, which requires overlay2 on xfs with pquota and is
+    unavailable under the containerd snapshotter. Modal takes memory in MB;
+    Daytona takes memory/disk in GB. ``local`` ignores the values.
     """
     env = task.metadata.get("environment", {}) or {}
-    cpus, mem_mb, disk_mb = env.get("cpus"), env.get("memory_mb"), env.get("storage_mb")
+    cpus = env.get("cpus")
+    mem_mb = _env_size_mb(env, "memory_mb", "memory")
+    disk_mb = _env_size_mb(env, "storage_mb", "storage")
     kw: dict = {}
-    if backend == "modal":
+    if backend == "docker":
+        kw["nano_cpus"] = int(float(cpus if cpus else _HARBOR_DEFAULT_CPUS) * 1_000_000_000)
+        kw["mem_limit"] = f"{mem_mb if mem_mb else _HARBOR_DEFAULT_MEMORY_MB}m"
+    elif backend == "modal":
         if cpus:
             kw["cpu"] = float(cpus)
         if mem_mb:

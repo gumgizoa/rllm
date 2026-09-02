@@ -6,6 +6,15 @@ import subprocess
 from typing import Protocol, runtime_checkable
 
 
+class SandboxExecTimeout(TimeoutError):
+    """Raised when :meth:`Sandbox.exec` exceeds its ``timeout``.
+
+    A distinct type because callers treat it differently from a non-zero exit:
+    a verifier that exits 1 means "agent did not solve it", a verifier that
+    times out means the environment is unusable and the sandbox is gone.
+    """
+
+
 class SnapshotNotFound(Exception):
     """Raised by ``create_sandbox(image=ref)`` when a snapshot ref no longer
     resolves on its backend, signalling :func:`rllm.sandbox.snapshot.get_sandbox`

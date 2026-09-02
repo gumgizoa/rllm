@@ -797,6 +797,55 @@ Both verifiers also need the network at runtime: SWE-bench Verified's `test.sh` 
 `apt-get install` + `uv add pytest swebench datasets swesmith`. Blocking egress means
 pre-baking those into the task images first.
 
+### A hung verifier used to hang the whole run
+
+`rllm/sandbox/backends/docker.py` accepted `exec(timeout=...)` and dropped it —
+the docstring said so ("currently unused by Docker SDK"). So `task.toml`'s
+`[verifier] timeout_sec` was a no-op on the docker backend and `exec_run`
+blocked forever. One agent patch sent a verifier `pytest` into a loop and the
+training run sat for **2h58m** at 63/64 of a rollout step, GPUs at 0%, that
+container at **519 GB RSS**. Nothing in the stack could end it.
+
+`exec()` now enforces the timeout in two layers:
+
+1. `timeout --kill-after=15s <sec>` inside the container. Cheap, and the
+   container survives, so the episode is simply scored unsolved.
+2. A client-side deadline. This is the layer that actually guarantees the
+   caller unblocks. In the incident a `timeout` process was already `<defunct>`
+   while its *grandchild* pytest kept running — GNU `timeout` signals only its
+   direct child. Killing the container is the only thing that reliably reaps
+   every descendant, so on expiry that is what happens.
+
+Note the exit codes: GNU `timeout` returns 124 when SIGTERM sufficed but **137**
+when it escalated to `--kill-after`'s SIGKILL, and 137 is also what an OOM kill
+looks like. Elapsed time separates them, so a real OOM still surfaces as a
+command failure rather than a timeout.
+
+Containers were also created with no limits at all, which is why 519 GB was
+reachable. `_sandbox_resource_kwargs` now maps them for docker too, mirroring
+what Harbor's own compose applies — `deploy.resources.limits` sets `cpus` and
+`memory` and nothing else, so this sets `nano_cpus` and `mem_limit` and nothing
+else. Values come from the task's `[environment]`, and an undeclared field falls
+back to Harbor's `EnvironmentConfig` default (1 cpu, 2048 MB) rather than to
+"unlimited", so rLLM and Harbor run the same task under the same budget.
+
+Two wrinkles in reading those values:
+
+* **Both spellings exist.** Harbor canonicalizes on `memory_mb` / `storage_mb`
+  and keeps `memory` / `storage` as deprecated string fields. swesmith and
+  swebench-pro task dirs write `memory_mb = 4096`; swebench-verified writes
+  `memory = '4G'`. `_parse_size_mb` reads the string form with the same units
+  Harbor accepts (G/M/K) and, like Harbor, raises on anything else instead of
+  guessing — a size written wrong should be visible. This fixed the remote
+  backends too: daytona previously read only `memory_mb`/`storage_mb`, so every
+  swebench-verified task silently got no memory or disk limit.
+* **`storage_mb` is not applied to docker.** It would need `--storage-opt size=`,
+  i.e. overlay2 on xfs with pquota, unavailable under the containerd snapshotter.
+
+Note that `cpus` is a CFS quota, not a core mask: a single-process pytest is
+unaffected, a parallel test run is slowed to the declared budget. That is the
+budget Harbor already runs these tasks under.
+
 ## Fixes this recipe required in rLLM
 
 Each of these was a hard failure of the native training path, not a tuning choice:

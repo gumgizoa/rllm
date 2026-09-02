@@ -5,9 +5,31 @@ from __future__ import annotations
 import io
 import logging
 import os
+import shlex
 import tarfile
+import threading
+import time
+
+from rllm.sandbox.protocol import SandboxExecTimeout
 
 logger = logging.getLogger(__name__)
+
+# Grace between the in-container SIGTERM and SIGKILL, and how long the client
+# waits past the deadline before giving up on the container entirely.
+_EXEC_KILL_GRACE_SEC = 15
+_EXEC_CLIENT_SLACK_SEC = 30
+
+
+class _ExecFailed(RuntimeError):
+    """Non-zero exit from a container command, carrying the code.
+
+    Subclasses RuntimeError so callers that already catch RuntimeError -- the
+    evaluators do -- are unaffected.
+    """
+
+    def __init__(self, message: str, exit_code: int):
+        super().__init__(message)
+        self.exit_code = exit_code
 
 # Linux Docker does not define ``host.docker.internal`` unless the container
 # is started with ``--add-host=host.docker.internal:host-gateway``.
@@ -26,11 +48,21 @@ class DockerSandbox:
     separately when using ``backend=docker``).
     """
 
-    def __init__(self, name: str, image: str = "python:3.11-slim", *, mounts: list[dict] | None = None, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        image: str = "python:3.11-slim",
+        *,
+        mounts: list[dict] | None = None,
+        mem_limit: str | int | None = None,
+        nano_cpus: int | None = None,
+        **kwargs,
+    ):
         import docker
 
         self.name = name
         self.image = image
+        self._timeout_cmd: bool | None = None
         self._client = docker.from_env()
         run_kwargs: dict = {
             "command": "sleep infinity",
@@ -41,6 +73,15 @@ class DockerSandbox:
         }
         if mounts:
             run_kwargs["mounts"] = mounts
+        # Unbounded until now: a runaway verifier reached 519 GB RSS on a host
+        # that happened to have 2 TB. These are the two limits Harbor's compose
+        # applies (``deploy.resources.limits.cpus`` / ``memory``); the values
+        # come from the task's ``[environment]`` via
+        # ``_sandbox_resource_kwargs``.
+        if mem_limit:
+            run_kwargs["mem_limit"] = mem_limit
+        if nano_cpus:
+            run_kwargs["nano_cpus"] = int(nano_cpus)
         self._container = self._client.containers.run(image, **run_kwargs)
         agent_mounts = [m.get("source") for m in mounts or [] if m.get("type") == "image"]
         if agent_mounts:
@@ -59,11 +100,87 @@ class DockerSandbox:
 
         Args:
             command: Shell command to run.
-            timeout: Optional per-call timeout (currently unused by Docker SDK).
+            timeout: Optional per-call timeout in seconds. Enforced in two
+                layers -- see below. ``None`` waits forever, as before.
             user: Optional UID/username to run as (e.g., ``"agent"``, ``"1000"``).
                 Maps to ``docker exec --user``. If ``None``, runs as the
                 container's default user.
+
+        Raises:
+            SandboxExecTimeout: the command exceeded ``timeout``.
+
+        ``timeout`` used to be accepted and dropped ("currently unused by
+        Docker SDK"), so ``task.toml``'s ``[verifier] timeout_sec`` was a no-op
+        here and ``exec_run`` blocked forever. One verifier pytest that looped
+        stalled a whole training run for 2h58m with the GPUs idle and the
+        container at 519 GB RSS. The SDK still has no timeout, so this enforces
+        it in two layers:
+
+        1. ``timeout --kill-after`` inside the container. Cheap, and the
+           container survives, so the episode fails and is scored as unsolved.
+        2. A client-side deadline. This is the layer that actually guarantees
+           the caller unblocks: in the incident above a ``timeout`` process was
+           already defunct while its *grandchild* pytest kept running, because
+           GNU timeout signals only its direct child. Killing the container is
+           the only thing that reliably stops every descendant, so on expiry
+           that is what happens -- which also stops the runaway from burning
+           CPU and memory while the episode unwinds.
         """
+        if timeout is None:
+            return self._exec_now(command, user)
+
+        deadline = float(timeout)
+        if self._has_timeout_cmd():
+            command = f"timeout --kill-after={_EXEC_KILL_GRACE_SEC}s {deadline:.0f} bash -c {shlex.quote(command)}"
+
+        box: dict = {}
+
+        def _run() -> None:
+            try:
+                box["ok"] = self._exec_now(command, user)
+            except BaseException as e:  # noqa: BLE001 - handed to the caller thread
+                box["err"] = e
+
+        worker = threading.Thread(target=_run, name=f"docker-exec-{self.name}", daemon=True)
+        started = time.monotonic()
+        worker.start()
+        worker.join(deadline + _EXEC_KILL_GRACE_SEC + _EXEC_CLIENT_SLACK_SEC)
+        if worker.is_alive():
+            logger.warning(
+                "Sandbox %s: exec exceeded %.0fs and the in-container timeout did not free it — killing the container. Command: %s",
+                self.name,
+                deadline,
+                command[:200],
+            )
+            try:
+                self._container.kill()
+            except Exception:
+                logger.debug("Sandbox %s: kill after exec timeout failed", self.name, exc_info=True)
+            raise SandboxExecTimeout(f"exec exceeded {deadline:.0f}s in container {self.name} (container killed)")
+        err = box.get("err")
+        if err is not None:
+            # GNU timeout exits 124 when SIGTERM did the job, but 137 (128+9)
+            # when it had to escalate to --kill-after's SIGKILL -- and 137 is
+            # also what an OOM kill looks like. Elapsed time separates them:
+            # a timeout runs out the clock, an OOM kill usually does not.
+            code = getattr(err, "exit_code", None)
+            timed_out = code == 124 or (code == 137 and time.monotonic() - started >= deadline)
+            if timed_out:
+                raise SandboxExecTimeout(f"exec exceeded {deadline:.0f}s in container {self.name} (exit {code})") from err
+            raise err
+        return box["ok"]
+
+    def _has_timeout_cmd(self) -> bool:
+        """Whether GNU ``timeout`` exists in the image. Probed once per container."""
+        if self._timeout_cmd is None:
+            try:
+                code, _ = self._container.exec_run(["bash", "-c", "command -v timeout"], demux=True)
+                self._timeout_cmd = code == 0
+            except Exception:
+                self._timeout_cmd = False
+        return self._timeout_cmd
+
+    def _exec_now(self, command: str, user: str | None) -> str:
         kwargs: dict = {"demux": True}
         if user is not None:
             kwargs["user"] = user
@@ -91,7 +208,10 @@ class DockerSandbox:
                 stdout[-full_tail:] if len(stdout) > full_tail else stdout,
                 stderr[-full_tail:] if len(stderr) > full_tail else stderr,
             )
-            raise RuntimeError(f"Command failed (exit {exit_code}) in container {self.name}: {command}\nstderr (tail):\n{err_tail}")
+            raise _ExecFailed(
+                f"Command failed (exit {exit_code}) in container {self.name}: {command}\nstderr (tail):\n{err_tail}",
+                exit_code,
+            )
         return stdout
 
     def upload_file(self, local_path: str, remote_path: str) -> None:
