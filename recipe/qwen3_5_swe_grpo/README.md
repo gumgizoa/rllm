@@ -133,10 +133,11 @@ transcript under `logs/` carries the same id, so a log and its episodes pair up.
 
 **Where the knobs live.** All of them are in `config/`; `train_verl.sh` only sets up the
 environment, opens a transcript and execs. The split across the three YAML files is by
-*owner* (recipe / rLLM / verl), but a decision that spans owners is kept together and
-checked: the length budget lives in `rllm_grpo.yaml` (`max_prompt_length`,
-`max_response_length`) and `verl_trainer.yaml` (`max_model_len`), and `train.py` refuses to
-start if they disagree with each other or with `recipe.agent_step_limit`.
+*owner* (recipe / rLLM / verl). One decision spans owners and has to be kept consistent by
+hand: `max_prompt_length + max_response_length` (`rllm_grpo.yaml`) must equal
+`max_model_len` (`verl_trainer.yaml`). Those two set the padded width of every training row
+and `rllm/trainer/verl/transform.py:38` truncates an overrun *silently*, so a stale value
+here does not fail — it quietly drops the tail of every long episode.
 
 **Batch shape.** `rllm.data.train_batch_size=8` (tasks per step; verl's `sync_config`
 mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 64 trajectories per step,
@@ -187,6 +188,39 @@ consequences:
 
 verl 0.8.0 does support the architecture (`verl/models/transformers/qwen3_5.py`, plus a
 `monkey_patch.py` branch for `model_type in ("qwen3_5", "qwen3_5_moe")`).
+
+#### The vision tower and the MTP head are carried, not trained
+
+The checkpoint is 4.66B parameters in three groups, and only one of them is what this recipe
+trains:
+
+| group | params | share | in this run |
+| --- | --- | --- | --- |
+| `model.language_model` | 4,205,751,296 | 90.3% | trained |
+| `model.visual` | 333,514,240 | 7.2% | carried, never updated |
+| `mtp` | 120,599,552 | 2.6% | never instantiated |
+
+**The vision tower is not frozen, and verl's switch for it does nothing.**
+`actor.freeze_vision_tower` exists in `verl/trainer/config/actor/actor.yaml:52` (default
+`false`) and as a dataclass field at `verl/workers/config/actor.py:160`, but **no code in the
+installed packages reads it** — setting it `true` is a no-op in verl 0.8.0. Instantiating
+`Qwen3_5ForConditionalGeneration` confirms every `model.visual.*` parameter comes up with
+`requires_grad=True`.
+
+It does not matter much here, because SWE tasks carry no images. With no image tokens the
+tower is never called, so it stays out of the autograd graph, `p.grad` stays `None`, and
+torch's AdamW skips those parameters *and* never allocates their state (the state dict is
+populated lazily in `step()`). So the 2.5 GiB of Adam moments never appear and the weights
+do not move. What remains is the bf16 weights themselves: 0.62 GiB, or **0.08 GiB per GPU**
+sharded across 8 — noise against the 30-40 GB this run actually peaks at. If you do want it
+gone, the flag will not do it; it takes a `model.visual.requires_grad_(False)` after model
+construction.
+
+The `mtp` group is different: `Qwen3_5ForConditionalGeneration` does not build it at all, so
+those 120.6M parameters exist in the checkpoint on disk and nowhere in the training graph.
+They load as unexpected keys and are dropped. Harmless for training, but worth knowing when
+saving and reloading — a checkpoint written from this run carries the MTP head at its
+original values while the language model has moved.
 
 ### preserve_thinking, and why it is not just a chat template
 
