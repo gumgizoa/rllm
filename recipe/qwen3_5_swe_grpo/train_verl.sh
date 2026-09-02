@@ -55,7 +55,8 @@ rm -f /tmp/rl-colocate-zmq-*.sock
 # cannot be reasoned about afterwards.
 LOG_DIR="${RLLM_RUN_DIR:-${REPO_ROOT}/outputs}/logs"
 mkdir -p "${LOG_DIR}"
-TRAIN_LOG="${TRAIN_LOG:-${LOG_DIR}/train_$(date +%Y%m%d_%H%M%S).log}"
+export RLLM_RUN_ID="${RLLM_RUN_ID:-$(date +%Y%m%d_%H%M%S)}"
+TRAIN_LOG="${TRAIN_LOG:-${LOG_DIR}/train_${RLLM_RUN_ID}.log}"
 echo "Transcript: ${TRAIN_LOG}"
 
 # No `exec`, so the pipeline survives; `set -o pipefail` above keeps python's

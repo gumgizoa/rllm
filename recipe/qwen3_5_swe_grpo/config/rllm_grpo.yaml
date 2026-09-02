@@ -104,4 +104,6 @@ rllm:
     # 32 per step adds up to gigabytes on whatever filesystem the repo lives on,
     # which in a container is usually the small one. Keep them on the scratch
     # volume with the rest of the run's bulk.
-    episode_log_dir: ${oc.env:RLLM_SCRATCH,${oc.env:HOME}/rllm-work}/episodes/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}
+    # RLLM_RUN_ID is stamped by train.py (and pinned by train_verl.sh) so two
+    # runs of the same experiment cannot merge or overwrite each other's episodes.
+    episode_log_dir: ${oc.env:RLLM_SCRATCH,${oc.env:HOME}/rllm-work}/episodes/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}/${oc.env:RLLM_RUN_ID}

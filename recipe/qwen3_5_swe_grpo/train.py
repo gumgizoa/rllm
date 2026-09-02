@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 
 import hydra
 from omegaconf import DictConfig
@@ -29,6 +30,17 @@ from rllm.trainer import AgentTrainer
 from rllm.types import AgentConfig, Task
 
 logger = logging.getLogger(__name__)
+
+# Episode logs are keyed by <project>/<experiment>, which is stable across runs,
+# so two runs of this recipe wrote into the same train_step_N_epoch_0 directory:
+# one merged 88 old episodes with 64 new ones, and the next silently *overwrote*
+# the previous run's files, because the episode filename is a hash of the task
+# plus the rollout index and both runs draw the same tasks in the same order.
+# Post-hoc analysis then reads two runs as one. Stamp a run id so each launch
+# owns its directory. Set before Hydra composes, since the config interpolates
+# ``${oc.env:RLLM_RUN_ID}``; ``setdefault`` lets train_verl.sh pin the same id it
+# puts on the transcript filename, and a bare ``python train.py`` still gets one.
+os.environ.setdefault("RLLM_RUN_ID", time.strftime("%Y%m%d_%H%M%S"))
 
 
 class StepLimitedMiniSweAgent(MiniSweAgentHarness):

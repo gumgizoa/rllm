@@ -117,17 +117,19 @@ Measured on this setup: SWE-bench Verified 12/12 candidates scored 1.0 (the 10 k
 # 1 batch, 2 tasks x 4 rollouts -- "does it run?"
 bash recipe/qwen3_5_swe_grpo/smoke_test.sh
 
-# 24-task smoke split, 1 epoch
+# the defaults: 50 SWE-smith tasks / 8 per step = 6 steps, 1 epoch,
+# validating before training, at step 5, and at the end
 bash recipe/qwen3_5_swe_grpo/train_verl.sh
-
-# a real run: 50 tasks / 4 per step = 13 steps, validating every 5
-bash recipe/qwen3_5_swe_grpo/train_verl.sh \
-    recipe.train_dataset=rllm_swesmith_50 \
-    rllm.trainer.logger="['console','wandb']" \
-    rllm.trainer.experiment_name=qwen3_5-4b-swesmith50-grpo \
-    rllm.trainer.val_before_train=true \
-    rllm.trainer.test_freq=5
 ```
+
+**Every run gets its own episode directory.** `train_verl.sh` stamps `RLLM_RUN_ID`
+(`train.py` sets one too, so a bare `python train.py` is covered) and
+`episode_log_dir` interpolates it. Without it the path stopped at
+`<project>/<experiment>`, which is stable across runs: a second run of the same
+experiment merged its episodes into the first run's `train_step_N_epoch_0`, and
+for steps where both runs drew the same tasks in the same order the episode
+filenames collided and the earlier run's files were **overwritten**. The
+transcript under `logs/` carries the same id, so a log and its episodes pair up.
 
 **Where the knobs live.** All of them are in `config/`; `train_verl.sh` only sets up the
 environment, opens a transcript and execs. The split across the three YAML files is by
