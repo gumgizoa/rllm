@@ -16,11 +16,14 @@ rllm:
     # has to cover a whole multi-turn episode, not a single completion.
     # 8 tasks x rollout.n=8 = 64 trajectories per step. verl requires
     # train_batch_size * rollout.n to divide n_gpus (64 % 8 = 0).
-    train_batch_size: 8
-    val_batch_size: -1
-    # max_prompt_length + max_response_length must equal
-    # actor_rollout_ref.rollout.max_model_len -- see the sizing section in the
-    # README. At agent_step_limit=80 (~92K of response) this leaves headroom.
+    train_batch_size: 16
+    val_batch_size: 16
+    # Only max_prompt_length is a real choice here: it is the padded width of
+    # the initial prompt (system + tool spec + issue statement; observed 1.1-1.3K,
+    # so 8K is roomy). max_response_length is whatever is left of the context
+    # window, and is derived rather than restated -- transform.py:38 truncates a
+    # merged row that overruns it without raising, so a stale hand-set value
+    # silently drops the tail of every long episode.
     max_prompt_length: 8192
     max_response_length: 122880
 
@@ -40,14 +43,12 @@ rllm:
     n_val: 1
     train:
       temperature: 1.0
-      top_p: 1.0
-      top_k: 20
-      max_tokens: 4096   # per mini-swe-agent turn, not per episode
+      top_p: 0.95
+      max_tokens: 8192   # per mini-swe-agent turn, not per episode
     val:
       temperature: 0.6
-      top_p: 0.95
-      top_k: 20
-      max_tokens: 4096
+      top_p: 0.9
+      max_tokens: 8192
 
   gateway:
     # Drift-free multi-turn: turn N+1's prompt is built by extending the raw
@@ -82,7 +83,7 @@ rllm:
     # One Docker sandbox per in-flight rollout. Each SWE image is 1-15 GB and
     # the verifier is CPU-heavy, so this is a host-resource knob, not a GPU one.
     n_parallel_tasks: 16
-    retry_limit: 2
+    retry_limit: 3
     raise_on_error: false
 
   remote_runtime:
@@ -93,8 +94,8 @@ rllm:
     experiment_name: qwen3_5-4b-mini-swe-native-verl
     logger: ['console', 'wandb']
     val_before_train: true
-    test_freq: 5
-    save_freq: -1
+    test_freq: 3
+    save_freq: 3
     total_epochs: 1
 
   episode_logging:

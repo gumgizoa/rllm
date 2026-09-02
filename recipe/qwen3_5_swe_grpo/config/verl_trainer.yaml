@@ -4,10 +4,10 @@
 # for this recipe: FSDP2 actor/ref and the vLLM rollout engine. The `rllm.*`
 # half is the sibling file `rllm_grpo.yaml`.
 #
-# Kept in YAML rather than as CLI flags in train_verl.sh so that
-# a single decision lives in a single place -- the length budget below spans
-# rllm.data.* and actor_rollout_ref.rollout.*, and when those sat in different
-# files they drifted (train.py now asserts they agree).
+# Kept in YAML rather than as CLI flags in train_verl.sh so that a single
+# decision lives in a single place: the length budget spans rllm.data.* and
+# actor_rollout_ref.rollout.*, and when those sat in different files they
+# drifted.
 #
 # Hardware assumption: 8 x 80GB, single node.
 
@@ -57,7 +57,7 @@ actor_rollout_ref:
     # rllm.data.train_batch_size (8) x rollout.n (8) = 64 trajectories; 8 x 8 = 64
     # rows here makes that exactly one optimizer update per step, i.e. strictly
     # on-policy GRPO.
-    ppo_mini_batch_size: 8
+    ppo_mini_batch_size: 16
 
     optim:
       lr: 1e-6
@@ -103,6 +103,11 @@ actor_rollout_ref:
 
 trainer:
   n_gpus_per_node: 8
+  # rllm/trainer/verl/utils.py:240 forwards this as save_checkpoint's
+  # max_ckpt_to_keep. An FSDP checkpoint here is bf16 weights plus fp32 Adam
+  # state and master copy over 4.66B params -- on the order of 65 GB each -- so
+  # an unbounded run fills a volume quickly.
+  max_actor_ckpt_to_keep: 5
   nnodes: 1
   default_hdfs_dir: null
   resume_mode: disable
