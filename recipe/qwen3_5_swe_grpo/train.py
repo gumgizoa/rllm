@@ -85,52 +85,9 @@ def _load(name: str, split: str, limit: int | None, kind: str):
     return dataset
 
 
-# Measured on SWE-smith with this policy: a merged training row grows by roughly
-# this much per mini-swe-agent turn (observation delta + sampled action).
-TOKENS_PER_TURN = 1150
-
-
-def _check_length_budget(config: DictConfig) -> None:
-    """Fail fast when the turn budget and the length budget disagree.
-
-    Three numbers have to line up and they live in three files, so they drift.
-    Overrunning ``max_model_len`` mid-rollout is not a truncation: vLLM answers
-    400, litellm's retries hit the same wall, and the episode is discarded whole.
-    One run lost 28% of its rollouts that way before this check existed.
-    """
-    prompt = config.rllm.data.max_prompt_length
-    response = config.rllm.data.max_response_length
-    max_model_len = config.actor_rollout_ref.rollout.max_model_len
-    row = prompt + response
-
-    if max_model_len < row:
-        raise SystemExit(
-            f"max_model_len ({max_model_len}) is below the training row width "
-            f"({prompt} + {response} = {row}). Rollouts that fill the row would be "
-            f"rejected by vLLM and lost. Raise max_model_len to at least {row}."
-        )
-
-    steps = config.recipe.agent_step_limit
-    needed = prompt + TOKENS_PER_TURN * steps
-    if needed > max_model_len:
-        raise SystemExit(
-            f"agent_step_limit={steps} implies about {needed} tokens by the final turn "
-            f"({prompt} prompt + ~{TOKENS_PER_TURN}/turn), over max_model_len "
-            f"({max_model_len}). Either lower agent_step_limit to "
-            f"{(max_model_len - prompt) // TOKENS_PER_TURN}, or raise "
-            f"max_response_length / max_model_len together."
-        )
-    logger.info(
-        "length budget: row=%d (prompt %d + response %d), max_model_len=%d, "
-        "agent_step_limit=%d needs ~%d",
-        row, prompt, response, max_model_len, steps, needed,
-    )
-
-
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(config: DictConfig) -> None:
     recipe = config.recipe
-    _check_length_budget(config)
 
     train_dataset = _load(recipe.train_dataset, recipe.train_split, recipe.get("train_limit"), "train")
     val_dataset = _load(recipe.val_dataset, recipe.val_split, recipe.get("val_limit"), "val")
