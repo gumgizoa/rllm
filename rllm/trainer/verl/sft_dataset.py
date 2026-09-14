@@ -1,4 +1,7 @@
+import copy
+import json
 import logging
+from pathlib import Path
 
 import torch
 from verl.utils.dataset.dataset_utils import DatasetPadMode
@@ -9,12 +12,75 @@ from rllm.parser import ChatTemplateParser
 logger = logging.getLogger(__name__)
 
 
+def load_tools(tools) -> list[dict] | None:
+    """Resolve ``data.rllm.tools`` into a list of OpenAI-style tool schemas.
+
+    Accepts ``None``, an already-parsed list of dicts, or a path to a JSON file
+    holding such a list (``[{"type": "function", "function": {...}}, ...]``).
+    """
+    if tools is None:
+        return None
+    if isinstance(tools, str):
+        path = Path(tools)
+        if not path.is_file():
+            raise FileNotFoundError(f"data.rllm.tools points to a missing file: {tools}")
+        tools = json.loads(path.read_text())
+    tools = list(tools)
+    if not tools:
+        return None
+    out = []
+    for t in tools:
+        t = dict(t)
+        # Accept bare function schemas ({"name", "parameters", ...}) as well.
+        if "type" not in t and "function" not in t and "name" in t:
+            t = {"type": "function", "function": t}
+        out.append(t)
+    return out
+
+
+def normalize_tool_call_arguments(messages: list[dict]) -> list[dict]:
+    """Return a copy of ``messages`` whose ``tool_calls[].function.arguments`` are dicts.
+
+    OpenAI-compatible traces (and ``rllm dataset from-eval`` rows) carry
+    ``arguments`` as a JSON string; HF chat templates such as Qwen3.5's iterate
+    over it as a mapping and raise ``Can only get item pairs from a mapping``.
+    Strings that are not valid JSON are left untouched.
+    """
+    out = copy.deepcopy(messages)
+    for m in out:
+        for tc in m.get("tool_calls") or []:
+            fn = tc.get("function") if isinstance(tc, dict) else None
+            target = fn if isinstance(fn, dict) else tc
+            args = target.get("arguments") if isinstance(target, dict) else None
+            if isinstance(args, str):
+                try:
+                    target["arguments"] = json.loads(args)
+                except json.JSONDecodeError:
+                    pass
+    return out
+
+
+def _has_tool_calls(messages: list[dict]) -> bool:
+    return any(m.get("tool_calls") for m in messages if isinstance(m, dict))
+
+
 class RLLMSFTDataset(MultiTurnSFTDataset):
     def __init__(self, parquet_files: str | list[str], tokenizer, config=None, processor=None, max_samples=-1):
         super().__init__(parquet_files, tokenizer, config, processor=processor, max_samples=max_samples)
 
         self.tokenize_and_mask_method = config.rllm.tokenize_and_mask_method
         logger.info(f"Using {self.tokenize_and_mask_method} tokenization and masking method")
+
+        # Tool schemas the policy saw at inference (the ``tools=`` argument of the
+        # chat-completions request). ``hf_template`` passes them to
+        # ``apply_chat_template`` so the rendered system block matches what the
+        # inference server rendered; the string-assembling parsers ignore them.
+        self.tools = load_tools(config.rllm.get("tools", None))
+        if self.tools:
+            logger.info(f"Rendering {len(self.tools)} tool schema(s) into the chat template")
+            if self.tokenize_and_mask_method != "hf_template":
+                logger.warning("data.rllm.tools is only honoured by tokenize_and_mask_method='hf_template'; the '%s' parser will not render the tool schemas", self.tokenize_and_mask_method)
+        self._warned_parser_tool_calls = False
 
         self.parser = ChatTemplateParser.get_parser(tokenizer)
 
@@ -28,7 +94,21 @@ class RLLMSFTDataset(MultiTurnSFTDataset):
         else:
             raise ValueError(f"Unknown tokenize_and_mask_method {self.tokenize_and_mask_method}")
 
+    def _warn_parser_tool_calls(self, messages):
+        if self._warned_parser_tool_calls or not _has_tool_calls(messages):
+            return
+        self._warned_parser_tool_calls = True
+        logger.warning(
+            "Messages contain tool_calls but tokenize_and_mask_method='%s' renders them with %s's hardcoded "
+            "format, which may differ from the tokenizer's chat template (e.g. Qwen3.5 uses <function=...> XML, "
+            "not the Qwen2.5/3 JSON form). Use --tokenize-method hf_template (with --tools) to train on exactly "
+            "what the inference server renders.",
+            self.tokenize_and_mask_method,
+            type(self.parser).__name__,
+        )
+
     def _tokenize_and_mask_cumulative(self, messages):
+        self._warn_parser_tool_calls(messages)
         tokens = []
         loss_mask = []
 
@@ -43,27 +123,46 @@ class RLLMSFTDataset(MultiTurnSFTDataset):
 
         return tokens, loss_mask
 
+    def _apply_chat_template(self, messages):
+        kwargs = {"tokenize": False, "add_generation_prompt": False}
+        if self.tools:
+            kwargs["tools"] = self.tools
+        return self.tokenizer.apply_chat_template(messages, **kwargs)
+
     def _tokenize_and_mask_hf_template(self, messages):
         """Use HF tokenizer.apply_chat_template for native tool call rendering.
 
         Renders incrementally: messages[0:i] vs messages[0:i+1] to isolate each
         message's tokens, then applies loss mask only on assistant tokens.
-        """
-        full_text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=False,
-        )
 
-        # Build prefix lengths to find boundaries
-        prefix_lengths = [0]  # char offset where each message starts
+        ``tool_calls[].function.arguments`` are coerced from JSON strings to
+        dicts first (Qwen3.5's template requires a mapping), and the tool
+        schemas from ``data.rllm.tools`` are passed as ``tools=`` so the
+        rendered system prompt carries the same tool block the inference
+        server produced.
+        """
+        messages = normalize_tool_call_arguments(messages)
+        full_text = self._apply_chat_template(messages)
+
+        # Build prefix lengths to find boundaries. Some templates refuse to
+        # render a prefix with no user turn yet (Qwen3.5: "No user query found
+        # in messages"); such a prefix is merged into the next renderable
+        # segment, which is safe because everything before the first user turn
+        # is loss-masked anyway (asserted below).
+        prefix_lengths: list[int | None] = [0]  # char offset where each message starts
         for i in range(len(messages)):
-            prefix_text = self.tokenizer.apply_chat_template(
-                messages[: i + 1],
-                tokenize=False,
-                add_generation_prompt=False,
-            )
+            try:
+                prefix_text = self._apply_chat_template(messages[: i + 1])
+            except Exception as exc:  # jinja2 TemplateError from raise_exception
+                if messages[i]["role"] == "assistant" or i == len(messages) - 1:
+                    raise
+                logger.debug("chat template refused prefix of %d message(s) (%s); merging into next segment", i + 1, exc)
+                prefix_lengths.append(None)
+                continue
             prefix_lengths.append(len(prefix_text))
+        for i in range(len(prefix_lengths) - 1, 0, -1):  # forward-fill from the right
+            if prefix_lengths[i] is None:
+                prefix_lengths[i] = prefix_lengths[i + 1]
 
         # Tokenize each segment and assign loss mask
         tokens = []
@@ -81,6 +180,7 @@ class RLLMSFTDataset(MultiTurnSFTDataset):
         return tokens, loss_mask
 
     def _tokenize_and_mask_stepwise(self, messages):
+        self._warn_parser_tool_calls(messages)
         tokens = []
         loss_mask = []
 
