@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rllm-swe-sft"
+version = "0.1.0"
+description = "Model- and dataset-agnostic agentic SFT pipeline for verl, over a shared parquet contract"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pydantic>=2",
+    "torch",
+]
+
+# Only the contract and its utilities are installed. The per-model dataset classes
+# under qwen3_5/ are loaded by file path (verl's data.custom_cls), so they are not
+# part of the package - that is what keeps a model family's quirks out of it.
+[tool.setuptools.packages.find]
+include = ["swe_sft*"]
