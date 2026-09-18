@@ -36,13 +36,6 @@ from rllm.cli._ui import console, fail
 @click.option("--epochs", "epochs", default=1, type=int, help="Total training epochs (default: 1).")
 @click.option("--max-length", default=2048, type=int, help="Max sequence length (default: 2048).")
 @click.option("--tokenize-method", default="cumulative", type=click.Choice(["cumulative", "stepwise", "hf_template"]), help="Tokenization/masking method (default: cumulative).")
-@click.option(
-    "--tools",
-    "tools_file",
-    default=None,
-    type=click.Path(exists=True, dir_okay=False),
-    help="JSON file with the OpenAI-style tool schemas the agent saw at inference; rendered into the chat template (requires --tokenize-method hf_template).",
-)
 @click.option("--lr-schedule", default="constant", type=click.Choice(["constant", "linear", "cosine"]), help="LR schedule (default: constant).")
 # Logging / checkpoints
 @click.option("--val-freq", default=10, type=int, help="Validate every N steps (default: 10).")
@@ -66,7 +59,6 @@ def sft_cmd(
     epochs: int,
     max_length: int,
     tokenize_method: str,
-    tools_file: str | None,
     lr_schedule: str,
     val_freq: int,
     save_freq: int,
@@ -128,9 +120,6 @@ def sft_cmd(
     # trainer.n_gpus_per_node (hosted backends ignore it).
     overrides = {"trainer": {"n_gpus_per_node": gpus}} if backend == "verl" else None
 
-    if tools_file and tokenize_method != "hf_template":
-        raise click.UsageError("--tools is only rendered by --tokenize-method hf_template (the cumulative/stepwise parsers assemble tool calls with a hardcoded format).")
-
     spec = SFTSpec(
         model=model,
         train_dataset=train_dataset,
@@ -141,7 +130,6 @@ def sft_cmd(
         batch_size=batch_size,
         max_length=max_length,
         tokenize_method=tokenize_method,
-        tools=tools_file,
         lora_rank=lora_rank,
         save_freq=save_freq,
         val_freq=val_freq,
@@ -179,7 +167,6 @@ def sft_cmd(
         ("Batch / epochs", f"[dim]{batch_size} / {epochs}[/]"),
         ("Max length", f"[dim]{max_length}[/]"),
         ("Tokenize", f"[dim]{tokenize_method}[/]"),
-        ("Tools", f"[dim]{tools_file or '-'}[/]"),
     ]
     console.print()
     console.print(info_panel(rows, title="[bold]rLLM SFT[/]", border="brand"))

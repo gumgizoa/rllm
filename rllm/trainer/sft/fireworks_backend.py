@@ -66,7 +66,7 @@ class FireworksSFTBackend(TinkerSFTBackend):
                     "train_batch_size": spec.batch_size,
                     "micro_batch_size_per_gpu": spec.batch_size,
                     "max_length": spec.max_length,
-                    "rllm": {"tokenize_and_mask_method": spec.tokenize_method, "tools": spec.tools},
+                    "rllm": {"tokenize_and_mask_method": spec.tokenize_method},
                 },
                 "optim": {"lr": spec.lr, "lr_scheduler": spec.lr_schedule},
                 "trainer": {

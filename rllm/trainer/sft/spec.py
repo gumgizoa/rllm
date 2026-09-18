@@ -28,9 +28,6 @@ class SFTSpec:
         train_dataset: training data (a registered/loaded :class:`Dataset` with a
             ``messages`` column).
         val_dataset: optional validation data.
-        tools: OpenAI-style tool schemas the policy saw at inference (or a path
-            to a JSON file holding them); rendered into the chat template by
-            ``tokenize_method="hf_template"`` so training text matches serving.
         overrides: deep-merged into the backend's native config as an escape
             hatch for backend-specific knobs not surfaced as fields.
     """
@@ -44,7 +41,6 @@ class SFTSpec:
     batch_size: int = 32
     max_length: int = 2048
     tokenize_method: str = "cumulative"
-    tools: list[dict] | str | None = None
     lora_rank: int = 32
     save_freq: int = 20
     val_freq: int = 10

@@ -98,7 +98,7 @@ class VerlSFTBackend(SFTBackend):
                     "pad_mode": "no_padding",
                     "truncation": "right",
                     "custom_cls": {"path": _CUSTOM_CLS_PATH, "name": _CUSTOM_CLS_NAME},
-                    "rllm": {"tokenize_and_mask_method": spec.tokenize_method, "tools": spec.tools},
+                    "rllm": {"tokenize_and_mask_method": spec.tokenize_method},
                 },
                 "optim": {
                     "lr": float(spec.lr),
