@@ -24,13 +24,13 @@ swe_sft/schemas.py                      THE FORMAT CONTRACT (pydantic + pyarrow 
 swe_sft/dataset/utils/serde.py          parquet row <-> SFTSample (one decode path)      - model/data agnostic
 swe_sft/dataset/utils/parquet.py        input shards, streaming read/write, readback     - model/data agnostic
 swe_sft/dataset/utils/render.py         chat-template rendering, token counts, masks     - model/data agnostic
-converters/from_rllm_gateway.py         gateway-traced eval runs -> contract             - one converter per episode shape
+converters/from_rllm_gateway.py         gateway-traced eval runs -> contract             - covers every scaffold (see 1)
 scripts/filter_sft_parquet.py           raw -> a named train/valid mix (selection)       - model/data agnostic
 scripts/inspect_loss_mask.py            see what a dataset actually supervises           - model/data agnostic
 qwen3_5/dataset.py                      Qwen3_5_SFTDataset: renders the contract         - one dataset class per model family
 qwen3_5/chat_templates/qwen3_5_train.jinja  training-purpose chat template (see 3)       - one template per model family, if needed
 qwen3_5/run_megatron_sft.sh             launcher for the Qwen3.5 + Megatron example
-tests/                                  the conversion rules, no GPU required
+tests/                                  conversion rules + template invariants, no GPU required
 ```
 
 Install the package once (editable, so edits under `swe_sft/` take effect immediately):
@@ -176,47 +176,47 @@ model is trained to answer without thinking.
 
 ### Which episodes this accepts
 
-An eval run's episode is assembled in two stages, and the second one decides the
+An eval run's episode is assembled in two stages, and the second decides the
 shape:
 
 1. The agent produces a lightweight Episode. For `--agent harbor:*` that is
    `outcome_to_episode` -> `load_atif_steps`, whose `chat_completions` is
-   **flattened into strings**: reasoning as `<think>...</think>`, each tool call
-   as a `<tool_call>{json}</tool_call>` block inside `content`, the observation
-   as a `user` turn.
+   flattened into strings: reasoning as `<think>...</think>`, each tool call as
+   a `<tool_call>{json}</tool_call>` block inside `content`, the observation as
+   a `user` turn.
 2. `AgentFlowEngine._enrich` (`engine/agentflow_engine.py:236`) then **replaces
    every step with the gateway trace step**, keeping only `action`, `reward` and
    `done` from the agent's. The trace step's `chat_completions` is
    `trace.messages + trace.response_message` - the OpenAI wire format, verbatim.
 
 So whenever the agent's LLM calls went through the rLLM gateway, the episode on
-disk is in the wire format regardless of Harbor vs native, and this converter
-handles it. Verified against a `--agent harbor:mini-swe-agent` SWE-bench Verified
-run: structured `tool_calls`, `arguments` as a JSON string, `reasoning_content`
-on request-history turns and `reasoning` on the final response turn, tool results
-as `role: "tool"` with `tool_call_id`.
+disk is in the wire format, and **one converter covers every scaffold**. Verified
+against two SWE-bench Verified runs of the same model, `--agent mini-swe-agent`
+and `--agent harbor:mini-swe-agent`: byte-for-byte the same message shape, only
+the trajectory name differs (`mini-swe-agent` vs `harbor_trial`). Both convert
+with the same code path.
 
-The flattened shape survives to disk only in the `if not traces` branch
-(`agentflow_engine.py:169`), i.e. when nothing was traced - the agent called a
-model the gateway never saw. Those rows would be contract-*valid* but wrong: the
-model would be trained to emit the literal characters `<tool_call>`. The
-converter **refuses** them (they show up under `skipped`) rather than passing
-them through, because nothing downstream can tell the difference.
+| | native | harbor |
+| --- | --- | --- |
+| trajectory name | `mini-swe-agent` | `harbor_trial` |
+| `chat_completions` | wire format | wire format |
+| tool calls | structured, `arguments` a JSON string | same |
+| reasoning | `reasoning_content`, `reasoning` on the last turn | same |
+| tool results | `role: "tool"` + `tool_call_id` | same |
 
-If you do need to train on traceless episodes, write `from_harbor_atif.py` and
-do **not** parse the flattened text: `_build_step`
-(`integrations/harbor/atif_trajectory_bridge.py:255`) keeps the structured
-originals on the same `Step`, and `Step.to_dict` writes them all to disk.
+The flattened shape reaches disk only through the `if not traces` branch
+(`agentflow_engine.py:169`), i.e. nothing was traced at all - the agent called a
+model the gateway never saw. Neither run above hit it. Such rows would be
+contract-*valid* but wrong: the model would be trained to emit the literal
+characters `<tool_call>`. The converter **refuses** them (they show up under
+`skipped`), because nothing downstream can tell the difference.
 
-| `Step` field | holds |
-| --- | --- |
-| `action` | `[{"name", "arguments"}]` - tool calls, arguments already a dict |
-| `thought` | `reasoning_content`, with no `<think>` tags |
-| `model_response` | the message text, no `<think>`, no `<tool_call>` |
-| `observation` | the tool output |
-
-Only `tool_call_id` is lost, which the contract treats as optional and Qwen
-templates do not render.
+If you ever need those, a second converter should **not** parse the flattened
+text: `_build_step` (`integrations/harbor/atif_trajectory_bridge.py:255`) keeps
+the structured originals on the same `Step` (`action` = tool calls with dict
+arguments, `thought` = reasoning, `model_response` = the clean message,
+`observation` = the tool output), and `Step.to_dict` writes them all to disk.
+Only `tool_call_id` is lost, which the contract treats as optional.
 
 ### Where the tool schemas come from
 
@@ -347,13 +347,31 @@ for retaining prior reasoning:
 +        {{- '<|im_start|>' + message.role + '\n<think>\n' + reasoning_content + '\n</think>\n\n' + content }}
 ```
 
-For agent-shaped conversations the two templates are **byte-identical**: tool
-results carry role `"tool"`, so upstream's `last_query_index` is the single task
-message and it already renders every assistant turn with reasoning. The templates
-diverge only once a second real `user` turn exists.
+This override is **load-bearing, not a precaution**. Tool results carry role
+`"tool"`, so with a single task message upstream's `last_query_index` is that
+message and the two templates render identically - but a second real `user` turn
+moves `last_query_index` to the end and upstream then drops the reasoning of
+every assistant turn before it. Those turns stop being reachable by
+`add_generation_prompt=True`, so `Qwen3_5_SFTDataset` raises on them.
+
+Agent runs hit this routinely. `mini-swe-agent` injects its
+`format_error_template` as a plain `user` turn whenever the model malforms a
+tool call, which happened in 2 of 2 native SWE-bench Verified episodes:
+
+| trajectory | user turns | assistant turns | `<think>` kept, training | `<think>` kept, stock |
+| --- | --- | --- | --- | --- |
+| native / `psf__requests-1766` | 2 | 22 | 22 | **1** |
+| native / `pallets__flask-5014` | 2 | 46 | 46 | **3** |
+| harbor / `psf__requests-1766` | 1 | 25 | 25 | 25 |
+| harbor / `pallets__flask-5014` | 1 | 42 | 42 | 42 |
+
+One retry turn near the end of a 46-message trajectory costs 21 of 22 reasoning
+blocks under the stock template. `tests/test_qwen3_5_template.py` pins this.
 
 > **Serving must use this same template** (vLLM: `--chat-template`), or the extra
-> reasoning in the context becomes a train/serve mismatch.
+> reasoning in the context becomes a train/serve mismatch - and since agent runs
+> do produce multi-user-turn conversations, this is a real divergence, not a
+> theoretical one.
 
 ### There is no loss-mask strategy
 
