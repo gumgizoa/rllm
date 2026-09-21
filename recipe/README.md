@@ -13,7 +13,7 @@ Each recipe folder contains a `README.md`, `train.py`, launch script(s), and con
 [`sft/`](./sft/) turns the trajectories an `rllm eval` run already produced into SFT training data, over a model- and data-agnostic parquet contract:
 
 ```
-rllm eval  ->  sft/converters/from_rllm_eval.py  ->  sft/scripts/filter_sft_parquet.py  ->  sft/qwen3_5/run_megatron_sft.sh
+rllm eval  ->  sft/converters/from_rllm_gateway.py  ->  sft/scripts/filter_sft_parquet.py  ->  sft/qwen3_5/run_megatron_sft.sh
 ```
 
 It deliberately does not go through `rllm sft`, which drops per-row `tools` on the way to verl and renders tool calls in a syntax Qwen3.5 does not use. [`sft/README.md`](./sft/README.md) has the four specific reasons and what to fix if you would rather change `rllm sft` instead.

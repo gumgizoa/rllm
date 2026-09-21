@@ -25,7 +25,7 @@ RECIPE_ROOT = Path(__file__).resolve().parents[1]
 def converter():
     if str(RECIPE_ROOT) not in sys.path:
         sys.path.insert(0, str(RECIPE_ROOT))
-    spec = importlib.util.spec_from_file_location("from_rllm_eval", RECIPE_ROOT / "converters" / "from_rllm_eval.py")
+    spec = importlib.util.spec_from_file_location("from_rllm_gateway", RECIPE_ROOT / "converters" / "from_rllm_gateway.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

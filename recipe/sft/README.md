@@ -10,7 +10,7 @@ the other exists.
 ```
 rllm eval                                  full trajectories -> ~/.rllm/eval_results/<run_id>/
   |
-  |  converters/from_rllm_eval.py           eval_results -> contract parquet   (shape + eval-level selection)
+  |  converters/from_rllm_gateway.py        eval_results -> contract parquet   (shape + eval-level selection)
   v
   |  scripts/filter_sft_parquet.py          contract -> a named train/valid mix (training-level selection)
   v
@@ -24,7 +24,7 @@ swe_sft/schemas.py                      THE FORMAT CONTRACT (pydantic + pyarrow 
 swe_sft/dataset/utils/serde.py          parquet row <-> SFTSample (one decode path)      - model/data agnostic
 swe_sft/dataset/utils/parquet.py        input shards, streaming read/write, readback     - model/data agnostic
 swe_sft/dataset/utils/render.py         chat-template rendering, token counts, masks     - model/data agnostic
-converters/from_rllm_eval.py            rllm eval runs -> contract                       - one converter per data source
+converters/from_rllm_gateway.py         gateway-traced eval runs -> contract             - one converter per episode shape
 scripts/filter_sft_parquet.py           raw -> a named train/valid mix (selection)       - model/data agnostic
 scripts/inspect_loss_mask.py            see what a dataset actually supervises           - model/data agnostic
 qwen3_5/dataset.py                      Qwen3_5_SFTDataset: renders the contract         - one dataset class per model family
@@ -133,7 +133,7 @@ eval; filtering decides *selection* and runs as often as you want a different mi
 
 ```bash
 # 1) eval trajectories -> contract, one row per surviving attempt
-python recipe/sft/converters/from_rllm_eval.py <run_id> [<run_id> ...] \
+python recipe/sft/converters/from_rllm_gateway.py <run_id> [<run_id> ...] \
     --filter "solved" --select correct \
     --output-dir recipe/sft/data/swe/raw
 
@@ -174,21 +174,44 @@ model is trained to answer without thinking.
 `reward`, `score` and `is_correct`, which is what makes `--group-key` and
 `--metadata-eq` work downstream.
 
-### Two episode shapes, one of which is refused
+### Two episode shapes, one converter each
 
-`chat_completions` reaches an episode in one of two forms:
+An eval run's `chat_completions` is written by one of two components, and they do
+not produce the same thing. That is why the converters are named after what
+recorded the episode rather than after `rllm eval`:
 
-- **Gateway / native** (`rllm/engine/trace_converter.py`): the OpenAI request
-  messages plus the response message, verbatim. Structured `tool_calls`,
-  reasoning in its own key, tool results as `role: "tool"`. This is what the
-  converter handles.
-- **Harbor / ATIF** (`rllm/integrations/harbor/atif_trajectory_bridge.py`): every
-  step flattened into a string - reasoning as `<think>...</think>`, each tool call
-  as a `<tool_call>{json}</tool_call>` block *inside* `content`, the observation as
-  a `user` turn. Those rows are contract-*valid* but wrong: the model would be
-  trained to emit the literal characters `<tool_call>`. The converter **refuses**
-  them (they show up under `skipped`), because nothing downstream can tell the
-  difference. A Harbor trace needs its own converter that reverses the flattening.
+| Invocation | Recorded by | Shape | Converter |
+| --- | --- | --- | --- |
+| `rllm eval <ds> --agent <native>` | gateway traces -> `engine/trace_converter.py` | OpenAI wire format | `from_rllm_gateway.py` |
+| `rllm eval <ds> --agent harbor:<scaffold>` | `integrations/harbor/atif_trajectory_bridge.py` | flattened into strings | `from_harbor_atif.py` |
+
+- **Gateway** (`engine/trace_converter.py:63`): `chat_completions` is
+  `trace.messages + trace.response_message`, i.e. exactly what the agent put on
+  the wire. Structured `tool_calls`, reasoning in its own key, tool results as
+  `role: "tool"`. Each call resends the whole conversation, so the last step with
+  `chat_completions` holds all of it.
+- **Harbor / ATIF** (`atif_trajectory_bridge.py:124`): every step is flattened
+  into a string - reasoning as `<think>...</think>`, each tool call as a
+  `<tool_call>{json}</tool_call>` block *inside* `content`, the observation as a
+  `user` turn. Those rows are contract-*valid* but wrong: the model would be
+  trained to emit the literal characters `<tool_call>`. `from_rllm_gateway.py`
+  **refuses** them (they show up under `skipped`), because nothing downstream can
+  tell the difference.
+
+A Harbor converter should **not** parse that flattened text. `_build_step`
+(`atif_trajectory_bridge.py:255`) keeps the structured originals on the same
+`Step`, and `Step.to_dict` writes all of them to disk:
+
+| `Step` field | holds |
+| --- | --- |
+| `action` | `[{"name", "arguments"}]` - tool calls, arguments already a dict |
+| `thought` | `reasoning_content`, with no `<think>` tags |
+| `model_response` | the message text, no `<think>`, no `<tool_call>` |
+| `observation` | the tool output |
+
+So `from_harbor_atif.py` is a step-to-message mapping, not a parser. The only
+thing ATIF does not carry through is `tool_call_id`, which the contract treats as
+optional and Qwen templates do not render.
 
 ### Agents that do not call tools
 
@@ -356,9 +379,9 @@ No GPU, no model, no eval run, and no `rllm` import.
 
 ## Adding to this
 
-- **A new data source** (a different trace format): one converter under
-  `converters/` that emits the contract. It gets the filter, the inspector and
-  every model family's dataset class for free.
+- **A new episode shape or data source**: one converter under `converters/`,
+  named after whatever recorded it, that emits the contract. It gets the filter,
+  the inspector and every model family's dataset class for free.
 - **A new model family**: one dataset class under `<family>/`, plus a training
   template if its stock one drops reasoning. The parquet does not change.
 - **Neither** should require editing anything under `swe_sft/`.

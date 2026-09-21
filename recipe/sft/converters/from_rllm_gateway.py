@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Convert ``rllm eval`` run directories into the SFT parquet contract.
+"""Convert gateway-traced ``rllm eval`` runs into the SFT parquet contract.
 
-    python recipe/sft/converters/from_rllm_eval.py <run_id> [<run_id> ...] \\
+Named for what it reads, because an eval run's episodes come in two shapes
+depending on which component recorded them, and the sibling converter
+``from_harbor_atif.py`` handles the other one. See "Which episodes this
+accepts" below.
+
+    python recipe/sft/converters/from_rllm_gateway.py <run_id> [<run_id> ...] \\
         --output-dir recipe/sft/data/swe/raw
 
 Like every converter here, this stage decides *shape*, not *selection* in the
@@ -63,8 +68,12 @@ them is the wire format:
   wrong: the model would be trained to emit the literal characters
   ``<tool_call>``, which is not what any Qwen3.5 template renders. This
   converter refuses them rather than passing them through, because nothing
-  downstream can tell the difference. A Harbor trace needs its own converter
-  that reverses that flattening.
+  downstream can tell the difference. ``from_harbor_atif.py`` is that shape's
+  converter; note it should *not* parse the flattened text, because
+  ``_build_step`` keeps the structured originals on the same Step
+  (``action`` holds the tool calls with dict arguments, ``thought`` the
+  reasoning, ``model_response`` the clean message, ``observation`` the tool
+  output) and ``Step.to_dict`` writes all four to disk.
 """
 
 from __future__ import annotations
