@@ -304,3 +304,66 @@ def test_markdown_bash_trajectory_converts_with_no_tools(converter):
     assert sample.tools is None
     assert not any(m.tool_calls for m in sample.messages)
     assert sample.apply_chat_template_kwargs is None
+
+
+# --------------------------------------------------------------------------- #
+# The exact shape a real gateway-traced run produces
+# --------------------------------------------------------------------------- #
+
+# Taken from a `--agent harbor:mini-swe-agent` SWE-bench Verified run. Two
+# details are easy to get wrong and are load-bearing: the request-history
+# assistant turns carry `reasoning_content` while the final response message
+# (an OpenAI SDK dump) carries `reasoning`, and both shapes are padded with
+# provider keys the contract must ignore rather than choke on.
+GATEWAY_TRACED = [
+    {"role": "system", "content": "You are a helpful assistant that can interact with a computer."},
+    {"role": "user", "content": "Please solve this issue: ..."},
+    {
+        "role": "assistant",
+        "content": "I'll start by exploring the codebase.",
+        "reasoning_content": "Let me analyze this issue.",
+        "provider_specific_fields": {"refusal": None, "reasoning": "Let me analyze this issue."},
+        "tool_calls": [{"id": "chatcmpl-tool-a561", "type": "function", "function": {"name": "bash", "arguments": '{"command": "ls /testbed"}'}}],
+    },
+    {"role": "tool", "tool_call_id": "chatcmpl-tool-a561", "content": '{\n  "returncode": 0,\n  "output": "setup.py"\n}'},
+    {
+        # A tool-call-only turn: no "content" key at all, not even "".
+        "role": "assistant",
+        "reasoning_content": "Now patch it.",
+        "provider_specific_fields": {"refusal": None, "reasoning": "Now patch it."},
+        "tool_calls": [{"id": "chatcmpl-tool-b772", "type": "function", "function": {"name": "bash", "arguments": '{"command": "sed -i s/a/b/ x.py"}'}}],
+    },
+    {"role": "tool", "tool_call_id": "chatcmpl-tool-b772", "content": "ok"},
+    {
+        # The final response message is a raw OpenAI SDK dump: "reasoning", not
+        # "reasoning_content", plus a pile of nulls.
+        "role": "assistant",
+        "content": "The fix is complete.",
+        "refusal": None,
+        "annotations": None,
+        "audio": None,
+        "function_call": None,
+        "reasoning": "The fix is complete. Let me summarize.",
+        "tool_calls": [{"id": "chatcmpl-tool-c883", "type": "function", "function": {"name": "bash", "arguments": '{"command": "echo COMPLETE_TASK_AND_SUBMIT"}'}}],
+    },
+]
+
+
+def test_real_gateway_traced_episode(converter):
+    sample = converter.build_sample(episode(GATEWAY_TRACED), None, TOOLS, {"instance_id": "psf__requests-1766"})
+
+    assert [m.role for m in sample.messages] == ["system", "user", "assistant", "tool", "assistant", "tool", "assistant"]
+    # every tool call's arguments is a mapping, whichever key reasoning arrived under
+    assert all(isinstance(tc.function.arguments, dict) for m in sample.messages for tc in (m.tool_calls or []))
+    assert [m.reasoning for m in sample.messages if m.role == "assistant"] == [
+        "Let me analyze this issue.",
+        "Now patch it.",
+        "The fix is complete. Let me summarize.",
+    ]
+    # a missing "content" key is "" , not a dropped message
+    assert sample.messages[4].content == ""
+    # provider padding (refusal/audio/annotations/provider_specific_fields) is ignored
+    assert sample.apply_chat_template_kwargs is None
+    assert sample.tools == TOOLS
+    # tool output is never parsed, even though it is valid JSON
+    assert isinstance(sample.messages[3].content, str) and sample.messages[3].content.startswith("{")

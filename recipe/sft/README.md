@@ -174,33 +174,39 @@ model is trained to answer without thinking.
 `reward`, `score` and `is_correct`, which is what makes `--group-key` and
 `--metadata-eq` work downstream.
 
-### Two episode shapes, one converter each
+### Which episodes this accepts
 
-An eval run's `chat_completions` is written by one of two components, and they do
-not produce the same thing. That is why the converters are named after what
-recorded the episode rather than after `rllm eval`:
+An eval run's episode is assembled in two stages, and the second one decides the
+shape:
 
-| Invocation | Recorded by | Shape | Converter |
-| --- | --- | --- | --- |
-| `rllm eval <ds> --agent <native>` | gateway traces -> `engine/trace_converter.py` | OpenAI wire format | `from_rllm_gateway.py` |
-| `rllm eval <ds> --agent harbor:<scaffold>` | `integrations/harbor/atif_trajectory_bridge.py` | flattened into strings | `from_harbor_atif.py` |
+1. The agent produces a lightweight Episode. For `--agent harbor:*` that is
+   `outcome_to_episode` -> `load_atif_steps`, whose `chat_completions` is
+   **flattened into strings**: reasoning as `<think>...</think>`, each tool call
+   as a `<tool_call>{json}</tool_call>` block inside `content`, the observation
+   as a `user` turn.
+2. `AgentFlowEngine._enrich` (`engine/agentflow_engine.py:236`) then **replaces
+   every step with the gateway trace step**, keeping only `action`, `reward` and
+   `done` from the agent's. The trace step's `chat_completions` is
+   `trace.messages + trace.response_message` - the OpenAI wire format, verbatim.
 
-- **Gateway** (`engine/trace_converter.py:63`): `chat_completions` is
-  `trace.messages + trace.response_message`, i.e. exactly what the agent put on
-  the wire. Structured `tool_calls`, reasoning in its own key, tool results as
-  `role: "tool"`. Each call resends the whole conversation, so the last step with
-  `chat_completions` holds all of it.
-- **Harbor / ATIF** (`atif_trajectory_bridge.py:124`): every step is flattened
-  into a string - reasoning as `<think>...</think>`, each tool call as a
-  `<tool_call>{json}</tool_call>` block *inside* `content`, the observation as a
-  `user` turn. Those rows are contract-*valid* but wrong: the model would be
-  trained to emit the literal characters `<tool_call>`. `from_rllm_gateway.py`
-  **refuses** them (they show up under `skipped`), because nothing downstream can
-  tell the difference.
+So whenever the agent's LLM calls went through the rLLM gateway, the episode on
+disk is in the wire format regardless of Harbor vs native, and this converter
+handles it. Verified against a `--agent harbor:mini-swe-agent` SWE-bench Verified
+run: structured `tool_calls`, `arguments` as a JSON string, `reasoning_content`
+on request-history turns and `reasoning` on the final response turn, tool results
+as `role: "tool"` with `tool_call_id`.
 
-A Harbor converter should **not** parse that flattened text. `_build_step`
-(`atif_trajectory_bridge.py:255`) keeps the structured originals on the same
-`Step`, and `Step.to_dict` writes all of them to disk:
+The flattened shape survives to disk only in the `if not traces` branch
+(`agentflow_engine.py:169`), i.e. when nothing was traced - the agent called a
+model the gateway never saw. Those rows would be contract-*valid* but wrong: the
+model would be trained to emit the literal characters `<tool_call>`. The
+converter **refuses** them (they show up under `skipped`) rather than passing
+them through, because nothing downstream can tell the difference.
+
+If you do need to train on traceless episodes, write `from_harbor_atif.py` and
+do **not** parse the flattened text: `_build_step`
+(`integrations/harbor/atif_trajectory_bridge.py:255`) keeps the structured
+originals on the same `Step`, and `Step.to_dict` writes them all to disk.
 
 | `Step` field | holds |
 | --- | --- |
@@ -209,17 +215,24 @@ A Harbor converter should **not** parse that flattened text. `_build_step`
 | `model_response` | the message text, no `<think>`, no `<tool_call>` |
 | `observation` | the tool output |
 
-So `from_harbor_atif.py` is a step-to-message mapping, not a parser. The only
-thing ATIF does not carry through is `tool_call_id`, which the contract treats as
-optional and Qwen templates do not render.
+Only `tool_call_id` is lost, which the contract treats as optional and Qwen
+templates do not render.
 
-### Agents that do not call tools
+### Tool schemas have to be supplied by hand
 
-Upstream `mini-swe-agent` asks for a markdown ` ```bash ` block and feeds the
-output back as a `user` turn. Its episodes have no `tool_calls`, no `role: "tool"`
-and no schemas, so `--tools` is not applicable and rows carry `tools: null`. That
-is not a defect to repair: it is what the policy saw, so it is what it should be
-trained on. The converter only warns about a missing `--tools` when rows actually
+`mini-swe-agent` under Harbor *does* use tool calling: one `bash` tool, invoked
+once per assistant turn. But the schema it was called with is **not recoverable
+from anything on disk**. The gateway holds it in `TraceRecord.raw_request`,
+`trace_record_to_step` does not copy it into the `Step`, and the Harbor trial
+directory records the agent's prompt templates but not its tool definitions.
+
+So `--tools` is a file you maintain, and getting it wrong is silent: the rendered
+`# Tools` system block differs from the one the policy saw, and nothing raises.
+Take it from the scaffold's own source, not from a reconstruction.
+
+An agent that does not use tool calling at all is a different case, not a defect
+to repair. Rows carry `tools: null`, which is correct - it is what the policy
+saw. The converter only warns about a missing `--tools` when rows actually
 contain tool calls.
 
 ### Filters

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Convert gateway-traced ``rllm eval`` runs into the SFT parquet contract.
 
-Named for what it reads, because an eval run's episodes come in two shapes
-depending on which component recorded them, and the sibling converter
-``from_harbor_atif.py`` handles the other one. See "Which episodes this
-accepts" below.
+Named for what it reads: the episode's ``chat_completions`` as the rLLM model
+gateway recorded it. See "Which episodes this accepts" below for the one case
+that produces something else.
 
     python recipe/sft/converters/from_rllm_gateway.py <run_id> [<run_id> ...] \\
         --output-dir recipe/sft/data/swe/raw
@@ -44,36 +43,39 @@ one matters):
   contract's ``reasoning`` field.
 * Trajectories frequently end on a ``tool`` message - trailing context no
   assistant turn ever consumes.
-* The tool schemas the policy saw are not in the episode at all; pass them with
-  ``--tools`` and they are written per row, which is where the contract keeps them.
-  Only needed when the agent actually used tool calling. Upstream mini-swe-agent
-  does not: it asks for a markdown ```bash block and feeds the output back as a
-  ``user`` turn, so its episodes have no ``tool_calls``, no ``role: "tool"``, and
-  no schemas to render. That is not a defect to repair - it is what the policy
-  saw, so it is what it should be trained on.
+* The tool schemas the policy saw are nowhere on disk - the gateway holds them
+  in ``TraceRecord.raw_request``, ``trace_record_to_step`` does not copy them
+  onto the Step, and the Harbor trial dir records the agent's prompt templates
+  but not its tool definitions. Pass them with ``--tools`` and they are written
+  per row, which is where the contract keeps them. Getting the file wrong is
+  silent, so take it from the scaffold's source rather than reconstructing it.
+  An agent that does not use tool calling needs no ``--tools``: ``tools: null``
+  is then correct, because that is what the policy saw.
 
 Which episodes this accepts
 ---------------------------
-``chat_completions`` reaches the episode in one of two shapes, and only one of
-them is the wire format:
+An episode is assembled in two stages, and the second decides the shape. The
+agent produces a lightweight Episode first - for ``--agent harbor:*`` that is
+``load_atif_steps``, whose ``chat_completions`` is flattened into strings
+(reasoning as ``<think>...</think>``, each tool call as a
+``<tool_call>{json}</tool_call>`` block inside ``content``, the observation as a
+``user`` turn). Then ``AgentFlowEngine._enrich``
+(``engine/agentflow_engine.py:236``) replaces every step with the gateway trace
+step, keeping only ``action``/``reward``/``done`` from the agent's. The trace
+step carries ``trace.messages + trace.response_message`` - the OpenAI wire
+format, verbatim.
 
-* **Gateway / native** (``engine/trace_converter.py``): the OpenAI request
-  messages plus the response message, verbatim. Tool calls are structured,
-  reasoning has its own key, tool results are ``role: "tool"``. This converter
-  handles that shape.
-* **Harbor / ATIF** (``integrations/harbor/atif_trajectory_bridge.py``): every
-  step is flattened into a string - reasoning as ``<think>...</think>``, each
-  tool call as a ``<tool_call>{json}</tool_call>`` block *inside* ``content``,
-  and the observation as a ``user`` turn. Those rows are contract-*valid* but
-  wrong: the model would be trained to emit the literal characters
-  ``<tool_call>``, which is not what any Qwen3.5 template renders. This
-  converter refuses them rather than passing them through, because nothing
-  downstream can tell the difference. ``from_harbor_atif.py`` is that shape's
-  converter; note it should *not* parse the flattened text, because
-  ``_build_step`` keeps the structured originals on the same Step
-  (``action`` holds the tool calls with dict arguments, ``thought`` the
-  reasoning, ``model_response`` the clean message, ``observation`` the tool
-  output) and ``Step.to_dict`` writes all four to disk.
+So whenever the agent's calls went through the gateway, the episode on disk is
+in the wire format, Harbor or native alike, and this converter handles it.
+
+The flattened shape reaches disk only via the ``if not traces`` branch
+(``agentflow_engine.py:169``), i.e. nothing was traced. Such rows are
+contract-*valid* but wrong - the model would learn to emit the literal
+characters ``<tool_call>`` - so this converter refuses them rather than passing
+them through, because nothing downstream can tell the difference. A converter
+for that case should read the structured fields ``_build_step`` leaves on each
+Step (``action``, ``thought``, ``model_response``, ``observation``), not parse
+the flattened text.
 """
 
 from __future__ import annotations
