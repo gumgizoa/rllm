@@ -43,14 +43,14 @@ one matters):
   contract's ``reasoning`` field.
 * Trajectories frequently end on a ``tool`` message - trailing context no
   assistant turn ever consumes.
-* The tool schemas the policy saw are nowhere on disk - the gateway holds them
-  in ``TraceRecord.raw_request``, ``trace_record_to_step`` does not copy them
-  onto the Step, and the Harbor trial dir records the agent's prompt templates
-  but not its tool definitions. Pass them with ``--tools`` and they are written
-  per row, which is where the contract keeps them. Getting the file wrong is
-  silent, so take it from the scaffold's source rather than reconstructing it.
-  An agent that does not use tool calling needs no ``--tools``: ``tools: null``
-  is then correct, because that is what the policy saw.
+* The tool schemas the policy saw are a *request field*, not a message, so they
+  are not in ``chat_completions`` at all. ``trace_record_to_step`` copies them
+  out of the gateway's ``raw_request`` into
+  ``Step.metadata["request_tools"]``, and they are read from there, per row.
+  There is deliberately no flag to supply them by hand: a file that drifts from
+  what the policy was served changes the rendered system block and raises
+  nothing. An agent that does not use tool calling records none, and
+  ``tools: null`` is then correct - that is what the policy saw.
 
 Which episodes this accepts
 ---------------------------
@@ -219,10 +219,9 @@ def episode_messages(episode: dict[str, Any], trajectory_name: str | None) -> tu
 
     Uses the last step that carries ``chat_completions`` - that step holds the
     whole conversation, which is also how eval scores the trajectory - and
-    takes the tool schemas from that same step's
-    ``metadata["request_tools"]``, which ``trace_record_to_step`` copies out of
-    the gateway's ``raw_request``. Runs recorded before that existed have no
-    such key and fall back to ``--tools``.
+    takes the tool schemas from that same step's ``metadata["request_tools"]``,
+    which ``trace_record_to_step`` copies out of the gateway's ``raw_request``.
+    Runs predating that key have no schemas; the caller warns about it.
     """
     trajectories = episode.get("trajectories") or []
     if not trajectories:
@@ -247,22 +246,15 @@ def episode_messages(episode: dict[str, Any], trajectory_name: str | None) -> tu
 def build_sample(
     episode: dict[str, Any],
     trajectory_name: str | None,
-    tools: list[dict[str, Any]] | None,
     metadata: dict[str, Any],
 ) -> SFTSample:
     """Convert one episode into a contract sample. Raises :class:`SkipRow`.
 
-    ``tools`` is the ``--tools`` fallback. Schemas recorded on the episode win:
-    they are what the policy was actually served, while the flag is a file a
-    human keeps in sync by hand. Which one was used is recorded in
-    ``metadata["tools_source"]``, so a mix can be filtered on it later
-    (``--metadata-eq tools_source=episode``).
+    Tool schemas come from the episode and nowhere else. There is deliberately
+    no way to supply them by hand: a hand-kept file that drifts from what the
+    policy was served changes the rendered system block and raises nothing.
     """
-    messages, recorded_tools = episode_messages(episode, trajectory_name)
-    if recorded_tools is not None:
-        tools, metadata = recorded_tools, {**metadata, "tools_source": "episode"}
-    elif tools is not None:
-        metadata = {**metadata, "tools_source": "flag"}
+    messages, tools = episode_messages(episode, trajectory_name)
 
     # Trailing context that no assistant turn ever consumes.
     last_assistant = max((i for i, m in enumerate(messages) if m["role"] == "assistant"), default=-1)
@@ -325,24 +317,10 @@ def select_attempts(run_refs: list[str], config):
 # --------------------------------------------------------------------------- #
 
 
-def load_tools(path: str | None) -> list[dict[str, Any]] | None:
-    if not path:
-        return None
-    tools = json.loads(Path(path).read_text())
-    if not isinstance(tools, list):
-        raise SystemExit(f"--tools {path} must hold a JSON array of tool schemas, got {type(tools).__name__}")
-    return tools or None
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("runs", nargs="+", help="Eval run ids (under ~/.rllm/eval_results) or paths to run dirs.")
     parser.add_argument("--output-dir", required=True, help="Directory to write data.parquet into.")
-    parser.add_argument(
-        "--tools",
-        default=None,
-        help="Fallback JSON file of OpenAI tool schemas, for runs recorded before the gateway started saving them. Schemas found on the episode always win.",
-    )
     # Selection, same vocabulary as `rllm dataset from-eval`.
     parser.add_argument("--metric", default="is_correct", help="What avg/best/worst aggregate (default: is_correct).")
     parser.add_argument("--filter", dest="filter_expr", default="solved", help='Task-level filter, e.g. "0 < avg < 1" (default: solved).')
@@ -369,8 +347,6 @@ def main() -> None:
         raise SystemExit(f"key drift: rllm writes tool schemas under {trace_converter.REQUEST_TOOLS_KEY!r} but this converter reads {REQUEST_TOOLS_KEY!r}")
 
     args = parse_args()
-
-    tools = load_tools(args.tools)
 
     config = CurationConfig(
         metric=args.metric,
@@ -419,7 +395,7 @@ def main() -> None:
                     "is_correct": ref.is_correct,
                 }
                 try:
-                    sample = build_sample(episode, args.trajectory, tools, metadata)
+                    sample = build_sample(episode, args.trajectory, metadata)
                 except SkipRow as exc:
                     skipped[exc.reason] += 1
                     continue
@@ -431,8 +407,6 @@ def main() -> None:
                     stats["rows_with_tool_calls"] += 1
                     if sample.tools is None:
                         stats["rows_missing_tools"] += 1
-                if (sample.metadata or {}).get("tools_source") == "episode":
-                    stats["rows_with_recorded_tools"] += 1
                 writer.add(sample.to_parquet_row())
                 n_added += 1
     except CurationError as exc:
@@ -444,7 +418,7 @@ def main() -> None:
     print(f"rows written       : {n_written} -> {output_path}")
     print(f"assistant turns    : {stats['assistant_turns']}")
     print(f"rows with a reasoning-less turn (enable_thinking=false): {stats['rows_without_reasoning']}")
-    print(f"rows with structured tool calls: {stats['rows_with_tool_calls']} (tool schemas recorded on the episode: {stats['rows_with_recorded_tools']})")
+    print(f"rows with structured tool calls: {stats['rows_with_tool_calls']} (of which missing tool schemas: {stats['rows_missing_tools']})")
     if skipped:
         print("skipped (could not be made contract-valid):")
         for reason, count in skipped.most_common():
@@ -458,10 +432,12 @@ def main() -> None:
     # Rows with no tool calls at all are supposed to have tools=null.
     if stats["rows_missing_tools"]:
         print(
-            f"\nWARNING: {stats['rows_missing_tools']} row(s) contain tool calls but carry no tool schemas.\n"
-            "         The episode recorded none (a run older than trace_converter's request_tools)\n"
-            "         and no --tools was given, so the rendered system prompt will be missing the\n"
-            "         tool block the policy saw at inference.",
+            f"\nWARNING: {stats['rows_missing_tools']} row(s) contain tool calls but carry no tool schemas,\n"
+            "         so the rendered system prompt will be missing the tool block the policy saw -\n"
+            "         for Qwen3.5 that is the whole <function=...> call-format instruction.\n"
+            f"         The episodes record no {REQUEST_TOOLS_KEY!r}, which means the run predates\n"
+            "         rllm.engine.trace_converter saving it. Re-run the eval, or backfill the key\n"
+            "         into the episode JSON; there is no flag for it on purpose.",
             file=sys.stderr,
         )
 

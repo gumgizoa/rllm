@@ -30,7 +30,6 @@ scripts/inspect_loss_mask.py            see what a dataset actually supervises  
 qwen3_5/dataset.py                      Qwen3_5_SFTDataset: renders the contract         - one dataset class per model family
 qwen3_5/chat_templates/qwen3_5_train.jinja  training-purpose chat template (see 3)       - one template per model family, if needed
 qwen3_5/run_megatron_sft.sh             launcher for the Qwen3.5 + Megatron example
-tests/                                  conversion rules + template invariants, no GPU required
 ```
 
 Install the package once (editable, so edits under `swe_sft/` take effect immediately):
@@ -162,7 +161,6 @@ conversations. Selection (which task, which attempt) reuses
 | `--max-per-task N` | Cap attempts kept per task. |
 | `--metric` / `--min-reward` | What `avg`/`best` aggregate, and the per-attempt passing threshold. |
 | `--trajectory NAME` | Which trajectory to extract from a multi-agent flow (default: the first). |
-| `--tools FILE` | OpenAI tool schemas, written to every row's `tools` column. |
 
 It does **not** go through `rllm dataset from-eval`. That command's
 `_clean_message` keeps only `role`/`content`/`tool_calls`/`tool_call_id`/`name`,
@@ -211,13 +209,6 @@ contract-*valid* but wrong: the model would be trained to emit the literal
 characters `<tool_call>`. The converter **refuses** them (they show up under
 `skipped`), because nothing downstream can tell the difference.
 
-If you ever need those, a second converter should **not** parse the flattened
-text: `_build_step` (`integrations/harbor/atif_trajectory_bridge.py:255`) keeps
-the structured originals on the same `Step` (`action` = tool calls with dict
-arguments, `thought` = reasoning, `model_response` = the clean message,
-`observation` = the tool output), and `Step.to_dict` writes them all to disk.
-Only `tool_call_id` is lost, which the contract treats as optional.
-
 ### Where the tool schemas come from
 
 Tool schemas are a **request field, not a message**. The scaffold sends
@@ -259,11 +250,11 @@ of every sequence.
 `raw_request`), and this converter reads them **per row** from the same step it
 took the messages from. Nothing to configure.
 
-`--tools` is the fallback for runs recorded before that existed. Schemas found
-on the episode always win: they are what the policy was actually served, while
-the flag is a file someone keeps in sync by hand. Which one was used is recorded
-in `metadata.tools_source` (`episode` or `flag`), so a mix can be filtered on it
-(`--metadata-eq tools_source=episode`) and the run summary counts both.
+There is deliberately **no flag** to supply them by hand. A file kept in sync by
+a human drifts, and when it does the rendered system block differs from the one
+the policy saw and nothing raises - the exact failure mode this recipe exists to
+avoid. A run predating `request_tools` has no schemas: re-run the eval, or
+backfill the key into its episode JSON so the provenance stays in the data.
 
 An agent that does not use tool calling is a different case, not a defect to
 repair: rows carry `tools: null`, which is correct, and the converter only warns
@@ -366,7 +357,7 @@ tool call, which happened in 2 of 2 native SWE-bench Verified episodes:
 | harbor / `pallets__flask-5014` | 1 | 42 | 42 | 42 |
 
 One retry turn near the end of a 46-message trajectory costs 21 of 22 reasoning
-blocks under the stock template. `tests/test_qwen3_5_template.py` pins this.
+blocks under the stock template.
 
 > **Serving must use this same template** (vLLM: `--chat-template`), or the extra
 > reasoning in the context becomes a train/serve mismatch - and since agent runs
@@ -431,16 +422,6 @@ specific to that model, so a different model family needs its own launcher.
 cp recipe/sft/qwen3_5/.env.example recipe/sft/qwen3_5/.env   # then fill it in
 ENV_FILE=recipe/sft/qwen3_5/.env NUM_GPUS=8 bash recipe/sft/qwen3_5/run_megatron_sft.sh
 ```
-
-## 6. Tests
-
-```bash
-pytest recipe/sft/tests
-```
-
-Covers the conversion rules - reasoning normalization, tool-call argument
-handling, the refused Harbor shape, trajectory trimming - with synthetic episodes.
-No GPU, no model, no eval run, and no `rllm` import.
 
 ## Adding to this
 
