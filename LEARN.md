@@ -1,5 +1,6 @@
 # Initial Setup
 
+```bash
 apt-get update && apt-get install git curl
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv python install 3.12
@@ -8,12 +9,93 @@ uv venv --python 3.12
 source .venv/bin/activate
 
 uv pip install -e ".[verl,harbor]"
+uv pip install ipykernel   # dependency-groups.dev 는 uv pip 경로로 안 딸려옴
+# docker 는 [project].dependencies 에 이미 있으므로 별도 설치 불필요
+```
+
+## 이 리포는 uv.lock 을 쓰지 않는다
+
+`.gitignore:215`:
+
+```
+# Until we have a good way to handle cuda-version specific pkgs, we ignore uv.lock
+uv.lock
+```
+
+cuda 버전별 패키지 때문에 리포가 의도적으로 lock 을 제외한다.
+따라서 `uv sync` 가 아니라 `uv pip install` 이 이 프로젝트의 정상 설치 경로다.
+
+## `uv run` / `uv sync` / `uv add` 를 사용하지 말 것.
+
+uv 에는 서로를 모르는 인터페이스가 두 개 있다.
+
+|  | `uv pip install` | `uv run` / `sync` / `add` |
+| --- | --- | --- |
+| 성격 | pip 호환, 명령형 | 선언형 |
+| 기준 | 방금 친 명령 | `pyproject.toml` + `uv.lock` |
+| extra 사용 기록 | 남기지 않음 | 남김 |
+| 초과 패키지 | 그대로 둠 | **제거** |
+
+`uv pip install` 로 만든 환경에서 맨 `uv run` 을 치면 verl/harbor extra 를 쓴다는 기록이 없으므로
+verl, vllm, ray, flash-attn 등 177개를 제거하려 든다.
+
+```bash
+uv sync --dry-run   # Would uninstall 177 packages / Would install 1 package
+```
+
+실행은 아래 중 하나로:
+
+```bash
+source .venv/bin/activate && python xxx.py   # 가장 단순. 자동 sync 자체가 안 걸림
+uv run --no-sync python xxx.py               # 동기화 건너뛰고 현재 venv 그대로 실행
+export UV_NO_SYNC=1                          # 쉘에 걸어두면 --no-sync 가 기본이 됨
+```
+
+## `uv sync --extra verl --extra harbor`도 사용하지 말 것
+
+extra 를 맞춰줘도 소용없다. `uv.lock` 은 extra 17개 x python 3.10~3.15 를 동시에 만족시키는
+단일 버전 집합이라, 쓰지도 않는 extra 의 제약이 실제 사용 패키지를 끌어내린다.
+
+| 패키지 | 현재 venv | uv.lock | 원인 |
+| --- | --- | --- | --- |
+| ray | 2.58.0 | 2.55.1 | `rllm[fireworks]` -> `fireworks-ai==1.2.0a79` -> `pydantic<2.13` 와 `ray>=2.58` -> (py3.14+) `pydantic>=2.13` 가 충돌 |
+| tensordict | 0.10.0 | 0.8.3 | 0.10.0 을 강제하면 `packaging 26.3 -> 25.0` 이 딸려옴 |
+
+`uv lock --upgrade` 를 걸어도 두 패키지는 안 움직인다. lock 이 낡은 게 아니라 제약에 막힌 것.
+
+특히 tensordict 0.8.3 은 2025-05 릴리스(torch 2.7 시대)인데 현재 torch 는 2.11.0 이라 위험하다.
+verl 0.8.0 이 요구하는 범위는 `tensordict>=0.8.0,<=0.10.0,!=0.9.0` 이므로
+현재 설치된 0.10.0 이 그 상한이자 torch 2.11 과 같은 시기다. **지금 환경이 lock 보다 낫다.**
+
+## NFS 환경 경고
+
+`/workspace` 는 NFS 마운트, uv 캐시(`/root/.cache/uv`)는 로컬 overlay 라 파일시스템이 달라
+hardlink 가 불가능하고 전체 복사로 fallback 한다. 체감: 패키지 1개 설치에 23초.
+`Failed to hardlink files; falling back to full copy` 는 에러가 아니라 성능 경고다.
+
+```bash
+mkdir -p /root/venvs
+uv venv --python 3.12 /root/venvs/rllm
+source /root/venvs/rllm/bin/activate
+
+cd /workspace/rllm
+uv pip install -e ".[verl,harbor]"
+uv pip install ipykernel
+
+ln -s /root/venvs/rllm /workspace/rllm/.venv
+
+python -m ipykernel install --user --name=rllm --display-name="rllm"
+```
 
 ## Docker CLI (+ compose plugin)
+
+```bash
 apt-get update && apt-get install -y docker.io docker-compose-v2
-uv add docker
+```
 
 : rllm.cli.eval.py::240-248
+
+```python
 if (_is_harbor_agent or _is_harbor_source) and _runs_on_local_docker:
     from rllm.integrations.harbor.utils import diagnose_docker
 
@@ -23,18 +105,20 @@ if (_is_harbor_agent or _is_harbor_source) and _runs_on_local_docker:
             console.print(f"  [dim]{hint}[/]")
         console.print("  [dim]Or run on a remote backend, e.g. [bold]--sandbox-backend modal[/].[/]")
         fail(f"Harbor tasks require Docker — {reason}.")
+```
 
+## Jupyter 커널 등록
 
-## ipykernel 설치
-uv add --dev ipykernel
-uv run python -m ipykernel install --user --name=rllm --display-name="Python (rllm uv)" # Jupyter 커널로 등록
+```bash
+python -m ipykernel install --user --name=rllm --display-name="Python (rllm uv)"
+```
 
-## gsm8k sample data eval with rllm 
+## gsm8k sample data eval with rllm
 rllm eval gsm8k \
   --base-url http://27.122.129.133:8010/v1 \
   --model LGAI-EXAONE/EXAONE-4.5-33B \
   --max-examples 2 \
-  --concurrency 1 \s
+  --concurrency 1 \
   --no-ui
 
 ## view results
