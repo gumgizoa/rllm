@@ -33,8 +33,10 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path[:0] = [path for path in (str(REPO_ROOT),) if path not in sys.path]
+# So ``swe_sft`` resolves from a plain checkout too, not only after
+# ``pip install -e recipe/sft``. verl comes from rLLM's own dependencies.
+_SWE_SFT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [path for path in (str(_SWE_SFT),) if path not in sys.path]
 
 from swe_sft.dataset.utils.render import mask_spans  # noqa: E402
 from verl.utils import hf_processor, hf_tokenizer  # noqa: E402
