@@ -218,22 +218,56 @@ originals on the same `Step`, and `Step.to_dict` writes them all to disk.
 Only `tool_call_id` is lost, which the contract treats as optional and Qwen
 templates do not render.
 
-### Tool schemas have to be supplied by hand
+### Where the tool schemas come from
 
-`mini-swe-agent` under Harbor *does* use tool calling: one `bash` tool, invoked
-once per assistant turn. But the schema it was called with is **not recoverable
-from anything on disk**. The gateway holds it in `TraceRecord.raw_request`,
-`trace_record_to_step` does not copy it into the `Step`, and the Harbor trial
-directory records the agent's prompt templates but not its tool definitions.
+Tool schemas are a **request field, not a message**. The scaffold sends
+`tools=[...]` alongside `messages=[...]`, and the server renders them into the
+system block at inference. For Qwen3.5 that block is not just the schema list -
+it also carries the instruction defining the `<function=...>` call format:
 
-So `--tools` is a file you maintain, and getting it wrong is silent: the rendered
-`# Tools` system block differs from the one the policy saw, and nothing raises.
-Take it from the scaffold's own source, not from a reconstruction.
+```
+<|im_start|>system
+# Tools
 
-An agent that does not use tool calling at all is a different case, not a defect
-to repair. Rows carry `tools: null`, which is correct - it is what the policy
-saw. The converter only warns about a missing `--tools` when rows actually
-contain tool calls.
+You have access to the following functions:
+
+<tools>
+{"function": {"name": "bash", ...}}
+</tools>
+
+If you choose to call a function ONLY reply in the following format with NO suffix:
+
+<tool_call>
+<function=example_function_name>
+<parameter=example_parameter_1>
+...
+</function>
+</tool_call>
+...
+You are a helpful assistant that can interact with a computer.<|im_end|>
+```
+
+Rendering the same conversation without `tools=` produces a 91-character system
+block instead of 1,224 - while the assistant turns still render as
+`<function=bash>` either way. Training on that teaches the call format with the
+sentence that defines it deleted from the context. It is always loss-masked, so
+it does not corrupt the target; it corrupts the conditioning, at the very start
+of every sequence.
+
+`trace_record_to_step` therefore copies the request's `tools` into
+`Step.metadata["request_tools"]` (it is only reachable through the gateway's
+`raw_request`), and this converter reads them **per row** from the same step it
+took the messages from. Nothing to configure.
+
+`--tools` is the fallback for runs recorded before that existed. Schemas found
+on the episode always win: they are what the policy was actually served, while
+the flag is a file someone keeps in sync by hand. Which one was used is recorded
+in `metadata.tools_source` (`episode` or `flag`), so a mix can be filtered on it
+(`--metadata-eq tools_source=episode`) and the run summary counts both.
+
+An agent that does not use tool calling is a different case, not a defect to
+repair: rows carry `tools: null`, which is correct, and the converter only warns
+when rows contain tool calls but no schemas were found anywhere.
 
 ### Filters
 

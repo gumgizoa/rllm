@@ -80,7 +80,7 @@ def test_wire_format_round_trips_into_the_contract(converter):
     assert sample.tools == TOOLS
     # every assistant turn has reasoning, so thinking stays on
     assert sample.apply_chat_template_kwargs is None
-    assert sample.metadata == {"instance_id": "task-1"}
+    assert sample.metadata == {"instance_id": "task-1", "tools_source": "flag"}
 
 
 def test_parquet_row_is_four_json_strings(converter):
@@ -367,3 +367,70 @@ def test_real_gateway_traced_episode(converter):
     assert sample.tools == TOOLS
     # tool output is never parsed, even though it is valid JSON
     assert isinstance(sample.messages[3].content, str) and sample.messages[3].content.startswith("{")
+
+
+# --------------------------------------------------------------------------- #
+# Where the tool schemas come from
+# --------------------------------------------------------------------------- #
+
+
+def episode_with_recorded_tools(messages, tools):
+    """An episode whose step carries the gateway's request tools, the way
+    ``trace_record_to_step`` writes them."""
+    return {
+        "id": "t:0",
+        "trajectories": [{"name": "agent", "steps": [{"chat_completions": messages, "metadata": {"request_tools": tools}}]}],
+    }
+
+
+RECORDED = [{"type": "function", "function": {"name": "bash", "description": "the real one", "parameters": {}}}]
+
+
+def test_recorded_tools_beat_the_flag(converter):
+    """The episode records what the policy was actually served; --tools is a file
+    someone keeps in sync by hand, so it must not override."""
+    sample = converter.build_sample(episode_with_recorded_tools(WIRE_MESSAGES, RECORDED), None, TOOLS, {})
+    assert sample.tools == RECORDED
+    assert sample.metadata["tools_source"] == "episode"
+
+
+def test_recorded_tools_used_without_any_flag(converter):
+    sample = converter.build_sample(episode_with_recorded_tools(WIRE_MESSAGES, RECORDED), None, None, {})
+    assert sample.tools == RECORDED
+    assert sample.metadata["tools_source"] == "episode"
+
+
+def test_flag_is_the_fallback_for_older_runs(converter):
+    """Runs recorded before the gateway saved tools have no such key."""
+    sample = converter.build_sample(episode(WIRE_MESSAGES), None, TOOLS, {})
+    assert sample.tools == TOOLS
+    assert sample.metadata["tools_source"] == "flag"
+
+
+def test_no_tools_anywhere_leaves_no_provenance_key(converter):
+    sample = converter.build_sample(episode(WIRE_MESSAGES), None, None, {})
+    assert sample.tools is None
+    assert "tools_source" not in (sample.metadata or {})
+
+
+def test_empty_recorded_tools_is_treated_as_absent(converter):
+    """`tools: []` in a request means the caller declared none; it must not
+    shadow the flag with an empty list."""
+    sample = converter.build_sample(episode_with_recorded_tools(WIRE_MESSAGES, []), None, TOOLS, {})
+    assert sample.tools == TOOLS
+    assert sample.metadata["tools_source"] == "flag"
+
+
+def test_converter_key_matches_the_one_rllm_writes():
+    """The constant is duplicated so the conversion functions import without
+    rllm; main() enforces this at runtime, and so does this test when rllm is
+    importable."""
+    pytest.importorskip("rllm.engine.trace_converter")
+    import importlib.util
+
+    from rllm.engine.trace_converter import REQUEST_TOOLS_KEY
+
+    spec = importlib.util.spec_from_file_location("_c", RECIPE_ROOT / "converters" / "from_rllm_gateway.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.REQUEST_TOOLS_KEY == REQUEST_TOOLS_KEY

@@ -96,6 +96,10 @@ from swe_sft.schemas import SFTSample
 
 VALID_ROLES = ("system", "user", "assistant", "tool")
 
+# Mirrors rllm.engine.trace_converter.REQUEST_TOOLS_KEY, duplicated so the
+# conversion functions stay importable without rllm. main() asserts they agree.
+REQUEST_TOOLS_KEY = "request_tools"
+
 
 class SkipRow(Exception):
     """Raised when an attempt cannot be made contract-valid at all."""
@@ -210,11 +214,15 @@ def clean_message(message: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def episode_messages(episode: dict[str, Any], trajectory_name: str | None) -> list[dict[str, Any]]:
-    """The conversation from an episode's chosen trajectory, as contract messages.
+def episode_messages(episode: dict[str, Any], trajectory_name: str | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:
+    """``(messages, tools)`` from an episode's chosen trajectory.
 
     Uses the last step that carries ``chat_completions`` - that step holds the
-    whole conversation, which is also how eval scores the trajectory.
+    whole conversation, which is also how eval scores the trajectory - and
+    takes the tool schemas from that same step's
+    ``metadata["request_tools"]``, which ``trace_record_to_step`` copies out of
+    the gateway's ``raw_request``. Runs recorded before that existed have no
+    such key and fall back to ``--tools``.
     """
     trajectories = episode.get("trajectories") or []
     if not trajectories:
@@ -230,7 +238,9 @@ def episode_messages(episode: dict[str, Any], trajectory_name: str | None) -> li
     for step in reversed(chosen.get("steps") or []):
         raw = step.get("chat_completions")
         if raw:
-            return [clean_message(m) for m in raw]
+            recorded = (step.get("metadata") or {}).get(REQUEST_TOOLS_KEY)
+            tools = recorded if isinstance(recorded, list) and recorded else None
+            return [clean_message(m) for m in raw], tools
     raise SkipRow("no step carries chat_completions")
 
 
@@ -240,8 +250,19 @@ def build_sample(
     tools: list[dict[str, Any]] | None,
     metadata: dict[str, Any],
 ) -> SFTSample:
-    """Convert one episode into a contract sample. Raises :class:`SkipRow`."""
-    messages = episode_messages(episode, trajectory_name)
+    """Convert one episode into a contract sample. Raises :class:`SkipRow`.
+
+    ``tools`` is the ``--tools`` fallback. Schemas recorded on the episode win:
+    they are what the policy was actually served, while the flag is a file a
+    human keeps in sync by hand. Which one was used is recorded in
+    ``metadata["tools_source"]``, so a mix can be filtered on it later
+    (``--metadata-eq tools_source=episode``).
+    """
+    messages, recorded_tools = episode_messages(episode, trajectory_name)
+    if recorded_tools is not None:
+        tools, metadata = recorded_tools, {**metadata, "tools_source": "episode"}
+    elif tools is not None:
+        metadata = {**metadata, "tools_source": "flag"}
 
     # Trailing context that no assistant turn ever consumes.
     last_assistant = max((i for i, m in enumerate(messages) if m["role"] == "assistant"), default=-1)
@@ -320,7 +341,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tools",
         default=None,
-        help="JSON file with the OpenAI tool schemas the agent saw at inference, written to every row's 'tools' column. Omit for agents that do not use tool calling (e.g. upstream mini-swe-agent).",
+        help="Fallback JSON file of OpenAI tool schemas, for runs recorded before the gateway started saving them. Schemas found on the episode always win.",
     )
     # Selection, same vocabulary as `rllm dataset from-eval`.
     parser.add_argument("--metric", default="is_correct", help="What avg/best/worst aggregate (default: is_correct).")
@@ -341,7 +362,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    from rllm.engine import trace_converter
     from rllm.eval.curation import CurationConfig, CurationError
+
+    if trace_converter.REQUEST_TOOLS_KEY != REQUEST_TOOLS_KEY:
+        raise SystemExit(f"key drift: rllm writes tool schemas under {trace_converter.REQUEST_TOOLS_KEY!r} but this converter reads {REQUEST_TOOLS_KEY!r}")
 
     args = parse_args()
 
@@ -404,6 +429,10 @@ def main() -> None:
                     stats["rows_without_reasoning"] += 1
                 if any(m.tool_calls for m in sample.messages):
                     stats["rows_with_tool_calls"] += 1
+                    if sample.tools is None:
+                        stats["rows_missing_tools"] += 1
+                if (sample.metadata or {}).get("tools_source") == "episode":
+                    stats["rows_with_recorded_tools"] += 1
                 writer.add(sample.to_parquet_row())
                 n_added += 1
     except CurationError as exc:
@@ -415,7 +444,7 @@ def main() -> None:
     print(f"rows written       : {n_written} -> {output_path}")
     print(f"assistant turns    : {stats['assistant_turns']}")
     print(f"rows with a reasoning-less turn (enable_thinking=false): {stats['rows_without_reasoning']}")
-    print(f"rows with structured tool calls: {stats['rows_with_tool_calls']}")
+    print(f"rows with structured tool calls: {stats['rows_with_tool_calls']} (tool schemas recorded on the episode: {stats['rows_with_recorded_tools']})")
     if skipped:
         print("skipped (could not be made contract-valid):")
         for reason, count in skipped.most_common():
@@ -424,12 +453,14 @@ def main() -> None:
         raise SystemExit("FAILED: no rows written")
 
     # Warn only when it actually matters: rows that call tools but carry no schemas
-    # render a system prompt the policy never saw. Rows with no tool calls at all
-    # (upstream mini-swe-agent) are supposed to have tools=null.
-    if stats["rows_with_tool_calls"] and tools is None:
+    # render a system prompt the policy never saw - for Qwen3.5 that drops the whole
+    # <function=...> call-format instruction while still training the calls themselves.
+    # Rows with no tool calls at all are supposed to have tools=null.
+    if stats["rows_missing_tools"]:
         print(
-            f"\nWARNING: {stats['rows_with_tool_calls']} row(s) contain tool calls but no --tools was given,\n"
-            "         so they carry tools=null and the rendered system prompt will be missing the\n"
+            f"\nWARNING: {stats['rows_missing_tools']} row(s) contain tool calls but carry no tool schemas.\n"
+            "         The episode recorded none (a run older than trace_converter's request_tools)\n"
+            "         and no --tools was given, so the rendered system prompt will be missing the\n"
             "         tool block the policy saw at inference.",
             file=sys.stderr,
         )

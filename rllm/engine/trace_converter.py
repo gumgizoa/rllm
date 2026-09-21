@@ -28,6 +28,25 @@ def _parse_openai_tool_calls(raw_tool_calls: list[dict[str, Any]]) -> list[ToolC
     return result
 
 
+#: ``Step.metadata`` key holding the request's ``tools`` array. Named for the
+#: request field it mirrors so it cannot be confused with an agent-side key.
+REQUEST_TOOLS_KEY = "request_tools"
+
+
+def _request_tools(trace: TraceRecord) -> list[dict[str, Any]] | None:
+    """The ``tools`` the caller sent, if any.
+
+    Tool schemas are a *request field*, not a message, and the server renders
+    them into the system block at inference time (Qwen3.5: the ``# Tools``
+    section plus the ``<function=...>`` call-format instruction). So a saved
+    ``chat_completions`` alone cannot reproduce what the policy actually saw,
+    and anything re-rendering those messages later - SFT above all - has to be
+    handed the same array. It is only reachable here, in ``raw_request``.
+    """
+    tools = (trace.raw_request or {}).get("tools")
+    return tools if isinstance(tools, list) and tools else None
+
+
 def trace_record_to_step(trace: TraceRecord) -> Step:
     """Convert a gateway TraceRecord to a training Step.
 
@@ -35,6 +54,9 @@ def trace_record_to_step(trace: TraceRecord) -> Step:
     - prompt_token_ids
     - completion_token_ids
     - logprobs (per-token)
+
+    ``metadata[REQUEST_TOOLS_KEY]`` carries the request's ``tools`` when it had
+    any; see :func:`_request_tools` for why the messages are not enough.
     """
     content = trace.response_message.get("content", "") or ""
     reasoning = trace.response_message.get("reasoning") or trace.response_message.get("reasoning_content") or ""
@@ -61,6 +83,13 @@ def trace_record_to_step(trace: TraceRecord) -> Step:
     chat_completions = list(trace.messages)
     chat_completions.append(trace.response_message)
 
+    # Copy before adding, so a caller's dict is never mutated and the gateway's
+    # own keys keep priority over ours.
+    metadata = dict(trace.metadata or {})
+    tools = _request_tools(trace)
+    if tools is not None:
+        metadata.setdefault(REQUEST_TOOLS_KEY, tools)
+
     return Step(
         id=trace.trace_id,
         chat_completions=chat_completions,
@@ -68,7 +97,7 @@ def trace_record_to_step(trace: TraceRecord) -> Step:
         model_response=content,
         output=content,
         thought=reasoning,
-        metadata=trace.metadata,
+        metadata=metadata,
         weight_version=trace.weight_version,
     )
 

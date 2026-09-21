@@ -3,6 +3,7 @@
 from rllm_model_gateway.models import TraceRecord
 
 from rllm.engine.trace_converter import (
+    REQUEST_TOOLS_KEY,
     _parse_openai_tool_calls,
     trace_record_to_step,
 )
@@ -211,3 +212,65 @@ class TestTraceRecordToStep:
         )
         step = trace_record_to_step(trace)
         assert step.model_output.tool_calls is None
+
+
+# ------------------------------------------------------------------
+# request tools
+# ------------------------------------------------------------------
+
+
+class TestRequestTools:
+    """Tool schemas are a request field, not a message.
+
+    The server renders them into the system block at inference (Qwen3.5: the
+    ``# Tools`` section plus the ``<function=...>`` call-format instruction), so
+    ``chat_completions`` alone cannot reproduce what the policy saw. Anything
+    that re-renders those messages later - SFT above all - needs the array, and
+    ``raw_request`` is the only place it exists.
+    """
+
+    TOOLS = [
+        {
+            "type": "function",
+            "function": {
+                "name": "bash",
+                "description": "Execute a bash command",
+                "parameters": {"type": "object", "properties": {"command": {"type": "string"}}},
+            },
+        }
+    ]
+
+    def _make_trace(self, **overrides) -> TraceRecord:
+        defaults = {
+            "trace_id": "t-001",
+            "session_id": "s-001",
+            "messages": [{"role": "user", "content": "hello"}],
+            "response_message": {"role": "assistant", "content": "hi"},
+        }
+        defaults.update(overrides)
+        return TraceRecord(**defaults)
+
+    def test_tools_are_copied_from_raw_request(self):
+        trace = self._make_trace(raw_request={"model": "m", "messages": [], "tools": self.TOOLS})
+        assert trace_record_to_step(trace).metadata[REQUEST_TOOLS_KEY] == self.TOOLS
+
+    def test_absent_when_the_request_declared_none(self):
+        for raw_request in (None, {}, {"messages": []}, {"tools": []}, {"tools": None}, {"tools": "bash"}):
+            step = trace_record_to_step(self._make_trace(raw_request=raw_request))
+            assert REQUEST_TOOLS_KEY not in (step.metadata or {}), raw_request
+
+    def test_existing_metadata_is_preserved_and_not_mutated(self):
+        original = {"session": "abc"}
+        trace = self._make_trace(metadata=original, raw_request={"tools": self.TOOLS})
+        step = trace_record_to_step(trace)
+
+        assert step.metadata["session"] == "abc"
+        assert step.metadata[REQUEST_TOOLS_KEY] == self.TOOLS
+        assert original == {"session": "abc"}, "the caller's dict must not be mutated"
+
+    def test_gateway_metadata_wins_on_collision(self):
+        trace = self._make_trace(
+            metadata={REQUEST_TOOLS_KEY: ["already set"]},
+            raw_request={"tools": self.TOOLS},
+        )
+        assert trace_record_to_step(trace).metadata[REQUEST_TOOLS_KEY] == ["already set"]
