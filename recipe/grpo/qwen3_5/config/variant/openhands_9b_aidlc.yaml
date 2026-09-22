@@ -1,0 +1,20 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk + AI-DLC. Everything from openhands_9b, plus the
+# workflow injection (documents at /ai-dlc, instruction suffix, system prompt).
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc
+#
+# Ablations from the CLI, e.g. system prompt only:
+#   ... variant=openhands_9b_aidlc recipe.aidlc.instruction_file=null
+
+defaults:
+  - openhands_9b
+
+recipe:
+  aidlc:
+    enable: true
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-aidlc-verl

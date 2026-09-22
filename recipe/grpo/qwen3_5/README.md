@@ -250,6 +250,85 @@ Env knobs: `ENV_FILE` (dotenv path, default `<recipe>/.env`), `RLLM_HOME` and
 `RLLM_AGENT_IMAGE` (`auto` | `skip` | `repo:tag`), `MODEL_PATH`, `RLLM_RUN_DIR`,
 `HF_HUB_OFFLINE`.
 
+## Variants: openhands-sdk and AI-DLC
+
+The harness is a config choice. `recipe.agent` picks it and `recipe.aidlc.enable` layers the
+AI-DLC workflow on the openhands-sdk harness; `config/variant/` holds the two presets, applied
+*after* `config.yaml` so their values win:
+
+```bash
+bash recipe/grpo/qwen3_5/train_verl.sh                              # 4B + mini-swe-agent (unchanged default)
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk, SDK's own workflow
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
+```
+
+| `recipe.agent` | `recipe.aidlc.enable` | harness | where |
+| --- | --- | --- | --- |
+| `mini-swe-agent` | `false` | `StepLimitedMiniSweAgent` | `train.py` |
+| `openhands-sdk` | `false` | `StepLimitedOpenHandsSdk` | `aidlc_flow.py` |
+| `openhands-sdk` | `true` | `AidlcOpenHandsSdkHarness` | `aidlc_flow.py` |
+| `mini-swe-agent` | `true` | refused at startup | — |
+
+Both openhands-sdk classes read `recipe.agent_step_limit` into `OPENHANDS_MAX_ITERATIONS`, and
+the engine reads the same attribute to stamp `MAX_TURNS_EXCEEDED`, so the SWE-Master budget
+scaling (`budget_reward_scale`) applies to the SDK exactly as it does to mini-swe-agent. The
+agent-image mount works for both (`rllm/sandbox/agent_image.py` has an openhands-sdk bake
+recipe); the AI-DLC harness shares the plain harness's install script, hence its image tag.
+
+### What AI-DLC puts in the sandbox
+
+Three layers, each a `recipe.aidlc.*` key, mirroring the Harbor experiment
+(`harbor-extension/experiments/aidlc`) that first made openhands-sdk follow the workflow:
+
+| layer | key | in the sandbox | off switch |
+| --- | --- | --- | --- |
+| workflow documents | `docs_dir` → `container_dir` | `/ai-dlc/core-workflow.md`, `/ai-dlc/rule-details/0[1-5]-*.md`, uploaded per task and counted (6 `.md` or the rollout fails) | always on |
+| instruction suffix | `instruction_file` | appended to the task instruction: "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
+| system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` | `=null` |
+
+**The system prompt is the layer that matters.** openhands-sdk's default prompt carries a
+`<PROBLEM_SOLVING_WORKFLOW>` section prescribing its own procedure (exploration → analysis →
+testing → implementation → verification), and it outranks anything appended to the user
+message — the Harbor run without the override ignored the instruction outright. The shipped
+`aidlc/system-prompt.j2` is the SDK **1.42.1** default with that one section rewritten and the
+other fifteen untouched, so tool conventions survive. Bumping `SDK_VERSION` means re-extracting
+it; a stale template silently reverts the run to the SDK's own workflow.
+
+The documents live outside the repository so that `git diff` cannot pick them up and the stage
+artifacts (`/tmp/swe-bench-pro/NN-*.md`, per `core-workflow.md`) cannot either. Nothing here
+rewards the artifacts: the reward is the verifier's, as in the SkyRL port. The workflow-following
+behaviour is visible after the fact in the episode logs (document reads and artifact writes are
+ordinary tool calls).
+
+**Provenance.** `aidlc/core-workflow.md` and `aidlc/rule-details/` are copies of
+`harbor-extension/ai-dlc` (commit `ea8a5f65`, 2026-08-26); `aidlc/instruction.md` is
+`experiments/aidlc/variants/ai-dlc.md` and `aidlc/system-prompt.j2` is
+`experiments/aidlc/system-prompts/openhands-sdk-aidlc.j2` from the same tree. They are copied
+rather than referenced because the three name each other by absolute path and by what a stage
+produces; a set that moves independently of the recipe lets one drift from the other two. This
+set is the third generation — SkyRL's `aidlc-v1` (print a report per stage) and `aidlc-v4`
+(artifacts under `/tmp/stage-artifacts`) differ in both text and paths — so do not mix its
+documents with either of those instructions.
+
+### Turn budget under openhands-sdk
+
+`variant/openhands_9b.yaml` sets `agent_step_limit: 80`, not 150. An SDK step's observation is
+a file view or a terminal result rather than one bash line, and the AI-DLC arm spends its first
+turns reading ~600 lines of workflow documents, so tokens per turn run higher than the ~1,100
+measured for mini-swe-agent. Treat 80 as a starting point: read `response_length/max` and the
+`termination_reason/*` histogram off the smoke run and re-pair it with `max_model_len` using the
+rule in [Picking `agent_step_limit` and `max_model_len` together](#picking-agent_step_limit-and-max_model_len-together).
+
+Two checks before trusting a 9B run, both from the smoke test:
+
+* **Plumbing.** `scripts/verify_cumulative.py` was validated on mini-swe-agent, whose
+  observations arrive as *user* messages. openhands-sdk uses native function calling, so they
+  arrive as *tool* messages. The prefix-extension and loss-mask assertions are what tell you the
+  cumulative-token path holds for that shape; run them as described in
+  [Verifying the renderer / cumulative-token path](#verifying-the-renderer--cumulative-token-path).
+* **verl #7520.** Qwen3.5-9B has an untied `lm_head`; see the note at the bottom of
+  `variant/openhands_9b.yaml` and [Before scaling to a larger model](#before-scaling-to-a-larger-model).
+
 ## What follows SWE-Master, and what does not
 
 The RL half of this recipe is matched to SWE-Master (arXiv 2602.03411, §3.4) item by item. The
@@ -1096,13 +1175,22 @@ Each of these was a hard failure of the native training path, not a tuning choic
 recipe/grpo/qwen3_5/
 ├── README.md
 ├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
-├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl")
+├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
+├── aidlc_flow.py                 # StepLimitedOpenHandsSdk + AidlcOpenHandsSdkHarness (docs upload, instruction suffix, system prompt)
+├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
+│   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
+│   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/
+│   ├── instruction.md            #   appended to the task instruction
+│   └── system-prompt.j2          #   replaces the SDK 1.42.1 system prompt (one section rewritten)
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/
-│   ├── config.yaml               # Hydra entry + recipe.* (datasets, turn budget, reward scale, sandbox)
+│   ├── config.yaml               # Hydra entry + recipe.* (agent, aidlc.*, datasets, turn budget, reward scale, sandbox)
 │   ├── rllm_grpo.yaml            # the `rllm.*` tree (data, sampling, gateway, GRPO)
-│   └── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
+│   ├── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
+│   └── variant/
+│       ├── openhands_9b.yaml         # `variant=openhands_9b`: Qwen3.5-9B + openhands-sdk, no AI-DLC
+│       └── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/

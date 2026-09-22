@@ -1,0 +1,37 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk, no AI-DLC. The control arm for openhands_9b_aidlc:
+# same model, same harness, same budget, default SDK system prompt.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b
+#
+# Layered after config.yaml (see its `defaults`), so only the deltas live here.
+
+model:
+  # MODEL_PATH still wins, as in verl_trainer.yaml.
+  name: ${oc.env:MODEL_PATH,Qwen/Qwen3.5-9B}
+
+recipe:
+  agent: openhands-sdk
+  # Fewer iterations than the mini-swe-agent default (150): an SDK step's
+  # observation is a file view or a terminal result rather than one bash line,
+  # and the AI-DLC arm spends its first turns reading ~600 lines of workflow
+  # documents. 80 x ~1.5K tokens sits under max_response_length (122880); size
+  # the two together and re-measure `response_length/max` on the smoke run.
+  agent_step_limit: 80
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-native-verl
+
+# 9B-specific verl notes (not changed here -- verify on the smoke run):
+#   * Qwen3.5-9B has an *untied* lm_head. verl #7520 (open): untied head +
+#     FSDP2 + use_fused_kernels + gradient accumulation can crash in the
+#     backward of a non-final micro-batch. ppo_micro_batch_size_per_gpu=1 with
+#     >1 row per GPU is gradient accumulation, so watch the first update_actor;
+#     if it fails, the fallback is ppo_mini_batch_size such that each GPU holds
+#     one row per optimizer step, not turning fused kernels off (the 248K vocab
+#     needs them).
+#   * vLLM at gpu_memory_utilization=0.50 keeps ~40 GB per card for 18 GB of
+#     bf16 weights plus KV cache; the hybrid attention keeps KV small, so
+#     max_model_len=131072 should still fit. Confirm from the vLLM startup log.

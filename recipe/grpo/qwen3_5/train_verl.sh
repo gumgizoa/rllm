@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Native rLLM SWE GRPO on verl — Qwen/Qwen3.5-4B + mini-swe-agent in Docker sandboxes.
+# Native rLLM SWE GRPO on verl — Qwen3.5 + a CLI harness in Docker sandboxes.
 #
-# NOT Harbor: MiniSweAgentHarness + SandboxTaskHooks + gateway traces
+# NOT Harbor: harness + SandboxTaskHooks + gateway traces
 # (rllm.remote_runtime.enabled=false).
+#
+# Default is Qwen3.5-4B + mini-swe-agent. Presets in config/variant/ switch the
+# harness and model (README "Variants"):
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
 #
 # This script only sets up the environment and launches; every training knob
 # lives in config/ so that one decision is not split across two files:
@@ -21,7 +26,7 @@
 #
 # Env:
 #   ENV_FILE          dotenv to source         (default: <recipe>/.env)
-#   MODEL_PATH        HF id or local path      (default: Qwen/Qwen3.5-4B)
+#   MODEL_PATH        HF id or local path      (default: Qwen/Qwen3.5-4B; variant=openhands_9b* -> Qwen/Qwen3.5-9B)
 #   SANDBOX_BACKEND   docker|modal|daytona     (default: docker)
 #   RLLM_AGENT_IMAGE  auto|skip|repo:tag       (default: auto)
 #   TRAIN_LOG         transcript destination

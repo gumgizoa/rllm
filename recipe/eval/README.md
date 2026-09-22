@@ -722,6 +722,17 @@ rllm eval swebenchpro_100 \
 - **Alpine task는 예외다.** bake image는 ubuntu(glibc) 기반이라 musl task image(SWE-bench Pro의 teleport 10개)에서는 mount된 interpreter가 실행되지 못한다. mount가 있으면 rLLM이 설치 훅을 건너뛰므로(`hooks.py`의 `baked_install`), harness가 mount된 python을 **실행해 보고** 실패하면 task별 설치로 폴백한다. 이때 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
 - **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다. native harness에는 `--agent-kwargs`가 적용되지 않는다(3.2).
 - SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 폴백한다는 경고를 남기지만 동작에는 문제가 없다.
+- runner는 `OPENHANDS_SDK_SYSTEM_PROMPT_PATH`(container 안 절대경로)가 설정되면 그 Jinja 템플릿을 `Agent(system_prompt_filename=...)`로 넘겨 SDK 기본 system prompt를 교체한다. Harbor scaffold와 같은 변수명이다. 기본 harness는 이 변수를 설정하지 않는다.
+- **AI-DLC 워크플로우로 평가**하려면 `recipe/grpo/qwen3_5/aidlc_flow.py`의 harness를 import path로 지정한다. 학습(`variant=openhands_9b_aidlc`)과 같은 문서·지시·system prompt를 sandbox에 넣는다(`recipe/grpo/qwen3_5/README.md` "Variants" 참고):
+
+  ```bash
+  rllm eval swebench_verified_balanced --split test \
+      --agent recipe.grpo.qwen3_5.aidlc_flow:AidlcOpenHandsSdkHarness \
+      --agent-image auto --sandbox-backend docker --no-ui \
+      --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-9B
+  ```
+
+  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. `step_limit`은 class 기본값(50)이며 `--agent-kwargs`는 native harness에 적용되지 않는다(3.2).
 
 ---
 

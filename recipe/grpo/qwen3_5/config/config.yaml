@@ -13,9 +13,29 @@ defaults:
   - rllm_grpo      # the `rllm.*` tree: data, rollout sampling, gateway, GRPO, filtering
   - verl_trainer   # verl-native: model, FSDP2 actor/ref, vLLM rollout engine
   - _self_
+  # An optional preset layered *after* this file, so its values win over the
+  # defaults below: `variant=openhands_9b` / `variant=openhands_9b_aidlc`
+  # (see config/variant/). Unset = the 4B + mini-swe-agent run as before.
+  - variant: null
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
+  # Which harness runs inside the task sandbox. Both honour agent_step_limit.
+  #   mini-swe-agent  StepLimitedMiniSweAgent (train.py)
+  #   openhands-sdk   aidlc_flow.StepLimitedOpenHandsSdk, or the AI-DLC harness
+  #                   below when aidlc.enable is true
+  agent: mini-swe-agent
+  # AI-DLC workflow injection (openhands-sdk only). Off by default so the
+  # baseline run is unchanged; `variant=openhands_9b_aidlc` turns it on.
+  # Paths are relative to this recipe directory unless absolute. The three
+  # files are shipped together under aidlc/ because they name each other by
+  # absolute container path -- see aidlc_flow.py.
+  aidlc:
+    enable: false
+    docs_dir: aidlc                          # core-workflow.md + rule-details/ -> container_dir
+    container_dir: /ai-dlc                   # must match the paths written in instruction.md / system-prompt.j2
+    instruction_file: aidlc/instruction.md   # appended to the task instruction; null = do not append
+    system_prompt_file: aidlc/system-prompt.j2  # replaces the SDK system prompt; null = SDK default (the workflow is then ignored -- ablation only)
   train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
@@ -24,7 +44,9 @@ recipe:
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
   sandbox_concurrency: 16     # caps live sandboxes AND the warm-queue prefetch depth
-  # Turn budget per rollout, passed to mini-swe-agent as agent.step_limit.
+  # Turn budget per rollout: mini-swe-agent's agent.step_limit, or the SDK's
+  # OPENHANDS_MAX_ITERATIONS. The engine reads the same number to stamp
+  # MAX_TURNS_EXCEEDED.
   # Not cross-checked against the context window: nothing bounds tokens-per-turn
   # tightly enough for the arithmetic to mean much (measured median 542, worst
   # 1151), so a turn that overruns max_model_len is handled at rollout time

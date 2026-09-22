@@ -1,9 +1,20 @@
-"""Native rLLM SWE GRPO on verl — Qwen3.5-4B + mini-swe-agent.
+"""Native rLLM SWE GRPO on verl — Qwen3.5 + a CLI harness in Docker sandboxes.
 
 Not Harbor: the rollout is ``AgentFlowEngine`` → ``SandboxTaskHooks`` (Docker)
-→ ``MiniSweAgentHarness`` (the CLI runs *inside* the task sandbox and calls
-back through the rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh``
-writes ``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
+→ harness (the agent runs *inside* the task sandbox and calls back through the
+rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh`` writes
+``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
+
+The harness is chosen by ``recipe.agent``:
+
+* ``mini-swe-agent`` (default) — ``StepLimitedMiniSweAgent`` below, Qwen3.5-4B.
+* ``openhands-sdk`` — ``aidlc_flow.StepLimitedOpenHandsSdk``; with
+  ``recipe.aidlc.enable=true`` it becomes ``AidlcOpenHandsSdkHarness``, which
+  ships the AI-DLC workflow documents into the sandbox and swaps the SDK's
+  system prompt. ``config/variant/`` holds ready-made selections::
+
+    bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b          # 9B, no AI-DLC
+    bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc    # 9B + AI-DLC
 
 Datasets are the small locally-materialized benchmarks built by
 ``scripts/prepare_datasets.py``; both names are overridable from the CLI::
@@ -20,6 +31,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
@@ -114,6 +126,58 @@ class StepLimitedMiniSweAgent(MiniSweAgentHarness):
         )
 
 
+RECIPE_DIR = Path(__file__).resolve().parent
+
+
+def _recipe_path(value: str | None) -> Path | None:
+    """Resolve a ``recipe.aidlc.*`` path; relative paths are relative to this recipe dir."""
+    if value is None:
+        return None
+    path = Path(str(value)).expanduser()
+    return path if path.is_absolute() else RECIPE_DIR / path
+
+
+def _build_agent_flow(recipe: DictConfig):
+    """Pick the harness from ``recipe.agent`` and layer AI-DLC on it when asked.
+
+    The two harnesses share one ``agent_step_limit`` so a run's turn budget
+    means the same thing whichever agent is under it. AI-DLC is a property of
+    the openhands-sdk harness only: it needs a system-prompt override to work
+    at all, and mini-swe-agent has no equivalent seam.
+    """
+    agent = str(recipe.get("agent", "mini-swe-agent"))
+    step_limit = int(recipe.agent_step_limit)
+    aidlc = recipe.get("aidlc") or {}
+    aidlc_enabled = bool(aidlc.get("enable", False))
+
+    if agent == "mini-swe-agent":
+        if aidlc_enabled:
+            raise SystemExit(
+                "recipe.aidlc.enable=true requires recipe.agent=openhands-sdk "
+                "(mini-swe-agent has no system-prompt seam for the workflow). "
+                "Use `variant=openhands_9b_aidlc` or set recipe.agent explicitly."
+            )
+        return StepLimitedMiniSweAgent(step_limit=step_limit)
+
+    if agent == "openhands-sdk":
+        # Imported lazily and by file location: the module sits beside this
+        # script, and `python recipe/grpo/qwen3_5/train.py` puts that dir on
+        # sys.path[0].
+        from aidlc_flow import AidlcOpenHandsSdkHarness, StepLimitedOpenHandsSdk
+
+        if not aidlc_enabled:
+            return StepLimitedOpenHandsSdk(step_limit=step_limit)
+        return AidlcOpenHandsSdkHarness(
+            step_limit=step_limit,
+            docs_dir=_recipe_path(aidlc.get("docs_dir", "aidlc")),
+            container_dir=str(aidlc.get("container_dir", "/ai-dlc")),
+            instruction_file=_recipe_path(aidlc.get("instruction_file")),
+            system_prompt_file=_recipe_path(aidlc.get("system_prompt_file")),
+        )
+
+    raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
+
+
 def _load(name: str, split: str, limit: int | None, kind: str):
     # as_tasks=True roots each row at its ``task_path`` and merges the per-task
     # ``task.toml``. Without it every Task lands on ``dataset_dir="."`` and the
@@ -134,14 +198,15 @@ def main(config: DictConfig) -> None:
     train_dataset = _load(recipe.train_dataset, recipe.train_split, recipe.get("train_limit"), "train")
     val_dataset = _load(recipe.val_dataset, recipe.val_split, recipe.get("val_limit"), "val")
 
-    # `auto` mounts a pre-built mini-swe-agent image into the task sandbox
-    # instead of running `uv tool install` on every rollout (Docker only).
-    # Same mechanism as `rllm eval --agent-image`.
+    # `auto` mounts a pre-built agent image (mini-swe-agent or the openhands-sdk
+    # venv, per harness) into the task sandbox instead of installing on every
+    # rollout (Docker only). Same mechanism as `rllm eval --agent-image`.
     agent_image = os.environ.get("RLLM_AGENT_IMAGE", recipe.agent_image)
     os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
 
-    agent_flow = StepLimitedMiniSweAgent(step_limit=recipe.agent_step_limit)
+    agent_flow = _build_agent_flow(recipe)
     agent_flow.configure({"agent_image": agent_image})
+    logger.info("agent flow: %s (step_limit=%s, aidlc=%s)", type(agent_flow).__name__, recipe.agent_step_limit, bool((recipe.get("aidlc") or {}).get("enable", False)))
 
     trainer = AgentTrainer(
         backend="verl",

@@ -15,6 +15,9 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 ``LLM_BASE_URL``     gateway session URL
 ``LLM_API_KEY``      gateway bearer token, or a placeholder on loopback
 ``OPENHANDS_MAX_ITERATIONS``  optional cap on agent steps per run
+``OPENHANDS_SDK_SYSTEM_PROMPT_PATH``  optional absolute path to a Jinja
+                     template that replaces the SDK's default system prompt
+                     (same name Harbor's openhands-sdk scaffold uses)
 """
 
 from __future__ import annotations
@@ -52,7 +55,18 @@ def main() -> int:
         Tool(name=FileEditorTool.name),
         Tool(name=TaskTrackerTool.name),
     ]
-    agent = Agent(llm=llm, tools=tools)
+    agent_kwargs: dict[str, object] = {"llm": llm, "tools": tools}
+    # The SDK's default system prompt prescribes its own problem-solving
+    # procedure, which outranks any workflow the task instruction asks for.
+    # A harness that needs a different procedure ships a template and points
+    # here; the SDK renders it in place of the default.
+    system_prompt_path = os.environ.get("OPENHANDS_SDK_SYSTEM_PROMPT_PATH")
+    if system_prompt_path:
+        if not os.path.isabs(system_prompt_path) or not os.path.isfile(system_prompt_path):
+            print(f"openhands-sdk runner: OPENHANDS_SDK_SYSTEM_PROMPT_PATH must be an existing absolute path, got {system_prompt_path!r}", file=sys.stderr)
+            return 2
+        agent_kwargs["system_prompt_filename"] = system_prompt_path
+    agent = Agent(**agent_kwargs)  # type: ignore[arg-type]
 
     # The task's repo is the cwd: the harness cd's into ``[environment].workdir``
     # when the task declares one, otherwise the image's own WORKDIR applies.
