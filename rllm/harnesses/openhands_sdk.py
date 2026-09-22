@@ -18,6 +18,7 @@ builds the trajectory.
 
 from __future__ import annotations
 
+import logging
 import shlex
 from pathlib import Path
 
@@ -39,6 +40,10 @@ _UV_DIR = "/opt/openhands-sdk-uv"
 _RUNNER_PATH = "/opt/openhands-sdk-runner.py"
 
 _RUNNER_SOURCE = Path(__file__).parent / "tools" / "openhands_sdk_runner.py"
+# Printed by the install guard so the log says which path a task took.
+_FALLBACK_MARKER = "rllm-openhands-sdk-per-task-install"
+
+logger = logging.getLogger(__name__)
 
 
 def _install_script(mount_venv: str) -> str:
@@ -145,11 +150,18 @@ class OpenHandsSdkHarness(BaseCliHarness):
             self._heredoc_write(_RUNNER_PATH, _RUNNER_SOURCE.read_text()),
         )
         probe = f"{shlex.quote(self._mount_python())} -c 'import openhands.sdk' 2>/dev/null"
-        sandbox.exec(
-            f"if ! {probe}; then\n{self.install_script()}\nfi",
+        out = sandbox.exec(
+            f"if ! {probe}; then\n  echo {_FALLBACK_MARKER}\n{self.install_script()}\nfi",
             timeout=self.install_timeout,
             user="root",
         )
+        if _FALLBACK_MARKER in (out or ""):
+            # Warning, not info: the CLI hides info, and a silent fallback is
+            # how a broken mount once looked like a working one. It also means
+            # this task ran an install the baked image was supposed to cover.
+            logger.warning("%s: agent mount cannot serve %s; installed the SDK per task instead", self.name, task.id)
+        else:
+            logger.debug("%s: agent mount serves %s; skipped the install", self.name, task.id)
 
     @staticmethod
     def _mount_python() -> str:
