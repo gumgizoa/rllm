@@ -89,9 +89,12 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
 
     ``instruction_file`` / ``system_prompt_file`` may be ``None`` to switch that
     layer off for an ablation; the documents are always uploaded.
-    """
 
-    name = "openhands-sdk-aidlc"
+    ``name`` is deliberately left at ``"openhands-sdk"``: ``rllm.sandbox.agent_image``
+    keys the agent-image mount on that string, and a renamed harness would
+    silently fall back to a per-task SDK install. Runs are told apart by
+    ``rllm.trainer.experiment_name``, not by the harness name.
+    """
 
     docs_dir: str | Path = DEFAULT_DOCS_DIR
     container_dir: str = "/ai-dlc"
