@@ -31,6 +31,26 @@ def _messages_fingerprint(messages: list[dict[str, Any]]) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def _flatten_text_content(message: dict[str, Any]) -> dict[str, Any]:
+    """Collapse OpenAI content-part lists into the plain string the renderers read.
+
+    Clients such as openhands-sdk send every message body as
+    ``[{"type": "text", "text": ...}, ...]``. vLLM's chat path accepts that,
+    but the renderers only render ``str`` content and treat anything else as
+    empty -- so from turn 2 on, every tool result rendered as
+    ``<tool_response>\\n\\n</tool_response>`` and the policy trained blind
+    to its own observations. Join the text parts with ``"\\n"``, which is what
+    vLLM does for the turn-1 prompt (``chat_utils._parse_chat_message_content_parts``),
+    so both halves of a session agree. Non-text parts are dropped; this path
+    is text-only.
+    """
+    content = message.get("content")
+    if not isinstance(content, list):
+        return message
+    texts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+    return {**message, "content": "\n".join(texts)}
+
+
 def extract_new_messages(messages: list[dict[str, Any]], prev_message_count: int) -> list[dict[str, Any]]:
     """Return the messages added since the last processed turn, minus assistants.
 
@@ -42,12 +62,16 @@ def extract_new_messages(messages: list[dict[str, Any]], prev_message_count: int
     (re-tokenizing sampled tokens would corrupt training), so we drop every
     assistant message from the slice.
 
+    Content-part lists are flattened to strings on the way out (see
+    :func:`_flatten_text_content`); the caller's message list is not mutated,
+    so prefix fingerprints keep seeing what the client actually sent.
+
     Returns an empty list if there are no new non-assistant messages.
     """
     if len(messages) <= prev_message_count:
         return []
     new = messages[prev_message_count:]
-    return [m for m in new if m.get("role") != "assistant"]
+    return [_flatten_text_content(m) for m in new if m.get("role") != "assistant"]
 
 
 class TokenAccumulator:

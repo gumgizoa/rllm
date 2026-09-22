@@ -243,3 +243,38 @@ class TestExtractNewMessages:
             {"role": "tool", "content": "result"},
             {"role": "user", "content": "thanks"},
         ]
+
+    def test_extract_flattens_content_part_lists(self):
+        """openhands-sdk sends every body as [{"type": "text", ...}]; renderers read str only.
+
+        Observed before the fix: each tool result rendered as an empty
+        <tool_response> from turn 2 on. Parts join with "\\n", matching what
+        vLLM does for the turn-1 chat prompt.
+        """
+        from rllm_model_gateway.token_accumulator import extract_new_messages
+
+        messages = [
+            {"role": "user", "content": [{"type": "text", "text": "Fix the bug"}]},
+            {"role": "assistant", "content": None, "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "terminal", "arguments": "{}"}}]},
+            {
+                "role": "tool",
+                "tool_call_id": "c1",
+                "name": "terminal",
+                "content": [{"type": "text", "text": "line 1"}, {"type": "text", "text": "line 2"}],
+            },
+        ]
+        assert extract_new_messages(messages, prev_message_count=1) == [
+            {"role": "tool", "tool_call_id": "c1", "name": "terminal", "content": "line 1\nline 2"},
+        ]
+        # The caller's list is left as the client sent it (prefix fingerprints depend on it).
+        assert isinstance(messages[2]["content"], list)
+
+    def test_extract_leaves_string_content_alone(self):
+        from rllm_model_gateway.token_accumulator import extract_new_messages
+
+        messages = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi"},
+            {"role": "tool", "content": "plain", "tool_call_id": "c1"},
+        ]
+        assert extract_new_messages(messages, prev_message_count=1) == [{"role": "tool", "content": "plain", "tool_call_id": "c1"}]
