@@ -22,7 +22,7 @@ AGENT_MOUNT_TARGET = "/opt/rllm/agent"
 _IMAGE_PREFIX = "rllm-agent"
 
 # Harnesses with a dedicated bake recipe + invocation PATH wiring.
-SUPPORTED_AGENT_IMAGE_HARNESSES = frozenset({"mini-swe-agent", "opencode", "claude-code"})
+SUPPORTED_AGENT_IMAGE_HARNESSES = frozenset({"mini-swe-agent", "opencode", "claude-code", "openhands-sdk"})
 
 # No CLI to bake — ``--agent-image`` is a no-op without warning.
 AGENT_IMAGE_SILENT_SKIP_HARNESSES = frozenset({"oracle", "react"})
@@ -112,6 +112,43 @@ RUN mkdir -p "$HOME" && \\
 """
 
 
+def _openhands_sdk_dockerfile() -> str:
+    """Dockerfile that installs openhands-sdk under ``/opt/rllm/agent``."""
+    # Imported here, not at module scope: the harness imports this module for
+    # the mount target, so a top-level import would be circular.
+    from rllm.harnesses.openhands_sdk import PYTHON_VERSION, SDK_VERSION
+
+    # bullseye (glibc 2.31), not ubuntu:22.04 (2.35): uv resolves wheels for
+    # the glibc it builds on, and the SWE-bench Pro images run 2.31-2.36. A
+    # venv baked on 2.35 pulls manylinux_2_34 wheels whose extension modules
+    # fail to load on the older images (``cryptography`` wants GLIBC_2.33),
+    # while wheels resolved for 2.31 run on every image in the range.
+    return f"""\
+FROM debian:bullseye-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \\
+        curl ca-certificates git \\
+ && rm -rf /var/lib/apt/lists/*
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# A uv venv records its interpreter in pyvenv.cfg and symlinks bin/python at
+# it, so the managed CPython has to sit inside the mount as well;
+# UV_PYTHON_INSTALL_DIR puts it there instead of under /root, which the task
+# container never sees.
+ENV PATH="/root/.local/bin:$PATH" \\
+    UV_PYTHON_INSTALL_DIR={AGENT_MOUNT_TARGET}/python
+# --compile-bytecode: the mount is read-only at run time, so the .pyc files
+# have to exist by then or every task pays the compile cost again.
+RUN mkdir -p {AGENT_MOUNT_TARGET} && \\
+    uv python install {PYTHON_VERSION} && \\
+    uv venv {AGENT_MOUNT_TARGET}/openhands-sdk-venv --python {PYTHON_VERSION} && \\
+    uv pip install --compile-bytecode \\
+        --python {AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python \\
+        openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION} && \\
+    {AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python \\
+        -c "import openhands.sdk; print(openhands.sdk.__version__)"
+"""
+
+
 def dockerfile_for_install(install_script: str, harness_name: str) -> str | None:
     """Return a dedicated bake Dockerfile for *harness_name*, else ``None``."""
     if harness_name == "mini-swe-agent":
@@ -120,6 +157,8 @@ def dockerfile_for_install(install_script: str, harness_name: str) -> str | None
         return _opencode_dockerfile()
     if harness_name == "claude-code":
         return _claude_code_dockerfile()
+    if harness_name == "openhands-sdk":
+        return _openhands_sdk_dockerfile()
     return None
 
 
