@@ -1,0 +1,7 @@
+# harbor:openhands-sdk scaffold kwargs -- rllm eval --agent-kwargs @recipe/eval/config/harbor-openhands-sdk.yaml
+#
+# Requires recipe/eval/patches/harbor-0.3.0-openhands-sdk-uv-install.patch
+# (see recipe/eval/README.md 3.4); without it the scaffold installs the SDK
+# with the task image's own Python and fails on every SWE-bench Pro task.
+version: "1.42.1"       # openhands-sdk and openhands-tools are pinned together
+python_version: "3.12"  # uv-managed interpreter for /opt/openhands-sdk-venv

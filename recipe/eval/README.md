@@ -55,7 +55,13 @@ source .venv/bin/activate
 uv pip install -e ".[harbor]"
 
 apt-get update && apt-get install -y docker.io docker-compose-v2
-uv add docker
+# docker is included in [project].dependencies -> no need to install
+```
+
+`harbor:openhands-sdk`로 평가할 때만 추가로 설치된 harbor에 패치를 적용한다(3.4). 다른 harness에는 영향이 없다.
+
+```bash
+bash recipe/eval/scripts/apply_harbor_patches.sh
 ```
 
 ### 0.3 저장 위치
@@ -575,6 +581,8 @@ HF 데이터셋에는 CPU·메모리 정보가 없다. 4 / 16384는 업스트림
 | --- | --- | --- |
 | mini-swe-agent | O  | O  |
 | opencode | O. `--agent opencode --agent-image auto` | O. `--agent-kwargs @recipe/eval/config/harbor-opencode-vllm.yaml` **필수** (3.3) |
+| openhands-sdk | 없음 (미구현: TODO) | O. `recipe/eval/patches` 적용 **필수** (3.4) |
+| openhands (openhands-ai) | 없음 (미구현: TODO) | 미확인 |
 | claude-code, codex, aider, ... | 미확인 | 미확인 |
 
 ### 3.2 `--agent-kwargs`
@@ -616,6 +624,71 @@ opencode_config:
 - `--model`은 서빙 이름 그대로 둔다. gateway가 요청의 `model`을 `--model` 값으로 고정하므로 `--model openrouter/...`로 주면 vLLM이 404를 낸다.
 - provider id는 Harbor가 아는 이름이어야 한다(`openai`, `anthropic`, `deepseek`, `openrouter`, `huggingface`, ... `harbor/agents/installed/opencode.py`). 이름만 빌리는 것이고 해당 서비스와는 무관하다. `openai`는 위 이유로 쓸 수 없다.
 - 나머지는 rLLM이 trial마다 채운다(`trial_helper._apply_opencode_provider_config`): `options.baseURL`을 그 trial의 gateway 세션 URL로, `options.apiKey`를 `OPENAI_API_KEY`(없으면 `empty`)로, Harbor에 넘기는 model_name의 접두어를 선언된 provider id로(`openai/Qwen/X` → `openrouter/Qwen/X`). 파일에 `options`를 직접 적으면 그 값이 우선한다.
+
+### 3.4 openhands-sdk
+
+Harbor의 OpenHands scaffold는 두 개다. `harbor:openhands`는 제품 전체(`openhands-ai`)를, `harbor:openhands-sdk`는 컨테이너 내부에서 직접 실행되는 경량 Software Agent SDK를 설치한다. 아래는 **openhands-sdk** 기준이며 버전은 `1.42.1`로 고정한다(`openhands-sdk`와 `openhands-tools`는 동일한 버전으로 함께 설치된다).
+
+- harbor 패치 적용: harbor 0.3.0의 openhands-sdk scaffold는 **태스크 이미지의 system Python**으로 venv를 생성하고 `pip install openhands-sdk`를 실행한다. SWE-bench Pro subset에서는 이 조합이 100개 **전부** 실패한다. 원인은 네 가지가 중첩되어 있다.
+
+| 원인 | 증상 | 해당 태스크 |
+| --- | --- | --- |
+| `openhands-sdk`/`openhands-tools`는 `requires-python >=3.12`인데 이미지 Python이 그보다 낮다(3.8~3.11) | `ERROR: Could not find a version that satisfies the requirement openhands-sdk` | 88개 (openlibrary 12개 제외) |
+| 8개 저장소 이미지에 `/root/.config/pip/pip.conf`가 있고 `index-url = http://127.0.0.1:9876/`(빌드 시점의 로컬 미러)를 가리킨다. 런타임에는 응답하지 않는 주소이므로 pip이 인덱스를 읽지 못한다 | `Connection refused ... /openhands-sdk/` → `No matching distribution found` | 78개 (teleport·protonmail·tutanota 제외). Python 3.12인 openlibrary 12개는 이 원인만으로 실패 |
+| teleport 이미지는 Alpine(musl)이라 `apt-get`이 없고 coreutils(`stdbuf`)도 없다. scaffold의 `python3-venv` 설치와 `run()`의 `\| stdbuf -oL tee` 파이프라인이 모두 실패한다 | `apt-get: not found`, 이어서 `stdbuf: not found` (exit 127) | teleport 10개 |
+| qutebrowser 이미지에는 `curl`이 없다. 설치 경로를 uv로 변경하면 uv 설치 스크립트부터 다운로드할 수 없다 | `curl: not found` | qutebrowser 11개 |
+
+subset 11개 저장소의 베이스 이미지(각 저장소 대표 1개 확인):
+
+| 저장소 (태스크 수) | OS | system python3 | curl | stdbuf | 응답 없는 pip index |
+| --- | --- | --- | --- | --- | --- |
+| ansible (13) | Ubuntu 20.04 | 3.9.5 | O | O | O |
+| internetarchive/openlibrary (12) | Debian 12 | 3.12.2 | O | O | O |
+| flipt (12) | Debian 12 | 3.11.2 | O | O | O |
+| qutebrowser (11) | Debian 12 | 3.11.13 | **X** | O | O |
+| gravitational/teleport (10) | **Alpine 3.17 (musl)** | 3.10.15 | O | **X** | - |
+| protonmail/webclients (9) | Ubuntu 20.04 | 3.8.10 | O | O | - |
+| navidrome (8) | Debian 12 | 3.11.2 | O | O | O |
+| vuls (8) | Debian 12 | 3.11.2 | O | O | O |
+| element-web (8) | Debian 11 | 3.9.2 | O | O | O |
+| nodebb (6) | Debian 11 | 3.9.2 | O | O | O |
+| tutanota (3) | Debian 11 | 3.9.2 | O | O | - |
+
+`recipe/eval/patches/harbor-0.3.0-openhands-sdk-uv-install.patch`가 설치된 harbor의 `agents/installed/openhands_sdk.py`를 수정한다.
+
+* 인터프리터를 **uv로 확보**한다(`uv python install 3.12` → `uv venv --python 3.12`). 이미지의 Python 버전과 무관하며, `python_version` kwarg로 변경할 수 있다.
+* `uv pip install`은 pip의 설정 파일을 읽지 않으므로 응답하지 않는 `index-url`을 무시한다. musl(Alpine)에서도 uv가 musl 빌드 Python을 다운로드한다.
+* system 의존성(`curl`, `coreutils`)을 패키지 매니저에 맞춰 설치한다(`apt-get`/`apk`/`dnf`/`yum`). `curl`은 uv 설치 스크립트용, `coreutils`는 `run()`의 `stdbuf`에 필요하다.
+* uv를 `/opt/openhands-sdk-uv`에 따로 설치한다. subset 100개의 `environment/Dockerfile`에는 전부 `RUN curl -LsSf https://astral.sh/uv/0.7.13/install.sh | sh || true`가 있어서, PATH의 uv를 그대로 사용하면 scaffold가 태스크 이미지에 고정된 버전(0.7.13)을 따라가게 된다.
+* uv 다운로드 단계(`curl`, `uv python install`, `uv pip install`)를 3회까지 재시도한다. 태스크마다 약 180개 패키지(510 MB)를 다운로드하며 100개 실행 기준 PyPI 전송량은 약 50 GB에 이른다. 그중 하나라도 중단되면 trial 전체가 `NonZeroAgentExitCodeError`로 실패한다(Harbor 0.3.0은 agent setup을 재시도하지 않는다).
+* 버전 조회를 `pip show`에서 `python -c "import openhands.sdk; print(openhands.sdk.__version__)"`로 변경했다. uv venv에는 pip이 없다(SDK 배너는 stderr로 출력되므로 stdout에는 버전만 남는다).
+* `run()`이 `LLM_API_KEY`/`LLM_BASE_URL`/`LLM_MODEL`을 host의 `os.environ`뿐 아니라 그 trial의 `AgentConfig.env`에서도 읽는다. rLLM이 trial마다 gateway 세션 URL을 이 경로로 전달한다.
+
+```bash
+# 패치 적용 (ref: --check 로 상태 확인; --revert 로 상태 되돌리기)
+bash recipe/eval/scripts/apply_harbor_patches.sh
+```
+
+`uv pip install -e ".[harbor]"`를 재실행하면 harbor가 새로 설치되어 패치가 사라지므로 재적용한다.
+
+```bash
+export RLLM_HOME=/path/to/rllm-home RLLM_HARBOR_SESSION_TIMEOUT_S=4200
+rllm eval swebenchpro_100 \
+    --split test \
+    --agent harbor:openhands-sdk \
+    --evaluator harbor_reward_fn \
+    --sandbox-backend docker \
+    --concurrency 8 --sandbox-concurrency 8 --no-ui \
+    --base-url http://127.0.0.1:8000/v1 \
+    --model Qwen/Qwen3.5-4B \
+    --sampling-params @recipe/eval/config/qwen3_5.yaml \
+    --agent-kwargs @recipe/eval/config/harbor-openhands-sdk.yaml
+```
+
+- `--agent-kwargs`의 `version`을 생략하면 실행 시점의 최신 openhands-sdk가 설치된다. 재현성을 위해 `recipe/eval/config/harbor-openhands-sdk.yaml`(= `1.42.1`)을 그대로 사용한다.
+- 태스크마다 container 내부에 uv + Python 3.12 + SDK를 새로 설치한다(venv 510 MB, 패키지 약 180개). PyPI 트래픽이 100개 실행 기준 약 50 GB이므로 동시 실행 수를 늘릴 때는 대역폭도 함께 확인해야 한다. H200 호스트에서 측정한 설치 시간은 태스크당 16~19초(`result.json`의 `agent_setup`→`agent_execution` 간격)이다.
+- SDK는 native tool calling을 사용한다. vLLM은 `--enable-auto-tool-choice --tool-call-parser ... --reasoning-parser ...`로 서빙해야 한다(mini-swe-agent와 같은 조건).
+- 트라젝토리는 `$RLLM_HOME/harbor_trials/<trial>/agent/trajectory.json`(ATIF)에 기록되고 rLLM Episode로 변환된다. scaffold 로그는 같은 디렉토리의 `openhands_sdk.txt`이다.
 
 ---
 
