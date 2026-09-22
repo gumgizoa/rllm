@@ -12,13 +12,15 @@
 #   config/verl_trainer.yaml  verl side  (model, FSDP actor/ref, vLLM rollout)
 #
 # Prerequisites (see README.md):
-#   source recipe/qwen3_5_swe_grpo/env.sh
+#   cp recipe/grpo/qwen3_5/.env.example recipe/grpo/qwen3_5/.env  # then edit
+#   source .venv/bin/activate
 #   uv pip install flash-linear-attention==0.5.2
-#   bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh
+#   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
 #   rllm dataset pull harbor:swebench-verified
-#   python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
+#   python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
 #
 # Env:
+#   ENV_FILE          dotenv to source         (default: <recipe>/.env)
 #   MODEL_PATH        HF id or local path      (default: Qwen/Qwen3.5-4B)
 #   SANDBOX_BACKEND   docker|modal|daytona     (default: docker)
 #   RLLM_AGENT_IMAGE  auto|skip|repo:tag       (default: auto)
@@ -29,12 +31,31 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RECIPE_DIR="${REPO_ROOT}/recipe/qwen3_5_swe_grpo"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+RECIPE_DIR="${REPO_ROOT}/recipe/grpo/qwen3_5"
 cd "${REPO_ROOT}"
 
-# shellcheck source=/dev/null
-source "${RECIPE_DIR}/env.sh"
+# `set -a` makes every assignment in the file an export; a value you exported
+# yourself before launching is overwritten by the file, so override on the
+# command line (`RLLM_HOME=... bash train_verl.sh`) or edit the file.
+ENV_FILE="${ENV_FILE:-${RECIPE_DIR}/.env}"
+if [ -f "${ENV_FILE}" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "${ENV_FILE}"
+    set +a
+fi
+
+# The README's setup steps -- `rllm dataset pull`, prepare_datasets.py -- run in
+# your own shell, so they read whatever RLLM_HOME *that* shell had. If it is not
+# the one training uses, the run does not fail with "dataset not found"; it
+# trains on a *different* dataset. Stop here instead.
+: "${RLLM_HOME:?set RLLM_HOME in ${ENV_FILE} (cp .env.example .env), or export it}"
+: "${HF_HOME:?set HF_HOME in ${ENV_FILE}}"
+# Nothing puts the venv on PATH any more (`source .venv/bin/activate` does, and
+# it is the documented way to run anything here -- see LEARN.md). Without it the
+# first symptom is a ModuleNotFoundError several hundred lines into a traceback.
+: "${VIRTUAL_ENV:?activate the venv first: source .venv/bin/activate}"
 
 unset ROCR_VISIBLE_DEVICES 2>/dev/null || true
 export VLLM_ALLREDUCE_USE_SYMM_MEM=0

@@ -2,11 +2,28 @@
 
 Ready-to-run training recipes built on top of `examples/` and `cookbooks/`, with opinionated defaults for specific model + task combinations.
 
+Recipes are grouped by what they do to the model - `grpo/` and `sft/` - with one
+directory per model family underneath, and `eval/` alongside them.
+
 | Recipe | Backend | Task | Model |
 |--------|---------|------|-------|
-| [qwen3_5_swe_grpo](./qwen3_5_swe_grpo/) | verl (GRPO) | Native SWE (`mini-swe-agent`) | `Qwen/Qwen3.5-4B` |
+| [grpo/qwen3_5](./grpo/qwen3_5/) | verl (GRPO) | Native SWE (`mini-swe-agent`) | `Qwen/Qwen3.5-4B` |
 
 Each recipe folder contains a `README.md`, `train.py`, launch script(s), and config helpers. Recipes are prepared for launch but are not executed automatically.
+
+## Reinforcement learning
+
+[`grpo/`](./grpo/) trains an agent against a real verifier: the policy runs as a CLI
+agent inside a task sandbox, the rLLM gateway captures the token ids and logprobs it
+sampled, and the task's own `tests/test.sh` produces the reward.
+
+| Piece | Scope |
+|-------|-------|
+| `grpo/qwen3_5/` | Config, launcher and dataset preparation for one model family. |
+| `grpo/qwen3_5/patches/` | Backported verl fixes the recipe depends on. |
+
+[`grpo/qwen3_5/README.md`](./grpo/qwen3_5/README.md) covers setup, what follows
+SWE-Master and what does not, and the measurements behind each config choice.
 
 ## Supervised fine-tuning
 

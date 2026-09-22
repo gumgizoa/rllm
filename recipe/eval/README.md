@@ -721,6 +721,6 @@ docker image prune                                                              
 | trajectory | Harbor ATIF 트라젝토리를 rLLM Episode로 변환 | gateway가 모든 LLM 호출을 캡처해 Step/Episode 구성 (학습과 동일 경로) |
 | timeout | `task.toml` 값 + `RLLM_HARBOR_SESSION_TIMEOUT_S` 상한 | `task.toml` 값만 |
 | log | `$RLLM_HOME/harbor_trials/<trial>/` (Harbor 형식) | `$RLLM_HOME/eval_results/<run>/episodes/` |
-| train | `examples/harbor_swe` (RemoteAgentFlowEngine + tinker) | `recipe/qwen3_5_swe_grpo` (AgentFlowEngine + verl) |
+| train | `examples/harbor_swe` (RemoteAgentFlowEngine + tinker) | `recipe/grpo/qwen3_5` (AgentFlowEngine + verl) |
 
 

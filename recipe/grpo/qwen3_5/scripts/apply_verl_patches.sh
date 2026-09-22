@@ -8,9 +8,9 @@
 #
 # Idempotent: a patch already applied is detected and skipped.
 #
-#   bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh          # apply
-#   bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --revert # undo
-#   bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --check  # report only
+#   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh          # apply
+#   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh --revert # undo
+#   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh --check  # report only
 
 set -euo pipefail
 

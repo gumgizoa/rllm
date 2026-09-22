@@ -8,7 +8,7 @@ writes ``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
 Datasets are the small locally-materialized benchmarks built by
 ``scripts/prepare_datasets.py``; both names are overridable from the CLI::
 
-    python recipe/qwen3_5_swe_grpo/train.py \\
+    python recipe/grpo/qwen3_5/train.py \\
         recipe.train_dataset=rllm_swesmith_small \\
         recipe.val_dataset=swebench_verified_local
 
@@ -121,7 +121,7 @@ def _load(name: str, split: str, limit: int | None, kind: str):
     if dataset is None:
         raise SystemExit(
             f"{kind} dataset '{name}/{split}' is not registered.\n"
-            f"Build it first:  python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py"
+            f"Build it first:  python recipe/grpo/qwen3_5/scripts/prepare_datasets.py"
         )
     if limit and limit > 0 and limit < len(dataset):
         dataset = dataset.select(range(limit))

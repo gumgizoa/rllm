@@ -26,25 +26,101 @@ ShellScriptEvaluator   /tests/test.sh → /logs/verifier/reward.txt → reward
 
 ## Setup
 
-```bash
-# RLLM_SCRATCH should point at a large volume: the model snapshot is ~9 GB and
-# the SWE task images run to tens of GB more. Defaults to $HOME/rllm-work.
-RLLM_SCRATCH=/mnt/big/rllm-work source recipe/qwen3_5_swe_grpo/env.sh
+### 1. Base environment
 
+Once per machine or container. See `LEARN.md` for the reasoning behind each step.
+
+```bash
+apt-get update && apt-get install -y git curl
+# Harbor tasks and this recipe's sandboxes both talk to a Docker daemon.
+apt-get install -y docker.io docker-compose-v2
+
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv python install 3.12
+
+cd /workspace/rllm
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -e ".[verl,harbor]"
+```
+
+**`uv pip install`, never `uv sync` / `uv run` / `uv add`.** The repo gitignores
+`uv.lock` on purpose (cuda-version-specific packages), so the declarative half of
+uv has no lockfile to work from: a bare `uv run` sees no record that the `verl` and
+`harbor` extras are in use and offers to uninstall 177 packages. Run things with
+`source .venv/bin/activate && python ...`, or `uv run --no-sync`. Even
+`uv sync --extra verl --extra harbor` is wrong here - the lock solves 17 extras
+across python 3.10-3.15 at once, which drags real packages *down* (ray 2.58.0 ->
+2.55.1, tensordict 0.10.0 -> 0.8.3 against torch 2.11).
+
+**If the repo is on network storage, put the venv elsewhere.** uv hardlinks from
+its cache, and a cache and venv on different filesystems fall back to full copies
+(`Failed to hardlink files; falling back to full copy` - a performance warning, not
+an error; measured at 23 s per package). Build the venv on local disk and symlink
+it in:
+
+```bash
+uv venv --python 3.12 /root/venvs/rllm
+source /root/venvs/rllm/bin/activate
+cd /workspace/rllm && uv pip install -e ".[verl,harbor]"
+ln -s /root/venvs/rllm /workspace/rllm/.venv
+```
+
+The symlink is what makes the two ways uv finds an environment agree: `VIRTUAL_ENV`
+when you have activated, and `./.venv` when you have not. Both then land on
+`/root/venvs/rllm`. Note that a venv on the container's writable layer does not
+survive recreating the container, while the symlink on network storage does - a
+new container starts from this step again.
+
+### 2. Recipe environment
+
+```bash
+cp recipe/grpo/qwen3_5/.env.example recipe/grpo/qwen3_5/.env
+$EDITOR recipe/grpo/qwen3_5/.env          # RLLM_HOME, HF_HOME at minimum
+
+# train_verl.sh sources this file itself, but the setup steps below run in your
+# own shell and need the same values.
+set -a && source recipe/grpo/qwen3_5/.env && set +a
+```
+
+`.env` is gitignored; `.env.example` documents what each variable is for and what
+actually constrains it. Two things worth knowing before picking paths:
+
+* **`RLLM_HOME` is the only one that may need to be a host path.** Harbor
+  bind-mounts `$RLLM_HOME/harbor_trials/<trial>/verifier` into the task container
+  and the *host* docker daemon resolves that string, so a container-only path
+  leaves `reward.txt` on the host and every task ends in `RewardFileNotFoundError`.
+  That is Harbor evaluation (`recipe/eval`). **This recipe does not need it**: the
+  native path never bind-mounts - `tests/` go in as a tar stream, the verifier runs
+  in the same sandbox, and its reward comes back over `sandbox.exec("cat ...")`.
+* **Capacity is the other constraint, and it is separate.** The model snapshot is
+  8.8 GB and the SWE task images run to tens of GB more. In a container the default
+  locations (`~/.cache/huggingface`, `~/.rllm`) sit on the writable layer, which is
+  usually the small filesystem and is shared with every other container on that
+  disk. Check any path with `findmnt -no SOURCE,FSTYPE -T <path>`.
+
+`train_verl.sh` refuses to launch if `RLLM_HOME`, `HF_HOME` or `VIRTUAL_ENV` is
+unset, because the failure it prevents is silent: a `rllm dataset pull` that ran
+under a different `RLLM_HOME` does not produce "dataset not found", it produces
+training on a *different* dataset.
+
+### 3. Recipe packages, patches and data
+
+```bash
 # Fused kernels for Qwen3.5's linear-attention layers -- not optional, see below.
 uv pip install flash-linear-attention==0.5.2
 
 # Backport verl PR #6660 (in v0.9.0; rLLM pins verl==0.8.0). Fixes Qwen3.5 linear
 # attention under sequence packing and Ulysses SP. Idempotent; --revert undoes it.
-bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh
+bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
 
 rllm dataset pull harbor:swebench-verified            # 500 task dirs (text only)
-python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
+python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
 xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
 
 # A larger training split for real runs. --train-name keeps it beside the smoke set
 # rather than overwriting it; the image sets overlap heavily (50 tasks -> 26 images).
-python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py \
+python recipe/grpo/qwen3_5/scripts/prepare_datasets.py \
     --train-only --train-limit 50 --train-name rllm_swesmith_50
 xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull {}
 ```
@@ -59,7 +135,7 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   Pin the split with `--val-ids` (a file of task ids, or a comma-separated list). Without a pin
   the split is *whatever is currently pulled*, so landing one more base image silently changes
   what the val numbers mean; with one, a missing image is a hard error instead of a quietly
-  smaller set. `recipe/qwen3_5_swe_grpo/val_tasks.txt` is the pinned ten.
+  smaller set. `recipe/grpo/qwen3_5/val_tasks.txt` is the pinned ten.
 
   **Pick for headroom, not for scorability.** The first ten were the smallest-test-scope
   instance per repo out of the `<15 min fix` bucket -- chosen to avoid unscorable tasks, but
@@ -130,11 +206,11 @@ Measured on this setup: SWE-bench Verified 12/12 candidates scored 1.0 (the 10 k
 
 ```bash
 # 1 batch, 2 tasks x 4 rollouts -- "does it run?"
-bash recipe/qwen3_5_swe_grpo/smoke_test.sh
+bash recipe/grpo/qwen3_5/smoke_test.sh
 
 # the defaults: 50 SWE-smith tasks / 8 per step = 6 steps, 1 epoch,
 # validating before training, at step 5, and at the end
-bash recipe/qwen3_5_swe_grpo/train_verl.sh
+bash recipe/grpo/qwen3_5/train_verl.sh
 ```
 
 **Every run gets its own episode directory.** `train_verl.sh` stamps `RLLM_RUN_ID`
@@ -163,13 +239,14 @@ gradient accumulation of 8 (relevant only when scaling to an untied model, see b
 Any Hydra override passes through:
 
 ```bash
-bash recipe/qwen3_5_swe_grpo/train_verl.sh \
+bash recipe/grpo/qwen3_5/train_verl.sh \
     rllm.rollout.n=16 \
     rllm.trainer.logger="['console','wandb']" \
     recipe.val_limit=2
 ```
 
-Env knobs: `RLLM_SCRATCH` (storage root), `SANDBOX_BACKEND` (default `docker`),
+Env knobs: `ENV_FILE` (dotenv path, default `<recipe>/.env`), `RLLM_HOME` and
+`HF_HOME` (both required, see Setup), `SANDBOX_BACKEND` (default `docker`),
 `RLLM_AGENT_IMAGE` (`auto` | `skip` | `repo:tag`), `MODEL_PATH`, `RLLM_RUN_DIR`,
 `HF_HUB_OFFLINE`.
 
@@ -346,10 +423,10 @@ none of them fails loudly. `scripts/verify_cumulative.py` checks all three again
 *real* rollout tokens rather than a synthetic fixture:
 
 ```bash
-bash recipe/qwen3_5_swe_grpo/smoke_test.sh \
+bash recipe/grpo/qwen3_5/smoke_test.sh \
     rllm.gateway.store=sqlite \
-    rllm.gateway.db_path="$RLLM_SCRATCH/traces/verify.db"
-python recipe/qwen3_5_swe_grpo/scripts/verify_cumulative.py
+    rllm.gateway.db_path="$RLLM_HOME/traces/verify.db"
+python recipe/grpo/qwen3_5/scripts/verify_cumulative.py
 ```
 
 | check | what it asserts | measured |
@@ -546,9 +623,9 @@ trainer the default — which collides with the verl internals rLLM imports — 
 **backported** rather than picked up by upgrading:
 
 ```bash
-bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh          # idempotent
-bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --check  # report state
-bash recipe/qwen3_5_swe_grpo/scripts/apply_verl_patches.sh --revert # undo
+bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh          # idempotent
+bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh --check  # report state
+bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh --revert # undo
 ```
 
 `patches/verl-pr6660-qwen3_5-ulysses-sp.patch` touches three verl files plus the PR's own
@@ -1016,9 +1093,9 @@ Each of these was a hard failure of the native training path, not a tuning choic
 ## Files
 
 ```
-recipe/qwen3_5_swe_grpo/
+recipe/grpo/qwen3_5/
 ├── README.md
-├── env.sh                        # RLLM_SCRATCH / HF_HOME / RLLM_HOME / venv
+├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl")
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything

@@ -22,7 +22,7 @@ Train — ``rllm_swesmith_small``
 
 Usage::
 
-    python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
+    python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
     xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
 """
 

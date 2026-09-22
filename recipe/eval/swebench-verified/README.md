@@ -86,7 +86,7 @@ rllm eval swebench_verified_100 \
 - vLLM은 tool calling을 켜서 띄운다: `--enable-auto-tool-choice --tool-call-parser qwen3_xml` (Qwen3/3.5). mini-swe-agent v2가 `tool_choice: auto`를 보내므로 없으면 모든 호출이 400으로 실패한다.
 
 **native rLLM harness.** 같은 사본을 rLLM 하네스로 돌린다. `--evaluator`는 필요 없고, 채점은 태스크의 `tests/test.sh`를 rLLM이 직접 실행한다.
-학습(`recipe/qwen3_5_swe_grpo`)과 같은 경로라 학습 전후 비교에는 이쪽이 더 적합하나, 어떤 방식으로 평가하든 이론적으로는 같은 결과가 나와야 정상이다.
+학습(`recipe/grpo/qwen3_5`)과 같은 경로라 학습 전후 비교에는 이쪽이 더 적합하나, 어떤 방식으로 평가하든 이론적으로는 같은 결과가 나와야 정상이다.
 
 ```bash
 export RLLM_HOME=/path/to/rllm-home RLLM_HARBOR_SESSION_TIMEOUT_S=4200 HF_HOME=/path/to/hf-cache

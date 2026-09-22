@@ -11,7 +11,10 @@ CPU-offloaded here. In the real 8-GPU run those cost ~0.9 GB/GPU (sharded) and
 are offloaded, so subtract the reported `params+grads` figure to estimate the
 per-GPU peak of the real setup.
 """
-import gc, sys, torch
+import gc
+import sys
+
+import torch
 from transformers import AutoModelForCausalLM
 from verl.utils.experimental.torch_functional import FusedLinearForPPO
 
@@ -32,7 +35,9 @@ print(f"{'seq_len':>9} {'peak_GB':>9} {'act_GB':>9} {'GB/1K tok':>10}  status")
 
 fused = FusedLinearForPPO()
 for T in LENGTHS:
-    torch.cuda.empty_cache(); gc.collect(); torch.cuda.reset_peak_memory_stats()
+    torch.cuda.empty_cache()
+    gc.collect()
+    torch.cuda.reset_peak_memory_stats()
     try:
         ids = torch.randint(1000, 200000, (1, T), device="cuda")
         hs = lm(input_ids=ids).last_hidden_state

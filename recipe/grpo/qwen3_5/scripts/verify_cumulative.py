@@ -3,10 +3,10 @@
 
 Capture traces first, then point this at the db::
 
-    bash recipe/qwen3_5_swe_grpo/smoke_test.sh \\
+    bash recipe/grpo/qwen3_5/smoke_test.sh \\
         rllm.gateway.store=sqlite \\
-        rllm.gateway.db_path="$RLLM_SCRATCH/traces/verify.db"
-    python recipe/qwen3_5_swe_grpo/scripts/verify_cumulative.py
+        rllm.gateway.db_path="$RLLM_HOME/traces/verify.db"
+    python recipe/grpo/qwen3_5/scripts/verify_cumulative.py
 
 Reads the gateway's sqlite trace store and checks, per session, the invariants
 the training pipeline depends on:
@@ -28,14 +28,13 @@ the training pipeline depends on:
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import sys
 from collections import defaultdict
 
-DB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-    os.environ.get("RLLM_SCRATCH", os.path.expanduser("~/rllm-work")), "traces", "verify.db"
-)
+from rllm import paths
+
+DB = sys.argv[1] if len(sys.argv) > 1 else paths.rllm_path("traces", "verify.db")
 MODEL = "Qwen/Qwen3.5-4B"
 
 
@@ -119,7 +118,7 @@ def main():
 
         # B. prefix extension
         extends = 0
-        for prev, cur in zip(turns, turns[1:]):
+        for prev, cur in zip(turns, turns[1:], strict=False):
             base = list(prev["prompt_ids"]) + list(prev["completion_ids"])
             if len(cur["prompt_ids"]) >= len(base) and list(cur["prompt_ids"][: len(base)]) == base:
                 extends += 1
