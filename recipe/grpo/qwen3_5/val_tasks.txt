@@ -1,6 +1,6 @@
 # SWE-bench Verified instances this recipe validates on, pinned so the split
 # does not drift when another base image lands in the local Docker daemon.
-# Build with: prepare_datasets.py --val-only --val-ids recipe/qwen3_5_swe_grpo/val_tasks.txt
+# Build with: prepare_datasets.py --val-only --val-ids recipe/grpo/qwen3_5/val_tasks.txt
 #
 # Balanced across SWE-bench Verified's own `difficulty` field. An earlier set
 # took the smallest-test-scope instance from the `<15 min fix` bucket only, and

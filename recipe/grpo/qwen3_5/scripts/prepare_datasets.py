@@ -22,7 +22,7 @@ Train — ``rllm_swesmith_small``
 
 Usage::
 
-    python recipe/qwen3_5_swe_grpo/scripts/prepare_datasets.py --train-limit 24
+    python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
     xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
 """
 
@@ -192,10 +192,7 @@ def build_val(out_root: Path, limit: int | None, keep_unscorable: bool, pinned: 
     if limit is not None:
         picked = picked[:limit]
     if not picked:
-        sys.exit(
-            "No SWE-bench Verified task has its base image locally. Pull one, e.g.\n"
-            "  docker pull swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest"
-        )
+        sys.exit("No SWE-bench Verified task has its base image locally. Pull one, e.g.\n  docker pull swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest")
 
     out = out_root / name
     if out.exists():
@@ -275,10 +272,7 @@ def build_train(out_root: Path, limit: int, rebuild: bool, name: str = TRAIN_NAM
                 task_dirs.append(by_repo[repo].pop(0))
 
     if not task_dirs:
-        sys.exit(
-            f"No SWE-smith tasks under {bench} matched kinds={kinds} local_images_only={local_images_only}. "
-            f"Raise --train-pool, or drop the filters."
-        )
+        sys.exit(f"No SWE-smith tasks under {bench} matched kinds={kinds} local_images_only={local_images_only}. Raise --train-pool, or drop the filters.")
     if len(task_dirs) < limit:
         print(f"[train] warning: only {len(task_dirs)} of {limit} requested tasks matched the filters")
 

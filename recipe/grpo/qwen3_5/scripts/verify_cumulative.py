@@ -3,10 +3,10 @@
 
 Capture traces first, then point this at the db::
 
-    bash recipe/qwen3_5_swe_grpo/smoke_test.sh \\
+    bash recipe/grpo/qwen3_5/smoke_test.sh \\
         rllm.gateway.store=sqlite \\
-        rllm.gateway.db_path="$RLLM_SCRATCH/traces/verify.db"
-    python recipe/qwen3_5_swe_grpo/scripts/verify_cumulative.py
+        rllm.gateway.db_path="$RLLM_HOME/traces/verify.db"
+    python recipe/grpo/qwen3_5/scripts/verify_cumulative.py
 
 Reads the gateway's sqlite trace store and checks, per session, the invariants
 the training pipeline depends on:
@@ -28,24 +28,19 @@ the training pipeline depends on:
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import sys
 from collections import defaultdict
 
-DB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-    os.environ.get("RLLM_SCRATCH", os.path.expanduser("~/rllm-work")), "traces", "verify.db"
-)
+from rllm import paths
+
+DB = sys.argv[1] if len(sys.argv) > 1 else paths.rllm_path("traces", "verify.db")
 MODEL = "Qwen/Qwen3.5-4B"
 
 
 def load_sessions(db):
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    rows = con.execute(
-        "SELECT ts.session_id, t.data, t.created_at "
-        "FROM traces t JOIN trace_sessions ts ON ts.trace_id = t.trace_id "
-        "ORDER BY t.created_at"
-    ).fetchall()
+    rows = con.execute("SELECT ts.session_id, t.data, t.created_at FROM traces t JOIN trace_sessions ts ON ts.trace_id = t.trace_id ORDER BY t.created_at").fetchall()
     sessions = defaultdict(list)
     for sid, data, created in rows:
         d = json.loads(data)
@@ -71,7 +66,7 @@ def merge_like_trainer(turns):
     for t in turns:
         p, a = list(t["prompt_ids"]), list(t["completion_ids"])
         if seg is not None and len(p) >= len(seg["full"]) and p[: len(seg["full"])] == seg["full"]:
-            delta = p[len(seg["full"]):]
+            delta = p[len(seg["full"]) :]
             seg["response"] += delta + a
             seg["mask"] += [0] * len(delta) + [1] * len(a)
             seg["full"] += delta + a
@@ -81,8 +76,12 @@ def merge_like_trainer(turns):
             if seg is not None:
                 segments.append(seg)
             seg = {
-                "prompt": p, "response": list(a), "mask": [1] * len(a),
-                "full": p + a, "actions": [a], "deltas": [],
+                "prompt": p,
+                "response": list(a),
+                "mask": [1] * len(a),
+                "full": p + a,
+                "actions": [a],
+                "deltas": [],
             }
     if seg is not None:
         segments.append(seg)
@@ -119,13 +118,13 @@ def main():
 
         # B. prefix extension
         extends = 0
-        for prev, cur in zip(turns, turns[1:]):
+        for prev, cur in zip(turns, turns[1:], strict=False):
             base = list(prev["prompt_ids"]) + list(prev["completion_ids"])
             if len(cur["prompt_ids"]) >= len(base) and list(cur["prompt_ids"][: len(base)]) == base:
                 extends += 1
-        print(f"  B prefix extension: {extends}/{len(turns)-1} transitions hold")
+        print(f"  B prefix extension: {extends}/{len(turns) - 1} transitions hold")
         if extends != len(turns) - 1:
-            failures.append(f"{sid[:20]}: prefix extension broken on {len(turns)-1-extends} transition(s)")
+            failures.append(f"{sid[:20]}: prefix extension broken on {len(turns) - 1 - extends} transition(s)")
 
         # C. preserve_thinking - count think blocks visible in the last prompt
         last_prompt = turns[-1]["prompt_ids"]
@@ -133,12 +132,11 @@ def main():
         n_close = sum(1 for i in last_prompt if i == think_close)
         print(f"  C preserve_thinking: final prompt holds {n_open} <think> / {n_close} </think>  (turns={len(turns)})")
         if len(turns) > 2 and n_close < len(turns) - 1:
-            failures.append(f"{sid[:20]}: final prompt has {n_close} </think>, expected >= {len(turns)-1}")
+            failures.append(f"{sid[:20]}: final prompt has {n_close} </think>, expected >= {len(turns) - 1}")
 
         # D. loss mask
         segs = merge_like_trainer(turns)
-        print(f"  D loss mask       : {len(segs)} segment(s) for {len(turns)} turns "
-              f"(1 = fully merged)")
+        print(f"  D loss mask       : {len(segs)} segment(s) for {len(turns)} turns (1 = fully merged)")
         for si, seg in enumerate(segs):
             assert len(seg["response"]) == len(seg["mask"])
             ones = [i for i, m in enumerate(seg["mask"]) if m == 1]
@@ -150,8 +148,7 @@ def main():
             masked_in = [seg["response"][i] for i in ones]
             expected = [x for a in seg["actions"] for x in a]
             ok_ids = masked_in == expected
-            print(f"      seg{si}: mask1={n_one} (sampled={sampled}) mask0={n_zero} (obs={obs}) "
-                  f"counts={'OK' if ok_counts else 'MISMATCH'} ids={'OK' if ok_ids else 'MISMATCH'}")
+            print(f"      seg{si}: mask1={n_one} (sampled={sampled}) mask0={n_zero} (obs={obs}) counts={'OK' if ok_counts else 'MISMATCH'} ids={'OK' if ok_ids else 'MISMATCH'}")
             if not ok_counts or not ok_ids:
                 failures.append(f"{sid[:20]} seg{si}: loss mask does not align with sampled tokens")
             if si == 0 and ok_ids:

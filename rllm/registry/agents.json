@@ -60,6 +60,11 @@
       "module": "rllm.harnesses.zeroclaw",
       "function": "ZeroClawHarness",
       "description": "Run the ZeroClaw autonomous-assistant CLI inside the sandbox."
+    },
+    "openhands-sdk": {
+      "module": "rllm.harnesses.openhands_sdk",
+      "function": "OpenHandsSdkHarness",
+      "description": "Run the OpenHands Software Agent SDK inside the sandbox."
     }
   }
 }
