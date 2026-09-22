@@ -201,8 +201,7 @@ def _warn_unsupported_agent_image(harness_name: str) -> None:
         return
     _WARNED_UNSUPPORTED.add(harness_name)
     logger.warning(
-        "Agent image mount is not implemented for harness %r; using per-task install instead. "
-        "Supported harnesses: %s.",
+        "Agent image mount is not implemented for harness %r; using per-task install instead. Supported harnesses: %s.",
         harness_name,
         ", ".join(sorted(SUPPORTED_AGENT_IMAGE_HARNESSES)),
     )
@@ -214,11 +213,7 @@ def agent_path_prefix(harness_name: str) -> str:
     if harness_name == "mini-swe-agent":
         return f'export PATH="{root}/bin:$HOME/.local/bin:$PATH"; '
     if harness_name == "opencode":
-        return (
-            f'. {root}/nvm/nvm.sh 2>/dev/null; '
-            f'. "$HOME/.nvm/nvm.sh" 2>/dev/null; '
-            f'export PATH="{root}/bin:$PATH"; '
-        )
+        return f'. {root}/nvm/nvm.sh 2>/dev/null; . "$HOME/.nvm/nvm.sh" 2>/dev/null; export PATH="{root}/bin:$PATH"; '
     if harness_name == "claude-code":
         return f'export PATH="{root}/home/.local/bin:$HOME/.local/bin:$PATH"; '
     return ""
@@ -264,10 +259,7 @@ def resolve_agent_mount_image(agent_flow: object, backend: str) -> str | None:
     if mode.lower() != "auto" and ":" in mode:
         tag = mode
         if not _image_exists(tag):
-            raise RuntimeError(
-                f"RLLM_AGENT_IMAGE={tag!r} was requested but the image is not present locally. "
-                f"Build it first or use RLLM_AGENT_IMAGE=auto."
-            )
+            raise RuntimeError(f"RLLM_AGENT_IMAGE={tag!r} was requested but the image is not present locally. Build it first or use RLLM_AGENT_IMAGE=auto.")
         return tag
 
     return build_agent_image(install_script, name)
