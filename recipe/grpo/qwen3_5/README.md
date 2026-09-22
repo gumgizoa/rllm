@@ -319,15 +319,39 @@ measured for mini-swe-agent. Treat 80 as a starting point: read `response_length
 `termination_reason/*` histogram off the smoke run and re-pair it with `max_model_len` using the
 rule in [Picking `agent_step_limit` and `max_model_len` together](#picking-agent_step_limit-and-max_model_len-together).
 
-Two checks before trusting a 9B run, both from the smoke test:
+### What was verified without a GPU, and what was not
 
-* **Plumbing.** `scripts/verify_cumulative.py` was validated on mini-swe-agent, whose
-  observations arrive as *user* messages. openhands-sdk uses native function calling, so they
-  arrive as *tool* messages. The prefix-extension and loss-mask assertions are what tell you the
-  cumulative-token path holds for that shape; run them as described in
-  [Verifying the renderer / cumulative-token path](#verifying-the-renderer--cumulative-token-path).
+The harness path was exercised end to end on a CPU-only host: a real Docker sandbox from a
+SWE-bench Verified image, the baked agent image mounted, the documents uploaded and counted, the
+system prompt installed, openhands-sdk 1.42.1 driven through a gateway in **training
+configuration** (cumulative token mode, `return_token_ids`, sqlite traces) against a remote vLLM,
+and the task's `tests/test.sh` run by `ShellScriptEvaluator`. Both variants completed and
+produced a graded episode. Two things came out of it:
+
+* **openhands-sdk sends every message body as a content-part list**
+  (`[{"type": "text", "text": ...}]`), and the renderers only render `str` — so in cumulative
+  mode every tool result from turn 2 on rendered as an *empty* `<tool_response>`. Prefix
+  extension held (which is why `verify_cumulative.py` alone would not have caught it); the
+  policy simply never saw its observations. `rllm-model-gateway` now flattens the parts with
+  `"\n"`, matching vLLM's own turn-1 rendering. Observation deltas went from a constant 12
+  tokens to 18/78/72/64 tokens carrying the real tool output. mini-swe-agent sends plain
+  strings and was never affected.
+* The SDK accepts an absolute `system_prompt_filename`; the rendered prompt keeps all 16 of the
+  default's sections and drops only the default problem-solving procedure.
+
+Still GPU-only, from the smoke test:
+
+* **Loss mask on tool messages.** Run `scripts/verify_cumulative.py` on the smoke run's sqlite
+  store as described in
+  [Verifying the renderer / cumulative-token path](#verifying-the-renderer--cumulative-token-path):
+  with tool-role observations the check that matters is D (mask 0 covers exactly the
+  `<tool_response>` bodies, mask 1 the sampled tokens). Note the engine deletes a session's traces
+  once the episode is enriched, so that script needs the training run's store, not an eval's.
 * **verl #7520.** Qwen3.5-9B has an untied `lm_head`; see the note at the bottom of
   `variant/openhands_9b.yaml` and [Before scaling to a larger model](#before-scaling-to-a-larger-model).
+* **Agent image bake.** `RLLM_AGENT_IMAGE=auto` builds from `debian:bullseye-slim`, whose
+  security pool was archived on 2026-08-31; the bake now pins `snapshot.debian.org` sources. If it
+  fails again, the fallback is `RLLM_AGENT_IMAGE=skip` (per-task install, ~2 min per sandbox).
 
 ## What follows SWE-Master, and what does not
 
@@ -1168,6 +1192,14 @@ Each of these was a hard failure of the native training path, not a tuning choic
 4. **`train.py`** uses `DatasetRegistry.load_dataset(..., as_tasks=True)`. Without it every row
    becomes a `Task` rooted at `dataset_dir="."` and verifier auto-detection fails with
    `No verifier configured for task ...`.
+5. **`rllm-model-gateway` `token_accumulator.py`** — content-part lists
+   (`[{"type": "text", ...}]`, what openhands-sdk sends) flattened to strings before the
+   cumulative-mode renderer sees them; previously every tool result from turn 2 on rendered
+   empty. See [Variants](#what-was-verified-without-a-gpu-and-what-was-not).
+6. **`rllm/harnesses/tools/openhands_sdk_runner.py`** — honours `OPENHANDS_SDK_SYSTEM_PROMPT_PATH`
+   (Harbor's name) so a harness can replace the SDK's system prompt.
+7. **`rllm/sandbox/agent_image.py`** — the openhands-sdk bake installs from `snapshot.debian.org`;
+   bullseye's live security pool is gone.
 
 ## Files
 
