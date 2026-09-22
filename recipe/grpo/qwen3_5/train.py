@@ -75,6 +75,7 @@ def make_budget_scaled_grouping_hook(scale: float):
 
     return hook
 
+
 # Episode logs are keyed by <project>/<experiment>, which is stable across runs,
 # so two runs of this recipe wrote into the same train_step_N_epoch_0 directory:
 # one merged 88 old episodes with 64 new ones, and the next silently *overwrote*
@@ -119,10 +120,7 @@ def _load(name: str, split: str, limit: int | None, kind: str):
     # per-task verifier auto-detection fails with "No verifier configured".
     dataset = DatasetRegistry.load_dataset(name, split, as_tasks=True)
     if dataset is None:
-        raise SystemExit(
-            f"{kind} dataset '{name}/{split}' is not registered.\n"
-            f"Build it first:  python recipe/grpo/qwen3_5/scripts/prepare_datasets.py"
-        )
+        raise SystemExit(f"{kind} dataset '{name}/{split}' is not registered.\nBuild it first:  python recipe/grpo/qwen3_5/scripts/prepare_datasets.py")
     if limit and limit > 0 and limit < len(dataset):
         dataset = dataset.select(range(limit))
     logger.info("%s dataset %s/%s: %d tasks", kind, name, split, len(dataset))
