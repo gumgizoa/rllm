@@ -215,6 +215,34 @@ def enrich_episode_with_traces(
             )
             training_steps = training_steps[:n_agent_steps]
 
+    # The same failure for a harness that records no agent steps (every CLI
+    # harness: mini-swe-agent, openhands-sdk). Its traces are absorbed
+    # wholesale below, so a 400 on the last call -- prompt past max_model_len
+    # -- left N good traces plus the failed call(s) (litellm retries the same
+    # request, so usually several) with empty token ids, and the strict check
+    # below raised EnrichMismatchError: the rollout was retried up to
+    # retry_limit times from a fresh sandbox, hit the same wall, and ended as
+    # ERROR -- three full rollouts burnt and the episode dropped instead of
+    # graded with MAX_PROMPT_LENGTH_EXCEEDED (SWE-Master's MAX_TOKENS budget
+    # case). Drop the trailing malformed traces and keep the reason, exactly
+    # as above; a malformed trace *between* good ones still raises.
+    if not agent_populates_steps and training_steps:
+        n_keep = len(training_steps)
+        while n_keep > 0 and (not training_steps[n_keep - 1].model_output.prompt_ids or not training_steps[n_keep - 1].model_output.completion_ids):
+            n_keep -= 1
+        if 0 < n_keep < len(training_steps):
+            reason = _upstream_termination_reason(traces[n_keep:])
+            if reason is not None:
+                episode.termination_reason = reason
+            logger.warning(
+                "[%s] dropping %d trailing malformed trace(s)%s; keeping %d",
+                uid,
+                len(training_steps) - n_keep,
+                f" [{reason.value}]" if reason is not None else "",
+                n_keep,
+            )
+            training_steps = training_steps[:n_keep]
+
     empty_prompt = sum(1 for s in training_steps if not s.model_output.prompt_ids)
     empty_compl = sum(1 for s in training_steps if not s.model_output.completion_ids)
     # Only enforce step-count parity when the agent actually populates steps.

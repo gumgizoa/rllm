@@ -233,3 +233,80 @@ def test_env_flow_receives_sandbox_and_container_url():
 
     assert seen["env"] is sandbox
     assert seen["base_url"].startswith("http://host.docker.internal:9131/")
+
+
+# ---------------------------------------------------------------------------
+# Trailing malformed traces for harnesses that record no agent steps
+# ---------------------------------------------------------------------------
+
+
+def _token_trace(session_id: str, idx: int, *, malformed: bool = False, metadata: dict | None = None):
+    from rllm_model_gateway.models import TraceRecord
+
+    return TraceRecord(
+        trace_id=f"t-{session_id}-{idx}",
+        session_id=session_id,
+        model="m",
+        messages=[{"role": "user", "content": f"Q{idx}"}],
+        response_message={"role": "assistant", "content": "" if malformed else f"A{idx}"},
+        prompt_token_ids=[] if malformed else [1, 2, 3 + idx],
+        completion_token_ids=[] if malformed else [7 + idx, 8],
+        logprobs=[] if malformed else [-0.1, -0.2],
+        finish_reason=None if malformed else "stop",
+        metadata=metadata or {},
+    )
+
+
+def _run_cli_style(traces, retry_limit: int = 1):
+    """A flow that returns None -- what every CLI harness does -- so no agent steps exist."""
+
+    @__import__("rllm").rollout(name="cli-style")
+    def cli_flow(task, config):
+        return None
+
+    engine = AgentFlowEngine(
+        agent_flow=cli_flow,
+        evaluator=_Evaluator(),
+        gateway=_Gateway(traces=traces),
+        model="test-model",
+        n_parallel_tasks=1,
+        retry_limit=retry_limit,
+    )
+    try:
+        return asyncio.run(engine._run_single(task_from_row({"question": "q"}, "task"), "task:0", is_validation=False))
+    finally:
+        engine.shutdown()
+
+
+def test_cli_harness_trailing_overflow_traces_are_dropped_and_stamped():
+    """openhands-sdk on SWE-Gym: the prompt outgrew max_model_len, vLLM answered 400 to the
+    last call and to litellm's retries of it, and each of those became a trace with empty
+    token ids. The good turns must survive and the episode must carry
+    MAX_PROMPT_LENGTH_EXCEEDED (the budget case), not be re-rolled three times into ERROR."""
+    overflow = {"upstream_error": {"status": 400, "kind": "context_length_exceeded", "message": "maximum context length"}}
+    traces = [
+        _token_trace("task:0", 0),
+        _token_trace("task:0", 1),
+        _token_trace("task:0", 2, malformed=True, metadata=overflow),
+        _token_trace("task:0", 3, malformed=True, metadata=overflow),
+    ]
+    episode = _run_cli_style(traces)
+    assert episode is not None
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+    assert [len(t.steps) for t in episode.trajectories] == [2]
+    assert all(s.model_output.prompt_ids and s.model_output.completion_ids for s in episode.trajectories[0].steps)
+
+
+def test_cli_harness_malformed_trace_in_the_middle_still_raises():
+    from rllm.engine.agentflow_engine import EnrichMismatchError
+
+    traces = [_token_trace("task:0", 0), _token_trace("task:0", 1, malformed=True), _token_trace("task:0", 2)]
+    with pytest.raises(EnrichMismatchError):
+        _run_cli_style(traces)
+
+
+def test_cli_harness_all_traces_malformed_still_raises():
+    from rllm.engine.agentflow_engine import EnrichMismatchError
+
+    with pytest.raises(EnrichMismatchError):
+        _run_cli_style([_token_trace("task:0", 0, malformed=True)])
