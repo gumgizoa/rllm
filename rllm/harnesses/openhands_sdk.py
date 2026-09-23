@@ -42,6 +42,12 @@ _RUNNER_PATH = "/opt/openhands-sdk-runner.py"
 _RUNNER_SOURCE = Path(__file__).parent / "tools" / "openhands_sdk_runner.py"
 # Printed by the install guard so the log says which path a task took.
 _FALLBACK_MARKER = "rllm-openhands-sdk-per-task-install"
+# Every run of the SDK interpreter is isolated (``-I``). Commands run from the
+# task workdir, and ``python -c`` puts the cwd first on ``sys.path``: a repo
+# checked out there shadows the SDK's own dependencies (/testbed/aiohttp breaks
+# litellm, /testbed/pydantic breaks the SDK models). ``-I`` also ignores
+# PYTHONPATH/PYTHONHOME, which task images set for their own interpreter.
+_PY_FLAGS = "-I"
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +60,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Nothing to do when a baked agent image already carries the venv, or when a
 # warm sandbox installed it earlier.
 for candidate in {shlex.quote(mount_venv)} {shlex.quote(_VENV)}; do
-    if [ -x "$candidate/bin/python" ] && "$candidate/bin/python" -c "import openhands.sdk" 2>/dev/null; then
+    if [ -x "$candidate/bin/python" ] && "$candidate/bin/python" {_PY_FLAGS} -c "import openhands.sdk" 2>/dev/null; then
         exit 0
     fi
 done
@@ -95,7 +101,7 @@ retry uv python install {PYTHON_VERSION}
 uv venv {shlex.quote(_VENV)} --python {PYTHON_VERSION}
 retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
     openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION}
-{shlex.quote(_VENV)}/bin/python -c 'import openhands.sdk; print(openhands.sdk.__version__)'
+{shlex.quote(_VENV)}/bin/python {_PY_FLAGS} -c 'import openhands.sdk; print(openhands.sdk.__version__)'
 """
 
 
@@ -149,7 +155,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
             sandbox,
             self._heredoc_write(_RUNNER_PATH, _RUNNER_SOURCE.read_text()),
         )
-        probe = f"{shlex.quote(self._mount_python())} -c 'import openhands.sdk' 2>/dev/null"
+        probe = f"{shlex.quote(self._mount_python())} {_PY_FLAGS} -c 'import openhands.sdk' 2>/dev/null"
         out = sandbox.exec(
             f"if ! {probe}; then\n  echo {_FALLBACK_MARKER}\n{self.install_script()}\nfi",
             timeout=self.install_timeout,
@@ -180,8 +186,8 @@ class OpenHandsSdkHarness(BaseCliHarness):
         return (
             f"{self._cd_prefix(task)}"
             f"OH_PY={shlex.quote(self._mount_python())}; "
-            f"\"$OH_PY\" -c 'import openhands.sdk' 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; "
-            f'"$OH_PY" {shlex.quote(_RUNNER_PATH)} '
+            f"\"$OH_PY\" {_PY_FLAGS} -c 'import openhands.sdk' 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; "
+            f'"$OH_PY" {_PY_FLAGS} {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"
         )
