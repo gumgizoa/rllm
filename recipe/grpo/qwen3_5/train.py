@@ -140,7 +140,21 @@ def _recipe_path(value: str | None) -> Path | None:
     return path if path.is_absolute() else RECIPE_DIR / path
 
 
-def _build_agent_flow(recipe: DictConfig):
+def _renderer_enable_thinking(config: DictConfig) -> bool | None:
+    """``rllm.gateway.renderer_kwargs.enable_thinking`` when set, else ``None``.
+
+    Turn 1 of an openhands-sdk episode is rendered by vLLM's chat template,
+    turns 2+ by the gateway's renderer. Both take an ``enable_thinking`` switch
+    and they must agree, or the policy is trained on a different shape than it
+    sampled from. The renderer kwarg is the single source of truth; the
+    harness forwards the same value to the SDK as a chat-template kwarg.
+    """
+    kwargs = ((config.get("rllm") or {}).get("gateway") or {}).get("renderer_kwargs") or {}
+    value = kwargs.get("enable_thinking")
+    return None if value is None else bool(value)
+
+
+def _build_agent_flow(recipe: DictConfig, config: DictConfig):
     """Pick the harness from ``recipe.agent`` and layer AI-DLC on it when asked.
 
     The two harnesses share one ``agent_step_limit`` so a run's turn budget
@@ -168,10 +182,12 @@ def _build_agent_flow(recipe: DictConfig):
         # sys.path[0].
         from aidlc_flow import AidlcOpenHandsSdkHarness, StepLimitedOpenHandsSdk
 
+        enable_thinking = _renderer_enable_thinking(config)
         if not aidlc_enabled:
-            return StepLimitedOpenHandsSdk(step_limit=step_limit)
+            return StepLimitedOpenHandsSdk(step_limit=step_limit, enable_thinking=enable_thinking)
         return AidlcOpenHandsSdkHarness(
             step_limit=step_limit,
+            enable_thinking=enable_thinking,
             docs_dir=_recipe_path(aidlc.get("docs_dir", "aidlc")),
             container_dir=str(aidlc.get("container_dir", "/ai-dlc")),
             instruction_file=_recipe_path(aidlc.get("instruction_file")),
@@ -207,9 +223,15 @@ def main(config: DictConfig) -> None:
     agent_image = os.environ.get("RLLM_AGENT_IMAGE", recipe.agent_image)
     os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
 
-    agent_flow = _build_agent_flow(recipe)
+    agent_flow = _build_agent_flow(recipe, config)
     agent_flow.configure({"agent_image": agent_image})
-    logger.info("agent flow: %s (step_limit=%s, aidlc=%s)", type(agent_flow).__name__, recipe.agent_step_limit, bool((recipe.get("aidlc") or {}).get("enable", False)))
+    logger.info(
+        "agent flow: %s (step_limit=%s, aidlc=%s, enable_thinking=%s)",
+        type(agent_flow).__name__,
+        recipe.agent_step_limit,
+        bool((recipe.get("aidlc") or {}).get("enable", False)),
+        getattr(agent_flow, "enable_thinking", None),
+    )
 
     trainer = AgentTrainer(
         backend="verl",

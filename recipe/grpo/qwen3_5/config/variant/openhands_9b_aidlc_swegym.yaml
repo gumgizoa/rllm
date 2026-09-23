@@ -56,14 +56,16 @@ rllm:
   gateway:
     renderer_kwargs:
       preserve_thinking: true
-      # Explicit. The qwen3.6 renderer decides the thinking polarity by looking
-      # tokenizer.name_or_path up in a table of HF ids ("Qwen/Qwen3.5-9B" ->
-      # True). MODEL_PATH is normally a local snapshot path, which misses the
-      # table and falls through to the same default -- but turn 1 is rendered
-      # by vLLM's chat template (which opens <think> for the 9B) and turns 2+
-      # by this renderer, and the run must not depend on a fallback keeping
-      # those two in agreement.
-      enable_thinking: true
+      # No-think mode (decided 2026-09-23). This one key drives both halves of
+      # the episode: train.py hands it to the harness, which sends it to the
+      # SDK as a chat_template_kwarg so vLLM renders turn 1 with the empty
+      # ``<think>\n\n</think>\n\n`` block, and the qwen3.6 renderer emits the
+      # same block on turns 2+. The model's own default is thinking ON (the
+      # first smoke run sampled 100-350 chars of reasoning per turn), so this
+      # must be explicit; do not leave it to the renderer's HF-id table, which
+      # a local MODEL_PATH misses anyway. Set to true to train with thinking;
+      # the wiring keeps the two halves consistent either way.
+      enable_thinking: false
   trainer:
     experiment_name: qwen3_5-9b-openhands-sdk-aidlc-swegym293
     # 293 tasks / 32 per step = 9 steps per epoch; 3 epochs = 27 steps.

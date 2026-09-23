@@ -454,6 +454,27 @@ allocated per card, 13 min for the step. Prefix extension held
   0.5). `enrich_episode_with_traces` now drops trailing malformed traces for step-less
   harnesses as it already did for step-recording ones, keeping the gateway's reason.
 
+**No-think mode (SWE-Gym variants).** The first smoke run sampled with thinking on — Qwen3.5-9B's
+template default — and every turn carried 100–350 characters of reasoning. The SWE-Gym variants
+now run **without thinking**, from one key: `rllm.gateway.renderer_kwargs.enable_thinking: false`.
+`train.py` reads it and hands it to the harness, the harness exports
+`OPENHANDS_SDK_ENABLE_THINKING=0`, and the runner passes
+`litellm_extra_body={"chat_template_kwargs": {"enable_thinking": false}}` to the SDK's `LLM`, so the
+first turn — the one vLLM renders with the chat template from the request body the gateway forwards
+verbatim — gets the empty `<think>\n\n</think>\n\n` block; turns 2+ are rendered by the `qwen3.6`
+renderer with the same kwarg and emit the same block (checked: renderer output is byte-identical to
+`apply_chat_template(..., enable_thinking=False)`). Flip the key to `true` to train with thinking;
+both halves follow. `scripts/verify_cumulative.py`'s check A ("prompt opens `<think>`") is written
+for thinking-on and will report 0/N on a no-think run — that is expected, not a failure. The SDK's
+`reasoning_effort` default is an OpenAI-style parameter and has no effect on vLLM/Qwen.
+
+**Validation.** On by default: `val_before_train: true` and `test_freq: 3` run the 23
+`swegym_val23` tasks (`n_val: 1`, temperature 0.6) before step 1 and every third step; watch
+`val/accuracy` (from `is_correct`) rather than `val/reward_*`, which the budget scaling also
+touches. `rllm.trainer.val_before_train=false rllm.trainer.test_freq=-1` switches it off. The smoke
+test disables it; add `rllm.trainer.val_before_train=true recipe.val_limit=4` to exercise the
+validation path there.
+
 **The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
 they are not rebuilt: `RLLM_AGENT_IMAGE=auto` bakes one agent image (debian bullseye, uv-managed
 Python 3.12, `openhands-sdk==1.42.1` venv; tag = hash of the install script, ~850 MB) and
