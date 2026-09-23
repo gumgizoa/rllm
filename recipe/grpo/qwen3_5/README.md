@@ -72,6 +72,30 @@ when you have activated, and `./.venv` when you have not. Both then land on
 survive recreating the container, while the symlink on network storage does - a
 new container starts from this step again.
 
+**Host driver older than the CUDA stack.** `.[verl]` resolves to a CUDA 13 stack
+(torch 2.11.0+cu130, the vLLM 0.22.1 CUDA-13 wheel), which needs a driver API of
+13000. A host on an R550 driver (`nvidia-smi` says CUDA 12.4, e.g. H200-9) reports
+12040 and torch fails at CUDA init with "NVIDIA driver too old". The fix stays
+inside the container: NVIDIA's forward-compatibility package ships a user-space
+`libcuda` that runs on the older kernel driver.
+
+```bash
+apt-get update && apt-get install -y cuda-compat-13-0
+export LD_LIBRARY_PATH=/usr/local/cuda-13.0/compat:${LD_LIBRARY_PATH:-}
+# Verify: 13000 expected (12040 = the host driver is still being used)
+python -c "import ctypes; l=ctypes.CDLL('libcuda.so.1'); v=ctypes.c_int(); l.cuInit(0); l.cuDriverGetVersion(ctypes.byref(v)); print(v.value)"
+```
+
+Put the `LD_LIBRARY_PATH` line in `recipe/grpo/qwen3_5/.env` as well (step 2):
+`train_verl.sh` exports the file, and every Ray worker and vLLM server inherits it.
+A shell-only export reaches the launcher and nothing else. Two caveats: mounting
+the compat directory at `/usr/local/cuda/compat` and relying on the container
+toolkit hook did *not* pick it up here, only the explicit `LD_LIBRARY_PATH` did;
+and NVIDIA's compatibility table lists R535/R570 for `cuda-compat-13-0`, not R550,
+so on R550 this is measured-to-work rather than supported (bf16 matmul and
+allocation checked on H200-9). `cuda-compat-12-9` is not enough for this stack:
+it lifts the API to 12090, which only a cu129-pinned install would accept.
+
 ### 2. Recipe environment
 
 ```bash
@@ -446,8 +470,10 @@ Still GPU-only, from the smoke test:
 * **verl #7520.** Qwen3.5-9B has an untied `lm_head`; see the note at the bottom of
   `variant/openhands_9b.yaml` and [Before scaling to a larger model](#before-scaling-to-a-larger-model).
 * **Agent image bake.** `RLLM_AGENT_IMAGE=auto` builds from `debian:bullseye-slim`, whose
-  security pool was archived on 2026-08-31; the bake now pins `snapshot.debian.org` sources. If it
-  fails again, the fallback is `RLLM_AGENT_IMAGE=skip` (per-task install, ~2 min per sandbox).
+  security pool was archived on 2026-08-31, so an apt step in the bake 404s. The bake (main, PR #4)
+  no longer runs apt at all: `uv` is copied in from `ghcr.io/astral-sh/uv` and brings its own TLS
+  roots. If the bake still fails, the fallback is `RLLM_AGENT_IMAGE=skip` (per-task install,
+  ~2 min per sandbox); the harness logs a warning when the mount is unused.
 
 ## What follows SWE-Master, and what does not
 
@@ -1294,8 +1320,8 @@ Each of these was a hard failure of the native training path, not a tuning choic
    empty. See [Variants](#what-was-verified-without-a-gpu-and-what-was-not).
 6. **`rllm/harnesses/tools/openhands_sdk_runner.py`** — honours `OPENHANDS_SDK_SYSTEM_PROMPT_PATH`
    (Harbor's name) so a harness can replace the SDK's system prompt.
-7. **`rllm/sandbox/agent_image.py`** — the openhands-sdk bake installs from `snapshot.debian.org`;
-   bullseye's live security pool is gone.
+7. **`rllm/sandbox/agent_image.py`** — the openhands-sdk bake needs no apt: `uv` is copied from
+   its own image (main, PR #4), since bullseye's live security pool is gone.
 
 ## Files
 
