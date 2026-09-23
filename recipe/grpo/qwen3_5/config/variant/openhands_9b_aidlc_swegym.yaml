@@ -69,8 +69,15 @@ rllm:
   trainer:
     experiment_name: qwen3_5-9b-openhands-sdk-aidlc-swegym293
     # 293 tasks / 32 per step = 9 steps per epoch; 3 epochs = 27 steps.
-    # test_freq / save_freq stay at 3 (rllm_grpo.yaml).
+    # test_freq stays at 3 (rllm_grpo.yaml).
     total_epochs: 3
+    # Every step is checkpointed and none is deleted (max_actor_ckpt_to_keep
+    # below), so the whole 27-step trajectory can be evaluated afterwards.
+    # A full FSDP checkpoint of the 9B (bf16 weights + fp32 Adam moments and
+    # master copy) is ~110 GB: 27 of them are ~3 TB under RLLM_ARTIFACT_DIR.
+    # Weights-only (~18 GB each, no exact optimizer resume) is
+    #   actor_rollout_ref.actor.checkpoint.save_contents=[model]
+    save_freq: 1
   episode_logging:
     # Same layout as rllm_grpo.yaml, rooted at RLLM_ARTIFACT_DIR when set: the
     # episode JSONs (one per rollout per step, full observations / model
@@ -88,6 +95,9 @@ trainer:
   # the 9B (bf16 weights + fp32 Adam moments and master copy) is ~110 GB;
   # max_actor_ckpt_to_keep (verl_trainer.yaml) bounds the total.
   default_local_dir: ${oc.env:RLLM_ARTIFACT_DIR,${oc.env:RLLM_HOME,checkpoints}}/checkpoints/${trainer.project_name}/${trainer.experiment_name}/${oc.env:RLLM_RUN_ID}
+  # null = keep every checkpoint (verl passes it to save_checkpoint as
+  # max_ckpt_to_keep; the base recipe's 5 would delete all but the last five).
+  max_actor_ckpt_to_keep: null
 
 actor_rollout_ref:
   actor:
