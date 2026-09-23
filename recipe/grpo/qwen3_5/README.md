@@ -415,6 +415,18 @@ repo → 0.0. The rest of the pool has not been oracle-screened yet — run
 [Screen the data with the oracle first](#screen-the-data-with-the-oracle-first) and exclude
 any 0.0 instance the way `prepare_datasets.py` does with `UNSCORABLE`.
 
+**Where a run writes.** Four places, two of them chosen so the results outlive the node:
+
+| what | where | knob |
+| --- | --- | --- |
+| training transcript (all metrics) | `<repo>/outputs/logs/train_<RLLM_RUN_ID>.log` | `RLLM_RUN_DIR`, `TRAIN_LOG` (train_verl.sh) |
+| Hydra run dir (composed config, hydra log) | `<repo>/outputs/<date>/<time>/` | `RLLM_RUN_DIR` |
+| checkpoints (`global_step_N/`, ~110 GB each for the 9B) | `$RLLM_ARTIFACT_DIR/checkpoints/<project>/<experiment>/<RLLM_RUN_ID>/` | `RLLM_ARTIFACT_DIR` (default `RLLM_HOME`); `trainer.max_actor_ckpt_to_keep` |
+| episode logs (one JSON per rollout: task, steps with observation / model response / chat completions, reward, termination reason) | `$RLLM_ARTIFACT_DIR/episodes/<project>/<experiment>/<RLLM_RUN_ID>/episodes/{train,val}_step_N_epoch_E/` | `RLLM_ARTIFACT_DIR`; `rllm.episode_logging.log_episodes` (on) |
+
+Datasets, the HF cache and the model snapshot stay under `RLLM_HOME` / `HF_HOME` / `MODEL_PATH`,
+which on the H200 hosts are node-local by design (read at startup by 17 processes).
+
 **The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
 they are not rebuilt: `RLLM_AGENT_IMAGE=auto` bakes one agent image (debian bullseye, uv-managed
 Python 3.12, `openhands-sdk==1.42.1` venv; tag = hash of the install script, ~850 MB) and

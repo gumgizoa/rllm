@@ -57,6 +57,23 @@ rllm:
     # 293 tasks / 32 per step = 9 steps per epoch; 3 epochs = 27 steps.
     # test_freq / save_freq stay at 3 (rllm_grpo.yaml).
     total_epochs: 3
+  episode_logging:
+    # Same layout as rllm_grpo.yaml, rooted at RLLM_ARTIFACT_DIR when set: the
+    # episode JSONs (one per rollout per step, full observations / model
+    # responses / reward / termination reason) are what post-hoc analysis
+    # reads, so they belong on the storage that outlives the node -- RLLM_HOME
+    # is node-local on the H200 hosts. Unset -> RLLM_HOME as before.
+    episode_log_dir: ${oc.env:RLLM_ARTIFACT_DIR,${oc.env:RLLM_HOME,${oc.env:HOME}/.rllm}}/episodes/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}/${oc.env:RLLM_RUN_ID}
+
+trainer:
+  # verl's default is `checkpoints/<project>/<experiment>` relative to the cwd
+  # (the repo root: Hydra 1.3 does not chdir). Rooted at RLLM_ARTIFACT_DIR for
+  # the same reason as the episodes, and stamped with the run id so a second
+  # launch of the same experiment cannot overwrite the first one's
+  # global_step_N / latest_checkpointed_iteration.txt. One FSDP checkpoint of
+  # the 9B (bf16 weights + fp32 Adam moments and master copy) is ~110 GB;
+  # max_actor_ckpt_to_keep (verl_trainer.yaml) bounds the total.
+  default_local_dir: ${oc.env:RLLM_ARTIFACT_DIR,${oc.env:RLLM_HOME,checkpoints}}/checkpoints/${trainer.project_name}/${trainer.experiment_name}/${oc.env:RLLM_RUN_ID}
 
 actor_rollout_ref:
   actor:
