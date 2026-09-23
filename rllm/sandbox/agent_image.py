@@ -118,35 +118,24 @@ def _openhands_sdk_dockerfile() -> str:
     # the mount target, so a top-level import would be circular.
     from rllm.harnesses.openhands_sdk import PYTHON_VERSION, SDK_VERSION
 
-    # bullseye (glibc 2.31), not ubuntu:22.04 (2.35): uv resolves wheels for
-    # the glibc it builds on, and the SWE-bench Pro images run 2.31-2.36. A
-    # venv baked on 2.35 pulls manylinux_2_34 wheels whose extension modules
+    # bullseye (glibc 2.31) rather than ubuntu:22.04 (2.35): uv resolves wheels
+    # for the glibc it builds on, and the SWE-bench Pro images run 2.31-2.36.
+    # A venv baked on 2.35 pulls manylinux_2_34 wheels whose extension modules
     # fail to load on the older images (``cryptography`` wants GLIBC_2.33),
-    # while wheels resolved for 2.31 run on every image in the range.
+    # while wheels resolved for 2.31 load on every image in that range.
+    #
+    # uv is copied in from its own image instead of installed: bullseye is EOL,
+    # so ``apt-get install curl`` 404s on the pruned security pool. uv ships
+    # its TLS roots, so the final stage needs neither apt nor ca-certificates.
     return f"""\
+FROM ghcr.io/astral-sh/uv:latest AS uvsrc
 FROM debian:bullseye-slim
-ENV DEBIAN_FRONTEND=noninteractive
-# bullseye left LTS on 2026-08-31 and deb.debian.org no longer serves its
-# security pool: `apt-get update` still succeeds but every .deb under
-# debian-security 404s, and dropping that source leaves main's package list
-# depending on versions that only ever shipped there ("held broken packages").
-# The image ships snapshot.debian.org sources commented out for exactly this
-# case; switch to them (pinned to 2026-08-24, before the archive move) and
-# skip the Valid-Until check that a frozen snapshot cannot pass.
-RUN sed -i -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' \\
-           -e 's|^# deb http://snapshot.debian.org|deb http://snapshot.debian.org|' \\
-           /etc/apt/sources.list \\
- && apt-get update -qq -o Acquire::Check-Valid-Until=false \\
- && apt-get install -y -qq --no-install-recommends -o Acquire::Check-Valid-Until=false \\
-        curl ca-certificates git \\
- && rm -rf /var/lib/apt/lists/*
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+COPY --from=uvsrc /uv /usr/local/bin/uv
 # A uv venv records its interpreter in pyvenv.cfg and symlinks bin/python at
 # it, so the managed CPython has to sit inside the mount as well;
 # UV_PYTHON_INSTALL_DIR puts it there instead of under /root, which the task
 # container never sees.
-ENV PATH="/root/.local/bin:$PATH" \\
-    UV_PYTHON_INSTALL_DIR={AGENT_MOUNT_TARGET}/python
+ENV UV_PYTHON_INSTALL_DIR={AGENT_MOUNT_TARGET}/python
 # --compile-bytecode: the mount is read-only at run time, so the .pyc files
 # have to exist by then or every task pays the compile cost again.
 RUN mkdir -p {AGENT_MOUNT_TARGET} && \\
