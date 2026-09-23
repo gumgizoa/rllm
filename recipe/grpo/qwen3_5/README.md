@@ -454,6 +454,17 @@ allocated per card, 13 min for the step. Prefix extension held
   0.5). `enrich_episode_with_traces` now drops trailing malformed traces for step-less
   harnesses as it already did for step-recording ones, keeping the gateway's reason.
 
+**Smoke run 2 (same day, no-think, 16K prompt budget, validation on 4 tasks).** Both fixes held:
+`prompt_length/clip_ratio` 0 (first prompts 8.7K, budget 16K), `rollout_actor_probs_pearson_corr`
+0.9986 with a per-token max diff of 0.12 (run 1: 0.9907 with a max diff of 1.0, i.e. a real
+mismatch; what remains is bf16 numerics), no reasoning in any of the 12 episodes, and the one
+validation rollout that outgrew 32K came back graded and stamped `max_prompt_length_exceeded`
+instead of erroring. Two of eight training rollouts solved `getmoto__moto-4950` (reward 1.0), so
+the group had a non-zero advantage and the first real policy gradient step ran (`pg_loss` −177,
+`grad_norm` 1846 before clipping). Step time 8.4 min; `update_actor` 28 s. Validation on the four
+sqlfluff tasks scored 0/4 at 25 turns; its metrics are keyed `val/unknown/*` (`pass@1` is the
+accuracy) because the trainer groups by a `data_source` field these rows do not carry.
+
 **No-think mode (SWE-Gym variants).** The first smoke run sampled with thinking on — Qwen3.5-9B's
 template default — and every turn carried 100–350 characters of reasoning. The SWE-Gym variants
 now run **without thinking**, from one key: `rllm.gateway.renderer_kwargs.enable_thinking: false`.
