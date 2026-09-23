@@ -403,7 +403,9 @@ def test_claude_code_invocation_uses_print_bypass_permissions_and_local_bin_path
     assert "-- 'fix the bug'" in cmd
     # Old ``--bare`` flag is gone in current CLI versions.
     assert "--bare" not in cmd
-    assert '"$HOME/.local/bin:$PATH"' in cmd
+    # The baked agent image's bin dir (when mounted) goes first, ahead of
+    # the installer's default location.
+    assert '/opt/rllm/agent/home/.local/bin:$HOME/.local/bin:$PATH"' in cmd
 
 
 # ---------------------------------------------------------------------------
