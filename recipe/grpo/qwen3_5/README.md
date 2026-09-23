@@ -416,6 +416,21 @@ repo → 0.0. The rest of the pool has not been oracle-screened yet — run
 [Screen the data with the oracle first](#screen-the-data-with-the-oracle-first) and exclude
 any 0.0 instance the way `prepare_datasets.py` does with `UNSCORABLE`.
 
+**The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
+they are not rebuilt: `RLLM_AGENT_IMAGE=auto` bakes one agent image (debian bullseye, uv-managed
+Python 3.12, `openhands-sdk==1.42.1` venv; tag = hash of the install script, ~850 MB) and
+mounts its `/opt/rllm/agent` read-only into every task container with a Docker `type=image`
+mount (Engine 28+). That works for the `docker_image`-only task dirs here as for Dockerfile
+tasks. Checked on H200-9 (Docker 29.7): the mounted venv imports on the Ubuntu 22.04 / glibc
+2.35 SWE-Gym images, and the harness's import probe passes on one image from each of the 17
+repos. One trap was found there: the probes run `python -c 'import openhands.sdk'` from
+`/testbed`, and `-c` puts the cwd on `sys.path`, so on the **pydantic** tasks the checked-out
+repo shadowed the venv's pydantic, the probe failed, and the harness fell back to a per-task
+install whose own final import check failed the same way — every pydantic rollout would have
+errored. The probes now run with `PYTHONSAFEPATH=1` (the runner is a script and is not
+affected; nothing is set in the agent's environment). No other repo in this data collides
+with a top-level module of the venv.
+
 **Hybrid reward (SWE + instruction following): where it plugs in.** Nothing in this variant
 rewards the AI-DLC artifacts yet; the reward is the verifier's binary result. The seam for a
 combined reward is a per-task Python verifier, and `prepare_swegym.py --evaluate-py <file>`

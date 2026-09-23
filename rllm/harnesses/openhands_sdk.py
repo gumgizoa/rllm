@@ -42,6 +42,17 @@ _RUNNER_PATH = "/opt/openhands-sdk-runner.py"
 _RUNNER_SOURCE = Path(__file__).parent / "tools" / "openhands_sdk_runner.py"
 # Printed by the install guard so the log says which path a task took.
 _FALLBACK_MARKER = "rllm-openhands-sdk-per-task-install"
+# Every "can this interpreter import the SDK?" probe runs from the task's
+# workdir (docker exec inherits the image WORKDIR; the invocation cd's there),
+# and ``python -c`` puts the cwd first on sys.path. When the repository under
+# test *is* one of the SDK's dependencies -- SWE-Gym's pydantic tasks sit at
+# /testbed/pydantic -- the probe imports the checked-out repo instead of the
+# venv's wheel and fails, so a working mount is reported as unusable and the
+# per-task install runs (and its own final import check fails the same way).
+# PYTHONSAFEPATH (3.11+, ignored by older interpreters) keeps the cwd off
+# sys.path for the probe only; the runner is a script (sys.path[0] is its
+# directory) and the agent's own commands are not touched.
+_SAFE_PROBE = "PYTHONSAFEPATH=1"
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +65,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Nothing to do when a baked agent image already carries the venv, or when a
 # warm sandbox installed it earlier.
 for candidate in {shlex.quote(mount_venv)} {shlex.quote(_VENV)}; do
-    if [ -x "$candidate/bin/python" ] && "$candidate/bin/python" -c "import openhands.sdk" 2>/dev/null; then
+    if [ -x "$candidate/bin/python" ] && {_SAFE_PROBE} "$candidate/bin/python" -c "import openhands.sdk" 2>/dev/null; then
         exit 0
     fi
 done
@@ -95,7 +106,7 @@ retry uv python install {PYTHON_VERSION}
 uv venv {shlex.quote(_VENV)} --python {PYTHON_VERSION}
 retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
     openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION}
-{shlex.quote(_VENV)}/bin/python -c 'import openhands.sdk; print(openhands.sdk.__version__)'
+{_SAFE_PROBE} {shlex.quote(_VENV)}/bin/python -c 'import openhands.sdk; print(openhands.sdk.__version__)'
 """
 
 
@@ -149,7 +160,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
             sandbox,
             self._heredoc_write(_RUNNER_PATH, _RUNNER_SOURCE.read_text()),
         )
-        probe = f"{shlex.quote(self._mount_python())} -c 'import openhands.sdk' 2>/dev/null"
+        probe = f"{_SAFE_PROBE} {shlex.quote(self._mount_python())} -c 'import openhands.sdk' 2>/dev/null"
         out = sandbox.exec(
             f"if ! {probe}; then\n  echo {_FALLBACK_MARKER}\n{self.install_script()}\nfi",
             timeout=self.install_timeout,
@@ -180,7 +191,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
         return (
             f"{self._cd_prefix(task)}"
             f"OH_PY={shlex.quote(self._mount_python())}; "
-            f"\"$OH_PY\" -c 'import openhands.sdk' 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; "
+            f"{_SAFE_PROBE} \"$OH_PY\" -c 'import openhands.sdk' 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; "
             f'"$OH_PY" {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"
