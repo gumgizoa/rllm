@@ -1,0 +1,78 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk + AI-DLC, trained on SWE-Gym (SkyRL-v0-293-data).
+# Everything from openhands_9b_aidlc, plus three things:
+#
+#   1. the datasets scripts/prepare_swegym.py builds and registers:
+#      swegym293/train (293 SWE-Gym instances) and swegym_val23/test (SkyRL-v0's
+#      23 validation instances), graded by swegym's own eval_script;
+#   2. host sizing for an 8 x H200 (141 GB) node with 224 cores;
+#   3. the 9B-specific verl choices openhands_9b only leaves as notes (FSDP1,
+#      one on-policy update per step) -- see the bottom of this file.
+#
+#   python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir /path/to/SkyRL-v0-293-data
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym
+#
+# Control arm on the same data (SDK's own workflow, no documents):
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym recipe.aidlc.enable=false \
+#       rllm.trainer.experiment_name=qwen3_5-9b-openhands-sdk-swegym293
+#
+# The turn budget (agent_step_limit=80) and the context window
+# (8192 + 122880 = 131072) are inherited from openhands_9b unchanged: the 4B
+# ran 131072 at 36 GB peak on an 80 GB card, the 9B's hidden size is 1.6x, so
+# ~60-70 GB of activations fit a 141 GB H200. If the first update_actor OOMs,
+# shrink the three knobs together (README, "Picking agent_step_limit and
+# max_model_len together"), e.g.
+#   recipe.agent_step_limit=40 rllm.data.max_response_length=57344 actor_rollout_ref.rollout.max_model_len=65536
+
+defaults:
+  - openhands_9b_aidlc
+
+recipe:
+  train_dataset: swegym293
+  train_split: train
+  val_dataset: swegym_val23
+  val_split: test
+  # Each task.toml caps its sandbox at 4 cpus / 16 GB (prepare_swegym.py
+  # RESOURCES), so 32 live sandboxes are 128 cores and 512 GB beside the
+  # eight vLLM servers and eight FSDP workers. n_parallel_tasks below must
+  # not exceed this, or rollouts queue on the warm-sandbox pool.
+  sandbox_concurrency: 32
+
+rllm:
+  workflow:
+    n_parallel_tasks: 32
+  gateway:
+    renderer_kwargs:
+      preserve_thinking: true
+      # Explicit. The qwen3.6 renderer decides the thinking polarity by looking
+      # tokenizer.name_or_path up in a table of HF ids ("Qwen/Qwen3.5-9B" ->
+      # True). MODEL_PATH is normally a local snapshot path, which misses the
+      # table and falls through to the same default -- but turn 1 is rendered
+      # by vLLM's chat template (which opens <think> for the 9B) and turns 2+
+      # by this renderer, and the run must not depend on a fallback keeping
+      # those two in agreement.
+      enable_thinking: true
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-aidlc-swegym293
+    # 293 tasks / 32 per step = 9 steps per epoch; 3 epochs = 27 steps.
+    # test_freq / save_freq stay at 3 (rllm_grpo.yaml).
+    total_epochs: 3
+
+actor_rollout_ref:
+  actor:
+    # FSDP1, not the fsdp2 the 4B recipe measured as faster (update_actor
+    # 46.9 vs 62.8 s). Qwen3.5-9B has an *untied* lm_head, and verl #7520
+    # (open) crashes FSDP2 + use_fused_kernels in the backward of any
+    # non-final micro-batch of an optimizer step. With 128 trajectories per
+    # step over 8 GPUs and one sequence per micro-batch, every optimizer step
+    # here accumulates 16 micro-batches per GPU, so the crash path is always
+    # taken; fused kernels cannot be turned off at a 248K vocabulary; FSDP1
+    # has no such path. Re-measure fsdp2 once #7520 is closed.
+    strategy: fsdp
+    # rLLM multiplies this by rollout.n: 32 x 4 = 128 = train_batch_size x n,
+    # i.e. exactly one optimizer update per step (strictly on-policy GRPO, the
+    # SWE-Master setting). The base value 8 would make four updates per step.
+    ppo_mini_batch_size: 32
+  ref:
+    strategy: fsdp

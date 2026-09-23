@@ -8,6 +8,7 @@
 # harness and model (README "Variants"):
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # the above on SWE-Gym (prepare_swegym.py)
 #
 # This script only sets up the environment and launches; every training knob
 # lives in config/ so that one decision is not split across two files:
@@ -23,6 +24,7 @@
 #   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
 #   rllm dataset pull harbor:swebench-verified
 #   python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
+#   python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir <SkyRL-v0-293-data>   # variant=*_swegym
 #
 # Env:
 #   ENV_FILE          dotenv to source         (default: <recipe>/.env)

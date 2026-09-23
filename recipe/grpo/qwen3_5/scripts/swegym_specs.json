@@ -1,0 +1,505 @@
+{
+ "_source": "SWE-Gym/SWE-Bench-Package (swegym) commit 16dd480, MIT. Subset of MAP_REPO_VERSION_TO_SPECS / MAP_REPO_TO_PARSER covering SkyRL-v0-293-data.",
+ "non_test_exts": [
+  ".json",
+  ".png",
+  "csv",
+  ".txt",
+  ".md",
+  ".jpg",
+  ".jpeg",
+  ".pkl",
+  ".yml",
+  ".yaml",
+  ".toml"
+ ],
+ "parsers": {
+  "bokeh/bokeh": "pytest",
+  "conan-io/conan": "pytest",
+  "dask/dask": "pytest",
+  "facebookresearch/hydra": "pytest",
+  "getmoto/moto": "pytest",
+  "iterative/dvc": "pytest",
+  "marshmallow-code/marshmallow": "pytest",
+  "modin-project/modin": "pytest",
+  "pandas-dev/pandas": "pytest",
+  "project-monai/monai": "pytest",
+  "pvlib/pvlib-python": "pytest",
+  "pydantic/pydantic": "pytest_pydantic",
+  "pydicom/pydicom": "pytest_options",
+  "pylint-dev/astroid": "pytest",
+  "python/mypy": "pytest",
+  "pyvista/pyvista": "pytest",
+  "sqlfluff/sqlfluff": "pytest"
+ },
+ "specs": {
+  "bokeh/bokeh": {
+   "3.3": {
+    "install": "python -m pip install -e .; python -m pip install bokeh_sampledata;",
+    "test_cmd": "pytest -rA -n0"
+   },
+   "3.4": {
+    "install": "python -m pip install -e .; python -m pip install bokeh_sampledata;",
+    "test_cmd": "pytest -rA -n0"
+   }
+  },
+  "conan-io/conan": {
+   "1.40": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "echo 'cython<3' > /tmp/constraint.txt; export PIP_CONSTRAINT=/tmp/constraint.txt; python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "1.48": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "echo 'cython<3' > /tmp/constraint.txt; export PIP_CONSTRAINT=/tmp/constraint.txt; python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "2.0": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "echo 'cython<3' > /tmp/constraint.txt; export PIP_CONSTRAINT=/tmp/constraint.txt; python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "2.1": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "2.2": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "2.3": {
+    "eval_commands": [
+     "export PYTHONPATH=${PYTHONPATH:-}:$(pwd)"
+    ],
+    "install": "python -m pip install -r conans/requirements.txt; python -m pip install -r conans/requirements_server.txt; python -m pip install -r conans/requirements_dev.txt ",
+    "test_cmd": "pytest -n0 -rA"
+   }
+  },
+  "dask/dask": {
+   "2.30": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.01": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.02": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.04": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.07": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.09": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2021.12": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.01": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.03": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.04": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.05": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.6": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2022.8": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2023.8": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2023.9": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2024.2": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2024.4": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   },
+   "2024.5": {
+    "install": "python -m pip install --no-deps -e .",
+    "test_cmd": "pytest -n0 -rA  --color=no"
+   }
+  },
+  "facebookresearch/hydra": {
+   "1.1": {
+    "install": "sed -i 's|isort@git+git://github.com/timothycrosley/isort|isort@git+https://github.com/timothycrosley/isort|g' requirements/dev.txt; { tail -n1 requirements/requirements.txt | grep -q \".\" && echo \"\"; } >> requirements/requirements.txt; echo \"pip==24.0\" >> requirements/requirements.txt;pip install \"pip==24.0\"; pip install -r requirements/dev.txt; pip install -e .;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "1.2": {
+    "install": "sed -i 's|isort@git+git://github.com/timothycrosley/isort|isort@git+https://github.com/timothycrosley/isort|g' requirements/dev.txt; { tail -n1 requirements/requirements.txt | grep -q \".\" && echo \"\"; } >> requirements/requirements.txt; echo \"pip==24.0\" >> requirements/requirements.txt;pip install \"pip==24.0\"; pip install -r requirements/dev.txt; pip install -e .;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "1.4": {
+    "install": "pip install -r requirements/dev.txt; pip install -e .;",
+    "test_cmd": "pytest -rA --tb=long"
+   }
+  },
+  "getmoto/moto": {
+   "3.0": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "3.1": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "4.0": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "4.1": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "4.2": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   },
+   "5.0": {
+    "install": "make init",
+    "test_cmd": "pytest -n0 -rA"
+   }
+  },
+  "iterative/dvc": {
+   "0.29": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.32": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.33": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.41": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.50": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.51": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.92": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "0.93": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.0": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.1": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.10": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.11": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.7": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "1.9": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "2.0": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "2.28": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "2.7": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   },
+   "2.8": {
+    "install": "python -m pip install --upgrade pip wheel GitPython; python -m pip install \"cython<3.0.0\" && python -m pip install --no-build-isolation pyyaml==5.4.1; python -m pip install git+https://github.com/iterative/mock-ssh-server.git || true; python -m pip install -r tests/requirements.txt || true; python -m pip install -r test-requirements.txt || true; python -m pip install -e \".[tests,dev,all_remotes,all,testing]\"; python -m pip install \"numpy<=1.20\"; python -m pip install \"pytest<8\";",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "marshmallow-code/marshmallow": {
+   "2.20": {
+    "install": "python -m pip install -e '.[dev]'",
+    "test_cmd": "pytest -rA"
+   },
+   "3.0": {
+    "install": "python -m pip install -e '.[dev]'",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "modin-project/modin": {
+   "0.29": {
+    "install": "python -m pip install -e .;",
+    "test_cmd": "pytest -n0 -rA"
+   }
+  },
+  "pandas-dev/pandas": {
+   "1.5": {
+    "install": "python -m pip install 'numpy<2'; python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; pip uninstall pytest-qt -y;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "2.0": {
+    "install": "python -m pip install 'numpy<2'; python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; pip uninstall pytest-qt -y;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "2.1": {
+    "install": "python -m pip install 'numpy<2'; python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; pip uninstall pytest-qt -y;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "2.2": {
+    "install": "python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; pip uninstall pytest-qt -y;",
+    "test_cmd": "pytest -rA --tb=long"
+   },
+   "3.0": {
+    "install": "python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true; pip uninstall pytest-qt -y;",
+    "test_cmd": "pytest -rA --tb=long"
+   }
+  },
+  "project-monai/monai": {
+   "0.1": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.2": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.4": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.5": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.6": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.8": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "0.9": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "1.0": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "1.1": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "1.2": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   },
+   "1.3": {
+    "install": "sed -i '/^git+https:\\/\\/github.com\\/Project-MONAI\\//d' requirements-dev.txt; python -m pip install types-pkg-resources==0.1.3 pytest; pip install -r requirements-dev.txt;python setup.py develop;",
+    "test_cmd": "pytest -rA "
+   }
+  },
+  "pvlib/pvlib-python": {
+   "0.7": {
+    "install": "python -m pip install -e .[all]",
+    "test_cmd": "pytest -rA"
+   },
+   "0.8": {
+    "install": "python -m pip install -e .[all]",
+    "test_cmd": "pytest -rA"
+   },
+   "0.9": {
+    "install": "python -m pip install -e .[all]",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "pydantic/pydantic": {
+   "2.4": {
+    "install": "export PATH=\"$HOME/.local/bin:$PATH\"; pdm add pre-commit; make install;",
+    "test_cmd": "pytest -rA --tb=short -vv -o console_output_style=classic --no-header"
+   },
+   "2.5": {
+    "install": "export PATH=\"$HOME/.local/bin:$PATH\"; pdm add pre-commit; make install;",
+    "test_cmd": "pytest -rA --tb=short -vv -o console_output_style=classic --no-header"
+   },
+   "2.6": {
+    "install": "export PATH=\"$HOME/.local/bin:$PATH\"; pdm add pre-commit; make install;",
+    "test_cmd": "pytest -rA --tb=short -vv -o console_output_style=classic --no-header"
+   },
+   "2.7": {
+    "install": "export PATH=\"$HOME/.local/bin:$PATH\"; pdm add pre-commit; make install;",
+    "test_cmd": "pytest -rA --tb=short -vv -o console_output_style=classic --no-header"
+   }
+  },
+  "pydicom/pydicom": {
+   "1.3": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.0": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.1": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.3": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "pylint-dev/astroid": {
+   "2.10": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.12": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.13": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.14": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "2.9": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "python/mypy": {
+   "0.800": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r;",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.810": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r;",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.820": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r;",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.910": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r;",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.920": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r;",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.940": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.950": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "0.970": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; pip install pytest pytest-xdist; hash -r",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "1.10": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; hash -r",
+    "test_cmd": "pytest -rA -k"
+   },
+   "1.4": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; hash -r",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "1.6": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; hash -r",
+    "test_cmd": "pytest -n0 -rA -k"
+   },
+   "1.7": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; hash -r",
+    "test_cmd": "pytest -rA -k"
+   },
+   "1.9": {
+    "install": "python -m pip install -r test-requirements.txt; python -m pip install -e .; hash -r",
+    "test_cmd": "pytest -rA -k"
+   }
+  },
+  "pyvista/pyvista": {
+   "0.39": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   }
+  },
+  "sqlfluff/sqlfluff": {
+   "0.6": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   },
+   "0.8": {
+    "install": "python -m pip install -e .",
+    "test_cmd": "pytest -rA"
+   }
+  }
+ }
+}

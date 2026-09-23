@@ -15,9 +15,12 @@ The harness is chosen by ``recipe.agent``:
 
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b          # 9B, no AI-DLC
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc    # 9B + AI-DLC
+    bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym  # 9B + AI-DLC on SWE-Gym
 
 Datasets are the small locally-materialized benchmarks built by
-``scripts/prepare_datasets.py``; both names are overridable from the CLI::
+``scripts/prepare_datasets.py`` (SWE-smith / SWE-bench Verified) or
+``scripts/prepare_swegym.py`` (SWE-Gym, SkyRL-v0-293-data); both names are
+overridable from the CLI::
 
     python recipe/grpo/qwen3_5/train.py \\
         recipe.train_dataset=rllm_swesmith_small \\

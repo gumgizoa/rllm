@@ -260,6 +260,7 @@ AI-DLC workflow on the openhands-sdk harness; `config/variant/` holds the two pr
 bash recipe/grpo/qwen3_5/train_verl.sh                              # 4B + mini-swe-agent (unchanged default)
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk, SDK's own workflow
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # the above, trained on SWE-Gym (below)
 ```
 
 | `recipe.agent` | `recipe.aidlc.enable` | harness | where |
@@ -318,6 +319,101 @@ turns reading ~600 lines of workflow documents, so tokens per turn run higher th
 measured for mini-swe-agent. Treat 80 as a starting point: read `response_length/max` and the
 `termination_reason/*` histogram off the smoke run and re-pair it with `max_model_len` using the
 rule in [Picking `agent_step_limit` and `max_model_len` together](#picking-agent_step_limit-and-max_model_len-together).
+
+### SWE-Gym data: `variant=openhands_9b_aidlc_swegym`
+
+The third preset keeps the 9B + openhands-sdk + AI-DLC arm and swaps the data for **SWE-Gym**,
+the 293-instance `SkyRL-v0-293-data` subset (train) and its 23 SWE-bench-style validation
+instances, graded by the same `swegym` eval script SkyRL-v0 graded with. It also fixes two
+9B-specific verl choices `openhands_9b` only leaves as notes (FSDP1 and one on-policy update
+per step; see the bottom of the variant file) and sizes the sandbox pool for a 224-core H200
+node. Turn budget and context window are inherited (80 turns, 131072).
+
+```bash
+python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir /path/to/SkyRL-v0-293-data
+# -> $RLLM_HOME/datasets/swegym293/ (train, 293) and swegym_val23/ (test, 23), registered under those names
+xargs -a "$RLLM_HOME/datasets/swegym293/images.txt" -P 4 -I{} docker pull {}     # only if `docker images` lacks them
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym recipe.aidlc.enable=false \
+    rllm.trainer.experiment_name=qwen3_5-9b-openhands-sdk-swegym293                 # control arm, same data
+```
+
+**Task directories.** `prepare_swegym.py` unpacks each parquet row's `instance` struct into a
+Harbor-shaped directory. There is no `environment/Dockerfile`: `[environment] docker_image`
+names the pre-built SWE-Gym instance image OpenHands and SkyRL used
+(`xingyaoww/sweb.eval.x86_64.<owner>_s_<repo>-<n>:latest`; `/testbed` at `base_commit`, the
+conda env at `/opt/miniconda3/envs/testbed`, root, `ENTRYPOINT []`), and the docker backend
+runs it as-is (`rllm/eval/_resolution.py::_resolve_image`), so no per-task build happens.
+`workdir = "/testbed"` is set explicitly because both the harness and the verifier `cd` only
+when it is; the SDK runner passes its cwd as the `Conversation` workspace, so the agent's tools
+run in `/testbed`. `cpus = 4` / `memory_mb = 16384` are applied as `nano_cpus` / `mem_limit`,
+which is why the variant caps `sandbox_concurrency` at 32. `instruction.md` is SkyRL-v0's
+SWE-Gym prompt with `/workspace/<repo>` rewritten to `/testbed`; the AI-DLC suffix is appended
+to it by the harness as for any other dataset.
+
+```
+$RLLM_HOME/datasets/swegym293/<instance_id>/
+├── task.toml            # [environment] docker_image, workdir=/testbed, cpus, memory_mb; [agent]/[verifier] timeout_sec
+├── instruction.md
+├── tests/
+│   ├── test.sh          # verifier entry: eval.sh -> grade.py -> /logs/verifier/reward.json (+ eval_output.log, report.json)
+│   ├── eval.sh          # swegym eval_script for this instance (restores the gold test files, applies the test patch, runs the tests)
+│   ├── grade.py         # swegym grading, stdlib only, run with the image's /opt/miniconda3/bin/python
+│   └── instance.json    # FAIL_TO_PASS / PASS_TO_PASS / log parser
+└── solution/
+    ├── gold.patch
+    └── solve.sh         # `rllm eval swegym293 --agent oracle`
+```
+
+**Verifier parity with swegym.** SkyRL-v0 scored a rollout by running
+`swegym.harness.test_spec.make_test_spec(instance).eval_script` and judging it with
+`swegym.harness.grading.get_eval_report` (`SWE-Gym/SWE-Bench-Package`, a fork of SWE-bench's
+harness). The same rules are reproduced without putting `swegym` and its dependency tree
+(datasets, docker, bs4, ghapi, ...) in the training venv:
+
+* `scripts/swegym_specs.json` vendors `MAP_REPO_VERSION_TO_SPECS` / `MAP_REPO_TO_PARSER` for the
+  17 repos and 104 (repo, version) pairs this data touches (upstream commit `16dd480`, MIT).
+* `scripts/swegym_eval.py` rebuilds the eval script from them — **byte-identical to the
+  original for all 316 instances**.
+* `scripts/grade.py` (copied into every `tests/`) reproduces the three log parsers this data
+  uses (`pytest`, `pytest_options` for pydicom, `pytest_pydantic`) and the resolution rule: a
+  test passed iff its status is `PASSED` or `XFAIL`; resolved iff every FAIL_TO_PASS and every
+  PASS_TO_PASS test passed; nothing graded (reward 0) if the log lacks git's `applied patch`
+  line from the test-patch apply. Reward is binary, written as Harbor-style JSON with per-test
+  `signals` (`f2p_success`, `f2p_total`, `p2p_success`, `p2p_total`, `test_patch_applied`).
+
+One difference from SkyRL: SkyRL extracted the agent's `git diff` and applied it in a fresh
+container; here `eval.sh` runs in the container the agent worked in (the native path). Because
+`eval.sh` itself resets the test files to `base_commit` before applying the test patch, an agent
+that edited tests is graded the same way, and "patch failed to apply" cannot occur. Checked on
+two real images (`getmoto__moto-7365`, `pylint-dev__astroid-1978`): gold patch → 1.0, untouched
+repo → 0.0. The rest of the pool has not been oracle-screened yet — run
+`rllm eval swegym293 --agent oracle --split train ...` as in
+[Screen the data with the oracle first](#screen-the-data-with-the-oracle-first) and exclude
+any 0.0 instance the way `prepare_datasets.py` does with `UNSCORABLE`.
+
+**Hybrid reward (SWE + instruction following): where it plugs in.** Nothing in this variant
+rewards the AI-DLC artifacts yet; the reward is the verifier's binary result. The seam for a
+combined reward is a per-task Python verifier, and `prepare_swegym.py --evaluate-py <file>`
+installs one: the file is copied to every task's `tests/evaluate.py` and selected with
+`[verifier] module = "tests.evaluate"` in `task.toml` (explicit config is needed because
+auto-detection prefers `tests/test.sh`). On the training path `SandboxTaskHooks.setup`
+resolves that evaluator with the **live sandbox** (`PythonModuleEvaluator.sandbox`, handed to
+an `evaluate(task, episode, sandbox)` parameter of that name) and tears the sandbox down only
+after scoring, so the module can:
+
+1. run the SWE-Gym grader — simplest is to reuse it verbatim,
+   `ShellScriptEvaluator(sandbox=sandbox, script_path="tests/test.sh", verifier_timeout=...).evaluate(task, episode)`,
+   which uploads `tests/` to `/tests`, runs `test.sh` and returns the binary reward plus signals;
+2. read the stage artifacts (`sandbox.exec("cat /tmp/swe-bench-pro/05-build-and-test.md")`
+   etc.) and the repo state (`git diff --name-only`) for the instruction-following score;
+3. return one `EvalOutput(reward=..., is_correct=<SWE result>, signals=[...])`.
+
+Keeping `is_correct` as the SWE result leaves `val/accuracy`, solve-all/solve-none and the
+budget scaling untouched; only `reward` carries the combination. Build the hybrid dataset
+under a distinct name (`--train-name swegym293_hybrid --val-name swegym_val23_hybrid`) so a run
+pointing at `swegym293` keeps its task dirs, and point the variant at it with
+`recipe.train_dataset=... recipe.val_dataset=...`.
 
 ### What was verified without a GPU, and what was not
 
@@ -1222,11 +1318,16 @@ recipe/grpo/qwen3_5/
 │   ├── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
 │   └── variant/
 │       ├── openhands_9b.yaml         # `variant=openhands_9b`: Qwen3.5-9B + openhands-sdk, no AI-DLC
-│       └── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
+│       ├── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
+│       └── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: the above on SWE-Gym; FSDP1, 1 update/step
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
-    ├── prepare_datasets.py       # builds + registers the train/val benchmarks
+    ├── prepare_datasets.py       # builds + registers the train/val benchmarks (SWE-smith / SWE-bench Verified)
+    ├── prepare_swegym.py         # SkyRL-v0-293-data parquet -> swegym293 / swegym_val23 task dirs + registry (--evaluate-py: hybrid verifier)
+    ├── swegym_eval.py            # swegym eval_script, rebuilt from the vendored specs (byte-identical, 316/316)
+    ├── swegym_specs.json         # vendored swegym MAP_REPO_VERSION_TO_SPECS / MAP_REPO_TO_PARSER (17 repos, 104 versions)
+    ├── grade.py                  # in-sandbox swegym grader, stdlib only (copied into every task's tests/)
     ├── apply_verl_patches.sh     # applies patches/ to the installed verl
     ├── verify_cumulative.py      # asserts the renderer / cumulative-token invariants
     ├── mem_scaling.py            # activation memory vs sequence length
