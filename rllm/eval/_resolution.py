@@ -77,12 +77,16 @@ def _detect_verifier(task: Task) -> tuple[str, dict]:
 
 
 def _read_verifier_config(task: Task) -> dict:
-    """Read ``[verifier]`` from task.toml (per-task) or dataset.toml (shared)."""
-    candidates = []
-    if task.sub_dir is not None:
-        candidates.append(task.dataset_dir / task.sub_dir / "task.toml")
-    candidates.append(task.dataset_dir / "dataset.toml")
-    for cfg_path in candidates:
+    """Read ``[verifier]`` from task.toml (per-task) or dataset.toml (shared).
+
+    ``task.task_dir / task.toml`` covers both per-task shapes: ``sub_dir`` set
+    (``dataset_dir / sub_dir``) and the ``task_path`` row shape the loader
+    produces with ``as_tasks=True``, where ``dataset_dir`` *is* the task
+    directory and ``sub_dir`` is ``None``. Without it the latter never reached
+    its own ``[verifier]`` table, so an explicit ``module = "tests.evaluate"``
+    lost to the auto-detected ``tests/test.sh`` beside it.
+    """
+    for cfg_path in (task.task_dir / "task.toml", task.dataset_dir / "dataset.toml"):
         if cfg_path.exists():
             try:
                 raw = tomllib.loads(cfg_path.read_text())
