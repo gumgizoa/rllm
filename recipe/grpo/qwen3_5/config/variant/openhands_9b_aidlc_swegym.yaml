@@ -39,6 +39,18 @@ recipe:
   sandbox_concurrency: 32
 
 rllm:
+  data:
+    # The first turn of an openhands-sdk episode is ~7.4K tokens before the
+    # task text (SDK system prompt, three tool schemas, repository/environment
+    # info; measured 8716 on a 1396-token instruction), and SWE-Gym
+    # instruction.md runs 623-5344 tokens (median 1040), so first prompts
+    # reach ~12.8K. The base 8192 is *silently* left-truncated by
+    # transform._pad_sequence_batch -- the smoke run trained every row on a
+    # prompt missing its first ~500 tokens (prompt_length/clip_ratio 1.0) and
+    # rollout/actor log-prob agreement fell to 0.99. Same window as before:
+    # 16384 + 114688 = 131072 = max_model_len.
+    max_prompt_length: 16384
+    max_response_length: 114688
   workflow:
     n_parallel_tasks: 32
   gateway:

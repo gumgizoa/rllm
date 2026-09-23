@@ -427,6 +427,33 @@ any 0.0 instance the way `prepare_datasets.py` does with `UNSCORABLE`.
 Datasets, the HF cache and the model snapshot stay under `RLLM_HOME` / `HF_HOME` / `MODEL_PATH`,
 which on the H200 hosts are node-local by design (read at startup by 17 processes).
 
+**What the first smoke run showed (2026-09-23, `variant=openhands_9b_swegym`, 2 tasks × 4, 25 turns,
+32K context).** The loop completed: sandboxes from the SWE-Gym images with the agent image
+mounted (no per-task install), 15.5 turns per episode on average, verifier graded every
+finished rollout (test patch applied, PASS_TO_PASS all passing, FAIL_TO_PASS 0 → reward 0.0
+for all six, which at this scale says nothing yet), one `update_actor` in 68 s, 27 GB peak
+allocated per card, 13 min for the step. Prefix extension held
+(`merge_compression_ratio` == `n_turns`). Two things were wrong and are fixed:
+
+* **First prompts were silently truncated.** The SDK's first turn is ~7.4K tokens before the
+  task text (system prompt, three tool schemas, repository/environment info), so the first
+  prompts ran 8.7K+ against `max_prompt_length: 8192`. `transform._pad_sequence_batch`
+  left-truncates rather than erroring, so every row was trained on a prompt missing its first
+  ~500 tokens (`prompt_length/clip_ratio` 1.0) and the actor recomputed log-probs on a
+  different context than the rollout saw: `rollout_actor_probs_pearson_corr` 0.9907 instead
+  of > 0.999. The SWE-Gym variants now use 16384 + 114688 (instruction.md over the 316
+  tasks is 623–5344 tokens, so first prompts stay under ~13K). For the smoke test pass the
+  same split explicitly, since `smoke_test.sh` hard-codes 8192:
+  `rllm.data.max_prompt_length=16384 rllm.data.max_response_length=16384`.
+* **Context overflow ended as ERROR, three times over.** Two of eight rollouts outgrew the
+  32K window; vLLM answered 400, litellm retried, and each failed call became a trace with
+  empty token ids. For a harness that records no agent steps (every CLI harness) the engine
+  did not drop those trailing traces, so `EnrichMismatchError` re-rolled the task from a fresh
+  sandbox up to `retry_limit` (3) times and the episode was dropped as `error` — instead of
+  being graded and stamped `MAX_PROMPT_LENGTH_EXCEEDED` (the SWE-Master budget case, reward ×
+  0.5). `enrich_episode_with_traces` now drops trailing malformed traces for step-less
+  harnesses as it already did for step-recording ones, keeping the gateway's reason.
+
 **The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
 they are not rebuilt: `RLLM_AGENT_IMAGE=auto` bakes one agent image (debian bullseye, uv-managed
 Python 3.12, `openhands-sdk==1.42.1` venv; tag = hash of the install script, ~850 MB) and
