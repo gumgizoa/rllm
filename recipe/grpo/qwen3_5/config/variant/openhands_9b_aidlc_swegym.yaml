@@ -14,8 +14,7 @@
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym
 #
 # Control arm on the same data (SDK's own workflow, no documents):
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym recipe.aidlc.enable=false \
-#       rllm.trainer.experiment_name=qwen3_5-9b-openhands-sdk-swegym293
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym
 #
 # The turn budget (agent_step_limit=80) and the context window
 # (8192 + 122880 = 131072) are inherited from openhands_9b unchanged: the 4B

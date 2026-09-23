@@ -358,8 +358,7 @@ python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir /path/to/SkyR
 # -> $RLLM_HOME/datasets/swegym293/ (train, 293) and swegym_val23/ (test, 23), registered under those names
 xargs -a "$RLLM_HOME/datasets/swegym293/images.txt" -P 4 -I{} docker pull {}     # only if `docker images` lacks them
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym
-bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym recipe.aidlc.enable=false \
-    rllm.trainer.experiment_name=qwen3_5-9b-openhands-sdk-swegym293                 # control arm, same data
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym          # control arm: same data, no AI-DLC
 ```
 
 **Task directories.** `prepare_swegym.py` unpacks each parquet row's `instance` struct into a
@@ -1360,7 +1359,8 @@ recipe/grpo/qwen3_5/
 │   └── variant/
 │       ├── openhands_9b.yaml         # `variant=openhands_9b`: Qwen3.5-9B + openhands-sdk, no AI-DLC
 │       ├── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
-│       └── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: the above on SWE-Gym; FSDP1, 1 update/step
+│       ├── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: the above on SWE-Gym; FSDP1, 1 update/step
+│       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, aidlc.enable=false
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/

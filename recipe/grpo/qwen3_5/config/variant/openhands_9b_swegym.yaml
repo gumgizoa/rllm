@@ -1,0 +1,20 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk on SWE-Gym, *without* AI-DLC: the control arm for
+# openhands_9b_aidlc_swegym (same model, data, budget, verl settings; the SDK's
+# own system prompt and workflow). Successor of the standalone
+# recipe/grpo/swegym_openhands recipe.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym
+#   bash recipe/grpo/qwen3_5/smoke_test.sh variant=openhands_9b_swegym
+
+defaults:
+  - openhands_9b_aidlc_swegym
+
+recipe:
+  aidlc:
+    enable: false
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-swegym293
