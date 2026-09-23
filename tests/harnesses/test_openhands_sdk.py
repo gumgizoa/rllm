@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness
+from rllm.harnesses.tools import openhands_sdk_runner as runner
 from rllm.types import AgentConfig, Task
 
 from .test_cli_harness import FakeSandbox
@@ -34,5 +36,17 @@ def test_every_sdk_interpreter_run_is_isolated_from_the_task_repo():
 
     for cmd in commands:
         assert not _UNISOLATED_RUN.findall(cmd), cmd
-    assert "-I -c 'import openhands.sdk'" in commands[-1]
+        # litellm appends the cwd to sys.path on import, so every import probe
+        # leaves the workdir before importing.
+        for probe in re.findall(r"-I -c '([^']*)'", cmd):
+            assert probe.startswith("import os, tempfile; os.chdir(tempfile.mkdtemp()); import openhands.sdk"), probe
+    assert "-I -c 'import os, tempfile; os.chdir(tempfile.mkdtemp()); import openhands.sdk'" in commands[-1]
     assert '"$OH_PY" -I /opt/openhands-sdk-runner.py' in commands[-1]
+
+
+def test_runner_imports_the_sdk_away_from_the_workspace():
+    source = (Path(runner.__file__)).read_text()
+    chdir_away = source.index("os.chdir(tempfile.mkdtemp(")
+    first_sdk_import = source.index("from openhands.sdk import")
+    chdir_back = source.index("os.chdir(workspace)")
+    assert source.index("workspace = os.getcwd()") < chdir_away < first_sdk_import < chdir_back
