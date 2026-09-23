@@ -115,6 +115,12 @@ class OpenHandsSdkHarness(BaseCliHarness):
 
     name = "openhands-sdk"
     use_agent_mount = True
+    # Thinking polarity for the model's chat template, forwarded to the runner
+    # as OPENHANDS_SDK_ENABLE_THINKING -> ``chat_template_kwargs`` on the first
+    # turn. ``None`` leaves the template's default alone. When the gateway
+    # renders later turns with ``renderer_kwargs.enable_thinking``, set this to
+    # the same value; the recipe's train.py does that wiring.
+    enable_thinking: bool | None = None
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/openhands-sdk.log"
 
@@ -124,7 +130,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
         # litellm needs ``provider/model``; rllm setup hands out bare names.
         _, _, qualified = self.ensure_provider_prefix(config.model)
-        return {
+        env = {
             "LLM_MODEL": qualified,
             "LLM_BASE_URL": config.base_url,
             "LLM_API_KEY": self.gateway_api_key(config, "OPENAI_API_KEY"),
@@ -132,6 +138,9 @@ class OpenHandsSdkHarness(BaseCliHarness):
             # the same log as the run, so keep it out.
             "OPENHANDS_SUPPRESS_BANNER": "1",
         }
+        if self.enable_thinking is not None:
+            env["OPENHANDS_SDK_ENABLE_THINKING"] = "1" if self.enable_thinking else "0"
+        return env
 
     def write_configs(
         self,

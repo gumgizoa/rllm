@@ -26,6 +26,29 @@ import argparse
 import os
 import sys
 
+# Thinking on/off is a chat-template kwarg for Qwen3-family models, and the
+# first turn of every conversation is rendered by vLLM's chat template (the
+# gateway forwards that request body verbatim), so it has to travel with the
+# request: litellm's ``extra_body`` lands top-level in the JSON and vLLM reads
+# ``chat_template_kwargs`` from there. Later turns are rendered by the
+# gateway's renderer, whose ``enable_thinking`` kwarg the harness sets from the
+# same source (see rllm/harnesses/openhands_sdk.py); the two must agree or
+# turn 1 and turns 2+ are shaped differently.
+_ENABLE_THINKING_ENV = "OPENHANDS_SDK_ENABLE_THINKING"
+
+
+def _chat_template_kwargs_from_env(environ=os.environ) -> dict[str, object]:
+    """``{"enable_thinking": bool}`` from ``OPENHANDS_SDK_ENABLE_THINKING``, or ``{}`` when unset."""
+    raw = environ.get(_ENABLE_THINKING_ENV)
+    if raw is None or raw.strip() == "":
+        return {}
+    value = raw.strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return {"enable_thinking": True}
+    if value in ("0", "false", "no", "off"):
+        return {"enable_thinking": False}
+    raise ValueError(f"{_ENABLE_THINKING_ENV} must be a boolean-ish string, got {raw!r}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run an openhands-sdk agent on one task")
@@ -44,11 +67,15 @@ def main() -> int:
 
     # Sampling params are the gateway's job -- it rewrites them on the way
     # through -- so the LLM is configured with routing only.
-    llm = LLM(
-        model=model,
-        api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
-        base_url=os.environ.get("LLM_BASE_URL"),
-    )
+    llm_kwargs: dict[str, object] = {
+        "model": model,
+        "api_key": os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
+        "base_url": os.environ.get("LLM_BASE_URL"),
+    }
+    chat_template_kwargs = _chat_template_kwargs_from_env()
+    if chat_template_kwargs:
+        llm_kwargs["litellm_extra_body"] = {"chat_template_kwargs": chat_template_kwargs}
+    llm = LLM(**llm_kwargs)  # type: ignore[arg-type]
 
     tools = [
         Tool(name=TerminalTool.name),
@@ -77,7 +104,7 @@ def main() -> int:
         conversation_kwargs["max_iteration_per_run"] = int(max_iterations)
     conversation = Conversation(**conversation_kwargs)  # type: ignore[arg-type]
 
-    print(f"openhands-sdk runner: model={model} workspace={workspace}", flush=True)
+    print(f"openhands-sdk runner: model={model} workspace={workspace} chat_template_kwargs={chat_template_kwargs or None}", flush=True)
     conversation.send_message(args.instruction)
     conversation.run()
 
