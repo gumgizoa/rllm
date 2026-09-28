@@ -60,7 +60,10 @@ BUDGET_EXHAUSTED = frozenset(
 )
 
 
-def make_budget_scaled_grouping_hook(scale: float):
+COMPLIANCE_SIGNAL = "aidlc/compliance"
+
+
+def make_budget_scaled_grouping_hook(scale: float, compliance_lam: float = 0.0):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
     The hook runs before trajectory groups are built, so the scaled reward is
@@ -68,21 +71,34 @@ def make_budget_scaled_grouping_hook(scale: float):
     sampling and the solve_all/solve_none metrics read it, and "solved but
     slowly" is still solved for those purposes.
 
+    With ``compliance_lam > 0`` the AI-DLC compliance mean (``aidlc/compliance``,
+    in [0, 1], set by ``aidlc_reward.AidlcComplianceEvaluator``) is added first:
+    ``reward = (verifier + lam * compliance) * scale_if_budget_exhausted``. The
+    budget scale applies to the sum so that following the workflow cannot buy
+    back what running out of turns costs. A trajectory without the signal (no
+    AI-DLC evaluator, or its scoring failed) keeps the verifier reward alone.
+
     One caveat: the trainer runs the same hook over validation episodes, so
-    ``val/reward_*`` is scaled too. ``val/accuracy`` is built from
-    ``is_correct`` and is not affected.
+    ``val/reward_*`` is scaled -- and carries the compliance term -- too.
+    ``val/accuracy`` is built from ``is_correct`` and is not affected.
     """
     if not 0.0 <= scale <= 1.0:
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
+    if compliance_lam < 0.0:
+        raise ValueError(f"recipe.aidlc.reward.lam must be >= 0, got {compliance_lam}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
-        if scale != 1.0:
-            for episode in episodes:
-                if episode.termination_reason not in BUDGET_EXHAUSTED:
+        for episode in episodes:
+            exhausted = episode.termination_reason in BUDGET_EXHAUSTED
+            for trajectory in episode.trajectories:
+                if trajectory.reward is None:
                     continue
-                for trajectory in episode.trajectories:
-                    if trajectory.reward is not None:
-                        trajectory.reward = trajectory.reward * scale
+                if compliance_lam:
+                    c = (trajectory.signals or {}).get(COMPLIANCE_SIGNAL)
+                    if c is not None:
+                        trajectory.reward = trajectory.reward + compliance_lam * float(c)
+                if exhausted and scale != 1.0:
+                    trajectory.reward = trajectory.reward * scale
         return _default_traj_grouping_hook(episodes, transform_config, compact_filtering_config)
 
     return hook
@@ -178,6 +194,31 @@ def _build_agent_flow(recipe: DictConfig):
     raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
 
 
+def _compliance_settings(recipe: DictConfig) -> tuple[bool, float]:
+    """(score compliance?, lam added to the reward).
+
+    Compliance is scored -- and logged as ``aidlc/*`` episode metrics -- whenever
+    AI-DLC is on, so the verifier-only arm shows the same curves as the rewarded
+    one. It enters the reward only with ``recipe.aidlc.reward.enable``.
+    """
+    aidlc = recipe.get("aidlc") or {}
+    if not bool(aidlc.get("enable", False)):
+        return False, 0.0
+    reward = aidlc.get("reward") or {}
+    return True, float(reward.get("lam", 0.0)) if bool(reward.get("enable", False)) else 0.0
+
+
+def _build_hooks(score_compliance: bool, sandbox_backend: str):
+    """``SandboxTaskHooks`` with the AI-DLC evaluator, or ``None`` to let AgentTrainer auto-wire."""
+    if not score_compliance:
+        return None
+    from aidlc_reward.evaluator import AidlcEvaluation
+
+    from rllm.hooks import SandboxTaskHooks
+
+    return SandboxTaskHooks(evaluation=AidlcEvaluation(), sandbox_backend=sandbox_backend)
+
+
 def _load(name: str, split: str, limit: int | None, kind: str):
     # as_tasks=True roots each row at its ``task_path`` and merges the per-task
     # ``task.toml``. Without it every Task lands on ``dataset_dir="."`` and the
@@ -206,18 +247,28 @@ def main(config: DictConfig) -> None:
 
     agent_flow = _build_agent_flow(recipe)
     agent_flow.configure({"agent_image": agent_image})
-    logger.info("agent flow: %s (step_limit=%s, aidlc=%s)", type(agent_flow).__name__, recipe.agent_step_limit, bool((recipe.get("aidlc") or {}).get("enable", False)))
+    score_compliance, compliance_lam = _compliance_settings(recipe)
+    logger.info(
+        "agent flow: %s (step_limit=%s, aidlc=%s, compliance scored=%s, reward lam=%s)",
+        type(agent_flow).__name__,
+        recipe.agent_step_limit,
+        bool((recipe.get("aidlc") or {}).get("enable", False)),
+        score_compliance,
+        compliance_lam,
+    )
 
+    sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     trainer = AgentTrainer(
         backend="verl",
         agent_flow=agent_flow,
         config=config,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
-        sandbox_backend=os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend),
+        hooks=_build_hooks(score_compliance, sandbox_backend),
+        sandbox_backend=sandbox_backend,
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale)),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_lam),
     )
     trainer.train()
 

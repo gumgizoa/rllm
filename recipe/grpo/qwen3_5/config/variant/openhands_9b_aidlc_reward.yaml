@@ -1,0 +1,22 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk + AI-DLC + compliance reward. Everything from
+# openhands_9b_aidlc (the verifier-only arm, which already logs the aidlc/*
+# signals), plus lam * aidlc/compliance in the reward.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_reward
+#
+# lam from the CLI, e.g.:
+#   ... variant=openhands_9b_aidlc_reward recipe.aidlc.reward.lam=0.15
+
+defaults:
+  - openhands_9b_aidlc
+
+recipe:
+  aidlc:
+    reward:
+      enable: true
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-aidlc-reward-verl

@@ -260,6 +260,7 @@ AI-DLC workflow on the openhands-sdk harness; `config/variant/` holds the two pr
 bash recipe/grpo/qwen3_5/train_verl.sh                              # 4B + mini-swe-agent (unchanged default)
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk, SDK's own workflow
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_reward   # ... + compliance in the reward
 ```
 
 | `recipe.agent` | `recipe.aidlc.enable` | harness | where |
@@ -295,10 +296,10 @@ other fifteen untouched, so tool conventions survive. Bumping `SDK_VERSION` mean
 it; a stale template silently reverts the run to the SDK's own workflow.
 
 The documents live outside the repository so that `git diff` cannot pick them up and the stage
-artifacts (`/tmp/swe-bench-pro/NN-*.md`, per `core-workflow.md`) cannot either. Nothing here
-rewards the artifacts: the reward is the verifier's, as in the SkyRL port. The workflow-following
-behaviour is visible after the fact in the episode logs (document reads and artifact writes are
-ordinary tool calls).
+artifacts (`/tmp/swe-bench-pro/NN-*.md`, per `core-workflow.md`) cannot either. With AI-DLC on,
+workflow compliance is scored on every rollout and logged as `aidlc/*` metrics; it enters the
+reward only in `variant=openhands_9b_aidlc_reward` — see [Compliance reward](#compliance-reward).
+`variant=openhands_9b_aidlc` keeps the verifier's reward alone, as in the SkyRL port.
 
 **Provenance.** `aidlc/core-workflow.md` and `aidlc/rule-details/` are copies of
 `harbor-extension/ai-dlc` (commit `ea8a5f65`, 2026-08-26); `aidlc/instruction.md` is
@@ -309,6 +310,57 @@ produces; a set that moves independently of the recipe lets one drift from the o
 set is the third generation — SkyRL's `aidlc-v1` (print a report per stage) and `aidlc-v4`
 (artifacts under `/tmp/stage-artifacts`) differ in both text and paths — so do not mix its
 documents with either of those instructions.
+
+### Compliance reward
+
+`aidlc_reward/` scores how closely a rollout followed the workflow, as six signals in [0, 1]:
+
+| signal | what it measures | how |
+| --- | --- | --- |
+| `aidlc/order` | stages taken in order, each finished before the next begins | order_v6: ⅔ × read/write chain (9 adjacent pairs of r1 < w1 < r2 < … < w5) + ⅓ × read prefix (first reads starting at 01 and running consecutively). One command reading several stage docs earns nothing for them |
+| `aidlc/s1` … `aidlc/s5` | each stage's artifact against its skeleton | the offline rubric's v4 bands 8/5/2/0 → 1, 4/7, 2/7, 0; frontmatter must be valid; s1/s5 capped at 4/7 when no real test suite ran |
+
+and the reward, with `recipe.aidlc.reward.enable`, is
+
+```
+reward = (verifier + lam * mean(six signals)) * budget_reward_scale   # scale only when the budget ran out
+```
+
+`lam` (default 0.2) bounds the whole compliance term, so following the workflow perfectly is
+worth a fifth of solving the task. The budget scale applies to the sum: reading documents cannot
+buy back what running out of turns costs. `is_correct` and `val/accuracy` are the verifier's
+alone; `val/reward_*` carries the compliance term, since the same grouping hook runs on validation.
+
+**Where it runs.** `train.py` installs `aidlc_reward.evaluator.AidlcEvaluation` as the sandbox
+hooks' evaluation policy whenever `recipe.aidlc.enable` is set. It resolves the task's verifier
+as the default policy does and wraps it: the artifacts are read out of the live sandbox *before*
+the verifier runs, the verifier's reward / `is_correct` / `metadata` pass through untouched, and
+the signals are appended. The grouping hook in `train.py` adds the term. So
+`variant=openhands_9b_aidlc` logs the same `aidlc/*` curves as the rewarded arm and is its
+control. Diagnostic signals ride along: `aidlc/order_chain`, `aidlc/order_prefix`,
+`aidlc/docs_read`, `aidlc/artifacts_written`, `aidlc/ran_real_test`.
+
+**Same numbers as the offline scorer.** `aidlc_reward/rubric/` is the offline adherence rubric
+(aidlc-swebenchpro-evalv1, commit `c4130b0`) vendored byte-identical — edit the source and
+re-copy, never the copy; pre-commit excludes it from ruff for that reason. `aidlc_reward/episode.py`
+turns the episode into the rubric's `Run`: one LLM call is one step, tool calls come off the raw
+response message and are paired with their `role: "tool"` results from later requests. Checked
+against the 499 SWE-bench Verified trajectories of the harbor v4 run (Qwen3.5-9B, openhands-sdk
+1.42.1) replayed in gateway form: every fact matches the offline scorer's except one test run in
+a final turn (the last call's results are never sent back, so the adapter cannot see them), and
+the stage-band distribution reproduces the offline one exactly. On that run the mean compliance
+is 0.42 (median 0.33), point-biserial correlation with `resolved` +0.22.
+
+Two deliberate differences from offline scoring, both because the sandbox's files are available:
+a stage whose artifact is not in the sandbox at the end scores 0 (the rubric would otherwise grade
+text it reconstructs from the writes, which survives deletions it does not recognise), and `w_k`
+for order is the first write of a file that still exists at the end.
+
+If scoring fails the episode keeps the verifier's reward — no `aidlc/compliance`, no term.
+
+```bash
+pytest recipe/grpo/qwen3_5/tests/test_aidlc_reward.py
+```
 
 ### Turn budget under openhands-sdk
 
@@ -1214,6 +1266,12 @@ recipe/grpo/qwen3_5/
 │   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/
 │   ├── instruction.md            #   appended to the task instruction
 │   └── system-prompt.j2          #   replaces the SDK 1.42.1 system prompt (one section rewritten)
+├── aidlc_reward/                 # compliance signals + reward (see Compliance reward)
+│   ├── rubric/                   #   offline adherence rubric, vendored byte-identical
+│   ├── episode.py                #   rLLM Episode -> rubric Run
+│   ├── compliance.py             #   six signals (order_v6, s1..s5) and their mean
+│   └── evaluator.py              #   verifier wrapper + SandboxTaskHooks evaluation policy
+├── tests/test_aidlc_reward.py    # unit tests for aidlc_reward and the reward term in train.py
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/
@@ -1222,7 +1280,8 @@ recipe/grpo/qwen3_5/
 │   ├── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
 │   └── variant/
 │       ├── openhands_9b.yaml         # `variant=openhands_9b`: Qwen3.5-9B + openhands-sdk, no AI-DLC
-│       └── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
+│       ├── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
+│       └── openhands_9b_aidlc_reward.yaml  # the above + recipe.aidlc.reward.enable=true
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
