@@ -5,6 +5,7 @@
     compliance.py  facts -> six signals in [0, 1] (order_v6, s1..s5) and their mean
     evaluator.py   verifier wrapper that adds the signals; evaluation policy for SandboxTaskHooks
 
-``train.py`` installs ``AidlcEvaluation`` whenever ``recipe.aidlc.enable`` is set, and adds
-``recipe.aidlc.reward.lam * aidlc/compliance`` to the reward when ``recipe.aidlc.reward.enable``.
+``train.py`` installs ``AidlcEvaluation`` whenever ``recipe.aidlc.enable`` is set, and with
+``recipe.aidlc.reward.enable`` folds ``aidlc/compliance`` into the reward: multiplied by default
+(``mode: mul``), or ``lam * compliance`` added (``mode: add``).
 """

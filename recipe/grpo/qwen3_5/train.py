@@ -61,9 +61,10 @@ BUDGET_EXHAUSTED = frozenset(
 
 
 COMPLIANCE_SIGNAL = "aidlc/compliance"
+COMPLIANCE_MODES = ("mul", "add")
 
 
-def make_budget_scaled_grouping_hook(scale: float, compliance_lam: float = 0.0):
+def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None = None, compliance_lam: float = 0.2):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
     The hook runs before trajectory groups are built, so the scaled reward is
@@ -71,12 +72,21 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_lam: float = 0.0):
     sampling and the solve_all/solve_none metrics read it, and "solved but
     slowly" is still solved for those purposes.
 
-    With ``compliance_lam > 0`` the AI-DLC compliance mean (``aidlc/compliance``,
-    in [0, 1], set by ``aidlc_reward.AidlcComplianceEvaluator``) is added first:
-    ``reward = (verifier + lam * compliance) * scale_if_budget_exhausted``. The
-    budget scale applies to the sum so that following the workflow cannot buy
-    back what running out of turns costs. A trajectory without the signal (no
-    AI-DLC evaluator, or its scoring failed) keeps the verifier reward alone.
+    ``compliance_mode`` folds in the AI-DLC compliance mean (``aidlc/compliance``,
+    in [0, 1], set by ``aidlc_reward.AidlcComplianceEvaluator``) before the
+    budget scale:
+
+    * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
+      at 0 however well it followed the workflow, and a solved one earns only
+      as much of the 1 as it complied;
+    * ``"add"``: ``reward = verifier + lam * compliance`` -- compliance is a bonus
+      of at most ``lam``, earned whether or not the task was solved;
+    * ``None``: the verifier reward alone.
+
+    The budget scale then applies to the result, so following the workflow
+    cannot buy back what running out of turns costs. A trajectory without the
+    signal (no AI-DLC evaluator, or its scoring failed) keeps the verifier
+    reward alone -- in ``"mul"`` it is not zeroed for a scoring failure.
 
     One caveat: the trainer runs the same hook over validation episodes, so
     ``val/reward_*`` is scaled -- and carries the compliance term -- too.
@@ -84,7 +94,9 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_lam: float = 0.0):
     """
     if not 0.0 <= scale <= 1.0:
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
-    if compliance_lam < 0.0:
+    if compliance_mode is not None and compliance_mode not in COMPLIANCE_MODES:
+        raise ValueError(f"recipe.aidlc.reward.mode must be one of {COMPLIANCE_MODES}, got {compliance_mode!r}")
+    if compliance_mode == "add" and compliance_lam < 0.0:
         raise ValueError(f"recipe.aidlc.reward.lam must be >= 0, got {compliance_lam}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
@@ -93,9 +105,11 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_lam: float = 0.0):
             for trajectory in episode.trajectories:
                 if trajectory.reward is None:
                     continue
-                if compliance_lam:
-                    c = (trajectory.signals or {}).get(COMPLIANCE_SIGNAL)
-                    if c is not None:
+                c = (trajectory.signals or {}).get(COMPLIANCE_SIGNAL) if compliance_mode else None
+                if c is not None:
+                    if compliance_mode == "mul":
+                        trajectory.reward = trajectory.reward * float(c)
+                    else:
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
                 if exhausted and scale != 1.0:
                     trajectory.reward = trajectory.reward * scale
@@ -194,8 +208,8 @@ def _build_agent_flow(recipe: DictConfig):
     raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
 
 
-def _compliance_settings(recipe: DictConfig) -> tuple[bool, float]:
-    """(score compliance?, lam added to the reward).
+def _compliance_settings(recipe: DictConfig) -> tuple[bool, str | None, float]:
+    """(score compliance?, how it enters the reward -- "mul" / "add" / None, lam for "add").
 
     Compliance is scored -- and logged as ``aidlc/*`` episode metrics -- whenever
     AI-DLC is on, so the verifier-only arm shows the same curves as the rewarded
@@ -203,9 +217,11 @@ def _compliance_settings(recipe: DictConfig) -> tuple[bool, float]:
     """
     aidlc = recipe.get("aidlc") or {}
     if not bool(aidlc.get("enable", False)):
-        return False, 0.0
+        return False, None, 0.0
     reward = aidlc.get("reward") or {}
-    return True, float(reward.get("lam", 0.0)) if bool(reward.get("enable", False)) else 0.0
+    if not bool(reward.get("enable", False)):
+        return True, None, 0.0
+    return True, str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
 
 
 def _build_hooks(score_compliance: bool, sandbox_backend: str):
@@ -247,14 +263,15 @@ def main(config: DictConfig) -> None:
 
     agent_flow = _build_agent_flow(recipe)
     agent_flow.configure({"agent_image": agent_image})
-    score_compliance, compliance_lam = _compliance_settings(recipe)
+    score_compliance, compliance_mode, compliance_lam = _compliance_settings(recipe)
     logger.info(
-        "agent flow: %s (step_limit=%s, aidlc=%s, compliance scored=%s, reward lam=%s)",
+        "agent flow: %s (step_limit=%s, aidlc=%s, compliance scored=%s, reward mode=%s, lam=%s)",
         type(agent_flow).__name__,
         recipe.agent_step_limit,
         bool((recipe.get("aidlc") or {}).get("enable", False)),
         score_compliance,
-        compliance_lam,
+        compliance_mode,
+        compliance_lam if compliance_mode == "add" else "-",
     )
 
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
@@ -268,7 +285,7 @@ def main(config: DictConfig) -> None:
         sandbox_backend=sandbox_backend,
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_lam),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam),
     )
     trainer.train()
 

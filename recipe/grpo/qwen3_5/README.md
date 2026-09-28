@@ -323,19 +323,28 @@ documents with either of those instructions.
 and the reward, with `recipe.aidlc.reward.enable`, is
 
 ```
-reward = (verifier + lam * mean(six signals)) * budget_reward_scale   # scale only when the budget ran out
+reward = verifier * mean(six signals) * budget_reward_scale         # mode: mul (default)
+reward = (verifier + lam * mean(six signals)) * budget_reward_scale  # mode: add, lam default 0.2
+                                                                     # budget scale only when the budget ran out
 ```
 
-`lam` (default 0.2) bounds the whole compliance term, so following the workflow perfectly is
-worth a fifth of solving the task. The budget scale applies to the sum: reading documents cannot
-buy back what running out of turns costs. `is_correct` and `val/accuracy` are the verifier's
-alone; `val/reward_*` carries the compliance term, since the same grouping hook runs on validation.
+Under `mul` an unsolved rollout earns 0 however well it followed the workflow, and a solved one
+earns only its compliance: solving is necessary, following the workflow decides how much of the 1
+it is worth. That removes the one way `add` can pay for form alone — a group in which every
+rollout fails still has reward spread under `add`, all of it from compliance — at the price of
+more zeros and a smaller mean. On the harbor v4 run below: mean reward 0.56 (verifier) → 0.28
+(`mul`) vs 0.64 (`add`, lam 0.2); rewards at 0 go from 44% to 50%, because 11% of solved
+rollouts have compliance 0 (and 30% under 0.2).
+
+The budget scale applies last: reading documents cannot buy back what running out of turns costs.
+`is_correct` and `val/accuracy` are the verifier's alone; `val/reward_*` carries the compliance
+term, since the same grouping hook runs on validation.
 
 **Where it runs.** `train.py` installs `aidlc_reward.evaluator.AidlcEvaluation` as the sandbox
 hooks' evaluation policy whenever `recipe.aidlc.enable` is set. It resolves the task's verifier
 as the default policy does and wraps it: the artifacts are read out of the live sandbox *before*
 the verifier runs, the verifier's reward / `is_correct` / `metadata` pass through untouched, and
-the signals are appended. The grouping hook in `train.py` adds the term. So
+the signals are appended. The grouping hook in `train.py` folds them into the reward. So
 `variant=openhands_9b_aidlc` logs the same `aidlc/*` curves as the rewarded arm and is its
 control. Diagnostic signals ride along: `aidlc/order_chain`, `aidlc/order_prefix`,
 `aidlc/docs_read`, `aidlc/artifacts_written`, `aidlc/ran_real_test`.
@@ -356,7 +365,8 @@ a stage whose artifact is not in the sandbox at the end scores 0 (the rubric wou
 text it reconstructs from the writes, which survives deletions it does not recognise), and `w_k`
 for order is the first write of a file that still exists at the end.
 
-If scoring fails the episode keeps the verifier's reward — no `aidlc/compliance`, no term.
+If scoring fails the episode keeps the verifier's reward — no `aidlc/compliance`, so it is neither
+multiplied (a scoring failure must not zero a solved task) nor given a bonus.
 
 ```bash
 pytest recipe/grpo/qwen3_5/tests/test_aidlc_reward.py

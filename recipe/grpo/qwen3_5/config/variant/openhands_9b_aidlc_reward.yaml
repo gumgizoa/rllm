@@ -2,12 +2,13 @@
 #
 # Qwen3.5-9B + openhands-sdk + AI-DLC + compliance reward. Everything from
 # openhands_9b_aidlc (the verifier-only arm, which already logs the aidlc/*
-# signals), plus lam * aidlc/compliance in the reward.
+# signals), with the compliance mean folded into the reward:
+#   reward = verifier * aidlc/compliance   (recipe.aidlc.reward.mode=mul, the default)
 #
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_reward
 #
-# lam from the CLI, e.g.:
-#   ... variant=openhands_9b_aidlc_reward recipe.aidlc.reward.lam=0.15
+# The additive form from the CLI:
+#   ... variant=openhands_9b_aidlc_reward recipe.aidlc.reward.mode=add recipe.aidlc.reward.lam=0.2
 
 defaults:
   - openhands_9b_aidlc

@@ -357,37 +357,50 @@ def _episodes(reason, verifier, compliance_value):
     return [SimpleNamespace(termination_reason=reason, trajectories=[traj])], traj
 
 
-def test_hook_adds_lam_times_compliance(train_module):
+def _reward(train_module, reason, verifier, compliance_value, mode, lam=0.2, scale=0.5):
+    eps, traj = _episodes(reason, verifier, compliance_value)
+    train_module.make_budget_scaled_grouping_hook(scale, mode, lam)(eps, None)
+    return traj.reward
+
+
+def test_hook_mul_multiplies_the_verifier_by_compliance(train_module):
     from rllm.workflows.workflow import TerminationReason as TR
 
-    eps, traj = _episodes(TR.ENV_DONE, 1.0, 0.5)
-    train_module.make_budget_scaled_grouping_hook(0.5, 0.2)(eps, None)
-    assert traj.reward == pytest.approx(1.1)
+    assert _reward(train_module, TR.ENV_DONE, 1.0, 0.6, "mul") == pytest.approx(0.6)
+    assert _reward(train_module, TR.ENV_DONE, 0.0, 0.9, "mul") == 0.0  # unsolved stays 0
+    assert _reward(train_module, TR.ENV_DONE, 1.0, 0.0, "mul") == 0.0  # solved, no compliance
 
 
-def test_hook_budget_scale_applies_to_the_sum(train_module):
+def test_hook_add_adds_lam_times_compliance(train_module):
     from rllm.workflows.workflow import TerminationReason as TR
 
-    eps, traj = _episodes(TR.MAX_TURNS_EXCEEDED, 1.0, 0.5)
-    train_module.make_budget_scaled_grouping_hook(0.5, 0.2)(eps, None)
-    assert traj.reward == pytest.approx(0.55)
+    assert _reward(train_module, TR.ENV_DONE, 1.0, 0.5, "add") == pytest.approx(1.1)
+    assert _reward(train_module, TR.ENV_DONE, 0.0, 0.5, "add") == pytest.approx(0.1)
 
 
-def test_hook_without_the_signal_or_with_lam_zero_is_the_verifier_reward(train_module):
+def test_hook_budget_scale_applies_last(train_module):
     from rllm.workflows.workflow import TerminationReason as TR
 
-    eps, traj = _episodes(TR.ENV_DONE, 1.0, None)
-    train_module.make_budget_scaled_grouping_hook(0.5, 0.2)(eps, None)
-    assert traj.reward == 1.0
-    eps, traj = _episodes(TR.ENV_DONE, 0.0, 0.9)
-    train_module.make_budget_scaled_grouping_hook(0.5, 0.0)(eps, None)
-    assert traj.reward == 0.0
+    assert _reward(train_module, TR.MAX_TURNS_EXCEEDED, 1.0, 0.6, "mul") == pytest.approx(0.3)
+    assert _reward(train_module, TR.MAX_TURNS_EXCEEDED, 1.0, 0.5, "add") == pytest.approx(0.55)
+
+
+def test_hook_keeps_the_verifier_reward_without_the_signal_or_the_mode(train_module):
+    from rllm.workflows.workflow import TerminationReason as TR
+
+    assert _reward(train_module, TR.ENV_DONE, 1.0, None, "mul") == 1.0  # scoring failed: not zeroed
+    assert _reward(train_module, TR.ENV_DONE, 1.0, 0.3, None) == 1.0  # reward off
+    with pytest.raises(ValueError):
+        train_module.make_budget_scaled_grouping_hook(0.5, "max")
 
 
 def test_compliance_settings(train_module):
     from omegaconf import OmegaConf
 
-    s = train_module._compliance_settings
-    assert s(OmegaConf.create({"aidlc": {"enable": False, "reward": {"enable": True, "lam": 0.2}}})) == (False, 0.0)
-    assert s(OmegaConf.create({"aidlc": {"enable": True, "reward": {"enable": False, "lam": 0.2}}})) == (True, 0.0)
-    assert s(OmegaConf.create({"aidlc": {"enable": True, "reward": {"enable": True, "lam": 0.2}}})) == (True, 0.2)
+    def s(aidlc):
+        return train_module._compliance_settings(OmegaConf.create({"aidlc": aidlc}))
+
+    assert s({"enable": False, "reward": {"enable": True}}) == (False, None, 0.0)
+    assert s({"enable": True, "reward": {"enable": False}}) == (True, None, 0.0)
+    assert s({"enable": True, "reward": {"enable": True}}) == (True, "mul", 0.2)
+    assert s({"enable": True, "reward": {"enable": True, "mode": "add", "lam": 0.15}}) == (True, "add", 0.15)

@@ -39,13 +39,14 @@ recipe:
     # Compliance reward (aidlc_reward/). With aidlc.enable the six signals --
     # order_v6 + stage bands s1..s5, each in [0, 1] -- are always scored and
     # logged as aidlc/* episode metrics. With reward.enable their equal-weight
-    # mean is added to the verifier reward:
-    #   reward = (verifier + lam * aidlc/compliance) * budget_reward_scale-if-exhausted
-    # lam caps the whole compliance term at lam per rollout (0.15-0.25 was the
-    # proposed range; 0.2 is the midpoint). `variant=openhands_9b_aidlc_reward` turns it on.
+    # mean (aidlc/compliance) enters the reward, then budget_reward_scale applies:
+    #   mode: mul   reward = verifier * aidlc/compliance        (unsolved stays 0)
+    #   mode: add   reward = verifier + lam * aidlc/compliance  (bonus of at most lam)
+    # `variant=openhands_9b_aidlc_reward` turns it on.
     reward:
       enable: false
-      lam: 0.2
+      mode: mul
+      lam: 0.2          # mode=add only
   train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
