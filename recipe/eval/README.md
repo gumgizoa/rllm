@@ -719,9 +719,14 @@ rllm eval swebenchpro_100 \
 ```
 
 - **`--agent-image auto`가 설치 비용을 없앤다.** uv + Python 3.12 + SDK를 `/opt/rllm/agent`에 한 번 구워 task container에 read-only로 mount하므로 task당 설치가 사라진다(측정: qutebrowser task 전체 시간이 163초 → 47초, `env_install` 112초 → 0초). Harbor 경로는 task마다 510 MB를 새로 설치한다.
-- **Alpine task는 예외다.** bake image는 ubuntu(glibc) 기반이라 musl task image(SWE-bench Pro의 teleport 10개)에서는 mount된 interpreter가 실행되지 못한다. mount가 있으면 rLLM이 설치 훅을 건너뛰므로(`hooks.py`의 `baked_install`), harness가 mount된 python을 **실행해 보고** 실패하면 task별 설치로 폴백한다. 이때 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
+- **mount가 모든 image를 덮지는 못한다.** harness는 mount된 python으로 `import openhands.sdk`를 실행해 보고 실패하면 task별 설치로 fallback하며, 그때 `openhands-sdk: agent mount cannot serve <task>; installed the SDK per task instead`를 WARNING으로 남긴다. mount가 있으면 rLLM이 설치 hook을 건너뛰므로(`hooks.py`의 `baked_install`) 이 fallback이 없으면 해당 task는 interpreter 없이 실행된다. fallback 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
+  - SDK는 task 저장소에서 import하면 안 된다. harness 명령은 task workdir(`/testbed`)에서 돌기 때문에, 저장소가 SDK 의존성과 같은 이름의 package를 가지면(`/testbed/aiohttp`, `/testbed/pydantic`, `/testbed/tornado` 등) mount probe와 fallback 설치 검증이 **둘 다** 실패하고 agent가 한 번도 실행되지 않는다. 경로는 두 개다. `python -c`가 cwd를 `sys.path` 맨 앞에 넣는 것은 `-I`로 막고(image의 `PYTHONPATH`/`PYTHONHOME`도 무시), litellm이 import 시 `sys.path.append(os.getcwd())`를 하는 것은 빈 임시 directory로 chdir한 뒤 import해서 막는다(probe와 runner 모두).
+  - musl(Alpine) image는 glibc interpreter를 실행할 수 없어 구조적으로 fallback이다(teleport 10개).
+  - glibc image는 bake의 glibc 세대에 달려 있다. bake를 `debian:bullseye-slim`(2.31)에서 하면 subset의 2.31~2.36 image를 모두 덮는다(11개 image에 직접 mount해 확인: 10개 import OK, teleport만 musl로 실패). `ubuntu:22.04`(2.35)에서 구우면 uv가 manylinux_2_34 wheel을 고르고 `cryptography`가 `GLIBC_2.33`을 요구해 2.31 image 5개(ansible, element-web, nodebb, protonmail, tutanota)에서 import가 깨진다.
+  - bake stage에서는 apt를 쓰지 않는다. bullseye는 EOL이라 security pool의 해당 version이 404이고(`apt-get install curl`이 exit 100), uv binary는 공식 uv image에서 복사한다. uv가 TLS root를 내장하므로 ca-certificates도 필요 없다.
+- **bake image의 tag는 install script hash다**(`agent_image_tag(install_script)`). bake Dockerfile만 바꾸면 tag가 그대로여서 기존 image가 재사용되고 변경이 반영되지 않는다. Dockerfile을 고쳤으면 `docker rmi rllm-agent-<hash>`로 지워 다시 굽게 한다. 다른 harness(mini-swe-agent, opencode, claude-code)도 같다.
 - **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다. native harness에는 `--agent-kwargs`가 적용되지 않는다(3.2).
-- SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 폴백한다는 경고를 남기지만 동작에는 문제가 없다.
+- SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 fallback한다는 경고를 남기지만 동작에는 문제가 없다.
 - runner는 `OPENHANDS_SDK_SYSTEM_PROMPT_PATH`(container 안 절대경로)가 설정되면 그 Jinja 템플릿을 `Agent(system_prompt_filename=...)`로 넘겨 SDK 기본 system prompt를 교체한다. Harbor scaffold와 같은 변수명이다. 기본 harness는 이 변수를 설정하지 않는다.
 - **AI-DLC 워크플로우로 평가**하려면 `recipe/grpo/qwen3_5/aidlc_flow.py`의 harness를 import path로 지정한다. 학습(`variant=openhands_9b_aidlc`)과 같은 문서·지시·system prompt를 sandbox에 넣는다(`recipe/grpo/qwen3_5/README.md` "Variants" 참고):
 
