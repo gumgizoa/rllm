@@ -285,7 +285,7 @@ rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend dock
 | `--agent-image TEXT` | native 전용. `auto`(기본) / `skip` / `repo:tag`. mini-swe-agent, opencode, claude-code 지원 |
 | `--snapshot / --no-snapshot` | modal, daytona snapshot 사용 여부. docker에는 영향 없음 |
 | `--warm-queue-size INT` | sandbox N개 선생성. `-1`이면 `--concurrency`와 동일 |
-| `--hide-git-history / --no-hide-git-history` | native 전용, docker backend. agent가 실행되는 동안 task workdir의 `.git`을 sandbox 밖(host)에 두고 commit 1개짜리 저장소로 바꿔 둔다. verifier 직전에 원래 `.git`을 되돌린다. 기본값은 `RLLM_HIDE_GIT_HISTORY`, 없으면 꺼짐 (2.4) |
+| `--hide-git-history / --no-hide-git-history` | native와 harbor(`--agent harbor:*`) 모두 적용. agent가 실행되는 동안 task workdir의 `.git`을 sandbox 밖(host)에 두고 commit 1개짜리 저장소로 바꿔 둔다. verifier 직전에 원래 `.git`을 되돌린다. native는 docker backend만 지원하고, 다른 backend에서는 켜면 오류를 낸다. 기본값은 `RLLM_HIDE_GIT_HISTORY`, 없으면 꺼짐 (2.4) |
 
 **출력**
 
@@ -569,7 +569,7 @@ HF dataset에는 CPU·memory 정보가 없다. 4 / 16384는 업스트림 평가 
 
 * **image 자원 제한**: `task.toml`의 `[environment]` cpus/memory를 Docker container에 적용한다. Verified는 CPU 1, memory 4 GB로 작다.
 * **network**: task container는 기본 bridge network에 붙고 `--add-host=host.docker.internal:host-gateway`가 자동으로 들어간다.
-* **git 기록으로 정답이 샌다**: SWE task image의 `/testbed/.git`에는 base commit보다 나중의 commit이 남아 있는 경우가 많다. SWE-rebench, SWE-Gym, R2E-Gym은 upstream fix commit이 branch나 tag에 남아 있고, SWE-smith는 HEAD가 bug를 넣은 commit이라 `git show HEAD`만 해도 정답이 보인다. 실제로 SWE-Master SWE-rebench rollout 7,200개 중 16%가 `git log --all --grep=<issue>` 같은 명령으로 그 기록을 찾아봤다. 그래서 `--hide-git-history`를 켠다. verifier는 `git checkout <base_commit> -- tests`, `git checkout HEAD~1 -- <tests>`처럼 git 기록에 의존하므로 기록을 지우지 않고 옮겨 두었다가 되돌린다. 구현은 `rllm/sandbox/git_history.py`에 있다.
+* **git 기록으로 정답이 샌다**: SWE task image의 `/testbed/.git`에는 base commit보다 나중의 commit이 남아 있는 경우가 많다. SWE-rebench, SWE-Gym, R2E-Gym은 upstream fix commit이 branch나 tag에 남아 있고, SWE-smith는 HEAD가 bug를 넣은 commit이라 `git show HEAD`만 해도 정답이 보인다. 실제로 SWE-Master SWE-rebench rollout 7,200개 중 16%가 `git log --all --grep=<issue>` 같은 명령으로 그 기록을 찾아봤다. 그래서 `--hide-git-history`를 켠다. verifier는 `git checkout <base_commit> -- tests`, `git checkout HEAD~1 -- <tests>`처럼 git 기록에 의존하므로 기록을 지우지 않고 옮겨 두었다가 되돌린다. 구현은 `rllm/sandbox/git_history.py`에 있다. native는 `SandboxTaskHooks`가, harbor는 Harbor Trial hook(`AGENT_START`에서 숨기고, `VERIFICATION_START`에서 되돌리고, `END`/`CANCEL`에서 정리)이 처리한다. harbor 쪽은 Harbor docker environment의 `download_dir`이 원본의 소유자를 host 사용자로 바꾸기 때문에, container 안에서 tar로 묶은 파일 하나만 주고받는다.
 
 ---
 

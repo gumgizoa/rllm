@@ -9,16 +9,21 @@ runs ``git log --all --grep=<issue>`` can copy the fix instead of writing it.
 The verifier still needs that history (``git checkout <base_commit> -- tests``,
 ``git checkout HEAD~1 -- <tests>``), so the history is moved, not deleted:
 
-* :meth:`GitHistoryVault.hide` streams ``<workdir>/.git`` out of the sandbox
-  to a host file and leaves a fresh repository holding a single commit of the
-  current tree, so ``git status`` / ``git diff`` still work for the agent.
-* :meth:`GitHistoryVault.restore` puts the original ``.git`` back just before
-  the verifier, leaving the agent's working-tree edits in place.
-* :meth:`GitHistoryVault.discard` removes the host copy; the hooks call it on
-  teardown so an aborted rollout does not leak it.
+* ``hide`` moves ``<workdir>/.git`` out of the sandbox to a host file and
+  leaves a fresh repository holding a single commit of the current tree, so
+  ``git status`` / ``git diff`` still work for the agent.
+* ``restore`` puts the original ``.git`` back just before the verifier,
+  leaving the agent's working-tree edits in place.
+* ``discard`` removes the host copy; callers run it on teardown so an aborted
+  rollout does not leak it.
 
 The host copy never enters the container while the agent runs, which is the
 point: the agent is root in its sandbox, so nothing inside it is out of reach.
+
+Two front ends share the shell steps: :class:`GitHistoryVault` for rLLM
+sandboxes (native ``rllm eval``, via :class:`rllm.hooks.SandboxTaskHooks`) and
+:class:`AsyncGitHistoryVault` for Harbor environments (``--agent harbor:*``,
+via Trial hooks in :mod:`rllm.integrations.harbor.trial_helper`).
 """
 
 from __future__ import annotations
@@ -31,6 +36,8 @@ from rllm.sandbox.protocol import Sandbox
 
 # Fixed identity for the stand-in commit; task images rarely configure one.
 _COMMIT_ENV = "GIT_AUTHOR_NAME=rllm GIT_AUTHOR_EMAIL=rllm@localhost GIT_COMMITTER_NAME=rllm GIT_COMMITTER_EMAIL=rllm@localhost"
+# Staging path for the Harbor front end, which moves files, not tar streams.
+_REMOTE_TAR = "/tmp/rllm-git-history.tar"
 
 
 def hide_git_history_from_env() -> bool:
@@ -43,8 +50,46 @@ def supports_git_history_vault(sandbox: Sandbox) -> bool:
     return callable(getattr(sandbox, "download_archive", None)) and callable(getattr(sandbox, "upload_archive", None))
 
 
+def _has_repo_cmd(workdir: str) -> str:
+    return f"[ -d {shlex.quote(workdir)}/.git ] && echo yes || echo no"
+
+
+def _stand_in_cmd(workdir: str) -> str:
+    # safe.directory: images often own the workdir as another uid than the
+    # agent's; without it every git call the agent makes fails.
+    return (
+        f"set -e; cd {shlex.quote(workdir)}; rm -rf .git; "
+        "git config --global --add safe.directory '*' ; "
+        "git init -q; git add -A; "
+        f"env {_COMMIT_ENV} git commit -q --no-verify --allow-empty -m 'Initial commit'; "
+        "echo commits=$(git rev-list --all | wc -l) refs=$(git for-each-ref | wc -l)"
+    )
+
+
+def _check_stand_in(workdir: str, out: str) -> None:
+    # What makes this safe to rely on: if anything but the stand-in commit
+    # survived, the rollout must not start.
+    if "commits=1 refs=1" not in out:
+        raise RuntimeError(f"stand-in repository in {workdir} is not a single commit: {out.strip()[-200:]}")
+
+
+def _host_tar(tmp_dir: str | None) -> str:
+    fd, path = tempfile.mkstemp(prefix="rllm-git-", suffix=".tar", dir=tmp_dir)
+    os.close(fd)
+    return path
+
+
+def _unlink(path: str | None) -> None:
+    if path is None:
+        return
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+
+
 class GitHistoryVault:
-    """Move one sandbox's ``<workdir>/.git`` to the host and back."""
+    """Move one rLLM sandbox's ``<workdir>/.git`` to the host and back."""
 
     def __init__(self, sandbox: Sandbox, workdir: str, tmp_dir: str | None = None):
         if not supports_git_history_vault(sandbox):
@@ -56,35 +101,16 @@ class GitHistoryVault:
 
     def hide(self) -> bool:
         """Swap ``<workdir>/.git`` for a one-commit repository. Returns False when there is no repository."""
-        wd = shlex.quote(self.workdir)
-        present = self.sandbox.exec(f"[ -d {wd}/.git ] && echo yes || echo no", timeout=30, user="root").strip()
-        if present.endswith("no"):
+        if self.sandbox.exec(_has_repo_cmd(self.workdir), timeout=30, user="root").strip().endswith("no"):
             return False
-
-        fd, path = tempfile.mkstemp(prefix="rllm-git-", suffix=".tar", dir=self.tmp_dir)
-        os.close(fd)
+        path = _host_tar(self.tmp_dir)
         try:
             self.sandbox.download_archive(f"{self.workdir}/.git", path)  # type: ignore[attr-defined]
         except BaseException:
-            os.unlink(path)
+            _unlink(path)
             raise
         self._archive = path
-
-        # safe.directory: images often own /testbed as another uid than the
-        # agent's; without it every git call the agent makes fails. The final
-        # count check is what makes this safe to rely on: if anything but the
-        # stand-in commit survived, the rollout must not start.
-        out = self.sandbox.exec(
-            f"set -e; cd {wd}; rm -rf .git; "
-            "git config --global --add safe.directory '*' ; "
-            "git init -q; git add -A; "
-            f"env {_COMMIT_ENV} git commit -q --no-verify --allow-empty -m 'Initial commit'; "
-            "echo commits=$(git rev-list --all | wc -l) refs=$(git for-each-ref | wc -l)",
-            timeout=600,
-            user="root",
-        )
-        if "commits=1 refs=1" not in out:
-            raise RuntimeError(f"stand-in repository in {self.workdir} is not a single commit: {out.strip()[-200:]}")
+        _check_stand_in(self.workdir, self.sandbox.exec(_stand_in_cmd(self.workdir), timeout=600, user="root"))
         return True
 
     def restore(self) -> None:
@@ -98,12 +124,56 @@ class GitHistoryVault:
 
     def discard(self) -> None:
         """Delete the host copy. Safe to call more than once."""
+        _unlink(self._archive)
+        self._archive = None
+
+
+class AsyncGitHistoryVault:
+    """Same moves over a Harbor environment (``exec`` / ``download_file`` / ``upload_file``, async).
+
+    ``.git`` is tarred inside the container and only the tar file crosses:
+    Harbor's docker ``download_dir`` chowns the source tree to the host user
+    first, which would leave the restored history owned by someone else.
+    """
+
+    def __init__(self, environment, workdir: str, tmp_dir: str | None = None):
+        self.env = environment
+        self.workdir = workdir.rstrip("/") or "/"
+        self.tmp_dir = tmp_dir
+        self._archive: str | None = None
+
+    async def _run(self, command: str, timeout: int) -> str:
+        res = await self.env.exec(command, timeout_sec=timeout, user="root")
+        if res.return_code != 0:
+            raise RuntimeError(f"git history step failed ({res.return_code}): {command[:80]}: {(res.stderr or res.stdout or '').strip()[-300:]}")
+        return res.stdout or ""
+
+    async def hide(self) -> bool:
+        if (await self._run(_has_repo_cmd(self.workdir), 30)).strip().endswith("no"):
+            return False
+        wd = shlex.quote(self.workdir)
+        await self._run(f"tar -C {wd} -cf {_REMOTE_TAR} .git", 600)
+        path = _host_tar(self.tmp_dir)
+        try:
+            await self.env.download_file(_REMOTE_TAR, path)
+        except BaseException:
+            _unlink(path)
+            raise
+        self._archive = path
+        # The staging tar holds the full history: gone before the agent starts.
+        _check_stand_in(self.workdir, await self._run(f"rm -f {_REMOTE_TAR}; {_stand_in_cmd(self.workdir)}", 600))
+        return True
+
+    async def restore(self) -> None:
         if self._archive is None:
             return
-        try:
-            os.unlink(self._archive)
-        except FileNotFoundError:
-            pass
+        wd = shlex.quote(self.workdir)
+        await self.env.upload_file(self._archive, _REMOTE_TAR)
+        await self._run(f"mkdir -p {wd} && rm -rf {wd}/.git && tar -C {wd} -xf {_REMOTE_TAR} && rm -f {_REMOTE_TAR}", 600)
+        self.discard()
+
+    def discard(self) -> None:
+        _unlink(self._archive)
         self._archive = None
 
 
@@ -124,4 +194,4 @@ class GitHistoryRestoringEvaluator:
         return getattr(self.inner, name)
 
 
-__all__ = ["GitHistoryRestoringEvaluator", "GitHistoryVault", "hide_git_history_from_env", "supports_git_history_vault"]
+__all__ = ["AsyncGitHistoryVault", "GitHistoryRestoringEvaluator", "GitHistoryVault", "hide_git_history_from_env", "supports_git_history_vault"]

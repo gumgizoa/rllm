@@ -137,3 +137,53 @@ def test_evaluator_sees_restored_history(tmp_path, repo):
 
     assert wrapped.evaluate(None, None) == base
     assert wrapped.script_path == "tests/test.sh"
+
+
+class HostHarborEnv:
+    """Harbor environment stand-in: async exec on the host, file copies for transfer."""
+
+    def __init__(self, home: str):
+        self.env = {**_ENV, "HOME": home}
+
+    async def exec(self, command, cwd=None, env=None, timeout_sec=None, user=None):
+        from types import SimpleNamespace
+
+        r = subprocess.run(["bash", "-c", command], env=self.env, capture_output=True, text=True, timeout=timeout_sec)
+        return SimpleNamespace(return_code=r.returncode, stdout=r.stdout, stderr=r.stderr)
+
+    async def download_file(self, source_path, target_path):
+        shutil.copyfile(source_path, target_path)
+
+    async def upload_file(self, source_path, target_path):
+        shutil.copyfile(source_path, target_path)
+
+
+def test_async_vault_hides_and_restores_over_harbor_environment(tmp_path, repo):
+    import asyncio
+
+    from rllm.sandbox.git_history import _REMOTE_TAR, AsyncGitHistoryVault
+
+    r, base = repo
+    vault = AsyncGitHistoryVault(HostHarborEnv(str(tmp_path)), str(r), tmp_dir=str(tmp_path))
+
+    assert asyncio.run(vault.hide()) is True
+    assert _git(r, "rev-list", "--all").count("\n") == 0
+    assert _git(r, "log", "--all", "--oneline", "--grep=#42") == ""
+    assert not os.path.exists(_REMOTE_TAR)  # staging copy gone before the agent runs
+
+    (r / "lib.py").write_text("def f():\n    return 2  # agent\n")
+    asyncio.run(vault.restore())
+
+    assert _git(r, "rev-parse", "HEAD") == base
+    assert _git(r, "log", "--all", "--oneline", "--grep=#42") != ""
+    assert "agent" in (r / "lib.py").read_text()
+    assert not os.path.exists(_REMOTE_TAR)
+    assert list(tmp_path.glob("rllm-git-*.tar")) == []
+
+
+def test_harbor_runtime_consumes_hide_git_history():
+    from rllm.integrations.harbor.runtime import HarborRuntime
+
+    rt = HarborRuntime()
+    assert rt.configure({"hide_git_history": True}) == {}
+    assert rt.hide_git_history is True

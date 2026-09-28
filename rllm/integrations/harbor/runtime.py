@@ -85,6 +85,7 @@ class HarborRuntime:
         agent_setup_timeout_multiplier: float | None = None,
         environment_build_timeout_multiplier: float | None = None,
         session_timeout: float = _DEFAULT_SESSION_TIMEOUT_S,
+        hide_git_history: bool | None = None,
     ):
         self.agent_name = agent_name
         self.environment_type = environment_type
@@ -94,6 +95,8 @@ class HarborRuntime:
         self.agent_setup_timeout_multiplier = agent_setup_timeout_multiplier
         self.environment_build_timeout_multiplier = environment_build_timeout_multiplier
         self.session_timeout = session_timeout
+        # See rllm.sandbox.git_history; None reads RLLM_HIDE_GIT_HISTORY.
+        self.hide_git_history = hide_git_history
         self._initialized = False
 
     def configure(self, overrides: dict) -> dict:
@@ -116,6 +119,9 @@ class HarborRuntime:
         agent_kwargs = leftovers.pop("agent_kwargs", None)
         if agent_kwargs:
             self.agent_kwargs = {**self.agent_kwargs, **dict(agent_kwargs)}
+        hide_git_history = leftovers.pop("hide_git_history", None)
+        if hide_git_history is not None:
+            self.hide_git_history = bool(hide_git_history)
         return leftovers
 
     # ------------------------------------------------------------------
@@ -166,6 +172,7 @@ class HarborRuntime:
             environment_build_timeout_multiplier=self.environment_build_timeout_multiplier,
             trial_name=trial_name,
             timeout=timeout,
+            hide_git_history=self.hide_git_history,
         )
 
     # ------------------------------------------------------------------

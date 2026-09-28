@@ -38,8 +38,10 @@ def _apply_sandbox_overrides(agent, agent_metadata: dict | None) -> None:
         return
     configure = getattr(agent, "configure", None)
     leftovers = dict(configure(dict(agent_metadata)) if callable(configure) else agent_metadata)
-    # run_dataset / the sandbox hooks consume the backend regardless of the flow.
+    # run_dataset / the sandbox hooks consume these regardless of the flow;
+    # Harbor runtimes take hide_git_history too, since Harbor owns their sandbox.
     leftovers.pop("sandbox_backend", None)
+    leftovers.pop("hide_git_history", None)
     for flag in leftovers:
         logger.warning("--%s has no effect for agent %s", flag.replace("_", "-"), type(agent).__name__)
 
@@ -369,10 +371,6 @@ def _run_eval(
     ]
     if not use_snapshot:
         rows.append(("Snapshots", "[dim]disabled (--no-snapshot, cold start)[/]"))
-    if hide_git_history is None:
-        from rllm.sandbox.git_history import hide_git_history_from_env
-
-        hide_git_history = hide_git_history_from_env()
     if hide_git_history:
         rows.append(("Git history", "[dim]hidden from the agent, restored for the verifier[/]"))
     if sampling_config is not None and not sampling_config.is_empty:
@@ -701,6 +699,11 @@ def eval_cmd(
 
     # Build agent metadata from CLI options
     agent_metadata = {}
+    if hide_git_history is None:
+        from rllm.sandbox.git_history import hide_git_history_from_env
+
+        hide_git_history = hide_git_history_from_env()
+    agent_metadata["hide_git_history"] = hide_git_history
     if sandbox_backend:
         agent_metadata["sandbox_backend"] = sandbox_backend
     if sandbox_concurrency is not None:
