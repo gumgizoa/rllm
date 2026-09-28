@@ -58,7 +58,7 @@ class _FakeGetSandbox:
         self.calls = 0
         self.made: list[_CountingSandbox] = []
 
-    def __call__(self, task: Task, backend: str | None, registry, install_script: str = "") -> _CountingSandbox:
+    def __call__(self, task: Task, backend: str | None, registry, install_script: str = "", agent_mount_image: str | None = None) -> _CountingSandbox:
         self.calls += 1
         if self.fail_times.get(task.id, 0) > 0:
             self.fail_times[task.id] -= 1
@@ -223,7 +223,7 @@ def test_sandbox_without_is_alive_is_handed_out(monkeypatch):
             pass
 
     class _LegacyFake(_FakeGetSandbox):
-        def __call__(self, task: Task, backend, registry, install_script: str = ""):
+        def __call__(self, task: Task, backend, registry, install_script: str = "", agent_mount_image: str | None = None):
             self.calls += 1
             sandbox = _LegacySandbox(task)
             self.made.append(sandbox)

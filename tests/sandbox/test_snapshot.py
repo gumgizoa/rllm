@@ -98,8 +98,8 @@ def test_get_sandbox_local_hit_boots_from_snapshot(monkeypatch, tmp_path, instal
     reg._envs[env_key_for(_task(), "modal", install)] = {"backend": "modal", "ref": "im-abc", "expires_at": _future()}
 
     booted = {}
-    monkeypatch.setattr(res, "_create_base_sandbox", lambda task, backend, *, image=None, name=None: booted.update(image=image) or _FakeSandbox())
-    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend: pytest.fail("cold path taken on a local hit"))
+    monkeypatch.setattr(res, "_create_base_sandbox", lambda task, backend, *, image=None, name=None, mounts=None: booted.update(image=image) or _FakeSandbox())
+    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend, *, mounts=None: pytest.fail("cold path taken on a local hit"))
 
     sb = get_sandbox(_task(), "modal", reg, install)
     assert isinstance(sb, _FakeSandbox)
@@ -114,12 +114,12 @@ def test_get_sandbox_snapshot_gone_self_heals_to_cold(monkeypatch, tmp_path):
     key = env_key_for(_task(), "modal")
     reg._envs[key] = {"backend": "modal", "ref": "im-gone", "expires_at": _future()}
 
-    def _gone(task, backend, *, image=None, name=None):
+    def _gone(task, backend, *, image=None, name=None, mounts=None):
         raise SnapshotNotFound("gone")
 
     cold = {}
     monkeypatch.setattr(res, "_create_base_sandbox", _gone)
-    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend: cold.update(cold=True) or _FakeSandbox())
+    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend, *, mounts=None: cold.update(cold=True) or _FakeSandbox())
 
     assert isinstance(get_sandbox(_task(), "modal", reg), _FakeSandbox)
     assert cold["cold"]
@@ -140,7 +140,7 @@ def test_get_sandbox_cold_gate_never_boots_snapshot(monkeypatch, tmp_path, backe
 
     cold = {}
     monkeypatch.setattr(res, "_create_base_sandbox", lambda *a, **k: pytest.fail("snapshot boot attempted on the cold gate"))
-    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend: cold.update(cold=True) or _FakeSandbox())
+    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend, *, mounts=None: cold.update(cold=True) or _FakeSandbox())
 
     sb = get_sandbox(_task(backend=backend), backend, make_registry(tmp_path), "curl install.sh | bash")
     assert isinstance(sb, _FakeSandbox)
@@ -443,8 +443,8 @@ def test_get_sandbox_task_only_fallback_boots_but_does_not_claim_install(monkeyp
     reg._envs[task_only_key] = {"backend": "modal", "ref": "im-task-only", "expires_at": _future()}
 
     booted = {}
-    monkeypatch.setattr(res, "_create_base_sandbox", lambda task, backend, *, image=None, name=None: booted.update(image=image) or _FakeSandbox())
-    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend: pytest.fail("cold path taken despite a usable task-only snapshot"))
+    monkeypatch.setattr(res, "_create_base_sandbox", lambda task, backend, *, image=None, name=None, mounts=None: booted.update(image=image) or _FakeSandbox())
+    monkeypatch.setattr(res, "_create_sandbox_for_task", lambda task, backend, *, mounts=None: pytest.fail("cold path taken despite a usable task-only snapshot"))
 
     sb = get_sandbox(_task(), "modal", reg, "curl install.sh | bash")
     assert booted["image"] == "im-task-only"
@@ -461,7 +461,7 @@ def _hook_setup(monkeypatch, sandbox, flow):
         def evaluate(self, task, episode):
             return None
 
-    monkeypatch.setattr(snap, "get_sandbox", lambda task, backend, registry=None, install_script="": sandbox)
+    monkeypatch.setattr(snap, "get_sandbox", lambda task, backend, registry=None, install_script="", agent_mount_image=None: sandbox)
     monkeypatch.setattr(res, "_setup_task_environment", lambda task, sb: None)
     hooks = SandboxTaskHooks(evaluation=FixedEvaluation(_Evaluator()), sandbox_backend="docker", use_snapshot=False)
     return hooks.setup(_task(backend="docker"), flow, "uid")
