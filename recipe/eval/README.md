@@ -285,7 +285,7 @@ rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend dock
 | `--agent-image TEXT` | native 전용. `auto`(기본) / `skip` / `repo:tag`. mini-swe-agent, opencode, claude-code 지원 |
 | `--snapshot / --no-snapshot` | modal, daytona snapshot 사용 여부. docker에는 영향 없음 |
 | `--warm-queue-size INT` | sandbox N개 선생성. `-1`이면 `--concurrency`와 동일 |
-| `--hide-git-history / --no-hide-git-history` | native와 harbor(`--agent harbor:*`) 모두 적용. agent가 실행되는 동안 task workdir의 `.git`을 sandbox 밖(host)에 두고 commit 1개짜리 저장소로 바꿔 둔다. verifier 직전에 원래 `.git`을 되돌린다. native는 docker backend만 지원하고, 다른 backend에서는 켜면 오류를 낸다. 기본값은 꺼짐 (2.4) |
+| `--hide-git-history / --no-hide-git-history` | native와 harbor(`--agent harbor:*`) 모두 적용. agent가 실행되는 동안 task workdir의 `.git`을 sandbox 밖(host)에 두고 commit 1개짜리 저장소로 바꿔 둔다. verifier 직전에 원래 `.git`을 되돌린다. native는 docker backend만 지원하고, 다른 backend에서는 활성화 시 오류. 기본값 OFF (2.4) |
 
 **출력**
 
