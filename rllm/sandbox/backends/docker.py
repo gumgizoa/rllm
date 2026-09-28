@@ -265,6 +265,26 @@ class DockerSandbox:
         tar_stream.seek(0)
         self._container.put_archive(remote_parent, tar_stream)
 
+    def download_archive(self, remote_path: str, local_tar_path: str) -> None:
+        """Stream ``remote_path`` out of the container as a tar file on the host.
+
+        The archive's single top-level entry is ``basename(remote_path)``, so
+        :meth:`upload_archive` into the same parent directory restores it with
+        ownership and modes intact. Streamed to disk: a repository's ``.git``
+        runs to hundreds of MB and several sandboxes transfer at once.
+        """
+        chunks, _ = self._container.get_archive(remote_path)
+        with open(local_tar_path, "wb") as f:
+            for chunk in chunks:
+                f.write(chunk)
+
+    def upload_archive(self, local_tar_path: str, remote_parent: str) -> None:
+        """Extract a tar file from the host into ``remote_parent`` in the container."""
+        self._container.exec_run(["mkdir", "-p", remote_parent])
+        with open(local_tar_path, "rb") as f:
+            if not self._container.put_archive(remote_parent, f):
+                raise RuntimeError(f"put_archive into {remote_parent} failed for {self.name}")
+
     def is_alive(self) -> bool:
         """Refresh container state from the Docker daemon and check it is running."""
         try:

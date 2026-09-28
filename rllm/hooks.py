@@ -210,6 +210,10 @@ class SandboxTaskHooks:
         use_snapshot: When True (default), boot each task from a pre-built
             environment snapshot if the local registry has one (transparent
             cold-start acceleration); otherwise always take the cold path.
+        hide_git_history: When True, the task workdir's ``.git`` is kept on the
+            host while the agent runs and put back before the verifier (see
+            :mod:`rllm.sandbox.git_history`). SWE task images carry commits past
+            the base commit, fix included. None reads ``RLLM_HIDE_GIT_HISTORY``.
     """
 
     def __init__(
@@ -217,11 +221,17 @@ class SandboxTaskHooks:
         evaluation: EvaluationPolicy | None = None,
         sandbox_backend: str | None = None,
         use_snapshot: bool = True,
+        hide_git_history: bool | None = None,
     ) -> None:
         from rllm.sandbox.snapshot import SnapshotRegistry
 
         self.evaluation: EvaluationPolicy = evaluation if evaluation is not None else FromTaskEvaluation()
         self.sandbox_backend = sandbox_backend
+        if hide_git_history is None:
+            from rllm.sandbox.git_history import hide_git_history_from_env
+
+            hide_git_history = hide_git_history_from_env()
+        self.hide_git_history = hide_git_history
         # Optional per-run warm queue (set by run_dataset / the trainer); when
         # present, setup pops a prefetched sandbox instead of creating one inline.
         self.warm_queue: WarmQueue | None = None
@@ -253,6 +263,7 @@ class SandboxTaskHooks:
 
         sandbox = None
         env_backend = None
+        vault = None
         try:
             if plan.needs_env:
                 from rllm.env import env_int
@@ -264,11 +275,7 @@ class SandboxTaskHooks:
                 agent_mount_image = resolve_agent_mount_image(agent_flow, env_backend)
 
                 t0 = time.perf_counter()
-                sandbox = (
-                    self.warm_queue.pop(task)
-                    if self.warm_queue is not None
-                    else get_sandbox(task, self.sandbox_backend, self._registry, install, agent_mount_image=agent_mount_image)
-                )
+                sandbox = self.warm_queue.pop(task) if self.warm_queue is not None else get_sandbox(task, self.sandbox_backend, self._registry, install, agent_mount_image=agent_mount_image)
                 setup_metrics["time/env_create_s"] = time.perf_counter() - t0
 
                 if agent_mount_image and install:
@@ -296,7 +303,18 @@ class SandboxTaskHooks:
                     setup_metrics["time/env_install_s"] = 0.0
 
             evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
+
+            # Last step before the agent: nothing after this may read the repo's
+            # history on the agent's behalf, and the verifier gets it back.
+            if self.hide_git_history and sandbox is not None:
+                vault = self._hide_git_history(task, sandbox, setup_metrics)
+                if vault is not None:
+                    from rllm.sandbox.git_history import GitHistoryRestoringEvaluator
+
+                    evaluator = GitHistoryRestoringEvaluator(evaluator, vault)
         except BaseException:
+            if vault is not None:
+                vault.discard()
             # Nothing has registered a teardown yet — close the sandbox here
             # or it leaks (and the retry path provisions another).
             if sandbox is not None:
@@ -307,6 +325,8 @@ class SandboxTaskHooks:
             raise
 
         def teardown() -> None:
+            if vault is not None:
+                vault.discard()
             # Sandboxes are ephemeral — the hook owns this one's lifecycle and
             # closes it directly (the #616 fix); flows never hold one.
             if sandbox is None:
@@ -317,6 +337,27 @@ class SandboxTaskHooks:
                 logger.exception("sandbox.close failed")
 
         return TaskContext(evaluator=evaluator, env=sandbox, env_backend=env_backend, teardown=teardown, setup_metrics=setup_metrics)
+
+    @staticmethod
+    def _hide_git_history(task: Task, sandbox, setup_metrics: dict[str, float]):
+        """Move the workdir's ``.git`` out of the sandbox; returns the vault, or None if there is no repo."""
+        import time
+
+        from rllm.sandbox.git_history import GitHistoryVault
+
+        workdir = task.metadata.get("workdir")
+        if not workdir:
+            # Without a declared workdir there is no repo to point at; a silent
+            # skip would leave the history in place under a flag that says it
+            # is hidden.
+            raise RuntimeError(f"hide_git_history needs [environment].workdir for task {task.id}")
+        t0 = time.perf_counter()
+        vault = GitHistoryVault(sandbox, workdir)
+        if not vault.hide():
+            logger.warning("hide_git_history: %s has no %s/.git; nothing to hide", task.id, workdir)
+            return None
+        setup_metrics["time/git_hide_s"] = time.perf_counter() - t0
+        return vault
 
 
 class FixedEvaluatorHooks:

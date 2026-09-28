@@ -35,6 +35,7 @@ async def run_dataset(
     concurrency: int = 64,
     sandbox_backend: str | None = None,
     use_snapshot: bool = True,
+    hide_git_history: bool | None = None,
     warm_queue_size: int = 0,
     agent_name: str = "",
     dataset_name: str = "unknown",
@@ -98,7 +99,12 @@ async def run_dataset(
         gateway = EvalGatewayManager(upstream_url=base_url, model=model, tunnel=gateway_tunnel)
         gateway.start()
 
-    hooks = SandboxTaskHooks(evaluation=FixedEvaluation(evaluator) if evaluator is not None else None, sandbox_backend=sandbox_backend, use_snapshot=use_snapshot)
+    hooks = SandboxTaskHooks(
+        evaluation=FixedEvaluation(evaluator) if evaluator is not None else None,
+        sandbox_backend=sandbox_backend,
+        use_snapshot=use_snapshot,
+        hide_git_history=hide_git_history,
+    )
 
     engine = AgentFlowEngine(
         agent_flow=agent_flow,

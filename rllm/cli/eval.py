@@ -94,6 +94,7 @@ def _run_eval(
     save_episodes: bool = True,
     episodes_dir: str | None = None,
     use_snapshot: bool = True,
+    hide_git_history: bool | None = None,
     warm_queue_size: int = 0,
     sampling_config=None,
     attempts: int = 1,
@@ -368,6 +369,12 @@ def _run_eval(
     ]
     if not use_snapshot:
         rows.append(("Snapshots", "[dim]disabled (--no-snapshot, cold start)[/]"))
+    if hide_git_history is None:
+        from rllm.sandbox.git_history import hide_git_history_from_env
+
+        hide_git_history = hide_git_history_from_env()
+    if hide_git_history:
+        rows.append(("Git history", "[dim]hidden from the agent, restored for the verifier[/]"))
     if sampling_config is not None and not sampling_config.is_empty:
         rows.append(("Sampling", f"[dim]{sampling_config.as_dict()} (gateway-enforced)[/]"))
     console.print()
@@ -472,6 +479,7 @@ def _run_eval(
             concurrency=concurrency,
             sandbox_backend=(agent_metadata or {}).get("sandbox_backend"),
             use_snapshot=use_snapshot,
+            hide_git_history=hide_git_history,
             warm_queue_size=warm_queue_size,
             agent_name=agent_name,
             dataset_name=getattr(dataset, "name", benchmark) or benchmark,
@@ -579,6 +587,12 @@ def _run_eval(
     help="Boot each task from a pre-built environment snapshot when one exists (default). Use --no-snapshot to force the cold path (e.g. A/B timing). Build snapshots with 'rllm snapshot create'.",
 )
 @click.option(
+    "--hide-git-history/--no-hide-git-history",
+    "hide_git_history",
+    default=None,
+    help="Keep the workdir's .git out of the sandbox while the agent runs; restore it for the verifier. SWE images ship commits past the base commit, fix included. Default: RLLM_HIDE_GIT_HISTORY.",
+)
+@click.option(
     "--warm-queue-size",
     "warm_queue_size",
     default=0,
@@ -609,6 +623,7 @@ def eval_cmd(
     agent_image: str | None,
     agent_kwargs: str | None,
     use_snapshot: bool,
+    hide_git_history: bool | None,
     warm_queue_size: int,
     enable_ui: bool | None,
     save_episodes: bool,
@@ -716,6 +731,7 @@ def eval_cmd(
             save_episodes=save_episodes,
             episodes_dir=episodes_dir,
             use_snapshot=use_snapshot,
+            hide_git_history=hide_git_history,
             warm_queue_size=warm_queue_size,
             sampling_config=sampling_config,
             attempts=attempts,
