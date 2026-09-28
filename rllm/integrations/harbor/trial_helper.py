@@ -564,7 +564,7 @@ async def run_harbor_task(
     environment_build_timeout_multiplier: float | None = None,
     trial_name: str = "",
     timeout: float | None = None,
-    hide_git_history: bool | None = None,
+    hide_git_history: bool = False,
 ) -> HarborTaskOutcome:
     """Run a single Harbor task end-to-end and return a unified outcome.
 
@@ -586,7 +586,7 @@ async def run_harbor_task(
         trial_name: Unique trial identifier.
         timeout: Maximum time in seconds.  None means no timeout.
         hide_git_history: Hide the workdir's git history from the agent
-            (:mod:`rllm.sandbox.git_history`). None reads ``RLLM_HIDE_GIT_HISTORY``.
+            (:mod:`rllm.sandbox.git_history`).
 
     Returns:
         A ``HarborTaskOutcome`` with reward, termination reason, and raw result.
@@ -608,10 +608,6 @@ async def run_harbor_task(
             environment_build_timeout_multiplier=environment_build_timeout_multiplier,
             trial_name=trial_name,
         )
-        if hide_git_history is None:
-            from rllm.sandbox.git_history import hide_git_history_from_env
-
-            hide_git_history = hide_git_history_from_env()
         result = await run_harbor_trial(trial_config, timeout=timeout, hide_git_history=hide_git_history, task_path=task_path)
     except asyncio.TimeoutError:
         elapsed = time.monotonic() - start

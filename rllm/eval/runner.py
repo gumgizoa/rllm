@@ -35,7 +35,7 @@ async def run_dataset(
     concurrency: int = 64,
     sandbox_backend: str | None = None,
     use_snapshot: bool = True,
-    hide_git_history: bool | None = None,
+    hide_git_history: bool = False,
     warm_queue_size: int = 0,
     agent_name: str = "",
     dataset_name: str = "unknown",

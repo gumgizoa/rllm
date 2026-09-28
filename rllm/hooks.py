@@ -213,7 +213,7 @@ class SandboxTaskHooks:
         hide_git_history: When True, the task workdir's ``.git`` is kept on the
             host while the agent runs and put back before the verifier (see
             :mod:`rllm.sandbox.git_history`). SWE task images carry commits past
-            the base commit, fix included. None reads ``RLLM_HIDE_GIT_HISTORY``.
+            the base commit, fix included. Off by default.
     """
 
     def __init__(
@@ -221,16 +221,12 @@ class SandboxTaskHooks:
         evaluation: EvaluationPolicy | None = None,
         sandbox_backend: str | None = None,
         use_snapshot: bool = True,
-        hide_git_history: bool | None = None,
+        hide_git_history: bool = False,
     ) -> None:
         from rllm.sandbox.snapshot import SnapshotRegistry
 
         self.evaluation: EvaluationPolicy = evaluation if evaluation is not None else FromTaskEvaluation()
         self.sandbox_backend = sandbox_backend
-        if hide_git_history is None:
-            from rllm.sandbox.git_history import hide_git_history_from_env
-
-            hide_git_history = hide_git_history_from_env()
         self.hide_git_history = hide_git_history
         # Optional per-run warm queue (set by run_dataset / the trainer); when
         # present, setup pops a prefetched sandbox instead of creating one inline.

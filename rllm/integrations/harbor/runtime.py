@@ -85,7 +85,7 @@ class HarborRuntime:
         agent_setup_timeout_multiplier: float | None = None,
         environment_build_timeout_multiplier: float | None = None,
         session_timeout: float = _DEFAULT_SESSION_TIMEOUT_S,
-        hide_git_history: bool | None = None,
+        hide_git_history: bool = False,
     ):
         self.agent_name = agent_name
         self.environment_type = environment_type
@@ -95,7 +95,7 @@ class HarborRuntime:
         self.agent_setup_timeout_multiplier = agent_setup_timeout_multiplier
         self.environment_build_timeout_multiplier = environment_build_timeout_multiplier
         self.session_timeout = session_timeout
-        # See rllm.sandbox.git_history; None reads RLLM_HIDE_GIT_HISTORY.
+        # See rllm.sandbox.git_history.
         self.hide_git_history = hide_git_history
         self._initialized = False
 

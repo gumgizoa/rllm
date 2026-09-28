@@ -96,7 +96,7 @@ def _run_eval(
     save_episodes: bool = True,
     episodes_dir: str | None = None,
     use_snapshot: bool = True,
-    hide_git_history: bool | None = None,
+    hide_git_history: bool = False,
     warm_queue_size: int = 0,
     sampling_config=None,
     attempts: int = 1,
@@ -587,8 +587,8 @@ def _run_eval(
 @click.option(
     "--hide-git-history/--no-hide-git-history",
     "hide_git_history",
-    default=None,
-    help="Keep the workdir's .git out of the sandbox while the agent runs; restore it for the verifier. SWE images ship commits past the base commit, fix included. Default: RLLM_HIDE_GIT_HISTORY.",
+    default=False,
+    help="Keep the workdir's .git out of the sandbox while the agent runs; restore it for the verifier. SWE images ship commits past the base commit, fix included. Default: off.",
 )
 @click.option(
     "--warm-queue-size",
@@ -621,7 +621,7 @@ def eval_cmd(
     agent_image: str | None,
     agent_kwargs: str | None,
     use_snapshot: bool,
-    hide_git_history: bool | None,
+    hide_git_history: bool,
     warm_queue_size: int,
     enable_ui: bool | None,
     save_episodes: bool,
@@ -699,10 +699,6 @@ def eval_cmd(
 
     # Build agent metadata from CLI options
     agent_metadata = {}
-    if hide_git_history is None:
-        from rllm.sandbox.git_history import hide_git_history_from_env
-
-        hide_git_history = hide_git_history_from_env()
     agent_metadata["hide_git_history"] = hide_git_history
     if sandbox_backend:
         agent_metadata["sandbox_backend"] = sandbox_backend

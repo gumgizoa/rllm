@@ -40,11 +40,6 @@ _COMMIT_ENV = "GIT_AUTHOR_NAME=rllm GIT_AUTHOR_EMAIL=rllm@localhost GIT_COMMITTE
 _REMOTE_TAR = "/tmp/rllm-git-history.tar"
 
 
-def hide_git_history_from_env() -> bool:
-    """``RLLM_HIDE_GIT_HISTORY``: the default when no caller decides."""
-    return os.environ.get("RLLM_HIDE_GIT_HISTORY", "0").strip().lower() in ("1", "true", "yes", "on")
-
-
 def supports_git_history_vault(sandbox: Sandbox) -> bool:
     """Whether ``sandbox`` can move a directory out to the host and back."""
     return callable(getattr(sandbox, "download_archive", None)) and callable(getattr(sandbox, "upload_archive", None))
@@ -194,4 +189,4 @@ class GitHistoryRestoringEvaluator:
         return getattr(self.inner, name)
 
 
-__all__ = ["AsyncGitHistoryVault", "GitHistoryRestoringEvaluator", "GitHistoryVault", "hide_git_history_from_env", "supports_git_history_vault"]
+__all__ = ["AsyncGitHistoryVault", "GitHistoryRestoringEvaluator", "GitHistoryVault", "supports_git_history_vault"]
