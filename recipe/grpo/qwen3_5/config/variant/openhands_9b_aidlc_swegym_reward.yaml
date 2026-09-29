@@ -1,0 +1,23 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk + AI-DLC on SWE-Gym, with the compliance mean in
+# the reward: everything from openhands_9b_aidlc_swegym (no-think, 131K, FSDP1,
+# checkpoints every step) plus recipe.aidlc.reward.enable. Default mode is
+# `mul` (reward = verifier * aidlc/compliance); see aidlc_reward/ and README
+# "Compliance reward". openhands_9b_aidlc_swegym already logs the aidlc/*
+# signals without rewarding them, so it is this arm's control.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_reward
+#   ... recipe.aidlc.reward.mode=add recipe.aidlc.reward.lam=0.2   # additive form
+
+defaults:
+  - openhands_9b_aidlc_swegym
+
+recipe:
+  aidlc:
+    reward:
+      enable: true
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-aidlc-reward-swegym293

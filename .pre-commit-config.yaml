@@ -4,6 +4,7 @@ repos:
     hooks:
       - id: ruff
         args: ["--fix", "--show-fixes", "--output-format=full"]
-        exclude: ^.*\.(ipynb)$|^verl/.*$
+        # aidlc_reward/rubric is vendored byte-identical from the offline scorer; see its __init__.py.
+        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/aidlc_reward/rubric/.*$
       - id: ruff-format
-        exclude: ^.*\.(ipynb)$|^verl/.*$
+        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/aidlc_reward/rubric/.*$
