@@ -404,3 +404,26 @@ def test_compliance_settings(train_module):
     assert s({"enable": True, "reward": {"enable": False}}) == (True, None, 0.0)
     assert s({"enable": True, "reward": {"enable": True}}) == (True, "mul", 0.2)
     assert s({"enable": True, "reward": {"enable": True, "mode": "add", "lam": 0.15}}) == (True, "add", 0.15)
+
+
+# --- hide_git_history reaches the caller-built hooks ---------------------------------------
+
+
+def test_build_hooks_forwards_hide_git_history(train_module, monkeypatch):
+    """AgentTrainer refuses caller-built hooks that lack the flag, so the AI-DLC hooks must carry it."""
+    import rllm.hooks as hooks_mod
+
+    captured = {}
+
+    class _Hooks:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            self.hide_git_history = kwargs.get("hide_git_history", False)
+
+    monkeypatch.setattr(hooks_mod, "SandboxTaskHooks", _Hooks)
+    monkeypatch.syspath_prepend(str(RECIPE))
+    assert train_module._build_hooks(False, "docker", True) is None
+    hooks = train_module._build_hooks(True, "docker", True)
+    assert hooks.hide_git_history is True and captured["sandbox_backend"] == "docker"
+    assert type(captured["evaluation"]).__name__ == "AidlcEvaluation"
+    assert train_module._build_hooks(True, "docker").hide_git_history is False

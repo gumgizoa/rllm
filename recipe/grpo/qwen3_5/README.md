@@ -549,6 +549,19 @@ touches. `rllm.trainer.val_before_train=false rllm.trainer.test_freq=-1` switche
 test disables it; add `rllm.trainer.val_before_train=true recipe.val_limit=4` to exercise the
 validation path there.
 
+**Git history is hidden in the SWE-Gym variants.** Run 1 measured the leak (see the report under
+`reports/`): 12.6% of training rollouts read the fix commit out of the image's `.git`, and 3 of the
+8 validation tasks the base model "solved" came from it. `openhands_9b_aidlc_swegym` and everything
+that inherits it therefore set `recipe.hide_git_history: true` — main's mechanism
+([Hiding git history](#hiding-git-history)): `.git` is parked on the host while the agent runs and
+restored before the verifier, so `eval.sh`'s `git checkout <base_commit> -- <tests>` still works.
+Three practicalities: set `TMPDIR` to a large local disk in `.env` (the parked tars are hundreds of
+MB each, 32 at a time); watch `time/git_hide_s` on the smoke run for the pandas/mypy tasks; and the
+instruction still quotes the base commit sha, which the agent can no longer `git diff` against
+(harmless, but expect one failed command in some rollouts). With the AI-DLC hooks
+(`aidlc_reward.AidlcEvaluation`) the flag is forwarded by `train.py`'s `_build_hooks`; AgentTrainer
+refuses caller-built hooks that do not carry it.
+
 **The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
 they are not rebuilt: `RLLM_AGENT_IMAGE=auto` bakes one agent image (debian bullseye, uv-managed
 Python 3.12, `openhands-sdk==1.42.1` venv; tag = hash of the install script, ~850 MB) and

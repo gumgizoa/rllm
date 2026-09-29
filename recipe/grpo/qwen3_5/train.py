@@ -243,15 +243,21 @@ def _compliance_settings(recipe: DictConfig) -> tuple[bool, str | None, float]:
     return True, str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
 
 
-def _build_hooks(score_compliance: bool, sandbox_backend: str):
-    """``SandboxTaskHooks`` with the AI-DLC evaluator, or ``None`` to let AgentTrainer auto-wire."""
+def _build_hooks(score_compliance: bool, sandbox_backend: str, hide_git_history: bool = False):
+    """``SandboxTaskHooks`` with the AI-DLC evaluator, or ``None`` to let AgentTrainer auto-wire.
+
+    ``hide_git_history`` has to reach hooks built here: AgentTrainer only wires
+    it into the hooks it builds itself, and refuses caller-built hooks that lack
+    it (an AI-DLC arm with ``recipe.hide_git_history=true`` would otherwise fail
+    at startup rather than run with the history in place).
+    """
     if not score_compliance:
         return None
     from aidlc_reward.evaluator import AidlcEvaluation
 
     from rllm.hooks import SandboxTaskHooks
 
-    return SandboxTaskHooks(evaluation=AidlcEvaluation(), sandbox_backend=sandbox_backend)
+    return SandboxTaskHooks(evaluation=AidlcEvaluation(), sandbox_backend=sandbox_backend, hide_git_history=hide_git_history)
 
 
 def _load(name: str, split: str, limit: int | None, kind: str):
@@ -301,7 +307,7 @@ def main(config: DictConfig) -> None:
         config=config,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
-        hooks=_build_hooks(score_compliance, sandbox_backend),
+        hooks=_build_hooks(score_compliance, sandbox_backend, bool(recipe.hide_git_history)),
         sandbox_backend=sandbox_backend,
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Same mechanism as `rllm eval --hide-git-history`.

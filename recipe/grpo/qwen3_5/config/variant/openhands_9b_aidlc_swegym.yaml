@@ -37,6 +37,17 @@ recipe:
   # eight vLLM servers and eight FSDP workers. n_parallel_tasks below must
   # not exceed this, or rollouts queue on the warm-sandbox pool.
   sandbox_concurrency: 32
+  # The xingyaoww SWE-Gym images keep the upstream history past base_commit:
+  # in run 1 (2026-09-23, this flag off) 12.6% of training rollouts read the
+  # fix commit via `git log --all` + `git show`, and 3 of the 8 validation
+  # tasks the base model "solved" came from it (reports/2026-09-23_*.md,
+  # "Reward hacking 감사"). On: .git is moved to the host while the agent runs
+  # and restored before the verifier (rllm/sandbox/git_history.py). Costs one
+  # .git transfer each way per rollout (time/git_hide_s); put TMPDIR on a
+  # large local disk (.env), not the container's writable layer. Note the
+  # instruction still quotes the base commit sha, which the agent can no
+  # longer `git diff` against; harmless.
+  hide_git_history: true
 
 rllm:
   data:
