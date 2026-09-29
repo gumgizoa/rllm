@@ -199,7 +199,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
         return (
             f"{self._cd_prefix(task)}"
             f"OH_PY={shlex.quote(self._mount_python())}; "
-            f"\"$OH_PY\" {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE)} 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; "
+            f'"$OH_PY" {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE)} 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; '
             f'"$OH_PY" {_PY_FLAGS} {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"

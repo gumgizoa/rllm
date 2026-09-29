@@ -64,6 +64,12 @@ recipe:
   # rather than predicted here.
   agent_step_limit: 150
   agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
+  # Keep each task workdir's .git out of the sandbox while the agent runs and
+  # put it back for the verifier (rllm/sandbox/git_history.py). SWE task images
+  # ship commits past the base commit, fix included (SWE-smith: `git show HEAD`
+  # prints the answer), so a policy can learn to copy the fix from history.
+  # Docker backend only.
+  hide_git_history: false
   # SWE-Master reward shaping (arXiv 2602.03411, sec. 3.4.2, eq. 4): a rollout
   # that ran out of budget -- turns, context window, or agent wall clock -- is
   # still graded, and its reward is multiplied by this. The paper's code uses

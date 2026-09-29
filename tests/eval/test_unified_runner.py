@@ -216,7 +216,7 @@ def test_hooks_close_sandbox_for_sandboxed_agent_flow(tmp_path, cfg, monkeypatch
     # Force the hook to allocate a sandbox without doing any real I/O.
     monkeypatch.setattr(
         "rllm.eval._resolution._create_sandbox_for_task",
-        lambda task, backend: fake_sandbox,
+        lambda task, backend, *, mounts=None: fake_sandbox,
     )
     monkeypatch.setattr(
         "rllm.eval._resolution._setup_task_environment",

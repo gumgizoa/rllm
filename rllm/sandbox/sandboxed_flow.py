@@ -65,6 +65,7 @@ class SandboxedAgentFlow(ABC):
         agent_image = leftovers.pop("agent_image", None)
         if agent_image is not None:
             import os
+
             os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
         return leftovers
 

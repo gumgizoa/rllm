@@ -304,6 +304,8 @@ def main(config: DictConfig) -> None:
         hooks=_build_hooks(score_compliance, sandbox_backend),
         sandbox_backend=sandbox_backend,
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
+        # Same mechanism as `rllm eval --hide-git-history`.
+        hide_git_history=bool(recipe.hide_git_history),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
         traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam),
     )

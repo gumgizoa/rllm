@@ -1011,6 +1011,10 @@ class AgentTrainer:
             auto-spawn a cloudflared tunnel.
         sandbox_concurrency: Override ``max_concurrent`` on a
             :class:`SandboxedAgentFlow` agent.
+        hide_git_history: Keep each task workdir's ``.git`` out of the sandbox
+            while the agent runs and put it back for the verifier (see
+            :mod:`rllm.sandbox.git_history`). Applies to the auto-wired sandbox
+            hooks.
     """
 
     def __init__(
@@ -1026,6 +1030,7 @@ class AgentTrainer:
         hooks: Any = None,
         sandbox_backend: str | None = None,
         sandbox_concurrency: int | None = None,
+        hide_git_history: bool = False,
         store: Store | None = None,
         **kwargs,
     ):
@@ -1043,11 +1048,20 @@ class AgentTrainer:
 
             scan = scan_env_requirements(agent_flow, train_dataset, val_dataset, sandbox_backend=sandbox_backend)
             if hooks is None and scan.needs_env:
+                if hide_git_history and (sandbox_backend or "docker").lower() != "docker":
+                    # Checked here, not per rollout: a rollout that fails setup is
+                    # an ERROR episode, which compact_filtering drops without a word.
+                    raise ValueError(f"hide_git_history needs the docker sandbox backend, got {sandbox_backend!r}")
                 hooks = SandboxTaskHooks(
                     evaluation=FixedEvaluation(evaluator) if evaluator is not None else None,
                     sandbox_backend=sandbox_backend,
+                    hide_git_history=hide_git_history,
                 )
                 evaluator = None
+            elif hide_git_history and not getattr(hooks, "hide_git_history", False):
+                # Caller-built hooks (or none, when nothing needs a sandbox) would
+                # leave the history in place under a flag that says it is hidden.
+                raise ValueError("hide_git_history=True needs the auto-wired sandbox hooks; pass it to the hooks you built instead")
             if hooks is not None and scan.needs_env:
                 config = pin_gateway_host_loopback(config)
                 # The hooks-backend clause matters only for explicitly-passed
