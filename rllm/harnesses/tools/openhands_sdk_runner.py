@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import tempfile
 
 # Thinking on/off is a chat-template kwarg for Qwen3-family models, and the
 # first turn of every conversation is rendered by vLLM's chat template (the
@@ -55,10 +56,19 @@ def main() -> int:
     parser.add_argument("--instruction", required=True, help="Task instruction")
     args = parser.parse_args()
 
+    # The task's repo is the cwd: the harness cd's into ``[environment].workdir``
+    # when the task declares one, otherwise the image's own WORKDIR applies.
+    workspace = os.getcwd()
+    # litellm appends the cwd to ``sys.path`` on import, after which the SDK's
+    # optional imports resolve into the repo (/testbed/tornado breaks
+    # tenacity). Import from an empty directory, then go back.
+    os.chdir(tempfile.mkdtemp(prefix="openhands-sdk-import-"))
     from openhands.sdk import LLM, Agent, Conversation, Tool
     from openhands.tools.file_editor import FileEditorTool
     from openhands.tools.task_tracker import TaskTrackerTool
     from openhands.tools.terminal import TerminalTool
+
+    os.chdir(workspace)
 
     model = os.environ.get("LLM_MODEL")
     if not model:
@@ -95,9 +105,6 @@ def main() -> int:
         agent_kwargs["system_prompt_filename"] = system_prompt_path
     agent = Agent(**agent_kwargs)  # type: ignore[arg-type]
 
-    # The task's repo is the cwd: the harness cd's into ``[environment].workdir``
-    # when the task declares one, otherwise the image's own WORKDIR applies.
-    workspace = os.getcwd()
     conversation_kwargs: dict[str, object] = {"agent": agent, "workspace": workspace}
     max_iterations = os.environ.get("OPENHANDS_MAX_ITERATIONS")
     if max_iterations:

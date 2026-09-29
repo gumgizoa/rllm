@@ -65,7 +65,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym
 
 1. openhands-sdk 첫 turn은 task 텍스트 전에 약 7.4K 토큰(system prompt + tool schema + 환경 정보)이라 기본 `max_prompt_length` 8192를 넘었고, transform이 **에러 없이 왼쪽을 잘라** 학습했다(pearson 0.9907). → 16384로 상향, clip 0, pearson 0.9986.
 2. context 초과 시 vLLM 400 → step을 기록하지 않는 CLI harness에서는 `EnrichMismatchError`로 3회 재시도 후 error drop. → 엔진이 꼬리 malformed trace를 버리고 `MAX_PROMPT_LENGTH_EXCEEDED`로 채점(reward ×0.5)하도록 수정.
-3. pydantic task에서 `/testbed/pydantic`이 SDK의 pydantic 의존성을 가려 agent 이미지 probe가 실패 → probe에 `PYTHONSAFEPATH=1`.
+3. pydantic task에서 `/testbed/pydantic`이 SDK의 pydantic 의존성을 가려 agent 이미지 probe가 실패 → SDK 인터프리터를 `python -I` + 빈 cwd에서 import하도록 격리 (main PR #5와 같은 수정, merge됨).
 4. `[verifier] module`이 `task_path` 행에서 무시되던 코어 버그 수정(hybrid reward용 seam).
 
 ## 3. 결과

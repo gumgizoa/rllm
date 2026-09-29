@@ -130,6 +130,22 @@ def _openhands_sdk_dockerfile() -> str:
     return f"""\
 FROM ghcr.io/astral-sh/uv:latest AS uvsrc
 FROM debian:bullseye-slim
+ENV DEBIAN_FRONTEND=noninteractive
+# bullseye left LTS on 2026-08-31 and deb.debian.org no longer serves its
+# security pool: `apt-get update` still succeeds but every .deb under
+# debian-security 404s, and dropping that source leaves main's package list
+# depending on versions that only ever shipped there ("held broken packages").
+# The image ships snapshot.debian.org sources commented out for exactly this
+# case; switch to them (pinned to 2026-08-24, before the archive move) and
+# skip the Valid-Until check that a frozen snapshot cannot pass.
+RUN sed -i -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' \\
+           -e 's|^# deb http://snapshot.debian.org|deb http://snapshot.debian.org|' \\
+           /etc/apt/sources.list \\
+ && apt-get update -qq -o Acquire::Check-Valid-Until=false \\
+ && apt-get install -y -qq --no-install-recommends -o Acquire::Check-Valid-Until=false \\
+        curl ca-certificates git \\
+ && rm -rf /var/lib/apt/lists/*
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 COPY --from=uvsrc /uv /usr/local/bin/uv
 # A uv venv records its interpreter in pyvenv.cfg and symlinks bin/python at
 # it, so the managed CPython has to sit inside the mount as well;

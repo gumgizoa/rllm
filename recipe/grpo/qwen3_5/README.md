@@ -497,9 +497,9 @@ repos. One trap was found there: the probes run `python -c 'import openhands.sdk
 `/testbed`, and `-c` puts the cwd on `sys.path`, so on the **pydantic** tasks the checked-out
 repo shadowed the venv's pydantic, the probe failed, and the harness fell back to a per-task
 install whose own final import check failed the same way — every pydantic rollout would have
-errored. The probes now run with `PYTHONSAFEPATH=1` (the runner is a script and is not
-affected; nothing is set in the agent's environment). No other repo in this data collides
-with a top-level module of the venv.
+errored. Fixed on main (PR #5, merged here): every SDK interpreter run uses `python -I` and imports from an
+empty temporary cwd, which also covers litellm's own `sys.path.append(cwd)`. No other repo in this
+data collides with a top-level module of the venv.
 
 **Hybrid reward (SWE + instruction following): where it plugs in.** Nothing in this variant
 rewards the AI-DLC artifacts yet; the reward is the verifier's binary result. The seam for a
