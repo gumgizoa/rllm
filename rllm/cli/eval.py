@@ -38,8 +38,10 @@ def _apply_sandbox_overrides(agent, agent_metadata: dict | None) -> None:
         return
     configure = getattr(agent, "configure", None)
     leftovers = dict(configure(dict(agent_metadata)) if callable(configure) else agent_metadata)
-    # run_dataset / the sandbox hooks consume the backend regardless of the flow.
+    # run_dataset / the sandbox hooks consume these regardless of the flow;
+    # Harbor runtimes take hide_git_history too, since Harbor owns their sandbox.
     leftovers.pop("sandbox_backend", None)
+    leftovers.pop("hide_git_history", None)
     for flag in leftovers:
         logger.warning("--%s has no effect for agent %s", flag.replace("_", "-"), type(agent).__name__)
 
@@ -94,6 +96,7 @@ def _run_eval(
     save_episodes: bool = True,
     episodes_dir: str | None = None,
     use_snapshot: bool = True,
+    hide_git_history: bool = False,
     warm_queue_size: int = 0,
     sampling_config=None,
     attempts: int = 1,
@@ -368,6 +371,8 @@ def _run_eval(
     ]
     if not use_snapshot:
         rows.append(("Snapshots", "[dim]disabled (--no-snapshot, cold start)[/]"))
+    if hide_git_history:
+        rows.append(("Git history", "[dim]hidden from the agent, restored for the verifier[/]"))
     if sampling_config is not None and not sampling_config.is_empty:
         rows.append(("Sampling", f"[dim]{sampling_config.as_dict()} (gateway-enforced)[/]"))
     console.print()
@@ -472,6 +477,7 @@ def _run_eval(
             concurrency=concurrency,
             sandbox_backend=(agent_metadata or {}).get("sandbox_backend"),
             use_snapshot=use_snapshot,
+            hide_git_history=hide_git_history,
             warm_queue_size=warm_queue_size,
             agent_name=agent_name,
             dataset_name=getattr(dataset, "name", benchmark) or benchmark,
@@ -579,6 +585,12 @@ def _run_eval(
     help="Boot each task from a pre-built environment snapshot when one exists (default). Use --no-snapshot to force the cold path (e.g. A/B timing). Build snapshots with 'rllm snapshot create'.",
 )
 @click.option(
+    "--hide-git-history/--no-hide-git-history",
+    "hide_git_history",
+    default=False,
+    help="Keep the workdir's .git out of the sandbox while the agent runs; restore it for the verifier. SWE images ship commits past the base commit, fix included. Default: off.",
+)
+@click.option(
     "--warm-queue-size",
     "warm_queue_size",
     default=0,
@@ -609,6 +621,7 @@ def eval_cmd(
     agent_image: str | None,
     agent_kwargs: str | None,
     use_snapshot: bool,
+    hide_git_history: bool,
     warm_queue_size: int,
     enable_ui: bool | None,
     save_episodes: bool,
@@ -686,6 +699,7 @@ def eval_cmd(
 
     # Build agent metadata from CLI options
     agent_metadata = {}
+    agent_metadata["hide_git_history"] = hide_git_history
     if sandbox_backend:
         agent_metadata["sandbox_backend"] = sandbox_backend
     if sandbox_concurrency is not None:
@@ -716,6 +730,7 @@ def eval_cmd(
             save_episodes=save_episodes,
             episodes_dir=episodes_dir,
             use_snapshot=use_snapshot,
+            hide_git_history=hide_git_history,
             warm_queue_size=warm_queue_size,
             sampling_config=sampling_config,
             attempts=attempts,

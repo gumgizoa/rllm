@@ -100,7 +100,6 @@ class TaskHooks(Protocol):
     def setup(self, task: Task, agent_flow: AgentFlow, uid: str) -> TaskContext: ...
 
 
-
 # Gateway marker -> TerminationReason. ``upstream_error.kind`` is set by
 # rllm_model_gateway.data_process.classify_upstream_error.
 _UPSTREAM_KIND_TO_REASON = {
@@ -118,7 +117,6 @@ def _upstream_termination_reason(traces: list[TraceRecord]) -> TerminationReason
             if reason is not None:
                 return reason
     return None
-
 
 
 # EvalOutput.metadata marker -> TerminationReason, set by evaluators that can

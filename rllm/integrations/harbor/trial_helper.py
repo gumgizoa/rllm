@@ -350,12 +350,15 @@ def build_harbor_trial_config(
     )
 
 
-async def run_harbor_trial(trial_config, timeout: float | None = None):
+async def run_harbor_trial(trial_config, timeout: float | None = None, *, hide_git_history: bool = False, task_path: str | None = None):
     """Run a Harbor trial and return the TrialResult.
 
     Args:
         trial_config: A ``harbor.models.trial.config.TrialConfig``.
         timeout: Maximum time in seconds. None means no timeout.
+        hide_git_history: Keep the task workdir's ``.git`` off the environment
+            while the agent runs; see :mod:`rllm.sandbox.git_history`.
+        task_path: Task directory, read for ``[environment].workdir``.
 
     Returns:
         A ``harbor.models.trial.result.TrialResult``.
@@ -363,6 +366,8 @@ async def run_harbor_trial(trial_config, timeout: float | None = None):
     from harbor.trial.trial import Trial
 
     trial = await Trial.create(trial_config)
+    if hide_git_history:
+        _add_git_history_hooks(trial, task_path)
     if timeout is None:
         return await trial.run()
 
@@ -383,6 +388,62 @@ async def run_harbor_trial(trial_config, timeout: float | None = None):
     if time.monotonic() - started >= timeout:
         await _stop_trial_environment(trial, trial_config.trial_name)
     return result
+
+
+def _task_workdir(task_path: str | None) -> str | None:
+    """``[environment].workdir`` from the task's ``task.toml``, if declared."""
+    if not task_path:
+        return None
+    import tomllib
+
+    toml_path = Path(task_path) / "task.toml"
+    if not toml_path.is_file():
+        return None
+    with open(toml_path, "rb") as f:
+        workdir = (tomllib.load(f).get("environment") or {}).get("workdir")
+    return str(workdir) if workdir else None
+
+
+def _add_git_history_hooks(trial, task_path: str | None) -> None:
+    """Hide ``<workdir>/.git`` for the agent phase of ``trial``; restore it for the verifier.
+
+    AGENT_START fires after the agent's install and before it runs;
+    VERIFICATION_START fires even after an agent timeout. A failing step
+    raises out of the hook, so Harbor records the trial as failed instead of
+    letting the agent run with the history in place.
+    """
+    from harbor.trial.hooks import TrialEvent
+    from rllm.sandbox.git_history import AsyncGitHistoryVault
+
+    state: dict[str, AsyncGitHistoryVault] = {}
+
+    async def hide(_event) -> None:
+        env = trial._environment
+        workdir = _task_workdir(task_path)
+        if workdir is None:
+            # No declared workdir: the image's WORKDIR is where Harbor runs
+            # the agent and the verifier.
+            workdir = ((await env.exec("pwd", user="root")).stdout or "").strip()
+        vault = AsyncGitHistoryVault(env, workdir)
+        if await vault.hide():
+            state["vault"] = vault
+        else:
+            logger.warning("hide_git_history: %s has no %s/.git; nothing to hide", trial.config.trial_name, workdir)
+
+    async def restore(_event) -> None:
+        vault = state.get("vault")
+        if vault is not None:
+            await vault.restore()
+
+    async def discard(_event) -> None:
+        vault = state.pop("vault", None)
+        if vault is not None:
+            vault.discard()
+
+    trial.add_hook(TrialEvent.AGENT_START, hide)
+    trial.add_hook(TrialEvent.VERIFICATION_START, restore)
+    trial.add_hook(TrialEvent.END, discard)
+    trial.add_hook(TrialEvent.CANCEL, discard)
 
 
 async def _stop_trial_environment(trial, trial_name: str) -> None:
@@ -503,6 +564,7 @@ async def run_harbor_task(
     environment_build_timeout_multiplier: float | None = None,
     trial_name: str = "",
     timeout: float | None = None,
+    hide_git_history: bool = False,
 ) -> HarborTaskOutcome:
     """Run a single Harbor task end-to-end and return a unified outcome.
 
@@ -523,6 +585,8 @@ async def run_harbor_task(
         environment_build_timeout_multiplier: Multiply environment build timeout.
         trial_name: Unique trial identifier.
         timeout: Maximum time in seconds.  None means no timeout.
+        hide_git_history: Hide the workdir's git history from the agent
+            (:mod:`rllm.sandbox.git_history`).
 
     Returns:
         A ``HarborTaskOutcome`` with reward, termination reason, and raw result.
@@ -544,7 +608,7 @@ async def run_harbor_task(
             environment_build_timeout_multiplier=environment_build_timeout_multiplier,
             trial_name=trial_name,
         )
-        result = await run_harbor_trial(trial_config, timeout=timeout)
+        result = await run_harbor_trial(trial_config, timeout=timeout, hide_git_history=hide_git_history, task_path=task_path)
     except asyncio.TimeoutError:
         elapsed = time.monotonic() - start
         logger.warning("Task %s timed out after %.1fs", trial_name, elapsed)

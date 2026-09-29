@@ -994,6 +994,21 @@ no rollout pays for `uv tool install`. Same mechanism as `rllm eval --agent-imag
 * `RLLM_AGENT_IMAGE=skip` forces the per-task install path.
 * Building the image needs network on the *host*; the sandbox itself does not install anything.
 
+## Hiding git history
+
+SWE task images ship commits past the base commit. SWE-smith's HEAD is the bug-injection
+commit, so `git show HEAD` prints the fix; SWE-rebench / SWE-Gym / R2E-Gym keep the upstream fix
+on a branch or tag. In RL that is worse than in eval: a rollout that copies the fix earns reward,
+and the policy learns to look. `recipe.hide_git_history=true` turns on the same mechanism as
+`rllm eval --hide-git-history`: `SandboxTaskHooks`
+moves `<workdir>/.git` to the host after setup, leaves a one-commit repository of the current
+tree for the agent, and restores the original before the verifier (`rllm/sandbox/git_history.py`).
+
+* Docker backend only; other backends fail the rollout instead of running with the history in place.
+* The workdir comes from `task.toml` `[environment].workdir`, else the Dockerfile `WORKDIR`.
+* Off by default so existing runs stay comparable; the hide/restore time shows up as
+  `time/git_hide_s` in the setup metrics.
+
 ## Sandbox network isolation — still not supported
 
 `DockerSandbox` / `ModalSandbox` / `DaytonaSandbox` expose no `network_mode` or egress policy,
