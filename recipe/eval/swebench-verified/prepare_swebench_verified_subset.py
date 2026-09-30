@@ -21,13 +21,39 @@ Fixes applied to the copies (the Harbor cache itself is left untouched):
   in the task container before installing itself; images whose Debian/Ubuntu
   release metadata has lapsed fail that step and the agent never starts.
   Harmless on images without apt. The oracle harness is unaffected.
+* ``environment/Dockerfile`` -- ``ENV OMP_NUM_THREADS=<cpus>``. Inside the task
+  container ``os.cpu_count()`` reports the host's cores (256 on our hosts), so
+  OpenMP code (scikit-learn's HistGradientBoosting, ...) starts that many
+  threads on a 4-CPU quota and slows to a crawl: the ``scikit-learn-14710``
+  verifier never finishes in 3000 s even with the reference patch, while the
+  stalled tests take 2.4 s at 4 threads. Set in the image so the agent's own
+  test runs get the same cap.
+* ``tests/test.sh`` -- ``git clean -fd`` is narrowed to the paths the test patch
+  touches. Unrestricted, it deletes every untracked file the solution created,
+  so a correct fix that adds a module fails (``astropy-13398``: the reference
+  patch's new ``itrs_observed_transforms.py`` is removed, the test module no
+  longer imports, 0 / 72 tests). The clean still removes stray files at test
+  patch paths, which is what keeps ``git apply`` of the test patch from failing.
+* per-task fixes (``TASK_FIXES``) for tasks whose reference patch does not
+  resolve under the Harbor verifier:
+
+  - ``astropy__astropy-7606``: PASS_TO_PASS lists
+    ``test_compose_roundtrip[]``, but current pytest names that parameter
+    ``[unit0]`` (the only one of the 97 ids that differs), so the passing test
+    is never matched. Renamed in ``tests/config.json``.
+  - ``sphinx-doc__sphinx-9711``: the test runs through tox without ``-rA``, so
+    pytest prints no per-test ``PASSED`` lines and the SWE-bench parser finds
+    nothing although the test passes. ``-rA`` is passed via tox posargs.
+
 * ids: matched case-insensitively against the registry ids.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -82,6 +108,53 @@ def patch_dockerfile(dockerfile: Path) -> bool:
     return True
 
 
+def limit_threads(dockerfile: Path, cpus: int) -> None:
+    """Cap OpenMP threads at the task's CPU quota (``os.cpu_count()`` sees the host)."""
+    text = dockerfile.read_text()
+    env = f"ENV OMP_NUM_THREADS={cpus}"
+    if re.search(r"^ENV OMP_NUM_THREADS=\d+$", text, flags=re.M):
+        text = re.sub(r"^ENV OMP_NUM_THREADS=\d+$", env, text, flags=re.M)
+    else:
+        text = text.rstrip("\n") + "\n# rllm: os.cpu_count() reports the host's cores; cap OpenMP at the task's CPU quota\n" + env + "\n"
+    dockerfile.write_text(text)
+
+
+GIT_CLEAN_ALL = re.compile(r"^(\s*)git clean -fd\s*$", flags=re.M)
+
+
+def narrow_git_clean(test_sh: Path) -> bool:
+    """Limit ``git clean -fd`` to the test patch's paths so files the solution added survive."""
+    text = test_sh.read_text()
+    paths = sorted({p for pair in re.findall(r"diff --git a/(\S+) b/(\S+)", text) for p in pair})
+    if not paths:
+        return False
+    text, n = GIT_CLEAN_ALL.subn(lambda m: f"{m.group(1)}git clean -fd -- {' '.join(shlex.quote(p) for p in paths)}", text, count=1)
+    if n:
+        test_sh.write_text(text)
+    return bool(n)
+
+
+def _fix_astropy_7606(task_dir: Path) -> None:
+    cfg_path = task_dir / "tests" / "config.json"
+    cfg = json.loads(cfg_path.read_text())
+    p2p = json.loads(cfg["PASS_TO_PASS"])
+    p2p = [t.replace("::test_compose_roundtrip[]", "::test_compose_roundtrip[unit0]") for t in p2p]
+    cfg["PASS_TO_PASS"] = json.dumps(p2p)
+    cfg_path.write_text(json.dumps(cfg, indent=2) + "\n")
+
+
+def _fix_sphinx_9711(task_dir: Path) -> None:
+    test_sh = task_dir / "tests" / "test.sh"
+    test_sh.write_text(test_sh.read_text().replace("tox --current-env -epy39 -v -- tests/test_extension.py", "tox --current-env -epy39 -v -- -rA tests/test_extension.py"))
+
+
+# instance id -> fix applied to the copied task dir (idempotent); see the module docstring
+TASK_FIXES = {
+    "astropy__astropy-7606": _fix_astropy_7606,
+    "sphinx-doc__sphinx-9711": _fix_sphinx_9711,
+}
+
+
 def main() -> None:
     here = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -101,7 +174,7 @@ def main() -> None:
 
     out = Path(paths.rllm_path("datasets", args.name))
     out.mkdir(parents=True, exist_ok=True)
-    rows, missing = [], []
+    rows, missing, fixed = [], [], []
     for iid in want:
         row = by_id.get(iid.lower())
         if row is None:
@@ -115,6 +188,11 @@ def main() -> None:
             shutil.copytree(src_dir, dst)
         set_resources(dst / "task.toml", args.cpus, args.memory_mb)
         patch_dockerfile(dst / "environment" / "Dockerfile")
+        limit_threads(dst / "environment" / "Dockerfile", args.cpus)
+        narrow_git_clean(dst / "tests" / "test.sh")
+        if src_dir.name in TASK_FIXES:
+            TASK_FIXES[src_dir.name](dst)
+            fixed.append(src_dir.name)
         instruction = row.get("instruction") or (dst / "instruction.md").read_text()
         rows.append({"id": src_dir.name, "task_id": src_dir.name, "instruction": instruction, "question": instruction, "task_path": str(dst), "design_id": iid})
 
@@ -125,12 +203,16 @@ def main() -> None:
         name=args.name,
         data=rows,
         split=args.split,
-        source=f"harbor:{HARBOR_DATASET} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}",
-        description=f"SWE-bench Verified subset ({len(rows)} tasks) from the Harbor registry with resource fixes",
+        source=(
+            f"harbor:{HARBOR_DATASET} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}; "
+            f"OMP_NUM_THREADS={args.cpus}; git clean narrowed; task fixes: {', '.join(fixed) or 'none'}"
+        ),
+        description=f"SWE-bench Verified subset ({len(rows)} tasks) from the Harbor registry with resource and verifier fixes",
         category="agentic",
     )
     print(f"{args.name}/{args.split}: {len(rows)} tasks -> {out}")
-    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb}; Dockerfile apt Check-Valid-Until off")
+    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb}; Dockerfile apt Check-Valid-Until off, OMP_NUM_THREADS={args.cpus}")
+    print(f"  tests/test.sh: git clean -fd limited to test patch paths; task fixes: {', '.join(fixed) or 'none'}")
     print(f"  harbor harness: rllm eval {args.name} --split {args.split} --agent harbor:mini-swe-agent --evaluator harbor_reward_fn --sandbox-backend docker ...")
     print(f"  native harness: rllm eval {args.name} --split {args.split} --agent mini-swe-agent --sandbox-backend docker --agent-image auto ...")
 

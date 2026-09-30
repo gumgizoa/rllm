@@ -6,7 +6,7 @@
 ## 왜 subset인가
 
 - 500개 전체 평가 소요시간 과다
-- 500개 중 100개 subset에 대해서만 oracle test 검증 완료. 채점 불가로 알려진 `astropy__astropy-7606`(PASS_TO_PASS에 빈 pytest param id)은 뽑기 전에 제외
+- 500개 중 100개 subset에 대해서만 oracle test 검증 완료. 채점 불가로 알려진 `astropy__astropy-7606`(PASS_TO_PASS에 빈 pytest param id)은 뽑기 전에 제외(지금은 사본 보정으로 채점된다. 맨 아래 Appendix 참고)
 - subset은 저장소 비율을 전체와 유사한 분포로 샘플링하여 구축 (seed 0; django 45, sympy 15, sphinx 9, matplotlib 7, scikit-learn 6, xarray 4, pytest 4, astropy 4, requests 2, pylint 2, flask 1, seaborn 1). id 목록은 `subset-ids.txt` 참고.
 
 ## 1. 데이터셋 준비
@@ -127,3 +127,7 @@ Harbor harness는 trial 로그를 `$RLLM_HOME/harbor_trials/<task>-<n>__<실행�
 | `task.toml` `[environment].memory` | `'4G'` (deprecated 문자열 표기) | `memory_mb = 16384` | Pro subset과 동일. Harbor·rLLM 모두 `memory_mb`를 우선 읽는다. |
 | `tests/run_script.sh` | — | 변경 없음 | Verified 어댑터의 검증 스크립트는 업스트림 SWE-bench harness 흐름을 그대로 따른다. |
 | `environment/Dockerfile` | — | apt `Acquire::Check-Valid-Until "false"` 설정 한 줄 추가 | Harbor의 mini-swe-agent는 컨테이너 안에서 `apt-get update`로 빌드 도구를 먼저 설치한다. 배포판 archive의 Release 파일이 만료된 이미지에서 이 단계가 실패해 agent가 시작되지 못하는 것을 막는다(Pro subset에서 실측). oracle에는 영향 없음. |
+| `environment/Dockerfile` | — | `ENV OMP_NUM_THREADS=<cpus>` 추가 | 컨테이너 안의 `os.cpu_count()`는 호스트 코어 수(256)를 보고한다. 그래서 OpenMP 코드가 CPU 4개 할당에서 256개 스레드를 띄워 극도로 느려진다. `scikit-learn-14710`은 정답 패치로도 verifier가 3000초를 넘겼는데, 멈추던 테스트가 스레드 4개로는 2.4초에 끝난다. 이미지에 넣었으므로 agent의 테스트 실행에도 같이 적용된다. |
+| `tests/test.sh` | `git clean -fd` | `git clean -fd -- <test patch가 건드리는 경로>` | 제한 없이 실행하면 solution이 새로 만든 파일이 모두 지워진다. 그래서 모듈을 추가하는 올바른 수정이 틀림으로 채점된다(`astropy-13398`: 정답 패치의 새 모듈이 삭제돼 테스트 72개 전부 실패). test patch 경로의 잔여 파일은 계속 지우므로 `git apply`가 막히지 않는다. |
+| `tests/config.json` (`astropy__astropy-7606`) | P2P에 `test_compose_roundtrip[]` | `test_compose_roundtrip[unit0]` | 현재 pytest는 이 파라미터 이름을 `[unit0]`으로 만든다(97개 id 중 유일하게 다름). 원래 이름으로는 통과한 테스트가 매칭되지 않는다. |
+| `tests/test.sh` (`sphinx-doc__sphinx-9711`) | `tox ... -- tests/test_extension.py` | `tox ... -- -rA tests/test_extension.py` | tox 경유 pytest에 `-rA`가 없어 테스트별 `PASSED` 줄이 출력되지 않는다. 그래서 테스트가 통과해도 SWE-bench 파서가 결과를 찾지 못한다. |
