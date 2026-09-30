@@ -105,8 +105,10 @@ wrong but nothing raises. `SFTSample` rejects all of them.
 - **Reasoning goes in `reasoning`** (vLLM's field name). Templates read
   `reasoning_content`; the dataset does that rename. Writing `reasoning_content`
   into the parquet would work for Qwen and silently drop reasoning elsewhere.
-- **A non-thinking turn omits `reasoning`** (not `""`) *and* the row sets
-  `enable_thinking: false`. Without the flag the generation prompt stops at
+- **A non-thinking turn omits `reasoning`** (not `""`). A row with no reasoning
+  at all also sets `enable_thinking: false` (a row with reasoning on some turns
+  does not, see "Mixing thinking and non-thinking samples"). Without the flag the
+  generation prompt stops at
   `<think>\n`, so the forced `</think>` lands inside the supervised target.
 - **`content` carries no `<think>` / `</think>` and no control tokens.**
 - **The last message is `assistant`**, and at least one `user` message exists.
@@ -384,10 +386,17 @@ Because `enable_thinking` is untouched, both shapes work:
 With `false` the template closes the empty `<think>` block itself, so it lands in
 the generation prompt and is excluded from the target. `false` against a turn that
 *does* carry reasoning is a contradiction and raises rather than silently trimming.
-It is one flag per render, so a row is entirely thinking or entirely not.
+It is one flag per render, so a row is either a thinking sample or not.
 
-The converter never drops such rows - it marks them `enable_thinking: false` and
-leaves the choice to the filter's `--require-reasoning`.
+A thinking sample may still hold turns without reasoning: with thinking on, models
+skip thought on some turns (GLM-5.2 on about half of an agent run's steps). Such a
+turn renders as `<think>\n\n</think>\n\n{content}` under the `true` generation
+prompt, so its target is `\n</think>\n\n{content}` - exactly the tokens the model
+emitted when it was served.
+
+The converter never drops rows over this. A row with reasoning on any turn gets
+`enable_thinking: true`, one with none gets `false`, and the choice is left to the
+filter's `--require-reasoning`.
 
 ## 4. Look at the loss mask
 
