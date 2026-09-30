@@ -20,9 +20,31 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import sys
 import tempfile
+
+
+def reasoning_replay_llm(llm_cls):
+    """Subclass the SDK's ``LLM`` so every request carries past turns' reasoning.
+
+    The SDK sends an assistant turn's ``reasoning_content`` back only for a
+    hardcoded model list (kimi, deepseek, minimax), and ``capability_overrides``
+    cannot change that. Qwen3.x and GLM chat templates render a past turn
+    without it as an empty ``<think></think>``; after a couple of those the
+    model stops thinking for the rest of the rollout. Templates that do not use
+    the field ignore it, so it is always sent.
+
+    Takes the class rather than importing it: the SDK must be imported from an
+    empty cwd (see ``main``).
+    """
+
+    class ReasoningReplayLLM(llm_cls):
+        def _model_features(self):
+            return dataclasses.replace(super()._model_features(), send_reasoning_content=True)
+
+    return ReasoningReplayLLM
 
 
 def main() -> int:
@@ -51,7 +73,7 @@ def main() -> int:
 
     # Sampling params are the gateway's job -- it rewrites them on the way
     # through -- so the LLM is configured with routing only.
-    llm = LLM(
+    llm = reasoning_replay_llm(LLM)(
         model=model,
         api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
         base_url=os.environ.get("LLM_BASE_URL"),
