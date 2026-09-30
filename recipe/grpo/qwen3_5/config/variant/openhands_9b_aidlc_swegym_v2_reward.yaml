@@ -1,0 +1,21 @@
+# @package _global_
+#
+# openhands_9b_aidlc_swegym_v2 (six-step procedure removed, AI-DLC instruction
+# first) with the compliance mean in the reward, as in
+# openhands_9b_aidlc_swegym_reward: reward = verifier * aidlc/compliance
+# (mode mul; `recipe.aidlc.reward.mode=add recipe.aidlc.reward.lam=0.2` for
+# the additive form). openhands_9b_aidlc_swegym_v2 is this arm's control.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_reward
+
+defaults:
+  - openhands_9b_aidlc_swegym_v2
+
+recipe:
+  aidlc:
+    reward:
+      enable: true
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-aidlc-reward-swegym293-v2

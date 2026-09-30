@@ -21,7 +21,9 @@ Two classes, selected by ``recipe.agent`` / ``recipe.aidlc.enable`` in
     1. the workflow documents, uploaded to ``/ai-dlc`` -- outside the
        repository, so ``git diff`` cannot pick them up and the verifier's
        cleanup cannot trip over them;
-    2. an instruction suffix telling the agent where the documents are;
+    2. an instruction telling the agent where the documents are, placed
+       before the task text (``instruction_position: prefix``) or after it
+       (``suffix``, the Harbor arrangement);
     3. a replacement system prompt. This one is not optional for
        openhands-sdk: its default prompt carries a ``<PROBLEM_SOLVING_WORKFLOW>``
        section that prescribes its own procedure, and that outranks anything
@@ -73,6 +75,27 @@ class StepLimitedOpenHandsSdk(OpenHandsSdkHarness):
 
     step_limit: int = 50
 
+    def configure(self, overrides: dict) -> dict:
+        """Also honour ``rllm eval --agent-kwargs key=value,...``.
+
+        ``SandboxedAgentFlow.configure`` consumes only the sandbox flags and
+        returns the rest, so ``agent_kwargs`` would otherwise be warned about
+        and dropped. Each key must be an attribute this harness already has
+        (``step_limit``, ``enable_thinking``, ``instruction_position`` ...);
+        an unknown one is an error rather than a silent no-op.
+        """
+        leftovers = super().configure(overrides)
+        kwargs = leftovers.pop("agent_kwargs", None) or {}
+        for key, value in dict(kwargs).items():
+            if not hasattr(self, key):
+                raise ValueError(f"--agent-kwargs: {type(self).__name__} has no attribute {key!r}")
+            setattr(self, key, value)
+        self._after_configure()
+        return leftovers
+
+    def _after_configure(self) -> None:
+        self.step_limit = int(self.step_limit)
+
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
         env = super().build_env(task, config)
         if self.step_limit and int(self.step_limit) > 0:
@@ -90,6 +113,15 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
     ``instruction_file`` / ``system_prompt_file`` may be ``None`` to switch that
     layer off for an ablation; the documents are always uploaded.
 
+    ``instruction_position`` says where the instruction goes relative to the
+    task text: ``"prefix"`` puts it first, ``"suffix"`` (the default, as in the
+    Harbor experiment) appends it. In run 2 (2026-09-29, suffix) the SWE-Gym
+    prompt's own six-step procedure sat between the issue and the four-line
+    AI-DLC suffix, and 86% of rollouts never opened the workflow document
+    (reports/2026-09-30_aidlc_swegym_compliance.md); the recipe config sets
+    ``prefix`` so the first thing after the issue-independent preamble the
+    model reads is the workflow pointer.
+
     ``name`` is deliberately left at ``"openhands-sdk"``: ``rllm.sandbox.agent_image``
     keys the agent-image mount on that string, and a renamed harness would
     silently fall back to a per-task SDK install. Runs are told apart by
@@ -100,6 +132,9 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
     container_dir: str = "/ai-dlc"
     instruction_file: str | Path | None = DEFAULT_INSTRUCTION_FILE
     system_prompt_file: str | Path | None = DEFAULT_SYSTEM_PROMPT_FILE
+    instruction_position: str = "suffix"
+
+    INSTRUCTION_POSITIONS = ("prefix", "suffix")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -108,6 +143,17 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
         self.system_prompt_file = Path(self.system_prompt_file) if self.system_prompt_file else None
         if not self.container_dir.startswith("/"):
             raise ValueError(f"recipe.aidlc.container_dir must be absolute, got {self.container_dir!r}")
+        self._check_position()
+        self._validate_local_files()
+
+    def _check_position(self) -> None:
+        if self.instruction_position not in self.INSTRUCTION_POSITIONS:
+            raise ValueError(f"recipe.aidlc.instruction_position must be one of {self.INSTRUCTION_POSITIONS}, got {self.instruction_position!r}")
+
+    def _after_configure(self) -> None:
+        super()._after_configure()
+        self.instruction_file = Path(self.instruction_file) if self.instruction_file else None
+        self._check_position()
         self._validate_local_files()
 
     # ------------------------------------------------------------------
@@ -158,8 +204,17 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
         excluded = self._excluded()
         return sum(1 for p in self.docs_dir.rglob("*.md") if p.resolve() not in excluded)
 
-    def instruction_suffix(self) -> str:
+    def instruction_text(self) -> str:
         return self.instruction_file.read_text(encoding="utf-8").strip() if self.instruction_file else ""
+
+    def compose_instruction(self, task_instruction: str) -> str:
+        """The user message: the AI-DLC instruction before or after the task text."""
+        text = self.instruction_text()
+        if not text:
+            return task_instruction
+        if self.instruction_position == "prefix":
+            return f"{text}\n\n{task_instruction.strip()}"
+        return f"{task_instruction.rstrip()}\n\n{text}"
 
     # ------------------------------------------------------------------
     # Sandbox side
@@ -223,7 +278,4 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
         task: Task,
         config: AgentConfig,
     ) -> str:
-        suffix = self.instruction_suffix()
-        if suffix:
-            instruction = f"{instruction.rstrip()}\n\n{suffix}"
-        return super().build_invocation(instruction, task, config)
+        return super().build_invocation(self.compose_instruction(instruction), task, config)

@@ -222,6 +222,7 @@ def _build_agent_flow(recipe: DictConfig, config: DictConfig):
             container_dir=str(aidlc.get("container_dir", "/ai-dlc")),
             instruction_file=_recipe_path(aidlc.get("instruction_file")),
             system_prompt_file=_recipe_path(aidlc.get("system_prompt_file")),
+            instruction_position=str(aidlc.get("instruction_position", "suffix")),
         )
 
     raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")

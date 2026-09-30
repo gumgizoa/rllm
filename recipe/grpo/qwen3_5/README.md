@@ -287,6 +287,8 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openh
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_reward   # ... + compliance in the reward
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # 9B + openhands-sdk + AI-DLC, trained on SWE-Gym (below)
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_reward   # ... on SWE-Gym, compliance in the reward
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2       # SWE-Gym, prompt v2: no six-step procedure (swegym293_aidlc), AI-DLC instruction first
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_reward   # ... + compliance in the reward
 ```
 
 | `recipe.agent` | `recipe.aidlc.enable` | harness | where |
@@ -310,7 +312,7 @@ Three layers, each a `recipe.aidlc.*` key, mirroring the Harbor experiment
 | layer | key | in the sandbox | off switch |
 | --- | --- | --- | --- |
 | workflow documents | `docs_dir` → `container_dir` | `/ai-dlc/core-workflow.md`, `/ai-dlc/rule-details/0[1-5]-*.md`, uploaded per task and counted (6 `.md` or the rollout fails) | always on |
-| instruction suffix | `instruction_file` | appended to the task instruction: "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
+| instruction | `instruction_file`, `instruction_position` | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
 | system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` | `=null` |
 
 **The system prompt is the layer that matters.** openhands-sdk's default prompt carries a
@@ -434,8 +436,30 @@ runs it as-is (`rllm/eval/_resolution.py::_resolve_image`), so no per-task build
 when it is; the SDK runner passes its cwd as the `Conversation` workspace, so the agent's tools
 run in `/testbed`. `cpus = 4` / `memory_mb = 16384` are applied as `nano_cpus` / `mem_limit`,
 which is why the variant caps `sandbox_concurrency` at 32. `instruction.md` is SkyRL-v0's
-SWE-Gym prompt with `/workspace/<repo>` rewritten to `/testbed`; the AI-DLC suffix is appended
-to it by the harness as for any other dataset.
+SWE-Gym prompt (`get_instruction` in `verl/workers/agentic/utils.py` at SkyRL commit
+`a0d50c48`; the parquet's `prompt` column is the bare problem statement) with
+`/workspace/<repo>` rewritten to `/testbed`; the harness joins the AI-DLC instruction to it
+(`recipe.aidlc.instruction_position`) as for any other dataset.
+
+**`--instruction aidlc`.** That prompt ends in SkyRL-v0's own six-step procedure
+(EXPLORATION → ANALYSIS → TEST CREATION → IMPLEMENTATION → VERIFICATION → FINAL REVIEW), a
+second workflow for the same job as AI-DLC's five stages. In run 2 (2026-09-29) the model
+followed it: 86% of rollouts never opened `/ai-dlc/core-workflow.md`, and of the ones that did,
+70% first looked for it *inside* `/testbed` (`reports/2026-09-30_aidlc_swegym_compliance.md`).
+`prepare_swegym.py --instruction aidlc` builds the same tasks with that procedure (and the
+base-commit sha of step 6) removed, keeping only what describes the task — repo location,
+tests already handled, environment ready, minimal change to non-test files — under the
+names `swegym293_aidlc` / `swegym_val23_aidlc`, so the control arm's `swegym293` is untouched:
+
+```bash
+python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir /path/to/SkyRL-v0-293-data --instruction aidlc
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym \
+    recipe.train_dataset=swegym293_aidlc recipe.val_dataset=swegym_val23_aidlc
+```
+
+`scripts/aidlc_entry_probe.py` samples the first turn of the SDK conversation against any
+OpenAI-compatible endpoint and reports how often the first tool call opens the workflow
+document, for each prompt arrangement — a cheap check before a full run.
 
 ```
 $RLLM_HOME/datasets/swegym293/<instance_id>/
@@ -1506,11 +1530,11 @@ recipe/grpo/qwen3_5/
 ├── README.md
 ├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
-├── aidlc_flow.py                 # StepLimitedOpenHandsSdk + AidlcOpenHandsSdkHarness (docs upload, instruction suffix, system prompt)
+├── aidlc_flow.py                 # StepLimitedOpenHandsSdk + AidlcOpenHandsSdkHarness (docs upload, instruction prefix/suffix, system prompt)
 ├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
 │   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
 │   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/
-│   ├── instruction.md            #   appended to the task instruction
+│   ├── instruction.md            #   joined to the task instruction (recipe.aidlc.instruction_position: prefix | suffix)
 │   └── system-prompt.j2          #   replaces the SDK 1.42.1 system prompt (one section rewritten)
 ├── aidlc_reward/                 # compliance signals + reward (see Compliance reward)
 │   ├── rubric/                   #   offline adherence rubric, vendored byte-identical
@@ -1530,12 +1554,15 @@ recipe/grpo/qwen3_5/
 │       ├── openhands_9b_aidlc_reward.yaml  # `variant=openhands_9b_aidlc_reward`: the above + recipe.aidlc.reward.enable=true
 │       ├── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: openhands_9b_aidlc on SWE-Gym; FSDP1, 1 update/step, no-think
 │       ├── openhands_9b_aidlc_swegym_reward.yaml  # `variant=openhands_9b_aidlc_swegym_reward`: the above + compliance in the reward
+│       ├── openhands_9b_aidlc_swegym_v2.yaml      # `variant=openhands_9b_aidlc_swegym_v2`: prompt v2 (swegym293_aidlc + instruction_position=prefix)
+│       ├── openhands_9b_aidlc_swegym_v2_reward.yaml  # `variant=openhands_9b_aidlc_swegym_v2_reward`: v2 + compliance in the reward
 │       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, aidlc.enable=false
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
     ├── prepare_datasets.py       # builds + registers the train/val benchmarks (SWE-smith / SWE-bench Verified)
-    ├── prepare_swegym.py         # SkyRL-v0-293-data parquet -> swegym293 / swegym_val23 task dirs + registry (--evaluate-py: hybrid verifier)
+    ├── prepare_swegym.py         # SkyRL-v0-293-data parquet -> swegym293 / swegym_val23 task dirs + registry (--instruction aidlc: prompt without SkyRL's six steps; --evaluate-py: hybrid verifier)
+    ├── aidlc_entry_probe.py      # first-turn probe: how often does the model open /ai-dlc/core-workflow.md, per prompt arrangement
     ├── swegym_eval.py            # swegym eval_script, rebuilt from the vendored specs (byte-identical, 316/316)
     ├── swegym_specs.json         # vendored swegym MAP_REPO_VERSION_TO_SPECS / MAP_REPO_TO_PARSER (17 repos, 104 versions)
     ├── grade.py                  # in-sandbox swegym grader, stdlib only (copied into every task's tests/)

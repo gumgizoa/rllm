@@ -16,8 +16,16 @@
 # Control arm on the same data (SDK's own workflow, no documents):
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym
 #
-# The turn budget (agent_step_limit=80) and the context window
-# (8192 + 122880 = 131072) are inherited from openhands_9b unchanged: the 4B
+# Prompt arrangement: this variant reproduces run 2 (2026-09-29) -- SkyRL-v0's
+# SWE-Gym prompt with its six-step procedure (swegym293) and the AI-DLC
+# instruction appended after it (instruction_position=suffix, pinned below
+# because config.yaml's default is now prefix). The model followed the six
+# steps instead of /ai-dlc/core-workflow.md: 86% of rollouts never opened the
+# workflow (reports/2026-09-30_aidlc_swegym_compliance.md). The fixed
+# arrangement is variant=openhands_9b_aidlc_swegym_v2.
+#
+# The context window (16384 + 114688 = 131072) is inherited from openhands_9b
+# unchanged (the turn budget is raised to 100 below): the 4B
 # ran 131072 at 36 GB peak on an 80 GB card, the 9B's hidden size is 1.6x, so
 # ~60-70 GB of activations fit a 141 GB H200. If the first update_actor OOMs,
 # shrink the three knobs together (README, "Picking agent_step_limit and
@@ -48,6 +56,16 @@ recipe:
   # instruction still quotes the base commit sha, which the agent can no
   # longer `git diff` against; harmless.
   hide_git_history: true
+  # 100 turns, up from openhands_9b's 80 (decided 2026-09-29). The AI-DLC arm
+  # spends its first turns on the workflow documents and five stage
+  # artifacts: in the 25-turn smoke 37-75% of rollouts hit max_turns_exceeded,
+  # and run 1 (no AI-DLC, 80 turns) still ended 7-66% of rollouts on the turn
+  # budget. Context stays 131072; watch termination_reason/agent_timeout
+  # against task.toml's 3600 s agent budget.
+  agent_step_limit: 100
+  aidlc:
+    # run 2's arrangement (see the header); v2 uses prefix.
+    instruction_position: suffix
 
 rllm:
   data:

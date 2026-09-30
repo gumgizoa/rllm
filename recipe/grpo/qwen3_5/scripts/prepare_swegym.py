@@ -15,7 +15,7 @@ root every Task at its directory::
     ├── dataset.toml
     └── <instance_id>/
         ├── task.toml            # [environment] docker_image + workdir=/testbed, timeouts, resources
-        ├── instruction.md       # SkyRL-v0's SWE-Gym prompt, paths rewritten to /testbed
+        ├── instruction.md       # SkyRL-v0's SWE-Gym prompt, paths rewritten to /testbed (--instruction aidlc: without its six-step procedure)
         ├── tests/
         │   ├── test.sh          # verifier entry: runs eval.sh, then grade.py -> /logs/verifier/reward.json
         │   ├── eval.sh          # swegym eval_script (byte-identical; see scripts/swegym_eval.py)
@@ -37,6 +37,13 @@ Usage::
     python recipe/grpo/qwen3_5/scripts/prepare_swegym.py \
         --parquet-dir /path/to/SkyRL-v0-293-data
     # -> swegym293/train (293 tasks) and swegym_val23/test (23 tasks)
+
+    # AI-DLC arms: the same tasks without SkyRL-v0's six-step procedure in the
+    # prompt (it competes with /ai-dlc/core-workflow.md; see INSTRUCTION_TEMPLATE_AIDLC):
+    python recipe/grpo/qwen3_5/scripts/prepare_swegym.py \
+        --parquet-dir /path/to/SkyRL-v0-293-data --instruction aidlc
+    # -> swegym293_aidlc/train and swegym_val23_aidlc/test; point the variant at them with
+    #    recipe.train_dataset=swegym293_aidlc recipe.val_dataset=swegym_val23_aidlc
 
     # Hybrid reward: a Python verifier that gets the live sandbox (rLLM's
     # python-host/hybrid evaluator) and combines the SWE-Gym result with
@@ -81,8 +88,12 @@ VERIFIER_TIMEOUT_SEC = 1800.0
 # The verifier's test run and the agent's own pytest calls both live under it.
 RESOURCES = {"cpus": 4, "memory_mb": 16384}
 
-# SkyRL-v0's SWE-Gym instruction (SkyRL verl/workers/agentic/utils.py
-# get_instruction), with /workspace/<repo> replaced by the image's /testbed.
+# SkyRL-v0's SWE-Gym instruction: ``get_instruction`` in
+# ``verl/workers/agentic/utils.py`` at NovaSky-AI/SkyRL commit a0d50c48 (the
+# commit the SkyRL README names for reproducing SkyRL-v0), with
+# /workspace/<repo> replaced by the image's /testbed. Otherwise verbatim; the
+# parquet's ``prompt`` column is the bare problem statement, so this template is
+# what SkyRL-v0's rollout code added at run time.
 INSTRUCTION_TEMPLATE = """<uploaded_files>
 /testbed
 </uploaded_files>
@@ -134,6 +145,35 @@ Follow these steps to resolve the issue:
 
 Be thorough in your exploration, testing, and reasoning. It's fine if your thinking process is lengthy - quality and completeness are more important than brevity.
 """
+
+# The same task text for the AI-DLC arm (``--instruction aidlc``). SkyRL-v0's
+# six-step procedure ("Follow these steps": EXPLORATION, ANALYSIS, TEST
+# CREATION, IMPLEMENTATION, VERIFICATION, FINAL REVIEW) is dropped: it is a
+# second, more detailed workflow for the same job as AI-DLC's five stages, and
+# in run 2 (2026-09-29) 86% of rollouts followed it instead of reading
+# /ai-dlc/core-workflow.md (reports/2026-09-30_aidlc_swegym_compliance.md).
+# The base-commit sha went with step 6; with ``hide_git_history`` the agent
+# cannot diff against it anyway. Everything that describes the *task* stays:
+# where the repo is, that the tests are already taken care of, that the
+# environment is ready, and that the change is minimal and to non-test files.
+# ``{base_commit}`` is accepted and ignored so both templates format alike.
+INSTRUCTION_TEMPLATE_AIDLC = """<uploaded_files>
+/testbed
+</uploaded_files>
+
+I've uploaded a python code repository in the directory /testbed. Consider the following issue description:
+
+<issue_description>
+{problem_statement}
+</issue_description>
+
+Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue_description> are met?
+I've already taken care of all changes to any of the test files described in the <issue_description>. This means you DON'T have to modify the testing logic or any of the tests in any way!
+Also the development Python environment is already set up for you (i.e., all dependencies already installed), so you don't need to install other packages.
+Your task is to make the minimal changes to non-test files in the /testbed directory to ensure the <issue_description> is satisfied.
+"""
+
+INSTRUCTION_TEMPLATES = {"skyrl": INSTRUCTION_TEMPLATE, "aidlc": INSTRUCTION_TEMPLATE_AIDLC}
 
 # Verifier entry. Runs in the same container the agent worked in, as root,
 # after ShellScriptEvaluator uploaded tests/ to /tests. eval.sh is swegym's
@@ -237,13 +277,14 @@ def write_dataset_toml(out: Path, *, name: str, split: str, description: str, ve
     )
 
 
-def materialize(task_dir: Path, inst: dict, image: str, name: str, specs: dict, grade_src: Path, evaluate_src: Path | None = None) -> None:
+def render_instruction(inst: dict, style: str = "skyrl") -> str:
+    return INSTRUCTION_TEMPLATES[style].format(problem_statement=inst["problem_statement"].strip(), base_commit=inst["base_commit"])
+
+
+def materialize(task_dir: Path, inst: dict, image: str, name: str, specs: dict, grade_src: Path, evaluate_src: Path | None = None, instruction: str = "skyrl") -> None:
     task_dir.mkdir(parents=True)
     (task_dir / "task.toml").write_text(build_task_toml(inst, image, name, "tests.evaluate" if evaluate_src else None), encoding="utf-8")
-    (task_dir / "instruction.md").write_text(
-        INSTRUCTION_TEMPLATE.format(problem_statement=inst["problem_statement"].strip(), base_commit=inst["base_commit"]),
-        encoding="utf-8",
-    )
+    (task_dir / "instruction.md").write_text(render_instruction(inst, instruction), encoding="utf-8")
     tests = task_dir / "tests"
     tests.mkdir()
     (tests / "test.sh").write_text(TEST_SH, encoding="utf-8")
@@ -276,7 +317,7 @@ def local_images() -> set[str] | None:
     return {ln.strip() for ln in out.splitlines() if ln.strip()}
 
 
-def build(parquet: Path, *, name: str, split: str, out_root: Path, limit: int | None, image_prefix: str, description: str, have_images: set[str] | None, evaluate_src: Path | None = None) -> int:
+def build(parquet: Path, *, name: str, split: str, out_root: Path, limit: int | None, image_prefix: str, description: str, have_images: set[str] | None, evaluate_src: Path | None = None, instruction: str = "skyrl") -> int:
     from rllm.data import DatasetRegistry
 
     specs = swegym_eval.load_specs()
@@ -295,7 +336,7 @@ def build(parquet: Path, *, name: str, split: str, out_root: Path, limit: int | 
         image = image_for(inst["instance_id"], image_prefix)
         images.add(image)
         task_dir = out / inst["instance_id"]
-        materialize(task_dir, inst, image, name, specs, grade_src, evaluate_src)
+        materialize(task_dir, inst, image, name, specs, grade_src, evaluate_src, instruction)
         rows.append(
             {
                 "id": inst["instance_id"],
@@ -343,7 +384,23 @@ def main() -> None:
             "tests/test.sh alone."
         ),
     )
+    ap.add_argument(
+        "--instruction",
+        choices=sorted(INSTRUCTION_TEMPLATES),
+        default="skyrl",
+        help=(
+            "Task prompt: 'skyrl' is SkyRL-v0's SWE-Gym prompt (six-step procedure included; the control arm); "
+            "'aidlc' drops that procedure so it does not compete with /ai-dlc/core-workflow.md (the AI-DLC arms). "
+            "With 'aidlc' the default dataset names get an `_aidlc` suffix (swegym293_aidlc / swegym_val23_aidlc) "
+            "so the control arm's task dirs are kept; pass --train-name / --val-name to choose otherwise."
+        ),
+    )
     args = ap.parse_args()
+    if args.instruction != "skyrl":
+        if args.train_name == TRAIN_NAME:
+            args.train_name = f"{TRAIN_NAME}_{args.instruction}"
+        if args.val_name == VAL_NAME:
+            args.val_name = f"{VAL_NAME}_{args.instruction}"
     evaluate_src = Path(args.evaluate_py).expanduser().resolve() if args.evaluate_py else None
     if evaluate_src is not None and not evaluate_src.is_file():
         sys.exit(f"--evaluate-py: {evaluate_src} is not a file")
@@ -366,7 +423,8 @@ def main() -> None:
             out_root=out_root,
             limit=args.train_limit,
             image_prefix=args.image_prefix,
-            description="SWE-Gym (SkyRL-v0 293-instance subset), swegym eval_script verifier",
+            description="SWE-Gym (SkyRL-v0 293-instance subset), swegym eval_script verifier" + ("" if args.instruction == "skyrl" else f" ({args.instruction} instruction)"),
+            instruction=args.instruction,
             have_images=have,
             evaluate_src=evaluate_src,
         )
@@ -378,7 +436,8 @@ def main() -> None:
             out_root=out_root,
             limit=args.val_limit,
             image_prefix=args.image_prefix,
-            description="SkyRL-v0 validation set (23 SWE-bench-style instances), swegym eval_script verifier",
+            description="SkyRL-v0 validation set (23 SWE-bench-style instances), swegym eval_script verifier" + ("" if args.instruction == "skyrl" else f" ({args.instruction} instruction)"),
+            instruction=args.instruction,
             have_images=have,
             evaluate_src=evaluate_src,
         )
