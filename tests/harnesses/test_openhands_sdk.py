@@ -71,5 +71,7 @@ def test_llm_sends_past_reasoning_back():
     llm = runner.reasoning_replay_llm(LLM)(**kwargs)
     sent = llm.format_messages_for_llm(history)
     assert sent[1]["reasoning_content"] == "the bug is in f()"
+    assert sent[1]["reasoning"] == "the bug is in f()"  # the field vLLM reads
     assert "reasoning_content" not in sent[0]
+    assert "reasoning" not in sent[0]
     assert Agent(llm=llm, tools=[]).llm is llm  # the agent keeps the subclass
