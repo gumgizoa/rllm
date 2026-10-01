@@ -438,7 +438,8 @@ run in `/testbed`. `cpus = 4` / `memory_mb = 16384` are applied as `nano_cpus` /
 which is why the variant caps `sandbox_concurrency` at 32. `instruction.md` is the prompt
 SkyRL-v0 trained with (`get_instruction` in `verl/workers/agentic/utils.py` at SkyRL commit
 `a0d50c48`), which SkyRL took byte-for-byte from OpenHands' SWE-bench evaluation
-(`evaluation/benchmarks/swe_bench/run_infer.py`, OpenHands 0.15 – 0.30 at least; the parquet's
+(`evaluation/benchmarks/swe_bench/run_infer.py` in the OpenHands application repo — PyPI
+`openhands-ai` 0.15 – 0.30 at least, not the `openhands-sdk` 1.x library this recipe runs; the parquet's
 `prompt` column is the bare problem statement), with `/workspace/<repo>` rewritten to
 `/testbed`; the harness joins the AI-DLC instruction to it (`recipe.aidlc.instruction_position`)
 as for any other dataset.

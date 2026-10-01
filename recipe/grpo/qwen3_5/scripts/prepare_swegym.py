@@ -93,8 +93,10 @@ RESOURCES = {"cpus": 4, "memory_mb": 16384}
 # commit the SkyRL README names for reproducing SkyRL-v0), with
 # /workspace/<repo> replaced by the image's /testbed. SkyRL took it verbatim
 # from OpenHands' SWE-bench evaluation (``get_instruction`` in
-# ``evaluation/benchmarks/swe_bench/run_infer.py``, present from OpenHands
-# 0.15 through at least 0.30; the SkyRL and OpenHands 0.30.0 blocks are
+# ``evaluation/benchmarks/swe_bench/run_infer.py`` of the OpenHands
+# *application* repo -- PyPI ``openhands-ai``, versions 0.15 through at least
+# 0.30; not ``openhands-sdk``, the 1.x agent library this recipe runs, which
+# ships no such prompt. The SkyRL and OpenHands 0.30.0 blocks are
 # byte-identical), six-step procedure included. The parquet's ``prompt``
 # column is the bare problem statement, so this template is what the rollout
 # code added at run time.

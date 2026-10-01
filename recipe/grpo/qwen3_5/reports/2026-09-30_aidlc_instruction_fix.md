@@ -32,7 +32,7 @@ Follow the workflow defined in /ai-dlc/core-workflow.md.
 Read /ai-dlc/core-workflow.md first. ...            ← AI-DLC 지시 4줄 (suffix)
 ```
 
-1. **경쟁하는 절차.** task instruction 전체(6단계 포함)는 OpenHands의 SWE-bench 평가 프롬프트(`evaluation/benchmarks/swe_bench/run_infer.py` `get_instruction`, 0.15~0.30 확인)이고, SkyRL-v0 코드(`verl/workers/agentic/utils.py`, 커밋 `a0d50c48`)가 이를 byte 단위로 그대로 가져와 rollout 때 붙이던 것이다. 6단계는 OpenHands가 자기 에이전트용으로 쓴 절차로, AI-DLC의 5 stage와 같은 일을 더 구체적으로 지시한다. 모델은 이슈 바로 아래에 있는 이 절차를 따라 "Let's start by exploring the repository"로 시작하고, 맨 끝의 4줄은 무시한다. 첫 tool call이 `/testbed` 탐색인 비율 99%.
+1. **경쟁하는 절차.** task instruction 전체(6단계 포함)는 OpenHands 애플리케이션(PyPI `openhands-ai`, 이 recipe가 쓰는 `openhands-sdk` 1.x와는 별개 저장소)의 SWE-bench 평가 프롬프트(`evaluation/benchmarks/swe_bench/run_infer.py` `get_instruction`, 0.15~0.30 확인)이고, SkyRL-v0 코드(`verl/workers/agentic/utils.py`, 커밋 `a0d50c48`)가 이를 byte 단위로 그대로 가져와 rollout 때 붙이던 것이다. 6단계는 OpenHands가 자기 에이전트용으로 쓴 절차로, AI-DLC의 5 stage와 같은 일을 더 구체적으로 지시한다. 모델은 이슈 바로 아래에 있는 이 절차를 따라 "Let's start by exploring the repository"로 시작하고, 맨 끝의 4줄은 무시한다. 첫 tool call이 `/testbed` 탐색인 비율 99%.
 2. **경로 오해.** 진입한 393개 중 70%는 먼저 repo 안에서 `find . -name "*.md" | grep workflow`를 쳤고, 실패 후 절대경로를 시도해 우연히 진입했다. 비진입 중 약 390개는 `/testbed/ai-dlc/…`를 찾다가 포기했다. SDK system prompt의 "파일 경로를 받으면 먼저 파일 시스템을 탐색해 위치를 찾아라"가 이를 부추긴다.
 3. **진입 후 이탈.** 01 rule을 읽은 뒤 Stage 1 작업(탐색·테스트)을 시작하면 SWE-Gym 습관으로 복귀해 artifact를 쓰지 않는다(01 읽은 250개 중 02까지 간 비율 24%).
 
