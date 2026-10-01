@@ -435,15 +435,17 @@ runs it as-is (`rllm/eval/_resolution.py::_resolve_image`), so no per-task build
 `workdir = "/testbed"` is set explicitly because both the harness and the verifier `cd` only
 when it is; the SDK runner passes its cwd as the `Conversation` workspace, so the agent's tools
 run in `/testbed`. `cpus = 4` / `memory_mb = 16384` are applied as `nano_cpus` / `mem_limit`,
-which is why the variant caps `sandbox_concurrency` at 32. `instruction.md` is SkyRL-v0's
-SWE-Gym prompt (`get_instruction` in `verl/workers/agentic/utils.py` at SkyRL commit
-`a0d50c48`; the parquet's `prompt` column is the bare problem statement) with
-`/workspace/<repo>` rewritten to `/testbed`; the harness joins the AI-DLC instruction to it
-(`recipe.aidlc.instruction_position`) as for any other dataset.
+which is why the variant caps `sandbox_concurrency` at 32. `instruction.md` is the prompt
+SkyRL-v0 trained with (`get_instruction` in `verl/workers/agentic/utils.py` at SkyRL commit
+`a0d50c48`), which SkyRL took byte-for-byte from OpenHands' SWE-bench evaluation
+(`evaluation/benchmarks/swe_bench/run_infer.py`, OpenHands 0.15 – 0.30 at least; the parquet's
+`prompt` column is the bare problem statement), with `/workspace/<repo>` rewritten to
+`/testbed`; the harness joins the AI-DLC instruction to it (`recipe.aidlc.instruction_position`)
+as for any other dataset.
 
-**`--instruction aidlc`.** That prompt ends in SkyRL-v0's own six-step procedure
-(EXPLORATION → ANALYSIS → TEST CREATION → IMPLEMENTATION → VERIFICATION → FINAL REVIEW), a
-second workflow for the same job as AI-DLC's five stages. In run 2 (2026-09-29) the model
+**`--instruction aidlc`.** That prompt ends in a six-step procedure
+(EXPLORATION → ANALYSIS → TEST CREATION → IMPLEMENTATION → VERIFICATION → FINAL REVIEW) that
+OpenHands wrote for its own agent, a second workflow for the same job as AI-DLC's five stages. In run 2 (2026-09-29) the model
 followed it: 86% of rollouts never opened `/ai-dlc/core-workflow.md`, and of the ones that did,
 70% first looked for it *inside* `/testbed` (`reports/2026-09-30_aidlc_swegym_compliance.md`).
 `prepare_swegym.py --instruction aidlc` builds the same tasks with that procedure (and the

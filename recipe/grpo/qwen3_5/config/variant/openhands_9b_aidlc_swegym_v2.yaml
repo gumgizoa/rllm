@@ -5,7 +5,8 @@
 # turns, hide_git_history, FSDP1, checkpoint every step) with the two prompt
 # changes that fixed workflow entry (reports/2026-09-30_aidlc_swegym_compliance.md):
 #
-#   1. the task prompt without SkyRL-v0's six-step procedure
+#   1. the task prompt without its six-step procedure (OpenHands' SWE-bench
+#      prompt as SkyRL-v0 reused it; EXPLORATION ... FINAL REVIEW)
 #      (swegym293_aidlc / swegym_val23_aidlc, built by
 #      prepare_swegym.py --instruction aidlc);
 #   2. the AI-DLC instruction placed *before* the task text

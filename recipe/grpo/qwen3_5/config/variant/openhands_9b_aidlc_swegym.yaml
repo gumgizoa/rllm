@@ -16,8 +16,9 @@
 # Control arm on the same data (SDK's own workflow, no documents):
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym
 #
-# Prompt arrangement: this variant reproduces run 2 (2026-09-29) -- SkyRL-v0's
-# SWE-Gym prompt with its six-step procedure (swegym293) and the AI-DLC
+# Prompt arrangement: this variant reproduces run 2 (2026-09-29) -- the
+# SWE-Gym prompt SkyRL-v0 trained with (OpenHands' SWE-bench prompt, six-step
+# procedure included; swegym293) and the AI-DLC
 # instruction appended after it (instruction_position=suffix, pinned below
 # because config.yaml's default is now prefix). The model followed the six
 # steps instead of /ai-dlc/core-workflow.md: 86% of rollouts never opened the

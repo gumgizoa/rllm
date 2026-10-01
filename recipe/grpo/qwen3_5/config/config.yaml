@@ -37,7 +37,8 @@ recipe:
     instruction_file: aidlc/instruction.md   # joined to the task instruction (see instruction_position); null = leave the task text alone
     # Where instruction_file goes in the user message. prefix = before the task
     # text, suffix = after it (the Harbor arrangement, and the code default).
-    # Run 2 (2026-09-29, suffix) put SkyRL's six-step procedure between the
+    # Run 2 (2026-09-29, suffix) put the task prompt's six-step procedure
+    # (OpenHands' SWE-bench prompt, reused by SkyRL-v0) between the
     # issue and the AI-DLC pointer and 86% of rollouts never read the workflow
     # (reports/2026-09-30_aidlc_swegym_compliance.md), so the recipe uses prefix.
     instruction_position: prefix

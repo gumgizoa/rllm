@@ -15,7 +15,7 @@ root every Task at its directory::
     ├── dataset.toml
     └── <instance_id>/
         ├── task.toml            # [environment] docker_image + workdir=/testbed, timeouts, resources
-        ├── instruction.md       # SkyRL-v0's SWE-Gym prompt, paths rewritten to /testbed (--instruction aidlc: without its six-step procedure)
+        ├── instruction.md       # SkyRL-v0's SWE-Gym prompt (= OpenHands' SWE-bench prompt), paths rewritten to /testbed (--instruction aidlc: without its six-step procedure)
         ├── tests/
         │   ├── test.sh          # verifier entry: runs eval.sh, then grade.py -> /logs/verifier/reward.json
         │   ├── eval.sh          # swegym eval_script (byte-identical; see scripts/swegym_eval.py)
@@ -38,7 +38,7 @@ Usage::
         --parquet-dir /path/to/SkyRL-v0-293-data
     # -> swegym293/train (293 tasks) and swegym_val23/test (23 tasks)
 
-    # AI-DLC arms: the same tasks without SkyRL-v0's six-step procedure in the
+    # AI-DLC arms: the same tasks without the prompt's six-step procedure in the
     # prompt (it competes with /ai-dlc/core-workflow.md; see INSTRUCTION_TEMPLATE_AIDLC):
     python recipe/grpo/qwen3_5/scripts/prepare_swegym.py \
         --parquet-dir /path/to/SkyRL-v0-293-data --instruction aidlc
@@ -88,12 +88,16 @@ VERIFIER_TIMEOUT_SEC = 1800.0
 # The verifier's test run and the agent's own pytest calls both live under it.
 RESOURCES = {"cpus": 4, "memory_mb": 16384}
 
-# SkyRL-v0's SWE-Gym instruction: ``get_instruction`` in
+# The SWE-Gym task prompt SkyRL-v0 trained with: ``get_instruction`` in
 # ``verl/workers/agentic/utils.py`` at NovaSky-AI/SkyRL commit a0d50c48 (the
 # commit the SkyRL README names for reproducing SkyRL-v0), with
-# /workspace/<repo> replaced by the image's /testbed. Otherwise verbatim; the
-# parquet's ``prompt`` column is the bare problem statement, so this template is
-# what SkyRL-v0's rollout code added at run time.
+# /workspace/<repo> replaced by the image's /testbed. SkyRL took it verbatim
+# from OpenHands' SWE-bench evaluation (``get_instruction`` in
+# ``evaluation/benchmarks/swe_bench/run_infer.py``, present from OpenHands
+# 0.15 through at least 0.30; the SkyRL and OpenHands 0.30.0 blocks are
+# byte-identical), six-step procedure included. The parquet's ``prompt``
+# column is the bare problem statement, so this template is what the rollout
+# code added at run time.
 INSTRUCTION_TEMPLATE = """<uploaded_files>
 /testbed
 </uploaded_files>
@@ -146,7 +150,7 @@ Follow these steps to resolve the issue:
 Be thorough in your exploration, testing, and reasoning. It's fine if your thinking process is lengthy - quality and completeness are more important than brevity.
 """
 
-# The same task text for the AI-DLC arm (``--instruction aidlc``). SkyRL-v0's
+# The same task text for the AI-DLC arm (``--instruction aidlc``). The
 # six-step procedure ("Follow these steps": EXPLORATION, ANALYSIS, TEST
 # CREATION, IMPLEMENTATION, VERIFICATION, FINAL REVIEW) is dropped: it is a
 # second, more detailed workflow for the same job as AI-DLC's five stages, and
@@ -389,7 +393,7 @@ def main() -> None:
         choices=sorted(INSTRUCTION_TEMPLATES),
         default="skyrl",
         help=(
-            "Task prompt: 'skyrl' is SkyRL-v0's SWE-Gym prompt (six-step procedure included; the control arm); "
+            "Task prompt: 'skyrl' is the prompt SkyRL-v0 trained with, i.e. OpenHands' SWE-bench prompt with its six-step procedure (the control arm); "
             "'aidlc' drops that procedure so it does not compete with /ai-dlc/core-workflow.md (the AI-DLC arms). "
             "With 'aidlc' the default dataset names get an `_aidlc` suffix (swegym293_aidlc / swegym_val23_aidlc) "
             "so the control arm's task dirs are kept; pass --train-name / --val-name to choose otherwise."

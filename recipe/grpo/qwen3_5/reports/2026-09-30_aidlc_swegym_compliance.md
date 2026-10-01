@@ -87,7 +87,7 @@ mul에서는 그룹의 74%가 학습 신호를 전혀 만들지 못하고, 남�
 
 ## 4. 제안 (우선순위순)
 
-1. **진입 확률을 올리는 프롬프트 수정** — SWE-Gym 6단계 절차와 AI-DLC 지시가 충돌한다. instruction에서 6단계 절차를 제거하거나 AI-DLC 4줄을 issue 직후·절차 앞으로 옮기고, 첫 turn의 행동을 명시("첫 tool call은 `view /ai-dlc/core-workflow.md`"). 이것만으로 13.8% → 대폭 상승이 기대되며, 이 arm의 base rate가 0에 가까운 상태에서 어떤 reward 설계도 작동하지 않는다.
+1. **진입 확률을 올리는 프롬프트 수정** — task 프롬프트의 6단계 절차(OpenHands SWE-bench 평가 프롬프트, SkyRL-v0가 그대로 사용)와 AI-DLC 지시가 충돌한다. instruction에서 6단계 절차를 제거하거나 AI-DLC 4줄을 issue 직후·절차 앞으로 옮기고, 첫 turn의 행동을 명시("첫 tool call은 `view /ai-dlc/core-workflow.md`"). 이것만으로 13.8% → 대폭 상승이 기대되며, 이 arm의 base rate가 0에 가까운 상태에서 어떤 reward 설계도 작동하지 않는다.
 2. **reward 결합은 add(lam 0.2~0.5)로 시작**하고, compliance>0 비율이 30~50%로 올라온 뒤 mul을 검토. 또는 mul을 쓰되 compliance에 floor(예: 0.2 + 0.8·c)를 둔다.
 3. **04 skeleton에 `- Created: none` 표기 추가**(rubric은 이미 허용). s4 만점 비율이 즉시 회복된다.
 4. (선택) 이탈 대책: core-workflow.md에 각 stage의 첫 tool call과 마지막 tool call(artifact 쓰기)을 한 줄 체크리스트로 재기술. 현재는 01을 읽은 뒤 60+ turn 동안 artifact 언급이 컨텍스트에 없다.

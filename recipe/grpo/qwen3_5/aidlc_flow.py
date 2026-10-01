@@ -116,7 +116,8 @@ class AidlcOpenHandsSdkHarness(StepLimitedOpenHandsSdk):
     ``instruction_position`` says where the instruction goes relative to the
     task text: ``"prefix"`` puts it first, ``"suffix"`` (the default, as in the
     Harbor experiment) appends it. In run 2 (2026-09-29, suffix) the SWE-Gym
-    prompt's own six-step procedure sat between the issue and the four-line
+    prompt's six-step procedure (OpenHands' SWE-bench prompt, reused by
+    SkyRL-v0) sat between the issue and the four-line
     AI-DLC suffix, and 86% of rollouts never opened the workflow document
     (reports/2026-09-30_aidlc_swegym_compliance.md); the recipe config sets
     ``prefix`` so the first thing after the issue-independent preamble the

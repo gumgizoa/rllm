@@ -8,7 +8,8 @@ OpenAI-compatible endpoint. One request per (arrangement, task, sample); nothing
 
 Arrangements (``--arrangements``), ``<task template>+<aidlc position>``:
 
-    skyrl+suffix   run 2's prompt: SkyRL's six-step procedure, AI-DLC pointer appended
+    skyrl+suffix   run 2's prompt: the six-step procedure (OpenHands' SWE-bench prompt as SkyRL-v0
+                   reused it), AI-DLC pointer appended
     skyrl+prefix   same task text, AI-DLC pointer first
     aidlc+suffix   task text without the six steps (prepare_swegym --instruction aidlc), pointer appended
     aidlc+prefix   the new default arrangement
