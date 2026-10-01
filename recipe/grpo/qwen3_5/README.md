@@ -1566,6 +1566,7 @@ recipe/grpo/qwen3_5/
     ├── prepare_datasets.py       # builds + registers the train/val benchmarks (SWE-smith / SWE-bench Verified)
     ├── prepare_swegym.py         # SkyRL-v0-293-data parquet -> swegym293 / swegym_val23 task dirs + registry (--instruction aidlc: prompt without SkyRL's six steps; --evaluate-py: hybrid verifier)
     ├── aidlc_entry_probe.py      # first-turn probe: how often does the model open /ai-dlc/core-workflow.md, per prompt arrangement
+    ├── export_hf.py              # verl FSDP global_step_N -> vLLM-loadable HF dir laid out like the base model (merger + visual-key rename + mtp from base)
     ├── swegym_eval.py            # swegym eval_script, rebuilt from the vendored specs (byte-identical, 316/316)
     ├── swegym_specs.json         # vendored swegym MAP_REPO_VERSION_TO_SPECS / MAP_REPO_TO_PARSER (17 repos, 104 versions)
     ├── grade.py                  # in-sandbox swegym grader, stdlib only (copied into every task's tests/)
