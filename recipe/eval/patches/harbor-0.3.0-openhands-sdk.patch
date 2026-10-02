@@ -214,3 +214,55 @@
      --instruction={escaped_instruction} \
      --logs-dir="$AGENT_LOGS_DIR" \
      --trajectory-path="$TRAJECTORY_PATH" \
+--- a/harbor/agents/installed/openhands_sdk_runner.py
++++ b/harbor/agents/installed/openhands_sdk_runner.py
+@@ -2,6 +2,7 @@
+ """Harbor runner script for OpenHands SDK agent."""
+ 
+ import argparse
++import dataclasses
+ import json
+ import os
+ import sys
+@@ -30,6 +31,32 @@
+ logger = get_logger(__name__)
+ 
+ 
++class ReasoningReplayLLM(LLM):
++    """``LLM`` that sends every past turn's reasoning back to the model.
++
++    The SDK sends an assistant turn's ``reasoning_content`` back only for a
++    hardcoded model list (kimi, deepseek, minimax), and ``capability_overrides``
++    cannot change that. Qwen3.x and GLM chat templates render a past turn
++    without it as an empty ``<think></think>``, and after a couple of those the
++    model stops thinking. vLLM before 0.22 reads a past turn's reasoning only
++    from ``reasoning``, so the value is sent under both names. Templates that
++    use neither ignore them.
++
++    Same subclass as rLLM's native runner
++    (``rllm/harnesses/tools/openhands_sdk_runner.py``); keep the two in sync.
++    """
++
++    def _model_features(self):
++        return dataclasses.replace(super()._model_features(), send_reasoning_content=True)
++
++    def _to_chat_dicts(self, messages):
++        dicts = super()._to_chat_dicts(messages)
++        for d in dicts:
++            if d.get("reasoning_content") and not d.get("reasoning"):
++                d["reasoning"] = d["reasoning_content"]
++        return dicts
++
++
+ def load_skill_from_file(skill_path: Path) -> Skill | None:
+     """Load a skill from a SKILL.md file."""
+     if not skill_path.exists():
+@@ -212,7 +239,7 @@
+     temperature_raw = os.environ.get("LLM_TEMPERATURE")
+     if temperature_raw:
+         llm_kwargs["temperature"] = float(temperature_raw)
+-    llm = LLM(**llm_kwargs)
++    llm = ReasoningReplayLLM(**llm_kwargs)
+ 
+     # Configure tools
+     tools = [
