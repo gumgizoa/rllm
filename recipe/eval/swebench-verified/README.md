@@ -20,7 +20,12 @@ export RLLM_HARBOR_SESSION_TIMEOUT_S=4200
 
 # harbor:swebench-verified pull -> subset 추출 ($RLLM_HOME/datasets/swebench_verified_100/) -> registry 등록
 python recipe/eval/swebench-verified/prepare_swebench_verified_subset.py
+
+# 전체 평가: Verified 500 중 정답 패치로 채점되는 499개 (all-ids.txt 맨 위 주석에 제외 사유)
+python recipe/eval/swebench-verified/prepare_swebench_verified_subset.py --ids recipe/eval/swebench-verified/all-ids.txt --name swebench_verified_all
 ```
+
+`all-ids.txt`는 아래 Appendix의 보정을 적용한 500개 사본에 Harbor oracle을 돌려 1.0이 나온 499개다. 빠진 것은 `django__django-10097` 하나다. 채점 대상 테스트 12개가 전체 suite를 함께 돌릴 때만 실패하고, 따로 돌리면 통과한다.
 
 ## 2. Oracle test (생략 가능, 권장)
 
