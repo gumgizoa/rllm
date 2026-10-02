@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,8 @@ from .test_cli_harness import FakeSandbox
 # An SDK interpreter being run (``-c`` or the runner script) rather than named
 # as an argument (``--python .../bin/python``, ``[ -x .../bin/python ]``).
 _UNISOLATED_RUN = re.compile(r'(bin/python"?|"\$OH_PY") (?!-I )(-c|/opt/)')
+
+_HARBOR_PATCH = Path(__file__).parents[2] / "recipe/eval/patches/harbor-0.3.0-openhands-sdk.patch"
 
 
 def _task() -> Task:
@@ -75,3 +78,18 @@ def test_llm_sends_past_reasoning_back():
     assert "reasoning_content" not in sent[0]
     assert "reasoning" not in sent[0]
     assert Agent(llm=llm, tools=[]).llm is llm  # the agent keeps the subclass
+
+
+def _replay_methods(source: str) -> str:
+    start = source.index("def _model_features")
+    end = source.index("return dicts", start) + len("return dicts")
+    # Back up to the line start so dedent sees the first line's indentation.
+    return textwrap.dedent(source[source.rindex("\n", 0, start) + 1 : end])
+
+
+def test_harbor_patch_replays_reasoning_like_the_native_runner():
+    # harbor:openhands-sdk uploads Harbor's own runner, which cannot import
+    # rLLM, so the patch carries a copy of the subclass. Keep the two equal.
+    added = "\n".join(line[1:] for line in _HARBOR_PATCH.read_text().splitlines() if line.startswith("+") and not line.startswith("+++"))
+    assert "llm = ReasoningReplayLLM(**llm_kwargs)" in added
+    assert _replay_methods(added) == _replay_methods(Path(runner.__file__).read_text())

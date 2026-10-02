@@ -51,7 +51,8 @@ for patch_file in "${PATCH_DIR}"/*.patch; do
                 patch -p1 -s -i "${patch_file}" -d "${HARBOR_ROOT}"
                 echo "  ${name}: applied"
             else
-                echo "  ${name}: FAILED to apply -- harbor version probably moved. Inspect with:"
+                echo "  ${name}: FAILED to apply -- harbor version moved, or an older revision of this"
+                echo "      patch is applied (reinstall harbor==0.3.0 and rerun). Inspect with:"
                 echo "      patch -p1 --dry-run -i ${patch_file} -d ${HARBOR_ROOT}"
                 exit 1
             fi
@@ -69,5 +70,13 @@ from harbor.models.agent.name import AgentName
 agent = AgentFactory._AGENT_MAP[AgentName.OPENHANDS_SDK]
 print("import check OK:", agent.__name__, "python_version knob:",
       "python_version" in agent.__init__.__code__.co_varnames)
+
+# The runner is uploaded into the sandbox and imports openhands.sdk, which the
+# host need not have, so check its source rather than importing it.
+import inspect
+from pathlib import Path
+
+runner = Path(inspect.getfile(agent)).with_name("openhands_sdk_runner.py")
+print("reasoning replay:", "ReasoningReplayLLM(**llm_kwargs)" in runner.read_text())
 PY
 fi

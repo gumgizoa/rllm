@@ -36,8 +36,8 @@ def reasoning_replay_llm(llm_cls):
     model stops thinking for the rest of the rollout. Templates that do not use
     the field ignore it, so it is always sent.
 
-    The SDK names the field ``reasoning_content``, but vLLM (0.19) reads a past
-    turn's reasoning only from ``reasoning`` and drops ``reasoning_content``
+    The SDK names the field ``reasoning_content``, but vLLM before 0.22 reads a
+    past turn's reasoning only from ``reasoning`` and drops ``reasoning_content``
     before the template sees it, so the value is copied to ``reasoning`` too.
 
     Takes the class rather than importing it: the SDK must be imported from an
