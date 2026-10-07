@@ -91,7 +91,6 @@ def _tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | No
     return specs or None
 
 
-
 def _upstream_error_metadata(status_code: int, response_body: dict | None) -> dict | None:
     """Trace metadata carrying a non-2xx upstream reply, or None on success.
 
@@ -335,9 +334,7 @@ class ReverseProxy:
 
         if is_stream:
             if request_body.get("tools"):
-                return await self._handle_cumulative_buffered_stream(
-                    request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
-                )
+                return await self._handle_cumulative_buffered_stream(request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs)
             return await self._handle_cumulative_streaming(request, request_body, completions_body, session_id, acc, token_ids)
         return await self._handle_cumulative_non_streaming(
             request,
@@ -496,9 +493,7 @@ class ReverseProxy:
         originally_requested_logprobs: bool = False,
     ) -> Response:
         """Non-streaming cumulative turn: return the chat completion as JSON."""
-        body, status_code = await self._cumulative_completion(
-            request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
-        )
+        body, status_code = await self._cumulative_completion(request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs)
         return Response(
             content=json.dumps(body),
             status_code=status_code,
@@ -560,9 +555,7 @@ class ReverseProxy:
         SSE contract; it just receives everything at the end.
         """
         completions_body = {**completions_body, "stream": False}
-        body, status_code = await self._cumulative_completion(
-            request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs
-        )
+        body, status_code = await self._cumulative_completion(request, request_body, completions_body, session_id, acc, token_ids, originally_requested_logprobs)
         include_usage = bool((request_body.get("stream_options") or {}).get("include_usage"))
 
         async def event_generator():
