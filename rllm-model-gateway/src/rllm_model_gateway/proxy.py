@@ -91,6 +91,29 @@ def _tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | No
     return specs or None
 
 
+def _forwardable(tc: Any) -> bool:
+    """Whether a renderer-parsed tool call should reach the agent as ``tool_calls``.
+
+    Mirrors what vLLM's chat path returns for the same completion, so a
+    cumulative turn behaves like turn 0 and like eval against the engine.
+    Beyond ``OK`` calls, this keeps ``INVALID_JSON`` calls whose arguments
+    parsed into a dict: in XML-style formats (Qwen3.5/3.6, GLM, ...) that
+    status means one argument could not be coerced to its declared type and
+    was kept as its raw string. vLLM's ``coerce_to_schema_type`` falls back
+    the same way and keeps the call, so the agent's own schema validation
+    reports the error and the model can correct itself. Calls whose whole
+    argument body failed to parse (``arguments`` is a raw string or missing)
+    are still dropped, as vLLM drops them too.
+    """
+    from renderers.base import ToolCallParseStatus
+
+    if not tc.name:
+        return False
+    if tc.status == ToolCallParseStatus.OK:
+        return True
+    return tc.status == ToolCallParseStatus.INVALID_JSON and isinstance(tc.arguments, dict)
+
+
 def _upstream_error_metadata(status_code: int, response_body: dict | None) -> dict | None:
     """Trace metadata carrying a non-2xx upstream reply, or None on success.
 
@@ -367,8 +390,6 @@ class ReverseProxy:
             return fallback
 
         try:
-            from renderers.base import ToolCallParseStatus
-
             parsed = self.renderer.parse_response(list(completion_token_ids), tools=_tool_specs(tools))
         except Exception:
             logger.warning("Renderer could not parse a cumulative-turn completion; forwarding raw text", exc_info=True)
@@ -384,7 +405,7 @@ class ReverseProxy:
                 },
             }
             for tc in parsed.tool_calls
-            if tc.status == ToolCallParseStatus.OK and tc.name
+            if _forwardable(tc)
         ]
 
         message: dict[str, Any] = {"role": "assistant", "content": parsed.content or None}
