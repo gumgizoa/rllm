@@ -449,3 +449,79 @@ class TestCumulativeStreaming:
         usage = usage_chunks[-1]["usage"]
         assert "prompt_tokens" in usage
         assert "completion_tokens" in usage
+
+
+class TestCumulativeToolCallForwarding:
+    """Which renderer-parsed tool calls reach the agent as ``tool_calls``.
+
+    The cumulative path must return what vLLM's chat path would for the same
+    completion, so turn 2+ agrees with turn 1 and with eval against the engine.
+    """
+
+    TOOLS = [
+        {
+            "type": "function",
+            "function": {
+                "name": "terminal",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"command": {"type": "string"}, "is_input": {"type": "boolean"}},
+                },
+            },
+        }
+    ]
+
+    @staticmethod
+    def _message(parsed_tool_calls):
+        base = pytest.importorskip("renderers.base")
+
+        class _ParsingRenderer:
+            def parse_response(self, token_ids, *, tools=None):
+                return base.ParsedResponse(content="", tool_calls=parsed_tool_calls)
+
+        app = create_app(GatewayConfig(store_worker="memory", health_check_interval=999))
+        proxy = app.state.proxy
+        proxy.renderer = _ParsingRenderer()
+        return proxy._completion_to_chat_message("RAW", [1, 2, 3], TestCumulativeToolCallForwarding.TOOLS)
+
+    def test_ok_call_is_forwarded(self):
+        base = pytest.importorskip("renderers.base")
+        message = self._message([base.ParsedToolCall(raw="", name="terminal", arguments={"command": "ls"})])
+        assert message["tool_calls"][0]["function"] == {"name": "terminal", "arguments": '{"command": "ls"}'}
+
+    def test_argument_coercion_fallback_is_forwarded(self):
+        """An XML-format argument that can't be coerced to its declared type
+        is kept as its raw string (``INVALID_JSON`` with dict arguments).
+        vLLM keeps such calls, so the agent must see it and report the error."""
+        base = pytest.importorskip("renderers.base")
+        tc = base.ParsedToolCall(
+            raw="",
+            name="terminal",
+            arguments={"command": "ls", "is_input": "maybe"},
+            status=base.ToolCallParseStatus.INVALID_JSON,
+        )
+        message = self._message([tc])
+        assert message["tool_calls"][0]["function"] == {
+            "name": "terminal",
+            "arguments": '{"command": "ls", "is_input": "maybe"}',
+        }
+
+    @pytest.mark.parametrize(
+        ("name", "arguments", "status"),
+        [
+            # JSON-format body that isn't JSON at all (e.g. deepseek): raw string args.
+            ("terminal", '{"command": ls', "INVALID_JSON"),
+            # Hermes-style <tool_call> body that isn't JSON: no name recovered.
+            (None, None, "INVALID_JSON"),
+            ("terminal", {"command": "ls"}, "MALFORMED_STRUCTURE"),
+            ("terminal", None, "UNCLOSED_BLOCK"),
+            (None, {"command": "ls"}, "MISSING_NAME"),
+            ("nope", {"command": "ls"}, "UNKNOWN_TOOL"),
+        ],
+    )
+    def test_unparseable_calls_are_dropped(self, name, arguments, status):
+        base = pytest.importorskip("renderers.base")
+        tc = base.ParsedToolCall(raw="", name=name, arguments=arguments, status=base.ToolCallParseStatus[status])
+        message = self._message([tc])
+        assert "tool_calls" not in message
+        assert message["content"] == "RAW"
