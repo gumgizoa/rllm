@@ -223,8 +223,8 @@ class WorkflowMixin:
     def evaluation_policy(self):
         """The workflow's compliance scorer for this harness, or ``None`` (per-task verifier alone).
 
-        Read by ``rllm eval`` (``rllm/eval/runner.py``); train.py builds its
-        hooks itself and does not consult it.
+        Read by ``rllm eval`` (``rllm/eval/runner.py``) and by train.py's
+        ``_build_hooks``, so both score compliance the same way.
         """
         factory = self.workflow_spec.scorers.get(self.name) if self.workflow_spec is not None else None
         return factory() if factory is not None else None
@@ -248,9 +248,17 @@ class WorkflowMixin:
             raise FileNotFoundError(f"{label}: docs dir has no {self.workflow_spec.entry_doc}: {self.docs_dir}")
         if not self._doc_entries():
             raise FileNotFoundError(f"{label}: docs dir has nothing to upload: {self.docs_dir}")
+        # The instruction and the system prompt send the agent to the documents by
+        # absolute path; one naming another location (a copied set, a changed
+        # container_dir) would leave the uploaded documents where nothing points.
+        entry = f"{self.container_dir.rstrip('/')}/{self.workflow_spec.entry_doc}"
         for name, path in (("instruction_file", self.instruction_file), ("system_prompt_file", self.system_prompt_file)):
-            if path is not None and not path.is_file():
+            if path is None:
+                continue
+            if not path.is_file():
                 raise FileNotFoundError(f"{label}: {name} not found: {path}")
+            if entry not in path.read_text(encoding="utf-8"):
+                raise ValueError(f"{label}: {name} never mentions {entry}, where the documents are uploaded: {path}")
 
     def _excluded(self) -> set[Path]:
         """Files inside ``docs_dir`` that are prompt material, not workflow documents.

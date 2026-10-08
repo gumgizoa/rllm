@@ -131,6 +131,15 @@ def test_missing_entry_doc_rejected(wf2):
         OpenHandsSdkWorkflow(workflow="wf2")
 
 
+def test_prompt_files_must_point_at_the_uploaded_entry_doc(wf2):
+    (wf2.docs_dir / "instruction.md").write_text("Follow /elsewhere/README.md.")  # stale path
+    with pytest.raises(ValueError, match="instruction_file never mentions /wf2/README.md"):
+        OpenHandsSdkWorkflow(workflow="wf2")
+    # A moved container_dir no longer matches what the AI-DLC instruction and system prompt name.
+    with pytest.raises(ValueError, match="never mentions /moved/core-workflow.md"):
+        OpenHandsSdkWorkflow(workflow="aidlc", container_dir="/moved")
+
+
 def test_harness_without_a_system_prompt_seam():
     class Bare(WorkflowMixin, StepLimitedOpenHandsSdk):
         pass
