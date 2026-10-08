@@ -1551,6 +1551,7 @@ recipe/grpo/qwen3_5/
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
 ├── workflow_harness.py           # StepLimitedOpenHandsSdk + WorkflowMixin/OpenHandsSdkWorkflow (docs upload, instruction prefix/suffix, system prompt, eval scorer)
 ├── workflows.py                  # workflow registry: WORKFLOWS = {"aidlc": WorkflowSpec(...)}
+├── workflow_scoring.py           # ComplianceEvaluation(collect, score): verifier wrapper every workflow scorer shares
 ├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
 │   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
 │   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/

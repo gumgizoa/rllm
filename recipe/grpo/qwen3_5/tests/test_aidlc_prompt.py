@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 RECIPE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RECIPE))
+sys.path.insert(0, str(RECIPE.parents[2]))
 
 
 def _load(name: str, path: Path):
@@ -47,7 +47,7 @@ def test_templates_are_registered_by_style():
 
 @pytest.fixture
 def harness_cls():
-    from workflow_harness import OpenHandsSdkWorkflow
+    from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
 
     return functools.partial(OpenHandsSdkWorkflow, workflow="aidlc")
 

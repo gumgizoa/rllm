@@ -54,12 +54,7 @@ from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness
 from rllm.sandbox.protocol import Sandbox
 from rllm.types import AgentConfig, Task
 
-# Loaded as ``workflow_harness`` by train.py (recipe directory on sys.path) and
-# as ``recipe.grpo.qwen3_5.workflow_harness`` by ``rllm eval --agent``.
-if __package__:
-    from .workflows import WORKFLOWS, WorkflowSpec, get_workflow
-else:
-    from workflows import WORKFLOWS, WorkflowSpec, get_workflow
+from .workflows import WORKFLOWS, WorkflowSpec, get_workflow
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,8 @@
     rubric/      the offline adherence rubric, vendored byte-identical (see rubric/__init__.py)
     episode.py   rLLM Episode -> rubric Run
     compliance.py  facts -> six signals in [0, 1] (order_v6, s1..s5) and their mean
-    evaluator.py   verifier wrapper that adds the signals; evaluation policy for SandboxTaskHooks
+    evaluator.py   collect_artifacts + score, plugged into workflow_scoring.ComplianceEvaluation
+                   as AidlcEvaluation (the verifier wrapper itself is generic)
 
 ``workflows.py`` registers ``AidlcEvaluation`` as the ``aidlc`` workflow's scorer for openhands-sdk, so
 ``train.py`` (``recipe.workflow.name=aidlc``) and ``rllm eval`` (``--agent-kwargs workflow=aidlc``)

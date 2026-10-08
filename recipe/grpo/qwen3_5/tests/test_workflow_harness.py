@@ -14,12 +14,11 @@ import pytest
 
 RECIPE = Path(__file__).resolve().parents[1]
 REPO = RECIPE.parents[2]
-sys.path.insert(0, str(RECIPE))
+sys.path.insert(0, str(REPO))
 
-import workflows  # noqa: E402
-from workflow_harness import OpenHandsSdkWorkflow, StepLimitedOpenHandsSdk, WorkflowMixin  # noqa: E402
-from workflows import WorkflowSpec  # noqa: E402
-
+from recipe.grpo.qwen3_5 import workflows  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow, StepLimitedOpenHandsSdk, WorkflowMixin  # noqa: E402
+from recipe.grpo.qwen3_5.workflows import WorkflowSpec  # noqa: E402
 from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness  # noqa: E402
 from rllm.types import AgentConfig  # noqa: E402
 

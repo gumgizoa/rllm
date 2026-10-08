@@ -17,17 +17,18 @@ from types import SimpleNamespace
 import pytest
 
 RECIPE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(RECIPE))
+REPO = RECIPE.parents[2]
+sys.path.insert(0, str(REPO))
 
-from aidlc_reward.compliance import compliance, order_v6  # noqa: E402
-from aidlc_reward.episode import episode_to_run  # noqa: E402
-from aidlc_reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
 from omegaconf import OmegaConf  # noqa: E402
 
-# Imported before train_module stubs ``rllm.harnesses``, so train.py's lazy
-# ``from workflow_harness import ...`` finds the real module cached.
-from workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
+from recipe.grpo.qwen3_5.aidlc_reward.compliance import compliance, order_v6  # noqa: E402
+from recipe.grpo.qwen3_5.aidlc_reward.episode import episode_to_run  # noqa: E402
+from recipe.grpo.qwen3_5.aidlc_reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
 
+# Imported before train_module stubs ``rllm.harnesses``, so train.py's lazy
+# ``from recipe.grpo.qwen3_5.workflow_harness import ...`` finds the real module cached.
+from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
 from rllm.eval.types import EvalOutput, Signal  # noqa: E402
 
 DOC = {
@@ -423,7 +424,7 @@ def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
 
 
 def test_workflow_reward(train_module, tmp_path, monkeypatch):
-    import workflows
+    from recipe.grpo.qwen3_5 import workflows
 
     cfg = OmegaConf.create({})
 
@@ -463,7 +464,6 @@ def test_build_hooks_forwards_hide_git_history(train_module, monkeypatch):
             self.hide_git_history = kwargs.get("hide_git_history", False)
 
     monkeypatch.setattr(hooks_mod, "SandboxTaskHooks", _Hooks)
-    monkeypatch.syspath_prepend(str(RECIPE))
     wf = OpenHandsSdkWorkflow(workflow="aidlc")
     assert train_module._build_hooks(OpenHandsSdkWorkflow(), "docker", True) is None  # no workflow
     assert train_module._build_hooks(SimpleNamespace(), "docker", True) is None  # mini-swe-agent: no policy at all

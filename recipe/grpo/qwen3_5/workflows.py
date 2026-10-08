@@ -61,13 +61,9 @@ class WorkflowSpec:
 
 
 def _aidlc_scorer():
-    # Imported on use, under whichever name this module was loaded by: ``workflows`` when
-    # train.py has the recipe directory on sys.path, ``recipe.grpo.qwen3_5.workflows`` under
-    # ``rllm eval --agent recipe.grpo.qwen3_5.workflow_harness:...``.
-    if __package__:
-        from .aidlc_reward.evaluator import AidlcEvaluation
-    else:
-        from aidlc_reward.evaluator import AidlcEvaluation
+    # Imported on use: a run without the workflow never loads the rubric.
+    from .aidlc_reward.evaluator import AidlcEvaluation
+
     return AidlcEvaluation()
 
 

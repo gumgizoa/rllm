@@ -35,7 +35,9 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
+from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
@@ -48,6 +50,15 @@ from rllm.types import AgentConfig, Task
 from rllm.workflows.workflow import TerminationReason
 
 logger = logging.getLogger(__name__)
+
+# This recipe's modules are imported by package path (``recipe.grpo.qwen3_5.*``), the
+# name ``rllm eval --agent`` uses too, so a process never holds two copies of them (two
+# ``WORKFLOWS`` registries, two classes for one harness). ``python .../train.py`` puts
+# only this directory on sys.path; Ray hands the driver's sys.path to its workers,
+# which unpickle the harness and hooks by the same name.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 # SWE-Master's "budget exhaustion" terminations (arXiv 2602.03411, sec. 3.4.2:
 # TIMEOUT, MAX_STEPS, MAX_TOKENS). The rollout is graded on whatever the
@@ -204,10 +215,9 @@ def _build_agent_flow(recipe: DictConfig, config: DictConfig):
         return StepLimitedMiniSweAgent(step_limit=step_limit)
 
     if agent == "openhands-sdk":
-        # Imported lazily and by file location: the module sits beside this
-        # script, and `python recipe/grpo/qwen3_5/train.py` puts that dir on
-        # sys.path[0].
-        from workflow_harness import OpenHandsSdkWorkflow
+        # Imported lazily: the harness pulls in the openhands-sdk harness and,
+        # for a workflow with a scorer, its evaluator.
+        from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
 
         return OpenHandsSdkWorkflow(
             step_limit=step_limit,
