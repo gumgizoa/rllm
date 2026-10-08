@@ -299,13 +299,20 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | `mini-swe-agent` | `aidlc` | refused at startup (no system-prompt seam) | — |
 
 The workflow itself (documents, instruction, per-harness system prompt and compliance scorer) is
-registered by name in `workflows.py`; `WorkflowMixin` reads it, so another workflow is an entry
-there and another harness is one `WorkflowMixin` subclass plus a branch in `train.py`'s
+registered by name in `workflows/` (one package per workflow, e.g. `workflows/aidlc/`);
+`WorkflowMixin` reads it, so another workflow is one more package there and another harness is
+one `WorkflowMixin` subclass plus a branch in `train.py`'s
 `_build_agent_flow`. Training and `rllm eval` install the same scorer -- the harness's
 `evaluation_policy` -- so compliance is measured the same way in both. For `rllm eval`, select it with
 `--agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow --agent-kwargs workflow=aidlc`
 (`workflow=none` is the plain harness); the harness hands its scorer to the eval hooks, so the
 AI-DLC signals are reported beside resolve rate (`recipe/eval/README.md`).
+
+**Adding a workflow or a harness:** step-by-step guides are in
+[`docs/guides/workflows/adding-a-workflow.md`](../../../docs/guides/workflows/adding-a-workflow.md)
+(documents, instruction, system prompt, compliance scorer, registration, checks) and
+[`docs/guides/workflows/adding-a-harness.md`](../../../docs/guides/workflows/adding-a-harness.md)
+(system-prompt seam, turn budget, `train.py` branch, tool-call front end for scoring).
 
 The openhands-sdk harness reads `recipe.agent_step_limit` into `OPENHANDS_MAX_ITERATIONS`, and
 the engine reads the same attribute to stamp `MAX_TURNS_EXCEEDED`, so the SWE-Master budget

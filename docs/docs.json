@@ -100,7 +100,14 @@
               "guides/customizing-training",
               "guides/distributed-training",
               "guides/ray-runtime-env",
-              "guides/environment-variables"
+              "guides/environment-variables",
+              {
+                "group": "Workflows (qwen3_5 recipe)",
+                "pages": [
+                  "guides/workflows/adding-a-workflow",
+                  "guides/workflows/adding-a-harness"
+                ]
+              }
             ]
           },
           {
