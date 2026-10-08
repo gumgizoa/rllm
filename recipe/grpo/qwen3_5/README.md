@@ -294,9 +294,16 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | `recipe.agent` | `recipe.aidlc.enable` | harness | where |
 | --- | --- | --- | --- |
 | `mini-swe-agent` | `false` | `StepLimitedMiniSweAgent` | `train.py` |
-| `openhands-sdk` | `false` | `StepLimitedOpenHandsSdk` | `aidlc_flow.py` |
-| `openhands-sdk` | `true` | `AidlcOpenHandsSdkHarness` | `aidlc_flow.py` |
+| `openhands-sdk` | `false` | `StepLimitedOpenHandsSdk` | `workflow_harness.py` |
+| `openhands-sdk` | `true` | `AidlcOpenHandsSdkHarness` (`OpenHandsSdkWorkflow` with `workflow="aidlc"`) | `aidlc_flow.py` → `workflow_harness.py` |
 | `mini-swe-agent` | `true` | refused at startup | — |
+
+The workflow itself (documents, instruction, per-harness system prompt and compliance scorer) is
+registered by name in `workflows.py`; `WorkflowMixin` reads it, so another workflow is an entry
+there and another harness is one `WorkflowMixin` subclass. For `rllm eval`, select it with
+`--agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow --agent-kwargs workflow=aidlc`
+(`workflow=none` is the plain harness); the harness hands its scorer to the eval hooks, so the
+AI-DLC signals are reported beside resolve rate (`recipe/eval/README.md`).
 
 Both openhands-sdk classes read `recipe.agent_step_limit` into `OPENHANDS_MAX_ITERATIONS`, and
 the engine reads the same attribute to stamp `MAX_TURNS_EXCEEDED`, so the SWE-Master budget
@@ -1533,7 +1540,9 @@ recipe/grpo/qwen3_5/
 ├── README.md
 ├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
-├── aidlc_flow.py                 # StepLimitedOpenHandsSdk + AidlcOpenHandsSdkHarness (docs upload, instruction prefix/suffix, system prompt)
+├── workflow_harness.py           # StepLimitedOpenHandsSdk + WorkflowMixin/OpenHandsSdkWorkflow (docs upload, instruction prefix/suffix, system prompt, eval scorer)
+├── workflows.py                  # workflow registry: WORKFLOWS = {"aidlc": WorkflowSpec(...)}
+├── aidlc_flow.py                 # compatibility names: AidlcOpenHandsSdkHarness = OpenHandsSdkWorkflow(workflow="aidlc")
 ├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
 │   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
 │   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/

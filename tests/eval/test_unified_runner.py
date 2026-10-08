@@ -234,6 +234,20 @@ def test_hooks_close_sandbox_for_sandboxed_agent_flow(tmp_path, cfg, monkeypatch
     assert fake_sandbox.close_calls == 1, "hook teardown must close the sandbox it created"
 
 
+def test_evaluation_policy_prefers_evaluator_then_flow():
+    """``run_dataset``'s policy: ``--evaluator`` > the flow's ``evaluation_policy`` > per-task."""
+    from types import SimpleNamespace
+
+    from rllm.eval.runner import _evaluation_policy
+
+    policy = object()
+    flow = SimpleNamespace(evaluation_policy=policy)
+    fixed = _evaluation_policy(flow, _FixedEvaluator(EvalOutput(reward=1.0, is_correct=True)))
+    assert isinstance(fixed, FixedEvaluation)
+    assert _evaluation_policy(flow, None) is policy
+    assert _evaluation_policy(_StubAgent(), None) is None
+
+
 # ---------------------------------------------------------------------------
 # build_dataset_evaluator (used by train CLI)
 # ---------------------------------------------------------------------------

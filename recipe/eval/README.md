@@ -733,16 +733,17 @@ rllm eval swebenchpro_100 \
 - **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다. native harness에는 `--agent-kwargs`가 적용되지 않는다(3.2).
 - SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 fallback한다는 경고를 남기지만 동작에는 문제가 없다.
 - runner는 `OPENHANDS_SDK_SYSTEM_PROMPT_PATH`(container 안 절대경로)가 설정되면 그 Jinja 템플릿을 `Agent(system_prompt_filename=...)`로 넘겨 SDK 기본 system prompt를 교체한다. Harbor scaffold와 같은 변수명이다. 기본 harness는 이 변수를 설정하지 않는다.
-- **AI-DLC 워크플로우로 평가**하려면 `recipe/grpo/qwen3_5/aidlc_flow.py`의 harness를 import path로 지정한다. 학습(`variant=openhands_9b_aidlc`)과 같은 문서·지시·system prompt를 sandbox에 넣는다(`recipe/grpo/qwen3_5/README.md` "Variants" 참고):
+- **워크플로우를 얹어 평가**하려면 `recipe/grpo/qwen3_5/workflow_harness.py`의 `OpenHandsSdkWorkflow`를 지정하고 `--agent-kwargs workflow=<이름>`으로 워크플로우를 고른다(등록된 이름은 `recipe/grpo/qwen3_5/workflows.py`의 `WORKFLOWS`, 현재 `aidlc`). 학습(`variant=openhands_9b_aidlc`)과 같은 문서·지시·system prompt를 sandbox에 넣고, 워크플로우에 이 harness용 채점기가 있으면 resolve rate와 함께 준수율(`aidlc/*`)이 `signal_averages`에 나온다. `workflow=none`(기본값)이면 워크플로우 없이 같은 harness로 돈다(baseline):
 
   ```bash
-  rllm eval swebench_verified_balanced --split test \
-      --agent recipe.grpo.qwen3_5.aidlc_flow:AidlcOpenHandsSdkHarness \
-      --agent-image auto --sandbox-backend docker --no-ui \
+  rllm eval swegym_val23_aidlc --split test \
+      --agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow \
+      --agent-kwargs workflow=aidlc,step_limit=100,enable_thinking=0,instruction_position=prefix \
+      --agent-image auto --sandbox-backend docker --hide-git-history --no-ui \
       --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-9B
   ```
 
-  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. `step_limit`은 class 기본값(50)이며 `--agent-kwargs`는 native harness에 적용되지 않는다(3.2).
+  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. 이 harness들은 `--agent-kwargs`를 받는다(`step_limit` 기본 50, `instruction_position` 기본 `suffix`, 문서·지시·system prompt 경로는 `docs_dir`/`instruction_file`/`system_prompt_file`로 덮어쓰고 `null`이면 끈다). `key=value` 형식은 값을 int/float/문자열로만 바꾸므로 `enable_thinking=false`는 문자열이 되어 thinking이 켜진다. `0`/`1`이나 `@file.yaml`을 쓴다. 기존 `recipe.grpo.qwen3_5.aidlc_flow:AidlcOpenHandsSdkHarness`는 `workflow=aidlc`가 기본인 같은 class다.
 
 ---
 

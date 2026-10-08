@@ -26,6 +26,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _evaluation_policy(agent_flow: AgentFlow, evaluator: Evaluator | None):
+    """The hooks' evaluation policy: ``--evaluator`` wins; else the flow's own
+    ``evaluation_policy`` (a workflow harness scoring compliance beside the
+    task's verifier); else ``None``, i.e. per-task ``[verifier]`` resolution."""
+    if evaluator is not None:
+        return FixedEvaluation(evaluator)
+    return getattr(agent_flow, "evaluation_policy", None)
+
+
 async def run_dataset(
     tasks: list,  # list[rllm.types.Task]
     agent_flow: AgentFlow,
@@ -59,8 +68,9 @@ async def run_dataset(
             gateway can stay up across multiple runs).
         evaluator: Bind a single evaluator to all tasks (CLI's
             ``--evaluator`` flag; the hooks' ``FixedEvaluation`` policy).
-            When ``None``, ``SandboxTaskHooks`` resolves a per-task verifier
-            from the task's ``[verifier]`` config.
+            When ``None``, the flow's ``evaluation_policy`` attribute is used
+            if it has one; otherwise ``SandboxTaskHooks`` resolves a per-task
+            verifier from the task's ``[verifier]`` config.
         sampling_params: Resolved sampling params from the CLI, attached to each
             gateway session so the gateway enforces them on every LLM call. ``None``
             or empty → flows/harnesses keep their own params.
@@ -100,7 +110,7 @@ async def run_dataset(
         gateway.start()
 
     hooks = SandboxTaskHooks(
-        evaluation=FixedEvaluation(evaluator) if evaluator is not None else None,
+        evaluation=_evaluation_policy(agent_flow, evaluator),
         sandbox_backend=sandbox_backend,
         use_snapshot=use_snapshot,
         hide_git_history=hide_git_history,
