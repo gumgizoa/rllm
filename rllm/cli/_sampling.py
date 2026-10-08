@@ -94,7 +94,16 @@ class SamplingConfig:
 
 
 def _coerce(value: str) -> Any:
-    """Coerce a CLI value to int, then float, else leave as a string."""
+    """Coerce a CLI value to bool / None, then int, then float, else leave as a string.
+
+    ``true``/``false`` and ``null``/``none`` (any case) become ``True``/``False``
+    and ``None``: left as strings, ``enable_thinking=false`` would be truthy.
+    """
+    lowered = value.lower()
+    if lowered in ("true", "false"):
+        return lowered == "true"
+    if lowered in ("null", "none"):
+        return None
     try:
         return int(value)
     except ValueError:

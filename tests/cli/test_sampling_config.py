@@ -25,6 +25,14 @@ def test_from_string_coerces_int_and_float():
     assert cfg.max_tokens == 2048 and isinstance(cfg.max_tokens, int)
 
 
+def test_key_value_coerces_bool_and_null():
+    from rllm.cli._sampling import parse_mapping_spec
+
+    # Left as strings, "false" would be truthy (enable_thinking=false turned thinking on).
+    assert parse_mapping_spec("a=false,b=True,c=null,d=None,e=0,f=prefix", flag="--agent-kwargs") == {"a": False, "b": True, "c": None, "d": None, "e": 0, "f": "prefix"}
+    assert SamplingConfig.from_string("temperature=0.6,skip_special_tokens=false").extra == {"skip_special_tokens": False}
+
+
 def test_from_string_unknown_keys_go_to_extra():
     cfg = SamplingConfig.from_string("temperature=0.6,presence_penalty=0.1")
     assert cfg.temperature == 0.6

@@ -743,7 +743,7 @@ rllm eval swebenchpro_100 \
       --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-9B
   ```
 
-  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. 이 harness들은 `--agent-kwargs`를 받는다(`step_limit` 기본 50, `instruction_position` 기본 `suffix`, 문서·지시·system prompt 경로는 `docs_dir`/`instruction_file`/`system_prompt_file`로 덮어쓰고 `null`이면 끈다). `key=value` 형식은 값을 int/float/문자열로만 바꾸므로 `enable_thinking=false`는 문자열이 되어 thinking이 켜진다. `0`/`1`이나 `@file.yaml`을 쓴다. 학습(`recipe.workflow.name=aidlc`)과 같은 채점기를 쓰므로 준수율은 학습 log의 `aidlc/*`와 같은 정의다.
+  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. 이 harness들은 `--agent-kwargs`를 받는다(`step_limit` 기본 50, `instruction_position` 기본 `suffix`, 문서·지시·system prompt 경로는 `docs_dir`/`instruction_file`/`system_prompt_file`로 덮어쓰고 `null`이면 끈다). `key=value` 형식의 `true`/`false`/`null`은 bool/None으로 바뀐다(`enable_thinking=false` 그대로 쓰면 된다). 학습(`recipe.workflow.name=aidlc`)과 같은 채점기를 쓰므로 준수율은 학습 log의 `aidlc/*`와 같은 정의다.
 
 ---
 
