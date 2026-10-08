@@ -656,7 +656,7 @@ subset 11개 저장소의 base image(각 저장소 대표 1개 확인):
 | nodebb (6) | Debian 11 | 3.9.2 | O | O | O |
 | tutanota (3) | Debian 11 | 3.9.2 | O | O | - |
 
-`recipe/eval/patches/harbor-0.3.0-openhands-sdk-uv-install.patch`가 설치된 harbor의 `agents/installed/openhands_sdk.py`를 수정한다.
+`recipe/eval/patches/harbor-0.3.0-openhands-sdk.patch`가 설치된 harbor의 `agents/installed/openhands_sdk.py`(설치·실행)와 `openhands_sdk_runner.py`(reasoning 재전송)를 수정한다.
 
 * interpreter를 **uv로 확보**한다(`uv python install 3.12` → `uv venv --python 3.12`). image의 Python 버전과 무관하며, `python_version` kwarg로 변경할 수 있다.
 * `uv pip install`은 pip의 설정 파일을 읽지 않으므로 응답하지 않는 `index-url`을 무시한다. musl(Alpine)에서도 uv가 musl build Python을 download한다.
@@ -665,6 +665,7 @@ subset 11개 저장소의 base image(각 저장소 대표 1개 확인):
 * uv download 단계(`curl`, `uv python install`, `uv pip install`)를 3회까지 재시도한다. task마다 약 180개 package(510 MB)를 download하며 100개 실행 기준 PyPI 전송량은 약 50 GB에 이른다. 그중 하나라도 중단되면 trial 전체가 `NonZeroAgentExitCodeError`로 실패한다(Harbor 0.3.0은 agent setup을 재시도하지 않는다).
 * 버전 조회를 `pip show`에서 `python -c "import openhands.sdk; print(openhands.sdk.__version__)"`로 변경했다. uv venv에는 pip이 없다(SDK banner는 stderr로 출력되므로 stdout에는 버전만 남는다).
 * `run()`이 `LLM_API_KEY`/`LLM_BASE_URL`/`LLM_MODEL`을 host의 `os.environ`뿐 아니라 그 trial의 `AgentConfig.env`에서도 읽는다. rLLM이 trial마다 gateway session URL을 이 경로로 전달한다.
+* runner가 이전 turn의 reasoning을 다음 요청에 다시 넣는다. SDK는 kimi/deepseek/minimax 모델에만 이를 보내므로, Qwen3.x·GLM에서는 이전 turn이 빈 `<think></think>`로 렌더링되어 몇 step 뒤 thinking이 사라진다. `reasoning_content`와 `reasoning`(vLLM 0.22 미만은 이것만 읽음)에 모두 담는다. native harness(3.5)의 `ReasoningReplayLLM`과 같은 코드다.
 
 ```bash
 # patch 적용 (ref: --check 로 상태 확인; --revert 로 상태 되돌리기)
@@ -672,6 +673,8 @@ bash recipe/eval/scripts/apply_harbor_patches.sh
 ```
 
 `uv pip install -e ".[harbor]"`를 재실행하면 harbor가 새로 설치되어 patch가 사라지므로 재적용한다.
+
+이전 이름(`harbor-0.3.0-openhands-sdk-uv-install.patch`)으로 적용한 환경에서는 새 patch가 적용되지 않는다. `uv pip install --reinstall harbor==0.3.0`으로 harbor를 원상태로 되돌린 뒤 재적용한다.
 
 ```bash
 export RLLM_HOME=/path/to/rllm-home RLLM_HARBOR_SESSION_TIMEOUT_S=4200

@@ -23,6 +23,7 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import sys
 import tempfile
@@ -51,6 +52,38 @@ def _chat_template_kwargs_from_env(environ=os.environ) -> dict[str, object]:
     raise ValueError(f"{_ENABLE_THINKING_ENV} must be a boolean-ish string, got {raw!r}")
 
 
+def reasoning_replay_llm(llm_cls):
+    """Subclass the SDK's ``LLM`` so every request carries past turns' reasoning.
+
+    The SDK sends an assistant turn's ``reasoning_content`` back only for a
+    hardcoded model list (kimi, deepseek, minimax), and ``capability_overrides``
+    cannot change that. Qwen3.x and GLM chat templates render a past turn
+    without it as an empty ``<think></think>``; after a couple of those the
+    model stops thinking for the rest of the rollout. Templates that do not use
+    the field ignore it, so it is always sent.
+
+    The SDK names the field ``reasoning_content``, but vLLM before 0.22 reads a
+    past turn's reasoning only from ``reasoning`` and drops ``reasoning_content``
+    before the template sees it, so the value is copied to ``reasoning`` too.
+
+    Takes the class rather than importing it: the SDK must be imported from an
+    empty cwd (see ``main``).
+    """
+
+    class ReasoningReplayLLM(llm_cls):
+        def _model_features(self):
+            return dataclasses.replace(super()._model_features(), send_reasoning_content=True)
+
+        def _to_chat_dicts(self, messages):
+            dicts = super()._to_chat_dicts(messages)
+            for d in dicts:
+                if d.get("reasoning_content") and not d.get("reasoning"):
+                    d["reasoning"] = d["reasoning_content"]
+            return dicts
+
+    return ReasoningReplayLLM
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run an openhands-sdk agent on one task")
     parser.add_argument("--instruction", required=True, help="Task instruction")
@@ -77,15 +110,11 @@ def main() -> int:
 
     # Sampling params are the gateway's job -- it rewrites them on the way
     # through -- so the LLM is configured with routing only.
-    llm_kwargs: dict[str, object] = {
-        "model": model,
-        "api_key": os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
-        "base_url": os.environ.get("LLM_BASE_URL"),
-    }
-    chat_template_kwargs = _chat_template_kwargs_from_env()
-    if chat_template_kwargs:
-        llm_kwargs["litellm_extra_body"] = {"chat_template_kwargs": chat_template_kwargs}
-    llm = LLM(**llm_kwargs)  # type: ignore[arg-type]
+    llm = reasoning_replay_llm(LLM)(
+        model=model,
+        api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
+        base_url=os.environ.get("LLM_BASE_URL"),
+    )
 
     tools = [
         Tool(name=TerminalTool.name),

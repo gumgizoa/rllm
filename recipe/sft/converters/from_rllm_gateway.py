@@ -41,6 +41,12 @@ one matters):
   (vLLM with a reasoning parser) or fused into ``content`` as
   ``"<think>...</think>answer"`` (without one). Both are normalized into the
   contract's ``reasoning`` field.
+* ``content`` may be a list of text blocks (openhands-sdk sends every message
+  that way to some models); it is joined the way vLLM joins it, see
+  :func:`join_text_blocks`.
+* A thinking run has turns where the model skipped reasoning. Those rows keep
+  ``enable_thinking: true`` and the turn trains as the empty ``<think>`` block the
+  model actually emitted.
 * Trajectories frequently end on a ``tool`` message - trailing context no
   assistant turn ever consumes.
 * The tool schemas the policy saw are a *request field*, not a message, so they
@@ -130,6 +136,24 @@ def split_thinking(content: str) -> tuple[str, str]:
     return reasoning.strip(), answer.lstrip("\n")
 
 
+def join_text_blocks(blocks: list[Any]) -> str:
+    """Flatten OpenAI ``[{"type": "text", "text": ...}, ...]`` content into one string.
+
+    Joined with ``"\\n"`` because that is what the served model saw: vLLM merges
+    text parts with newlines before the chat template runs. Checked against a
+    served Qwen3.5 with ``/tokenize`` over openhands-sdk requests, where tool
+    output arrives as several blocks: ``"\\n"`` is token-identical to the list,
+    ``""`` is not. Anything but text (images) has no place in a text SFT row.
+    """
+    texts = []
+    for block in blocks:
+        if not isinstance(block, dict) or block.get("type") != "text" or not isinstance(block.get("text"), str):
+            kind = block.get("type") if isinstance(block, dict) else type(block).__name__
+            raise SkipRow("non-text content block", repr(kind))
+        texts.append(block["text"])
+    return "\n".join(texts)
+
+
 def clean_message(message: dict[str, Any]) -> dict[str, Any]:
     """Normalize one episode ``chat_completions`` entry into a contract message."""
     if not isinstance(message, dict):
@@ -142,9 +166,9 @@ def clean_message(message: dict[str, Any]) -> dict[str, Any]:
     content = message.get("content")
     if content is None:
         content = ""
+    elif isinstance(content, list):
+        content = join_text_blocks(content)
     elif not isinstance(content, str):
-        # A list-shaped multimodal content block has no place in a text SFT row,
-        # and str() of it would train the model on a Python repr.
         raise SkipRow("non-string content", type(content).__name__)
 
     out: dict[str, Any] = {"role": role, "content": content}
@@ -265,11 +289,15 @@ def build_sample(
     if not any(m["role"] == "user" for m in messages):
         raise SkipRow("no user query")
 
-    # A turn with no reasoning needs enable_thinking=false, or the template's
-    # forced </think> ends up inside the supervised target. Contract compliance,
-    # not a filtering decision - dropping such rows is --require-reasoning's call.
-    all_have_reasoning = all(m.get("reasoning") for m in messages if m["role"] == "assistant")
-    kwargs = None if all_have_reasoning else {"enable_thinking": False}
+    # The episode does not record whether the run had thinking on; a turn that
+    # carries reasoning says it did. Then a turn without it is the model closing
+    # an empty <think> block itself, which is what it did at serving time, so the
+    # row trains with thinking on and that turn's target is the bare "</think>".
+    # Explicit rather than unset, so a config default of false cannot flip it.
+    # No reasoning anywhere is a non-thinking run. Either way this is contract
+    # compliance, not filtering: dropping such rows is --require-reasoning's call.
+    thinking = any(m.get("reasoning") for m in messages if m["role"] == "assistant")
+    kwargs = {"enable_thinking": thinking}
 
     try:
         return SFTSample(messages=messages, tools=tools, apply_chat_template_kwargs=kwargs, metadata=metadata)
@@ -400,9 +428,13 @@ def main() -> None:
                     skipped[exc.reason] += 1
                     continue
 
-                stats["assistant_turns"] += sum(1 for m in sample.messages if m.role == "assistant")
-                if sample.apply_chat_template_kwargs:
-                    stats["rows_without_reasoning"] += 1
+                turns = [m for m in sample.messages if m.role == "assistant"]
+                stats["assistant_turns"] += len(turns)
+                stats["turns_without_reasoning"] += sum(m.reasoning is None for m in turns)
+                if not sample.apply_chat_template_kwargs["enable_thinking"]:
+                    stats["rows_non_thinking"] += 1
+                elif any(m.reasoning is None for m in turns):
+                    stats["rows_mixed"] += 1
                 if any(m.tool_calls for m in sample.messages):
                     stats["rows_with_tool_calls"] += 1
                     if sample.tools is None:
@@ -416,8 +448,9 @@ def main() -> None:
     print("\n=== summary ===")
     print(f"attempts selected  : {n_read}")
     print(f"rows written       : {n_written} -> {output_path}")
-    print(f"assistant turns    : {stats['assistant_turns']}")
-    print(f"rows with a reasoning-less turn (enable_thinking=false): {stats['rows_without_reasoning']}")
+    print(f"assistant turns    : {stats['assistant_turns']} (without reasoning: {stats['turns_without_reasoning']})")
+    print(f"rows with no reasoning at all (enable_thinking=false): {stats['rows_non_thinking']}")
+    print(f"rows thinking on, some turns without reasoning (trained as an empty <think>): {stats['rows_mixed']}")
     print(f"rows with structured tool calls: {stats['rows_with_tool_calls']} (of which missing tool schemas: {stats['rows_missing_tools']})")
     if skipped:
         print("skipped (could not be made contract-valid):")

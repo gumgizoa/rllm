@@ -160,7 +160,10 @@ def parse_args() -> argparse.Namespace:
         "--require-reasoning",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help=("Drop rows where any assistant turn has no 'reasoning'. Those rows train the model to emit an empty reasoning block, which is only what you want for a non-thinking mix."),
+        help=(
+            "Drop rows where any assistant turn has no 'reasoning'. Those turns train the model to emit an empty "
+            "reasoning block: what a non-thinking mix wants, and what a thinking model did on the turns it skipped thought."
+        ),
     )
     parser.add_argument(
         "--max-tokens",

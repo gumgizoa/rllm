@@ -37,11 +37,20 @@ Rules that exist because breaking them fails *silently*:
   read ``reasoning_content``; :meth:`SFTSample.to_chat_messages` does that rename.
   Writing ``reasoning_content`` straight into the parquet would work for Qwen and
   break for anything else, so it is rejected here.
-* A non-thinking assistant turn **omits** ``reasoning`` (not ``""``) *and* the row
-  must set ``enable_thinking: false``. Without the flag the template's generation
-  prompt stops at ``<think>\\n``, so the forced ``</think>`` lands inside the
-  supervised target and the model is trained to close an empty reasoning block it
-  never actually emits.
+* A non-thinking assistant turn **omits** ``reasoning`` (not ``""``). What that
+  trains depends on the row's ``enable_thinking``, one flag for the whole row:
+
+  - A row with **no** reasoning anywhere is a non-thinking sample and must set
+    ``enable_thinking: false``. Without the flag the template's generation prompt
+    stops at ``<think>\\n``, so the forced ``</think>`` lands inside the supervised
+    target and the model is trained to close an empty reasoning block it never
+    actually emits.
+  - A row where **some** turns carry reasoning is a thinking sample (true or
+    unset). Its reasoning-less turns are the model skipping thought with thinking
+    on: served, it did emit the ``</think>`` right after ``<think>\\n``, so
+    supervising that is faithful. ``enable_thinking: false`` cannot express this
+    row at all, because its generation prompt closes the block that the reasoning
+    turns fill.
 
 This module holds the models and nothing else. Reading rows back out of parquet is
 ``dataset.utils.serde``; rendering them is ``dataset.utils.render``. The dependency
@@ -146,10 +155,10 @@ class SFTSample(BaseModel):
             raise ValueError(f"the last message must be 'assistant', got {self.messages[-1].role!r}")
 
         thinking = (self.apply_chat_template_kwargs or {}).get("enable_thinking")
-        without_reasoning = [i for i, m in enumerate(self.messages) if m.role == "assistant" and m.reasoning is None]
-        if without_reasoning and thinking is not False:
+        assistant = [m for m in self.messages if m.role == "assistant"]
+        if all(m.reasoning is None for m in assistant) and thinking is not False:
             raise ValueError(
-                f"assistant message(s) {without_reasoning} have no 'reasoning', which requires "
+                "no assistant message has 'reasoning', which requires "
                 "apply_chat_template_kwargs={'enable_thinking': False}; otherwise the template's "
                 "forced </think> is trained as if the model had produced it"
             )
