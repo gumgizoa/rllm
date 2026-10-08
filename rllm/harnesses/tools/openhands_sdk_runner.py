@@ -110,11 +110,15 @@ def main() -> int:
 
     # Sampling params are the gateway's job -- it rewrites them on the way
     # through -- so the LLM is configured with routing only.
-    llm = reasoning_replay_llm(LLM)(
-        model=model,
-        api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
-        base_url=os.environ.get("LLM_BASE_URL"),
-    )
+    llm_kwargs: dict[str, object] = {
+        "model": model,
+        "api_key": os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
+        "base_url": os.environ.get("LLM_BASE_URL"),
+    }
+    chat_template_kwargs = _chat_template_kwargs_from_env()
+    if chat_template_kwargs:
+        llm_kwargs["litellm_extra_body"] = {"chat_template_kwargs": chat_template_kwargs}
+    llm = reasoning_replay_llm(LLM)(**llm_kwargs)  # type: ignore[arg-type]
 
     tools = [
         Tool(name=TerminalTool.name),
