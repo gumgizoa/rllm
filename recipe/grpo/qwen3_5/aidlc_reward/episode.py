@@ -28,6 +28,9 @@ from typing import Any
 from .rubric.frontends import openhands
 from .rubric.model import Run, Step
 
+# Vendored tool profiles, each naming the harnesses whose tool calls it parses (``NAMES``).
+FRONTENDS = (openhands,)
+
 
 def _text(content: Any) -> str:
     if isinstance(content, str):
@@ -62,8 +65,24 @@ def _tool_results(steps: list[Any]) -> dict[str, str]:
     return out
 
 
+def frontend_for(episode: Any):
+    """The tool profile for the harness that produced ``episode``, by its trajectories' ``name``.
+
+    A tool call means something only to its own harness's profile (openhands' ``terminal`` /
+    ``file_editor`` are not another agent's tools), so a harness without one is an error -- the
+    scorer logs it and leaves the verifier's output alone -- never a score from the wrong parser.
+    """
+    names = {getattr(t, "name", None) for t in episode.trajectories}
+    for frontend in FRONTENDS:
+        if names & frontend.NAMES:
+            return frontend
+    vendored = sorted(n for frontend in FRONTENDS for n in frontend.NAMES)
+    raise ValueError(f"no rubric front end for harness {sorted(map(str, names))}; vendored: {vendored}")
+
+
 def episode_to_run(episode: Any, artifact_files: dict[str, str], instance_id: str = "") -> Run:
     """``artifact_files`` maps ``/tmp/swe-bench-pro/NN-*.md`` to the content read from the sandbox."""
+    parse = frontend_for(episode).parse
     steps = _steps(episode)
     results = _tool_results(steps)
     run_steps: list[Step] = []
@@ -72,6 +91,6 @@ def episode_to_run(episode: Any, artifact_files: dict[str, str], instance_id: st
         step = Step(i, message=_text(response.get("content")))
         for tc in response.get("tool_calls") or []:
             fn = tc.get("function") or {}
-            step.actions.append(openhands.parse(fn.get("name") or "", _args(fn.get("arguments")), results.get(tc.get("id") or "", "")))
+            step.actions.append(parse(fn.get("name") or "", _args(fn.get("arguments")), results.get(tc.get("id") or "", "")))
         run_steps.append(step)
     return Run(instance_id=instance_id, steps=run_steps, artifact_files=dict(artifact_files), meta={"api_calls": len(steps)})

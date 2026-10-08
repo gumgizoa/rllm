@@ -1,5 +1,10 @@
 """Harnesses for this recipe: a turn budget, and a workflow on top of any harness.
 
+``AgentKwargsMixin``
+    ``rllm eval --agent-kwargs key=value,...`` for any CLI harness: each key
+    must be an attribute the harness already has, then ``_after_configure``
+    re-validates. Both classes below build on it.
+
 ``StepLimitedOpenHandsSdk``
     :class:`~rllm.harnesses.openhands_sdk.OpenHandsSdkHarness` plus a
     ``step_limit``. The engine reads that attribute to stamp
@@ -71,26 +76,18 @@ def _null(value):
     return value
 
 
-class StepLimitedOpenHandsSdk(OpenHandsSdkHarness):
-    """openhands-sdk with an explicit iteration budget.
+class AgentKwargsMixin:
+    """Honour ``rllm eval --agent-kwargs key=value,...`` on a CLI harness.
 
-    One SDK iteration is one agent step (one LLM call, possibly several tool
-    calls), and the gateway records one trace per LLM call, so the engine's
-    trace count and the SDK's iteration count agree closely enough for the
-    ``MAX_TURNS_EXCEEDED`` stamp.
+    ``SandboxedAgentFlow.configure`` consumes only the sandbox flags and
+    returns the rest, so ``agent_kwargs`` would otherwise be warned about and
+    dropped. Each key must be an attribute this harness already has
+    (``step_limit``, ``enable_thinking``, ``workflow``, ``instruction_position``
+    ...); an unknown one is an error rather than a silent no-op. Subclasses
+    re-validate in ``_after_configure`` and call ``super()`` there.
     """
 
-    step_limit: int = 50
-
     def configure(self, overrides: dict) -> dict:
-        """Also honour ``rllm eval --agent-kwargs key=value,...``.
-
-        ``SandboxedAgentFlow.configure`` consumes only the sandbox flags and
-        returns the rest, so ``agent_kwargs`` would otherwise be warned about
-        and dropped. Each key must be an attribute this harness already has
-        (``step_limit``, ``enable_thinking``, ``instruction_position`` ...);
-        an unknown one is an error rather than a silent no-op.
-        """
         leftovers = super().configure(overrides)
         kwargs = leftovers.pop("agent_kwargs", None) or {}
         for key, value in dict(kwargs).items():
@@ -101,6 +98,22 @@ class StepLimitedOpenHandsSdk(OpenHandsSdkHarness):
         return leftovers
 
     def _after_configure(self) -> None:
+        pass
+
+
+class StepLimitedOpenHandsSdk(AgentKwargsMixin, OpenHandsSdkHarness):
+    """openhands-sdk with an explicit iteration budget.
+
+    One SDK iteration is one agent step (one LLM call, possibly several tool
+    calls), and the gateway records one trace per LLM call, so the engine's
+    trace count and the SDK's iteration count agree closely enough for the
+    ``MAX_TURNS_EXCEEDED`` stamp.
+    """
+
+    step_limit: int = 50
+
+    def _after_configure(self) -> None:
+        super()._after_configure()
         self.step_limit = int(self.step_limit)
 
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
@@ -110,7 +123,7 @@ class StepLimitedOpenHandsSdk(OpenHandsSdkHarness):
         return env
 
 
-class WorkflowMixin:
+class WorkflowMixin(AgentKwargsMixin):
     """A CLI harness made to follow the workflow named by ``workflow``.
 
     ``workflow`` is a key of :data:`workflows.WORKFLOWS`; ``None`` (or
@@ -139,9 +152,8 @@ class WorkflowMixin:
     is also the key into the spec's ``system_prompt`` and ``scorers``.
 
     ``workflow`` and ``instruction_position`` may be set per run through
-    ``configure`` (``--agent-kwargs``), so the harness side must handle
-    ``agent_kwargs`` and call ``_after_configure`` as
-    ``StepLimitedOpenHandsSdk`` does.
+    ``configure`` (``--agent-kwargs``, from ``AgentKwargsMixin``), on whatever
+    CLI harness the mixin sits on.
     """
 
     workflow: str | None = None

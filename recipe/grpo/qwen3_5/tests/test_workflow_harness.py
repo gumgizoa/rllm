@@ -148,6 +148,20 @@ def test_harness_without_a_system_prompt_seam():
         Bare(workflow="aidlc")
 
 
+def test_mixin_brings_agent_kwargs_to_any_cli_harness(wf2):
+    """No openhands-specific base needed: the mixin alone takes --agent-kwargs on another harness."""
+    from rllm.harnesses.mini_swe_agent import MiniSweAgentHarness
+
+    class MiniWorkflow(WorkflowMixin, MiniSweAgentHarness):
+        pass
+
+    h = MiniWorkflow()
+    h.configure({"agent_kwargs": {"workflow": "wf2", "instruction_position": "prefix"}})
+    assert h.workflow_spec is wf2 and h.compose_instruction("TASK") == "Follow /wf2/README.md.\n\nTASK"
+    with pytest.raises(ValueError, match="no attribute"):
+        h.configure({"agent_kwargs": {"turn_budget": 3}})
+
+
 def test_rllm_eval_loads_it_by_import_path_and_uses_its_scorer(monkeypatch):
     """The ``rllm eval --agent`` path: package import, CLI kwargs, policy handed to the hooks."""
     monkeypatch.syspath_prepend(str(REPO))

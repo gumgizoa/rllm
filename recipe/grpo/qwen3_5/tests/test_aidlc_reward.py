@@ -165,13 +165,14 @@ def _call(i, name, **args):
     return {"id": f"c{i}", "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
 
 
-def episode(turns: list[tuple[dict, str]]) -> SimpleNamespace:
-    """turns: (tool call, its observation). The last turn's result is never sent back, as live."""
+def episode(turns: list[tuple[dict, str]], harness: str = "openhands-sdk") -> SimpleNamespace:
+    """turns: (tool call, its observation). The last turn's result is never sent back, as live.
+    The trajectory is named after the harness, as the engine names it."""
     steps, pending = [], []
     for call, obs in turns:
         steps.append(SimpleNamespace(chat_completions=pending + [{"role": "assistant", "content": "", "tool_calls": [call]}]))
         pending = [{"role": "tool", "tool_call_id": call["id"], "content": [{"type": "text", "text": obs}]}]
-    return SimpleNamespace(trajectories=[SimpleNamespace(steps=steps)])
+    return SimpleNamespace(trajectories=[SimpleNamespace(name=harness, steps=steps)])
 
 
 def honest_turns() -> list[tuple[dict, str]]:
@@ -314,6 +315,15 @@ def test_evaluator_falls_back_to_the_verifier_when_collection_fails():
     sb = _Sandbox(fail=True)
     out = AidlcComplianceEvaluator(_Verifier(sb), sb).evaluate(SimpleNamespace(id="t"), episode(honest_turns()))
     assert [s.name for s in out.signals] == ["accuracy"]
+
+
+def test_tool_calls_are_parsed_by_the_producing_harness_profile():
+    """A harness with no vendored front end is not scored with openhands' parser."""
+    sb = _Sandbox(_collected({ART[k]: ARTIFACTS[k] for k in ART}))
+    with pytest.raises(ValueError, match="no rubric front end for harness \\['opencode'\\]"):
+        episode_to_run(episode(honest_turns(), harness="opencode"), {}, instance_id="t")
+    out = AidlcComplianceEvaluator(_Verifier(sb), sb).evaluate(SimpleNamespace(id="t"), episode(honest_turns(), harness="opencode"))
+    assert [s.name for s in out.signals] == ["accuracy"]  # verifier output only, no aidlc/* from a wrong parse
 
 
 def test_evaluator_falls_back_to_the_verifier_when_scoring_fails():
