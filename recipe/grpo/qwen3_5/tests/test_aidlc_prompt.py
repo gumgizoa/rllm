@@ -34,7 +34,13 @@ def test_aidlc_template_drops_skyrl_procedure_but_keeps_task_facts():
     for marker in ("Follow these steps", "1. EXPLORATION", "6. FINAL REVIEW", "Be thorough in your exploration", INST["base_commit"]):
         assert marker in skyrl
         assert marker not in aidlc
-    for kept in ("<uploaded_files>\n/testbed\n</uploaded_files>", "<issue_description>\nWidget.frob() returns None\n</issue_description>", "DON'T have to modify the testing logic", "already set up for you", "minimal changes to non-test files in the /testbed directory"):
+    for kept in (
+        "<uploaded_files>\n/testbed\n</uploaded_files>",
+        "<issue_description>\nWidget.frob() returns None\n</issue_description>",
+        "DON'T have to modify the testing logic",
+        "already set up for you",
+        "minimal changes to non-test files in the /testbed directory",
+    ):
         assert kept in aidlc
     assert prepare.render_instruction(INST) == skyrl  # default is the control arm's prompt
 
@@ -61,17 +67,6 @@ def test_instruction_prefix_and_suffix(harness_cls):
     assert pre.compose_instruction(task) == f"{text}\n\nTASK TEXT"
     assert suf.compose_instruction(task) == f"TASK TEXT\n\n{text}"
     assert harness_cls().instruction_position == "suffix"  # code default; config.yaml chooses prefix
-
-
-def test_instruction_off_leaves_task_alone(monkeypatch):
-    import dataclasses
-
-    from recipe.grpo.qwen3_5 import workflows
-    from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
-
-    monkeypatch.setitem(workflows.WORKFLOWS, "aidlc_no_instruction", dataclasses.replace(workflows.WORKFLOWS["aidlc"], instruction_file=None))
-    h = OpenHandsSdkWorkflow(workflow="aidlc_no_instruction", instruction_position="prefix")
-    assert h.compose_instruction("TASK") == "TASK"
 
 
 def test_bad_position_rejected(harness_cls):

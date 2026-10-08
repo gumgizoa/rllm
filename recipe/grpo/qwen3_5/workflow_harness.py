@@ -54,7 +54,7 @@ from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness
 from rllm.sandbox.protocol import Sandbox
 from rllm.types import AgentConfig, Task
 
-from .workflows import WORKFLOWS, WorkflowSpec, get_workflow
+from .workflows import WorkflowSpec, get_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -120,11 +120,8 @@ class WorkflowMixin:
     this one attribute.
 
     ``docs_dir`` / ``container_dir`` / ``instruction_file`` /
-    ``system_prompt_file`` are the spec's, read-only: an ablation (a layer
-    off, another document set) is a ``WORKFLOWS`` entry of its own, e.g.
-    ``dataclasses.replace(WORKFLOWS["aidlc"], instruction_file=None)``, the
-    same way in training and in ``rllm eval``. The documents are always
-    uploaded.
+    ``system_prompt_file`` are the spec's, read-only, the same in training
+    and in ``rllm eval``.
 
     ``instruction_position`` says where the instruction goes relative to the
     task text: ``"prefix"`` puts it first, ``"suffix"`` (the default, as in the
@@ -249,15 +246,10 @@ class WorkflowMixin:
                 raise ValueError(f"{label}: {name} never mentions {entry}, where the documents are uploaded: {path}")
 
     def _excluded(self) -> set[Path]:
-        """Files inside ``docs_dir`` that are prompt material, not workflow documents.
-
-        Every registered workflow sharing this ``docs_dir`` contributes its
-        prompt files, not just this one: an ablation entry without an
-        instruction must not turn ``aidlc/instruction.md`` into a seventh
-        document the agent can read.
-        """
-        prompts = (p for spec in WORKFLOWS.values() if spec.docs_dir == self.docs_dir for p in (spec.instruction_file, *spec.system_prompt.values()))
-        return {p.resolve() for p in prompts if p is not None}
+        """Files inside ``docs_dir`` that are prompt material (the instruction and every
+        harness's system prompt template, versioned beside the documents), not documents."""
+        spec = self.workflow_spec
+        return {p.resolve() for p in (spec.instruction_file, *spec.system_prompt.values()) if p is not None}
 
     def _doc_entries(self) -> list[Path]:
         """Top-level entries of ``docs_dir`` that go into the container.

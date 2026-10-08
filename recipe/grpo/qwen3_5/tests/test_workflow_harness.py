@@ -107,20 +107,6 @@ def test_switching_workflow_rereads_the_spec(wf2, no_runner):
     assert not any("system-prompt" in c for c in sb.execs)
 
 
-def test_an_ablation_is_its_own_workflow_entry(monkeypatch, no_runner):
-    """Layers come from the spec only; switching one off is a registered entry, not a run override."""
-    monkeypatch.setitem(workflows.WORKFLOWS, "aidlc_no_instruction", dataclasses.replace(AIDLC, instruction_file=None))
-    h = OpenHandsSdkWorkflow(workflow="aidlc_no_instruction", instruction_position="prefix")
-    assert h.instruction_file is None and h.compose_instruction("TASK") == "TASK"
-    assert h.system_prompt_file == AIDLC.system_prompt["openhands-sdk"]
-    assert type(h.evaluation_policy).__name__ == "AidlcEvaluation"  # still scored as the AI-DLC arm
-    # aidlc/instruction.md stays prompt material: same documents as the full arm, no seventh one.
-    assert [p.name for p in h._doc_entries()] == [p.name for p in OpenHandsSdkWorkflow(workflow="aidlc")._doc_entries()]
-    sb = _Sandbox(md_count=h._expected_doc_count())
-    h.write_configs(sb, None, CONFIG, {})
-    assert not any(u.endswith("instruction.md") for u in sb.uploads)
-
-
 def test_spec_paths_cannot_be_overridden_per_run():
     h = OpenHandsSdkWorkflow(workflow="aidlc")
     for key in ("docs_dir", "container_dir", "instruction_file", "system_prompt_file"):
