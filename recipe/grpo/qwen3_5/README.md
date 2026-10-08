@@ -295,7 +295,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | --- | --- | --- | --- |
 | `mini-swe-agent` | `null` | `StepLimitedMiniSweAgent` | `train.py` |
 | `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
-| `openhands-sdk` | `aidlc` | `OpenHandsSdkWorkflow` with the `aidlc` entry of `workflows.py` | `workflow_harness.py` |
+| `openhands-sdk` | `aidlc` | `OpenHandsSdkWorkflow` with `workflows/aidlc/` | `workflow_harness.py` |
 | `mini-swe-agent` | `aidlc` | refused at startup (no system-prompt seam) | — |
 
 The workflow itself (documents, instruction, per-harness system prompt and compliance scorer) is
@@ -322,7 +322,7 @@ recipe); with or without a workflow it is the same class and install script, hen
 
 ### What AI-DLC puts in the sandbox
 
-Three layers, each a field of the `aidlc` entry in `workflows.py`, mirroring the Harbor experiment
+Three layers, each a field of the `aidlc` spec (`workflows/aidlc/__init__.py`), mirroring the Harbor experiment
 (`harbor-extension/experiments/aidlc`) that first made openhands-sdk follow the workflow. Only
 `recipe.workflow.instruction_position` (or `--agent-kwargs instruction_position=`) is a run knob;
 the files come from the spec only:
