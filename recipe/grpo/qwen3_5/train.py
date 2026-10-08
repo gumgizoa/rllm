@@ -5,13 +5,15 @@ Not Harbor: the rollout is ``AgentFlowEngine`` → ``SandboxTaskHooks`` (Docker)
 rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh`` writes
 ``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
 
-The harness is chosen by ``recipe.agent``:
+The harness is chosen by ``recipe.agent`` and the workflow on it by
+``recipe.workflow.name`` (``workflows.WORKFLOWS``; null = none):
 
-* ``mini-swe-agent`` (default) — ``StepLimitedMiniSweAgent`` below, Qwen3.5-4B.
-* ``openhands-sdk`` — ``aidlc_flow.StepLimitedOpenHandsSdk``; with
-  ``recipe.aidlc.enable=true`` it becomes ``AidlcOpenHandsSdkHarness``, which
-  ships the AI-DLC workflow documents into the sandbox and swaps the SDK's
-  system prompt. ``config/variant/`` holds ready-made selections::
+* ``mini-swe-agent`` (default) — ``StepLimitedMiniSweAgent`` below, Qwen3.5-4B;
+  no workflow.
+* ``openhands-sdk`` — ``workflow_harness.OpenHandsSdkWorkflow``; with
+  ``recipe.workflow.name=aidlc`` it ships the AI-DLC workflow documents into
+  the sandbox, swaps the SDK's system prompt, and scores compliance beside the
+  verifier. ``config/variant/`` holds ready-made selections::
 
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b          # 9B, no AI-DLC
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc    # 9B + AI-DLC
@@ -34,7 +36,6 @@ from __future__ import annotations
 import logging
 import os
 import time
-from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
@@ -63,11 +64,15 @@ BUDGET_EXHAUSTED = frozenset(
 )
 
 
-COMPLIANCE_SIGNAL = "aidlc/compliance"
 COMPLIANCE_MODES = ("mul", "add")
 
 
-def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None = None, compliance_lam: float = 0.2):
+def make_budget_scaled_grouping_hook(
+    scale: float,
+    compliance_mode: str | None = None,
+    compliance_lam: float = 0.2,
+    compliance_signal: str | None = None,
+):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
     The hook runs before trajectory groups are built, so the scaled reward is
@@ -75,9 +80,9 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None =
     sampling and the solve_all/solve_none metrics read it, and "solved but
     slowly" is still solved for those purposes.
 
-    ``compliance_mode`` folds in the AI-DLC compliance mean (``aidlc/compliance``,
-    in [0, 1], set by ``aidlc_reward.AidlcComplianceEvaluator``) before the
-    budget scale:
+    ``compliance_mode`` folds in the workflow's compliance signal
+    (``compliance_signal``, in [0, 1], e.g. ``aidlc/compliance`` set by
+    ``aidlc_reward.AidlcComplianceEvaluator``) before the budget scale:
 
     * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
       at 0 however well it followed the workflow, and a solved one earns only
@@ -88,7 +93,7 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None =
 
     The budget scale then applies to the result, so following the workflow
     cannot buy back what running out of turns costs. A trajectory without the
-    signal (no AI-DLC evaluator, or its scoring failed) keeps the verifier
+    signal (no workflow scorer, or its scoring failed) keeps the verifier
     reward alone -- in ``"mul"`` it is not zeroed for a scoring failure.
 
     One caveat: the trainer runs the same hook over validation episodes, so
@@ -98,9 +103,11 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None =
     if not 0.0 <= scale <= 1.0:
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
     if compliance_mode is not None and compliance_mode not in COMPLIANCE_MODES:
-        raise ValueError(f"recipe.aidlc.reward.mode must be one of {COMPLIANCE_MODES}, got {compliance_mode!r}")
+        raise ValueError(f"recipe.workflow.compliance_reward.mode must be one of {COMPLIANCE_MODES}, got {compliance_mode!r}")
+    if compliance_mode is not None and not compliance_signal:
+        raise ValueError("a compliance mode needs the signal it reads (WorkflowSpec.reward_signal)")
     if compliance_mode == "add" and compliance_lam < 0.0:
-        raise ValueError(f"recipe.aidlc.reward.lam must be >= 0, got {compliance_lam}")
+        raise ValueError(f"recipe.workflow.compliance_reward.lam must be >= 0, got {compliance_lam}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
         for episode in episodes:
@@ -108,7 +115,7 @@ def make_budget_scaled_grouping_hook(scale: float, compliance_mode: str | None =
             for trajectory in episode.trajectories:
                 if trajectory.reward is None:
                     continue
-                c = (trajectory.signals or {}).get(COMPLIANCE_SIGNAL) if compliance_mode else None
+                c = (trajectory.signals or {}).get(compliance_signal) if compliance_mode else None
                 if c is not None:
                     if compliance_mode == "mul":
                         trajectory.reward = trajectory.reward * float(c)
@@ -159,17 +166,6 @@ class StepLimitedMiniSweAgent(MiniSweAgentHarness):
         )
 
 
-RECIPE_DIR = Path(__file__).resolve().parent
-
-
-def _recipe_path(value: str | None) -> Path | None:
-    """Resolve a ``recipe.aidlc.*`` path; relative paths are relative to this recipe dir."""
-    if value is None:
-        return None
-    path = Path(str(value)).expanduser()
-    return path if path.is_absolute() else RECIPE_DIR / path
-
-
 def _renderer_enable_thinking(config: DictConfig) -> bool | None:
     """``rllm.gateway.renderer_kwargs.enable_thinking`` when set, else ``None``.
 
@@ -185,22 +181,23 @@ def _renderer_enable_thinking(config: DictConfig) -> bool | None:
 
 
 def _build_agent_flow(recipe: DictConfig, config: DictConfig):
-    """Pick the harness from ``recipe.agent`` and layer AI-DLC on it when asked.
+    """Pick the harness from ``recipe.agent`` and the workflow on it from ``recipe.workflow.name``.
 
     The two harnesses share one ``agent_step_limit`` so a run's turn budget
-    means the same thing whichever agent is under it. AI-DLC is a property of
-    the openhands-sdk harness only: it needs a system-prompt override to work
-    at all, and mini-swe-agent has no equivalent seam.
+    means the same thing whichever agent is under it. A workflow needs a
+    system-prompt override to work at all, and mini-swe-agent has no
+    equivalent seam, so a workflow there is refused rather than run without it.
+    ``recipe.workflow.name: null`` is the plain harness.
     """
     agent = str(recipe.get("agent", "mini-swe-agent"))
     step_limit = int(recipe.agent_step_limit)
-    aidlc = recipe.get("aidlc") or {}
-    aidlc_enabled = bool(aidlc.get("enable", False))
+    workflow = recipe.get("workflow") or {}
+    name = workflow.get("name")
 
     if agent == "mini-swe-agent":
-        if aidlc_enabled:
+        if name is not None:
             raise SystemExit(
-                "recipe.aidlc.enable=true requires recipe.agent=openhands-sdk "
+                f"recipe.workflow.name={name!r} requires recipe.agent=openhands-sdk "
                 "(mini-swe-agent has no system-prompt seam for the workflow). "
                 "Use `variant=openhands_9b_aidlc` or set recipe.agent explicitly."
             )
@@ -210,55 +207,61 @@ def _build_agent_flow(recipe: DictConfig, config: DictConfig):
         # Imported lazily and by file location: the module sits beside this
         # script, and `python recipe/grpo/qwen3_5/train.py` puts that dir on
         # sys.path[0].
-        from aidlc_flow import AidlcOpenHandsSdkHarness, StepLimitedOpenHandsSdk
+        from workflow_harness import OpenHandsSdkWorkflow
 
-        enable_thinking = _renderer_enable_thinking(config)
-        if not aidlc_enabled:
-            return StepLimitedOpenHandsSdk(step_limit=step_limit, enable_thinking=enable_thinking)
-        return AidlcOpenHandsSdkHarness(
+        return OpenHandsSdkWorkflow(
             step_limit=step_limit,
-            enable_thinking=enable_thinking,
-            docs_dir=_recipe_path(aidlc.get("docs_dir", "aidlc")),
-            container_dir=str(aidlc.get("container_dir", "/ai-dlc")),
-            instruction_file=_recipe_path(aidlc.get("instruction_file")),
-            system_prompt_file=_recipe_path(aidlc.get("system_prompt_file")),
-            instruction_position=str(aidlc.get("instruction_position", "suffix")),
+            enable_thinking=_renderer_enable_thinking(config),
+            workflow=name,
+            instruction_position=str(workflow.get("instruction_position", "suffix")),
         )
 
     raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
 
 
-def _compliance_settings(recipe: DictConfig) -> tuple[bool, str | None, float]:
-    """(score compliance?, how it enters the reward -- "mul" / "add" / None, lam for "add").
+def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[str | None, str | None, float]:
+    """(signal folded into the reward, "mul" / "add", lam for "add"); ``(None, None, 0.0)`` when off.
 
-    Compliance is scored -- and logged as ``aidlc/*`` episode metrics -- whenever
-    AI-DLC is on, so the verifier-only arm shows the same curves as the rewarded
-    one. It enters the reward only with ``recipe.aidlc.reward.enable``.
+    Scoring itself follows the harness: a workflow with a scorer for it is
+    always scored -- and logged as ``<workflow>/*`` episode metrics -- so the
+    verifier-only arm shows the same curves as the rewarded one. The signal
+    enters the reward only with ``recipe.workflow.compliance_reward.enable``.
+
+    With no workflow there is nothing to fold in, so ``compliance_reward.enable`` is
+    ignored (a rewarded variant run with ``recipe.workflow.name=null`` is its
+    verifier-only baseline). A workflow without a scorer for this harness,
+    asked to reward, is an error rather than a silent verifier-only run.
     """
-    aidlc = recipe.get("aidlc") or {}
-    if not bool(aidlc.get("enable", False)):
-        return False, None, 0.0
-    reward = aidlc.get("reward") or {}
+    reward = (recipe.get("workflow") or {}).get("compliance_reward") or {}
     if not bool(reward.get("enable", False)):
-        return True, None, 0.0
-    return True, str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
+        return None, None, 0.0
+    spec = getattr(agent_flow, "workflow_spec", None)
+    if spec is None:
+        logger.warning("recipe.workflow.compliance_reward.enable is set but there is no workflow; training on the verifier reward alone")
+        return None, None, 0.0
+    if spec.reward_signal is None or agent_flow.evaluation_policy is None:
+        raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {agent_flow.workflow!r} has no compliance scorer for recipe.agent={agent_flow.name!r}")
+    return spec.reward_signal, str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
 
 
-def _build_hooks(score_compliance: bool, sandbox_backend: str, hide_git_history: bool = False):
-    """``SandboxTaskHooks`` with the AI-DLC evaluator, or ``None`` to let AgentTrainer auto-wire.
+def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = False):
+    """``SandboxTaskHooks`` with the harness's workflow scorer, or ``None`` to let AgentTrainer auto-wire.
+
+    The scorer is the harness's ``evaluation_policy`` -- the same one
+    ``rllm eval`` hands its hooks -- so training and evaluation measure
+    compliance the same way.
 
     ``hide_git_history`` has to reach hooks built here: AgentTrainer only wires
     it into the hooks it builds itself, and refuses caller-built hooks that lack
-    it (an AI-DLC arm with ``recipe.hide_git_history=true`` would otherwise fail
+    it (a workflow arm with ``recipe.hide_git_history=true`` would otherwise fail
     at startup rather than run with the history in place).
     """
-    if not score_compliance:
+    evaluation = getattr(agent_flow, "evaluation_policy", None)
+    if evaluation is None:
         return None
-    from aidlc_reward.evaluator import AidlcEvaluation
-
     from rllm.hooks import SandboxTaskHooks
 
-    return SandboxTaskHooks(evaluation=AidlcEvaluation(), sandbox_backend=sandbox_backend, hide_git_history=hide_git_history)
+    return SandboxTaskHooks(evaluation=evaluation, sandbox_backend=sandbox_backend, hide_git_history=hide_git_history)
 
 
 def _load(name: str, split: str, limit: int | None, kind: str):
@@ -289,32 +292,34 @@ def main(config: DictConfig) -> None:
 
     agent_flow = _build_agent_flow(recipe, config)
     agent_flow.configure({"agent_image": agent_image})
-    score_compliance, compliance_mode, compliance_lam = _compliance_settings(recipe)
+    reward_signal, compliance_mode, compliance_lam = _workflow_reward(recipe, agent_flow)
+    sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
+    hooks = _build_hooks(agent_flow, sandbox_backend, bool(recipe.hide_git_history))
     logger.info(
-        "agent flow: %s (step_limit=%s, aidlc=%s, enable_thinking=%s, compliance scored=%s, reward mode=%s, lam=%s)",
+        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s)",
         type(agent_flow).__name__,
         recipe.agent_step_limit,
-        bool((recipe.get("aidlc") or {}).get("enable", False)),
+        getattr(agent_flow, "workflow", None),
         getattr(agent_flow, "enable_thinking", None),
-        score_compliance,
+        hooks is not None,
+        reward_signal,
         compliance_mode,
         compliance_lam if compliance_mode == "add" else "-",
     )
 
-    sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     trainer = AgentTrainer(
         backend="verl",
         agent_flow=agent_flow,
         config=config,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
-        hooks=_build_hooks(score_compliance, sandbox_backend, bool(recipe.hide_git_history)),
+        hooks=hooks,
         sandbox_backend=sandbox_backend,
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Same mechanism as `rllm eval --hide-git-history`.
         hide_git_history=bool(recipe.hide_git_history),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal),
     )
     trainer.train()
 

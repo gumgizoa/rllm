@@ -21,36 +21,32 @@ defaults:
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
   # Which harness runs inside the task sandbox. Both honour agent_step_limit.
-  #   mini-swe-agent  StepLimitedMiniSweAgent (train.py)
-  #   openhands-sdk   aidlc_flow.StepLimitedOpenHandsSdk, or the AI-DLC harness
-  #                   below when aidlc.enable is true
+  #   mini-swe-agent  StepLimitedMiniSweAgent (train.py); takes no workflow
+  #   openhands-sdk   workflow_harness.OpenHandsSdkWorkflow
   agent: mini-swe-agent
-  # AI-DLC workflow injection (openhands-sdk only). Off by default so the
-  # baseline run is unchanged; `variant=openhands_9b_aidlc` turns it on.
-  # Paths are relative to this recipe directory unless absolute. The three
-  # files are shipped together under aidlc/ because they name each other by
-  # absolute container path -- see aidlc_flow.py.
-  aidlc:
-    enable: false
-    docs_dir: aidlc                          # core-workflow.md + rule-details/ -> container_dir
-    container_dir: /ai-dlc                   # must match the paths written in instruction.md / system-prompt.j2
-    instruction_file: aidlc/instruction.md   # joined to the task instruction (see instruction_position); null = leave the task text alone
-    # Where instruction_file goes in the user message. prefix = before the task
-    # text, suffix = after it (the Harbor arrangement, and the code default).
+  # Workflow layered on the harness (openhands-sdk only). name is a key of
+  # workflows.WORKFLOWS, whose entry holds the documents, the instruction and the
+  # system prompt together -- they name each other by absolute container path.
+  # null = the plain harness, so the baseline run is unchanged;
+  # `variant=openhands_9b_aidlc` sets aidlc.
+  workflow:
+    name: null
+    # Where the workflow instruction goes in the user message. prefix = before
+    # the task text, suffix = after it (the Harbor arrangement, and the code default).
     # Run 2 (2026-09-29, suffix) put the task prompt's six-step procedure
     # (OpenHands' SWE-bench prompt, reused by SkyRL-v0) between the
     # issue and the AI-DLC pointer and 86% of rollouts never read the workflow
     # (reports/2026-09-30_aidlc_swegym_compliance.md), so the recipe uses prefix.
     instruction_position: prefix
-    system_prompt_file: aidlc/system-prompt.j2  # replaces the SDK system prompt; null = SDK default (the workflow is then ignored -- ablation only)
-    # Compliance reward (aidlc_reward/). With aidlc.enable the six signals --
-    # order_v6 + stage bands s1..s5, each in [0, 1] -- are always scored and
-    # logged as aidlc/* episode metrics. With reward.enable their equal-weight
-    # mean (aidlc/compliance) enters the reward, then budget_reward_scale applies:
-    #   mode: mul   reward = verifier * aidlc/compliance        (unsolved stays 0)
-    #   mode: add   reward = verifier + lam * aidlc/compliance  (bonus of at most lam)
+    # Compliance reward. With a workflow whose scorer covers the harness, its
+    # signals are always scored and logged (aidlc: order_v6 + stage bands s1..s5,
+    # each in [0, 1], as aidlc/* episode metrics). With compliance_reward.enable the
+    # workflow's reward_signal (aidlc: their equal-weight mean, aidlc/compliance)
+    # enters the reward, then budget_reward_scale applies:
+    #   mode: mul   reward = verifier * compliance        (unsolved stays 0)
+    #   mode: add   reward = verifier + lam * compliance  (bonus of at most lam)
     # `variant=openhands_9b_aidlc_reward` turns it on.
-    reward:
+    compliance_reward:
       enable: false
       mode: mul
       lam: 0.2          # mode=add only

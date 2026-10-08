@@ -64,7 +64,7 @@ recipe:
   # budget. Context stays 131072; watch termination_reason/agent_timeout
   # against task.toml's 3600 s agent budget.
   agent_step_limit: 100
-  aidlc:
+  workflow:
     # run 2's arrangement (see the header); v2 uses prefix.
     instruction_position: suffix
 

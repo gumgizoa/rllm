@@ -22,6 +22,11 @@ sys.path.insert(0, str(RECIPE))
 from aidlc_reward.compliance import compliance, order_v6  # noqa: E402
 from aidlc_reward.episode import episode_to_run  # noqa: E402
 from aidlc_reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
+from omegaconf import OmegaConf  # noqa: E402
+
+# Imported before train_module stubs ``rllm.harnesses``, so train.py's lazy
+# ``from workflow_harness import ...`` finds the real module cached.
+from workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
 
 from rllm.eval.types import EvalOutput, Signal  # noqa: E402
 
@@ -359,7 +364,7 @@ def _episodes(reason, verifier, compliance_value):
 
 def _reward(train_module, reason, verifier, compliance_value, mode, lam=0.2, scale=0.5):
     eps, traj = _episodes(reason, verifier, compliance_value)
-    train_module.make_budget_scaled_grouping_hook(scale, mode, lam)(eps, None)
+    train_module.make_budget_scaled_grouping_hook(scale, mode, lam, "aidlc/compliance")(eps, None)
     return traj.reward
 
 
@@ -391,26 +396,63 @@ def test_hook_keeps_the_verifier_reward_without_the_signal_or_the_mode(train_mod
     assert _reward(train_module, TR.ENV_DONE, 1.0, None, "mul") == 1.0  # scoring failed: not zeroed
     assert _reward(train_module, TR.ENV_DONE, 1.0, 0.3, None) == 1.0  # reward off
     with pytest.raises(ValueError):
-        train_module.make_budget_scaled_grouping_hook(0.5, "max")
+        train_module.make_budget_scaled_grouping_hook(0.5, "max", 0.2, "aidlc/compliance")
+    with pytest.raises(ValueError, match="signal"):
+        train_module.make_budget_scaled_grouping_hook(0.5, "mul")  # a mode without the signal it reads
 
 
-def test_compliance_settings(train_module):
-    from omegaconf import OmegaConf
+# --- harness x workflow selection in train.py ------------------------------------------------
 
-    def s(aidlc):
-        return train_module._compliance_settings(OmegaConf.create({"aidlc": aidlc}))
 
-    assert s({"enable": False, "reward": {"enable": True}}) == (False, None, 0.0)
-    assert s({"enable": True, "reward": {"enable": False}}) == (True, None, 0.0)
-    assert s({"enable": True, "reward": {"enable": True}}) == (True, "mul", 0.2)
-    assert s({"enable": True, "reward": {"enable": True, "mode": "add", "lam": 0.15}}) == (True, "add", 0.15)
+def _recipe(agent="openhands-sdk", name=None, reward=None, position="prefix"):
+    return OmegaConf.create({"agent": agent, "agent_step_limit": 80, "workflow": {"name": name, "instruction_position": position, "compliance_reward": reward or {"enable": False}}})
+
+
+def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
+    monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
+    cfg = OmegaConf.create({})
+    assert train_module._build_agent_flow(_recipe("mini-swe-agent"), cfg).step_limit == 80
+    with pytest.raises(SystemExit, match="requires recipe.agent=openhands-sdk"):
+        train_module._build_agent_flow(_recipe("mini-swe-agent", "aidlc"), cfg)
+    plain = train_module._build_agent_flow(_recipe(), cfg)
+    assert isinstance(plain, OpenHandsSdkWorkflow) and plain.workflow_spec is None and plain.step_limit == 80
+    wf = train_module._build_agent_flow(_recipe(name="aidlc", position="suffix"), cfg)
+    assert wf.workflow == "aidlc" and wf.instruction_position == "suffix" and wf.system_prompt_file is not None
+    with pytest.raises(SystemExit, match="recipe.agent must be"):
+        train_module._build_agent_flow(_recipe("claude-code"), cfg)
+
+
+def test_workflow_reward(train_module, tmp_path, monkeypatch):
+    import workflows
+
+    cfg = OmegaConf.create({})
+
+    def r(name, reward, agent="openhands-sdk"):
+        recipe = _recipe(agent, name, reward)
+        return train_module._workflow_reward(recipe, train_module._build_agent_flow(recipe, cfg))
+
+    assert r("aidlc", {"enable": False}) == (None, None, 0.0)
+    assert r(None, {"enable": False}) == (None, None, 0.0)
+    assert r("aidlc", {"enable": True}) == ("aidlc/compliance", "mul", 0.2)
+    assert r("aidlc", {"enable": True, "mode": "add", "lam": 0.15}) == ("aidlc/compliance", "add", 0.15)
+    # No workflow: nothing to fold in, the run trains on the verifier reward (a rewarded variant
+    # with workflow.name=null is its own baseline) -- never a startup failure.
+    assert r(None, {"enable": True}) == (None, None, 0.0)
+    monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
+    assert r(None, {"enable": True}, agent="mini-swe-agent") == (None, None, 0.0)
+    # A workflow with no scorer for this harness, asked to reward: stop rather than run verifier-only.
+    (tmp_path / "README.md").write_text("start here")
+    monkeypatch.setitem(workflows.WORKFLOWS, "unscored", workflows.WorkflowSpec(docs_dir=tmp_path, container_dir="/wf", entry_doc="README.md"))
+    with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
+        r("unscored", {"enable": True})
+    assert r("unscored", {"enable": False}) == (None, None, 0.0)
 
 
 # --- hide_git_history reaches the caller-built hooks ---------------------------------------
 
 
 def test_build_hooks_forwards_hide_git_history(train_module, monkeypatch):
-    """AgentTrainer refuses caller-built hooks that lack the flag, so the AI-DLC hooks must carry it."""
+    """AgentTrainer refuses caller-built hooks that lack the flag, so the workflow hooks must carry it."""
     import rllm.hooks as hooks_mod
 
     captured = {}
@@ -422,8 +464,10 @@ def test_build_hooks_forwards_hide_git_history(train_module, monkeypatch):
 
     monkeypatch.setattr(hooks_mod, "SandboxTaskHooks", _Hooks)
     monkeypatch.syspath_prepend(str(RECIPE))
-    assert train_module._build_hooks(False, "docker", True) is None
-    hooks = train_module._build_hooks(True, "docker", True)
+    wf = OpenHandsSdkWorkflow(workflow="aidlc")
+    assert train_module._build_hooks(OpenHandsSdkWorkflow(), "docker", True) is None  # no workflow
+    assert train_module._build_hooks(SimpleNamespace(), "docker", True) is None  # mini-swe-agent: no policy at all
+    hooks = train_module._build_hooks(wf, "docker", True)
     assert hooks.hide_git_history is True and captured["sandbox_backend"] == "docker"
-    assert type(captured["evaluation"]).__name__ == "AidlcEvaluation"
-    assert train_module._build_hooks(True, "docker").hide_git_history is False
+    assert type(captured["evaluation"]).__name__ == "AidlcEvaluation"  # the policy rllm eval uses too
+    assert train_module._build_hooks(wf, "docker").hide_git_history is False

@@ -6,6 +6,7 @@ AI-DLC instruction sits in the user message.
 
 from __future__ import annotations
 
+import functools
 import importlib.util
 import sys
 from pathlib import Path
@@ -46,9 +47,9 @@ def test_templates_are_registered_by_style():
 
 @pytest.fixture
 def harness_cls():
-    from aidlc_flow import AidlcOpenHandsSdkHarness
+    from workflow_harness import OpenHandsSdkWorkflow
 
-    return AidlcOpenHandsSdkHarness
+    return functools.partial(OpenHandsSdkWorkflow, workflow="aidlc")
 
 
 def test_instruction_prefix_and_suffix(harness_cls):

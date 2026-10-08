@@ -68,9 +68,9 @@ logger = logging.getLogger(__name__)
 # a few KB, never inside the task's repository.
 _SYSTEM_PROMPT_REMOTE = "/opt/openhands-sdk-system-prompt.j2"
 
-# Spec fields a caller may override per run (train.py's recipe.aidlc.*, or
-# --agent-kwargs). Held apart from the resolved attributes so switching
-# ``workflow`` later re-reads the new spec instead of keeping the old paths.
+# Spec fields a caller may override per run (--agent-kwargs). Held apart
+# from the resolved attributes so switching ``workflow`` later re-reads the
+# new spec instead of keeping the old paths.
 _OVERRIDES = ("docs_dir", "container_dir", "instruction_file", "system_prompt_file")
 
 

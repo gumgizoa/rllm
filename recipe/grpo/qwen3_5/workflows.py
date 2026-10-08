@@ -47,6 +47,8 @@ class WorkflowSpec:
     instruction_file  joined to the task text (before or after it); ``None`` = task text alone
     system_prompt     harness name -> template replacing that harness's system prompt
     scorers           harness name -> factory of an evaluation policy for ``SandboxTaskHooks``
+    reward_signal     the scorers' signal in [0, 1] that train.py folds into the reward
+                      (``recipe.workflow.compliance_reward``); the others are logged only
     """
 
     docs_dir: Path
@@ -55,6 +57,7 @@ class WorkflowSpec:
     instruction_file: Path | None = None
     system_prompt: Mapping[str, Path] = field(default_factory=dict)
     scorers: Mapping[str, Callable[[], Any]] = field(default_factory=dict)
+    reward_signal: str | None = None
 
 
 def _aidlc_scorer():
@@ -76,6 +79,7 @@ WORKFLOWS: dict[str, WorkflowSpec] = {
         instruction_file=AIDLC_DIR / "instruction.md",
         system_prompt={"openhands-sdk": AIDLC_DIR / "system-prompt.j2"},
         scorers={"openhands-sdk": _aidlc_scorer},
+        reward_signal="aidlc/compliance",
     ),
 }
 

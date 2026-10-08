@@ -276,8 +276,8 @@ Env knobs: `ENV_FILE` (dotenv path, default `<recipe>/.env`), `RLLM_HOME` and
 
 ## Variants: openhands-sdk and AI-DLC
 
-The harness is a config choice. `recipe.agent` picks it and `recipe.aidlc.enable` layers the
-AI-DLC workflow on the openhands-sdk harness; `config/variant/` holds the two presets, applied
+The harness is a config choice. `recipe.agent` picks it and `recipe.workflow.name` layers a
+workflow (`aidlc`) on the openhands-sdk harness; `config/variant/` holds the presets, applied
 *after* `config.yaml` so their values win:
 
 ```bash
@@ -291,35 +291,39 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2     
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_reward   # ... + compliance in the reward
 ```
 
-| `recipe.agent` | `recipe.aidlc.enable` | harness | where |
+| `recipe.agent` | `recipe.workflow.name` | harness | where |
 | --- | --- | --- | --- |
-| `mini-swe-agent` | `false` | `StepLimitedMiniSweAgent` | `train.py` |
-| `openhands-sdk` | `false` | `StepLimitedOpenHandsSdk` | `workflow_harness.py` |
-| `openhands-sdk` | `true` | `AidlcOpenHandsSdkHarness` (`OpenHandsSdkWorkflow` with `workflow="aidlc"`) | `aidlc_flow.py` → `workflow_harness.py` |
-| `mini-swe-agent` | `true` | refused at startup | — |
+| `mini-swe-agent` | `null` | `StepLimitedMiniSweAgent` | `train.py` |
+| `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
+| `openhands-sdk` | `aidlc` | `OpenHandsSdkWorkflow` with the `aidlc` entry of `workflows.py` | `workflow_harness.py` |
+| `mini-swe-agent` | `aidlc` | refused at startup (no system-prompt seam) | — |
 
 The workflow itself (documents, instruction, per-harness system prompt and compliance scorer) is
 registered by name in `workflows.py`; `WorkflowMixin` reads it, so another workflow is an entry
-there and another harness is one `WorkflowMixin` subclass. For `rllm eval`, select it with
+there and another harness is one `WorkflowMixin` subclass plus a branch in `train.py`'s
+`_build_agent_flow`. Training and `rllm eval` install the same scorer -- the harness's
+`evaluation_policy` -- so compliance is measured the same way in both. For `rllm eval`, select it with
 `--agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow --agent-kwargs workflow=aidlc`
 (`workflow=none` is the plain harness); the harness hands its scorer to the eval hooks, so the
 AI-DLC signals are reported beside resolve rate (`recipe/eval/README.md`).
 
-Both openhands-sdk classes read `recipe.agent_step_limit` into `OPENHANDS_MAX_ITERATIONS`, and
+The openhands-sdk harness reads `recipe.agent_step_limit` into `OPENHANDS_MAX_ITERATIONS`, and
 the engine reads the same attribute to stamp `MAX_TURNS_EXCEEDED`, so the SWE-Master budget
 scaling (`budget_reward_scale`) applies to the SDK exactly as it does to mini-swe-agent. The
 agent-image mount works for both (`rllm/sandbox/agent_image.py` has an openhands-sdk bake
-recipe); the AI-DLC harness shares the plain harness's install script, hence its image tag.
+recipe); with or without a workflow it is the same class and install script, hence one image tag.
 
 ### What AI-DLC puts in the sandbox
 
-Three layers, each a `recipe.aidlc.*` key, mirroring the Harbor experiment
-(`harbor-extension/experiments/aidlc`) that first made openhands-sdk follow the workflow:
+Three layers, each a field of the `aidlc` entry in `workflows.py`, mirroring the Harbor experiment
+(`harbor-extension/experiments/aidlc`) that first made openhands-sdk follow the workflow. Only
+`recipe.workflow.instruction_position` is a training knob; an ablation that drops a layer is a
+separate `WORKFLOWS` entry (`rllm eval` can also switch one off with `--agent-kwargs <field>=null`):
 
-| layer | key | in the sandbox | off switch |
+| layer | spec field | in the sandbox | off switch (`rllm eval`) |
 | --- | --- | --- | --- |
 | workflow documents | `docs_dir` → `container_dir` | `/ai-dlc/core-workflow.md`, `/ai-dlc/rule-details/0[1-5]-*.md`, uploaded per task and counted (6 `.md` or the rollout fails) | always on |
-| instruction | `instruction_file`, `instruction_position` | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
+| instruction | `instruction_file` (+ `instruction_position`) | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
 | system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` | `=null` |
 
 **The system prompt is the layer that matters.** openhands-sdk's default prompt carries a
@@ -355,7 +359,8 @@ documents with either of those instructions.
 | `aidlc/order` | stages taken in order, each finished before the next begins | order_v6: ⅔ × read/write chain (9 adjacent pairs of r1 < w1 < r2 < … < w5) + ⅓ × read prefix (first reads starting at 01 and running consecutively). One command reading several stage docs earns nothing for them |
 | `aidlc/s1` … `aidlc/s5` | each stage's artifact against its skeleton | the offline rubric's v4 bands 8/5/2/0 → 1, 4/7, 2/7, 0; frontmatter must be valid; s1/s5 capped at 4/7 when no real test suite ran |
 
-and the reward, with `recipe.aidlc.reward.enable`, is
+and the reward, with `recipe.workflow.compliance_reward.enable`, folds in the workflow's `reward_signal`
+(`aidlc/compliance`, the mean of the six):
 
 ```
 reward = verifier * mean(six signals) * budget_reward_scale         # mode: mul (default)
@@ -375,8 +380,12 @@ The budget scale applies last: reading documents cannot buy back what running ou
 `is_correct` and `val/accuracy` are the verifier's alone; `val/reward_*` carries the compliance
 term, since the same grouping hook runs on validation.
 
-**Where it runs.** `train.py` installs `aidlc_reward.evaluator.AidlcEvaluation` as the sandbox
-hooks' evaluation policy whenever `recipe.aidlc.enable` is set. It resolves the task's verifier
+**Where it runs.** `train.py` installs the harness's `evaluation_policy` -- for `aidlc` on
+openhands-sdk, `aidlc_reward.evaluator.AidlcEvaluation`, registered in `workflows.py` -- as the
+sandbox hooks' evaluation policy whenever `recipe.workflow.name=aidlc`; `rllm eval` installs the
+same one. `recipe.workflow.compliance_reward.enable` with `recipe.workflow.name: null` is ignored (the run trains
+on the verifier reward, with a warning); with a workflow that has no scorer for the harness it stops
+at startup. It resolves the task's verifier
 as the default policy does and wraps it: the artifacts are read out of the live sandbox *before*
 the verifier runs, the verifier's reward / `is_correct` / `metadata` pass through untouched, and
 the signals are appended. The grouping hook in `train.py` folds them into the reward. So
@@ -448,7 +457,7 @@ SkyRL-v0 trained with (`get_instruction` in `verl/workers/agentic/utils.py` at S
 (`evaluation/benchmarks/swe_bench/run_infer.py` in the OpenHands application repo — PyPI
 `openhands-ai` 0.15 – 0.30 at least, not the `openhands-sdk` 1.x library this recipe runs; the parquet's
 `prompt` column is the bare problem statement), with `/workspace/<repo>` rewritten to
-`/testbed`; the harness joins the AI-DLC instruction to it (`recipe.aidlc.instruction_position`)
+`/testbed`; the harness joins the AI-DLC instruction to it (`recipe.workflow.instruction_position`)
 as for any other dataset.
 
 **`--instruction aidlc`.** That prompt ends in a six-step procedure
@@ -1542,11 +1551,10 @@ recipe/grpo/qwen3_5/
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
 ├── workflow_harness.py           # StepLimitedOpenHandsSdk + WorkflowMixin/OpenHandsSdkWorkflow (docs upload, instruction prefix/suffix, system prompt, eval scorer)
 ├── workflows.py                  # workflow registry: WORKFLOWS = {"aidlc": WorkflowSpec(...)}
-├── aidlc_flow.py                 # compatibility names: AidlcOpenHandsSdkHarness = OpenHandsSdkWorkflow(workflow="aidlc")
 ├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
 │   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
 │   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/
-│   ├── instruction.md            #   joined to the task instruction (recipe.aidlc.instruction_position: prefix | suffix)
+│   ├── instruction.md            #   joined to the task instruction (recipe.workflow.instruction_position: prefix | suffix)
 │   └── system-prompt.j2          #   replaces the SDK 1.42.1 system prompt (one section rewritten)
 ├── aidlc_reward/                 # compliance signals + reward (see Compliance reward)
 │   ├── rubric/                   #   offline adherence rubric, vendored byte-identical
@@ -1562,13 +1570,13 @@ recipe/grpo/qwen3_5/
 │   ├── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
 │   └── variant/
 │       ├── openhands_9b.yaml         # `variant=openhands_9b`: Qwen3.5-9B + openhands-sdk, no AI-DLC
-│       ├── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.aidlc.enable=true
-│       ├── openhands_9b_aidlc_reward.yaml  # `variant=openhands_9b_aidlc_reward`: the above + recipe.aidlc.reward.enable=true
+│       ├── openhands_9b_aidlc.yaml   # `variant=openhands_9b_aidlc`: the above + recipe.workflow.name=aidlc
+│       ├── openhands_9b_aidlc_reward.yaml  # `variant=openhands_9b_aidlc_reward`: the above + recipe.workflow.compliance_reward.enable=true
 │       ├── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: openhands_9b_aidlc on SWE-Gym; FSDP1, 1 update/step, no-think
 │       ├── openhands_9b_aidlc_swegym_reward.yaml  # `variant=openhands_9b_aidlc_swegym_reward`: the above + compliance in the reward
 │       ├── openhands_9b_aidlc_swegym_v2.yaml      # `variant=openhands_9b_aidlc_swegym_v2`: prompt v2 (swegym293_aidlc + instruction_position=prefix)
 │       ├── openhands_9b_aidlc_swegym_v2_reward.yaml  # `variant=openhands_9b_aidlc_swegym_v2_reward`: v2 + compliance in the reward
-│       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, aidlc.enable=false
+│       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, workflow.name=null
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/

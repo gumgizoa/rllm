@@ -17,7 +17,6 @@ REPO = RECIPE.parents[2]
 sys.path.insert(0, str(RECIPE))
 
 import workflows  # noqa: E402
-from aidlc_flow import AidlcOpenHandsSdkHarness  # noqa: E402
 from workflow_harness import OpenHandsSdkWorkflow, StepLimitedOpenHandsSdk, WorkflowMixin  # noqa: E402
 from workflows import WorkflowSpec  # noqa: E402
 
@@ -140,11 +139,6 @@ def test_harness_without_a_system_prompt_seam():
     with pytest.raises(ValueError, match="cannot replace its system prompt"):
         Bare(workflow="aidlc")
     assert Bare(workflow="aidlc", system_prompt_file=None).system_prompt_file is None
-
-
-def test_aidlc_alias_defaults_to_aidlc():
-    assert AidlcOpenHandsSdkHarness().workflow_spec is AIDLC
-    assert AidlcOpenHandsSdkHarness(workflow=None).workflow_spec is None
 
 
 def test_rllm_eval_loads_it_by_import_path_and_uses_its_scorer(monkeypatch):

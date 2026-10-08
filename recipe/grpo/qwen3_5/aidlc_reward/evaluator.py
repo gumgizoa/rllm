@@ -11,7 +11,7 @@ verifier exactly as the default policy does and wraps it. The wrapper
 
 It never changes the reward. Signals land in ``trajectory.signals`` and ``episode.metrics``;
 ``train.py``'s grouping hook decides whether the compliance mean enters the reward
-(``recipe.aidlc.reward``), so the same evaluator serves a logged-only arm and a rewarded one.
+(``recipe.workflow.compliance_reward``), so the same evaluator serves a logged-only arm and a rewarded one.
 
 Reading the files from the sandbox, rather than reconstructing them from the shell commands that
 wrote them as the offline harbor scoring had to, removes that scoring's one measurement gap: a
