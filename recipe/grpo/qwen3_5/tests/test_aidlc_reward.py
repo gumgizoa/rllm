@@ -1,4 +1,4 @@
-"""aidlc_reward: order_v6, the episode adapter, artifact collection, the evaluator wrapper, and
+"""workflows/aidlc/reward: order_v6, the episode adapter, artifact collection, the evaluator wrapper, and
 the reward term in train.py's grouping hook.
 
     pytest recipe/grpo/qwen3_5/tests/test_aidlc_reward.py
@@ -22,13 +22,12 @@ sys.path.insert(0, str(REPO))
 
 from omegaconf import OmegaConf  # noqa: E402
 
-from recipe.grpo.qwen3_5.aidlc_reward.compliance import compliance, order_v6  # noqa: E402
-from recipe.grpo.qwen3_5.aidlc_reward.episode import episode_to_run  # noqa: E402
-from recipe.grpo.qwen3_5.aidlc_reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
-
 # Imported before train_module stubs ``rllm.harnesses``, so train.py's lazy
 # ``from recipe.grpo.qwen3_5.workflow_harness import ...`` finds the real module cached.
 from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc.reward.compliance import compliance, order_v6  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc.reward.episode import episode_to_run  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc.reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
 from rllm.eval.types import EvalOutput, Signal  # noqa: E402
 
 DOC = {

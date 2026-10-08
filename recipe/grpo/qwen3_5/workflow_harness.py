@@ -257,26 +257,18 @@ class WorkflowMixin(AgentKwargsMixin):
             if entry not in path.read_text(encoding="utf-8"):
                 raise ValueError(f"{label}: {name} never mentions {entry}, where the documents are uploaded: {path}")
 
-    def _excluded(self) -> set[Path]:
-        """Files inside ``docs_dir`` that are prompt material (the instruction and every
-        harness's system prompt template, versioned beside the documents), not documents."""
-        spec = self.workflow_spec
-        return {p.resolve() for p in (spec.instruction_file, *spec.system_prompt.values()) if p is not None}
-
     def _doc_entries(self) -> list[Path]:
-        """Top-level entries of ``docs_dir`` that go into the container.
+        """Top-level entries of ``docs_dir`` that go into the container: all of it.
 
-        Uploaded entry by entry rather than as one tree so the prompt files
-        (which sit beside the documents for versioning) stay out, and so the
-        layout is era-agnostic: SkyRL's v4 set is flat, v1 and this set keep
-        the stage files under ``rule-details/``.
+        ``docs_dir`` holds documents only (``workflows/<name>/docs``); the
+        instruction and the system prompts sit beside it, not in it. Uploaded
+        entry by entry so the layout is free: flat, or stage files under a
+        subdirectory (``rule-details/``).
         """
-        excluded = self._excluded()
-        return sorted(p for p in self.docs_dir.iterdir() if p.resolve() not in excluded and not p.name.startswith("."))
+        return sorted(p for p in self.docs_dir.iterdir() if not p.name.startswith("."))
 
     def _expected_doc_count(self) -> int:
-        excluded = self._excluded()
-        return sum(1 for p in self.docs_dir.rglob("*.md") if p.resolve() not in excluded)
+        return sum(1 for p in self.docs_dir.rglob("*.md"))
 
     def instruction_text(self) -> str:
         return self.instruction_file.read_text(encoding="utf-8").strip() if self.instruction_file else ""

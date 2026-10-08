@@ -330,7 +330,7 @@ the files come from the spec only:
 `<PROBLEM_SOLVING_WORKFLOW>` section prescribing its own procedure (exploration → analysis →
 testing → implementation → verification), and it outranks anything appended to the user
 message — the Harbor run without the override ignored the instruction outright. The shipped
-`aidlc/system-prompt.j2` is the SDK **1.42.1** default with that one section rewritten and the
+`workflows/aidlc/system-prompt.j2` is the SDK **1.42.1** default with that one section rewritten and the
 other fifteen untouched, so tool conventions survive. Bumping `SDK_VERSION` means re-extracting
 it; a stale template silently reverts the run to the SDK's own workflow.
 
@@ -340,9 +340,9 @@ workflow compliance is scored on every rollout and logged as `aidlc/*` metrics; 
 reward only in `variant=openhands_9b_aidlc_reward` — see [Compliance reward](#compliance-reward).
 `variant=openhands_9b_aidlc` keeps the verifier's reward alone, as in the SkyRL port.
 
-**Provenance.** `aidlc/core-workflow.md` and `aidlc/rule-details/` are copies of
-`harbor-extension/ai-dlc` (commit `ea8a5f65`, 2026-08-26); `aidlc/instruction.md` is
-`experiments/aidlc/variants/ai-dlc.md` and `aidlc/system-prompt.j2` is
+**Provenance.** `workflows/aidlc/docs/` (`core-workflow.md`, `rule-details/`) is a copy of
+`harbor-extension/ai-dlc` (commit `ea8a5f65`, 2026-08-26); `workflows/aidlc/instruction.md` is
+`experiments/aidlc/variants/ai-dlc.md` and `workflows/aidlc/system-prompt.j2` is
 `experiments/aidlc/system-prompts/openhands-sdk-aidlc.j2` from the same tree. They are copied
 rather than referenced because the three name each other by absolute path and by what a stage
 produces; a set that moves independently of the recipe lets one drift from the other two. This
@@ -352,7 +352,7 @@ documents with either of those instructions.
 
 ### Compliance reward
 
-`aidlc_reward/` scores how closely a rollout followed the workflow, as six signals in [0, 1]:
+`workflows/aidlc/reward/` scores how closely a rollout followed the workflow, as six signals in [0, 1]:
 
 | signal | what it measures | how |
 | --- | --- | --- |
@@ -381,7 +381,7 @@ The budget scale applies last: reading documents cannot buy back what running ou
 term, since the same grouping hook runs on validation.
 
 **Where it runs.** `train.py` installs the harness's `evaluation_policy` -- for `aidlc` on
-openhands-sdk, `aidlc_reward.evaluator.AidlcEvaluation`, registered in `workflows.py` -- as the
+openhands-sdk, `workflows/aidlc/reward/evaluator.py`'s `AidlcEvaluation`, registered in `workflows/aidlc/__init__.py` -- as the
 sandbox hooks' evaluation policy whenever `recipe.workflow.name=aidlc`; `rllm eval` installs the
 same one. `recipe.workflow.compliance_reward.enable` with `recipe.workflow.name: null` is ignored (the run trains
 on the verifier reward, with a warning); with a workflow that has no scorer for the harness it stops
@@ -393,9 +393,9 @@ the signals are appended. The grouping hook in `train.py` folds them into the re
 control. Diagnostic signals ride along: `aidlc/order_chain`, `aidlc/order_prefix`,
 `aidlc/docs_read`, `aidlc/artifacts_written`, `aidlc/ran_real_test`.
 
-**Same numbers as the offline scorer.** `aidlc_reward/rubric/` is the offline adherence rubric
+**Same numbers as the offline scorer.** `workflows/aidlc/reward/rubric/` is the offline adherence rubric
 (aidlc-swebenchpro-evalv1, commit `c4130b0`) vendored byte-identical — edit the source and
-re-copy, never the copy; pre-commit excludes it from ruff for that reason. `aidlc_reward/episode.py`
+re-copy, never the copy; pre-commit excludes it from ruff for that reason. `workflows/aidlc/reward/episode.py`
 turns the episode into the rubric's `Run`: one LLM call is one step, tool calls come off the raw
 response message and are paired with their `role: "tool"` results from later requests. Checked
 against the 499 SWE-bench Verified trajectories of the harbor v4 run (Qwen3.5-9B, openhands-sdk
@@ -602,7 +602,7 @@ Three practicalities: set `TMPDIR` to a large local disk in `.env` (the parked t
 MB each, 32 at a time); watch `time/git_hide_s` on the smoke run for the pandas/mypy tasks; and the
 instruction still quotes the base commit sha, which the agent can no longer `git diff` against
 (harmless, but expect one failed command in some rollouts). With the AI-DLC hooks
-(`aidlc_reward.AidlcEvaluation`) the flag is forwarded by `train.py`'s `_build_hooks`; AgentTrainer
+(`AidlcEvaluation`) the flag is forwarded by `train.py`'s `_build_hooks`; AgentTrainer
 refuses caller-built hooks that do not carry it.
 
 **The agent image mount on SWE-Gym images.** The SDK is not baked into the 316 task images and
@@ -1550,19 +1550,19 @@ recipe/grpo/qwen3_5/
 ├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
 ├── workflow_harness.py           # StepLimitedOpenHandsSdk + WorkflowMixin/OpenHandsSdkWorkflow (docs upload, instruction prefix/suffix, system prompt, eval scorer)
-├── workflows.py                  # workflow registry: WORKFLOWS = {"aidlc": WorkflowSpec(...)}
 ├── workflow_scoring.py           # ComplianceEvaluation(collect, score): verifier wrapper every workflow scorer shares
-├── aidlc/                        # AI-DLC set, copied from harbor-extension (see Variants → Provenance)
-│   ├── core-workflow.md          #   → /ai-dlc/core-workflow.md
-│   ├── rule-details/01..05-*.md  #   → /ai-dlc/rule-details/
-│   ├── instruction.md            #   joined to the task instruction (recipe.workflow.instruction_position: prefix | suffix)
-│   └── system-prompt.j2          #   replaces the SDK 1.42.1 system prompt (one section rewritten)
-├── aidlc_reward/                 # compliance signals + reward (see Compliance reward)
-│   ├── rubric/                   #   offline adherence rubric, vendored byte-identical
-│   ├── episode.py                #   rLLM Episode -> rubric Run
-│   ├── compliance.py             #   six signals (order_v6, s1..s5) and their mean
-│   └── evaluator.py              #   verifier wrapper + SandboxTaskHooks evaluation policy
-├── tests/test_aidlc_reward.py    # unit tests for aidlc_reward and the reward term in train.py
+├── workflows/                    # one package per workflow; __init__.py: WORKFLOWS = {"aidlc": aidlc.SPEC}
+│   ├── spec.py                   #   WorkflowSpec
+│   └── aidlc/                    #   AI-DLC, copied from harbor-extension (see Variants → Provenance); __init__.py: SPEC
+│       ├── docs/                 #     uploaded as is → /ai-dlc/core-workflow.md, /ai-dlc/rule-details/01..05-*.md
+│       ├── instruction.md        #     joined to the task instruction (recipe.workflow.instruction_position: prefix | suffix)
+│       ├── system-prompt.j2      #     replaces the SDK 1.42.1 system prompt (one section rewritten)
+│       └── reward/               #     compliance signals + reward (see Compliance reward)
+│           ├── rubric/           #       offline adherence rubric, vendored byte-identical
+│           ├── episode.py        #       rLLM Episode -> rubric Run (front end chosen by harness)
+│           ├── compliance.py     #       six signals (order_v6, s1..s5) and their mean
+│           └── evaluator.py      #       collect_artifacts + score -> AidlcEvaluation
+├── tests/test_aidlc_reward.py    # unit tests for workflows/aidlc/reward and the reward term in train.py
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/

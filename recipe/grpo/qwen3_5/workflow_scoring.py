@@ -22,7 +22,7 @@ A failure to collect or to score is logged and the verifier's output is returned
 without the signals gets no compliance term, rather than a wrong one.
 
 A workflow plugs in as ``ComplianceEvaluation(collect, score, name)`` registered in
-``workflows.WORKFLOWS[...].scorers`` (see ``aidlc_reward/evaluator.py``).
+``workflows.WORKFLOWS[...].scorers`` (see ``workflows/aidlc/reward/evaluator.py``).
 """
 
 from __future__ import annotations

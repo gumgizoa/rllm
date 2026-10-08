@@ -62,7 +62,7 @@ RECIPE = HERE.parent
 FIXTURES = HERE / "aidlc_entry_probe"
 DEFAULT_SYSTEM_PROMPT = FIXTURES / "system_prompt_sdk1.42.1_rendered.txt"
 DEFAULT_TOOLS = FIXTURES / "tools_sdk1.42.1.json"
-DEFAULT_INSTRUCTION = RECIPE / "aidlc" / "instruction.md"
+DEFAULT_INSTRUCTION = RECIPE / "workflows" / "aidlc" / "instruction.md"
 
 ARRANGEMENTS = ["skyrl+suffix", "skyrl+prefix", "aidlc+suffix", "aidlc+prefix", "skyrl+none"]
 CORE_RE = re.compile(r"/ai-dlc/core-workflow\.md")
@@ -191,7 +191,7 @@ def main() -> None:
     ap.add_argument("--n-tasks", type=int, default=20)
     ap.add_argument("--samples", type=int, default=8, help="Samples per (arrangement, task)")
     ap.add_argument("--arrangements", default="skyrl+suffix,aidlc+prefix", help=f"Comma list from {ARRANGEMENTS}")
-    ap.add_argument("--instruction-file", default=str(DEFAULT_INSTRUCTION), help="The AI-DLC pointer text (aidlc/instruction.md)")
+    ap.add_argument("--instruction-file", default=str(DEFAULT_INSTRUCTION), help="The AI-DLC pointer text (workflows/aidlc/instruction.md)")
     ap.add_argument("--system-prompt", default=str(DEFAULT_SYSTEM_PROMPT))
     ap.add_argument("--tools", default=str(DEFAULT_TOOLS))
     ap.add_argument("--temperature", type=float, default=1.0)
@@ -248,7 +248,15 @@ def main() -> None:
             resp = post_json(f"{base}/chat/completions", payload, args.api_key, args.timeout)
             msg = (resp.get("choices") or [{}])[0].get("message") or {}
             calls = tool_calls(msg)
-            return {"arrangement": arr, "task": tid, "sample": k, "label": classify(calls), "calls": [{"name": n, "args": a} for n, a in calls], "content": (msg.get("content") or "")[:400], "latency_s": round(time.time() - t0, 2)}
+            return {
+                "arrangement": arr,
+                "task": tid,
+                "sample": k,
+                "label": classify(calls),
+                "calls": [{"name": n, "args": a} for n, a in calls],
+                "content": (msg.get("content") or "")[:400],
+                "latency_s": round(time.time() - t0, 2),
+            }
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
             return {"arrangement": arr, "task": tid, "sample": k, "label": "error", "error": str(e)[:300], "calls": [], "content": ""}
 

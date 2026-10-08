@@ -52,12 +52,14 @@ def no_runner(monkeypatch):
 
 @pytest.fixture
 def wf2(tmp_path, monkeypatch):
-    docs = tmp_path / "wf2"
+    # The workflows/<name>/ layout: docs/ holds documents only, the instruction sits beside it.
+    root = tmp_path / "wf2"
+    docs = root / "docs"
     (docs / "rules").mkdir(parents=True)
     (docs / "README.md").write_text("start here")
     (docs / "rules" / "a.md").write_text("rule a")
-    (docs / "instruction.md").write_text("Follow /wf2/README.md.")
-    spec = WorkflowSpec(docs_dir=docs, container_dir="/wf2", entry_doc="README.md", instruction_file=docs / "instruction.md")
+    (root / "instruction.md").write_text("Follow /wf2/README.md.")
+    spec = WorkflowSpec(docs_dir=docs, container_dir="/wf2", entry_doc="README.md", instruction_file=root / "instruction.md")
     monkeypatch.setitem(workflows.WORKFLOWS, "wf2", spec)
     return spec
 
@@ -128,7 +130,7 @@ def test_missing_entry_doc_rejected(wf2):
 
 
 def test_prompt_files_must_point_at_the_uploaded_entry_doc(wf2):
-    (wf2.docs_dir / "instruction.md").write_text("Follow /elsewhere/README.md.")  # stale path
+    wf2.instruction_file.write_text("Follow /elsewhere/README.md.")  # stale path
     with pytest.raises(ValueError, match="instruction_file never mentions /wf2/README.md"):
         OpenHandsSdkWorkflow(workflow="wf2")
 

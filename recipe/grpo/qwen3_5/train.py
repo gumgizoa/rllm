@@ -93,7 +93,7 @@ def make_budget_scaled_grouping_hook(
 
     ``compliance_mode`` folds in the workflow's compliance signal
     (``compliance_signal``, in [0, 1], e.g. ``aidlc/compliance`` set by
-    ``aidlc_reward.AidlcComplianceEvaluator``) before the budget scale:
+    ``workflows/aidlc/reward``'s ``AidlcComplianceEvaluator``) before the budget scale:
 
     * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
       at 0 however well it followed the workflow, and a solved one earns only

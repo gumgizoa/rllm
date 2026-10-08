@@ -16,7 +16,8 @@ from __future__ import annotations
 
 import base64
 
-from ..workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
+from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
+
 from .compliance import compliance
 from .episode import episode_to_run
 from .rubric import artifacts as A

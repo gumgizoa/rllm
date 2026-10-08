@@ -3,7 +3,7 @@
 # Qwen3.5-9B + openhands-sdk + AI-DLC on SWE-Gym, with the compliance mean in
 # the reward: everything from openhands_9b_aidlc_swegym (no-think, 131K, FSDP1,
 # checkpoints every step) plus recipe.workflow.compliance_reward.enable. Default mode is
-# `mul` (reward = verifier * aidlc/compliance); see aidlc_reward/ and README
+# `mul` (reward = verifier * aidlc/compliance); see workflows/aidlc/reward/ and README
 # "Compliance reward". openhands_9b_aidlc_swegym already logs the aidlc/*
 # signals without rewarding them, so it is this arm's control.
 #
