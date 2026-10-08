@@ -63,8 +63,14 @@ def test_instruction_prefix_and_suffix(harness_cls):
     assert harness_cls().instruction_position == "suffix"  # code default; config.yaml chooses prefix
 
 
-def test_instruction_off_leaves_task_alone(harness_cls):
-    h = harness_cls(instruction_file=None, instruction_position="prefix")
+def test_instruction_off_leaves_task_alone(monkeypatch):
+    import dataclasses
+
+    from recipe.grpo.qwen3_5 import workflows
+    from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
+
+    monkeypatch.setitem(workflows.WORKFLOWS, "aidlc_no_instruction", dataclasses.replace(workflows.WORKFLOWS["aidlc"], instruction_file=None))
+    h = OpenHandsSdkWorkflow(workflow="aidlc_no_instruction", instruction_position="prefix")
     assert h.compose_instruction("TASK") == "TASK"
 
 

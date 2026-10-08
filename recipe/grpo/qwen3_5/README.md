@@ -317,14 +317,16 @@ recipe); with or without a workflow it is the same class and install script, hen
 
 Three layers, each a field of the `aidlc` entry in `workflows.py`, mirroring the Harbor experiment
 (`harbor-extension/experiments/aidlc`) that first made openhands-sdk follow the workflow. Only
-`recipe.workflow.instruction_position` is a training knob; an ablation that drops a layer is a
-separate `WORKFLOWS` entry (`rllm eval` can also switch one off with `--agent-kwargs <field>=null`):
+`recipe.workflow.instruction_position` (or `--agent-kwargs instruction_position=`) is a run knob;
+the files come from the spec only, so an ablation that drops a layer is a `WORKFLOWS` entry of its
+own, used the same way in training and `rllm eval` -- e.g.
+`"aidlc_no_instruction": dataclasses.replace(WORKFLOWS["aidlc"], instruction_file=None)`:
 
-| layer | spec field | in the sandbox | off switch (`rllm eval`) |
+| layer | spec field | in the sandbox | ablation entry |
 | --- | --- | --- | --- |
 | workflow documents | `docs_dir` → `container_dir` | `/ai-dlc/core-workflow.md`, `/ai-dlc/rule-details/0[1-5]-*.md`, uploaded per task and counted (6 `.md` or the rollout fails) | always on |
-| instruction | `instruction_file` (+ `instruction_position`) | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `=null` |
-| system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` | `=null` |
+| instruction | `instruction_file` (+ `instruction_position`) | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." | `instruction_file=None` |
+| system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` | `system_prompt={}` |
 
 **The system prompt is the layer that matters.** openhands-sdk's default prompt carries a
 `<PROBLEM_SOLVING_WORKFLOW>` section prescribing its own procedure (exploration → analysis →

@@ -63,22 +63,12 @@ logger = logging.getLogger(__name__)
 # a few KB, never inside the task's repository.
 _SYSTEM_PROMPT_REMOTE = "/opt/openhands-sdk-system-prompt.j2"
 
-# Spec fields a caller may override per run (--agent-kwargs). Held apart
-# from the resolved attributes so switching ``workflow`` later re-reads the
-# new spec instead of keeping the old paths.
-_OVERRIDES = ("docs_dir", "container_dir", "instruction_file", "system_prompt_file")
-
 
 def _null(value):
-    """``--agent-kwargs key=value`` hands values over as strings: ``none``/``null``/empty mean unset."""
+    """No workflow: ``None``, or a ``none``/``null``/empty string from a caller that passes text."""
     if isinstance(value, str) and value.strip().lower() in ("", "none", "null"):
         return None
     return value
-
-
-def _opt_path(value) -> Path | None:
-    value = _null(value)
-    return Path(value) if value is not None else None
 
 
 class StepLimitedOpenHandsSdk(OpenHandsSdkHarness):
@@ -130,9 +120,10 @@ class WorkflowMixin:
     this one attribute.
 
     ``docs_dir`` / ``container_dir`` / ``instruction_file`` /
-    ``system_prompt_file`` default to the workflow's spec and may be
-    overridden; ``instruction_file`` / ``system_prompt_file`` may be ``None``
-    to switch that layer off for an ablation; the documents are always
+    ``system_prompt_file`` are the spec's, read-only: an ablation (a layer
+    off, another document set) is a ``WORKFLOWS`` entry of its own, e.g.
+    ``dataclasses.replace(WORKFLOWS["aidlc"], instruction_file=None)``, the
+    same way in training and in ``rllm eval``. The documents are always
     uploaded.
 
     ``instruction_position`` says where the instruction goes relative to the
@@ -150,9 +141,10 @@ class WorkflowMixin:
     and a renamed harness would silently fall back to a per-task install. It
     is also the key into the spec's ``system_prompt`` and ``scorers``.
 
-    Per-run overrides arrive through ``configure`` (``--agent-kwargs``), so
-    the harness side must handle ``agent_kwargs`` and call
-    ``_after_configure`` as ``StepLimitedOpenHandsSdk`` does.
+    ``workflow`` and ``instruction_position`` may be set per run through
+    ``configure`` (``--agent-kwargs``), so the harness side must handle
+    ``agent_kwargs`` and call ``_after_configure`` as
+    ``StepLimitedOpenHandsSdk`` does.
     """
 
     workflow: str | None = None
@@ -162,61 +154,57 @@ class WorkflowMixin:
     # Set by a harness class that can replace its agent's system prompt.
     supports_system_prompt: bool = False
 
-    # Resolved by _resolve_workflow from the spec and the overrides; all None
-    # when there is no workflow.
+    # Resolved by _resolve_workflow; None when there is no workflow.
     workflow_spec: WorkflowSpec | None = None
-    docs_dir: Path | None = None
-    container_dir: str | None = None
-    instruction_file: Path | None = None
-    system_prompt_file: Path | None = None
 
     def __init__(self, **kwargs):
-        self._overrides = {key: kwargs.pop(key) for key in _OVERRIDES if key in kwargs}
         super().__init__(**kwargs)
         self._resolve_workflow()
-
-    def configure(self, overrides: dict) -> dict:
-        kwargs = dict(overrides.get("agent_kwargs") or {})
-        for key in _OVERRIDES:
-            if key in kwargs:
-                self._overrides[key] = kwargs.pop(key)
-        return super().configure({**overrides, "agent_kwargs": kwargs})
 
     def _after_configure(self) -> None:
         super()._after_configure()
         self._resolve_workflow()
 
+    # What the sandbox side reads, straight from the spec. Read-only, so an
+    # ``--agent-kwargs docs_dir=...`` fails instead of being silently replaced.
+
+    @property
+    def docs_dir(self) -> Path | None:
+        return self.workflow_spec.docs_dir if self.workflow_spec is not None else None
+
+    @property
+    def container_dir(self) -> str | None:
+        return self.workflow_spec.container_dir if self.workflow_spec is not None else None
+
+    @property
+    def instruction_file(self) -> Path | None:
+        return self.workflow_spec.instruction_file if self.workflow_spec is not None else None
+
+    @property
+    def system_prompt_file(self) -> Path | None:
+        return self.workflow_spec.system_prompt.get(self.name) if self.workflow_spec is not None else None
+
     def _resolve_workflow(self) -> None:
-        """Spec + overrides -> the attributes the sandbox side reads; fail before any sandbox exists."""
+        """``workflow`` -> its spec; fail before any sandbox exists."""
         self.workflow = _null(self.workflow)
         if self.instruction_position not in self.INSTRUCTION_POSITIONS:
             raise ValueError(f"instruction_position must be one of {self.INSTRUCTION_POSITIONS}, got {self.instruction_position!r}")
         if self.workflow is None:
-            if self._overrides:
-                raise ValueError(f"{sorted(self._overrides)} set without a workflow; pass workflow=<name> (one of {sorted(WORKFLOWS)})")
-            self.workflow_spec = self.docs_dir = self.container_dir = self.instruction_file = self.system_prompt_file = None
+            self.workflow_spec = None
             return
 
         spec = get_workflow(str(self.workflow))
-        o = self._overrides
-        docs_dir = _opt_path(o.get("docs_dir", spec.docs_dir))
-        if docs_dir is None:
-            raise ValueError(f"workflow {self.workflow!r}: docs_dir cannot be unset")
-        container_dir = str(_null(o.get("container_dir", spec.container_dir)) or "")
-        if not container_dir.startswith("/"):
-            raise ValueError(f"workflow {self.workflow!r}: container_dir must be absolute, got {container_dir!r}")
-        instruction_file = _opt_path(o["instruction_file"]) if "instruction_file" in o else spec.instruction_file
-        system_prompt_file = _opt_path(o["system_prompt_file"]) if "system_prompt_file" in o else spec.system_prompt.get(self.name)
-        if system_prompt_file is not None and not self.supports_system_prompt:
-            raise ValueError(f"workflow {self.workflow!r}: {type(self).__name__} cannot replace its system prompt; set system_prompt_file=null")
-        if system_prompt_file is None and "system_prompt_file" not in o:
+        if not spec.container_dir.startswith("/"):
+            raise ValueError(f"workflow {self.workflow!r}: container_dir must be absolute, got {spec.container_dir!r}")
+        template = spec.system_prompt.get(self.name)
+        if template is not None and not self.supports_system_prompt:
+            raise ValueError(f"workflow {self.workflow!r}: {type(self).__name__} cannot replace its system prompt; register the workflow without one for harness {self.name!r}")
+        if template is None:
             logger.warning("workflow %r has no system prompt for harness %r; the harness's own prompt stays", self.workflow, self.name)
         if self.name not in spec.scorers:
             logger.warning("workflow %r has no compliance scorer for harness %r; rllm eval reports resolve rate only", self.workflow, self.name)
 
         self.workflow_spec = spec
-        self.docs_dir, self.container_dir = docs_dir, container_dir
-        self.instruction_file, self.system_prompt_file = instruction_file, system_prompt_file
         self._validate_local_files()
 
     @property
@@ -263,14 +251,13 @@ class WorkflowMixin:
     def _excluded(self) -> set[Path]:
         """Files inside ``docs_dir`` that are prompt material, not workflow documents.
 
-        The spec's prompt file names are excluded unconditionally, not just
-        when selected: an ablation that sets ``instruction_file=null`` must not
-        turn ``aidlc/instruction.md`` into a seventh document the agent can read.
+        Every registered workflow sharing this ``docs_dir`` contributes its
+        prompt files, not just this one: an ablation entry without an
+        instruction must not turn ``aidlc/instruction.md`` into a seventh
+        document the agent can read.
         """
-        spec = self.workflow_spec
-        excluded = {p.resolve() for p in (self.instruction_file, self.system_prompt_file) if p is not None}
-        excluded |= {(self.docs_dir / p.name).resolve() for p in (spec.instruction_file, *spec.system_prompt.values()) if p is not None}
-        return excluded
+        prompts = (p for spec in WORKFLOWS.values() if spec.docs_dir == self.docs_dir for p in (spec.instruction_file, *spec.system_prompt.values()))
+        return {p.resolve() for p in prompts if p is not None}
 
     def _doc_entries(self) -> list[Path]:
         """Top-level entries of ``docs_dir`` that go into the container.

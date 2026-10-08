@@ -6,6 +6,7 @@ scorer ``rllm eval`` picks up from it.
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -106,23 +107,32 @@ def test_switching_workflow_rereads_the_spec(wf2, no_runner):
     assert not any("system-prompt" in c for c in sb.execs)
 
 
-def test_overrides_switch_layers_off_from_the_cli():
+def test_an_ablation_is_its_own_workflow_entry(monkeypatch, no_runner):
+    """Layers come from the spec only; switching one off is a registered entry, not a run override."""
+    monkeypatch.setitem(workflows.WORKFLOWS, "aidlc_no_instruction", dataclasses.replace(AIDLC, instruction_file=None))
+    h = OpenHandsSdkWorkflow(workflow="aidlc_no_instruction", instruction_position="prefix")
+    assert h.instruction_file is None and h.compose_instruction("TASK") == "TASK"
+    assert h.system_prompt_file == AIDLC.system_prompt["openhands-sdk"]
+    assert type(h.evaluation_policy).__name__ == "AidlcEvaluation"  # still scored as the AI-DLC arm
+    # aidlc/instruction.md stays prompt material: same documents as the full arm, no seventh one.
+    assert [p.name for p in h._doc_entries()] == [p.name for p in OpenHandsSdkWorkflow(workflow="aidlc")._doc_entries()]
+    sb = _Sandbox(md_count=h._expected_doc_count())
+    h.write_configs(sb, None, CONFIG, {})
+    assert not any(u.endswith("instruction.md") for u in sb.uploads)
+
+
+def test_spec_paths_cannot_be_overridden_per_run():
     h = OpenHandsSdkWorkflow(workflow="aidlc")
-    h.configure({"agent_kwargs": {"instruction_file": "null", "system_prompt_file": "none"}})
-    assert h.instruction_file is None and h.system_prompt_file is None
-    assert h.compose_instruction("TASK") == "TASK"
-    assert PROMPT_ENV not in h.build_env(SimpleNamespace(metadata={}), CONFIG)
-    assert type(h.evaluation_policy).__name__ == "AidlcEvaluation"  # still the AI-DLC arm, as an ablation
+    for key in ("docs_dir", "container_dir", "instruction_file", "system_prompt_file"):
+        with pytest.raises(AttributeError):
+            h.configure({"agent_kwargs": {key: None}})
+    with pytest.raises(AttributeError):
+        OpenHandsSdkWorkflow(workflow="aidlc", docs_dir=str(AIDLC.docs_dir))
 
 
 def test_unknown_workflow_rejected():
     with pytest.raises(ValueError, match="unknown workflow 'v9'"):
         OpenHandsSdkWorkflow(workflow="v9")
-
-
-def test_override_without_workflow_rejected():
-    with pytest.raises(ValueError, match="without a workflow"):
-        OpenHandsSdkWorkflow(docs_dir=str(AIDLC.docs_dir))
 
 
 def test_missing_entry_doc_rejected(wf2):
@@ -135,9 +145,13 @@ def test_prompt_files_must_point_at_the_uploaded_entry_doc(wf2):
     (wf2.docs_dir / "instruction.md").write_text("Follow /elsewhere/README.md.")  # stale path
     with pytest.raises(ValueError, match="instruction_file never mentions /wf2/README.md"):
         OpenHandsSdkWorkflow(workflow="wf2")
-    # A moved container_dir no longer matches what the AI-DLC instruction and system prompt name.
+
+
+def test_moved_container_dir_is_caught(monkeypatch):
+    # A container_dir that the AI-DLC instruction and system prompt do not name.
+    monkeypatch.setitem(workflows.WORKFLOWS, "aidlc_moved", dataclasses.replace(AIDLC, container_dir="/moved"))
     with pytest.raises(ValueError, match="never mentions /moved/core-workflow.md"):
-        OpenHandsSdkWorkflow(workflow="aidlc", container_dir="/moved")
+        OpenHandsSdkWorkflow(workflow="aidlc_moved")
 
 
 def test_harness_without_a_system_prompt_seam():
@@ -146,7 +160,6 @@ def test_harness_without_a_system_prompt_seam():
 
     with pytest.raises(ValueError, match="cannot replace its system prompt"):
         Bare(workflow="aidlc")
-    assert Bare(workflow="aidlc", system_prompt_file=None).system_prompt_file is None
 
 
 def test_rllm_eval_loads_it_by_import_path_and_uses_its_scorer(monkeypatch):
