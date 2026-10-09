@@ -171,7 +171,12 @@ class ReverseProxy:
     async def start(self) -> None:
         self._http = httpx.AsyncClient(
             timeout=httpx.Timeout(timeout=None),  # no timeout — LLM calls can be long
-            limits=httpx.Limits(max_connections=500, max_keepalive_connections=100),
+            # vLLM's uvicorn drops idle keep-alive connections after
+            # VLLM_HTTP_TIMEOUT_KEEP_ALIVE (5 s). httpx's default keepalive_expiry is
+            # also 5 s, so a pooled connection is regularly reused in the instant the
+            # server closes it: httpx.ReadError before any response byte, a 500 to the
+            # agent, and a retry wait on its side. Expire ours first.
+            limits=httpx.Limits(max_connections=500, max_keepalive_connections=100, keepalive_expiry=3.0),
             follow_redirects=True,
         )
 
@@ -1011,15 +1016,22 @@ class ReverseProxy:
             try:
                 resp = await self._http.request(method, url, content=content, headers=headers)
                 return resp
-            except httpx.ConnectError as exc:
+            except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError) as exc:
+                # ReadError / RemoteProtocolError here mean the connection died before
+                # the response headers arrived (stale keep-alive, see start()); the
+                # upstream never produced an answer, so resending is not a duplicate.
                 last_exc = exc
                 if attempt < self.max_retries:
                     logger.warning(
                         "Connection error (attempt %d/%d): %s",
                         attempt + 1,
                         self.max_retries + 1,
-                        exc,
+                        type(exc).__name__ if not str(exc) else exc,
                     )
+                    # Back-to-back resends hit the same condition (seen: three ReadErrors
+                    # within milliseconds while a vLLM server was waking up between a
+                    # training step and the next rollout); give the upstream a moment.
+                    await asyncio.sleep(0.5 * 2**attempt)
         raise last_exc  # type: ignore[misc]
 
     async def _persist(self, trace: TraceRecord) -> None:
