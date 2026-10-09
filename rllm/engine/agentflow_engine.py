@@ -189,29 +189,42 @@ def enrich_episode_with_traces(
 
     # Common case: vLLM returns an empty body on the final call (e.g. prompt
     # hit max_model_len, or weight-sync disconnect). The agent breaks without
-    # recording a Step, leaving N+1 traces vs N agent_steps with the trailing
-    # one malformed. Drop the trailing trace rather than burn the whole
-    # rollout — at high MAX_TURNS the failure rate would exhaust retries.
-    if agent_populates_steps and len(training_steps) > n_agent_steps:
-        extra = training_steps[n_agent_steps:]
-        extras_all_malformed = all(not s.model_output.prompt_ids or not s.model_output.completion_ids for s in extra)
-        if extras_all_malformed:
-            # Dropping the trace is right -- it has no tokens to train on -- but
-            # the *reason* it is malformed must survive, or an episode killed by
-            # an over-long prompt is indistinguishable from one the policy
-            # simply failed, and compact_filtering has nothing to act on. The
-            # gateway stamps the reason (see classify_upstream_error).
-            reason = _upstream_termination_reason(traces[n_agent_steps:])
-            if reason is not None:
-                episode.termination_reason = reason
-            logger.warning(
-                "[%s] dropping %d trailing malformed trace(s)%s; keeping %d aligned with agent_steps",
-                uid,
-                len(extra),
-                f" [{reason.value}]" if reason is not None else "",
-                n_agent_steps,
-            )
-            training_steps = training_steps[:n_agent_steps]
+    # recording a Step, leaving a trailing malformed trace. Drop it rather than
+    # burn the whole rollout — at high MAX_TURNS the failure rate would exhaust
+    # retries. With agent steps the cut is at n_agent_steps; harnesses that do
+    # not populate steps (openhands-sdk, any CLI harness) end the same way, so
+    # for them every trailing malformed trace is dropped: before this, one
+    # over-long prompt rejected a 60-turn rollout and had it rerun three times.
+    def _malformed(s: Step) -> bool:
+        return not s.model_output.prompt_ids or not s.model_output.completion_ids
+
+    if agent_populates_steps:
+        keep = n_agent_steps if len(training_steps) > n_agent_steps and all(_malformed(s) for s in training_steps[n_agent_steps:]) else len(training_steps)
+    else:
+        keep = len(training_steps)
+        while keep > 0 and _malformed(training_steps[keep - 1]):
+            keep -= 1
+        if keep == 0:
+            # Nothing usable at all (first call already failed, upstream down):
+            # leave it to the strict check below so the retry path reissues.
+            keep = len(training_steps)
+    if keep < len(training_steps):
+        # Dropping the trace is right -- it has no tokens to train on -- but
+        # the *reason* it is malformed must survive, or an episode killed by
+        # an over-long prompt is indistinguishable from one the policy
+        # simply failed, and compact_filtering has nothing to act on. The
+        # gateway stamps the reason (see classify_upstream_error).
+        reason = _upstream_termination_reason(traces[keep:])
+        if reason is not None:
+            episode.termination_reason = reason
+        logger.warning(
+            "[%s] dropping %d trailing malformed trace(s)%s; keeping %d",
+            uid,
+            len(training_steps) - keep,
+            f" [{reason.value}]" if reason is not None else "",
+            keep,
+        )
+        training_steps = training_steps[:keep]
 
     empty_prompt = sum(1 for s in training_steps if not s.model_output.prompt_ids)
     empty_compl = sum(1 for s in training_steps if not s.model_output.completion_ids)
