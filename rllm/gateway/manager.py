@@ -496,7 +496,11 @@ class EvalGatewayManager(GatewayManager):
             }
         )
         super().__init__(cfg, mode="thread")
-        self._upstream_urls: list[str] = [upstream_url]
+        # Several upstreams may be given comma-separated (e.g. one single-GPU vLLM server
+        # per GPU). The gateway's session-sticky router then keeps every turn of an agent
+        # session on one server, so its prefix cache keeps hitting -- an 8-way
+        # data-parallel vLLM spreads a session's turns across GPUs instead.
+        self._upstream_urls: list[str] = [u.strip() for u in upstream_url.split(",") if u.strip()]
 
     def start(self, rollout_engine: RolloutEngine | None = None) -> None:  # type: ignore[override]
         """Start gateway, register the static upstream URL(s), and bring up the tunnel if configured.
