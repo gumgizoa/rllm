@@ -96,6 +96,22 @@ def set_resources(task_toml: Path, cpus: int, memory_mb: int) -> None:
     task_toml.write_text(text)
 
 
+def set_agent_timeout(task_toml: Path, seconds: int) -> None:
+    """``[agent] timeout_sec`` -- the agent's wall clock under the native harness (Harbor's
+    ``override_timeout_sec``). Edited inside the ``[agent]`` table only; added if absent."""
+    text = task_toml.read_text()
+    m = re.search(r"^\[agent\][ \t]*$", text, flags=re.M)
+    if m is None:
+        task_toml.write_text(text.rstrip("\n") + f"\n\n[agent]\ntimeout_sec = {seconds}\n")
+        return
+    end = re.search(r"^\[", text[m.end() :], flags=re.M)
+    stop = m.end() + end.start() if end else len(text)
+    section, n = re.subn(r"^timeout_sec\s*=.*$", f"timeout_sec = {seconds}", text[m.end() : stop], count=1, flags=re.M)
+    if n == 0:
+        section = f"\ntimeout_sec = {seconds}" + section
+    task_toml.write_text(text[: m.end()] + section + text[stop:])
+
+
 APT_NO_VALID_UNTIL = "RUN mkdir -p /etc/apt/apt.conf.d && echo 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99rllm-no-valid-until  # rllm: expired Release files"
 
 
@@ -163,6 +179,7 @@ def main() -> None:
     ap.add_argument("--split", default="test")
     ap.add_argument("--cpus", type=int, default=4)
     ap.add_argument("--memory-mb", type=int, default=16384)
+    ap.add_argument("--agent-timeout-sec", type=int, default=None, help="Set [agent] timeout_sec (default: keep the registry's)")
     ap.add_argument("--force", action="store_true", help="Re-copy task dirs that already exist")
     args = ap.parse_args()
 
@@ -187,6 +204,8 @@ def main() -> None:
         if not dst.exists():
             shutil.copytree(src_dir, dst)
         set_resources(dst / "task.toml", args.cpus, args.memory_mb)
+        if args.agent_timeout_sec is not None:
+            set_agent_timeout(dst / "task.toml", args.agent_timeout_sec)
         patch_dockerfile(dst / "environment" / "Dockerfile")
         limit_threads(dst / "environment" / "Dockerfile", args.cpus)
         narrow_git_clean(dst / "tests" / "test.sh")
@@ -205,13 +224,14 @@ def main() -> None:
         split=args.split,
         source=(
             f"harbor:{HARBOR_DATASET} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}; "
+            f"agent timeout_sec={args.agent_timeout_sec if args.agent_timeout_sec is not None else 'registry'}; "
             f"OMP_NUM_THREADS={args.cpus}; git clean narrowed; task fixes: {', '.join(fixed) or 'none'}"
         ),
         description=f"SWE-bench Verified subset ({len(rows)} tasks) from the Harbor registry with resource and verifier fixes",
         category="agentic",
     )
     print(f"{args.name}/{args.split}: {len(rows)} tasks -> {out}")
-    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb}; Dockerfile apt Check-Valid-Until off, OMP_NUM_THREADS={args.cpus}")
+    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb} agent timeout_sec={args.agent_timeout_sec or 'registry'}; Dockerfile apt Check-Valid-Until off, OMP_NUM_THREADS={args.cpus}")
     print(f"  tests/test.sh: git clean -fd limited to test patch paths; task fixes: {', '.join(fixed) or 'none'}")
     print(f"  harbor harness: rllm eval {args.name} --split {args.split} --agent harbor:mini-swe-agent --evaluator harbor_reward_fn --sandbox-backend docker ...")
     print(f"  native harness: rllm eval {args.name} --split {args.split} --agent mini-swe-agent --sandbox-backend docker --agent-image auto ...")

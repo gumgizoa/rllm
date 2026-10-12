@@ -738,12 +738,12 @@ rllm eval swebenchpro_100 \
   ```bash
   rllm eval swegym_val23_aidlc --split test \
       --agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow \
-      --agent-kwargs workflow=aidlc,step_limit=100,enable_thinking=0,instruction_position=prefix \
+      --agent-kwargs workflow=aidlc_v4,step_limit=100,enable_thinking=0,instruction_position=prefix \
       --agent-image auto --sandbox-backend docker --hide-git-history --no-ui \
       --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-9B
   ```
 
-  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. 이 harness들은 `--agent-kwargs`를 받는다(`workflow`, `step_limit` 기본 50, `instruction_position` 기본 `suffix`). 문서·지시·system prompt 경로는 `workflows/<이름>/`의 spec에서만 온다. `key=value` 형식의 `true`/`false`/`null`은 bool/None으로 바뀐다(`enable_thinking=false` 그대로 쓰면 된다). 학습(`recipe.workflow.name=aidlc`)과 같은 채점기를 쓰므로 준수율은 학습 log의 `aidlc/*`와 같은 정의다. 새 워크플로우나 harness를 추가하는 방법은 [`docs/guides/workflows/adding-a-workflow.md`](../../docs/guides/workflows/adding-a-workflow.md), [`docs/guides/workflows/adding-a-harness.md`](../../docs/guides/workflows/adding-a-harness.md) 참고.
+  repo root에서 실행해야 `recipe.grpo.qwen3_5`가 import된다. 이 harness들은 `--agent-kwargs`를 받는다(`workflow`, `step_limit` 기본 50, `instruction_position` 기본 `suffix`). 문서·지시·system prompt 경로는 `workflows/<이름>/`의 spec에서만 온다. `key=value` 형식의 `true`/`false`/`null`은 bool/None으로 바뀐다(`enable_thinking=false` 그대로 쓰면 된다). 학습(`recipe.workflow.name=aidlc_v4`)과 같은 채점기를 쓰므로 준수율은 학습 log의 `aidlc/*`와 같은 정의다. 새 워크플로우나 harness를 추가하는 방법은 [`docs/guides/workflows/adding-a-workflow.md`](../../docs/guides/workflows/adding-a-workflow.md), [`docs/guides/workflows/adding-a-harness.md`](../../docs/guides/workflows/adding-a-harness.md) 참고.
 
 ---
 

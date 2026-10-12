@@ -72,7 +72,7 @@ workflows/<이름>/
 
 ## 3. system prompt 템플릿 작성
 
-- 시작점은 기존 템플릿 `workflows/aidlc/system-prompt.j2`.
+- 시작점은 기존 템플릿 `workflows/aidlc_v4/system-prompt.j2`.
   - openhands-sdk 1.42.1 기본 프롬프트를 그대로 두고 `<PROBLEM_SOLVING_WORKFLOW>` 섹션만 바꾼 Jinja 템플릿임.
   - 나머지 15개 섹션(도구 사용 규약 등)은 유지해야 도구 호출 형식이 깨지지 않음.
 - 복사 후 그 섹션만 새 워크플로우 절차로 다시 씀.
@@ -120,11 +120,11 @@ SPEC = WorkflowSpec(
 ## 5. 등록: `workflows/__init__.py`
 
 ```python
-from . import aidlc, <이름>
+from . import aidlc_v4, <이름>
 from .spec import WorkflowSpec
 
 WORKFLOWS: dict[str, WorkflowSpec] = {
-    "aidlc": aidlc.SPEC,
+    "aidlc_v4": aidlc_v4.SPEC,
     "<이름>": <이름>.SPEC,
 }
 ```
@@ -165,7 +165,7 @@ class Evaluation(ComplianceEvaluation):
 - `collect`나 `score`가 예외를 내면 경고를 남기고 verifier 결과만 반환함.
   즉 signal이 빠질 뿐 잘못된 점수가 들어가지는 않음.
 - 에이전트 도구 호출을 해석해야 하면 AI-DLC 구현을 참고함.
-  - `workflows/aidlc/reward/episode.py`: episode를 step 단위 도구 호출 목록으로 바꿈.
+  - `workflows/aidlc_v4/reward/episode.py`: episode를 step 단위 도구 호출 목록으로 바꿈.
   - episode를 만든 harness(trajectory 이름)에 맞는 해석기(front end)를 고르고, 해석기가 없는 harness면 거부함.
 
 ## 7. 사용

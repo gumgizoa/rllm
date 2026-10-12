@@ -14,7 +14,7 @@
 #
 # Measured on the base model, run 2's 32 step-1 tasks x 4, 40-turn budget:
 # core-workflow.md read 13% -> 91%, artifact 1 written 1.6% -> 45%.
-# The workflow documents (workflows/aidlc/docs/) are unchanged.
+# The workflow documents (workflows/aidlc_v4/docs/) are unchanged.
 #
 # Compliance is scored and logged (aidlc/*) but not rewarded here; the
 # rewarded arm is openhands_9b_aidlc_swegym_v2_reward.

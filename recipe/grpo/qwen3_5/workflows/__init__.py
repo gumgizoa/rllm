@@ -9,7 +9,7 @@ Each workflow is a package here, ``workflows/<name>/``, holding everything of it
 exposing its ``SPEC``:
 
     docs/              the documents, uploaded as they are to the spec's ``container_dir``
-    instruction.md     joined to the task text
+    instruction*.md    joined to the task text
     system-prompt.j2   per harness, replacing that harness's system prompt
     reward/            its compliance scorer (``workflow_scoring.ComplianceEvaluation``)
 
@@ -18,11 +18,11 @@ Adding a workflow is such a package and one entry in :data:`WORKFLOWS`; no harne
 
 from __future__ import annotations
 
-from . import aidlc
+from . import aidlc_v4
 from .spec import WorkflowSpec
 
 WORKFLOWS: dict[str, WorkflowSpec] = {
-    "aidlc": aidlc.SPEC,
+    "aidlc_v4": aidlc_v4.SPEC,
 }
 
 

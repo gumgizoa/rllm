@@ -11,7 +11,7 @@ The harness is chosen by ``recipe.agent`` and the workflow on it by
 * ``mini-swe-agent`` (default) — ``StepLimitedMiniSweAgent`` below, Qwen3.5-4B;
   no workflow.
 * ``openhands-sdk`` — ``workflow_harness.OpenHandsSdkWorkflow``; with
-  ``recipe.workflow.name=aidlc`` it ships the AI-DLC workflow documents into
+  ``recipe.workflow.name=aidlc_v4`` it ships the AI-DLC workflow documents into
   the sandbox, swaps the SDK's system prompt, and scores compliance beside the
   verifier. ``config/variant/`` holds ready-made selections::
 
@@ -93,7 +93,7 @@ def make_budget_scaled_grouping_hook(
 
     ``compliance_mode`` folds in the workflow's compliance signal
     (``compliance_signal``, in [0, 1], e.g. ``aidlc/compliance`` set by
-    ``workflows/aidlc/reward``'s ``AidlcComplianceEvaluator``) before the budget scale:
+    ``workflows/aidlc_v4/reward``'s ``AidlcComplianceEvaluator``) before the budget scale:
 
     * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
       at 0 however well it followed the workflow, and a solved one earns only

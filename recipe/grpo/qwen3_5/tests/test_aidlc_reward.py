@@ -1,4 +1,4 @@
-"""workflows/aidlc/reward: order_v6, the episode adapter, artifact collection, the evaluator wrapper, and
+"""workflows/aidlc_v4/reward: order_v6, the episode adapter, artifact collection, the evaluator wrapper, and
 the reward term in train.py's grouping hook.
 
     pytest recipe/grpo/qwen3_5/tests/test_aidlc_reward.py
@@ -25,9 +25,9 @@ from omegaconf import OmegaConf  # noqa: E402
 # Imported before train_module stubs ``rllm.harnesses``, so train.py's lazy
 # ``from recipe.grpo.qwen3_5.workflow_harness import ...`` finds the real module cached.
 from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc.reward.compliance import compliance, order_v6  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc.reward.episode import episode_to_run  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc.reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.compliance import compliance, order_v6  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.episode import episode_to_run  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
 from rllm.eval.types import EvalOutput, Signal  # noqa: E402
 
 DOC = {
@@ -423,11 +423,11 @@ def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
     cfg = OmegaConf.create({})
     assert train_module._build_agent_flow(_recipe("mini-swe-agent"), cfg).step_limit == 80
     with pytest.raises(SystemExit, match="requires recipe.agent=openhands-sdk"):
-        train_module._build_agent_flow(_recipe("mini-swe-agent", "aidlc"), cfg)
+        train_module._build_agent_flow(_recipe("mini-swe-agent", "aidlc_v4"), cfg)
     plain = train_module._build_agent_flow(_recipe(), cfg)
     assert isinstance(plain, OpenHandsSdkWorkflow) and plain.workflow_spec is None and plain.step_limit == 80
-    wf = train_module._build_agent_flow(_recipe(name="aidlc", position="suffix"), cfg)
-    assert wf.workflow == "aidlc" and wf.instruction_position == "suffix" and wf.system_prompt_file is not None
+    wf = train_module._build_agent_flow(_recipe(name="aidlc_v4", position="suffix"), cfg)
+    assert wf.workflow == "aidlc_v4" and wf.instruction_position == "suffix" and wf.system_prompt_file is not None
     with pytest.raises(SystemExit, match="recipe.agent must be"):
         train_module._build_agent_flow(_recipe("claude-code"), cfg)
 
@@ -441,10 +441,10 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
         recipe = _recipe(agent, name, reward)
         return train_module._workflow_reward(recipe, train_module._build_agent_flow(recipe, cfg))
 
-    assert r("aidlc", {"enable": False}) == (None, None, 0.0)
+    assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0)
     assert r(None, {"enable": False}) == (None, None, 0.0)
-    assert r("aidlc", {"enable": True}) == ("aidlc/compliance", "mul", 0.2)
-    assert r("aidlc", {"enable": True, "mode": "add", "lam": 0.15}) == ("aidlc/compliance", "add", 0.15)
+    assert r("aidlc_v4", {"enable": True}) == ("aidlc/compliance", "mul", 0.2)
+    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == ("aidlc/compliance", "add", 0.15)
     # No workflow: nothing to fold in, the run trains on the verifier reward (a rewarded variant
     # with workflow.name=null is its own baseline) -- never a startup failure.
     assert r(None, {"enable": True}) == (None, None, 0.0)
@@ -473,7 +473,7 @@ def test_build_hooks_forwards_hide_git_history(train_module, monkeypatch):
             self.hide_git_history = kwargs.get("hide_git_history", False)
 
     monkeypatch.setattr(hooks_mod, "SandboxTaskHooks", _Hooks)
-    wf = OpenHandsSdkWorkflow(workflow="aidlc")
+    wf = OpenHandsSdkWorkflow(workflow="aidlc_v4")
     assert train_module._build_hooks(OpenHandsSdkWorkflow(), "docker", True) is None  # no workflow
     assert train_module._build_hooks(SimpleNamespace(), "docker", True) is None  # mini-swe-agent: no policy at all
     hooks = train_module._build_hooks(wf, "docker", True)

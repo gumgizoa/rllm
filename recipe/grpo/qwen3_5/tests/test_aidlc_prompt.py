@@ -55,7 +55,7 @@ def test_templates_are_registered_by_style():
 def harness_cls():
     from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
 
-    return functools.partial(OpenHandsSdkWorkflow, workflow="aidlc")
+    return functools.partial(OpenHandsSdkWorkflow, workflow="aidlc_v4")
 
 
 def test_instruction_prefix_and_suffix(harness_cls):

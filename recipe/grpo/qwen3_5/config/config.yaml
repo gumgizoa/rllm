@@ -28,7 +28,7 @@ recipe:
   # workflows.WORKFLOWS, whose entry holds the documents, the instruction and the
   # system prompt together -- they name each other by absolute container path.
   # null = the plain harness, so the baseline run is unchanged;
-  # `variant=openhands_9b_aidlc` sets aidlc.
+  # `variant=openhands_9b_aidlc` sets aidlc_v4.
   workflow:
     name: null
     # Where the workflow instruction goes in the user message. prefix = before

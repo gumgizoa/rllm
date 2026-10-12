@@ -71,7 +71,7 @@ class AidlcComplianceEvaluator(ComplianceEvaluator):
 
 
 class AidlcEvaluation(ComplianceEvaluation):
-    """The ``aidlc`` workflow's scorer (``workflows.WORKFLOWS["aidlc"].scorers``)."""
+    """The ``aidlc_v4`` workflow's scorer (``workflows.WORKFLOWS["aidlc_v4"].scorers``)."""
 
     def __init__(self):
         super().__init__(collect_artifacts, score, NAME)

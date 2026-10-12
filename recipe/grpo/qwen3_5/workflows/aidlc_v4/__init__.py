@@ -2,7 +2,8 @@
 
     docs/              -> /ai-dlc: core-workflow.md, rule-details/01..05-*.md
     instruction.md     the pointer joined to the task text ("Follow the workflow defined in
-                       /ai-dlc/core-workflow.md ...")
+                       /ai-dlc/core-workflow.md ..."), as in the Harbor runs
+                       (harbor-extension experiments/aidlc/variants/ai-dlc.md)
     system-prompt.j2   openhands-sdk's system prompt with its procedure section rewritten
     reward/            compliance scoring: order_v6 + stage bands s1..s5, mean aidlc/compliance
 

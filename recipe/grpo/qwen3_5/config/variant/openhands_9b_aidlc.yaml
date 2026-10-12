@@ -10,7 +10,7 @@ defaults:
 
 recipe:
   workflow:
-    name: aidlc
+    name: aidlc_v4
 
 rllm:
   trainer:

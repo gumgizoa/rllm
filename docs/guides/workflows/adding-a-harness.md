@@ -170,11 +170,11 @@ harness를 추가해도 워크플로우 쪽 자산은 자동으로 생기지 않
 AI-DLC 채점은 에이전트의 도구 호출(셸 명령, 파일 생성·수정 등)을 읽어 단계 순서와 산출물 작성 여부를 판단함.
 도구 이름과 인자 형식이 에이전트마다 다르므로 harness별 해석기가 필요함.
 
-- 해석기 규약(`workflows/aidlc/reward/rubric/frontends/openhands.py` 참고):
+- 해석기 규약(`workflows/aidlc_v4/reward/rubric/frontends/openhands.py` 참고):
   - `NAMES`: 이 해석기가 처리하는 harness 이름 집합.
   - `parse(name, args, observation)`: 도구 호출 하나를 채점용 동작(`Action`)으로 바꿈.
     동작 종류는 `shell`, `view`, `create`, `replace`, `insert`, `undo`, `other`.
-- 새 해석기를 만들어 `workflows/aidlc/reward/episode.py`의 `FRONTENDS`에 등록함.
+- 새 해석기를 만들어 `workflows/aidlc_v4/reward/episode.py`의 `FRONTENDS`에 등록함.
   - `rubric/` 디렉터리는 오프라인 채점기에서 그대로 복사한 코드(byte-identical)임.
     원본에서 가져온 해석기가 아니라면 `rubric/` 밖(예: `reward/` 아래)에 두는 편이 출처 구분에 좋음.
 - 해석기가 없는 harness의 episode는 해석을 거부함.
@@ -185,7 +185,7 @@ AI-DLC 채점은 에이전트의 도구 호출(셸 명령, 파일 생성·수정
 ```bash
 rllm eval <dataset> --split test \
   --agent recipe.grpo.qwen3_5.workflow_harness:OpenCodeWorkflow \
-  --agent-kwargs workflow=aidlc,step_limit=100,instruction_position=prefix \
+  --agent-kwargs workflow=aidlc_v4,step_limit=100,instruction_position=prefix \
   --agent-image auto --sandbox-backend docker --hide-git-history
 ```
 

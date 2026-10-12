@@ -23,7 +23,7 @@ from recipe.grpo.qwen3_5.workflows import WorkflowSpec  # noqa: E402
 from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness  # noqa: E402
 from rllm.types import AgentConfig  # noqa: E402
 
-AIDLC = workflows.WORKFLOWS["aidlc"]
+AIDLC = workflows.WORKFLOWS["aidlc_v4"]
 CONFIG = AgentConfig(base_url="http://127.0.0.1:8000/v1", model="m", session_uid="u")
 PROMPT_ENV = "OPENHANDS_SDK_SYSTEM_PROMPT_PATH"
 
@@ -77,13 +77,13 @@ def test_no_workflow_is_the_plain_harness(no_runner):
 
 @pytest.mark.parametrize("spelling", ["none", "null", "", "None"])
 def test_cli_null_spellings_switch_the_workflow_off(spelling):
-    h = OpenHandsSdkWorkflow(workflow="aidlc")
+    h = OpenHandsSdkWorkflow(workflow="aidlc_v4")
     h.configure({"agent_kwargs": {"workflow": spelling}})
     assert h.workflow is None and h.workflow_spec is None and h.evaluation_policy is None
 
 
 def test_aidlc_by_name_injects_and_scores(no_runner):
-    h = OpenHandsSdkWorkflow(workflow="aidlc", instruction_position="prefix")
+    h = OpenHandsSdkWorkflow(workflow="aidlc_v4", instruction_position="prefix")
     assert h.docs_dir == AIDLC.docs_dir and h.container_dir == "/ai-dlc"
     assert h.system_prompt_file == AIDLC.system_prompt["openhands-sdk"]
     assert h.compose_instruction("TASK").endswith("\n\nTASK") and "/ai-dlc/core-workflow.md" in h.compose_instruction("TASK")
@@ -97,7 +97,7 @@ def test_aidlc_by_name_injects_and_scores(no_runner):
 
 
 def test_switching_workflow_rereads_the_spec(wf2, no_runner):
-    h = OpenHandsSdkWorkflow(workflow="aidlc")
+    h = OpenHandsSdkWorkflow(workflow="aidlc_v4")
     h.configure({"agent_kwargs": {"workflow": "wf2", "instruction_position": "prefix"}})
     assert h.docs_dir == wf2.docs_dir and h.container_dir == "/wf2"
     assert h.compose_instruction("TASK") == "Follow /wf2/README.md.\n\nTASK"
@@ -110,12 +110,12 @@ def test_switching_workflow_rereads_the_spec(wf2, no_runner):
 
 
 def test_spec_paths_cannot_be_overridden_per_run():
-    h = OpenHandsSdkWorkflow(workflow="aidlc")
+    h = OpenHandsSdkWorkflow(workflow="aidlc_v4")
     for key in ("docs_dir", "container_dir", "instruction_file", "system_prompt_file"):
         with pytest.raises(AttributeError):
             h.configure({"agent_kwargs": {key: None}})
     with pytest.raises(AttributeError):
-        OpenHandsSdkWorkflow(workflow="aidlc", docs_dir=str(AIDLC.docs_dir))
+        OpenHandsSdkWorkflow(workflow="aidlc_v4", docs_dir=str(AIDLC.docs_dir))
 
 
 def test_unknown_workflow_rejected():
@@ -147,7 +147,7 @@ def test_harness_without_a_system_prompt_seam():
         pass
 
     with pytest.raises(ValueError, match="cannot replace its system prompt"):
-        Bare(workflow="aidlc")
+        Bare(workflow="aidlc_v4")
 
 
 def test_mixin_brings_agent_kwargs_to_any_cli_harness(wf2):
@@ -173,7 +173,7 @@ def test_rllm_eval_loads_it_by_import_path_and_uses_its_scorer(monkeypatch):
 
     agent = load_agent("recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow")
     assert _evaluation_policy(agent, None) is None
-    agent.configure({"agent_kwargs": {"workflow": "aidlc", "step_limit": 100, "enable_thinking": 0}})
+    agent.configure({"agent_kwargs": {"workflow": "aidlc_v4", "step_limit": 100, "enable_thinking": 0}})
     assert type(_evaluation_policy(agent, None)).__name__ == "AidlcEvaluation"
     explicit = SimpleNamespace(evaluate=lambda task, episode: None)  # --evaluator still wins
     assert isinstance(_evaluation_policy(agent, explicit), FixedEvaluation)
