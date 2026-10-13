@@ -214,17 +214,38 @@ def _metric_value(item, metric: str) -> float:
     return float((item.signals or {}).get(metric, 0.0))
 
 
+def _file_task_id(file_task: str, attempt: int) -> str:
+    """The task id in an episode file name, without the attempt it ends in.
+
+    The engine stores the task's metadata dict, not the ``Task``, on
+    ``episode.task``, so ``EvalEpisodeStore`` names the file after the session
+    uid ``f"{task_id}:{attempt}"`` instead - ``..._repo-1_0.json``,
+    ``..._repo-1_1.json``. Taken as is, every attempt would be its own task.
+    """
+    suffix = f"_{attempt}"
+    if file_task.endswith(suffix) and len(file_task) > len(suffix):
+        return file_task[: -len(suffix)]
+    return file_task
+
+
 def _build_groups(runs: list[_RunData], metric: str) -> list[AttemptGroup]:
     """Group every rollout by stable task id, pooling across runs."""
     groups: dict[str, AttemptGroup] = {}
     for run in runs:
+        # The runner expands task `idx` into `attempts` adjacent rollouts,
+        # so the on-disk episode index is idx*attempts + attempt.
+        task_by_idx: dict[int, str] = {}
         for item in run.items:
-            # The runner expands task `idx` into `attempts` adjacent rollouts,
-            # so the on-disk episode index is idx*attempts + attempt.
+            ep = run.episodes.get(item.idx * run.attempts + item.attempt)
+            if ep:
+                task_by_idx.setdefault(item.idx, _file_task_id(ep[1], item.attempt))
+
+        for item in run.items:
             eval_idx = item.idx * run.attempts + item.attempt
             ep = run.episodes.get(eval_idx)
             path = ep[0] if ep else None
-            task_id = ep[1] if ep else None
+            # An attempt with no episode file is still the task its siblings ran.
+            task_id = _file_task_id(ep[1], item.attempt) if ep else task_by_idx.get(item.idx)
             key = task_id if task_id is not None else f"{run.run_id}:t{item.idx}"
             ref = _AttemptRef(
                 run_id=run.run_id,
