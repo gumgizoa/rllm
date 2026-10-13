@@ -6,12 +6,14 @@ description: qwen3_5 레시피에 새 워크플로우(문서·지시·system pro
 # 워크플로우 추가하기
 
 `recipe/grpo/qwen3_5` 레시피에서 에이전트에게 특정 작업 절차를 따르게 하는 단위를 **워크플로우**라 부름.
-현재 등록된 워크플로우는 AI-DLC(`aidlc`) 하나임.
+현재 등록된 워크플로우는 AI-DLC(`aidlc_v4`)와 Spec Kit bug 절차(`speckit_bug`, 채점기 없음) 두 개임.
 이 문서는 새 워크플로우를 추가해 학습과 `rllm eval` 양쪽에서 쓰는 방법을 정리함.
 
 - 워크플로우 추가에 harness 클래스, `train.py`, 평가 코드 수정은 필요 없음.
 - 워크플로우 디렉터리 하나와 등록 한 줄로 끝남.
 - harness(에이전트 프로그램) 자체를 추가하는 방법은 [harness 추가하기](/guides/workflows/adding-a-harness) 참고.
+- 외부 워크플로우(spec-kit 등)를 옮겨 올 때 원문 변환은 공용 엔진 `workflows/_port.py` 위에서 워크플로우마다 편집표(`build.py`)로 기술함.
+  - 예시는 `workflows/speckit_bug/`이고, 원문을 바꾼 결정·변경 내역·smoke 결과는 `porting/`에 기록되어 있음.
 
 ## 워크플로우가 하는 일
 

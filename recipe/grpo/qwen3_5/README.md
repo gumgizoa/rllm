@@ -296,6 +296,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | `mini-swe-agent` | `null` | `StepLimitedMiniSweAgent` | `train.py` |
 | `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
 | `openhands-sdk` | `aidlc_v4` | `OpenHandsSdkWorkflow` with `workflows/aidlc_v4/` | `workflow_harness.py` |
+| `openhands-sdk` | `speckit_bug` | `OpenHandsSdkWorkflow` with `workflows/speckit_bug/` (Spec Kit assess → fix → test; no scorer yet) | `workflow_harness.py` |
 | `mini-swe-agent` | `aidlc_v4` | refused at startup (no system-prompt seam) | — |
 
 The workflow itself (documents, instruction, per-harness system prompt and compliance scorer) is
