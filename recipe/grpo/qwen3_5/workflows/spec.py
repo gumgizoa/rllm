@@ -13,6 +13,7 @@ is specific to one agent:
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,6 +32,9 @@ class WorkflowSpec:
     scorers           harness name -> factory of an evaluation policy for ``SandboxTaskHooks``
     reward_signal     the scorers' signal in [0, 1] that train.py folds into the reward
                       (``recipe.workflow.compliance_reward``); the others are logged only
+    output_dirs       container paths (directories or files) the workflow has the agent write its
+                      reports to, outside the repository; read back into
+                      ``episode.artifacts["workflow_outputs"]`` (``run_artifacts.py``)
     """
 
     docs_dir: Path
@@ -40,3 +44,19 @@ class WorkflowSpec:
     system_prompt: Mapping[str, Path] = field(default_factory=dict)
     scorers: Mapping[str, Callable[[], Any]] = field(default_factory=dict)
     reward_signal: str | None = None
+    output_dirs: tuple[str, ...] = ()
+
+    def fingerprint(self, harness: str) -> str:
+        """sha256 over what the agent is given -- documents, instruction, ``harness``'s system prompt.
+
+        Stored with each episode, so a score computed later knows which version of the workflow the
+        run followed.
+        """
+        h = hashlib.sha256()
+        files = [(f"docs/{p.relative_to(self.docs_dir).as_posix()}", p) for p in sorted(self.docs_dir.rglob("*")) if p.is_file() and not p.name.startswith(".")]
+        for label, path in (("instruction", self.instruction_file), ("system_prompt", self.system_prompt.get(harness))):
+            if path is not None:
+                files.append((label, path))
+        for label, path in files:
+            h.update(label.encode() + b"\0" + path.read_bytes() + b"\0")
+        return h.hexdigest()

@@ -38,15 +38,19 @@
     harness-specific seam: a harness class sets ``supports_system_prompt`` and
     implements ``_system_prompt_env`` / ``_write_system_prompt``. The mixin
     also exposes the workflow's compliance scorer as ``evaluation_policy``,
-    which ``rllm eval`` hands to ``SandboxTaskHooks`` (``rllm/eval/runner.py``).
+    which ``rllm eval`` hands to ``SandboxTaskHooks`` (``rllm/eval/runner.py``),
+    and (``collect_patch``) returns what the run left in the sandbox -- the
+    patch, the workflow's reports -- in ``episode.artifacts``, so compliance can
+    be scored again from the saved episode (``run_artifacts.py``).
 
 ``OpenHandsSdkWorkflow``
     The mixin on ``StepLimitedOpenHandsSdk``. Another harness gets the same
     one-class treatment (``class OpenCodeWorkflow(WorkflowMixin, ...)``); a
     workflow never needs a class.
 
-All return ``None`` from ``run()`` like every CLI harness: the gateway
-captures the LLM calls and the engine builds the Episode.
+Like every CLI harness, the gateway captures the LLM calls and the engine
+builds the trajectory; ``run()`` returns an Episode only to carry the
+artifacts (``None`` with ``collect_patch`` off).
 """
 
 from __future__ import annotations
@@ -57,8 +61,9 @@ from pathlib import Path
 
 from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness
 from rllm.sandbox.protocol import Sandbox
-from rllm.types import AgentConfig, Task
+from rllm.types import AgentConfig, Episode, Task, Trajectory
 
+from . import run_artifacts
 from .workflows import WorkflowSpec, get_workflow
 
 logger = logging.getLogger(__name__)
@@ -67,6 +72,13 @@ logger = logging.getLogger(__name__)
 # (``/opt/openhands-sdk-runner.py``), for the same reason: written per task,
 # a few KB, never inside the task's repository.
 _SYSTEM_PROMPT_REMOTE = "/opt/openhands-sdk-system-prompt.j2"
+
+
+def _flag(value) -> bool:
+    """A boolean attribute set from ``--agent-kwargs`` text or from a config."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
 
 
 def _null(value):
@@ -151,20 +163,31 @@ class WorkflowMixin(AgentKwargsMixin):
     and a renamed harness would silently fall back to a per-task install. It
     is also the key into the spec's ``system_prompt`` and ``scorers``.
 
-    ``workflow`` and ``instruction_position`` may be set per run through
-    ``configure`` (``--agent-kwargs``, from ``AgentKwargsMixin``), on whatever
-    CLI harness the mixin sits on.
+    ``collect_patch`` (on by default, with or without a workflow) puts the
+    patch, the files under the spec's ``output_dirs``, files written elsewhere
+    under ``/tmp`` / ``container_dir`` and the workflow's ``fingerprint`` into
+    ``episode.artifacts``; see :mod:`run_artifacts`. A failure to collect is
+    recorded there (``patch_error``) and never fails the rollout.
+
+    ``workflow``, ``instruction_position`` and ``collect_patch`` may be set per
+    run through ``configure`` (``--agent-kwargs``, from ``AgentKwargsMixin``),
+    on whatever CLI harness the mixin sits on.
     """
 
     workflow: str | None = None
     instruction_position: str = "suffix"
     INSTRUCTION_POSITIONS = ("prefix", "suffix")
+    collect_patch: bool = True
+    # Where a file the agent wrote outside the repository and the output dirs is looked for,
+    # besides ``container_dir``.
+    stray_roots: tuple[str, ...] = ("/tmp",)
 
     # Set by a harness class that can replace its agent's system prompt.
     supports_system_prompt: bool = False
 
     # Resolved by _resolve_workflow; None when there is no workflow.
     workflow_spec: WorkflowSpec | None = None
+    workflow_fingerprint: str | None = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -196,10 +219,12 @@ class WorkflowMixin(AgentKwargsMixin):
     def _resolve_workflow(self) -> None:
         """``workflow`` -> its spec; fail before any sandbox exists."""
         self.workflow = _null(self.workflow)
+        self.collect_patch = _flag(self.collect_patch)
         if self.instruction_position not in self.INSTRUCTION_POSITIONS:
             raise ValueError(f"instruction_position must be one of {self.INSTRUCTION_POSITIONS}, got {self.instruction_position!r}")
         if self.workflow is None:
             self.workflow_spec = None
+            self.workflow_fingerprint = None
             return
 
         spec = get_workflow(str(self.workflow))
@@ -215,6 +240,7 @@ class WorkflowMixin(AgentKwargsMixin):
 
         self.workflow_spec = spec
         self._validate_local_files()
+        self.workflow_fingerprint = spec.fingerprint(self.name)
 
     @property
     def evaluation_policy(self):
@@ -300,11 +326,14 @@ class WorkflowMixin(AgentKwargsMixin):
         env: dict[str, str],
     ) -> None:
         super().write_configs(sandbox, task, config, env)
-        if self.workflow_spec is None:
-            return
-        self._upload_docs(sandbox)
-        if self.system_prompt_file is not None:
-            self._write_system_prompt(sandbox, self.system_prompt_file.read_text(encoding="utf-8"))
+        if self.workflow_spec is not None:
+            self._upload_docs(sandbox)
+            if self.system_prompt_file is not None:
+                self._write_system_prompt(sandbox, self.system_prompt_file.read_text(encoding="utf-8"))
+        # Last write before the agent starts: the marker's mtime separates the agent's files
+        # from ours, and it holds the commit the patch is taken against.
+        if self.collect_patch:
+            sandbox.exec(run_artifacts.start_command(task.metadata.get("workdir")), timeout=60, user="root")
 
     def _upload_docs(self, sandbox: Sandbox) -> None:
         """Put the workflow documents at ``container_dir`` and prove they arrived.
@@ -343,6 +372,36 @@ class WorkflowMixin(AgentKwargsMixin):
         config: AgentConfig,
     ) -> str:
         return super().build_invocation(self.compose_instruction(instruction), task, config)
+
+    def run(self, task: Task, config: AgentConfig, *, env: Sandbox) -> Episode | None:
+        """The harness's run, then what it left in the sandbox, before the verifier sees it."""
+        episode = super().run(task, config, env=env)
+        if not self.collect_patch:
+            return episode
+        if episode is None:
+            episode = Episode(task=task.metadata, trajectories=[Trajectory(name=self.name, steps=[])])
+        episode.artifacts.update(self._collect_run_artifacts(env, task))
+        return episode
+
+    def _collect_run_artifacts(self, sandbox: Sandbox, task: Task) -> dict:
+        spec = self.workflow_spec
+        output_dirs = spec.output_dirs if spec is not None else ()
+        workdir = task.metadata.get("workdir")
+        art: dict = {"workflow": {"name": self.workflow, "sha256": self.workflow_fingerprint}}
+        if spec is not None:
+            art["workflow_outputs"] = {}
+        command = run_artifacts.collect_command(
+            workdir,
+            output_dirs,
+            stray_roots=(*self.stray_roots, *((self.container_dir,) if spec is not None else ())),
+            stray_skip=(self.stdout_log_path, *((workdir,) if workdir else ())),
+        )
+        try:
+            art.update(run_artifacts.parse(sandbox.exec(command, timeout=180, user="root")))
+        except Exception as e:
+            logger.warning("%s: collecting the run's artifacts failed for %s: %s", type(self).__name__, getattr(task, "id", "?"), e)
+            art["patch_error"] = f"collection failed: {e}"[:500]
+        return art
 
     # ------------------------------------------------------------------
     # Harness-specific seam: the replacement system prompt

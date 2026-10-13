@@ -31,4 +31,5 @@ SPEC = WorkflowSpec(
     entry_doc="core-workflow.md",
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
+    output_dirs=("/tmp/speckit",),
 )

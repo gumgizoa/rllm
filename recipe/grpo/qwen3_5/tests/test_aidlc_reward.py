@@ -27,7 +27,7 @@ from omegaconf import OmegaConf  # noqa: E402
 from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.compliance import compliance, order_v6  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.episode import episode_to_run  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.evaluator import _MARK, AidlcComplianceEvaluator, parse_collected  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4.reward.evaluator import _MARK, AidlcComplianceEvaluator, artifacts_from_outputs, parse_collected  # noqa: E402
 from rllm.eval.types import EvalOutput, Signal  # noqa: E402
 
 DOC = {
@@ -277,6 +277,12 @@ def _collected(files: dict[str, str]) -> str:
 def test_parse_collected_roundtrips_and_ignores_foreign_paths():
     out = _collected({ART[1]: ARTIFACTS[1], "/tmp/swe-bench-pro/notes.md": "x"}) + f"{_MARK}{ART[2]}\n\n"
     assert parse_collected(out) == {ART[1]: ARTIFACTS[1], ART[2]: ""}
+
+
+def test_saved_outputs_rebuild_what_the_sandbox_collection_returned():
+    """The offline path (``workflow_outputs`` holds all of ARTIFACT_DIR) keeps the same files."""
+    files = {ART[1]: ARTIFACTS[1], "/tmp/swe-bench-pro/notes.md": "x", ART[2]: ""}
+    assert artifacts_from_outputs(files) == parse_collected(_collected(files))
 
 
 class _Sandbox:

@@ -8,6 +8,10 @@ Every workflow scorer has the same shape; only two functions are the workflow's 
     score(task, episode, data) -> {name: value}
         The compliance signals, each in [0, 1] and named ``<workflow>/...``; one of them is the
         workflow's ``WorkflowSpec.reward_signal``.
+    from_outputs(workflow_outputs) -> data   (optional)
+        ``collect``'s result rebuilt from a saved episode's ``artifacts["workflow_outputs"]``
+        (``run_artifacts.py``), so ``scripts/rescore_compliance.py`` scores a finished run the way
+        the live sandbox was scored.
 
 :class:`ComplianceEvaluation` is an evaluation policy for ``SandboxTaskHooks``: it resolves the
 task's own verifier exactly as the default policy does and wraps it with those two functions
@@ -21,7 +25,7 @@ serves a logged-only arm, a rewarded one, and ``rllm eval``.
 A failure to collect or to score is logged and the verifier's output is returned as-is: an episode
 without the signals gets no compliance term, rather than a wrong one.
 
-A workflow plugs in as ``ComplianceEvaluation(collect, score, name)`` registered in
+A workflow plugs in as ``ComplianceEvaluation(collect, score, name[, from_outputs])`` registered in
 ``workflows.WORKFLOWS[...].scorers`` (see ``workflows/aidlc_v4/reward/evaluator.py``).
 """
 
@@ -71,10 +75,11 @@ class ComplianceEvaluator:
 class ComplianceEvaluation(FromTaskEvaluation):
     """``FromTaskEvaluation`` with the verifier wrapped; tasks with no sandbox are left alone."""
 
-    def __init__(self, collect: Collect, score: Score, name: str):
+    def __init__(self, collect: Collect, score: Score, name: str, from_outputs: Callable[[dict[str, str]], Any] | None = None):
         self.collect = collect
         self.score = score
         self.name = name
+        self.from_outputs = from_outputs
 
     def resolve(self, task, sandbox, kind, config):
         inner = super().resolve(task, sandbox, kind, config)

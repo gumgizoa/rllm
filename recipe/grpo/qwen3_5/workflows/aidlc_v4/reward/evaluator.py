@@ -48,6 +48,11 @@ def collect_artifacts(sandbox) -> dict[str, str]:
     return parse_collected(sandbox.exec(_COLLECT, timeout=60, user="root"))
 
 
+def artifacts_from_outputs(outputs: dict[str, str]) -> dict[str, str]:
+    """``collect_artifacts``'s result from a saved episode's ``workflow_outputs`` (all of ``ARTIFACT_DIR``)."""
+    return {path: text for path, text in outputs.items() if path in A.ARTIFACT_PATHS}
+
+
 def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     """The ``aidlc/*`` signals for one episode, given the artifacts read out of its sandbox."""
     c = compliance(episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", ""))))
@@ -74,4 +79,4 @@ class AidlcEvaluation(ComplianceEvaluation):
     """The ``aidlc_v4`` workflow's scorer (``workflows.WORKFLOWS["aidlc_v4"].scorers``)."""
 
     def __init__(self):
-        super().__init__(collect_artifacts, score, NAME)
+        super().__init__(collect_artifacts, score, NAME, artifacts_from_outputs)

@@ -17,7 +17,7 @@ RECIPE = Path(__file__).resolve().parents[1]
 REPO = RECIPE.parents[2]
 sys.path.insert(0, str(REPO))
 
-from recipe.grpo.qwen3_5 import workflows  # noqa: E402
+from recipe.grpo.qwen3_5 import run_artifacts, workflows  # noqa: E402
 from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow, StepLimitedOpenHandsSdk, WorkflowMixin  # noqa: E402
 from recipe.grpo.qwen3_5.workflows import WorkflowSpec  # noqa: E402
 from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness  # noqa: E402
@@ -71,8 +71,9 @@ def test_no_workflow_is_the_plain_harness(no_runner):
     assert h.evaluation_policy is None
     assert PROMPT_ENV not in h.build_env(SimpleNamespace(metadata={}), CONFIG)
     sb = _Sandbox()
-    h.write_configs(sb, None, CONFIG, {})
-    assert sb.execs == [] and sb.uploads == []
+    h.write_configs(sb, SimpleNamespace(metadata={}), CONFIG, {})
+    # Nothing of a workflow; only the patch-collection marker (run_artifacts.start_command).
+    assert sb.uploads == [] and len(sb.execs) == 1 and run_artifacts.MARKER in sb.execs[0]
 
 
 @pytest.mark.parametrize("spelling", ["none", "null", "", "None"])
@@ -90,7 +91,7 @@ def test_aidlc_by_name_injects_and_scores(no_runner):
     assert h.build_env(SimpleNamespace(metadata={}), CONFIG)[PROMPT_ENV] == "/opt/openhands-sdk-system-prompt.j2"
     assert type(h.evaluation_policy).__name__ == "AidlcEvaluation"
     sb = _Sandbox(md_count=h._expected_doc_count())
-    h.write_configs(sb, None, CONFIG, {})
+    h.write_configs(sb, SimpleNamespace(metadata={}), CONFIG, {})
     assert "/ai-dlc/core-workflow.md" in sb.uploads
     assert not any(u.endswith(("instruction.md", "system-prompt.j2")) for u in sb.uploads)  # prompt files stay out
     assert any("/opt/openhands-sdk-system-prompt.j2" in c for c in sb.execs)
@@ -104,7 +105,7 @@ def test_switching_workflow_rereads_the_spec(wf2, no_runner):
     # No openhands-sdk template and no scorer for wf2: default prompt, resolve rate only.
     assert h.system_prompt_file is None and h.evaluation_policy is None
     sb = _Sandbox(md_count=2)
-    h.write_configs(sb, None, CONFIG, {})
+    h.write_configs(sb, SimpleNamespace(metadata={}), CONFIG, {})
     assert sorted(sb.uploads) == ["/wf2/README.md", "/wf2/rules"]
     assert not any("system-prompt" in c for c in sb.execs)
 
