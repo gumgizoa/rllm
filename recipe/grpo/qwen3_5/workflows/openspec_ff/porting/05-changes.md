@@ -43,7 +43,7 @@
 - SDK 기본 프롬프트의 "ask the user"·"confirm with the user" 줄은 비교 가능성을 위해 유지(Q6/G10-2).
 - 평가 설정은 `swegym293_aidlc` + `instruction_position=prefix`(G10-3, 실행 설정 사항).
 
-**7. verify ↔ apply 반복 추가 (최대 2회)** (04-verify.md, core-workflow.md) — G8-1, G5-3 — **loop**
+**7. ~~verify ↔ apply 반복 추가 (최대 2회)~~ — 2026-10-14 삭제, 아래 "추가" 참고** (04-verify.md, core-workflow.md) — G8-1, G5-3
 - 원문 verify는 채팅으로 보고서를 보여주고 다음 행동은 사람이 판단하는 구조.
 - 보고서를 change 디렉터리 파일로 작성: 1회차 `verify.md`, 2회차 `verify-2.md`(G5-3).
 - 1회차에 CRITICAL이 있으면 그 항목만 apply로 돌아가 처리(미완료 task 완료, 구현 누락 요구사항은 task 추가 후 구현) 후 2회차 verify. 2회차 후에는 결과와 무관하게 archive, 남은 문제는 보고서에 기록. WARNING·SUGGESTION은 반복 사유 아님.
@@ -85,3 +85,6 @@
 - new 단계 제거(D-7): 절차를 ff → apply → verify → archive로 변경. ff가 원문 2단계(`openspec new change "issue"`)로 change를 직접 생성. new 문서와 관련 편집(G1-3, G2-1, G4-12) 삭제, ff의 change 생성 단계는 upstream 원문으로 복원(G7-1 되돌림). 단계 문서 번호를 01-ff, 02-apply, 03-verify로 변경. 진입 문서와 instruction에서 new 삭제.
 - 프로젝트 설정 사용(G10-7): upstream이 권하는 `config.yaml`의 `context:`와 `rules:`로 환경 사실을 전달. CLI가 모든 산출물 지침과 apply 지침에 context를, proposal과 specs 지침에 rules를 붙여 줌. G7-5 문장은 fork 본문에서 rules로 이동. operations guidance는 쓰지 않음. apply의 충돌 보고 분기가 생기지 않도록 사실만 적음(sandbox/openspec-config.yaml, setup.sh, \_\_init\_\_.py).
 - tasks 예시 1.2 문장을 버그 수정·기능 추가 공통 표현으로 변경(G9-4 수정): "현재 코드에서 실패하는지 확인(변경 후에는 통과해야 함)". 기존 "(버그 수정이면 보고된 실패가 재현되는지 먼저 확인)" 대체.
+
+**추가 (val ablation 이후, 2026-10-14)**
+- verify ↔ apply 반복 삭제(G8-1 drop, 7번 대체): verify는 1회, `verify.md` 작성 후 결과와 무관하게 archive. 남은 문제는 보고서에 기록. 03-verify.md의 다음 단계는 "archive 단계로 이동" 한 줄(G2-5), 보고서 파일은 `verify.md` 하나(G5-3). core-workflow.md의 "Verify Rounds"를 "Verify Once"로 교체, archive 조건에서 `verify-2.md` 삭제. `loop` 태그 제거, `verify-2.md`를 FORBIDDEN에 추가(build.py, tests/test_openspec_ff.py, README.md).

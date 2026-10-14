@@ -21,9 +21,8 @@ The other text the agent meets -- status, paths, validation, apply state, archiv
 real CLI as upstream ships it (D-1). ``docs/core-workflow.md`` (hand-written) strings the stages together.
 
 Tags: ``env`` closes a gap between OpenSpec's setting (a person typing ``/opsx:*`` commands in an agent
-app) and one unattended session without changing what is asked; ``semantic`` changes what is asked;
-``loop`` is the verify -> apply round rule (at most two verify rounds). Every note starts with the gap
-ID of ``porting/02-gaps.md`` / ``03-decisions.md``. An anchor that does not occur exactly once fails the
+app) and one unattended session without changing what is asked; ``semantic`` changes what is asked.
+Every note starts with the gap ID of ``porting/02-gaps.md`` / ``03-decisions.md``. An anchor that does not occur exactly once fails the
 build, so an upstream rewording surfaces here. The engine is ``workflows/_port.py``.
 """
 
@@ -85,6 +84,7 @@ FORBIDDEN = (
     "Output On Pause",
     "MUST prompt",
     "When prompting",
+    "verify-2.md",
 )
 
 # Left in the forked schema, these mean an edit missed a case.
@@ -390,24 +390,17 @@ EDITS: tuple[Edit, ...] = (
         "verify",
         "8. **Generate Verification Report**\n",
         "8. **Generate Verification Report**\n\n"
-        f"   Write the report to a file in the change directory: round 1 `{CHANGE_DIR}verify.md`, round 2 "
-        f"`{CHANGE_DIR}verify-2.md` (rounds: `{ENTRY_DOC}`).\n",
+        f"   Write the report to a file in the change directory: `{CHANGE_DIR}verify.md`.\n",
         "env",
-        "G5-3: the report is a file in the change dir, one per round",
+        "G5-3: the report is a file in the change dir",
     ),
     Edit(
         "verify",
         "   - Include the suggestion count when nonzero in every final assessment.\n",
         "   - Include the suggestion count when nonzero in every final assessment.\n\n"
-        "   **Next step** (decided by this report; nobody else reads it first):\n"
-        f"   - Round 1 with one or more CRITICAL issues: open the apply stage document (`{STAGE_DOCS['apply']}`) "
-        "again and fix those CRITICAL items only - complete an incomplete task; for a requirement not found, add a "
-        "task for it to `tasks.md` and implement it. Then come back to this document for round 2 (`verify-2.md`).\n"
-        f"   - No CRITICAL issue, or round 2 whatever it found: go to the archive step in `{ENTRY_DOC}`. What is "
-        "left stays recorded in this report.\n"
-        "   - WARNING and SUGGESTION issues never start another round.\n",
-        "loop",
-        "G2-5/G8-1: route on the report: CRITICAL in round 1 -> apply -> verify-2.md; otherwise archive",
+        f"   **Next step**: go to the archive step in `{ENTRY_DOC}`. What is left stays recorded in this report.\n",
+        "env",
+        "G2-5: hand-off to archive; G8-1's verify -> apply round dropped (never triggered in the val ablation)",
     ),
 )
 
@@ -423,7 +416,6 @@ STAGES = Port(
     edits=EDITS,
     substitutions=SUBSTITUTIONS,
     forbidden=FORBIDDEN,
-    extra_tags=("loop",),
 )
 
 # ---------------------------------------------------------------------- the forked schema

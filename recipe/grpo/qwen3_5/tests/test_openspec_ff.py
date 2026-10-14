@@ -72,7 +72,7 @@ def test_upstream_wording_left_behind_fails_the_build():
 
 def test_every_edit_is_tagged_and_cites_its_gap():
     for e in (*build.EDITS, *build.FORK_EDITS):
-        assert e.tag in {"env", "semantic", "loop"}, e
+        assert e.tag in {"env", "semantic"}, e
         assert re.match(r"(G\d+-\d+|D-\d+|Q\d+)\b", e.note), e.note
 
 
@@ -113,17 +113,17 @@ def test_planning_paths_stay_outside_the_repository():
         assert "/testbed/openspec" not in text, name
         assert "/opsx:" not in text or name == "core-workflow.md", name  # slash commands only in the flow line
     entry = _docs()["core-workflow.md"]
-    for needle in ("verify.md", "verify-2.md", "/openspec/changes/issue/checks/", "openspec archive issue --yes", "--no-validate"):
+    for needle in ("verify.md", "/openspec/changes/issue/checks/", "openspec archive issue --yes", "--no-validate"):
         assert needle in entry, needle
 
 
-def test_verify_round_rule_is_the_same_in_both_places():
+def test_verify_runs_once_then_archive():
     entry = _docs()["core-workflow.md"]
     verify = _docs()["stages/03-verify.md"]
-    assert "at most two verify rounds" in entry
+    assert "Verify runs once" in entry
+    assert "**Next step**: go to the archive step" in verify
     for text in (entry, verify):
-        assert "verify-2.md" in text and "verify-3.md" not in text
-        assert "WARNING and SUGGESTION" in text
+        assert "verify-2" not in text and not re.search(r"\brounds?\b", text, re.I)
 
 
 # ---------------------------------------------------------------------- the fork

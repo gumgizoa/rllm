@@ -142,7 +142,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 8. **Generate Verification Report**
 
-   Write the report to a file in the change directory: round 1 `/openspec/changes/issue/verify.md`, round 2 `/openspec/changes/issue/verify-2.md` (rounds: `/opsx/core-workflow.md`).
+   Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`.
 
    **Summary Scorecard**:
    ```markdown
@@ -185,10 +185,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - If any check was skipped and there are no CRITICAL issues: do not claim readiness. Say "No critical issues found in the checks that ran. <check(s)> not verified: <reason>." Include the warning count when nonzero.
    - Include the suggestion count when nonzero in every final assessment.
 
-   **Next step** (decided by this report; nobody else reads it first):
-   - Round 1 with one or more CRITICAL issues: open the apply stage document (`/opsx/stages/02-apply.md`) again and fix those CRITICAL items only - complete an incomplete task; for a requirement not found, add a task for it to `tasks.md` and implement it. Then come back to this document for round 2 (`verify-2.md`).
-   - No CRITICAL issue, or round 2 whatever it found: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.
-   - WARNING and SUGGESTION issues never start another round.
+   **Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.
 
 **Verification Heuristics**
 

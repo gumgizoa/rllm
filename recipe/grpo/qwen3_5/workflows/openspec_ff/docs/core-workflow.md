@@ -18,11 +18,11 @@ change is `/testbed`, a different place.
 |--------|-----------------|-------------|--------|
 | ff | `/opsx/stages/01-ff.md` | `openspec new change "issue"` | the change and every planning artifact |
 | apply | `/opsx/stages/02-apply.md` | `openspec instructions apply --change "issue" --json` | the code change, tasks checked |
-| verify | `/opsx/stages/03-verify.md` | `openspec status --change "issue" --json`, then your own review: no `openspec` command performs verify or writes its report | `verify.md` (round 2: `verify-2.md`) |
+| verify | `/opsx/stages/03-verify.md` | `openspec status --change "issue" --json`, then your own review: no `openspec` command performs verify or writes its report | `verify.md` |
 | archive | this document, below | `openspec archive issue --yes` | the archived change |
 
-OpenSpec calls these actions, not phases: apply may send you back to ff for a missing artifact, and
-verify may send you back to apply. Each stage document says where to go next. The `openspec` command
+OpenSpec calls these actions, not phases: apply may send you back to ff for a missing artifact. Each
+stage document says where to go next. The `openspec` command
 is installed and does the bookkeeping. What it prints as JSON (paths, artifact order, the instruction
 and template for each artifact, task progress) outranks your own guesses.
 
@@ -65,18 +65,15 @@ delta spec you write is therefore an `## ADDED Requirements` delta for a new cap
 - Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under
   `/openspec/changes/issue/`.
 
-## Verify Rounds
+## Verify Once
 
-1. Round 1 of verify writes `/openspec/changes/issue/verify.md`.
-2. If that report lists a CRITICAL issue, go back to apply for those CRITICAL items only, then verify
-   again and write `/openspec/changes/issue/verify-2.md`.
-3. There are at most two verify rounds. After round 2 move on to archive whatever it found; the
-   report records what is still open. WARNING and SUGGESTION items never trigger a round.
+Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to
+archive; the report records what is still open.
 
 ## Archive, Then Finish
 
 The code change must be complete before this step, and so must the verify report: archive only once
-`/openspec/changes/issue/verify.md` (or `verify-2.md`) exists. If it does not, open
+`/openspec/changes/issue/verify.md` exists. If it does not, open
 `/opsx/stages/03-verify.md` and write it first. Then run once:
 
 ```bash

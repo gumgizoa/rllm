@@ -16,7 +16,7 @@ Complete 2026-10-13 (G10-6 added and decided 2026-10-14): every row of `02-gaps.
 | G2-2 | ff: "after the last artifact, open the apply stage document and continue" | env | user 2026-10-13 | batch B |
 | G2-3 | apply `blocked`: "go back to the ff stage document, create the missing artifacts, resume apply" | env | user 2026-10-13 | batch B |
 | G2-4 | apply `all_done`: "open the verify stage document and continue" | env | user 2026-10-13 | batch B |
-| G2-5 | verify's final assessment routes by the round rule (G8-1) | env | user 2026-10-13 | batch B; rule itself pending |
+| G2-5 | verify's final assessment → "go to the archive step" (no round rule since G8-1 was dropped 2026-10-14) | env | user 2026-10-13, rev. 2026-10-14 | batch B |
 | G2-6 | ~~archive summary written into the archived change dir, then `finish`~~ → superseded by D-5: the CLI prints the summary; the agent calls `finish` | env | user 2026-10-13 | batch B, revised by D-5 |
 | G2-7 | entry document: progress notes go with a tool call or into the artifacts; no tool-less message before `finish` | env | user 2026-10-13 | batch B |
 | G2-8 | ~~sync shipped as a stage document~~ → superseded by D-5: no archive or sync document is shipped | env | user 2026-10-13 | batch B, revised by D-5 |
@@ -46,7 +46,7 @@ Complete 2026-10-13 (G10-6 added and decided 2026-10-14): every row of `02-gaps.
 | D-6 | One version for features and bug fixes: the agent reads the issue; no split by task kind (upstream handles both with one schema, `skip_specs` per change) | — | user 2026-10-13 | variants are the variation pipeline's job |
 | Q1 (part) | checks directory = `/openspec/changes/issue/checks/` (verified: validate/archive pass, moves with the change, `cli-probe/04`) | — | user 2026-10-13 | fork schema name still open |
 
-| G8-1 | verify rounds: `verify.md`; any CRITICAL → back to apply for those items only → `verify-2.md`; at most 2 verify rounds, then archive regardless with what is left recorded; WARNING/SUGGESTION never loop | loop | user 2026-10-13 | semantic ⑤; Q3 answered |
+| G8-1 | ~~verify rounds: `verify.md`; any CRITICAL → back to apply for those items only → `verify-2.md`; at most 2 verify rounds~~ → **dropped 2026-10-14**: verify runs once, writes `verify.md`, then archive | — | user 2026-10-13, dropped 2026-10-14 | val ablation (`06-smoke.md`): round-1 CRITICAL 0/60, the loop never fired; verify judges against the agent's own tasks/specs, so a wrong fix still reads "no critical issues" |
 
 | Q1 | fork schema name `spec-driven-sandbox` (no dataset names) | — | user 2026-10-13 | |
 | Q2 | documents at `/opsx`; workflow name `openspec_ff` | — | user 2026-10-13 | G5-2 |
@@ -62,7 +62,7 @@ Complete 2026-10-13 (G10-6 added and decided 2026-10-14): every row of `02-gaps.
 | G10-6 | the `openspec` wrapper sets `CI=1` (upstream's non-interactive switch); `setup.sh` checks `openspec new change` returns under a TTY (`script -qec`, 60 s) | env | user 2026-10-14 | found in stage 6 run 1 |
 
 | G7-5 | forked schema: proposal Capabilities and specs instruction each say `/openspec/specs/` starts empty, so every capability is New and every delta is `## ADDED Requirements` (a fix states the corrected behavior as a new requirement); upstream's MODIFIED text kept | env | user 2026-10-14 | option 2 of three (pre-generated specs / assume none / add a spec-writing stage): upstream's own brownfield path (`docs/existing-projects.md:3,33,65,123`); option 1 noted in `later.md` |
-| G2-9 | entry document: the verify row says no `openspec` command performs verify; archive only once `verify.md` / `verify-2.md` exists | env | user 2026-10-14 | smoke run 2: agents read "Starts from `openspec status`" as the verify step |
+| G2-9 | entry document: the verify row says no `openspec` command performs verify; archive only once `verify.md` exists | env | user 2026-10-14 | smoke run 2: agents read "Starts from `openspec status`" as the verify step |
 | G8-5 | deferred: no rule change; re-check after G7-5 (every over-limit retry began with a MODIFIED failure) | env | user 2026-10-14 | if it persists: forbid deleting specs / `skip_specs` to get past archive |
 
 | D-7 | Process revised to **ff → apply → verify → archive**: the new stage is not shipped. ff's own step 2 (upstream) runs `openspec new change "issue"`, so the change is created there; upstream documents new → ff only as an optional two-step split (`docs/getting-started.md:165`) | — | user 2026-10-14 | drops G1-3, G2-1, G4-12 (new-only rows); G7-1 reverts to upstream's ff step 2 (its "already exists → suggest continuing" line stays dropped: a hand-back that cannot fire in a fresh sandbox); G1-1 / G5-1 now apply to ff only; stage docs renumbered 01-ff, 02-apply, 03-verify |
@@ -75,8 +75,8 @@ Complete 2026-10-13 (G10-6 added and decided 2026-10-14): every row of `02-gaps.
 
 ## Behaviors the port adds
 
-- Verify rounds (G8-1): at most 2; files `verify.md`, `verify-2.md` in `/openspec/changes/issue/`; loop only on CRITICAL, on the CRITICAL items only; after round 2, archive regardless.
-- Archive (D-5, G8-4): the agent runs `openspec archive issue --yes` after the last verify; exit 1 → fix only what the error names in the delta spec (or write the missing spec), rerun once; still failing → `finish` without archive.
+- Verify once: `verify.md` in `/openspec/changes/issue/`, then archive (the G8-1 round rule was dropped 2026-10-14).
+- Archive (D-5, G8-4): the agent runs `openspec archive issue --yes` after verify; exit 1 → fix only what the error names in the delta spec (or write the missing spec), rerun once; still failing → `finish` without archive.
 
 ## Agreed text for the forked schema
 

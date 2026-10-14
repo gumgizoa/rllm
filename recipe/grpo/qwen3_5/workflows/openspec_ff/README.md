@@ -75,8 +75,6 @@ agent가 시작하기 전에 harness가 sandbox를 아래처럼 준비함.
 ```
 /opsx:ff  ──►  /opsx:apply  ──►  /opsx:verify  ──►  archive  ──►  finish
 (계획 작성)     (코드 구현)        (구현 점검)          (마무리)
-                    ▲                  │
-                    └── CRITICAL 문제 ──┘  (verify는 최대 2회)
 ```
 
 agent는 진입 문서 `/opsx/core-workflow.md`를 읽고, 단계마다 해당 단계 문서를 열어 따름.
@@ -87,15 +85,13 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 |---|---|---|---|
 | ff | `openspec new change "issue"` → `openspec status` → 산출물마다 `openspec instructions <산출물>` | issue와 저장소 코드를 읽고 계획 산출물 작성 | `proposal.md`, `specs/<기능>/spec.md`, `design.md`(필요할 때만), `tasks.md` |
 | apply | `openspec instructions apply` | tasks.md의 작업을 하나씩 구현하고 체크박스 갱신. 확인 스크립트 작성·실행 | `/testbed` 코드 변경, `tasks.md`의 `- [x]`, `checks/*.py` |
-| verify | `openspec status`로 맥락 확인 후 직접 점검 (verify를 대신하는 CLI 명령은 없음) | 구현을 산출물과 대조해 완전성·정확성·일관성 점검 | `verify.md` (2회차는 `verify-2.md`) |
+| verify | `openspec status`로 맥락 확인 후 직접 점검 (verify를 대신하는 CLI 명령은 없음) | 구현을 산출물과 대조해 완전성·정확성·일관성 점검 | `verify.md` |
 | archive | `openspec archive issue --yes` | delta spec 형식 검증 → 메인 spec에 병합 → change 폴더 보관 | `/openspec/specs/<기능>/spec.md`, `/openspec/changes/archive/<날짜>-issue/` |
 
 단계 사이 규칙은 아래와 같음.
 
-- verify 보고서에 CRITICAL(archive 전에 반드시 고칠 것: 미완료 task, 구현되지 않은 요구사항 등)이 있으면 apply로 돌아가 그 항목만 처리하고 다시 verify함.
-  - verify는 최대 2회. 2회차에도 남으면 보고서에 기록한 채 archive로 감.
-  - WARNING, SUGGESTION은 반복을 일으키지 않음.
-- archive는 `verify.md`(또는 `verify-2.md`)가 있을 때만 실행함.
+- verify는 1회만 함. 보고서 결과와 관계없이 다음은 archive이고, 남은 문제는 보고서에 기록됨.
+- archive는 `verify.md`가 있을 때만 실행함.
 - archive가 실패하면(종료 코드 1) 오류가 가리키는 delta spec 형식만 고쳐 한 번 더 실행함.
   - 그래도 실패하면 archive 없이 끝냄.
   - 검증을 끄는 `--no-validate`는 쓰지 않음.

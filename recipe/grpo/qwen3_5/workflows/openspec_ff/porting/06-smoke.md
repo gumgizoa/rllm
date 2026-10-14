@@ -99,3 +99,28 @@ For comparison on the same 5 tasks: speckit_bug smoke 5/5 + 5/5, base no-think 5
 - Open observation (no gap filed): think off skips the verify stage — in 3/4 archiving runs it never wrote
   `verify.md`; MONAI-1884 read only `core-workflow.md` and none of the stage documents. The G2-9 gate is in
   the entry document only. Think on followed it 4/4.
+
+## Val ablation (2026-10-14) — verify → apply round rule (G8-1) on / off
+
+SWE-bench Verified val set (`recipe/grpo/qwen3_5/val_tasks.txt`, 10 tasks) × 3 attempts per arm, Qwen3.5-9B
+think on, 150 steps, T=1.0 / top_p 0.95, instruction prefix, git history kept. `loop` = the docs as they
+were; `noloop` = the same docs with the round rule taken out (verify once → archive), byte-identical
+otherwise. Each arm on its own vLLM server with identical flags.
+
+| | loop | noloop |
+|---|---|---|
+| resolved | 16/30 | 19/30 |
+| pass@3 | 70% | 70% |
+| `verify.md` written | 20/30 | 27/30 |
+| **round-1 CRITICAL ≥ 1** | **0/30** | **0/30** |
+| `verify-2.md` written / repo edits after verify | 0 / 0 | 0 / 0 |
+| all tasks checked | 25/30 | 28/30 |
+| archived | 26/30 | 28/30 |
+| mean steps | 72 | 71 |
+
+- The loop never fired: verify's CRITICAL criteria (incomplete tasks, missing requirements) are checked
+  against the agent's own tasks and specs, so every report said "no critical issues" — the 17 unsolved
+  rollouts with a report included.
+- The resolve gap is not the loop: most of it is sphinx-8593 (1/3 vs 3/3), where two loop-arm rollouts
+  never wrote any planning artifact.
+- Decision: G8-1 dropped; the committed docs are now the `noloop` docs.
