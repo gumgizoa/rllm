@@ -43,9 +43,15 @@ def _mode_disabled(mode: str) -> bool:
     return mode.lower() in {"", "skip", "0", "false", "no", "off", "none"}
 
 
-def agent_image_tag(install_script: str) -> str:
-    """Content-addressed local tag for *install_script*."""
-    digest = hashlib.sha256(install_script.encode("utf-8")).hexdigest()[:12]
+def agent_image_tag(install_script: str, extra: str = "") -> str:
+    """Content-addressed local tag for *install_script* (and *extra*, when given).
+
+    *extra* is the harness's ``agent_image_extra``: Dockerfile lines appended to its
+    bake recipe. Empty leaves the tag exactly as it was, so images built before the
+    field existed are reused.
+    """
+    key = install_script if not extra else f"{install_script}\n# agent_image_extra\n{extra}"
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
     return f"{_IMAGE_PREFIX}-{digest}"
 
 
@@ -165,30 +171,37 @@ RUN mkdir -p {AGENT_MOUNT_TARGET} && \\
 """
 
 
-def dockerfile_for_install(install_script: str, harness_name: str) -> str | None:
-    """Return a dedicated bake Dockerfile for *harness_name*, else ``None``."""
+def dockerfile_for_install(install_script: str, harness_name: str, extra: str = "") -> str | None:
+    """Return a dedicated bake Dockerfile for *harness_name*, else ``None``.
+
+    *extra* (Dockerfile lines) is appended to the final stage; whatever it installs
+    must land under ``AGENT_MOUNT_TARGET``, the only part of the image the task
+    container sees (``docker_image_mount``).
+    """
     if harness_name == "mini-swe-agent":
-        return _mini_swe_agent_dockerfile()
-    if harness_name == "opencode":
-        return _opencode_dockerfile()
-    if harness_name == "claude-code":
-        return _claude_code_dockerfile()
-    if harness_name == "openhands-sdk":
-        return _openhands_sdk_dockerfile()
-    return None
+        base = _mini_swe_agent_dockerfile()
+    elif harness_name == "opencode":
+        base = _opencode_dockerfile()
+    elif harness_name == "claude-code":
+        base = _claude_code_dockerfile()
+    elif harness_name == "openhands-sdk":
+        base = _openhands_sdk_dockerfile()
+    else:
+        return None
+    return base if not extra else f"{base.rstrip()}\n{extra.strip()}\n"
 
 
-def build_agent_image(install_script: str, harness_name: str, *, force: bool = False) -> str:
+def build_agent_image(install_script: str, harness_name: str, *, force: bool = False, extra: str = "") -> str:
     """Build (or reuse) the local agent image; return its tag."""
     if harness_name not in SUPPORTED_AGENT_IMAGE_HARNESSES:
         raise RuntimeError(f"No agent-image bake recipe for harness {harness_name!r}")
 
-    tag = agent_image_tag(install_script)
+    tag = agent_image_tag(install_script, extra)
     if not force and _image_exists(tag):
         logger.info("agent image %s already present — reusing", tag)
         return tag
 
-    dockerfile_text = dockerfile_for_install(install_script, harness_name)
+    dockerfile_text = dockerfile_for_install(install_script, harness_name, extra)
     if dockerfile_text is None:
         raise RuntimeError(f"No agent-image bake recipe for harness {harness_name!r}")
 
@@ -278,7 +291,7 @@ def resolve_agent_mount_image(agent_flow: object, backend: str) -> str | None:
             raise RuntimeError(f"RLLM_AGENT_IMAGE={tag!r} was requested but the image is not present locally. Build it first or use RLLM_AGENT_IMAGE=auto.")
         return tag
 
-    return build_agent_image(install_script, name)
+    return build_agent_image(install_script, name, extra=_agent_image_extra(agent_flow))
 
 
 def flow_uses_agent_mount(agent_flow: object, backend: str) -> bool:
@@ -297,7 +310,13 @@ def ensure_agent_image(agent_flow: object, *, force: bool = False) -> str | None
     install_script = install_fn()
     if not install_script.strip():
         return None
-    return build_agent_image(install_script, name, force=force)
+    return build_agent_image(install_script, name, force=force, extra=_agent_image_extra(agent_flow))
+
+
+def _agent_image_extra(agent_flow: object) -> str:
+    """The flow's ``agent_image_extra`` (Dockerfile lines for its bake recipe), or ``""``."""
+    extra = getattr(agent_flow, "agent_image_extra", "") or ""
+    return extra if isinstance(extra, str) else ""
 
 
 def docker_image_mount(source_tag: str, target: str | None = None) -> dict:

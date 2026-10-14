@@ -33,6 +33,12 @@
        appended to the user message -- the Harbor run without it ignored the
        instruction.
 
+    A workflow that needs tools in the sandbox (OpenSpec's CLI) also declares
+    ``agent_image_extra`` (baked into an agent image of its own, read here as
+    ``agent_image_extra``), ``sandbox_files`` and a ``setup_script``; they are
+    uploaded and run after 1, before the agent starts, and a failed setup stops
+    the rollout like a failed document upload does.
+
     1 and 2 go through ``BaseCliHarness``'s ``write_configs`` /
     ``build_invocation`` and work for any CLI harness. 3 is the one
     harness-specific seam: a harness class sets ``supports_system_prompt`` and
@@ -72,6 +78,9 @@ logger = logging.getLogger(__name__)
 # (``/opt/openhands-sdk-runner.py``), for the same reason: written per task,
 # a few KB, never inside the task's repository.
 _SYSTEM_PROMPT_REMOTE = "/opt/openhands-sdk-system-prompt.j2"
+# A workflow's setup script, same reasoning; run once per task before the agent.
+_SETUP_REMOTE = "/opt/rllm-workflow-setup.sh"
+_SETUP_RC = "__RLLM_WORKFLOW_SETUP_RC="
 
 
 def _flag(value) -> bool:
@@ -216,6 +225,15 @@ class WorkflowMixin(AgentKwargsMixin):
     def system_prompt_file(self) -> Path | None:
         return self.workflow_spec.system_prompt.get(self.name) if self.workflow_spec is not None else None
 
+    @property
+    def agent_image_extra(self) -> str:
+        """The spec's extra bake lines, read by ``rllm.sandbox.agent_image`` when it builds the mount image.
+
+        A workflow with extras gets an image of its own (the tag hashes them); no workflow, or one
+        without extras, keeps the harness's plain image.
+        """
+        return self.workflow_spec.agent_image_extra if self.workflow_spec is not None else ""
+
     def _resolve_workflow(self) -> None:
         """``workflow`` -> its spec; fail before any sandbox exists."""
         self.workflow = _null(self.workflow)
@@ -282,6 +300,14 @@ class WorkflowMixin(AgentKwargsMixin):
                 raise FileNotFoundError(f"{label}: {name} not found: {path}")
             if entry not in path.read_text(encoding="utf-8"):
                 raise ValueError(f"{label}: {name} never mentions {entry}, where the documents are uploaded: {path}")
+        for remote, local in self.workflow_spec.sandbox_files.items():
+            if not remote.startswith("/"):
+                raise ValueError(f"{label}: sandbox_files target must be absolute, got {remote!r}")
+            if not local.exists():
+                raise FileNotFoundError(f"{label}: sandbox_files source not found: {local}")
+        setup = self.workflow_spec.setup_script
+        if setup is not None and not setup.is_file():
+            raise FileNotFoundError(f"{label}: setup_script not found: {setup}")
 
     def _doc_entries(self) -> list[Path]:
         """Top-level entries of ``docs_dir`` that go into the container: all of it.
@@ -330,6 +356,8 @@ class WorkflowMixin(AgentKwargsMixin):
             self._upload_docs(sandbox)
             if self.system_prompt_file is not None:
                 self._write_system_prompt(sandbox, self.system_prompt_file.read_text(encoding="utf-8"))
+            self._upload_sandbox_files(sandbox)
+            self._run_setup(sandbox)
         # Last write before the agent starts: the marker's mtime separates the agent's files
         # from ours, and it holds the commit the patch is taken against.
         if self.collect_patch:
@@ -364,6 +392,33 @@ class WorkflowMixin(AgentKwargsMixin):
             raise RuntimeError(f"workflow {self.workflow!r} docs check: unreadable find output {found!r}") from e
         if n != expected:
             raise RuntimeError(f"workflow {self.workflow!r} docs check: expected {expected} .md files under {target}, found {n}")
+
+    def _upload_sandbox_files(self, sandbox: Sandbox) -> None:
+        """The spec's ``sandbox_files``, each target replaced as a whole (a warm sandbox keeps nothing stale)."""
+        for remote, local in sorted(self.workflow_spec.sandbox_files.items()):
+            target = remote.rstrip("/")
+            parent = target.rsplit("/", 1)[0] or "/"
+            sandbox.exec(f"rm -rf {shlex.quote(target)} && mkdir -p {shlex.quote(parent)}", timeout=30, user="root")
+            if local.is_dir():
+                sandbox.upload_dir(str(local), target)
+            else:
+                sandbox.upload_file(str(local), target)
+
+    def _run_setup(self, sandbox: Sandbox) -> None:
+        """Run the spec's ``setup_script`` as root; a non-zero exit stops the rollout.
+
+        Same reasoning as the documents check: a rollout whose tools never came up would score as a
+        policy that ignored the workflow. The script's own output tail goes into the error.
+        """
+        setup = self.workflow_spec.setup_script
+        if setup is None:
+            return
+        sandbox.exec(self._heredoc_write(_SETUP_REMOTE, setup.read_text(encoding="utf-8")), timeout=60, user="root")
+        out = str(sandbox.exec(f"bash {shlex.quote(_SETUP_REMOTE)} 2>&1; echo {_SETUP_RC}$?", timeout=300, user="root") or "")
+        head, _, rc = out.rpartition(_SETUP_RC)
+        if rc.strip() != "0":
+            tail = head.strip()[-1500:]
+            raise RuntimeError(f"workflow {self.workflow!r} setup failed (exit {rc.strip() or '?'}):\n{tail}")
 
     def build_invocation(
         self,
