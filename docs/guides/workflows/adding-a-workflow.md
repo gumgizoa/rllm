@@ -6,7 +6,7 @@ description: qwen3_5 레시피에 새 워크플로우(문서·지시·system pro
 # 워크플로우 추가하기
 
 `recipe/grpo/qwen3_5` 레시피에서 에이전트에게 특정 작업 절차를 따르게 하는 단위를 **워크플로우**라 부름.
-현재 등록된 워크플로우는 AI-DLC(`aidlc_v4`)와 Spec Kit bug 절차(`speckit_bug`, 채점기 없음) 두 개임.
+현재 등록된 워크플로우는 AI-DLC(`aidlc_v4`), Spec Kit bug 절차(`speckit_bug`, 채점기 없음), OpenSpec OPSX 절차(`openspec_ff`, sandbox에서 `openspec` CLI 실행, 채점기 없음) 세 개임.
 이 문서는 새 워크플로우를 추가해 학습과 `rllm eval` 양쪽에서 쓰는 방법을 정리함.
 
 - 워크플로우 추가에 harness 클래스, `train.py`, 평가 코드 수정은 필요 없음.

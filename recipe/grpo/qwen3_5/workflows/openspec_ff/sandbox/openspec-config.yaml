@@ -1,0 +1,21 @@
+# openspec_ff project config (porting/03-decisions.md G10-7), installed by setup.sh as /openspec/config.yaml.
+# upstream's channel for project facts: `context` reaches every artifact and the apply/archive instructions,
+# `rules` reach their artifact only (docs/customization.md "Project Configuration").
+# Facts only. Nothing here restates or contradicts the schema's own instructions, so apply's "context
+# conflicts with the built-in instruction -> report it" branch has nothing to fire on; no `operations`
+# guidance, so its "inapplicable guidance -> explain why" branch cannot fire either.
+schema: spec-driven-sandbox
+
+context: |
+  The code this change edits is the repository at /testbed. This planning home, /openspec, sits outside it.
+  The change comes from one issue, given in the task; nobody will add to it.
+  The test files for this issue are already in place in the repository and are not to be added to or edited.
+  The environment is fully set up: no packages are installed and nothing is fetched from the network.
+  Scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.
+  /openspec/specs/ starts empty in this project: no capability and no requirement exists yet.
+
+rules:
+  proposal:
+    - No capability exists yet in this project, so list every capability under New Capabilities, including behavior a fix corrects, and leave Modified Capabilities empty.
+  specs:
+    - With no existing requirement to modify, remove or rename, write every delta as `## ADDED Requirements` of a new capability; a fix states the corrected behavior as a new requirement.
