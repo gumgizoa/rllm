@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from recipe.grpo.qwen3_5.workflows._port import Edit, Port, Section, build, convert, drift  # noqa: E402
+from recipe.grpo.qwen3_5.workflows._port import Copy, Edit, Port, Section, build, convert, copy_build, copy_drift, copy_write, drift, split_sections  # noqa: E402
 
 UPSTREAM = """---
 description: x
@@ -83,3 +83,57 @@ def test_build_and_drift(tmp_path):
     port.out_dir.mkdir()
     (port.out_dir / "a.md").write_text(built["a.md"])
     assert drift(port, built) == []
+
+
+STEPS = """# Cmd
+
+## Steps
+
+### 1. Keep
+
+one
+
+## Findings
+
+a heading the step text prints
+
+### 2. Hooks
+
+check extensions.yml
+"""
+
+
+def test_level_three_section_cuts_one_step_up_to_the_next_heading(tmp_path):
+    port = _port(tmp_path, frontmatter=False, sections=[Section("a", "### 2. Hooks", None, "env", "G7-1", level=3)])
+    out = convert(port, "a", STEPS)
+    assert "### 2. Hooks" not in out and "extensions.yml" not in out
+    assert "### 1. Keep\n\none\n\n## Findings\n\na heading the step text prints\n" in out
+    # a level-2 section of the same name is not a step: the step must be named with level=3
+    with pytest.raises(ValueError, match="sections not found"):
+        convert(_port(tmp_path, frontmatter=False, sections=[Section("a", "### 2. Hooks", None, "env", "x")]), "a", STEPS)
+
+
+def test_level_two_split_ignores_steps():
+    assert [h for h, _ in split_sections(STEPS)] == [None, "## Steps", "## Findings"]
+
+
+def test_copy_is_byte_for_byte_with_the_executable_bit(tmp_path):
+    up = tmp_path / "up"
+    up.mkdir()
+    raw = b"#!/usr/bin/env bash\n\n\n\necho  hi\r\n"  # blank runs and CRLF survive (convert would normalize them)
+    (up / "x.sh").write_bytes(raw)
+    copy = Copy(files={"x.sh": "bin/x.sh"}, out_dir=tmp_path / "out", executable=True)
+    built = copy_build(copy, up)
+    assert copy_drift(copy, built) == ["bin/x.sh"]
+    copy_write(copy, built)
+    dest = tmp_path / "out" / "bin" / "x.sh"
+    assert dest.read_bytes() == raw and dest.stat().st_mode & 0o111
+    assert copy_drift(copy, built) == []
+    dest.chmod(0o644)
+    assert copy_drift(copy, built) == ["bin/x.sh"]  # lost +x is drift
+    copy_write(copy, built)
+    dest.write_bytes(raw + b"#")
+    assert copy_drift(copy, built) == ["bin/x.sh"]
+    plain = Copy(files={"x.sh": "x.md"}, out_dir=tmp_path / "plain")
+    copy_write(plain, copy_build(plain, up))
+    assert not (tmp_path / "plain" / "x.md").stat().st_mode & 0o111

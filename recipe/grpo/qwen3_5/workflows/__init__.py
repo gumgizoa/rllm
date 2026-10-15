@@ -18,13 +18,14 @@ Adding a workflow is such a package and one entry in :data:`WORKFLOWS`; no harne
 
 from __future__ import annotations
 
-from . import aidlc_v4, openspec_ff, speckit_bug
+from . import aidlc_v4, openspec_ff, speckit_bug, speckit_sdd
 from .spec import WorkflowSpec
 
 WORKFLOWS: dict[str, WorkflowSpec] = {
     "aidlc_v4": aidlc_v4.SPEC,
     "speckit_bug": speckit_bug.SPEC,
     "openspec_ff": openspec_ff.SPEC,
+    "speckit_sdd": speckit_sdd.SPEC,
 }
 
 

@@ -1,9 +1,10 @@
 """Shared converter for porting an upstream workflow's agent-facing text into ``workflows/<name>/docs/``.
 
 A workflow's ``build.py`` declares a :class:`Port` -- which upstream files become which documents, and every
-change to their text as a tagged :class:`Section` (replace or drop a ``## `` section) or :class:`Edit`
-(replace one exact upstream string) -- and calls :func:`main`. The engine applies edits first (their anchors
-are upstream text), then sections, then plain substitutions, and fails when
+change to their text as a tagged :class:`Section` (replace or drop a ``## `` section, or a ``### `` step with
+``level=3``) or :class:`Edit` (replace one exact upstream string) -- and calls :func:`main`. Files shipped
+unchanged (scripts) are a :class:`Copy`: byte for byte, executable bit included. The engine applies edits
+first (their anchors are upstream text), then sections, then plain substitutions, and fails when
 
 * an edit anchor does not occur exactly once (upstream reworded: the edit must be revisited),
 * a section heading is missing upstream,
@@ -33,13 +34,17 @@ BASE_TAGS = ("env", "semantic")
 
 @dataclass(frozen=True)
 class Section:
-    """Replace (``new``) or drop (``new=None``) a whole unindented ``## `` section of one source."""
+    """Replace (``new``) or drop (``new=None``) a whole unindented ``## `` section of one source.
+
+    ``level=3`` cuts a ``### `` step instead: it runs to the next unindented ``### `` or ``## `` line.
+    """
 
     source: str
     heading: str
     new: str | None
     tag: str
     note: str
+    level: int = 2
 
 
 @dataclass(frozen=True)
@@ -93,11 +98,16 @@ def strip_frontmatter(text: str) -> str:
     return text[m.end() :].lstrip("\n")
 
 
-def split_sections(text: str) -> list[tuple[str | None, str]]:
-    """Split on unindented ``## `` lines (template headings inside indented fences are left alone)."""
+def split_sections(text: str, level: int = 2) -> list[tuple[str | None, str]]:
+    """Split on unindented ``## `` lines (template headings inside indented fences are left alone).
+
+    ``level=3`` also splits on unindented ``### `` lines, so a ``### `` part ends at the next one or at
+    the next ``## `` line.
+    """
+    marks = tuple("#" * k + " " for k in range(2, level + 1))
     parts: list[tuple[str | None, list[str]]] = [(None, [])]
     for line in text.splitlines(keepends=True):
-        if line.startswith("## "):
+        if line.startswith(marks):
             parts.append((line.rstrip("\n"), [line]))
         else:
             parts[-1][1].append(line)
@@ -105,20 +115,23 @@ def split_sections(text: str) -> list[tuple[str | None, str]]:
 
 
 def apply_sections(port: Port, source: str, text: str) -> str:
-    wanted = {s.heading: s for s in port.sections if s.source == source}
-    out, seen = [], set()
-    for heading, body in split_sections(text):
-        s = wanted.get(heading)
-        if s is None:
-            out.append(body)
-            continue
-        seen.add(heading)
-        if s.new is not None:
-            out.append(s.new + "\n")
-    missing = set(wanted) - seen
-    if missing:
-        raise ValueError(f"{source}: sections not found upstream: {sorted(missing)}")
-    return "".join(out)
+    mine = [s for s in port.sections if s.source == source]
+    for level in sorted({s.level for s in mine}):
+        wanted = {s.heading: s for s in mine if s.level == level}
+        out, seen = [], set()
+        for heading, body in split_sections(text, level):
+            s = wanted.get(heading)
+            if s is None:
+                out.append(body)
+                continue
+            seen.add(heading)
+            if s.new is not None:
+                out.append(s.new + "\n")
+        missing = set(wanted) - seen
+        if missing:
+            raise ValueError(f"{source}: sections not found upstream: {sorted(missing)}")
+        text = "".join(out)
+    return text
 
 
 def apply_edits(port: Port, source: str, text: str) -> str:
@@ -152,6 +165,42 @@ def drift(port: Port, built: dict[str, str]) -> list[str]:
     return [n for n, t in built.items() if not (port.out_dir / n).is_file() or (port.out_dir / n).read_text(encoding="utf-8") != t]
 
 
+@dataclass(frozen=True)
+class Copy:
+    """Upstream files shipped byte for byte -- no edits, no normalization (scripts the agent runs as they are).
+
+    files       upstream path -> output path relative to ``out_dir``
+    executable  whether the copies carry the executable bit; ``copy_drift`` checks it too
+    """
+
+    files: dict[str, str]
+    out_dir: Path
+    executable: bool = False
+
+
+def copy_build(copy: Copy, upstream: Path) -> dict[str, bytes]:
+    """Output path (relative to ``out_dir``) -> the upstream bytes."""
+    return {out: (upstream / src).read_bytes() for src, out in copy.files.items()}
+
+
+def copy_drift(copy: Copy, built: dict[str, bytes]) -> list[str]:
+    bad = []
+    for name, data in built.items():
+        dest = copy.out_dir / name
+        if not dest.is_file() or dest.read_bytes() != data or bool(dest.stat().st_mode & 0o111) != copy.executable:
+            bad.append(name)
+    return bad
+
+
+def copy_write(copy: Copy, built: dict[str, bytes]) -> None:
+    for name, data in built.items():
+        dest = copy.out_dir / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        mode = dest.stat().st_mode & 0o777
+        dest.chmod(mode | 0o111 if copy.executable else mode & ~0o111)
+
+
 def git_head(path: Path) -> str | None:
     try:
         return subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
@@ -164,7 +213,7 @@ def list_edits(port: Port) -> None:
         print(f"[{tag}]")
         for s in port.sections:
             if s.tag == tag:
-                print(f"  {s.source:10} section {s.heading!r}: {s.note}")
+                print(f"  {s.source:10} {'section' if s.level == 2 else 'step'} {s.heading!r}: {s.note}")
         for e in port.edits:
             if e.tag == tag:
                 print(f"  {e.source:10} edit: {e.note}")
