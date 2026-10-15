@@ -178,3 +178,94 @@ def test_rllm_eval_loads_it_by_import_path_and_uses_its_scorer(monkeypatch):
     assert type(_evaluation_policy(agent, None)).__name__ == "AidlcEvaluation"
     explicit = SimpleNamespace(evaluate=lambda task, episode: None)  # --evaluator still wins
     assert isinstance(_evaluation_policy(agent, explicit), FixedEvaluation)
+
+
+# --- several workflows in one run ------------------------------------------------------------
+
+
+def _task(task_id, **metadata):
+    return SimpleNamespace(id=task_id, metadata=metadata)
+
+
+def test_a_single_workflow_routes_nothing():
+    h = OpenHandsSdkWorkflow(workflow="aidlc_v4")
+    assert h._routes == {} and h.routes() == {"aidlc_v4": h}
+    assert h.workflow_fingerprint == AIDLC.fingerprint("openhands-sdk") and h.agent_image_extra == AIDLC.agent_image_extra
+    assert h.workflow_for(_task("t")) == "aidlc_v4" and OpenHandsSdkWorkflow().workflow_for(_task("t")) == "none"
+    with pytest.raises(ValueError, match="pinned to workflow 'speckit_bug'"):
+        h.workflow_for(_task("t", recipe_workflow="speckit_bug"))
+
+
+def test_assignment_is_fixed_per_task_uniform_and_seeded():
+    names = ("none", "aidlc_v4", "speckit_bug")
+    picks = [workflows.assign_workflow(f"t{i}", names) for i in range(3000)]
+    assert picks == [workflows.assign_workflow(f"t{i}", names[::-1]) for i in range(3000)]  # order-free
+    assert all(800 < picks.count(n) < 1200 for n in names)
+    assert picks != [workflows.assign_workflow(f"t{i}", names, seed=1) for i in range(3000)]
+
+
+def test_cli_spellings_of_a_mix():
+    assert workflows.parse_workflows("none+aidlc_v4") == ("none", "aidlc_v4")
+    assert workflows.parse_workflows(["Null", "aidlc_v4"]) == ("none", "aidlc_v4")
+    assert workflows.parse_workflows(None) == workflows.parse_workflows("") == ()
+    with pytest.raises(ValueError, match="named twice"):
+        workflows.parse_workflows("aidlc_v4+aidlc_v4")
+    with pytest.raises(ValueError, match="unknown workflow 'v9'"):
+        workflows.parse_workflows(["aidlc_v4", "v9"])
+
+
+def test_mix_routes_each_task_to_a_copy_holding_its_workflow(wf2, no_runner):
+    h = OpenHandsSdkWorkflow(workflow=["none", "aidlc_v4", "wf2"], step_limit=33, instruction_position="prefix")
+    assert h.workflow == ("none", "aidlc_v4", "wf2") and h.workflow_spec is None
+    routes = h.routes()
+    assert routes["none"].workflow is None and routes["aidlc_v4"].workflow_spec is AIDLC and routes["wf2"].workflow_spec is wf2
+    assert all(r.step_limit == 33 and r._routes == {} for r in routes.values())
+    # Each copy is the single-workflow harness: its own documents, instruction and prompt.
+    assert routes["wf2"].compose_instruction("TASK") == "Follow /wf2/README.md.\n\nTASK"
+    sb = _Sandbox(md_count=2)
+    routes["wf2"].write_configs(sb, _task("t"), CONFIG, {})
+    assert sorted(sb.uploads) == ["/wf2/README.md", "/wf2/rules"]
+    # run() hands the whole rollout to the task's copy.
+    for name, route in routes.items():
+        route.run = lambda task, config, *, env, name=name: name
+    for i in range(30):
+        task = _task(f"t{i}")
+        assert h.run(task, CONFIG, env=None) == h.workflow_for(task) == workflows.assign_workflow(f"t{i}", h.workflow)
+
+
+def test_pinned_tasks_take_their_workflow_even_outside_the_pool():
+    h = OpenHandsSdkWorkflow(workflow="speckit_bug", pinned_workflows=("aidlc_v4",))
+    assert sorted(h.routes()) == ["aidlc_v4", "speckit_bug"]
+    assert {h.workflow_for(_task(f"t{i}")) for i in range(20)} == {"speckit_bug"}
+    assert h.workflow_for(_task("v", recipe_workflow="aidlc_v4")) == "aidlc_v4"
+    with pytest.raises(ValueError, match="routed: "):
+        h.workflow_for(_task("v", recipe_workflow="openspec_ff"))
+    # From the CLI, and kept across a later configure.
+    h.configure({"agent_kwargs": {"workflow": "none+speckit_bug", "workflow_seed": "4"}})
+    assert sorted(h.routes()) == ["aidlc_v4", "none", "speckit_bug"] and h.routes()["none"].workflow_seed == 4
+
+
+def test_mix_mounts_one_image_with_every_workflow_extra():
+    openspec = workflows.WORKFLOWS["openspec_ff"]
+    assert OpenHandsSdkWorkflow(workflow=["none", "aidlc_v4"]).agent_image_extra == ""
+    assert OpenHandsSdkWorkflow(workflow=["aidlc_v4", "openspec_ff"]).agent_image_extra == openspec.agent_image_extra
+
+
+def test_mix_scores_with_the_task_workflow_and_logs_resolved(monkeypatch):
+    from rllm.eval.types import EvalOutput, Signal
+    from rllm.hooks import FromTaskEvaluation
+
+    verifier = SimpleNamespace(evaluate=lambda task, episode: EvalOutput(reward=1.0, is_correct=True, signals=[]))
+    monkeypatch.setattr(FromTaskEvaluation, "resolve", lambda self, task, sandbox, kind, config: verifier)
+    h = OpenHandsSdkWorkflow(workflow=["none", "aidlc_v4"])
+    policy = h.evaluation_policy
+    assert type(policy).__name__ == "RoutedEvaluation"
+    assert policy.policies["none"] is None and type(policy.policies["aidlc_v4"]).__name__ == "AidlcEvaluation"
+    task = next(_task(f"t{i}") for i in range(50) if h.workflow_for(_task(f"t{i}")) == "none")
+    out = policy.resolve(task, None, "sandbox-shell", {}).evaluate(task, None)
+    assert out.reward == 1.0 and out.is_correct and out.signals == [Signal("workflow/none/resolved", 1.0)]
+    # A scored route: the workflow's own policy resolves, then the route signal is appended.
+    marker = SimpleNamespace(evaluate=lambda task, episode: EvalOutput(reward=0.0, is_correct=False, signals=[Signal("aidlc/compliance", 0.4)]))
+    policy.policies["aidlc_v4"] = SimpleNamespace(resolve=lambda *a: marker)
+    out = policy.resolve(_task("v", recipe_workflow="aidlc_v4"), None, "sandbox-shell", {}).evaluate(None, None)
+    assert [s.name for s in out.signals] == ["aidlc/compliance", "workflow/aidlc_v4/resolved"] and out.signals[1].value == 0.0

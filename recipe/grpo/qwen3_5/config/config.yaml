@@ -31,6 +31,16 @@ recipe:
   # `variant=openhands_9b_aidlc` sets aidlc_v4.
   workflow:
     name: null
+    # A list mixes workflows: each task runs under one of them, uniform i.i.d. over
+    # the list and fixed per task by a hash of (seed, task id), so all rollouts of a
+    # task -- one GRPO group -- share it. `none` in the list is the plain harness:
+    #   recipe.workflow.name=[none,aidlc_v4,speckit_bug]
+    # A mix logs workflow/<name>/resolved per episode, and mounts one agent image
+    # carrying every listed workflow's agent_image_extra.
+    seed: 0
+    # Pins every validation task to one workflow (it need not be in `name`);
+    # null = the validation set is split like the training set.
+    val_name: null
     # Where the workflow instruction goes in the user message. prefix = before
     # the task text, suffix = after it (the Harbor arrangement, and the code default).
     # Run 2 (2026-09-29, suffix) put the task prompt's six-step procedure

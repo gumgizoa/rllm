@@ -49,6 +49,9 @@
     patch, the workflow's reports -- in ``episode.artifacts``, so compliance can
     be scored again from the saved episode (``run_artifacts.py``).
 
+    Several workflows at once (``workflow=[none, aidlc_v4]``) route each task
+    to a copy of the harness holding one of them; see the class docstring.
+
 ``OpenHandsSdkWorkflow``
     The mixin on ``StepLimitedOpenHandsSdk``. Another harness gets the same
     one-class treatment (``class OpenCodeWorkflow(WorkflowMixin, ...)``); a
@@ -61,6 +64,7 @@ artifacts (``None`` with ``collect_patch`` off).
 
 from __future__ import annotations
 
+import copy
 import logging
 import shlex
 from pathlib import Path
@@ -70,7 +74,7 @@ from rllm.sandbox.protocol import Sandbox
 from rllm.types import AgentConfig, Episode, Task, Trajectory
 
 from . import run_artifacts
-from .workflows import WorkflowSpec, get_workflow
+from .workflows import NONE, WORKFLOW_KEY, WorkflowSpec, assign_workflow, get_workflow, parse_workflows
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +92,6 @@ def _flag(value) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true", "yes", "on")
     return bool(value)
-
-
-def _null(value):
-    """No workflow: ``None``, or a ``none``/``null``/empty string from a caller that passes text."""
-    if isinstance(value, str) and value.strip().lower() in ("", "none", "null"):
-        return None
-    return value
 
 
 class AgentKwargsMixin:
@@ -181,9 +178,24 @@ class WorkflowMixin(AgentKwargsMixin):
     ``workflow``, ``instruction_position`` and ``collect_patch`` may be set per
     run through ``configure`` (``--agent-kwargs``, from ``AgentKwargsMixin``),
     on whatever CLI harness the mixin sits on.
+
+    Several workflows (``workflow=[none, aidlc_v4, ...]``, ``none+aidlc_v4``
+    from the CLI) make this harness a router. The engine shares one harness
+    across concurrent rollouts, so the workflow cannot be an attribute switched
+    per task; instead each workflow gets a copy of this harness holding that one
+    workflow (``_routes``), built by the single-workflow path above, and
+    ``run`` hands each task to the copy ``workflow_for(task)`` names: the
+    task's ``metadata[WORKFLOW_KEY]`` when set, else ``assign_workflow`` over
+    ``workflow`` with ``workflow_seed``. ``pinned_workflows`` adds copies for
+    workflows only metadata may name (the validation set's), outside the random
+    pool. What the hooks read off the harness before any task is known stays
+    here: ``agent_image_extra`` (every copy's, joined) and
+    ``evaluation_policy`` (``workflow_scoring.RoutedEvaluation``).
     """
 
-    workflow: str | None = None
+    workflow: str | tuple[str, ...] | None = None
+    workflow_seed: int = 0
+    pinned_workflows: tuple[str, ...] = ()
     instruction_position: str = "suffix"
     INSTRUCTION_POSITIONS = ("prefix", "suffix")
     collect_patch: bool = True
@@ -194,9 +206,11 @@ class WorkflowMixin(AgentKwargsMixin):
     # Set by a harness class that can replace its agent's system prompt.
     supports_system_prompt: bool = False
 
-    # Resolved by _resolve_workflow; None when there is no workflow.
+    # Resolved by _resolve_workflow; None when there is no workflow, or several.
     workflow_spec: WorkflowSpec | None = None
     workflow_fingerprint: str | None = None
+    # Route name -> the copy of this harness that runs it; empty for a single workflow.
+    _routes: dict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -230,16 +244,34 @@ class WorkflowMixin(AgentKwargsMixin):
         """The spec's extra bake lines, read by ``rllm.sandbox.agent_image`` when it builds the mount image.
 
         A workflow with extras gets an image of its own (the tag hashes them); no workflow, or one
-        without extras, keeps the harness's plain image.
+        without extras, keeps the harness's plain image. A mix mounts one image for every task, so it
+        carries every routed workflow's extras.
         """
+        if self._routes:
+            extras: list[str] = []
+            for name in sorted(self._routes):
+                extra = self._routes[name].agent_image_extra
+                if extra and extra not in extras:
+                    extras.append(extra)
+            return "\n".join(extras)
         return self.workflow_spec.agent_image_extra if self.workflow_spec is not None else ""
 
     def _resolve_workflow(self) -> None:
-        """``workflow`` -> its spec; fail before any sandbox exists."""
-        self.workflow = _null(self.workflow)
+        """``workflow`` -> its spec, or one copy per workflow for a mix; fail before any sandbox exists."""
         self.collect_patch = _flag(self.collect_patch)
+        self.workflow_seed = int(self.workflow_seed)
         if self.instruction_position not in self.INSTRUCTION_POSITIONS:
             raise ValueError(f"instruction_position must be one of {self.INSTRUCTION_POSITIONS}, got {self.instruction_position!r}")
+        pool = parse_workflows(self.workflow) or (NONE,)
+        routes = (*pool, *(n for n in parse_workflows(self.pinned_workflows) if n not in pool))
+        self._routes = {}
+        if len(routes) > 1:
+            self.workflow = pool
+            self.workflow_spec = None
+            self.workflow_fingerprint = None
+            self._routes = {name: self._route_copy(name) for name in routes}
+            return
+        self.workflow = None if routes[0] == NONE else routes[0]
         if self.workflow is None:
             self.workflow_spec = None
             self.workflow_fingerprint = None
@@ -260,13 +292,48 @@ class WorkflowMixin(AgentKwargsMixin):
         self._validate_local_files()
         self.workflow_fingerprint = spec.fingerprint(self.name)
 
+    def _route_copy(self, name: str):
+        """This harness, as configured so far, holding the one workflow ``name`` (``none``: no workflow)."""
+        route = copy.copy(self)
+        route.workflow = None if name == NONE else name
+        route.pinned_workflows = ()
+        route._resolve_workflow()
+        return route
+
+    def routes(self) -> dict:
+        """Route name -> the harness that runs it; ``{name: self}`` for a single workflow (``none`` for none)."""
+        return dict(self._routes) if self._routes else {self.workflow or NONE: self}
+
+    def workflow_for(self, task) -> str:
+        """The route ``task`` runs under: its ``metadata[WORKFLOW_KEY]``, else the hash pick over the pool.
+
+        A task pinned to a workflow this harness does not route is an error, not a silent reroute.
+        """
+        pinned = (getattr(task, "metadata", None) or {}).get(WORKFLOW_KEY)
+        if not self._routes:
+            name = self.workflow or NONE
+            if pinned is not None and pinned != name:
+                raise ValueError(f"task {getattr(task, 'id', '?')!r} is pinned to workflow {pinned!r}, but this harness runs only {name!r}")
+            return name
+        if pinned is not None:
+            if pinned not in self._routes:
+                raise ValueError(f"task {getattr(task, 'id', '?')!r} is pinned to workflow {pinned!r}; routed: {sorted(self._routes)}")
+            return pinned
+        return assign_workflow(str(task.id), self.workflow, self.workflow_seed)
+
     @property
     def evaluation_policy(self):
         """The workflow's compliance scorer for this harness, or ``None`` (per-task verifier alone).
 
         Read by ``rllm eval`` (``rllm/eval/runner.py``) and by train.py's
-        ``_build_hooks``, so both score compliance the same way.
+        ``_build_hooks``, so both score compliance the same way. A mix
+        always routes (``RoutedEvaluation``), so every task carries
+        ``workflow/<name>/resolved``.
         """
+        if self._routes:
+            from .workflow_scoring import RoutedEvaluation
+
+            return RoutedEvaluation({name: route.evaluation_policy for name, route in self._routes.items()}, self.workflow_for)
         factory = self.workflow_spec.scorers.get(self.name) if self.workflow_spec is not None else None
         return factory() if factory is not None else None
 
@@ -429,7 +496,12 @@ class WorkflowMixin(AgentKwargsMixin):
         return super().build_invocation(self.compose_instruction(instruction), task, config)
 
     def run(self, task: Task, config: AgentConfig, *, env: Sandbox) -> Episode | None:
-        """The harness's run, then what it left in the sandbox, before the verifier sees it."""
+        """The harness's run, then what it left in the sandbox, before the verifier sees it.
+
+        A mix hands the whole rollout to the copy holding the task's workflow.
+        """
+        if self._routes:
+            return self._routes[self.workflow_for(task)].run(task, config, env=env)
         episode = super().run(task, config, env=env)
         if not self.collect_patch:
             return episode

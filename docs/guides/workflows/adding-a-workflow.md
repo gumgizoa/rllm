@@ -201,6 +201,69 @@ rllm eval <dataset> --split test \
 - `workflow=none`이면 같은 harness로 워크플로우 없이 돌아 baseline 비교에 씀.
 - 학습과 평가가 같은 채점기를 쓰므로 준수율 signal의 정의가 동일함.
 
+### 여러 워크플로우 섞기
+
+`name`에 리스트를 주면 task마다 그중 하나로 실행됨.
+`none`을 넣으면 워크플로우 없는 plain harness도 섞임.
+
+```bash
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2 \
+  'recipe.workflow.name=[none,aidlc_v4,speckit_bug]' \
+  recipe.workflow.seed=0 recipe.workflow.val_name=aidlc_v4
+```
+
+- 배정 방식
+  - 리스트 위에서 균등하게, task마다 독립적으로 뽑음.
+  - 뽑기는 `(seed, task id)`의 hash라 한 run 안에서 고정됨.
+    epoch이 바뀌어도, resume해도, 리스트 순서를 바꿔도 같은 task는 같은 워크플로우를 받음.
+  - 한 task의 rollout은 모두 같은 워크플로우이므로, GRPO 그룹 안에서는 같은 워크플로우끼리만 비교됨.
+    한 배치에는 여러 워크플로우가 섞임.
+  - 비율은 정확히 맞추지 않음.
+    3개를 3000개 task에 배정하는 테스트에서 워크플로우마다 800~1200개 범위.
+  - 학습 시작 로그(`workflow mix, train tasks: ...`)에 실제 배정 수가 나옴.
+- `val_name`
+  - 검증 task 전체를 한 워크플로우로 고정함.
+  - `name` 리스트에 없어도 됨(학습에는 섞지 않고 검증에만 쓰는 경우).
+  - `null`이면 검증 task도 학습 task와 같은 방식으로 나뉨.
+- 동작 원리
+  - engine은 harness 객체 하나를 모든 rollout이 동시에 공유함.
+    그래서 rollout마다 harness의 워크플로우 속성을 바꾸는 방식은 쓸 수 없음.
+  - 대신 워크플로우마다 harness 복사본을 하나씩 미리 만들고, rollout은 task가 배정된 복사본에 통째로 넘김.
+  - 복사본 하나하나는 워크플로우 하나짜리 harness와 같음.
+    문서 업로드·지시·system prompt·산출물 수집 코드가 그대로 쓰임.
+- 기록
+  - episode마다 `workflow/<이름>/resolved`(해결 여부, 0 또는 1)가 붙음.
+    episode 지표는 그 key가 있는 episode끼리만 평균하므로, 학습 로그와 `rllm eval`의 `signal_averages`에서 워크플로우별 해결률로 읽힘.
+  - `episode.artifacts["workflow"]`에는 그 rollout이 실제로 따른 워크플로우 이름과 fingerprint가 남음.
+- agent image
+  - task를 보기 전에 정해지므로 run 전체가 하나를 씀.
+  - 섞은 워크플로우들의 `agent_image_extra`를 모두 합쳐 구움.
+  - 예: `openspec_ff`를 섞으면 node와 openspec 파일이 모든 sandbox의 `/opt/rllm/agent/node`에 들어감.
+    PATH에는 없고, `openspec` 명령은 `openspec_ff`의 setup script가 만들 때만 생김.
+    따라서 다른 워크플로우 task에서는 명령이 보이지 않으며, `/opt/rllm/agent`를 직접 뒤져야만 발견됨.
+  - 합친 image가 문제가 되는 경우: extra가 PATH나 agent venv를 바꾸거나, 두 워크플로우의 extra가 같은 경로에 다른 것을 설치하는 경우.
+    그때는 task별 image가 필요하며, rllm core(hooks·warm queue·trainer·eval runner)가 task별 mount image를 받도록 고쳐야 함.
+- 준수율 reward(`compliance_reward.enable=true`)
+  - `none`을 뺀 모든 워크플로우에 채점기가 있어야 함.
+    하나라도 없으면 학습 시작 시 멈춤.
+    현재 채점기는 `aidlc_v4`에만 있음.
+  - `none` task는 verifier reward만 받음.
+  - 이 레시피의 RLOO는 그룹 표준편차로 나누지 않음(`norm_adv_by_std_in_grpo: false`).
+    그래서 그룹의 advantage 크기가 reward 크기를 그대로 따라감.
+    `mul`에서 준수율이 낮은 워크플로우(AI-DLC smoke 평균 0.0028)의 그룹은 gradient가 거의 0이 되어, 학습이 사실상 다른 워크플로우로 쏠림.
+    섞는 첫 run은 verifier reward만으로 돌리는 편이 해석하기 쉬움.
+- 데이터셋 프롬프트
+  - `swegym293_aidlc`(`prepare_swegym.py --instruction aidlc`)는 SWE-Gym 프롬프트에서 6단계 절차만 뺀 것임.
+    AI-DLC 전용 문구는 없어 다른 워크플로우와 섞어도 됨.
+  - 다만 이 데이터셋에서 `none` task는 6단계 절차가 없는 프롬프트를 받음.
+    그래서 원래 프롬프트(`swegym293`)로 돌린 기존 baseline과는 조건이 다름.
+
+평가에서는 `--agent-kwargs`가 쉼표로 인자를 나누므로 `+`로 이음.
+
+```bash
+... --agent-kwargs workflow=none+aidlc_v4,workflow_seed=0,step_limit=100,instruction_position=prefix
+```
+
 ## 8. 확인 방법
 
 빠른 점검(sandbox·GPU 불필요):
@@ -235,6 +298,8 @@ harness 생성 시점(sandbox 생성 전)에 다음을 확인함.
 | 해당 harness용 템플릿 없음 | 경고 (기본 프롬프트 유지) |
 | 해당 harness용 채점기 없음 | 경고 (resolve rate만) |
 | rollout 중 업로드된 `.md` 수 불일치 | rollout 중단 |
+| 섞는 리스트에 같은 이름 중복 / 등록되지 않은 이름 | 에러 |
+| task metadata가 이 harness에 없는 워크플로우를 지정 | 에러 |
 
 ## 주의점과 한계
 

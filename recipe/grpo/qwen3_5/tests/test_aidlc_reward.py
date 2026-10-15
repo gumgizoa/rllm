@@ -420,8 +420,8 @@ def test_hook_keeps_the_verifier_reward_without_the_signal_or_the_mode(train_mod
 # --- harness x workflow selection in train.py ------------------------------------------------
 
 
-def _recipe(agent="openhands-sdk", name=None, reward=None, position="prefix"):
-    return OmegaConf.create({"agent": agent, "agent_step_limit": 80, "workflow": {"name": name, "instruction_position": position, "compliance_reward": reward or {"enable": False}}})
+def _recipe(agent="openhands-sdk", name=None, reward=None, position="prefix", **workflow):
+    return OmegaConf.create({"agent": agent, "agent_step_limit": 80, "workflow": {"name": name, "instruction_position": position, "compliance_reward": reward or {"enable": False}, **workflow}})
 
 
 def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
@@ -438,6 +438,40 @@ def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
         train_module._build_agent_flow(_recipe("claude-code"), cfg)
 
 
+def test_build_agent_flow_mixes_workflows_and_pins_validation(train_module, monkeypatch):
+    from recipe.grpo.qwen3_5.workflows import WORKFLOW_KEY
+
+    monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
+    cfg = OmegaConf.create({})
+    # A Hydra list arrives as a ListConfig; val_name need not be in the pool.
+    recipe = _recipe(name=["none", "speckit_bug"], seed=7, val_name="aidlc_v4")
+    flow = train_module._build_agent_flow(recipe, cfg)
+    assert flow.workflow == ("none", "speckit_bug") and flow.workflow_seed == 7
+    assert sorted(flow.routes()) == ["aidlc_v4", "none", "speckit_bug"]
+    assert all(r.step_limit == 80 and r.instruction_position == "prefix" for r in flow.routes().values())
+    val = SimpleNamespace(get_data=lambda: tasks)
+    tasks = [SimpleNamespace(id=f"v{i}", metadata={}) for i in range(5)]
+    train_module._pin_workflow(val, train_module._workflow_names(recipe)[1])
+    assert {t.metadata[WORKFLOW_KEY] for t in tasks} == {"aidlc_v4"}
+    assert {flow.workflow_for(t) for t in tasks} == {"aidlc_v4"}
+    # [none] alone is the plain harness, which mini-swe-agent can run; a real workflow it cannot.
+    assert train_module._build_agent_flow(_recipe(name=["none"]), cfg).workflow_spec is None
+    assert train_module._build_agent_flow(_recipe("mini-swe-agent", ["none"]), cfg).step_limit == 80
+    with pytest.raises(SystemExit, match="requires recipe.agent=openhands-sdk"):
+        train_module._build_agent_flow(_recipe("mini-swe-agent", None, val_name="aidlc_v4"), cfg)
+
+
+def test_hook_reads_whichever_workflow_signal_the_trajectory_carries(train_module):
+    from rllm.workflows.workflow import TerminationReason as TR
+
+    hook = train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, ("aidlc/compliance", "other/compliance"))
+    a = SimpleNamespace(reward=1.0, signals={"aidlc/compliance": 0.5})
+    b = SimpleNamespace(reward=1.0, signals={"other/compliance": 0.25})
+    plain = SimpleNamespace(reward=1.0, signals={"workflow/none/resolved": 1.0})
+    hook([SimpleNamespace(termination_reason=TR.ENV_DONE, trajectories=[t]) for t in (a, b, plain)], None)
+    assert (a.reward, b.reward, plain.reward) == (0.5, 0.25, 1.0)
+
+
 def test_workflow_reward(train_module, tmp_path, monkeypatch):
     from recipe.grpo.qwen3_5 import workflows
 
@@ -449,8 +483,8 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
 
     assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0)
     assert r(None, {"enable": False}) == (None, None, 0.0)
-    assert r("aidlc_v4", {"enable": True}) == ("aidlc/compliance", "mul", 0.2)
-    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == ("aidlc/compliance", "add", 0.15)
+    assert r("aidlc_v4", {"enable": True}) == (("aidlc/compliance",), "mul", 0.2)
+    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == (("aidlc/compliance",), "add", 0.15)
     # No workflow: nothing to fold in, the run trains on the verifier reward (a rewarded variant
     # with workflow.name=null is its own baseline) -- never a startup failure.
     assert r(None, {"enable": True}) == (None, None, 0.0)
@@ -462,6 +496,10 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
         r("unscored", {"enable": True})
     assert r("unscored", {"enable": False}) == (None, None, 0.0)
+    # A mix: none trains on the verifier reward; every other member must have a scorer.
+    assert r(["none", "aidlc_v4"], {"enable": True}) == (("aidlc/compliance",), "mul", 0.2)
+    with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
+        r(["aidlc_v4", "unscored"], {"enable": True})
 
 
 # --- hide_git_history reaches the caller-built hooks ---------------------------------------

@@ -13,7 +13,10 @@ The harness is chosen by ``recipe.agent`` and the workflow on it by
 * ``openhands-sdk`` — ``workflow_harness.OpenHandsSdkWorkflow``; with
   ``recipe.workflow.name=aidlc_v4`` it ships the AI-DLC workflow documents into
   the sandbox, swaps the SDK's system prompt, and scores compliance beside the
-  verifier. ``config/variant/`` holds ready-made selections::
+  verifier. A list (``recipe.workflow.name=[none,aidlc_v4,speckit_bug]``) gives
+  each task one of them, fixed per task (``recipe.workflow.seed``), and
+  ``recipe.workflow.val_name`` pins the whole validation set to one.
+  ``config/variant/`` holds ready-made selections::
 
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b          # 9B, no AI-DLC
     bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc    # 9B + AI-DLC
@@ -40,7 +43,7 @@ import time
 from pathlib import Path
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from rllm.data.dataset import DatasetRegistry
 from rllm.harnesses.mini_swe_agent import MiniSweAgentHarness
@@ -82,7 +85,7 @@ def make_budget_scaled_grouping_hook(
     scale: float,
     compliance_mode: str | None = None,
     compliance_lam: float = 0.2,
-    compliance_signal: str | None = None,
+    compliance_signals: str | tuple[str, ...] | None = None,
 ):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
@@ -92,8 +95,10 @@ def make_budget_scaled_grouping_hook(
     slowly" is still solved for those purposes.
 
     ``compliance_mode`` folds in the workflow's compliance signal
-    (``compliance_signal``, in [0, 1], e.g. ``aidlc/compliance`` set by
-    ``workflows/aidlc_v4/reward``'s ``AidlcComplianceEvaluator``) before the budget scale:
+    (``compliance_signals``, in [0, 1], e.g. ``aidlc/compliance`` set by
+    ``workflows/aidlc_v4/reward``'s ``AidlcComplianceEvaluator``) before the budget scale.
+    A run mixing workflows passes each one's signal; they are named per
+    workflow, so a trajectory carries at most one of them:
 
     * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
       at 0 however well it followed the workflow, and a solved one earns only
@@ -115,7 +120,8 @@ def make_budget_scaled_grouping_hook(
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
     if compliance_mode is not None and compliance_mode not in COMPLIANCE_MODES:
         raise ValueError(f"recipe.workflow.compliance_reward.mode must be one of {COMPLIANCE_MODES}, got {compliance_mode!r}")
-    if compliance_mode is not None and not compliance_signal:
+    signals = (compliance_signals,) if isinstance(compliance_signals, str) else tuple(compliance_signals or ())
+    if compliance_mode is not None and not signals:
         raise ValueError("a compliance mode needs the signal it reads (WorkflowSpec.reward_signal)")
     if compliance_mode == "add" and compliance_lam < 0.0:
         raise ValueError(f"recipe.workflow.compliance_reward.lam must be >= 0, got {compliance_lam}")
@@ -126,7 +132,8 @@ def make_budget_scaled_grouping_hook(
             for trajectory in episode.trajectories:
                 if trajectory.reward is None:
                     continue
-                c = (trajectory.signals or {}).get(compliance_signal) if compliance_mode else None
+                carried = trajectory.signals or {}
+                c = next((carried[name] for name in signals if name in carried), None) if compliance_mode else None
                 if c is not None:
                     if compliance_mode == "mul":
                         trajectory.reward = trajectory.reward * float(c)
@@ -191,6 +198,19 @@ def _renderer_enable_thinking(config: DictConfig) -> bool | None:
     return None if value is None else bool(value)
 
 
+def _workflow_names(recipe: DictConfig) -> tuple[tuple[str, ...], str | None]:
+    """(``recipe.workflow.name`` as registered names, ``recipe.workflow.val_name``); ``none`` = the plain harness."""
+    from recipe.grpo.qwen3_5.workflows import parse_workflows
+
+    workflow = recipe.get("workflow") or {}
+    name = workflow.get("name")
+    pool = parse_workflows(list(name) if isinstance(name, ListConfig) else name)
+    val = parse_workflows(workflow.get("val_name"))
+    if len(val) > 1:
+        raise SystemExit(f"recipe.workflow.val_name names one workflow, got {list(val)}")
+    return pool, (val[0] if val else None)
+
+
 def _build_agent_flow(recipe: DictConfig, config: DictConfig):
     """Pick the harness from ``recipe.agent`` and the workflow on it from ``recipe.workflow.name``.
 
@@ -198,15 +218,18 @@ def _build_agent_flow(recipe: DictConfig, config: DictConfig):
     means the same thing whichever agent is under it. A workflow needs a
     system-prompt override to work at all, and mini-swe-agent has no
     equivalent seam, so a workflow there is refused rather than run without it.
-    ``recipe.workflow.name: null`` is the plain harness.
+    ``recipe.workflow.name: null`` is the plain harness; a list is a mix, each
+    task routed to one of them (``workflow_harness.WorkflowMixin``), and
+    ``val_name`` is routed too, for the validation tasks ``_pin_workflow`` marks.
     """
     agent = str(recipe.get("agent", "mini-swe-agent"))
     step_limit = int(recipe.agent_step_limit)
     workflow = recipe.get("workflow") or {}
-    name = workflow.get("name")
+    pool, val_name = _workflow_names(recipe)
+    name = pool[0] if len(pool) == 1 else (list(pool) or None)
 
     if agent == "mini-swe-agent":
-        if name is not None:
+        if any(n != "none" for n in (*pool, *((val_name,) if val_name else ()))):
             raise SystemExit(
                 f"recipe.workflow.name={name!r} requires recipe.agent=openhands-sdk "
                 "(mini-swe-agent has no system-prompt seam for the workflow). "
@@ -223,14 +246,16 @@ def _build_agent_flow(recipe: DictConfig, config: DictConfig):
             step_limit=step_limit,
             enable_thinking=_renderer_enable_thinking(config),
             workflow=name,
+            workflow_seed=int(workflow.get("seed", 0)),
+            pinned_workflows=(val_name,) if val_name else (),
             instruction_position=str(workflow.get("instruction_position", "suffix")),
         )
 
     raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
 
 
-def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[str | None, str | None, float]:
-    """(signal folded into the reward, "mul" / "add", lam for "add"); ``(None, None, 0.0)`` when off.
+def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float]:
+    """(signals folded into the reward, "mul" / "add", lam for "add"); ``(None, None, 0.0)`` when off.
 
     Scoring itself follows the harness: a workflow with a scorer for it is
     always scored -- and logged as ``<workflow>/*`` episode metrics -- so the
@@ -241,17 +266,27 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[str | None, str | 
     ignored (a rewarded variant run with ``recipe.workflow.name=null`` is its
     verifier-only baseline). A workflow without a scorer for this harness,
     asked to reward, is an error rather than a silent verifier-only run.
+
+    In a mix every workflow is held to that, and ``none`` trains on the
+    verifier reward. RLOO here does not divide by the group's std
+    (``norm_adv_by_std_in_grpo: false``), so a group's advantages scale with
+    its rewards: under ``mul`` a low-compliance workflow's groups pull far less
+    than ``none``'s.
     """
     reward = (recipe.get("workflow") or {}).get("compliance_reward") or {}
     if not bool(reward.get("enable", False)):
         return None, None, 0.0
-    spec = getattr(agent_flow, "workflow_spec", None)
-    if spec is None:
+    routes = agent_flow.routes() if hasattr(agent_flow, "routes") else {}
+    flows = {name: flow for name, flow in routes.items() if flow.workflow_spec is not None}
+    if not flows:
         logger.warning("recipe.workflow.compliance_reward.enable is set but there is no workflow; training on the verifier reward alone")
         return None, None, 0.0
-    if spec.reward_signal is None or agent_flow.evaluation_policy is None:
-        raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {agent_flow.workflow!r} has no compliance scorer for recipe.agent={agent_flow.name!r}")
-    return spec.reward_signal, str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
+    for name, flow in flows.items():
+        if flow.workflow_spec.reward_signal is None or flow.evaluation_policy is None:
+            raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.agent={flow.name!r}")
+    if len(flows) < len(routes):
+        logger.warning("recipe.workflow.compliance_reward: the 'none' route trains on the verifier reward alone, beside %s", sorted(flows))
+    return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
 
 
 def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = False):
@@ -287,6 +322,27 @@ def _load(name: str, split: str, limit: int | None, kind: str):
     return dataset
 
 
+def _pin_workflow(dataset, name: str | None) -> None:
+    """Mark every task of ``dataset`` to run under workflow ``name`` (``recipe.workflow.val_name``)."""
+    if name is None:
+        return
+    from recipe.grpo.qwen3_5.workflows import WORKFLOW_KEY
+
+    for task in dataset.get_data():
+        task.metadata[WORKFLOW_KEY] = name
+
+
+def _log_workflow_split(agent_flow, train_dataset, val_dataset) -> None:
+    """How many tasks of each set run under each workflow, from the harness's own routing."""
+    if not hasattr(agent_flow, "workflow_for") or len(agent_flow.routes()) < 2:
+        return
+    from collections import Counter
+
+    for kind, dataset in (("train", train_dataset), ("val", val_dataset)):
+        counts = Counter(agent_flow.workflow_for(task) for task in dataset.get_data())
+        logger.info("workflow mix, %s tasks: %s", kind, dict(sorted(counts.items())))
+
+
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(config: DictConfig) -> None:
     recipe = config.recipe
@@ -302,6 +358,8 @@ def main(config: DictConfig) -> None:
 
     agent_flow = _build_agent_flow(recipe, config)
     agent_flow.configure({"agent_image": agent_image})
+    _pin_workflow(val_dataset, _workflow_names(recipe)[1])
+    _log_workflow_split(agent_flow, train_dataset, val_dataset)
     reward_signal, compliance_mode, compliance_lam = _workflow_reward(recipe, agent_flow)
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     hooks = _build_hooks(agent_flow, sandbox_backend, bool(recipe.hide_git_history))

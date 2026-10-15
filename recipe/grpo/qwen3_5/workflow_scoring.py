@@ -27,6 +27,10 @@ without the signals gets no compliance term, rather than a wrong one.
 
 A workflow plugs in as ``ComplianceEvaluation(collect, score, name[, from_outputs])`` registered in
 ``workflows.WORKFLOWS[...].scorers`` (see ``workflows/aidlc_v4/reward/evaluator.py``).
+
+A run that mixes workflows hands the hooks :class:`RoutedEvaluation` instead: per task, the policy of
+the workflow the task was routed to, plus ``workflow/<name>/resolved`` so resolve rate reads per
+workflow (an episode metric is averaged over the episodes that carry it).
 """
 
 from __future__ import annotations
@@ -84,3 +88,31 @@ class ComplianceEvaluation(FromTaskEvaluation):
     def resolve(self, task, sandbox, kind, config):
         inner = super().resolve(task, sandbox, kind, config)
         return inner if sandbox is None else ComplianceEvaluator(inner, sandbox, self.collect, self.score, self.name)
+
+
+class RoutedSignalEvaluator:
+    """An evaluator with ``workflow/<name>/resolved`` (the verifier's ``is_correct``) appended."""
+
+    def __init__(self, inner, name: str):
+        self.inner = inner
+        self.name = name
+
+    def evaluate(self, task, episode) -> EvalOutput:
+        out = self.inner.evaluate(task, episode)
+        resolved = Signal(f"workflow/{self.name}/resolved", float(bool(out.is_correct)))
+        return EvalOutput(reward=out.reward, is_correct=out.is_correct, signals=[*out.signals, resolved], metadata=out.metadata)
+
+
+class RoutedEvaluation(FromTaskEvaluation):
+    """Per task, the evaluation policy of the workflow ``route(task)`` names; the task's verifier alone
+    for a workflow without one (``policies[name] is None``)."""
+
+    def __init__(self, policies: dict[str, Any], route: Callable[[Any], str]):
+        self.policies = policies
+        self.route = route
+
+    def resolve(self, task, sandbox, kind, config):
+        name = self.route(task)
+        policy = self.policies[name]
+        inner = super().resolve(task, sandbox, kind, config) if policy is None else policy.resolve(task, sandbox, kind, config)
+        return RoutedSignalEvaluator(inner, name)
