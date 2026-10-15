@@ -1,27 +1,37 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------------
-# Environment this script expects
+# Environment this script expects (run it with that venv active: it calls python3/torchrun)
 #
-#     pip install --break-system-packages --no-deps -e recipe/sft              # swe_sft
-#     # verl itself comes from rLLM's own dependencies; this script only needs it importable
-#     pip install --break-system-packages flash-linear-attention==0.5.2
+#     uv pip install -e ".[verl]"                       # rllm, verl 0.8.0, torch cu130, vllm (brings tilelang)
+#     uv pip install --no-deps -e recipe/sft            # swe_sft
+#     uv pip install flash-linear-attention==0.5.2      # bare - see below
 #
-#     python3 -c "import verl, swe_sft, fla, tilelang; print('ok')"
+#   Megatron stack, not in any extra. scripts/install_megatron.sh does not fit this recipe:
+#   it installs megatron-bridge (needs modelopt) and megatron-core 0.17.1, while this script
+#   uses vanilla mbridge's `qwen3_5` bridge and megatron-core 0.18's GDN packing.
 #
-# --break-system-packages: PEP 668 marks the system interpreter externally managed.
+#     uv pip install --no-build-isolation "transformer-engine[core_cu13,pytorch]==2.16.1"
+#     # TE 2.16.1's cu13 wheel calls cublasLtGroupedMatrixLayoutInit_internal, which cuBLAS
+#     # only has from 13.2; torch cu130 pins 13.1.0.3. A minor-version bump, ABI compatible.
+#     uv pip install --no-deps nvidia-cublas==13.2.2.2
+#     uv pip install --no-deps megatron-core==0.18.2
+#     # PyPI mbridge (0.15.1) has no qwen3_5 bridge; main does.
+#     uv pip install --no-deps "mbridge @ git+https://github.com/ISEEKYAN/mbridge.git@d431a6a7e80de5b63fa1cb8dcee2e79821fef9d4"
 #
-# NO extras on flash-linear-attention. `flash-linear-attention[tilelang]` looks right,
-#   because on Hopper fla does require the tilelang kernel (see CUDA_HOME below) - but
-#   tilelang is already in the image, and asking pip for the extra makes it re-resolve
-#   tilelang's own dependency tree. Measured result: numpy silently upgraded 1.26.4 ->
-#   2.5.2 and nvidia-nccl/-cudnn silently *downgraded* into ~/.local, where they shadow
-#   the image's. Install fla bare and let tilelang be the one the image already has.
+#     python3 -c "import verl, swe_sft, fla, tilelang, transformer_engine.pytorch, megatron.core, mbridge; print('ok')"
 #
+# NO extras on flash-linear-attention: `flash-linear-attention[tilelang]` makes the resolver
+#   re-resolve tilelang's dependency tree, which has silently upgraded numpy and downgraded
+#   nvidia-nccl/-cudnn. tilelang already comes with vllm.
+#
+# A host driver older than the venv's CUDA (torch cu130 needs driver >= 580) leaves
+#   torch.cuda.is_available() False. Install the forward-compat libcuda and put it first on
+#   LD_LIBRARY_PATH - see the commented block in .env.example.
 #
 # Not installed by any of the above, and needed before the first step:
 #   - an ENV_FILE (recipe/sft/qwen3_5/.env, gitignored) - see "From ENV_FILE" below
-#   - the model in the HF cache under $HF_HOME  (Qwen/Qwen3.5-4B, ~9 GB)
+#   - the model in the HF cache under $HF_HOME  (Qwen/Qwen3.5-9B, ~19 GB)
 #   - a container started with --shm-size=32g if you intend to pass NUM_WORKERS > 0
 #     (see the NUM_WORKERS block below)
 # ---------------------------------------------------------------------------------
@@ -70,13 +80,16 @@ MASTER_PORT=${MASTER_PORT:-29500}
 NNODES=${NNODES:-1}
 NODE_RANK=${NODE_RANK:-0}
 
-# No model parallelism: nothing in a 4.7B model needs splitting on 143 GB cards, and the one
-# tensor that did - the logits of a long trajectory - is gone once use_fused_kernels is on.
-# So all 8 GPUs go to DP; PP would only add bubbles and cost DP.
+# No TP/PP: the 9B weights, grads and (DP-sharded) optimizer fit on 143 GB cards, and the
+# logits of a long trajectory are gone once use_fused_kernels is on. Activations do not: at
+# CP=1 a 131k-token micro-batch peaked at ~136 GB and OOMed in the backward even with every
+# layer recomputed. CP=2 splits each sequence across two GPUs - attention as a p2p ring, GDN
+# by an all-to-all to head-parallel - so DP drops to 4. On the 8 longest rows (~115k tokens
+# each) CP=2 matched CP=1 to 0.04% in loss and 0.1% in grad norm, at 85 GB vs 112 GB peak.
 TP=${TP:-1}
 PP=${PP:-1}
 VPP=${VPP:-null}
-CP=${CP:-1}
+CP=${CP:-2}
 EP=${EP:-1}
 ETP=${ETP:-null}
 
@@ -85,10 +98,13 @@ TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE:-128}
 MICRO_BATCH_SIZE=${MICRO_BATCH_SIZE:-2}
 MAX_LENGTH=${MAX_LENGTH:-131072}
 USE_DYNAMIC_BSZ=${USE_DYNAMIC_BSZ:-True}
-# A sequence is never split, so this is floored by the longest row in the mix or
-# `rearrange_micro_batches` asserts. To lower it, re-filter the mix with a smaller
-# --max-tokens (scripts/filter_sft_parquet.py) - it is not a free memory knob.
-MAX_TOKEN_LEN_PER_GPU=${MAX_TOKEN_LEN_PER_GPU:-${MAX_LENGTH}}
+# Per GPU, not per micro-batch: verl packs a micro-batch up to MAX_TOKEN_LEN_PER_GPU x CP
+# tokens (verl/workers/engine/utils.py) and CP splits it, so each GPU holds this many. 64k
+# x CP 2 keeps the 128k (131072) micro-batch that MAX_LENGTH promises. Rows are never split
+# across micro-batches, so MAX_TOKEN_LEN_PER_GPU x CP is floored by the longest row in the
+# mix or `rearrange_micro_batches` asserts - with CP=1 set this back to 131072. To go lower,
+# re-filter the mix with a smaller --max-tokens (scripts/filter_sft_parquet.py).
+MAX_TOKEN_LEN_PER_GPU=${MAX_TOKEN_LEN_PER_GPU:-65536}
 LR=${LR:-2e-5}
 MIN_LR=${MIN_LR:-2e-6}
 # Adam moments. Single source of truth, because they have to be passed twice - see the
@@ -105,7 +121,9 @@ BETA2=${BETA2:-0.95}
 # So each resident layer costs ~8.4 GB per 64k-token micro-batch. 28 takes almost all of the
 # available speedup and still leaves ~58 GB of headroom for a worse-packed micro-batch; 24 buys
 # a further 1.5% for a margin too thin to run unattended. Raise it if a longer mix overflows.
-RECOMPUTE_NUM_LAYERS=${RECOMPUTE_NUM_LAYERS:-28}
+# That sweep was the 4.7B model. 9B (hidden 4096 vs 2560) OOMed at 28 on its first forward with
+# 131k tokens per GPU, so it recomputes all 32; at CP=2 / 64k per GPU that peaked at ~105 GB.
+RECOMPUTE_NUM_LAYERS=${RECOMPUTE_NUM_LAYERS:-32}
 
 # Hand each rank a similar token load instead of every 8th row of a shuffled epoch. All ranks
 # meet at the gradient all-reduce, so the longest-loaded rank sets the step time: unbalanced,
@@ -121,10 +139,10 @@ BALANCE_DP_TOKEN=${BALANCE_DP_TOKEN:-True}
 NUM_WORKERS=${NUM_WORKERS:-4}
 
 DATA_ROOT="${DATA_ROOT:-/workspace/rllm/recipe/sft}"
-HF_MODEL_PATH="${HF_MODEL_PATH:-Qwen/Qwen3.5-4B}"
+HF_MODEL_PATH="${HF_MODEL_PATH:-Qwen/Qwen3.5-9B}"
 
 project_name="${PROJECT_NAME:-swe-agent}"
-exp_name="${EXP_NAME:-qwen3-5-4b-megatron-swe-sft}"
+exp_name="${EXP_NAME:-qwen3-5-9b-megatron-swe-sft}"
 
 TOTAL_EPOCHS=${TOTAL_EPOCHS:-5}
 
@@ -190,6 +208,12 @@ ENGINE=(
     # pack" note in the Ascend guide (written against Megatron-LM 0.16) no longer applies.
     engine.use_remove_padding=True
     engine.override_transformer_config.attention_backend=auto
+    # mbridge's qwen3_5 config sets cp_comm_type="p2p", and with CP > 1 mcore 0.18's
+    # TransformerLayer passes it to whatever fills the attention slot - including
+    # GatedDeltaNet, whose __init__ has no such argument, so the model fails to build.
+    # Unset, the layer passes nothing; full attention then falls back to TE's own p2p
+    # default (TEDotProductAttention), so the ring is the same. A no-op at CP=1.
+    +engine.override_transformer_config.cp_comm_type=null
 )
 
 # `block` recomputes only the first RECOMPUTE_NUM_LAYERS layers of the stage and keeps the rest
@@ -253,8 +277,8 @@ TRAINER=(
     trainer.resume_mode=auto
     trainer.save_freq=${SAVE_FREQ}
     trainer.test_freq=${TEST_FREQ}
-    # Keep every checkpoint (~75 GB each). 5 epochs over 58k trajectories will likely overfit,
-    # so the one you want is early - a rolling window would have deleted it by then.
+    # Keep every checkpoint (~75 GB each at 4B, ~123 GB at 9B). 5 epochs over 58k trajectories
+    # will likely overfit, so the one you want is early - a rolling window would have deleted it.
     trainer.max_ckpt_to_keep=null
     trainer.total_epochs=${TOTAL_EPOCHS}
     trainer.default_local_dir="${DATA_ROOT}/checkpoints/${exp_name}"
