@@ -1,0 +1,58 @@
+# @package _global_
+#
+# openhands_9b_aidlc_swegym_v2 (procedure-free swegym293_aidlc prompt, instruction
+# first) with two workflows mixed in training: each task runs under speckit_bug or
+# openspec_ff, uniform i.i.d. and fixed per task by a hash of (seed, task id), so all
+# rollouts of a task -- one GRPO group -- share one. Validation stays on AI-DLC
+# (val_name), so val/unknown/aidlc/* keeps its meaning across arms.
+#
+# Reward = verifier * <workflow>/compliance (mode mul), the signal of the task's own
+# workflow. Startup stops unless every mixed workflow has a compliance scorer for
+# openhands-sdk; speckit_bug and openspec_ff get theirs from a separate merge.
+# RLOO here does not divide by the group's std, so a workflow with low compliance pulls
+# with small advantages; `recipe.workflow.compliance_reward.mode=add` is the softer form.
+#
+# Thinking on (the base variant runs no-think): the one key below drives both vLLM's turn-1
+# template and the qwen3.6 renderer on turns 2+.
+#
+# 250 turns in 262144 tokens (16384 prompt + 245760 response; the model's native
+# max_position_embeddings, no YaRN), up from the base's 100 in 131072. The three knobs move
+# together (README, "Picking agent_step_limit and max_model_len together"); ~1150 tokens a
+# turn no-think would already want ~287K at 250 turns, so long think-on rollouts end on the
+# context (MAX_PROMPT_LENGTH_EXCEEDED) before the turn budget. Not measured at this length:
+# one 245K-token row is about twice the activations of the base's 131072 on the actor update;
+# if it OOMs, Ulysses sequence parallelism (verl_trainer.yaml) is the lever. The agent's wall
+# clock is task.toml's [agent] timeout_sec (3600 s, from prepare_swegym.py), not set here.
+#
+# The mount image carries openspec_ff's node + openspec under /opt/rllm/agent/node for
+# every task; only openspec_ff's setup.sh puts `openspec` on PATH.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_openspec_swegym_reward
+
+defaults:
+  - openhands_9b_aidlc_swegym_v2
+
+recipe:
+  agent_step_limit: 250
+  workflow:
+    name: [speckit_bug, openspec_ff]
+    seed: 0
+    val_name: aidlc_v4
+    compliance_reward:
+      enable: true
+      mode: mul
+
+rllm:
+  data:
+    max_prompt_length: 16384
+    max_response_length: 245760
+  gateway:
+    renderer_kwargs:
+      enable_thinking: true
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-speckit-openspec-think-reward-swegym293
+
+actor_rollout_ref:
+  rollout:
+    # = rllm.data.max_prompt_length + max_response_length
+    max_model_len: 262144
