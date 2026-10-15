@@ -23,7 +23,9 @@ All rows decided by the user, 2026-10-12.
 | G6-1 | URL Trust Policy: github.com etc. fetched without asking | no fetching or online lookup; links recorded `[UNVERIFIED — not fetched]` | semantic |
 | G7-1 | `## Pre-Execution Checks` / `## Mandatory Post-Execution Hooks` (`.specify/extensions.yml`) | dropped (no-op without the file; 216 lines) | env |
 | G8-1 | test `failed` → "re-run assess" for the person | fix↔test rounds, at most 3 | loop |
+| G8-2 | test verdict: `verified` = "all critical checks pass and the original symptom no longer reproduces" (judged on the agent's own checks) | `verified` only when every fix check passes after failing before the change, every issue example behaves as the issue expects, and the baseline's existing tests show no new failure; any of them failing → `failed`, not run → `partial` (user 2026-10-15) | semantic |
 | G9-1 | fix: add/update repository tests | write checks under `/tmp/speckit/bugs/issue/checks/`; run existing repo tests only | semantic |
+| G9-5 | fix: checks written alongside the code change; nothing run before it | before editing code: issue examples copied verbatim into checks + the assessment's reproduction, each seen failing; existing tests of the files to change run as the baseline; recorded in the fix report (user 2026-10-15) | semantic |
 | G9-2 | fix guardrail "never modify files outside the project workspace" | "outside the repository, except this workflow's reports and checks" | env |
 | G10-1 | SDK default `<PROBLEM_SOLVING_WORKFLOW>` | rewritten (paraphrased, not aidlc_v4 wording) | — |
 | G10-2 | SDK default "confirm with the user" / "ask the user for clarification" | kept for comparability with `none` / aidlc_v4 | — |

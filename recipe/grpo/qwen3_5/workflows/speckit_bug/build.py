@@ -292,11 +292,28 @@ EDITS: tuple[Edit, ...] = (
     ),
     Edit(
         "fix",
-        "   - Add or update the tests called out in the assessment so the bug cannot regress silently.",
-        "   - Write the checks called out in the assessment as scripts under `BUG_DIR/checks/`, so the fix can be "
-        "verified. Do not add or edit test files in the repository.",
+        "2. **Apply the remediation**\n",
+        "2. **Apply the remediation**\n"
+        "   - **Before editing any code**, set up what will judge the fix and run it on the code as it is:\n"
+        "     - Copy every example the issue gives (a code snippet, a command, an input with its expected output) "
+        "verbatim into a check script under `BUG_DIR/checks/`, and script the assessment's reproduction too. A "
+        "check exits non-zero while the reported behavior is present.\n"
+        "     - Run each check now. It must fail: a check that already passes does not detect the bug, so rewrite "
+        "it until it fails for the reported reason.\n"
+        "     - Find the existing repository tests for each file you will change (test files named after it, or "
+        "test files that import it), run them, and keep the result as the baseline.\n"
+        "     - In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code "
+        "as it is before this round's change.\n",
         "semantic",
-        "checks outside the repository instead of repository tests",
+        "G9-5: checks from the issue's own examples, seen failing before the change; existing tests run first as the baseline",
+    ),
+    Edit(
+        "fix",
+        "   - Add or update the tests called out in the assessment so the bug cannot regress silently.",
+        "   - The checks written before the change stay as they are; the change has to make them pass. Do not add "
+        "or edit test files in the repository.",
+        "semantic",
+        "checks outside the repository instead of repository tests (G9-1); written before the change (G9-5)",
     ),
     Edit(
         "fix",
@@ -341,9 +358,15 @@ EDITS: tuple[Edit, ...] = (
     Edit(
         "fix",
         "   ## Tests Added or Updated\n\n   - `path/to/test_file.py::test_name` — <what it pins down>",
-        "   ## Checks Added\n\n   - `checks/<name>.py` — <what it pins down>",
+        "   ## Checks Added\n\n"
+        "   | Check | What it pins down | Before the change | After the change |\n"
+        "   |-------|-------------------|-------------------|------------------|\n"
+        "   | `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |\n\n"
+        "   ## Baseline: Existing Tests\n\n"
+        "   - Test files: <the existing tests for the changed files>\n"
+        "   - `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>",
         "semantic",
-        "checks outside the repository instead of repository tests",
+        "checks outside the repository instead of repository tests (G9-1); before/after results and the baseline (G9-5)",
     ),
     Edit(
         "fix",
@@ -409,6 +432,21 @@ EDITS: tuple[Edit, ...] = (
         "Running the repository's tests for the changed modules is neither, and is expected.",
         "semantic",
         "repository tests are not a skippable 'expensive' check",
+    ),
+    Edit(
+        "test",
+        "     - **verified** — all critical checks pass and the original symptom no longer reproduces.\n"
+        "     - **partial** — the original symptom is gone but unrelated regressions appeared, or some checks are "
+        "inconclusive.\n"
+        "     - **failed** — the symptom still reproduces or the regression suite is broken by the fix.",
+        "     - **verified** — only when all three hold: every check in the fix report passes now after failing "
+        "before the change; every example from the issue behaves as the issue expects; the existing tests of the "
+        "fix report's baseline show no new failure.\n"
+        "     - **partial** — none of those fails, but one of them was not run or is inconclusive.\n"
+        "     - **failed** — a check from the fix still fails, an example from the issue still shows the reported "
+        "behavior, or an existing test that passed in the baseline now fails.",
+        "semantic",
+        "G8-2: the verdict rests on the fix's before/after checks, the issue's examples and the baseline (G9-5)",
     ),
     Edit(
         "test",

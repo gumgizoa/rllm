@@ -23,6 +23,8 @@
 | 5 | fix | assessment가 틀렸음을 발견하면 **코드 수정 중단**, 기록 후 assess 재실행 권고 | 기록 후 바로잡은 원인 기준으로 수정 계속, assess 재수행·`assessment.md` 수정 없음 | 권고를 실행할 사람 없음 (G4-4) | 불가. 대안: assess 재수행 |
 | 6 | test | 파괴적·네트워크·**비용이 큰** check는 동의 없이 건너뜀 | 파괴적·네트워크 check만 건너뜀, **변경한 모듈의 저장소 테스트 실행은 기본으로 기대** | "비용" 사유로 테스트 전부 생략 가능 (G4-5) | 가능하지만 검증 생략 증가 |
 | 7 | test → fix | 실패 시 Reopen·Hold 판정, "assess 재실행" 또는 "staging 확인 필요" 권고 후 종료 | **새 행동 추가**: `partial`·`failed`면 fix로 복귀, 다음 회차는 이전 fix·test 보고서를 증거로 읽음, 최대 3회차, 회차별 보고서(`fix-2.md`, `test-2.md` …) | 판단할 사람 없음 (G8-1) | 가능 (반복 없이 종료) |
+| 8 | fix | check는 코드 수정과 나란히 작성, 수정 전에 돌리는 단계 없음 | **새 행동 추가**: 코드 수정 전에 issue 예제를 원문 그대로 옮긴 check와 재현 check를 쓰고 **실패하는지 확인**(통과하면 다시 작성), 변경할 파일의 기존 테스트를 돌려 기준선 기록, 수정 전·후 결과를 fix 보고서에 기록 | 판별력 없는 check 33%, 자기 이해만으로 쓴 check (G9-5) | 가능 (check 품질 저하) |
+| 9 | test | `verified` = 중요한 check 통과, 증상 재현 안 됨 | `verified`는 세 조건 모두 충족할 때만: 수정 전 실패한 check가 지금 통과, issue 예제가 기대대로 동작, 기준선 대비 새 실패 없음. 하나라도 실패하면 `failed`, 못 돌렸으면 `partial` | 자기 판정이 정답과 무관(`verified` 정답률 63% ≈ 기저율) (G8-2) | 가능 (루프 발동 거의 없음) |
 
 - 7번 발동 빈도(SWE-bench Verified 499, think on, `swebv499_speckitbug_262k-150_think_t1`): 2회차 진입 7/499. 1회차 `verified` 393건 중 145건이 실제 미해결, agent 자기 판정이 정답 여부를 거의 반영하지 못함.
 
@@ -74,5 +76,11 @@
 **9. 테스트 추가 대신 검증 스크립트(checks) 작성** (01-assess.md, 02-fix.md, 03-test.md, core-workflow.md) — G9-1 — **semantic**
 - 원문의 저장소 테스트 추가 지시가 SWE-Gym task의 테스트 파일 수정 금지와 충돌.
 - 재현·검증 스크립트는 `/tmp/speckit/bugs/issue/checks/`에 작성하고, 저장소 테스트는 실행만 하도록 변경.
+
+**10. 수정 전 check 실패 확인·기준선, 판정 기준 변경** (02-fix.md, 03-test.md) — G9-5, G8-2 — **semantic** (2026-10-15)
+- 원문은 check(원문은 테스트)를 코드 수정과 함께 작성하고, test 단계가 "중요한 check 통과"로 판정하는 구조. 측정(SWE-bench Verified 499): `verified` 정답률 63%로 기저율과 같음, check의 33%가 수정 전에도 통과, 자기 check가 수정 후에도 실패하는데 `verified` 46건.
+- fix 2단계 앞부분에 "코드 수정 전" 항목 추가: issue 예제를 원문 그대로 옮긴 check와 재현 check 작성, 현재 코드에서 실패 확인(통과하면 다시 작성), 변경할 파일의 기존 테스트 실행 결과를 기준선으로 기록. 2·3회차는 1회차 기준선 유지.
+- fix 보고서 양식: Checks Added를 check별 수정 전·후 결과 표로, "Baseline: Existing Tests" 섹션 추가.
+- test 판정: `verified`는 수정 전 실패한 check 통과 + issue 예제 기대대로 + 기준선 대비 새 실패 없음일 때만, 하나라도 실패하면 `failed`, 못 돌렸으면 `partial`.
 
 **원문 없이 새로 쓴 문서**: `docs/core-workflow.md`, `instruction.md`, `system-prompt.j2`의 `<PROBLEM_SOLVING_WORKFLOW>` 섹션.

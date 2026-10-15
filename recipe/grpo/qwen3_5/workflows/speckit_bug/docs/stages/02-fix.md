@@ -27,8 +27,13 @@ The round decides the report names:
    - If there are unresolved `[NEEDS CLARIFICATION]` items, flag them, choose the most plausible reading of each, record it under **Deviations from Assessment** as an assumption, and proceed.
 
 2. **Apply the remediation**
+   - **Before editing any code**, set up what will judge the fix and run it on the code as it is:
+     - Copy every example the issue gives (a code snippet, a command, an input with its expected output) verbatim into a check script under `BUG_DIR/checks/`, and script the assessment's reproduction too. A check exits non-zero while the reported behavior is present.
+     - Run each check now. It must fail: a check that already passes does not detect the bug, so rewrite it until it fails for the reported reason.
+     - Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline.
+     - In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change.
    - Make the code changes described by the preferred remediation. Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report).
-   - Write the checks called out in the assessment as scripts under `BUG_DIR/checks/`, so the fix can be verified. Do not add or edit test files in the repository.
+   - The checks written before the change stay as they are; the change has to make them pass. Do not add or edit test files in the repository.
    - Keep the change minimal — do not refactor unrelated code, do not introduce dependencies that the assessment did not call for.
    - If you discover the assessment was wrong (the proposed fix does not work, the root cause is elsewhere), document the new finding in the fix report under **Deviations from Assessment** and continue from the corrected root cause. Do not edit `assessment.md`.
 
@@ -66,7 +71,14 @@ The round decides the report names:
 
    ## Checks Added
 
-   - `checks/<name>.py` — <what it pins down>
+   | Check | What it pins down | Before the change | After the change |
+   |-------|-------------------|-------------------|------------------|
+   | `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |
+
+   ## Baseline: Existing Tests
+
+   - Test files: <the existing tests for the changed files>
+   - `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>
 
    ## Local Verification
 

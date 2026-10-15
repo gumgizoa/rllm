@@ -60,8 +60,8 @@ agent는 진입 문서 `/speckit/core-workflow.md`를 읽고, 단계마다 해�
 | 단계 | 하는 일 | 저장소 수정 | 남기는 것 |
 |---|---|---|---|
 | assess (1회) | issue를 읽고 증상 정리, 의심 코드 경로 탐색, 원인 가설과 수정 방안 작성 | 안 함 | `assessment.md` |
-| fix (회차마다) | 수정 방안대로 코드 수정, 확인 스크립트 작성, 관련 테스트 실행 | **함** | `fix.md` → `fix-2.md` → `fix-3.md`, `checks/*` |
-| test (회차마다) | 재현 단계·확인 스크립트·관련 테스트를 실행해 결과 판정 | 안 함 | `test.md` → `test-2.md` → `test-3.md` |
+| fix (회차마다) | 코드 수정 **전에** issue 예제를 그대로 옮긴 확인 스크립트와 재현 스크립트를 쓰고 실패하는지 확인, 변경할 파일의 기존 테스트를 돌려 기준선 기록. 그다음 수정 방안대로 코드 수정 | **함** | `fix.md` → `fix-2.md` → `fix-3.md`, `checks/*` |
+| test (회차마다) | 확인 스크립트·issue 예제·기존 테스트를 다시 돌려 판정: 수정 전 실패한 check가 지금 통과하고, issue 예제가 기대대로 동작하고, 기준선 대비 새 실패가 없을 때만 `verified` | 안 함 | `test.md` → `test-2.md` → `test-3.md` |
 
 단계 사이 규칙은 아래와 같음.
 
@@ -81,7 +81,7 @@ agent는 진입 문서 `/speckit/core-workflow.md`를 읽고, 단계마다 해�
 | 파일 | 머리 필드 | 본문 섹션 |
 |---|---|---|
 | `assessment.md` | Slug, Created, Source, **Verdict** (`valid` / `likely valid, needs reproduction`), **Severity** (`critical` / `high` / `medium` / `low`) | Report, Symptom, Reproduction, Suspected Code Paths, Root Cause Hypothesis, Proposed Remediation(Files likely to change, Checks to run 포함), Risks & Considerations, Open Questions |
-| `fix.md`, `fix-2.md`, `fix-3.md` | Slug, Fixed, Assessment, **Round** (1/2/3), Previous verification, **Status** (`applied` / `partial` / `not-applied`) | Summary, Changes(표), Diff Highlights, Checks Added, Local Verification, Deviations from Assessment, Follow-ups |
+| `fix.md`, `fix-2.md`, `fix-3.md` | Slug, Fixed, Assessment, **Round** (1/2/3), Previous verification, **Status** (`applied` / `partial` / `not-applied`) | Summary, Changes(표), Diff Highlights, Checks Added(표: check마다 수정 전·후 결과), Baseline: Existing Tests(수정 전·후 결과), Local Verification, Deviations from Assessment, Follow-ups |
 | `test.md`, `test-2.md`, `test-3.md` | Slug, Tested, Assessment, Fix, **Round**, **Result** (`verified` / `partial` / `failed`) | Summary, Checks Performed(표: 재현·추가 확인·회귀 테스트·lint 각각 pass / fail / skipped / not-run), Output Excerpts, Residual Risks, Recommendation |
 | `checks/*` | — | 재현·확인 스크립트. 저장소 테스트 대신 여기에 씀 |
 

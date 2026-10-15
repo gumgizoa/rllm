@@ -40,9 +40,9 @@ This stage checks the fix report of the same round:
 
 3. **Judge the outcome**
    - Mark the fix as:
-     - **verified** — all critical checks pass and the original symptom no longer reproduces.
-     - **partial** — the original symptom is gone but unrelated regressions appeared, or some checks are inconclusive.
-     - **failed** — the symptom still reproduces or the regression suite is broken by the fix.
+     - **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure.
+     - **partial** — none of those fails, but one of them was not run or is inconclusive.
+     - **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails.
    - Do not over-claim. If reproduction was not actually performed (e.g., the bug required a production environment), say so explicitly.
 
 4. **Write the verification report**

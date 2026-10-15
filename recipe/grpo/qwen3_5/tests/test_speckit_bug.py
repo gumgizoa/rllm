@@ -97,6 +97,17 @@ def test_three_round_limit_is_stated_the_same_everywhere():
     assert "Round 3, any result" in docs["stages/03-test.md"]
 
 
+def test_checks_fail_before_the_change_and_decide_the_verdict():
+    docs = _docs_text()
+    fix, test = docs["stages/02-fix.md"], docs["stages/03-test.md"]
+    before, change = fix.index("**Before editing any code**"), fix.index("Make the code changes")
+    assert before < change  # G9-5: checks and the baseline come before the code change
+    assert "verbatim" in fix[before:change] and "baseline" in fix[before:change]
+    assert "## Baseline: Existing Tests" in fix and "Before the change" in fix
+    assert "only when all three hold" in test  # G8-2
+    assert "failing before the change" in test and "baseline" in test
+
+
 def test_harness_uploads_the_documents_and_swaps_the_procedure_section():
     h = OpenHandsSdkWorkflow(workflow="speckit_bug", instruction_position="prefix")
     assert h._expected_doc_count() == 4
