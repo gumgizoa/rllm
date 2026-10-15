@@ -4,6 +4,28 @@
 `schemas/spec-driven/schema.yaml` + `templates/*.md`(CLI가 서빙하는 artifact 지침). 편집 목록은
 `python -m recipe.grpo.qwen3_5.workflows.openspec_ff.build --list`.
 
+## agent 행동 변화
+
+| # | 단계 | upstream 원래 행동 | 지금 행동 | 바꾼 이유 | 원문으로 되돌리면 |
+|---|---|---|---|---|---|
+| 1 | ff (proposal·specs) | 기존 spec이 있으면 Modified Capabilities, MODIFIED·REMOVED delta 사용 | 모든 기능을 New Capabilities로, 버그 수정도 "고쳐진 동작"을 새 요구사항(ADDED)으로 작성 | `/openspec/specs/`가 비어 있음, upstream의 기존 프로젝트 첫 change 방식 (G7-5, G10-7) | 가능하지만 archive 검증 실패·우회 증가 (smoke run 2) |
+| 2 | ff (design·tasks) | 계획을 바꾸는 Open Question은 사용자에게 확인 | agent가 직접 결정, design.md **Decisions**에 선택·근거 기록 | 답할 사람 없음 (G4-3) | 불가 (질문 = 종료) |
+| 3 | ff (tasks) | task 그룹마다 자기 **테스트·문서 추가** | 기존 저장소 테스트 실행 또는 `checks/` 스크립트 작성·실행으로 검증, 테스트 파일 추가·수정 금지, 문서는 issue가 요구할 때만 | SWE task의 테스트 수정 금지·최소 수정과 충돌 (G9-1, G9-2) | 가능하지만 테스트 파일 수정·patch 오염 위험 |
+| 4 | ff (tasks 예시) | 예시: 의존성 설치(1.2), 단위 테스트(2.2), 문서 작성(2.3) | **새 행동 유도**: 현재 코드에서 실패하는 check 먼저 작성(1.2), 기존 테스트+check 실행(2.2), 관련 테스트 모듈 회귀 확인(2.3) | 3번과 일치, 네트워크 없음 (G9-4) | 가능, 단 설치 task는 실행 불가 |
+| 5 | apply | spec 밖 작업 필요 시 범위를 알리고 질문, 몰래 흡수 금지 | tasks.md(관찰 가능한 동작이면 delta spec에도)에 task로 추가 후 수행, 명세 축소 금지는 유지 | 답할 사람 없음 (G4-6) | 불가. 대안: 미체크 + 사유 |
+| 6 | apply | 설계 문제 발견 시 artifact 수정 **제안** | design·specs·tasks를 직접 수정, 무엇을·왜 기록 | G4-5 | 불가 |
+| 7 | apply | 완료 = 모든 task 체크, 막히면 멈춤 | 완료 = 모든 task 체크 또는 남은 미체크마다 한 줄 사유, 막힌 task만 남기고 계속 | G4-7 | 불가 (멈춤 = 종료) |
+| 8 | verify | coverage = "테스트가 있는가", 권고 "테스트 추가" | coverage = 기존 테스트나 `checks/` 스크립트로 검증됐는가, 권고 "check 추가 또는 코드 수정" | 3번과 일관성 (G9-3) | 가능하지만 테스트 금지와 충돌 |
+| 9 | verify | 보고서를 채팅으로 표시 | 보고서를 `verify.md` 파일로 작성 | 텍스트 응답 = 종료, 산출물 수집 (G5-3) | 불가 |
+| 10 | archive | archive skill: 미완료 확인 질문 → sync 선택 → **agent가 delta spec을 main spec에 직접 병합**·구조 점검 → 폴더 이동 | **원래 행동 삭제**: `openspec archive issue --yes` 한 줄(CLI가 검증·병합·이동) | 질문 분기가 대부분, upstream CLI 경로 존재 (D-5) | 가능하지만 질문 분기 재제거 필요 |
+| 11 | archive | 순서·실패 처리 제약 없음 | **새 행동 추가**: `verify.md`가 있을 때만 archive, 저장소 수정은 archive 전에 완료, 실패 시 오류가 지목한 delta spec만 고쳐 한 번 재실행, 재실패 시 archive 없이 종료, `--no-validate` 금지 | verify 생략 방지 (G2-9), 재시도 반복·우회 방지 (G8-3, G8-4) | 가능하지만 verify 생략·archive 반복 증가 (smoke run 2) |
+
+- 삭제한 새 행동: verify → apply 반복(1회차 CRITICAL → apply → `verify-2.md`, G8-1). val ablation에서 1회차 CRITICAL 0/60으로 한 번도 발동하지 않아 2026-10-14 삭제(`06-smoke.md`).
+
+**표에서 뺀 것**: 이름·경로 고정(`issue`, `/openspec`, `/opsx`, `checks/`), 다음 단계 문서 연결과 new 단계 제거, 질문 → "가장 타당한 해석 + 기록" 단순 대체(G4-2, G4-4), store 선택·frontmatter 삭제, 네트워크·설치 금지.
+
+## 변경
+
 **1. 실제 openspec CLI를 sandbox에서 실행** (agent-image-extra.Dockerfile, setup.sh, \_\_init\_\_.py) — D-1, D-2, G10-5
 - 원문은 사용자가 설치한 `openspec` CLI가 상태·경로·artifact 지침·검증·archive를 담당하는 구조. 다른 port처럼 CLI 출력을 문서에 옮겨 적지 않고 CLI 자체를 sandbox에 설치.
 - node v22.23.3 + `@fission-ai/openspec@1.14.1`을 `/opt/rllm/agent/node`에 설치하는 Dockerfile 줄을 openhands-sdk agent image 레시피 끝에 추가(`agent_image_extra`). image tag가 이 줄까지 hash하므로 이 workflow만 별도 image 사용.
