@@ -20,6 +20,7 @@ import base64
 import importlib
 import inspect
 import logging
+import os
 import re
 import threading
 import uuid
@@ -398,12 +399,19 @@ def _build_docker_image(context_dir: Path, task_id: str) -> str:
             logger.info("Reusing Docker image '%s'", tag)
             return tag
         logger.info("Building Docker image '%s' from %s", tag, context_dir)
-        result = subprocess.run(
-            ["docker", "build", "-t", tag, "--rm", "."],
-            cwd=str(context_dir),
-            capture_output=True,
-            text=True,
-        )
+        # Bounded: a build stuck on the network held a whole batch for over two
+        # hours, since the rollouts of a batch all wait for it.
+        build_timeout = int(os.environ.get("RLLM_DOCKER_BUILD_TIMEOUT_S", "3600"))
+        try:
+            result = subprocess.run(
+                ["docker", "build", "-t", tag, "--rm", "."],
+                cwd=str(context_dir),
+                capture_output=True,
+                text=True,
+                timeout=build_timeout,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"Docker build for {task_id} exceeded {build_timeout}s (RLLM_DOCKER_BUILD_TIMEOUT_S)") from e
     if result.returncode != 0:
         # Keep the tail: BuildKit prints the failing step last, the head is boilerplate.
         raise RuntimeError(f"Docker build failed for {task_id}:\n{result.stderr[-1500:]}")
