@@ -300,6 +300,14 @@ class SandboxTaskHooks:
 
             evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
 
+            # Grade the agent's diff in a clean sandbox (RLLM_FRESH_SANDBOX_VERIFY=1).
+            # Wrapped before the git-history restore below, so the restore runs first.
+            from rllm.sandbox.fresh_verify import FreshSandboxEvaluator, fresh_verify_enabled
+
+            if fresh_verify_enabled() and sandbox is not None and plan.verifier_kind == "sandbox-shell":
+                evaluator = FreshSandboxEvaluator(evaluator, task, sandbox, self.sandbox_backend)
+                evaluator.snapshot()
+
             # Last step before the agent: nothing after this may read the repo's
             # history on the agent's behalf, and the verifier gets it back.
             if self.hide_git_history and sandbox is not None:
