@@ -21,6 +21,7 @@ import importlib
 import inspect
 import logging
 import re
+import threading
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -371,20 +372,41 @@ def _resolve_image(task: Task, backend: str) -> str:
     return configured
 
 
+# One lock per image tag: with ``--attempts N`` the N rollouts of a task start
+# together and would each run ``docker build -t <same tag>``. BuildKit rejects
+# all but the first at the export step ("image ... already exists"), so 7 of 8
+# attempts died before the agent ran. Serialize per tag and reuse the image.
+_BUILD_LOCKS: dict[str, threading.Lock] = {}
+_BUILD_LOCKS_GUARD = threading.Lock()
+
+
+def _image_exists(tag: str) -> bool:
+    import subprocess
+
+    return subprocess.run(["docker", "image", "inspect", tag], capture_output=True).returncode == 0
+
+
 def _build_docker_image(context_dir: Path, task_id: str) -> str:
     """Build via subprocess (avoids docker-py credential helper issues on macOS)."""
     import subprocess
 
     tag = "rllm-task-" + re.sub(r"[^a-zA-Z0-9_.-]", "-", task_id).lower()
-    logger.info("Building Docker image '%s' from %s", tag, context_dir)
-    result = subprocess.run(
-        ["docker", "build", "-t", tag, "--rm", "."],
-        cwd=str(context_dir),
-        capture_output=True,
-        text=True,
-    )
+    with _BUILD_LOCKS_GUARD:
+        lock = _BUILD_LOCKS.setdefault(tag, threading.Lock())
+    with lock:
+        if _image_exists(tag):
+            logger.info("Reusing Docker image '%s'", tag)
+            return tag
+        logger.info("Building Docker image '%s' from %s", tag, context_dir)
+        result = subprocess.run(
+            ["docker", "build", "-t", tag, "--rm", "."],
+            cwd=str(context_dir),
+            capture_output=True,
+            text=True,
+        )
     if result.returncode != 0:
-        raise RuntimeError(f"Docker build failed for {task_id}:\n{result.stderr[:1000]}")
+        # Keep the tail: BuildKit prints the failing step last, the head is boilerplate.
+        raise RuntimeError(f"Docker build failed for {task_id}:\n{result.stderr[-1500:]}")
     return tag
 
 

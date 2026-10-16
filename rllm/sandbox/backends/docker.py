@@ -64,7 +64,11 @@ class DockerSandbox:
         self.name = name
         self.image = image
         self._timeout_fmt: str | None = None  # probed once per container, see _timeout_wrapper
-        self._client = docker.from_env()
+        # docker-py's default 60s read timeout is too short for a loaded shared
+        # daemon: creating a 5 GB-image container while other builds and an
+        # image prune run stalled the API for over a minute and failed 10
+        # sandboxes in one batch. Raise it per run without changing the default.
+        self._client = docker.from_env(timeout=int(os.environ.get("RLLM_DOCKER_CLIENT_TIMEOUT", "60")))
         run_kwargs: dict = {
             "command": "sleep infinity",
             "name": f"rllm-sandbox-{name}",
