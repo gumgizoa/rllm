@@ -1,0 +1,482 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".",
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       61,
+       62
+      ],
+      "path": "system-prompt.j2",
+      "quote": "the issue is explored first, with nothing written"
+     }
+    ],
+    "stage": "explore",
+    "statement": "sp-001",
+    "target": {
+     "ref": "no file writes during explore",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       62,
+       63
+      ],
+      "path": "system-prompt.j2",
+      "quote": "then becomes an OpenSpec change named `issue`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "sp-002",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "stage_start:ff",
+      "stage_start:apply",
+      "stage_start:verify",
+      "stage_start:archive"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       63,
+       64
+      ],
+      "path": "system-prompt.j2",
+      "quote": "that is planned in artifacts, implemented, verified and archived"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-003",
+    "target": {
+     "ref": "stage sequence ff→apply→verify→archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "archive",
+     "window": "stage:archive"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       63,
+       64
+      ],
+      "path": "system-prompt.j2",
+      "quote": "archived; the `openspec` CLI drives the steps."
+     }
+    ],
+    "stage": "archive",
+    "statement": "sp-004",
+    "target": {
+     "ref": "openspec CLI",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Make opening /opsx/core-workflow.md your very first action."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-005",
+    "target": {
+     "ref": "/opsx/core-workflow.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "stage_start:explore",
+      "stage_start:ff"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Take the actions in the order that file gives, explore before ff."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-007",
+    "target": {
+     "ref": "stage order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "EX",
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "explore",
+    "statement": "sp-008",
+    "target": {
+     "ref": "/opsx/stages/00-explore.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FF",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "ff",
+    "statement": "sp-008",
+    "target": {
+     "ref": "/opsx/stages/01-ff.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AP",
+     "window": "stage:apply"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "apply",
+    "statement": "sp-008",
+    "target": {
+     "ref": "/opsx/stages/02-apply.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": "stage:verify"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "verify",
+    "statement": "sp-008",
+    "target": {
+     "ref": "/opsx/stages/03-verify.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": ".",
+     "window": [
+      "stage_start:ff",
+      [
+       "first_write:change",
+       "stage_end:ff"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "system-prompt.j2",
+      "quote": "and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "ff",
+    "statement": "sp-009",
+    "target": {
+     "ref": "stage's named openspec command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": ".",
+     "window": [
+      "stage_start:apply",
+      [
+       "first_repo_write",
+       "stage_end:apply"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "system-prompt.j2",
+      "quote": "and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "apply",
+    "statement": "sp-009",
+    "target": {
+     "ref": "stage's named openspec command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4)",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": ".",
+     "window": [
+      "stage_start:verify",
+      [
+       "first_write:verify",
+       "stage_end:verify"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "system-prompt.j2",
+      "quote": "and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "verify",
+    "statement": "sp-009",
+    "target": {
+     "ref": "stage's named openspec command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4); no kind detects questions to the user",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       73,
+       74
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Nobody replies before the task ends. Write assumptions into explore's summary or the change's artifacts rather than asking"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-011",
+    "target": {
+     "ref": "asking user questions",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4); no kind inspects text-only turns",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       74,
+       75
+      ],
+      "path": "system-prompt.j2",
+      "quote": "keep every progress note in a turn that also calls a tool"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-013",
+    "target": {
+     "ref": "assistant turns",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "adapter/system-prompt text only (rule 4); the finish call itself is not an event, so only archive completion is checked",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "succeeded"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       75,
+       76
+      ],
+      "path": "system-prompt.j2",
+      "quote": "call finish only once the archive step is done."
+     }
+    ],
+    "stage": "archive",
+    "statement": "sp-014",
+    "target": {
+     "ref": "finish call",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Implicit restatement of sp-009 (each action begins from the openspec command its stage document names); covered by the sp-009 openspec_ff.cli items, the specific commands are named only in the stage documents",
+    "statement": "ins-009"
+   },
+   {
+    "reason": "Explanatory location note for /opsx; reading the right path is already checked by sp-005 doc_read_first (CW) and the sp-008 doc_read items, nothing further is observable",
+    "statement": "sp-006"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "f9c151d13ded32f16eedc1d0d5267294a2b6dae8665c115133a3bad8cd8f808e",
+ "key": "91293f8e3897d102d07282f615a527e9585e16493c56e60a6289f1190fd4756c",
+ "meta": {
+  "at": "2026-10-16T06:24:35Z",
+  "cost_usd": 0.201506,
+  "duration_ms": 38869,
+  "num_turns": 2,
+  "wall_s": 40.39
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample0",
+ "schema_sha256": "7e605606c50b913681749268268bc5634817a654f5a137de97b4f494a160ca39",
+ "version": "2.1.283"
+}

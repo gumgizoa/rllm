@@ -1,0 +1,502 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "openspec.tasks",
+    "none_allowed": "-",
+    "note": "Each checkbox task description names its verification; this also covers schema-111 (verification goes in the checkbox description).",
+    "params": {
+     "artifact": "tasks",
+     "rule": "verification"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       227,
+       229
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each task MUST state how to verify completion (a test, command, observable behavior, or delivered artifact). Put the verification in that task's checkbox description."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-110",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that each task group (not one final group) carries its own verification step needs a per-group analysis that no kind provides.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       232,
+       234
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-113",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "openspec_ff.evidence",
+    "none_allowed": "-",
+    "params": {
+     "rule": "test_or_check",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       232,
+       234
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-114",
+    "target": {
+     "ref": "verification runs",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Covers editing existing test files.",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       234,
+       235
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do NOT add or edit test files in the repository - the task's tests are already in place."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-115",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff",
+     "base_tree"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "note": "Covers adding new test files.",
+    "params": {
+     "test_paths": true,
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       234,
+       235
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do NOT add or edit test files in the repository - the task's tests are already in place."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-115",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Implicit dependency declaration, not a stated imperative.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": [
+      "first_write:tasks"
+     ],
+     "before": [
+      "first_write:spec",
+      "first_write:design"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       267,
+       269
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "requires:\n      - specs\n      - design"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-121",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Implicit dependency declaration, not a stated imperative.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": [
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ],
+     "before": [
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       271,
+       272
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "apply:\n  requires: [ tasks ]"
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-122",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "design",
+      "tasks"
+     ],
+     "deltas": true,
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       275,
+       275
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Read context files, work through pending tasks, mark complete as you go."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-123",
+    "target": {
+     "ref": "context files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "note": "Tasks are marked complete during apply, so the task list is written in that stage.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "written",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       275,
+       275
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "work through pending tasks, mark complete as you go."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-124",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       278,
+       279
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "When a blocker stays unresolved, leave that task unchecked with a one-line reason and continue with the rest."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-126",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Implicit: the location is described, not commanded.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "change",
+     "pattern": "^/openspec/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       10,
+       10
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "This planning home, /openspec, sits outside it."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-002",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The test files for this issue are already in place in the repository and are not to be added to or edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-004",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff",
+     "base_tree"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The test files for this issue are already in place in the repository and are not to be added to or edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-004",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Declarative wording, no MUST/do not/imperative in the sentence.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The environment is fully set up: no packages are installed"
+     }
+    ],
+    "stage": "global",
+    "statement": "config-005",
+    "target": {
+     "ref": "package installation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Declarative wording, no MUST/do not/imperative in the sentence.",
+    "kind": "openspec_ff.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "nothing is fetched from the network."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-006",
+    "target": {
+     "ref": "network access",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Already covered by the schema-110 item: the openspec.tasks 'verification' rule checks for verification inside each checkbox task description. A separate item would only repeat it.",
+    "statement": "schema-111"
+   },
+   {
+    "reason": "This only applies when a task is unclear, and the reference language cannot express that condition. Without a condition, a check for plain-line notes would wrongly penalize runs that need none.",
+    "statement": "schema-125"
+   },
+   {
+    "reason": "Repository edits are measured against /testbed by definition (repo_write_paths, diff). No separate observable check tells code edited in /testbed apart from code edited elsewhere.",
+    "statement": "config-001"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "e6416b43254129d0f55905bcc3623a330e4cc181b7647f6b27add64bb0d61d62",
+ "key": "1ea082a7f1d8eb609446a428148713a6d90cdb223581bf9456a5aaef6ea32d15",
+ "meta": {
+  "at": "2026-10-15T04:53:35Z",
+  "cost_usd": 0.24367100000000003,
+  "duration_ms": 60110,
+  "num_turns": 2,
+  "wall_s": 61.3
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "2b66fec15b1fb83f8b943a1e0fbb648f6ccd786ced744e0623ff1bfd3304ac5a",
+ "version": "2.1.283"
+}

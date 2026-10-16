@@ -1,0 +1,93 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 2,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The change has to go through all four stages, in this order.",
+    "quote": "Solve this task as an OpenSpec change, taken through ff, apply, verify and archive",
+    "stage": "global",
+    "target": "OpenSpec change lifecycle (ff -> apply -> verify -> archive)"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "tool_or_command",
+    "line_end": 2,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The stages have to be run with the installed openspec CLI.",
+    "quote": "with the `openspec` command-line tool that is installed here.",
+    "stage": "global",
+    "target": "openspec CLI"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "read_doc",
+    "line_end": 4,
+    "line_start": 4,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Reading this file has to be the agent's very first action.",
+    "quote": "Your first action is to open /opsx/core-workflow.md",
+    "stage": "global",
+    "target": "/opsx/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "order",
+    "line_end": 4,
+    "line_start": 4,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "The agent may not look at /testbed until it has read core-workflow.md.",
+    "quote": "Your first action is to open /opsx/core-workflow.md, before you look at the repository.",
+    "stage": "global",
+    "target": "repository /testbed"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 6,
+    "line_start": 5,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Implied: before each action, read the stage document that core-workflow.md names for it.",
+    "quote": "That file names the stage document to read for each action",
+    "stage": "global",
+    "target": "stage document for each action"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 6,
+    "line_start": 5,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Implied: start each action with the openspec command that core-workflow.md names for it.",
+    "quote": "and the `openspec` command each action starts from.",
+    "stage": "global",
+    "target": "openspec command per action"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "0e62ae3f8adbdae09017afe343547d12155879de95968a797a8f5b7184f4e893",
+ "key": "59e7cfc9d157227e5c67b47d70829157d0f2a4f1438e0476c7bd5afc266f17ff",
+ "meta": {
+  "at": "2026-10-14T06:41:44Z",
+  "cost_usd": 0.030001200000000002,
+  "duration_ms": 9220,
+  "num_turns": 2,
+  "wall_s": 10.52
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "9619ffb0ae761b63b61d725aca4d246b87a6279ee45b90cbcc58a10036a40135",
+ "version": "2.1.283"
+}

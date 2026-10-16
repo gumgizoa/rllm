@@ -15,7 +15,8 @@
 The minimal chain specify -> plan -> tasks -> implement <-> converge (at most two converge rounds), for
 feature-development tasks (porting/03-decisions.md, usage note). The feature directory is fixed,
 ``/tmp/speckit-sdd/specs/001-issue``, outside the repository; it and ``.specify/feature.json`` are the
-workflow's outputs (the shipped scripts and templates are not). No compliance scorer yet: resolve rate only.
+workflow's outputs (the shipped scripts and templates are not). ``reward/`` holds the generated compliance rubric
+(``speckit_sdd/*`` signals); until ``reward/rubric.yaml`` exists the workflow has no scorer and reports resolve rate only.
 """
 
 from __future__ import annotations
@@ -27,6 +28,14 @@ from ..spec import WorkflowSpec
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = "/tmp/speckit-sdd"  # build.PROJECT_ROOT; the Spec Kit project root the scripts resolve
 
+
+def _scorer():
+    # Imported on use: a run without the workflow never loads the rubric.
+    from .reward.eval import Evaluation
+
+    return Evaluation()
+
+
 SPEC = WorkflowSpec(
     docs_dir=HERE / "docs",
     container_dir="/speckit-sdd",
@@ -36,4 +45,6 @@ SPEC = WorkflowSpec(
     output_dirs=(f"{PROJECT_ROOT}/specs", f"{PROJECT_ROOT}/.specify/feature.json"),
     sandbox_files={f"{PROJECT_ROOT}/.specify": HERE / "sandbox" / "specify"},
     setup_script=HERE / "setup.sh",  # G7-8: colourless jq on the agent's PTY
+    scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
+    reward_signal="speckit_sdd/compliance",
 )

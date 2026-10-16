@@ -1,0 +1,497 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "before_code",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Execute test tasks before their corresponding implementation tasks."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-027",
+    "target": {
+     "ref": "checks before first code edit",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "written",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "The test tasks are the verification scripts in `FEATURE_DIR/checks/`: write and run them"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-028",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "red_green",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "write and run them and confirm they fail, implement, then run them again and confirm they pass"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-028",
+    "target": {
+     "ref": "checks red-green runs",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       61,
+       61
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "(repository already initialized, no dependency installation)"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-033",
+    "target": {
+     "ref": "dependency installation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true,
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "If you need to write tests for contracts, entities, and integration scenarios, write them as verification scripts in `FEATURE_DIR/checks/`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-034",
+    "target": {
+     "ref": "new test files outside FEATURE_DIR/checks/",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "the repository's test files are not written or edited."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-035",
+    "target": {
+     "ref": "repository test file edits",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:implement",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "stage_end:implement"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Before implementing, also run the existing repository tests related to the change and record the baseline"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-036",
+    "target": {
+     "ref": "baseline repository test run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      [
+       "stage_start:implement",
+       "last_change_write"
+      ],
+      "stage_end:implement"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       65,
+       65
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Polish phase tasks, then run existing tests for changed modules"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-039",
+    "target": {
+     "ref": "post-change repository test run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ticked_after_work",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Record progress only by marking each completed task [X] in tasks.md"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-040",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Task failure and dependency relations between tasks are not observable by any kind.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "If a non-parallel task fails, leave it unchecked and continue with the tasks that do not depend on it"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-042",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Per-task failure of [P] tasks cannot be determined from the trace by an existing kind.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "For parallel tasks [P], continue with successful tasks, leave failed ones unchecked"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-043",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ticked",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-046",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Ticked tasks touching their named paths is only indirect evidence of the completion verification.",
+    "kind": "speckit.tasks_done",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "paths_touched"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Verify all required tasks are completed"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-048",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "pass_last",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-050",
+    "target": {
+     "ref": "checks passing after last change",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Pre-existing failures unrelated to the change may legitimately remain in the last repository test run.",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "counts": {
+       "fact": "valid_run",
+       "failed_or_errors": 0,
+       "which": "last",
+       "window": "stage:implement"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "and the existing repository tests related to the change"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-050",
+    "target": {
+     "ref": "last repository test run passes",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Running sequential tasks in their order (and [P] tasks together) depends on mapping trace actions to individual tasks; no kind can express that order.",
+    "statement": "im-025"
+   },
+   {
+    "reason": "Completing every phase in one pass is already checked by the im-046 speckit_sdd.tasks 'ticked' item at the end of implement; there is no separate observable rule.",
+    "statement": "im-031"
+   },
+   {
+    "reason": "The no-installation part is covered by the im-033 prohibited_action install item. Doing Setup tasks first cannot be tied to trace actions.",
+    "statement": "im-032"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "6a4974cae7350f23ed63d9fa5a65389f8e183ee9b5847af8e79e687d5b4d3423",
+ "key": "9f0aed8b42a4019d7f45c5c381f3e1f2ff20e5bb9b834dba6457aa6362f23c4d",
+ "meta": {
+  "at": "2026-10-15T05:15:39Z",
+  "cost_usd": 0.21243599999999999,
+  "duration_ms": 38419,
+  "num_turns": 2,
+  "wall_s": 39.47
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "34ed5b81ca37529ac4384ea0a3ff94954969fba5bb551128ecc2c0aa684e1da3",
+ "version": "2.1.283"
+}

@@ -226,3 +226,6 @@ gcp-key.json
 
 # IDE
 .vscode/
+
+# workflow verifier generator: intermediate files (gen-cache/ is committed for reproducibility)
+recipe/grpo/qwen3_5/workflows/*/reward/gen-work/

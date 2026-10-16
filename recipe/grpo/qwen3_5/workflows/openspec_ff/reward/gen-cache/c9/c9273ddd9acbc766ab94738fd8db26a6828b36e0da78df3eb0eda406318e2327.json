@@ -1,0 +1,350 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "Whether the agent wrote to planningHome.root and not to a repo-relative path cannot be checked directly. This item only checks the prerequisite: the agent ran `openspec instructions ... --json`, the call that returns planningHome.root.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "instructions.*--json",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       119,
+       121
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "`planningHome.root` comes from the `openspec instructions ... --json` response. Always use it rather than a repo-relative path"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-066",
+    "target": {
+     "ref": "openspec instructions --json",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Context"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Sections:\n      - **Context**: Only the current state and constraints needed to explain the approach."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-075",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "This only checks that the Context section mentions the proposal. It cannot tell whether the motivation was restated.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "proposal",
+     "section": "Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       177,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Reference the proposal for motivation instead of restating it (e.g., \"See proposal.md - Why\")."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-076",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Decisions"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Decisions**: Key technical choices with rationale (why X over Y?)."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-079",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "This only checks that the Decisions section mentions alternatives at least once. Checking for alternatives under each decision is not possible.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "(?i)alternative",
+     "section": "Decisions"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Include alternatives considered for each decision."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-080",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Risks / Trade-offs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       180,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-081",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "→",
+     "section": "Risks / Trade-offs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       180,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Format: [Risk] → Mitigation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-081",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:proposal",
+      "first_write:design"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       196,
+       197
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "requires:\n      - proposal"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-089",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       204,
+       204
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the task list that breaks down the implementation work."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-090",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "design"
+     ],
+     "window": [
+      "stage_start:ff",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       206,
+       206
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Before writing tasks, check design.md for Open Questions."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-091",
+    "target": {
+     "ref": "read design before tasks",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Reading the main spec is required only when the delta has MODIFIED requirements. That condition cannot be written as a predicate, and main_spec is an artifact, not a SOURCE that doc_read/read: can target.",
+    "statement": "schema-068"
+   },
+   {
+    "reason": "Checking that the whole requirement block, scenarios included, was copied would need a block-level comparison between the delta and the main spec. No kind does this, and the openspec.delta rule names that might are not specified here.",
+    "statement": "schema-069"
+   },
+   {
+    "reason": "MODIFIED headers must match the main spec headers exactly, ignoring whitespace. The specific openspec.main_spec rule for this is not named in the vocabulary, so it was not guessed.",
+    "statement": "schema-070"
+   },
+   {
+    "reason": "design.md is conditional ('create only if any apply'), and the criteria (cross-cutting change, new dependency, etc.) cannot be written as a predicate. So its existence cannot be required unconditionally.",
+    "statement": "schema-073"
+   },
+   {
+    "reason": "The Goals / Non-Goals section is already compiled from the design template skeleton. The 'don't restate scope' part is not mechanically checkable.",
+    "statement": "schema-077"
+   },
+   {
+    "reason": "Optional: Migration Plan is included only 'if applicable'.",
+    "statement": "schema-082"
+   },
+   {
+    "reason": "Optional: Open Questions is omitted when there are none, so no item applies.",
+    "statement": "schema-083"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "72c077f7798ac5f96690a7cc23d6afd4dcc7ee11c0e543af2f2e34aab3c459a2",
+ "key": "c9273ddd9acbc766ab94738fd8db26a6828b36e0da78df3eb0eda406318e2327",
+ "meta": {
+  "at": "2026-10-16T06:23:48Z",
+  "cost_usd": 0.100386,
+  "duration_ms": 37134,
+  "num_turns": 2,
+  "wall_s": 38.55
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "535fea98b296708d9545e17c2d0ddfc19f53b54c8559aa898186529898fac06b",
+ "version": "2.1.283"
+}

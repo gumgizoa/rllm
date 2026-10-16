@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.sy-057.0",
+    "reason": "The text says \"remove it entirely (don't leave as \\\"N/A\\\")\", which directly forbids leftover N/A lines in the spec.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-060.0",
+    "reason": "\"Maximum 3 [NEEDS CLARIFICATION] markers\" maps directly onto a max-3 count check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-070.0",
+    "reason": "\"Specification written to `SPEC_FILE`\" requires the spec artifact to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-070.1",
+    "reason": "\"validated against quality checklist\" implies the requirements checklist exists, and the check is already only a should.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-001.0",
+    "reason": "\"Run `.../setup-plan.sh --json` ... and parse JSON for FEATURE_SPEC, IMPL_PLAN, FEATURE_DIR, BRANCH\" is an explicit required step.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-014.0",
+    "reason": "\"Phase 0: Generate research.md\" requires research.md to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-014.1",
+    "reason": "\"resolve all NEEDS CLARIFICATION\" supports, at should level, that no unresolved markers remain in the plan's Technical Context.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-015.0",
+    "reason": "\"Generate data-model.md, contracts/, quickstart.md - always all three\" makes data-model.md mandatory.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-015.1",
+    "reason": "\"always all three\" makes quickstart.md mandatory.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-016.0",
+    "reason": "\"data-model.md ... with nothing to hold ... has the one-line body `N/A — <reason>`\" defines the N/A body rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-016.1",
+    "reason": "\"quickstart.md with nothing to hold ... has the one-line body `N/A — <reason>`\" defines the N/A body rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-017.0",
+    "reason": "\"contracts/ with no contract is recorded in plan.md's Documentation tree as `contracts/  # N/A — <reason>`\" directly specifies the plan contracts rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-025.0",
+    "reason": "\"nothing is looked up online\" directly supports a no-fetch check during the plan stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-027.0",
+    "reason": "\"Do not fetch links from the issue\" is an explicit prohibition.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-028.0",
+    "reason": "\"a link you rely on is recorded as `[UNVERIFIED — not fetched]`\" applies to links cited in research.md.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-028.1",
+    "reason": "\"a link you rely on is recorded as `[UNVERIFIED — not fetched]`\" applies equally to links in plan.md.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-031.0",
+    "reason": "\"research.md with all NEEDS CLARIFICATION resolved\" means no markers may remain in research.md.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-034.0",
+    "reason": "The `<REPLACE in plan.md: …>` line must be replaced (\"replace it in plan.md with one line per contract file\"), so the residue must not remain.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-039.0",
+    "reason": "\"write no contract file and record `contracts/  # N/A — <reason>` in plan.md's Documentation tree\" supports the contracts rule check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-046.0",
+    "reason": "\"use project-relative paths for references in documentation\" supports, at should level, banning absolute `/tmp/speckit-sdd/` paths in plan.md.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "8074d867f32a8437efac538448f39e27f56f5dae1edd1a3d1333ed9e96b56a2c",
+ "key": "bb0f4fab0fd19968ab781cb05a90ca0f0f662a469dd88176b89639a29e1e9cd2",
+ "meta": {
+  "at": "2026-10-15T05:19:12Z",
+  "cost_usd": 0.08279700000000001,
+  "duration_ms": 20339,
+  "num_turns": 2,
+  "wall_s": 22.12
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

@@ -1,0 +1,470 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "Proxy check: the engine cannot see which root the agent resolved paths against, only that it ran the `openspec instructions` call whose --json response holds planningHome.root.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "instructions",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       119,
+       121
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "`planningHome.root` comes from the `openspec instructions ... --json` response. Always use it rather than a repo-relative path"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-066",
+    "target": {
+     "ref": "openspec instructions --json",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "relation": {
+      "left": {
+       "headings": {
+        "artifact": "spec",
+        "level": 2,
+        "pattern": "MODIFIED Requirements"
+       }
+      },
+      "rel": "intersects",
+      "right": {
+       "literal": [
+        "MODIFIED Requirements"
+       ]
+      }
+     }
+    },
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "main_spec"
+     ],
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       127,
+       129
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "1. Locate the existing requirement in `<planningHome.root>/openspec/specs/<capability-path>/spec.md` ... 3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-068",
+    "target": {
+     "ref": "main_spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "relation": {
+      "left": {
+       "headings": {
+        "artifact": "spec",
+        "level": 2,
+        "pattern": "MODIFIED Requirements"
+       }
+      },
+      "rel": "intersects",
+      "right": {
+       "literal": [
+        "MODIFIED Requirements"
+       ]
+      }
+     }
+    },
+    "class": "content",
+    "downgrade_reason": "Both sides are files the run writes (the main spec is updated at archive), so the rule checker will downgrade this cross_ref.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "spec",
+       "group": 1,
+       "pattern": "### Requirement: (.+)",
+       "section": "MODIFIED Requirements"
+      }
+     },
+     "normalize": "text",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "main_spec",
+       "group": 1,
+       "pattern": "### Requirement: (.+)"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       128,
+       130
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "2. Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios) 3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior 4. Ensure header text matches exactly (whitespace-insensitive)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-070",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that every scenario of the original requirement was carried over needs a block-level comparison against the base main spec. No kind can do that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       128,
+       129
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "2. Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios) 3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-069",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "downgrade_reason": "The section list is stated descriptively ('Sections:'), not with MUST or an imperative.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       176,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Sections: - **Context**: Only the current state and constraints needed to explain the approach."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-075",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "Proxy: a mention of proposal.md stands in for 'reference instead of restating'. The engine cannot judge whether the motivation was restated.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "proposal\\.md",
+     "section": "Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       177,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Reference the proposal for motivation instead of restating it (e.g., \"See proposal.md - Why\")."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-076",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "downgrade_reason": "The section list is stated descriptively ('Sections:'), not with MUST or an imperative.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Decisions"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**Decisions**: Key technical choices with rationale (why X over Y?)."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-079",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "Proxy: the engine checks that alternatives are mentioned in the Decisions section, not that each decision has its own.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "(?i)alternatives?",
+     "section": "Decisions"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Include alternatives considered for each decision."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-080",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "downgrade_reason": "The section list is stated descriptively ('Sections:'), not with MUST or an imperative.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Risks / Trade-offs"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       180,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-081",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "The format is given as a description inside a descriptive section list, not with MUST.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "→",
+     "section": "Risks / Trade-offs"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       180,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Format: [Risk] → Mitigation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-081",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Implicit dependency order, so at most should.",
+    "params": {
+     "after": "first_write:design",
+     "before": "first_write:proposal"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       196,
+       197
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "requires: - proposal"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-089",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       204,
+       204
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the task list that breaks down the implementation work."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-090",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "design"
+     ],
+     "window": [
+      "stage_start:ff",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       206,
+       206
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Before writing tasks, check design.md for Open Questions."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-091",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "design.md is created only when the inclusion criteria apply ('create only if any apply'). A predicate cannot express those criteria, so its existence cannot be required unconditionally. Its section skeleton is already compiled from the template.",
+    "statement": "schema-073"
+   },
+   {
+    "reason": "The template skeleton already compiles the Goals / Non-Goals section. The statement adds no rule the engine can check (the 'design-level boundaries' content is not checkable).",
+    "statement": "schema-077"
+   },
+   {
+    "reason": "Migration Plan is optional ('if applicable'). Optional content yields no item.",
+    "statement": "schema-082"
+   },
+   {
+    "reason": "Open Questions is optional ('Omit if none'). Whether an unknown is genuinely deferrable cannot be observed.",
+    "statement": "schema-083"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "72c077f7798ac5f96690a7cc23d6afd4dcc7ee11c0e543af2f2e34aab3c459a2",
+ "key": "eb351e9b2519e205daffbddb41c564307b7d38062077d2599d64a7a835c13da8",
+ "meta": {
+  "at": "2026-10-16T06:23:39Z",
+  "cost_usd": 0.24675400000000003,
+  "duration_ms": 56214,
+  "num_turns": 2,
+  "wall_s": 57.73
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample0",
+ "schema_sha256": "535fea98b296708d9545e17c2d0ddfc19f53b54c8559aa898186529898fac06b",
+ "version": "2.1.283"
+}

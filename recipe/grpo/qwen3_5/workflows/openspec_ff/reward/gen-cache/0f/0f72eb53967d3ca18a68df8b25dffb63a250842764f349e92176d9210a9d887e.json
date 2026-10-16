@@ -1,0 +1,407 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "A chat progress line per created artifact; no kind inspects the agent's chat messages.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Show brief progress: \"✓ Created <artifact-id>\""
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-037",
+    "target": {
+     "ref": "progress message",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Continue until every artifact in the required set exists (not just `apply.requires`)**"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-038",
+    "target": {
+     "ref": "change",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Continue until every artifact in the required set exists (not just `apply.requires`)**"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-038",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "note": "At least one status re-check after the first artifact was written; the per-artifact frequency is not checked.",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "status",
+     "window": [
+      "first_write:proposal",
+      "stage_end:ff"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "After creating each artifact, re-run `openspec status --change \"issue\" --json`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-039",
+    "target": {
+     "ref": "openspec status",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "spec-driven closes over proposal, specs, design, tasks"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-040",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "design.md is conditional and may be deliberately skipped (line 72); the skip cannot be observed as a predicate.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "spec-driven closes over proposal, specs, design, tasks"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-040",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Treating verify.md as the artifact outside the required set is an inference.",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "verify",
+       "fact": "artifact_write",
+       "window": "stage:ff"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Leave artifacts outside that set alone"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-041",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       72,
+       72
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "`specs` qualifies only via the `skipped` status above, never by your own judgment."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-046",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "status",
+     "window": [
+      "last_write:tasks",
+      "stage_end:ff"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       80,
+       82
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "5. **Show final status** ... openspec status --change \"issue\""
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-051",
+    "target": {
+     "ref": "openspec status --change \"issue\"",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Final chat summary content; no kind inspects chat output.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "After completing all artifacts, summarize: - Change name and location"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-052",
+    "target": {
+     "ref": "final summary",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Final chat summary content; no kind inspects chat output.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "List of artifacts created with brief descriptions, plus any conditional artifact you skipped and why"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-053",
+    "target": {
+     "ref": "final summary",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Fixed phrase in the chat summary; no kind inspects chat output.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "What's ready: \"All artifacts needed for implementation are ready.\""
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-054",
+    "target": {
+     "ref": "final summary",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AP"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "After the last artifact, open the apply stage document (`/opsx/stages/02-apply.md`) and continue"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ff-055",
+    "target": {
+     "ref": "read:AP",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "last_write:tasks",
+      "read:AP"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "After the last artifact, open the apply stage document (`/opsx/stages/02-apply.md`) and continue: implementation starts in this same session."
+     }
+    ],
+    "stage": "global",
+    "statement": "ff-055",
+    "target": {
+     "ref": "read:AP",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The condition (status reports 'skipped' / skip_specs declared in .openspec.yaml) cannot be expressed as a predicate in the reference language.",
+    "statement": "ff-043"
+   },
+   {
+    "reason": "Duplicates the artifact_exists items of ff-038/ff-040/ff-046 and the status re-check of ff-039.",
+    "statement": "ff-044"
+   },
+   {
+    "reason": "Permissive (MAY): skipping a conditional artifact is optional.",
+    "statement": "ff-045"
+   },
+   {
+    "reason": "Already covered by the stage-end existence of the required artifacts (tasks, spec); the 'blocked only because of a skipped dependency' condition is not observable.",
+    "statement": "ff-048"
+   },
+   {
+    "reason": "Loop-termination rule; its outcome is covered by the existence items, and 'deliberately skipped' is not observable.",
+    "statement": "ff-049"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "27bf80cc0ea33e98e291954d682abf0e71073499d049f6e47856391d547d8965",
+ "key": "0f72eb53967d3ca18a68df8b25dffb63a250842764f349e92176d9210a9d887e",
+ "meta": {
+  "at": "2026-10-15T04:43:27Z",
+  "cost_usd": 0.1005816,
+  "duration_ms": 35474,
+  "num_turns": 2,
+  "wall_s": 36.74
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "7eca3f2315661c9c353143cc033b89cbaf3e283b219123c868eff5c220ac65d0",
+ "version": "2.1.283"
+}

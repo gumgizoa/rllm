@@ -1,0 +1,22 @@
+{
+ "config": {
+  "path": "generator.yaml",
+  "sha256": "751c64011d7a88afbe2f9f58774dde5d7fa919a2027963b076c77e9307270b52"
+ },
+ "generator": "workflow_rubric.generator 0.1",
+ "kinds": "registry",
+ "llm": {
+  "backend": "claude-cli",
+  "cli": "2.1.283",
+  "model": "claude-opus-5-5"
+ },
+ "rubric_sha256": "89cac70a0337cfee4c0677d590e27f72496dbc65108ebb1e1a50aa83c582d1fe",
+ "sources": {
+  "docs/core-workflow.md": "f6ea8ea1fb988d41fb7a698b2d422f3c28f4773cf6ac23b88d9e337d97459791",
+  "docs/stages/01-assess.md": "30cbcef8c73f5d5c62e87fbf9a56e55ab4917ba82f6e42b12dd0081bb36df759",
+  "docs/stages/02-fix.md": "701743f519d85a2f2b9dda03c33db43b698de2a1b7b1135af6fc1cd3a07bda1e",
+  "docs/stages/03-test.md": "12eb91250493f0e7f389266fdf828f385582ca64ce4cbd9d3f09c8e9b5ddb85c",
+  "instruction.md": "1d3730dee22601b09cbfdd19cd2294d7c30e2cce0fcee88ccf01e69505aec208",
+  "system-prompt.j2": "d0c6283b40915a8431dc3a26d261ffd29425431e9749a9a58695228649bb8cf0"
+ }
+}

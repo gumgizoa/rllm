@@ -1,0 +1,340 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "The Impact bullet describes proposal content but has no explicit imperative.",
+    "kind": "field_filled",
+    "none_allowed": "unspecified",
+    "params": {
+     "section": "Impact"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Impact**: Affected code, APIs, dependencies, or systems."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-015",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --specs",
+     "window": [
+      "stage_start:ff",
+      "first_write:proposal"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       22
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Research existing specs before filling this in: run `openspec list --specs` for the project's capability inventory"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-016",
+    "target": {
+     "ref": "openspec list --specs",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Whether a standalone store is registered cannot be observed. The rule assumes the sandbox has no registered standalone store.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "--store",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       25,
+       26
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Append `--store \"<id>\"` to both commands only for a registered standalone store"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-018",
+    "target": {
+     "ref": "--store flag usage",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "openspec show(?!.*--type spec)",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       28
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "keep `--type spec`: a change and a spec sharing a name is otherwise an ambiguous-item error."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-019",
+    "target": {
+     "ref": "openspec show --type spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Which specs are relevant cannot be observed. A full read is required only if a relevant spec exists.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "show .*--type spec",
+     "window": [
+      "stage_start:ff",
+      "first_write:proposal"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       31,
+       33
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Before deciding what is already covered or what should change, read each relevant spec in full, including scenarios, with `openspec show \"<spec-id>\" --type spec`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-022",
+    "target": {
+     "ref": "openspec show --type spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       34,
+       34
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each capability listed here will need a corresponding spec file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-023",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The skip_specs opt-out in the change's .openspec.yaml cannot be expressed as an applies_when predicate.",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "declared"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       36,
+       39
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Every change must either declare at least one capability (new or modified) or explicitly opt out of specs"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-024",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind can check document length.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       44,
+       44
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Keep it concise (1-2 pages)."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-027",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       55
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create specification files that define WHAT the system should do."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-029",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^#### Scenario:"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       59,
+       63
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Good spec content: ... - Scenarios that can be tested or explicitly validated"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-031",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Matching listed capability paths against openspec/specs/<cap>/spec.md at BASE_SHA needs a capability-to-path normalization that no selector provides.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Use the exact existing path under `openspec/specs/`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-013",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The schema-023 listed_have_specs item already checks that each listed capability, new or modified, has a delta file. Whether spec-level behavior changed, as opposed to implementation details only, is a judgment call that cannot be checked.",
+    "statement": "schema-012"
+   },
+   {
+    "reason": "Whether requirements actually change is a judgment call that cannot be observed, so the condition for leaving the section empty cannot be expressed.",
+    "statement": "schema-014"
+   },
+   {
+    "reason": "This applies only to specs that 'look related', and relevance cannot be observed. It also has should modality and is conditional.",
+    "statement": "schema-017"
+   },
+   {
+    "reason": "This is an informative explanation. It is implicitly covered by the schema-016 requirement to run `openspec list --specs`.",
+    "statement": "schema-020"
+   },
+   {
+    "reason": "Spotting a 'near-duplicate name' needs semantic judgment that no kind can express.",
+    "statement": "schema-021"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "9a6fb52a0824ff093d791389236f6eb3b7f99e0db26bbdd2eb471a851a657b67",
+ "key": "ac381d8bfffe42261c67987c6f803c58ca704bf33766b92e6840ca809c833bae",
+ "meta": {
+  "at": "2026-10-14T06:48:07Z",
+  "cost_usd": 0.227879,
+  "duration_ms": 47188,
+  "num_turns": 2,
+  "wall_s": 48.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "2c7e94f1fdab1d88ef11d84d1d29c6bfc2ef8f78125687b81f51b0ceeca58167",
+ "version": "2.1.283"
+}

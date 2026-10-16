@@ -1,0 +1,234 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checkable in principle: names after 'Requirement not found:' / 'Implement requirement' in verify.md should be disjoint from the requirement names under the REMOVED section of the delta specs. No selector can scope requirement names to the REMOVED section using literals from the cited lines, and both sides are written by the agent.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       87
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Never report a REMOVED requirement as \"Requirement not found\" or recommend implementing it."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-067",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checkable in principle: no 'not found' issue in verify.md names a RENAMED FROM: name from the delta specs. No kind can pull out FROM names and compare them with issue text.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Do not report the FROM name as missing, and do not require code symbols, identifiers, or file names to be renamed."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-071",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Condition: a RENAMED entry has no baseline requirement in the main spec under its FROM or TO name. The main-spec content at verify time cannot be expressed as an applies_when predicate.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If the baseline requirement cannot be found or read, mark **Spec Coverage** as not verified for that entry with the reason. Never count an unchecked rename as passing."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-078",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs applies_when = the delta specs hold only REMOVED/RENAMED sections. No predicate checks the section types of delta specs, so the condition cannot be expressed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If the delta specs are readable and contain at least one REMOVED or RENAMED requirement but no ADDED or MODIFIED requirements (the change only removes or renames requirements), report **Requirement Implementation Mapping** and **Scenario Coverage** as **Not applicable**."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-080",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Same unexpressible condition as vf-080: a change that only removes or renames requirements.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "The REMOVED and RENAMED checks under Spec Coverage are the evidence for such a change (each RENAMED entry is checked there against its baseline behavior), so do not mark these two checks as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-081",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Condition: a delta spec with no parseable requirements. No predicate in the reference language covers whether delta specs parse.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "A delta spec with no parseable requirements at all is unusable evidence, not a removal-only change: mark these checks as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-082",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checkable in principle: each ADDED/MODIFIED requirement's mapping entry cites file:line references to files that exist in the repo or the diff. Linking requirements to mapping entries, and the union of base and diff paths as a cross_ref side, cannot be expressed without inventing regexes.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       108
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "For each ADDED or MODIFIED requirement from delta specs ... Search codebase for implementation evidence - If found, note file paths and line ranges"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-084",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The trigger ('requirements appear unimplemented') depends on the agent's own judgment of the codebase. No observable predicate exists, so the required issue text cannot be gated deterministically.",
+    "statement": "vf-062"
+   },
+   {
+    "reason": "This recommendation is tied to the same judgment-based trigger as vf-062, and no predicate on verify.md content (outside a labeled field) can gate it.",
+    "statement": "vf-063"
+   },
+   {
+    "reason": "The trigger ('behavior is still present') is the agent's assessment of the code, which cannot be observed deterministically.",
+    "statement": "vf-068"
+   },
+   {
+    "reason": "This recommendation follows the unobservable vf-068 trigger. The <file>:<lines> format is a message template, not a standalone requirement the engine can gate.",
+    "statement": "vf-069"
+   },
+   {
+    "reason": "The trigger ('renamed behavior appears unimplemented') is the agent's codebase assessment, which cannot be observed.",
+    "statement": "vf-076"
+   },
+   {
+    "reason": "This recommendation follows the unobservable vf-076 trigger.",
+    "statement": "vf-077"
+   },
+   {
+    "reason": "The trigger ('divergence detected') is the agent's judgment of implementation intent, which cannot be observed.",
+    "statement": "vf-086"
+   },
+   {
+    "reason": "This recommendation follows the unobservable vf-086 trigger.",
+    "statement": "vf-087"
+   },
+   {
+    "reason": "The trigger ('scenario appears uncovered') is the agent's coverage assessment. No predicate can tie per-scenario coverage to repository tests or checks/ scripts deterministically.",
+    "statement": "vf-090"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "a178c6bc9c714ed86e5624c7b120e99b4dc0ef40124b4151d524ca5104f89dc7",
+ "key": "bc1ab01ec45642a591075ec8836ad142707b309f844b16b763336ea26a2c836a",
+ "meta": {
+  "at": "2026-10-14T06:46:14Z",
+  "cost_usd": 0.20214300000000002,
+  "duration_ms": 37815,
+  "num_turns": 2,
+  "wall_s": 38.9
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "f4e4be3e6a8c95454ba31156075b15d334b4e5bed845b75e2520b42e5564e6f2",
+ "version": "2.1.283"
+}

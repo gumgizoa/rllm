@@ -1,0 +1,180 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.verify",
+    "none_allowed": "-",
+    "note": "An open checkbox in tasks when the report was written must show up as a CRITICAL issue in the verify report.",
+    "params": {
+     "artifact": "verify",
+     "rule": "open_tasks_critical",
+     "tasks": "tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If `progress.remaining` is greater than 0: - Add CRITICAL issue for each listed incomplete task."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-056",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "note": "Every delta spec of the change is read in the verify stage before the report is first written.",
+    "params": {
+     "deltas": true,
+     "window": [
+      "stage_start:verify",
+      "first_write:verify"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       76
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "The spec artifacts are those whose `artifactPaths.<id>.outputPath` is under `specs/`; read their files from `contextFiles.<id>`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-062",
+    "target": {
+     "ref": "read spec files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this means matching the report's skipped-check counts against the checks it marked Not applicable. No kind can do that kind of count check inside one artifact.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Exclude them from skipped-check counts and the archive-readiness assessment."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-040",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this means comparing the complete/total numbers in the report with the checkbox counts in tasks.md. No selector pulls out a numeric count, and the report template has no label for it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Report complete vs total tasks from `progress`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-055",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is implicit and only describes what severities exist. The verify template has no label that holds a severity, so there is no field to check against the enum, and a dimension may have no issues at all.",
+    "statement": "vf-034"
+   },
+   {
+    "reason": "In this workflow every change artifact is written in ff. So during verify, inventing an omitted artifact looks the same as editing one that already exists. Whether an artifact is optional or intentionally omitted depends on schema/status output that the engine can't see.",
+    "statement": "vf-036"
+   },
+   {
+    "reason": "It only applies when the schema doesn't define a check or the status reports an artifact as intentionally skipped. That status output isn't an observable fact, and the report has no fixed label per check.",
+    "statement": "vf-038"
+   },
+   {
+    "reason": "It only applies when the delta specs are REMOVED/RENAMED with no ADDED/MODIFIED. No predicate can test that, and the per-check status has no template label.",
+    "statement": "vf-039"
+   },
+   {
+    "reason": "It only applies when the only evidence is task evidence, which no predicate in the reference language can express.",
+    "statement": "vf-042"
+   },
+   {
+    "reason": "It only applies when artifacts can't be read or have no usable content. That is the agent's own judgement, not an observable fact, and the 'specific reason' text is free-form.",
+    "statement": "vf-043"
+   },
+   {
+    "reason": "This is an implicit explanation of which checks are affected by which missing input. It adds no rule that can be checked on its own beyond vf-043.",
+    "statement": "vf-045"
+   },
+   {
+    "reason": "It only applies when taskTrackingConfigured is false, a value from status output that isn't an observable fact. This schema also tracks tasks.",
+    "statement": "vf-046"
+   },
+   {
+    "reason": "It only applies when unavailableTrackingFiles is nonempty, a value from status output that isn't observable through any predicate.",
+    "statement": "vf-050"
+   },
+   {
+    "reason": "It only applies when taskTrackingConfigured is true and the tasks list is empty. Both come from openspec status/instructions output that the predicates can't see.",
+    "statement": "vf-053"
+   },
+   {
+    "reason": "The recommendation wording is only required when tasks were still open when the report was written. No predicate can express that, and open_tasks_critical (vf-056) already covers the observable part.",
+    "statement": "vf-059"
+   },
+   {
+    "reason": "It only applies when status marks specs as skipped (skip_specs) or the schema defines no spec artifact. Neither can be observed through the predicates, and this schema defines a spec artifact.",
+    "statement": "vf-060"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "959b0d82d47bb66a44afa64623f98d6d3061ce7ced6a09be7735e18432c189a3",
+ "key": "a694662d132973c434906fb650a7e2b608184ff9ecd30e2ad4143da9e0716c05",
+ "meta": {
+  "at": "2026-10-15T04:46:32Z",
+  "cost_usd": 0.086125,
+  "duration_ms": 34267,
+  "num_turns": 2,
+  "wall_s": 35.44
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "2e6d5515424ad6f618301983ec7662c29f32322786a6a07f2a6f7627d7d15e7b",
+ "version": "2.1.283"
+}

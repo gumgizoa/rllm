@@ -1,0 +1,106 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cv-069.1",
+    "reason": "The \"✅ Converged — the implementation satisfies the spec, plan, and tasks.\" last line applies only when the outcome is converged, so requiring it unconditionally (as a must, with applies_when=None) on convergence_2 is stricter than written.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cv-072.0",
+    "reason": "\"at most two converge rounds\" directly means there should be no convergence_3.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-073.0",
+    "reason": "\"On `tasks_appended` in round 1: open the implement stage document ... again\" directly supports re-reading IM in implement_2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-074.0",
+    "reason": "\"complete the new Convergence phase's tasks (round 2)\" supports ticking the appended tasks after doing the work in implement_2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-075.0",
+    "reason": "\"then return to this document and write `convergence-2.md`\" directly requires convergence_2 when tasks were appended.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-076.0",
+    "reason": "\"no further implement pass is needed ... The workflow is complete; finish the task\" supports, as a should, no repo writes after a converged round.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-077.0",
+    "reason": "\"Round 2, whatever the outcome: the workflow is complete; finish the task\" supports, as a should, no repo writes after converge_2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-002.0",
+    "reason": "\"make that the very first action you take\" directly requires reading core-workflow.md first.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.0",
+    "reason": "\"the very first action you take, ahead of any look at the repository\" directly requires reading CW first.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-004.0",
+    "reason": "\"Go through the stages in the order that file sets\" supports the spec→plan→tasks→convergence write order.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-005.0",
+    "reason": "\"Each stage starts by opening its document under /speckit-sdd/stages/\" requires reading the specify document at the start of the specify stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-005.1",
+    "reason": "\"Each stage starts by opening its document\" requires reading the plan document before writing the plan.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-005.2",
+    "reason": "\"Each stage starts by opening its document\" requires reading the tasks document before writing tasks.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-005.3",
+    "reason": "\"Each stage starts by opening its document\" requires reading the implement document before the first repo edit.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sp-005.4",
+    "reason": "\"Each stage starts by opening its document\" requires reading the converge document before writing convergence.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.critic-1-002-1.0",
+    "reason": "\"Define interface contracts ... → `FEATURE_DIR/contracts/`\" supports the contracts check at should level, though the \"(if project has external interfaces)\" condition is not captured in applies_when.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.critic-2-004-0.1",
+    "reason": "\"Copy ... spec-template.md to `SPECIFY_FEATURE_DIRECTORY/spec.md`\" directly requires the spec artifact to exist.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "dc268cdd0dd1edc4a949dcd76fda37430abbdde01ea5f8778d4083ed10f96e67",
+ "key": "667dc9ff60bc469626df4355fa5291d8aa67461ce42adbb56f1fb7218094159f",
+ "meta": {
+  "at": "2026-10-15T05:19:30Z",
+  "cost_usd": 0.0636954,
+  "duration_ms": 16022,
+  "num_turns": 2,
+  "wall_s": 17.3
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

@@ -1,0 +1,643 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Inline python -c snippets are ad-hoc code composed during explore.",
+    "params": {
+     "action": "command",
+     "pattern": "python3? -c",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`, not a script in `/tmp`."
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-042",
+    "target": {
+     "ref": "explore commands",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Running a script in /tmp during explore.",
+    "params": {
+     "action": "command",
+     "pattern": "python3?\\s+/tmp/",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`, not a script in `/tmp`."
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-042",
+    "target": {
+     "ref": "explore commands",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "note": "No file written anywhere (any absolute path) during explore.",
+    "params": {
+     "pattern": ".*",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       78
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "It writes no file anywhere, inside the repository or outside it."
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-043",
+    "target": {
+     "ref": "explore file writes",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       78
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "It writes no file anywhere, inside the repository or outside it."
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-043",
+    "target": {
+     "ref": "explore repo writes",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Do not add or edit test files there; the tests for this task already exist."
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-045",
+    "target": {
+     "ref": "edits of existing test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Do not add or edit test files there; the tests for this task already exist."
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-045",
+    "target": {
+     "ref": "new test files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "note": "File-name heuristic for notes/summaries/scratch files created in the repository.",
+    "params": {
+     "pattern": "(notes|summar|scratch)"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-047",
+    "target": {
+     "ref": "stray files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "'belong under' is declarative, not an imperative; the /tmp exclusion is inferred from the neighbouring explore rule.",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "^/tmp/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       81,
+       82
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`."
+     },
+     {
+      "lines": [
+       76,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "not a script in `/tmp`"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-048",
+    "target": {
+     "ref": "scratch file locations",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "verify",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Verify runs once and writes `/openspec/changes/issue/verify.md`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-049",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Verify runs once and writes `/openspec/changes/issue/verify.md`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-050",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "archive",
+     "window": [
+      "last_write:verify",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       87
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Whatever it finds, move on to archive; the report records what is still open."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-051",
+    "target": {
+     "ref": "openspec archive after verify",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "'No loop back to apply' is inferred from 'move on to archive', not stated explicitly.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": [
+      "last_write:verify",
+      "end"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       86,
+       87
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Whatever it finds, move on to archive; the report records what is still open."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-051",
+    "target": {
+     "ref": "source edits after verify report",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "event": "last_change_write",
+     "rule": "after"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The code change must be complete before this step"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-053",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "event": "first_write:verify",
+     "rule": "after"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "archive only once `/openspec/changes/issue/verify.md` exists."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-054",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "absent": {
+      "artifact": "verify",
+      "fact": "artifact_write",
+      "window": [
+       "start",
+       "stage_start:archive"
+      ]
+     }
+    },
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": [
+      "stage_start:archive",
+      "write:verify"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       93
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If it does not, open `/opsx/stages/03-verify.md` and write it first."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-055",
+    "target": {
+     "ref": "read of /opsx/stages/03-verify.md",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "archive issue --yes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       93,
+       97
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Then run once: ... openspec archive issue --yes"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-056",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "note": "Run once; a single retry only after a failure (lines 103-104).",
+    "params": {
+     "rule": "retries"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       93,
+       97
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Then run once: ... openspec archive issue --yes"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-056",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "change",
+     "pattern": "/openspec/changes/archive/[^/]+-issue/?$"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "moves the change to `/openspec/changes/archive/<date>-issue/`."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-057",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "merges its delta specs into `/openspec/specs/`"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-057",
+    "target": {
+     "ref": "main_spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The finish call itself is not observable by any kind; checked only that nothing but delta-spec corrections is written after the first archive call.",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "specs_only"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       102,
+       104
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "- Exit code 0: call `finish`.\n- Exit code 1: correct only what the error message names in the delta spec"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-058",
+    "target": {
+     "ref": "actions after openspec archive",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Whether a command is existing code/tests or 'the issue's own example exactly as given' can't be checked without comparing it to the issue text. The ad-hoc code and file-write parts are covered by cw-042 and cw-043.",
+    "statement": "cw-041"
+   },
+   {
+    "reason": "It depends on whether the issue asks for README/docs/changelog changes, and that can't be expressed as an applies_when predicate.",
+    "statement": "cw-046"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "91f15b551ceea6236b9d01d2f8868262b9cb39f4a593d9bde693f4381973991a",
+ "key": "c9c8eebd16e7d4ec4dd45022209bad6a4d20dfbb693cf17e1207323ee0691abb",
+ "meta": {
+  "at": "2026-10-16T06:16:56Z",
+  "cost_usd": 0.254655,
+  "duration_ms": 61899,
+  "num_turns": 2,
+  "wall_s": 63.45
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample0",
+ "schema_sha256": "c562e8d82fb123a08983a3927518d0ffa19f704f5cc8b9850911839b983b054a",
+ "version": "2.1.283"
+}

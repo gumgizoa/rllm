@@ -1,0 +1,383 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "pattern": "\\.(gitignore|dockerignore)$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Ignore files (`.gitignore`, `.dockerignore` and so on) stay untouched."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-036",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.created_files",
+    "none_allowed": "-",
+    "note": "Workflow notes/spec copies/summaries are markdown; any new .md file in the repo is taken as workflow residue.",
+    "params": {
+     "pattern": "\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       83
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Nothing of the workflow lands in `/testbed`: no spec copies, notes, summaries or scratch scripts. All of that belongs in `FEATURE_DIR`"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-037",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.created_files",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "(^|/)repro[^/]*\\.py$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       83,
+       84
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "with verification scripts and scratch files under `FEATURE_DIR/checks/`. A script written anywhere else — `/tmp/test_x.py`, `/testbed/repro.py` — breaks this rule."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-038",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.paths_written",
+    "none_allowed": "-",
+    "note": "Scripts directly under /tmp (outside /tmp/speckit-sdd/...) are outside FEATURE_DIR/checks/.",
+    "params": {
+     "pattern": "^/tmp/[^/]+\\.py$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       83,
+       84
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "A script written anywhere else — `/tmp/test_x.py`, `/testbed/repro.py` — breaks this rule."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-038",
+    "target": {
+     "ref": "write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Implicit: the document explains the hint rather than forbidding typing the slash command.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "^\\s*/speckit\\."
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       88,
+       90
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The scripts are Spec Kit's own and print Spec Kit's hints, written for someone typing slash commands. An error like \"plan.md not found ... Run /speckit.plan first\" means that the stage named in the hint has not produced its file yet"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-039",
+    "target": {
+     "ref": "command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "do not open links found in the issue and do not look anything up online."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-001",
+    "target": {
+     "ref": "command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.links",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       6,
+       6
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Where a link matters to the spec, quote it as it appears, marked `[UNVERIFIED — not fetched]`."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-002",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "pattern": "/001-issue/"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "its directory name is `001-issue`"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-003",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "^/tmp/speckit-sdd/specs/(?!001-issue(/|$))"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "do not generate a short name or a number"
+     },
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "`SPECIFY_FEATURE_DIRECTORY` is `/tmp/speckit-sdd/specs/001-issue`."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-004",
+    "target": {
+     "ref": "write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Stated as a fact rather than an explicit imperative.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "git\\s+branch\\s+\\w"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "no git branch is created"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-005",
+    "target": {
+     "ref": "command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Feature Branch\\*\\*:\\s*`?001-issue`?"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Where a template asks for the branch, write `001-issue`."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-006",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "pattern": "/tmp/speckit-sdd/specs/001-issue/"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       23
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "`SPECIFY_FEATURE_DIRECTORY` is `/tmp/speckit-sdd/specs/001-issue`. ... `mkdir -p SPECIFY_FEATURE_DIRECTORY`"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-007",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Copy `/tmp/speckit-sdd/.specify/templates/spec-template.md` to `SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-008",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies when a script's output carries the hint, and the reference language has no predicate over script output. The stage order is checked by the stage-level items.",
+    "statement": "cw-040"
+   },
+   {
+    "reason": "Only applies when a script's output carries the /speckit.plan hint. The reference language cannot express that condition.",
+    "statement": "cw-041"
+   },
+   {
+    "reason": "Only applies when a script's output carries the /speckit.tasks hint. The reference language cannot express that condition.",
+    "statement": "cw-042"
+   },
+   {
+    "reason": "Only applies after a script has failed. There is no predicate to find a failed script call and match it to a later successful rerun of the same script.",
+    "statement": "cw-043"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "9a43c5f1102498cbfab6494369f9ba885ab9d0986907a4d572ef17c179fe9476",
+ "key": "025122e9e428cadab33e3517aa804119f9dc6efd367cd3a09eab0a0ad3f40882",
+ "meta": {
+  "at": "2026-10-15T05:12:17Z",
+  "cost_usd": 0.25141800000000003,
+  "duration_ms": 58193,
+  "num_turns": 2,
+  "wall_s": 59.26
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "b5bd47314aff05a3de8ed19136dbb9a2791abaf0397fa4d590a652139b5ccea8",
+ "version": "2.1.283"
+}

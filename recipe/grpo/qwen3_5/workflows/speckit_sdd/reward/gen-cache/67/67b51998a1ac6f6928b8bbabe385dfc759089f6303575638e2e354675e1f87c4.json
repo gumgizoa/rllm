@@ -1,0 +1,338 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "downgrade_reason": "Only the existence of a Notes section is checked; the instruction to list failing items there is conditional and cannot be observed, so the item is inferred and kept at should.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Notes"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       119,
+       119
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "List the failing items and specific issues in the checklist's Notes"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-036",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "\\[NEEDS CLARIFICATION"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       125,
+       127
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Extract all [NEEDS CLARIFICATION: ...] markers from the spec ... take the most plausible answer, replace the marker in the spec with it"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-042",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Inferred: a checklist reflecting the current status must be written after the last spec revision.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "last_write:req_checklist",
+     "before": "last_write:spec"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       130,
+       130
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "After each validation iteration, update the checklist file with current pass/fail status"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-045",
+    "target": {
+     "ref": "req_checklist",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "read:PL",
+     "before": "first_write:spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Once `SPEC_FILE` and `checklists/requirements.md` are written, open `/speckit-sdd/stages/02-plan.md` and start the plan stage."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-047",
+    "target": {
+     "ref": "read:PL",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "read:PL",
+     "before": "first_write:req_checklist"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Once `SPEC_FILE` and `checklists/requirements.md` are written, open `/speckit-sdd/stages/02-plan.md` and start the plan stage."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-047",
+    "target": {
+     "ref": "read:PL",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "Implicit requirement.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Once `SPEC_FILE` and `checklists/requirements.md` are written"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-048",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "Implicit requirement.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Once `SPEC_FILE` and `checklists/requirements.md` are written"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-048",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "PL"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "open `/speckit-sdd/stages/02-plan.md` and start the plan stage."
+     }
+    ],
+    "stage": "global",
+    "statement": "sy-049",
+    "target": {
+     "ref": "read:PL",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Deciding whether spec text contains implementation details (tech stack, APIs, code structure) is a semantic judgment that no deterministic kind can make.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       139,
+       139
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Avoid HOW to implement (no tech stack, APIs, code structure)."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-051",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "A checkbox-line residue check would need a '- [ ]' pattern literal that is not in the cited lines or the spec template, so rule 2 rules it out.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       141,
+       141
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "DO NOT create any checklists that are embedded in the spec."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-053",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "^\\s*(?:[-*]\\s*)?N/A"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       147,
+       147
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "When a section doesn't apply, remove it entirely (don't leave as \"N/A\")"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-057",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The pass/fail review of each item happens in the agent's head. Its only observable result is the checklist's marks, and sy-045 already covers that.",
+    "statement": "sy-033"
+   },
+   {
+    "reason": "Its condition ('if all items pass') is the agent's own judgment and cannot be observed, so there is no predicate to express it.",
+    "statement": "sy-035"
+   },
+   {
+    "reason": "Its condition (still failing after 3 validation iterations) cannot be observed with any predicate in the reference language.",
+    "statement": "sy-039"
+   },
+   {
+    "reason": "Recording the choices in Assumptions depends on markers that existed before and were replaced, which cannot be observed. The plain 'Assumptions is filled' check is already compiled from the template.",
+    "statement": "sy-043"
+   },
+   {
+    "reason": "No kind can detect a text-only completion message. Moving on to the plan stage is already checked by the sy-047 and sy-049 items.",
+    "statement": "sy-046"
+   },
+   {
+    "reason": "The mandatory spec sections and their filled values are already compiled from the TPL_SPEC skeleton.",
+    "statement": "sy-054"
+   },
+   {
+    "reason": "The 'Assumptions section is filled' check is already compiled from the template skeleton. Whether the defaults are 'reasonable' is a semantic judgment.",
+    "statement": "sy-059"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "c7479b73e0a3ee97d823b5ec1b233d05431cf0ecbd7c427f1543df7563d9b660",
+ "key": "67b51998a1ac6f6928b8bbabe385dfc759089f6303575638e2e354675e1f87c4",
+ "meta": {
+  "at": "2026-10-15T05:12:38Z",
+  "cost_usd": 0.20263199999999998,
+  "duration_ms": 39269,
+  "num_turns": 2,
+  "wall_s": 40.4
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "5f75cd27d41343e0ca638123276039d994fa0b384401b1a227f60257daa3b7dd",
+ "version": "2.1.283"
+}

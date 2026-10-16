@@ -1,0 +1,34 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 15,
+    "line_start": 14,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Semantic naming guidance for capabilities listed in the proposal; whether a name represents a cohesive behaviour needs judgement.",
+    "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+    "quote": "Name each capability for a cohesive system behavior that can own related requirements as the system evolves.",
+    "stage": "ff",
+    "target": "proposal.md Capabilities section: capability names"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "4523ecdfa7782ad52d601d459f188c2b0cbe7fea1145343d1d150a368a68c55f",
+ "key": "ef00838c5a284b2d2368e8c500e86a708375ff710f37e88b68a4ba50422a64c0",
+ "meta": {
+  "at": "2026-10-14T06:50:42Z",
+  "cost_usd": 0.0177772,
+  "duration_ms": 5429,
+  "num_turns": 2,
+  "wall_s": 6.75
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round2",
+ "schema_sha256": "f08645f49684ff837b889e8fedbee72121c4ff70e60983480486b01fc2be9224",
+ "version": "2.1.283"
+}

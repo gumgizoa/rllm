@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cw-002.0",
+    "reason": "The stage table row \"| 1. Assess | ... | `assessment.md` |\" names assessment.md as the Assess stage's output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-003.0",
+    "reason": "The row \"| 1. Assess | `/speckit/stages/01-assess.md` |\" links the Assess stage to its instruction doc, so that doc should be read during the stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-004.0",
+    "reason": "The row \"| 2. Fix | `/speckit/stages/02-fix.md` |\" links the Fix stage to its instruction doc.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-004.1",
+    "reason": "Fix outputs \"`fix.md`, then `fix-2.md`\" come from the same stage doc `02-fix.md`, so it applies to round 2 too.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-004.2",
+    "reason": "Fix outputs \"then `fix-2.md`, `fix-3.md`\" come from the same stage doc `02-fix.md`, so it applies to round 3 too.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-005.0",
+    "reason": "The row \"| 2. Fix | ... | `fix.md`, then ...\" names fix.md as the first Fix output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-006.0",
+    "reason": "The rounds go \"`fix.md`, then `fix-2.md`\", and a test-2 verifies fix-2, so fix_2 should exist whenever test_2 does.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-007.0",
+    "reason": "The sequence \"then `fix-2.md`, `fix-3.md`\" means round 3 testing requires the fix-3 artifact.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-008.0",
+    "reason": "The row \"| 3. Test | `/speckit/stages/03-test.md` |\" links the Test stage to its instruction doc.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-008.1",
+    "reason": "Test outputs \"`test.md`, then `test-2.md`\" come from the same stage doc `03-test.md`.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-008.2",
+    "reason": "Test outputs \"then `test-2.md`, `test-3.md`\" come from the same stage doc `03-test.md`.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-009.0",
+    "reason": "The row \"| 3. Test | ... | `test.md`, then ...\" names test.md as the first Test output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-010.0",
+    "reason": "\"`test.md`, then `test-2.md`\" pairs each fix round with a test round, so fix_2 should be followed by test_2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-011.0",
+    "reason": "\"then `test-2.md`, `test-3.md`\" pairs fix-3 with a test-3 verification.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-014.0",
+    "reason": "\"**Assess** once.\" and the stage order (Assess before Fix) mean assessment.md is finished before the first fix write.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-019.0",
+    "reason": "\"`verified` — the workflow is complete. Finish the task.\" means a verified test.md must not be followed by fix-2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-019.1",
+    "reason": "\"`verified` — the workflow is complete. Finish the task.\" means a verified test-2.md must not be followed by fix-3.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-020.0",
+    "reason": "\"its **Result** decides: - `verified` ... - `partial` or `failed`\" lists the only allowed Result values.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-020.1",
+    "reason": "\"After each verification report, its **Result** decides\" applies the same verified/partial/failed values to test-2.md.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-020.2",
+    "reason": "\"After each verification report, its **Result** decides\" applies the same verified/partial/failed values to test-3.md.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "bd2371cfcd0e6b1c7f0a41eae698c9e394bd07c0a4ad802fa32d2f063a4d2835",
+ "key": "1b360b967518a7e337f25591f602642fadbd680f311aec8d7c0629656a962c86",
+ "meta": {
+  "at": "2026-10-14T01:59:14Z",
+  "cost_usd": 0.07571,
+  "duration_ms": 17043,
+  "num_turns": 2,
+  "wall_s": 18.34
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

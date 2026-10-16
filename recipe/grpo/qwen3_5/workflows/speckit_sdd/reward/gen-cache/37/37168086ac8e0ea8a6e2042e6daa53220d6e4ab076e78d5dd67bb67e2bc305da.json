@@ -1,0 +1,510 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": {
+      "first": {
+       "created": false,
+       "fact": "repo_edit"
+      }
+     },
+     "before": "stage_end:tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       82
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "If tasks are incomplete or missing, carry out the tasks stage (`/speckit-sdd/stages/03-tasks.md`) first to regenerate the task list."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-052",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks for an assistant text report between implement and converge.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Nothing is reported at the end of this stage: no one reads a completion message"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-053",
+    "target": {
+     "ref": "completion message",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind expresses 'no report file written in the feature directory' without inventing a filename pattern.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "This stage leaves no report of its own"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-055",
+    "target": {
+     "ref": "implement report",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.tasks_done",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "marked_after_code"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "the `[X]` marks in tasks.md and the converge stage's round report are the record"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-056",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CV",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "open `/speckit-sdd/stages/05-converge.md` and start this round's converge stage."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-057",
+    "target": {
+     "ref": "read:CV",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked",
+     "window": [
+      "stage_start:implement",
+      "read:CV"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Once every task you can complete is marked, open `/speckit-sdd/stages/05-converge.md` and start this round's converge stage."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-058",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "All tasks in tasks.md completed and marked `[X]`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-059",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "All tasks in tasks.md completed and marked `[X]`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-059",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "pass_last",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Implementation validated against specification, plan, and tests (the `FEATURE_DIR/checks/` scripts"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-060",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "and the existing repository tests related to the change)"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-061",
+    "target": {
+     "ref": "test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CV"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "The converge stage (`/speckit-sdd/stages/05-converge.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "converge",
+    "statement": "im-063",
+    "target": {
+     "ref": "read:CV",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "spec",
+      "plan",
+      "tasks"
+     ],
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Read `spec.md`, `plan.md`, and `tasks.md` as the **sole source of intent**"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-001",
+    "target": {
+     "ref": "read",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Reading the constitution is implied by 'governing constraints', not stated as an imperative.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": "stage:converge"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "(with the constitution as governing constraints)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-001",
+    "target": {
+     "ref": "read:CONSTITUTION",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "appended",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       7,
+       8
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**append each piece of remaining work as a new, traceable task** at the bottom of `tasks.md`"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-003",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "mode": "append_only",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       7,
+       8
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**append each piece of remaining work as a new, traceable task** at the bottom of `tasks.md`"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-003",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:convergence",
+     "before": "stage_end:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       10
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "This stage MUST run only after the implement stage (`/speckit-sdd/stages/04-implement.md`) has run on the current `tasks.md`"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-004",
+    "target": {
+     "ref": "stage ordering",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:convergence",
+     "before": "stage_end:tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       10
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "This stage MUST run only after ... after the tasks stage (`/speckit-sdd/stages/03-tasks.md`) has produced a complete `tasks.md`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-005",
+    "target": {
+     "ref": "stage ordering",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "\\bgit\\b",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       13
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "It assesses the present state of the code relative to the feature's artifacts — no git, no branch comparison, no history."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-006",
+    "target": {
+     "ref": "git",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Implicit consequence ('a reply without a tool call ends the session'); the observable requirement — going on into converge — is already checked by im-057 and im-063.",
+    "statement": "im-054"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7739c712fa81e2844124851d79f2bc825476ea1a7ced69103a1c068e261a414a",
+ "key": "37168086ac8e0ea8a6e2042e6daa53220d6e4ab076e78d5dd67bb67e2bc305da",
+ "meta": {
+  "at": "2026-10-15T05:15:57Z",
+  "cost_usd": 0.23182499999999998,
+  "duration_ms": 45791,
+  "num_turns": 2,
+  "wall_s": 46.87
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "bcf77bad8d33d6502011f2c6cbeab0ca2e808ca5c9e7a5530b17f427d222dc4f",
+ "version": "2.1.283"
+}

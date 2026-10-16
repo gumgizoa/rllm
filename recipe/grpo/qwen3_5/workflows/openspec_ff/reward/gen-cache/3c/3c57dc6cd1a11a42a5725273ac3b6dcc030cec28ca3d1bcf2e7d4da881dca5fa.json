@@ -1,0 +1,292 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "The prohibition sits under the no-OpenSpec-root branches. The sandbox already has an /openspec root, so the rule is only an approximation here.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "init"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "global",
+    "statement": "ap-014",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "status",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       30
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "**Check status to understand the schema** ... openspec status --change \"issue\" --json ... Parse the JSON to understand:"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-022",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "instructions apply",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       37
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "**Get apply instructions** ... ```bash"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-024",
+    "target": {
+     "ref": "openspec instructions apply --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "spec",
+      "design",
+      "tasks"
+     ],
+     "deltas": true,
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       74,
+       76
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Read every file path listed under `contextFiles` from the apply instructions output. ... - **spec-driven**: proposal, specs, design, tasks"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-044",
+    "target": {
+     "ref": "contextFiles",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       97,
+       97
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Mark the task complete at its returned `sourcePath` and `line`: `- [ ]` → `- [x]`"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-054",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "rerun_after_tick",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       98,
+       98
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Rerun the apply instructions and confirm that task is now done and progress changed"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-055",
+    "target": {
+     "ref": "openspec instructions apply",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks what the assistant says in chat.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Always announce: \"Using change: issue\"."
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-021",
+    "target": {
+     "ref": "change announcement",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind detects text copied word for word from CLI output into files.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       80
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Do not copy `context` or `operationGuidance` verbatim into implementation files or planning artifacts unless the user separately asks for that content."
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-046",
+    "target": {
+     "ref": "implementation files and planning artifacts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks what is displayed in the conversation.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       88
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "**Show current progress** ... Display: ... - Progress: \"N/M tasks complete\""
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-047",
+    "target": {
+     "ref": "progress display",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies in the branches where no OpenSpec root exists. The sandbox already has /openspec, and 'no root at start' cannot be written as a predicate.",
+    "statement": "ap-013"
+   },
+   {
+    "reason": "Only applies when no OpenSpec root exists, which cannot be written as a predicate. The workflow itself hand-writes files under openspec/changes, so an unconditional check would be wrong.",
+    "statement": "ap-015"
+   },
+   {
+    "reason": "Only applies when no OpenSpec root exists. The root is already there, and no predicate can express 'a command created the root'.",
+    "statement": "ap-016"
+   },
+   {
+    "reason": "Depends on the CLI reporting state blocked with a non-empty missingArtifacts list. That CLI output state cannot be written as a predicate.",
+    "statement": "ap-026"
+   },
+   {
+    "reason": "Depends on the CLI reporting a 'blocked' state. That state cannot be observed through the predicate language.",
+    "statement": "ap-029"
+   },
+   {
+    "reason": "Depends on the CLI reporting state all_done, which cannot be written as a predicate. The verify stage's own doc read already covers the read.",
+    "statement": "ap-030"
+   },
+   {
+    "reason": "Applies only to schemas other than spec-driven. This run uses spec-driven-sandbox, and the ap-044 contextFiles read check already covers it.",
+    "statement": "ap-045"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7257bd7288835b1c0cb50dbf0b5b65361e9989e40b962420da7c9f426a0ab516",
+ "key": "3c57dc6cd1a11a42a5725273ac3b6dcc030cec28ca3d1bcf2e7d4da881dca5fa",
+ "meta": {
+  "at": "2026-10-14T06:45:06Z",
+  "cost_usd": 0.0793498,
+  "duration_ms": 30180,
+  "num_turns": 2,
+  "wall_s": 31.31
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "5e45c90d3a9d063135ec2e74e3625118ab32ee57d3fcc37753c0740ae7ac78f8",
+ "version": "2.1.283"
+}

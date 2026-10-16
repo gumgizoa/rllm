@@ -1,0 +1,281 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": {
+     "not": {
+      "artifact_exists": "design"
+     }
+    },
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Only applies when there is no design.md; the report must then mark Design Adherence as not verified.",
+    "params": {
+     "min": 1,
+     "pattern": "Design Adherence.*[Nn]ot verified"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Otherwise, if the design artifact's `contextFiles.<id>` file is absent or empty: mark **Design Adherence** as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-098",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "absent": {
+      "fact": "repo_edit",
+      "final": true
+     }
+    },
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "downgrade_reason": "Reading 'implementation changes cannot be identified' as 'no repo edit in the final change' is an inference.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Code Pattern Consistency.*[Nn]ot verified"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       136,
+       136
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If implementation changes cannot be identified, mark **Code Pattern Consistency** as not verified and explain the missing evidence."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-100",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       145,
+       145
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Write the report to a file in the change directory: round 1 `/openspec/changes/issue/verify.md`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-105",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       145,
+       145
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "round 2 `/openspec/changes/issue/verify-2.md`"
+     }
+    ],
+    "stage": "round_2",
+    "statement": "vf-106",
+    "target": {
+     "ref": "verify_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "The Summary table has one row each for Completeness, Correctness and Coherence.",
+    "params": {
+     "min": 3,
+     "pattern": "^\\|\\s*(Completeness|Correctness|Coherence)\\s*\\|",
+     "section": "Summary",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       151,
+       156
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "### Summary ... | Completeness | X/Y tasks, N reqs| ... | Correctness  | M/N reqs covered | ... | Coherence    | Followed/Issues  |"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-107",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "The round-2 report uses the same scorecard.",
+    "params": {
+     "min": 3,
+     "pattern": "^\\|\\s*(Completeness|Correctness|Coherence)\\s*\\|",
+     "section": "Summary",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       151,
+       156
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "### Summary ... | Completeness | X/Y tasks, N reqs| ... | Correctness  | M/N reqs covered | ... | Coherence    | Followed/Issues  |"
+     }
+    ],
+    "stage": "round_2",
+    "statement": "vf-107",
+    "target": {
+     "ref": "verify_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this would mean matching 'Scenario not covered' warnings against scenarios under REMOVED requirements in the delta specs. No kind does that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       121,
+       121
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Skip scenarios under a REMOVED requirement; that behavior is meant to be gone."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-092",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The recommendation is only needed when the agent judges a scenario uncovered. That condition can't be observed, so no applies_when predicate can express it.",
+    "statement": "vf-091"
+   },
+   {
+    "reason": "This schema defines a 'design' artifact, so the 'no design artifact in the schema' case never happens in this workflow. The condition also can't be written as a predicate.",
+    "statement": "vf-093"
+   },
+   {
+    "reason": "Whether a design decision was contradicted is the agent's own judgement and can't be observed. The warning can't be tied to a checkable condition.",
+    "statement": "vf-096"
+   },
+   {
+    "reason": "The recommendation depends on a design contradiction the agent judges for itself. It can't be observed, so applies_when can't express it.",
+    "statement": "vf-097"
+   },
+   {
+    "reason": "Whether a code-pattern deviation is 'significant' is a subjective call. The suggestion can't be tied to an observable predicate.",
+    "statement": "vf-103"
+   },
+   {
+    "reason": "The recommendation depends on a significant pattern deviation found by judgement. It can't be observed, so applies_when can't express it.",
+    "statement": "vf-104"
+   },
+   {
+    "reason": "Which checks were skipped is decided inside the agent's verification. There is no fact or predicate that identifies skipped checks to compare against the 'Not verified (<reason>)' cells.",
+    "statement": "vf-108"
+   },
+   {
+    "reason": "Whether every check in a dimension was skipped can't be observed from the run facts, so there is no applies_when predicate for it.",
+    "statement": "vf-109"
+   },
+   {
+    "reason": "This is a reasoning rule for the final assessment (treat partial checks as skipped). Which checks were partially verified isn't observable.",
+    "statement": "vf-111"
+   },
+   {
+    "reason": "This only applies when the deltas contain REMOVED or RENAMED requirements. The reference language has no predicate over delta section types, so the condition can't be expressed.",
+    "statement": "vf-113"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7dc6fdb5119c3c3027c87b934fa16d30ea5d10b7e08b727a44c72ef6e4b25787",
+ "key": "eb6891aa57f53ba06e8fd9b701965dd95ddae288991db6cc7d5d5d110875a452",
+ "meta": {
+  "at": "2026-10-14T06:46:19Z",
+  "cost_usd": 0.18809,
+  "duration_ms": 32809,
+  "num_turns": 2,
+  "wall_s": 33.93
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "3a6833347695b77ba4f332af4b9be2bf30ecafd1d88a242a56609c33f46f0456",
+ "version": "2.1.283"
+}

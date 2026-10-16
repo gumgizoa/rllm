@@ -1,0 +1,490 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Counts lines that carry a marker. A line with two markers counts once, so this check is approximate.",
+    "params": {
+     "max": 3,
+     "pattern": "\\[NEEDS CLARIFICATION"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       155,
+       155
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "**Limit clarifications**: Maximum 3 [NEEDS CLARIFICATION] markers"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-060",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Deciding whether each criterion carries a specific metric is a semantic judgment, and the document gives no pattern for it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       178
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Success criteria must be: ... 1. **Measurable**: Include specific metrics (time, percentage, count, rate)"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-066",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this would need a closed list of technology names, and the document does not supply one.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       179
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Success criteria must be: ... 2. **Technology-agnostic**: No mention of frameworks, languages, databases, or tools"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-067",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       199,
+       199
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Specification written to `SPEC_FILE` and validated against quality checklist"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-070",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "Inferred: the line does not name the checklist file; checklists/requirements.md is taken to be the quality checklist.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       199,
+       199
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "validated against quality checklist"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-070",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Inferred: validation implies the checklist is finalized after the spec is written.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:spec",
+      "last_write:req_checklist"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       199,
+       199
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Specification written to `SPEC_FILE` and validated against quality checklist"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-070",
+    "target": {
+     "ref": "validate spec against checklist",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "No event type covers the 'no report in between' part, so only the order is checked.",
+    "params": {
+     "chain": [
+      "last_write:spec",
+      "read:PL"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       200,
+       200
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "The plan stage (`/speckit-sdd/stages/02-plan.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-071",
+    "target": {
+     "ref": "transition to plan stage",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json"
+     ],
+     "name": "setup-plan.sh",
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "**Setup**: Run `/tmp/speckit-sdd/.specify/scripts/bash/setup-plan.sh --json`"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-001",
+    "target": {
+     "ref": "setup-plan.sh --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "spec"
+     ],
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-005",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-005",
+    "target": {
+     "ref": "read constitution",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "plan"
+     ],
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Load IMPL_PLAN template (already copied)."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-006",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that each Technical Context value comes from repository build files, CI configuration or the installed environment would need a semantic match against those files.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       8,
+       8
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Fill Technical Context from the repository - its build files, CI configuration and installed environment; nobody names a tech stack"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-008",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Inferred: filling from the constitution implies it was read before plan.md was finalized.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CONSTITUTION",
+      "last_write:plan"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Fill Constitution Check section from constitution."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-010",
+    "target": {
+     "ref": "fill Constitution Check from constitution",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "note": "Assumes the shipped constitution (source role: template) is unfilled. The predicate language cannot test the constitution's content, so the item has no applies_when condition.",
+    "params": {
+     "section": "Constitution Check",
+     "text": "skipped — template"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "If the constitution is an unfilled template (`[ALL_CAPS]` placeholders with `<!-- Example: ... -->` comments), it has no principles - its comments are examples, not rules: write \"skipped — template\" in Constitution Check"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-011",
+    "target": {
+     "ref": "plan",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No vocabulary defines what an evaluated gate looks like in the Constitution Check section.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "write \"skipped — template\" in Constitution Check and evaluate no gate"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-012",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-014",
+    "target": {
+     "ref": "research",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The resolution may be recorded only in research.md, and the document does not say plan.md must be updated.",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "NEEDS CLARIFICATION"
+     ],
+     "section": "Technical Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-014",
+    "target": {
+     "ref": "plan",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Its condition (setup-plan.sh exiting non-zero with a missing-stage hint) cannot be expressed as an applies_when predicate. The pl-001 script item already requires a successful run in the plan stage, which covers the rerun.",
+    "statement": "pl-003"
+   },
+   {
+    "reason": "Following the IMPL_PLAN template structure is already covered by the compiled template sections and labels for plan.",
+    "statement": "pl-007"
+   },
+   {
+    "reason": "Which Technical Context values are 'unknown' is a judgment the run cannot back. Resolving NEEDS CLARIFICATION markers is covered under pl-014.",
+    "statement": "pl-009"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d26167ac2cc7b9c5506e81db4b1ea5801354327b425dcca3f00b28b6d191f2b5",
+ "key": "edfb9a24e2a546da35cd7d67ee7630c9820738e660c70f6ec8a1ce84dc789261",
+ "meta": {
+  "at": "2026-10-15T05:13:09Z",
+  "cost_usd": 0.13748319999999997,
+  "duration_ms": 50760,
+  "num_turns": 2,
+  "wall_s": 51.9
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "6877fc7e7d7339f65aed74037120e994d8ef937b562c7b5e92a5578413f9abc3",
+ "version": "2.1.283"
+}

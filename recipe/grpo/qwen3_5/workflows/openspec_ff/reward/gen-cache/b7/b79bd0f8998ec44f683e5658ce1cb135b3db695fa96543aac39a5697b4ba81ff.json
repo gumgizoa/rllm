@@ -1,0 +1,422 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The trigger is whether the codebase actually implements each ADDED/MODIFIED requirement. That is a judgement about the code, and no predicate in the reference language can express it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       83
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If ADDED or MODIFIED requirements appear unimplemented: - Add CRITICAL issue: \"Requirement not found: <requirement name>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-062",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Each 'Requirement not found' issue needs a matching recommendation. No kind can tie two parts of one issue entry together, and the verify template has no fixed section or label to anchor to.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Recommendation: \"Implement requirement X: <description>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-063",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This could in principle be a disjoint cross_ref between issue names in the report and the REMOVED requirement names in the delta specs. However, both sides are written by the agent, and the REMOVED section heading text cannot be quoted from the cited sources, so it is not expressed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       87
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Never report a REMOVED requirement as \"Requirement not found\" or recommend implementing it."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-067",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether removed behavior is still present in the code cannot be observed by the engine.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       88,
+       89
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If the behavior is still present: - Add CRITICAL issue: \"Removed requirement still implemented: <requirement name>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-068",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The recommendation depends on a matching issue. The file:lines part could be checked as a repo_path, but only if there were a fixed label to read it from, and there is none.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Recommendation: \"Remove the remaining implementation at <file>:<lines>, following the requirement's Migration note if it has one\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-069",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs the FROM names out of RENAMED entries in the delta specs, compared against the 'not found' issues in the report. Both sides are written by the agent, and the format of a FROM: entry cannot be quoted from the cited sources.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Do not report the FROM name as missing"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-071",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The trigger is whether the renamed behavior is still implemented in the code. That is a semantic judgement and cannot be observed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       96,
+       97
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If it appears unimplemented: - Add CRITICAL issue: \"Renamed requirement not found: <TO name>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-076",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This recommendation goes with a 'Renamed requirement not found' issue. No kind can express that pairing.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       98,
+       98
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Recommendation: \"Restore the behavior of <TO name> (renamed from <FROM name>); a rename must not change behavior\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-077",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "It applies when the baseline requirement for a RENAMED entry is missing from the main spec. The rule is about each entry, and neither the condition nor the Spec Coverage status has a template label to check.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If the baseline requirement cannot be found or read, mark **Spec Coverage** as not verified for that entry with the reason."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-078",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The condition (a change that only removes or renames requirements) is about the content of the delta specs, and no predicate can express it. The two checks are not template labels either.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If the delta specs are readable and contain at least one REMOVED or RENAMED requirement but no ADDED or MODIFIED requirements ..., report **Requirement Implementation Mapping** and **Scenario Coverage** as **Not applicable**."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-080",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Same as vf-080: the removal/rename-only condition and the two checks cannot be expressed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "so do not mark these two checks as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-081",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The condition (a delta spec with no parseable requirements) could be approximated with openspec.delta format rules, but there is no applies_when form for it and no template label for the checks.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "A delta spec with no parseable requirements at all is unusable evidence, not a removal-only change: mark these checks as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-082",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Paths in the mapping could be checked as repo_path, but the mapping has no fixed section or label in the verify template to read them from.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If found, note file paths and line ranges"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-084",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether the code diverges from the spec is a semantic judgement and cannot be observed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       110,
+       111
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If divergence detected: - Add WARNING: \"Implementation may diverge from spec: <details>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-086",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This recommendation goes with a divergence warning. No kind can express that pairing, and there is no label holding the file:lines.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Recommendation: \"Review <file>:<lines> against requirement X\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-087",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether each scenario is covered by code, tests or checks is decided per scenario as a semantic judgement. No predicate expresses that condition.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       118,
+       119
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If scenario appears uncovered: - Add WARNING: \"Scenario not covered: <scenario name>\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-090",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "a178c6bc9c714ed86e5624c7b120e99b4dc0ef40124b4151d524ca5104f89dc7",
+ "key": "b79bd0f8998ec44f683e5658ce1cb135b3db695fa96543aac39a5697b4ba81ff",
+ "meta": {
+  "at": "2026-10-14T06:46:26Z",
+  "cost_usd": 0.1124578,
+  "duration_ms": 43128,
+  "num_turns": 2,
+  "wall_s": 44.36
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "f4e4be3e6a8c95454ba31156075b15d334b4e5bed845b75e2520b42e5564e6f2",
+ "version": "2.1.283"
+}

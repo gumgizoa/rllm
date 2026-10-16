@@ -1,0 +1,632 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "stage_start:explore",
+      "stage_start:ff",
+      "stage_start:apply",
+      "stage_start:verify",
+      "stage_start:archive"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "you take every action yourself, in this order, within this one session"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-001",
+    "target": {
+     "ref": "explore→ff→apply→verify→archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "EX"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "and explore always comes first"
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-002",
+    "target": {
+     "ref": "explore",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "EX",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| explore | `/opsx/stages/00-explore.md` |"
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-003",
+    "target": {
+     "ref": "/opsx/stages/00-explore.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`openspec list --json`"
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-004",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.note",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "What We Figured Out"
+     ],
+     "window": [
+      "stage_start:explore",
+      "read:FF"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "only the \"What We Figured Out\" summary, in a tool call before the ff document is opened"
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-005",
+    "target": {
+     "ref": "What We Figured Out summary",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "no file: only the \"What We Figured Out\" summary"
+     }
+    ],
+    "stage": "explore",
+    "statement": "cw-005",
+    "target": {
+     "ref": "explore leaves no file",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FF",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| ff | `/opsx/stages/01-ff.md` |"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-006",
+    "target": {
+     "ref": "/opsx/stages/01-ff.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "new change",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`openspec new change \"issue\"`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-007",
+    "target": {
+     "ref": "openspec new change \"issue\"",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the change and every planning artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-008",
+    "target": {
+     "ref": "change",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the change and every planning artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-008",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the change and every planning artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-008",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the change and every planning artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-008",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the change and every planning artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-008",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AP",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| apply | `/opsx/stages/02-apply.md` |"
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-009",
+    "target": {
+     "ref": "/opsx/stages/02-apply.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "instructions apply",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`openspec instructions apply --change \"issue\" --json`"
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-010",
+    "target": {
+     "ref": "openspec instructions apply --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the code change, tasks checked"
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-011",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "exists": {
+       "fact": "repo_edit",
+       "final": true,
+       "test_paths": false,
+       "window": "stage:apply"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the code change, tasks checked"
+     }
+    ],
+    "stage": "apply",
+    "statement": "cw-011",
+    "target": {
+     "ref": "/testbed code change",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| verify | `/opsx/stages/03-verify.md` |"
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-012",
+    "target": {
+     "ref": "/opsx/stages/03-verify.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "status",
+     "window": [
+      "stage_start:verify",
+      "first_write:verify"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`openspec status --change \"issue\" --json`, then your own review"
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-013",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`verify.md`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-014",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "succeeded"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| archive | this document, below | `openspec archive issue --yes` | the archived change |"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-015",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "roots": [
+      "/openspec/changes/archive"
+     ],
+     "rule": "by_cli"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`openspec archive issue --yes` | the archived change |"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-015",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "init"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       34,
+       34
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Never run `openspec init` again"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-018",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "10eb77b27e678b1de0cca2dff51f64aca41b57e8a600a115cc82eeffb2557728",
+ "key": "e5c95f630fcd58f0605bfbf0d2d516fb3a80f83a740c727973840a6658f566ce",
+ "meta": {
+  "at": "2026-10-16T06:15:52Z",
+  "cost_usd": 0.225213,
+  "duration_ms": 41016,
+  "num_turns": 2,
+  "wall_s": 42.24
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample0",
+ "schema_sha256": "d59cc65ddb102342c55ea11126940be27a8cbbc832f993e0a9d0d1be5088e47b",
+ "version": "2.1.283"
+}

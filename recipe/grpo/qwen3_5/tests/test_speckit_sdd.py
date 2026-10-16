@@ -281,7 +281,8 @@ def test_harness_picks_up_documents_and_sandbox_files():
     assert [p.name for p in h._doc_entries()] == ["core-workflow.md", "stages"]
     composed = h.compose_instruction("TASK")
     assert composed.startswith("This task is solved through GitHub Spec Kit") and composed.endswith("\n\nTASK")
-    assert h.evaluation_policy is None  # no scorer yet
+    # resolve rate only until the generated rubric exists (reward/rubric.yaml), then its scorer
+    assert (h.evaluation_policy is None) == (not (DOCS.parent / "reward" / "rubric.yaml").is_file())
     assert SPEC.sandbox_files == {build.SPECIFY_DIR: build.SANDBOX}
     assert SPEC.setup_script == DOCS.parent / "setup.sh" and not SPEC.agent_image_extra  # G7-8: jq -M wrapper
     setup = SPEC.setup_script.read_text(encoding="utf-8")

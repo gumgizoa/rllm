@@ -1,0 +1,460 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "event": "write:verify",
+     "rule": "after"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       75,
+       76
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "archive only once `/openspec/changes/issue/verify.md` exists"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-039",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "absent": {
+      "artifact": "verify",
+      "fact": "artifact_write",
+      "window": [
+       "start",
+       "stage_start:archive"
+      ]
+     }
+    },
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": "stage:archive"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If it does not, open `/opsx/stages/03-verify.md` and write it first."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-040",
+    "target": {
+     "ref": "read:VF",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "succeeded"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Then run once:"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-041",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks that the finish tool is called after a successful archive.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Exit code 0: call `finish`."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-042",
+    "target": {
+     "ref": "finish",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "retries"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Exit code 1: correct only what the error message names in the delta spec (its format, or a spec file that is missing), then run the same command one more time."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-043",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "specs_only"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "correct only what the error message names in the delta spec (its format, or a spec file that is missing)"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-043",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "by_cli"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       88,
+       89
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If it fails again, call `finish` without archiving."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-044",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "--no-validate"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Never add `--no-validate`"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-045",
+    "target": {
+     "ref": "openspec archive --no-validate",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:archive"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       90
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "do not reopen tasks or apply: the code is done, and judging it was verify's job"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-046",
+    "target": {
+     "ref": "reopen apply",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "instructions apply",
+     "window": "stage:archive"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       90
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "do not reopen tasks or apply"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-046",
+    "target": {
+     "ref": "reopen tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": [
+      "start",
+      [
+       "write:change",
+       "write:proposal",
+       "first_repo_write",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-001",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind counts repeated invocations of one openspec subcommand after a non-zero exit.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "read the JSON instead of retrying or working around it"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-002",
+    "target": {
+     "ref": "openspec list retry",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "init"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "global",
+    "statement": "ff-008",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The change name is fixed: `issue`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-011",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "new change",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       26
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "openspec new change \"issue\""
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-013",
+    "target": {
+     "ref": "openspec new change \"issue\"",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "status --change",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       32
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "openspec status --change \"issue\" --json"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-014",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The rule only applies when the project has no OpenSpec root (\"root\": null). This sandbox already has /openspec, and authoring artifacts under openspec/changes/issue by hand is expected, so no predicate can tell a forbidden hand-made root apart from those artifacts.",
+    "statement": "ff-009"
+   },
+   {
+    "reason": "This also only applies when there is no root (a command must not create openspec/ as a side effect). The sandbox root exists at BASE_SHA, and no predicate can observe the root being missing.",
+    "statement": "ff-010"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "37edbab195b062a6627fa0d24e895dd425c6568024c644adc60c5ddb6df119a0",
+ "key": "37bc8475f3fe13aba0ce3ae4f648f73645714644e8d6e877ed34a282c863b229",
+ "meta": {
+  "at": "2026-10-15T04:41:17Z",
+  "cost_usd": 0.206091,
+  "duration_ms": 37653,
+  "num_turns": 2,
+  "wall_s": 38.82
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "f8109cf42a9f605ba6701b6c6b5ceb358ec58440108d571e27a1e0140f443025",
+ "version": "2.1.283"
+}

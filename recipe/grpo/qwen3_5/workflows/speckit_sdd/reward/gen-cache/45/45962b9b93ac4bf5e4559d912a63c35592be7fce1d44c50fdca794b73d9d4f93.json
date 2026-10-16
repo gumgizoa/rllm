@@ -1,0 +1,502 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "plan",
+     "rule": "contracts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       54,
+       54
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "If project is purely internal (build scripts, one-off tools, etc.), write no contract file and record `contracts/  # N/A — <reason>` in plan.md's Documentation tree"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-039",
+    "target": {
+     "ref": "plan",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "note": "Checks quickstart.md is either a real guide or a single 'N/A — <reason>' line; scenario runnability itself is not machine-checkable.",
+    "params": {
+     "artifact": "quickstart",
+     "rule": "na_body"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       57
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "**Create quickstart validation guide** → `quickstart.md`: - Document runnable validation scenarios that prove the feature works end-to-end"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-040",
+    "target": {
+     "ref": "quickstart",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "quickstart.md has no template skeleton; presence of prerequisites/commands/outcomes content is not expressible with fixed headings.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       58,
+       58
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Include prerequisites, setup commands, test/run commands, and expected outcomes"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-041",
+    "target": {
+     "ref": "quickstart",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Detecting full implementation code inside a document requires semantic judgment.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       60,
+       60
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Do not include full implementation code, model/service/controller bodies, migrations, or complete test suites"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-043",
+    "target": {
+     "ref": "quickstart",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks that every tool call path argument is absolute.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Use absolute paths for filesystem operations"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-045",
+    "target": {
+     "ref": "filesystem operations",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The pattern for an absolute sandbox path is inferred from the project root named in the stage docs, not stated in the rule itself.",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "/tmp/speckit-sdd"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "use project-relative paths for references in documentation"
+     },
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "it finds the project root `/tmp/speckit-sdd` from its own location"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-046",
+    "target": {
+     "ref": "plan",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The pattern for an absolute sandbox path is inferred from the project root named in the stage docs, not stated in the rule itself.",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "/tmp/speckit-sdd"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "use project-relative paths for references in documentation"
+     },
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "it finds the project root `/tmp/speckit-sdd` from its own location"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-046",
+    "target": {
+     "ref": "research",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The pattern for an absolute sandbox path is inferred from the project root named in the stage docs, not stated in the rule itself.",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "/tmp/speckit-sdd"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "use project-relative paths for references in documentation"
+     },
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "it finds the project root `/tmp/speckit-sdd` from its own location"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-046",
+    "target": {
+     "ref": "quickstart",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Plan workflow executed and design artifacts generated"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-048",
+    "target": {
+     "ref": "plan",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Plan workflow executed and design artifacts generated"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-048",
+    "target": {
+     "ref": "research",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Plan workflow executed and design artifacts generated"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-048",
+    "target": {
+     "ref": "data_model",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Plan workflow executed and design artifacts generated"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-048",
+    "target": {
+     "ref": "quickstart",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "note": "The 'no report in between' part is not checkable by this kind.",
+    "params": {
+     "doc": "TK"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       74,
+       74
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "The tasks stage (`/speckit-sdd/stages/03-tasks.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "pl-049",
+    "target": {
+     "ref": "read:TK",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json"
+     ],
+     "name": "setup-tasks.sh",
+     "window": "stage:tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Setup**: Run `/tmp/speckit-sdd/.specify/scripts/bash/setup-tasks.sh --json`"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-001",
+    "target": {
+     "ref": "setup-tasks.sh --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "plan",
+      "spec"
+     ],
+     "window": [
+      "stage_start:tasks",
+      [
+       "first_write:tasks",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Load design documents**: Read from FEATURE_DIR: - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-006",
+    "target": {
+     "ref": "read plan.md, spec.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "The constitution file ships in the sandbox, so the IF EXISTS condition holds.",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": [
+      "stage_start:tasks",
+      [
+       "first_write:tasks",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       8,
+       8
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**IF EXISTS**: Load `/tmp/speckit-sdd/.specify/memory/constitution.md` for project principles and governance constraints"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-008",
+    "target": {
+     "ref": "read:CONSTITUTION",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Applies only when setup-tasks.sh exits non-zero over a missing file or directory. The trigger depends on the script's exit status and hint text, which no predicate can express.",
+    "statement": "tk-003"
+   },
+   {
+    "reason": "Describes what the script outputs (FEATURE_DIR and TASKS_TEMPLATE are absolute). It sets no checkable obligation on the agent.",
+    "statement": "tk-004"
+   },
+   {
+    "reason": "Optional (MAY): reading the optional design documents is not required.",
+    "statement": "tk-007"
+   },
+   {
+    "reason": "Repeats tk-006 (read plan.md during the tasks stage), which the speckit.read item already covers.",
+    "statement": "tk-010"
+   },
+   {
+    "reason": "Repeats tk-006 (read spec.md during the tasks stage), which the speckit.read item already covers.",
+    "statement": "tk-011"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d87f8df24877ee92d2e332c51c5f99566a5daf3f2b07a4702bd4650f03c0818b",
+ "key": "45962b9b93ac4bf5e4559d912a63c35592be7fce1d44c50fdca794b73d9d4f93",
+ "meta": {
+  "at": "2026-10-15T05:13:55Z",
+  "cost_usd": 0.1225202,
+  "duration_ms": 44542,
+  "num_turns": 2,
+  "wall_s": 45.6
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "29012cc0bda6f282f82227c8a76fbc64ae00653b22df0964bb5cd85d414124de",
+ "version": "2.1.283"
+}

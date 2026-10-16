@@ -1,0 +1,165 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "yes",
+    "kind": "path_name",
+    "line_end": 62,
+    "line_start": 61,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The change has to be named exactly 'issue'.",
+    "quote": "the issue becomes an OpenSpec change named `issue`",
+    "stage": "global",
+    "target": "OpenSpec change name"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 63,
+    "line_start": 62,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The change goes through planning, apply, verify and archive in that order.",
+    "quote": "planned in artifacts, implemented, verified and archived",
+    "stage": "global",
+    "target": "change lifecycle"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 63,
+    "line_start": 63,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Every step is done through the openspec CLI.",
+    "quote": "the `openspec` CLI drives every step",
+    "stage": "global",
+    "target": "openspec CLI"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "read_doc",
+    "line_end": 67,
+    "line_start": 65,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "This has to be the first action in the session. /opsx sits outside /testbed.",
+    "quote": "Make opening /opsx/core-workflow.md your very first action.",
+    "stage": "global",
+    "target": "/opsx/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 68,
+    "line_start": 68,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Follow the order given in core-workflow.md.",
+    "quote": "Take the actions in the order that file gives.",
+    "stage": "global",
+    "target": "workflow actions order"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "read_doc",
+    "line_end": 69,
+    "line_start": 68,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Read the stage document when entering each stage.",
+    "quote": "On entering one, read its stage document in /opsx/stages/",
+    "stage": "global",
+    "target": "/opsx/stages/ stage document"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 70,
+    "line_start": 69,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Each stage starts with the openspec command its stage document names.",
+    "quote": "begin from the `openspec` command it names",
+    "stage": "global",
+    "target": "openspec command named in stage doc"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 71,
+    "line_start": 70,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "Go by the paths, artifact order and instructions the CLI returns.",
+    "quote": "what the CLI returns (paths, artifact order, instructions) beats assumptions",
+    "stage": "global",
+    "target": "CLI output precedence"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 73,
+    "line_start": 72,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Record assumptions in the artifacts.",
+    "quote": "Write assumptions into the change's artifacts rather than asking",
+    "stage": "global",
+    "target": "change artifacts (assumptions)"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 73,
+    "line_start": 72,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "Don't ask the user for clarification.",
+    "quote": "Nobody replies before the task ends. ... rather than asking",
+    "stage": "global",
+    "target": "asking user questions"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "other",
+    "line_end": 74,
+    "line_start": 73,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "No turn may contain only text.",
+    "quote": "keep every progress note in a turn that also calls a tool",
+    "stage": "global",
+    "target": "progress notes"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "order",
+    "line_end": 74,
+    "line_start": 74,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "finish has to come after the archive step is complete.",
+    "quote": "call finish only once the archive step is done",
+    "stage": "archive",
+    "target": "finish call"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "86c7fe3bb60032ffae9c5523b1eab08112501c2830b1b2cde22d4175cb3cb10c",
+ "key": "371f92dbab2c9d9f18ebe4c7157bc66129d9ef681b76817433a89779a24b092e",
+ "meta": {
+  "at": "2026-10-14T06:42:01Z",
+  "cost_usd": 0.0455092,
+  "duration_ms": 14888,
+  "num_turns": 2,
+  "wall_s": 16.18
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "9619ffb0ae761b63b61d725aca4d246b87a6279ee45b90cbcc58a10036a40135",
+ "version": "2.1.283"
+}

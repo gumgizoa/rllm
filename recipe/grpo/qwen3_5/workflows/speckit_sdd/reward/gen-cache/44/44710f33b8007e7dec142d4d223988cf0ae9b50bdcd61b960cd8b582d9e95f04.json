@@ -1,0 +1,377 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on instruction text written for this harness (rule 4).",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "instruction.md",
+      "quote": "Start by opening /speckit-sdd/core-workflow.md, and make that the very first action you take, ahead of any look at the repository."
+     }
+    ],
+    "stage": "global",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Open /speckit-sdd/core-workflow.md as your first action."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-002",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:spec",
+      "first_write:plan",
+      "first_write:tasks",
+      "first_write:convergence"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Go through the stages in the order that file sets."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-004",
+    "target": {
+     "ref": "stage order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "SY",
+     "window": [
+      "stage_start:specify",
+      [
+       "first_write:spec",
+       "stage_end:specify"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:SY",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "PL",
+     "window": [
+      "stage_start:plan",
+      [
+       "first_write:plan",
+       "stage_end:plan"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "plan",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:PL",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TK",
+     "window": [
+      "stage_start:tasks",
+      [
+       "first_write:tasks",
+       "stage_end:tasks"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:TK",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IM",
+     "window": [
+      "stage_start:implement",
+      [
+       {
+        "first": {
+         "fact": "repo_edit"
+        }
+       },
+       "stage_end:implement"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "implement",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:IM",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CV",
+     "window": [
+      "stage_start:converge",
+      [
+       "first_write:convergence",
+       "stage_end:converge"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "converge",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:CV",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IM",
+     "window": [
+      "stage_start:implement_2",
+      [
+       {
+        "first": {
+         "fact": "repo_edit"
+        }
+       },
+       "stage_end:implement_2"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:IM",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on system-prompt text written for this harness (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CV",
+     "window": [
+      "stage_start:converge_2",
+      [
+       "first_write:convergence_2",
+       "stage_end:converge_2"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Each stage starts by opening its document under /speckit-sdd/stages/"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:CV",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Implicit orientation note; searching for /speckit-sdd under /testbed can't be detected reliably, and prohibited_action isn't allowed for adapter-only text. The read-first items (ins-003/sp-002) already cover the observable effect.",
+    "statement": "ins-004"
+   },
+   {
+    "reason": "Adapter-only prohibition (rule 4 rules out prohibited_action). No reliable regex in the cited text catches 'looking for it inside /testbed'. The doc_read_first item on CW covers the observable effect.",
+    "statement": "sp-003"
+   },
+   {
+    "reason": "Only says core-workflow.md names the stage docs, scripts and output paths. The concrete checks come from the stage documents, and the per-stage doc_read items cover them.",
+    "statement": "ins-005"
+   },
+   {
+    "reason": "Describes the chain and adds nothing new; the stage order is itemized under sp-004.",
+    "statement": "sp-001"
+   },
+   {
+    "reason": "The script names aren't in the cited lines (they come from core-workflow.md and the stage docs), so a speckit_sdd.script item would use literals the text doesn't give. Each stage's rules cover it.",
+    "statement": "sp-006"
+   },
+   {
+    "reason": "Whether the agent relied on the printed paths can't be checked here except through the artifact path and feature.json checks, which are already compiled from the stage and artifact definitions.",
+    "statement": "sp-007"
+   },
+   {
+    "reason": "Too general: 'record the choice in the file you are writing' names no specific field or observable fact a kind could check.",
+    "statement": "sp-009"
+   },
+   {
+    "reason": "The finish tool call isn't an event in the reference language, and the completion condition lives in core-workflow.md, which isn't cited here.",
+    "statement": "sp-010"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "e5c218c6f0657809db3ebb5f814729691b45142e03aae1d9e99af5995c976019",
+ "key": "44710f33b8007e7dec142d4d223988cf0ae9b50bdcd61b960cd8b582d9e95f04",
+ "meta": {
+  "at": "2026-10-15T05:17:51Z",
+  "cost_usd": 0.188095,
+  "duration_ms": 36091,
+  "num_turns": 2,
+  "wall_s": 37.23
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "6ff53813a8ddb9f59d0c582c6c78b11dbb2f34a43fbbafd3770ff0acc897bbe4",
+ "version": "2.1.283"
+}

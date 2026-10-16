@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cv-051.0",
+    "reason": "The report template defines the heading \"## Convergence Findings\" for the round report.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-051.1",
+    "reason": "The same \"## Convergence Findings\" template applies to `convergence-2.md` in round 2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-052.0",
+    "reason": "`convergence.md` is the file \"in round 1\" and the template field is \"**Round**: 1 | 2\", so round 1 must say 1.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-052.1",
+    "reason": "`convergence-2.md` is the file \"in round 2\", so the \"**Round**: 1 | 2\" field must say 2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-053.0",
+    "reason": "The template sets \"**Outcome**: converged | tasks_appended\" as the allowed values.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-053.1",
+    "reason": "The same \"**Outcome**: converged | tasks_appended\" enum applies to the round-2 report.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-054.0",
+    "reason": "The template gives the findings table columns \"| ID | Gap Type | Severity | Source | Evidence | Remaining Work |\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-054.1",
+    "reason": "The same findings table template applies to the round-2 report.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-057.0",
+    "reason": "\"If there are one or more actionable findings (`tasks_appended` outcome): ... Append to the **end** of `tasks.md`\" directly requires the append under that condition.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-057.1",
+    "reason": "\"Append to the **end** of `tasks.md`, per the append contract\" requires append-only writes during converge.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-057.2",
+    "reason": "The same append contract (\"Append to the **end** of `tasks.md`\") governs the round-2 converge window.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-058.0",
+    "reason": "\"Determine the next phase number `N` (highest existing phase + 1)\" is an explicit numbering requirement.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-059.0",
+    "reason": "\"Write a single new section header `## Phase N: Convergence`\" directly sets the header format.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-060.0",
+    "reason": "The cited line \"Emit one checklist item per actionable finding\" is about checklist items in `tasks.md`, so it only implicitly supports consistency between Outcome and findings rows in the report.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cv-060.1",
+    "reason": "\"Emit one checklist item per actionable finding\" is about tasks, so it supports the round-2 outcome/rows check only indirectly.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cv-064.0",
+    "reason": "\"`<gap-type>` is one of `missing`, `partial`, `contradicts`, `unrequested`\" defines the allowed values for convergence task lines.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-066.0",
+    "reason": "\"Never reuse or renumber existing IDs\" is an absolute prohibition and supports a must.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-067.0",
+    "reason": "\"If a prior Convergence phase exists, add a new, separately-numbered one below it\" directly supports the round-2 phase check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-068.0",
+    "reason": "\"do not touch the old one\" requires append-only behavior in round 2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-069.0",
+    "reason": "\"Write as the round report's last line: **'✅ Converged — ...'**\" is an explicit requirement for the converged report (this assumes the rule only checks it when Outcome is converged).",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b17a76db1be6ed1f72fd2058f6b4df53fbafec699544d2048728718ec14a0b62",
+ "key": "4328740fb1e457d7227c7c9ee8682166887eee64a84dd59f4ca22c66d2f0b3ef",
+ "meta": {
+  "at": "2026-10-15T05:19:37Z",
+  "cost_usd": 0.0818324,
+  "duration_ms": 23502,
+  "num_turns": 2,
+  "wall_s": 24.7
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

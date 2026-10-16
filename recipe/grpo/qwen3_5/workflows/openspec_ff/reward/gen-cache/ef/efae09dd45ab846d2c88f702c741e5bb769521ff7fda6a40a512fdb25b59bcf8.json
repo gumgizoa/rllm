@@ -1,0 +1,328 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs the CONFIG context/rules text as residue patterns. It applies to every ff artifact (proposal, specs, design, tasks). No kind has these patterns without inventing regexes.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Apply `context` and `rules` as constraints - but do NOT copy them into the file"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-037",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Continue until every artifact in the required set exists (not just `apply.requires`)**"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-039",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "note": "Only checks that status was re-run at least once after the first artifact was written. It does not check a re-run after each artifact.",
+    "params": {
+     "rule": "ran",
+     "sub": "status",
+     "window": [
+      "first_write:proposal",
+      "stage_end:ff"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "After creating each artifact, re-run `openspec status --change \"issue\" --json`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-040",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "walk them transitively (spec-driven closes over proposal, specs, design, tasks)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-041",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "design.md is conditional (line 72 lets it be skipped when its instruction marks it optional), so it is not strictly required",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "walk them transitively (spec-driven closes over proposal, specs, design, tasks)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-041",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "change": "issue",
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Create every artifact in the required set that is missing, then re-check - creating one can unblock others"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-045",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "not": {
+      "artifact_exists": "design"
+     }
+    },
+    "class": "content",
+    "downgrade_reason": "The statement is modality may (conditional skip). Only the precondition of checking the artifact's instruction before skipping is checked.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "instructions\\s+design",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       72,
+       72
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "run `openspec instructions <artifact-id> --change \"issue\" --json` and skip only if its `instruction` field marks it optional (e.g. \"create only if...\"). Spec-driven's `design.md` qualifies"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-046",
+    "target": {
+     "ref": "openspec instructions design --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       72,
+       72
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "`specs` qualifies only via the `skipped` status above, never by your own judgment."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-047",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "not": {
+      "artifact_exists": "design"
+     }
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "if a required artifact is still `blocked` only because you skipped a conditional dependency, write it anyway"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-049",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "status --change",
+     "window": [
+      [
+       "last_write:proposal",
+       "last_write:spec",
+       "last_write:design",
+       "last_write:tasks"
+      ],
+      "stage_end:ff"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       80,
+       82
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "5. **Show final status** ... openspec status --change \"issue\""
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-052",
+    "target": {
+     "ref": "openspec status --change \"issue\"",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The artifact path templates already turn the spec glob into a concrete specs/{CAP}/spec.md path. The cited line gives no literal path pattern for a path_match item.",
+    "statement": "ff-036"
+   },
+   {
+    "reason": "The progress message is chat output to the user, not a tool call or artifact the engine can inspect.",
+    "statement": "ff-038"
+   },
+   {
+    "reason": "In spec-driven the required set covers every artifact ff writes. The cited lines name no artifact outside the set to check without inventing a path literal.",
+    "statement": "ff-042"
+   },
+   {
+    "reason": "The condition (the change declares skip_specs in .openspec.yaml / status reports skipped) cannot be written as a reference-language predicate.",
+    "statement": "ff-044"
+   },
+   {
+    "reason": "Telling the user about a skipped artifact is chat output that no kind can observe.",
+    "statement": "ff-048"
+   },
+   {
+    "reason": "The stop condition adds nothing checkable beyond the artifact_exists items for the required set (ff-039/041/047).",
+    "statement": "ff-050"
+   },
+   {
+    "reason": "The final summary (change name and location) is chat output, not an artifact or tool call.",
+    "statement": "ff-053"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "31899f90ec9da957065ada33500973b1923540624c931b8e6ca8e51c3ff7ad14",
+ "key": "efae09dd45ab846d2c88f702c741e5bb769521ff7fda6a40a512fdb25b59bcf8",
+ "meta": {
+  "at": "2026-10-16T06:19:12Z",
+  "cost_usd": 0.11751079999999998,
+  "duration_ms": 46067,
+  "num_turns": 2,
+  "wall_s": 47.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "e6b264850c5cd86dbbbf44204a927db8b8c9f28d3b026f973613f6a561ef3fd8",
+ "version": "2.1.283"
+}

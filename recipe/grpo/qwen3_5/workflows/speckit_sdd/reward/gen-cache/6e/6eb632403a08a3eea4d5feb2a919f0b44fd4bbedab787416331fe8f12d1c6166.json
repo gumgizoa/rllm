@@ -1,0 +1,81 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 2,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Agent must run all stages (specify, plan, tasks, implement, converge) itself, in order, within one session.",
+    "quote": "This task is solved through GitHub Spec Kit's spec-driven development chain (specify, plan, tasks, implement, converge), with you running every stage yourself in this one session.",
+    "stage": "global",
+    "target": "stage chain execution"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "read_doc",
+    "line_end": 4,
+    "line_start": 4,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Agent must read the core workflow document.",
+    "quote": "Start by opening /speckit-sdd/core-workflow.md",
+    "stage": "global",
+    "target": "/speckit-sdd/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "order",
+    "line_end": 5,
+    "line_start": 4,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Reading core-workflow.md must be the first action, before any access to /testbed.",
+    "quote": "make that the very first action you take, ahead of any look at the repository.",
+    "stage": "global",
+    "target": "/speckit-sdd/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "path_name",
+    "line_end": 6,
+    "line_start": 5,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Agent should open /speckit-sdd at the root, not look for it under /testbed.",
+    "quote": "The /speckit-sdd directory is at the filesystem root (/), outside the repository at /testbed; looking for it under /testbed finds nothing.",
+    "stage": "global",
+    "target": "/speckit-sdd path"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 7,
+    "line_start": 6,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Agent should follow core-workflow.md for which stage document to open, which script to run, and where to put each stage's files.",
+    "quote": "That file names the stage document to open at each step, the Spec Kit script each stage runs, and where each stage's files go.",
+    "stage": "global",
+    "target": "stage documents, scripts, and output locations"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "2d67c32a5369fbdc99a0491ad8218662b9a6240c48a09afd3e961cb6b4cc38ac",
+ "key": "6eb632403a08a3eea4d5feb2a919f0b44fd4bbedab787416331fe8f12d1c6166",
+ "meta": {
+  "at": "2026-10-15T05:10:12Z",
+  "cost_usd": 0.029232599999999997,
+  "duration_ms": 8470,
+  "num_turns": 2,
+  "wall_s": 9.74
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "63c046e20df0b0819018b7c801b4a0a80865719b4186d9ec5f5cccb924ba4bc0",
+ "version": "2.1.283"
+}

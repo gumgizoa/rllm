@@ -1,0 +1,2164 @@
+# Generator config for speckit_sdd: what the generator cannot read off the workflow's documents.
+#
+# The agent sees docs/ at /speckit-sdd -- core-workflow.md (the package author's hand-written definition of the chain:
+# stages, rounds, who writes what, the repository rules) and stages/01-specify.md .. 05-converge.md (spec-kit's
+# commands as build.py renders them) -- plus instruction.md and the system prompt, and the Spec Kit project the sandbox
+# ships at /tmp/speckit-sdd/.specify (sandbox/specify/: the scripts the stages run, the templates they copy or print,
+# the unfilled constitution they load). Those shipped files are sources too (extra_sources), with the container paths
+# the agent reads them at. porting/, README.md and build.py are the author's notes and tooling, never shown to the
+# agent and never a source. Every decision below cites the line it rests on; paths are relative to this package.
+workflow: speckit_sdd
+prefix: speckit_sdd
+
+extra_sources:
+  - {path: sandbox/specify, container: /tmp/speckit-sdd/.specify}
+
+ids:
+  docs/core-workflow.md: CW
+  docs/stages/01-specify.md: SY
+  docs/stages/02-plan.md: PL
+  docs/stages/03-tasks.md: TK
+  docs/stages/04-implement.md: IM
+  docs/stages/05-converge.md: CV
+  instruction.md: INS
+  system-prompt.j2: SP
+  sandbox/specify/templates/spec-template.md: TPL_SPEC
+  sandbox/specify/templates/plan-template.md: TPL_PLAN
+  sandbox/specify/templates/tasks-template.md: TPL_TASKS
+  sandbox/specify/templates/checklist-template.md: TPL_CHECKLIST
+  sandbox/specify/memory/constitution.md: CONSTITUTION
+  sandbox/specify/scripts/bash/common.sh: SCRIPT_COMMON
+  sandbox/specify/scripts/bash/setup-plan.sh: SCRIPT_SETUP_PLAN
+  sandbox/specify/scripts/bash/setup-tasks.sh: SCRIPT_SETUP_TASKS
+  sandbox/specify/scripts/bash/check-prerequisites.sh: SCRIPT_CHECK_PREREQUISITES
+
+roles:
+  - docs/core-workflow.md: core
+  - docs/stages/*.md: stage_rule
+  - sandbox/specify/templates/*.md: template
+  # what the stages run: their behaviour explains an artifact (setup-plan.sh copies the plan template, setup-tasks.sh
+  # prints the tasks template, the scripts find the feature through feature.json), never a requirement on the agent
+  - sandbox/specify/scripts/bash/*.sh: script
+  # `specify init` leaves the constitution as its unfilled template (`[PRINCIPLE_1_NAME]` ... with example comments); no
+  # stage fills it, the stages only load it, and an unfilled one "has no principles" (PL:9): its text binds nothing,
+  # so it is read as a template no artifact is compiled from, not as prose
+  - sandbox/specify/memory/constitution.md: template
+
+system_prompt:
+  sections:
+    PROBLEM_SOLVING_WORKFLOW: workflow
+    "*": harness_generic
+
+# core-workflow.md is the workflow's own definition (written for this package, it adapts no upstream text), and the
+# stage documents and templates are the workflow's text: like speckit_bug and openspec_ff, no item is adapter-derived.
+adapter_roles: [adapter]
+
+# A stage is carried out from its document (CW:32-33), which says how to use its template (SY:67 "using the template
+# structure"); core-workflow.md sets the order, the rounds and the repository rules around them.
+precedence:
+  - order: [stage_rule, template, core, reference, "system_prompt:workflow", instruction, "system_prompt:harness_generic"]
+    applies_to: all
+    authority:
+      path: docs/core-workflow.md
+      lines: [32, 33]
+      quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+
+classify:
+  # SY:67 "replacing placeholders with concrete details": a bracketed span of a template is a placeholder, except
+  # Spec Kit's own syntax -- the checkbox states, the task markers [P] / [USn] (TK:57-63), markdown links and the
+  # clarification marker the spec may keep (SY:49-53, at most three); [UNVERIFIED — not fetched] is literal output (SY:6).
+  # The header values the conversion fixed are literal: Branch `001-issue` (SY:16), Status Draft, the Input line.
+  sdd_spec:
+    brackets: true
+    placeholder:
+      - '<!--.*?-->'
+    legit:
+      - '\[[ xX]\]'
+      - '\[P\]'
+      - '\[US\d+\]'
+      - '\[NEEDS CLARIFICATION:[^\[\]\n]*\]'
+      - '\[UNVERIFIED — not fetched\]'
+      - '\[[^\[\]\n]+\]\([^)\s]+\)'
+    literal:
+      - '^\*\*Feature Branch\*\*:\s*`001-issue`\s*$'
+      - '^\*\*Status\*\*:\s*Draft\s*$'
+    none_tokens: [none]
+  # plan / tasks: "NEEDS CLARIFICATION" is an unknown still to resolve there (PL:208, 211), so it stays inside the
+  # placeholders it appears in; the template's "N/A" alternative (TPL_PLAN:25) is its none. The plan's contracts line
+  # holds a <REPLACE in plan.md: ...> mark (PL:243 "marked `<REPLACE in plan.md: …>`; replace it").
+  sdd:
+    brackets: true
+    placeholder:
+      - '<!--.*?-->'
+      - '<REPLACE in plan\.md:[^\n]*>'
+    legit:
+      - '\[[ xX]\]'
+      - '\[P\]'
+      - '\[US\d+\]'
+      - '\[Story\]'
+      # the checklist item "No [NEEDS CLARIFICATION] markers remain" (SY:89) names the marker, it is no placeholder
+      - '\[NEEDS CLARIFICATION\]'
+      - '\[[^\[\]\n]+\]\([^)\s]+\)'
+    literal:
+      - '^\*\*Branch\*\*:\s*`001-issue`'
+    sample_marker: []
+    none_tokens: [none, "N/A", "n/a"]
+  # the round report (CV:134-149): the value choices `1 | 2`, `converged | tasks_appended` and the table's example row
+  # are what the report fills; the metric lines name what is counted
+  report:
+    brackets: false
+    placeholder:
+      - '<!--.*?-->'
+      - '^\s*1 \| 2\s*$'
+      - 'converged \| tasks_appended'
+      - 'Example: no append-only guard detected in path/to/module\.py when writing tasks\.md'
+    literal:
+      - '^#{2} Convergence Findings'
+      - '^\| ID \| Gap Type \|'
+    none_tokens: [none]
+
+templates:
+  - id: spec
+    path: sandbox/specify/templates/spec-template.md
+    artifact: spec
+    stage: specify
+    rules: sdd_spec
+    literals: patterns
+    binding:
+      path: docs/stages/01-specify.md
+      lines: [67, 67]
+      quote: "Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (the issue) while preserving section order and headings."
+    sections:
+      # "ACTION REQUIRED: The content in this section represents placeholders. Fill them out with the right edge cases":
+      # the two bullets are placeholders, not a phrasing to keep; the section and its content are manual items
+      Edge Cases:
+        requirement: skip
+        authority: {path: sandbox/specify/templates/spec-template.md, lines: [74, 75], quote: "ACTION REQUIRED: The content in this section represents placeholders. Fill them out with the right edge cases."}
+  - id: plan
+    path: sandbox/specify/templates/plan-template.md
+    artifact: plan
+    stage: plan
+    rules: sdd
+    literals: patterns
+    binding:
+      path: docs/stages/02-plan.md
+      lines: [7, 7]
+      quote: "**Execute plan workflow**: Follow the structure in IMPL_PLAN template to:"
+    sections:
+      # "The structure here is presented in advisory capacity": the labels and values guide; filling the section is must (manual)
+      Technical Context:
+        requirement: should
+        authority: {path: sandbox/specify/templates/plan-template.md, lines: [16, 18], quote: "ACTION REQUIRED: Replace the content in this section with the technical details for the project. The structure here is presented in advisory capacity to guide the iteration process."}
+  - id: research
+    # PL:30-33 "Consolidate findings in research.md using format:" -- the three labelled lines
+    path: docs/stages/02-plan.md
+    block: {lines: [31, 33]}
+    artifact: research
+    stage: plan
+    rules: sdd
+    literals: patterns
+    binding:
+      path: docs/stages/02-plan.md
+      lines: [30, 30]
+      quote: "**Consolidate findings** in `research.md` using format:"
+    binding_requirement: must
+  - id: tasks
+    path: sandbox/specify/templates/tasks-template.md
+    # from the sample-task comment on: lines 1-22 are the title, Input line and the format legend / path conventions
+    # (guidance, not structure TK:21 asks to fill; title and Input are manual items)
+    block: {lines: [24, 205]}
+    artifact: tasks
+    stage: tasks
+    rules: sdd
+    literals: patterns
+    binding:
+      path: docs/stages/03-tasks.md
+      lines: [21, 21]
+      quote: "**Generate tasks.md**: Use TASKS_TEMPLATE_CONTENT (from the JSON output above) as the structure."
+    sections:
+      # sample tasks (TPL_TASKS:39 "DO NOT keep these sample tasks"); the phase headings, the story phases' Tests /
+      # Implementation parts and the task grammar are manual items
+      '^Phase \d+: Setup':
+        requirement: skip
+        authority: &sample {path: sandbox/specify/templates/tasks-template.md, lines: [39, 39], quote: "DO NOT keep these sample tasks in the generated tasks.md file."}
+      '^Phase \d+: Foundational':
+        requirement: skip
+        authority: *sample
+      '^Phase \d+: User Story':
+        requirement: skip
+        authority: *sample
+      '^Phase N: Polish':
+        requirement: skip
+        authority: *sample
+      # TK:31 names a Dependencies section showing story completion order; its sub-headings are the template's own
+      # breakdown (should), the Notes are the template's advice to the reader
+      Phase Dependencies:
+        requirement: should
+        authority: &deps {path: docs/stages/03-tasks.md, lines: [31, 31], quote: "Dependencies section showing story completion order"}
+      User Story Dependencies:
+        requirement: should
+        authority: *deps
+      Within Each User Story:
+        requirement: should
+        authority: *deps
+      Parallel Opportunities:
+        requirement: should
+        authority: *deps
+      Notes:
+        requirement: skip
+        authority: {path: docs/stages/03-tasks.md, lines: [21, 31], quote: "Fill with:"}
+  - id: req_checklist
+    path: docs/stages/01-specify.md
+    block: {fence: markdown, index: 0}
+    artifact: req_checklist
+    stage: specify
+    rules: sdd
+    literals: patterns
+    binding:
+      path: docs/stages/01-specify.md
+      lines: [71, 71]
+      quote: "**Create Spec Quality Checklist**: Generate a checklist file at `SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md` using the structure below, with these validation items:"
+    binding_requirement: must
+  - id: convergence
+    path: docs/stages/05-converge.md
+    block: {lines: [134, 149]}
+    artifact: convergence
+    stage: converge
+    rules: report
+    literals: patterns
+    binding: &report
+      path: docs/stages/05-converge.md
+      lines: [130, 132]
+      quote: "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1, `FEATURE_DIR/convergence-2.md` in round 2 (rounds: `/speckit-sdd/core-workflow.md`), with this structure:"
+    binding_requirement: must
+    # "Before appending anything, write ...": the dictionary reads no imperative there, and the skeleton's value choices
+    # and example row are not shapes to keep; the report's heading, fields, table header and metrics are manual items
+    sections: &report_sections
+      Convergence Findings:
+        requirement: skip
+        authority: {path: docs/stages/05-converge.md, lines: [134, 137], quote: "## Convergence Findings - **Round**: 1 | 2 - **Outcome**: converged | tasks_appended"}
+  - id: convergence_2
+    path: docs/stages/05-converge.md
+    block: {lines: [134, 149]}
+    artifact: convergence_2
+    stage: converge_2
+    rules: report
+    literals: patterns
+    binding: *report
+    binding_requirement: must
+    sections: *report_sections
+
+# CW:35-43: specify, plan, tasks once each, then implement and converge in at most two rounds; round 2 (implement
+# again for the unchecked tasks, then convergence-2.md) runs only when convergence.md's Outcome is tasks_appended.
+# The round-2 stages repeat the round-1 documents, so the windows open at each document's read *after the previous
+# stage began* (scoring.next_read below); the round-2 report is an optional artifact whose existence is required by
+# a manual item conditional on round 1's Outcome.
+stage_model:
+  fixed:
+    roots:
+      artifact: /tmp/speckit-sdd/specs
+      code: "{WORKDIR}"
+    stages:
+      - id: specify
+        doc: docs/stages/01-specify.md
+        artifacts: [spec, req_checklist, feature_json]
+        order_artifact: spec
+      - id: plan
+        doc: docs/stages/02-plan.md
+        artifacts: [plan, research, data_model, quickstart]
+        order_artifact: plan
+        requires: [spec, feature_json]
+      - id: tasks
+        doc: docs/stages/03-tasks.md
+        artifacts: [tasks]
+        order_artifact: tasks
+        requires: [plan, spec]
+      - id: implement
+        doc: docs/stages/04-implement.md
+        artifacts: []
+        requires: [tasks, plan]
+      - id: converge
+        doc: docs/stages/05-converge.md
+        artifacts: [convergence]
+        order_artifact: convergence
+        requires: [spec, plan, tasks]
+      - id: implement_2
+        doc: docs/stages/04-implement.md
+        artifacts: []
+        requires: [tasks, convergence]
+      - id: converge_2
+        doc: docs/stages/05-converge.md
+        artifacts: [convergence_2]
+        order_artifact: convergence_2
+        requires: [spec, plan, tasks, convergence]
+    artifacts:
+      spec:
+        locations: ["{artifact}/001-issue/spec.md"]
+        template: sandbox/specify/templates/spec-template.md
+        source:
+          - {path: docs/stages/01-specify.md, lines: [24, 25], quote: "Copy `/tmp/speckit-sdd/.specify/templates/spec-template.md` to `SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point - Set `SPEC_FILE` to `SPECIFY_FEATURE_DIRECTORY/spec.md`"}
+          - {path: docs/core-workflow.md, lines: [25, 25], quote: "| 1 | specify | `/speckit-sdd/stages/01-specify.md` | none; the stage sets the feature up itself | `spec.md`, `checklists/requirements.md` (and `/tmp/speckit-sdd/.specify/feature.json`) |"}
+      req_checklist:
+        locations: ["{artifact}/001-issue/checklists/requirements.md"]
+        source:
+          - {path: docs/stages/01-specify.md, lines: [71, 71], quote: "Generate a checklist file at `SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md`"}
+      feature_json:
+        locations: ["/tmp/speckit-sdd/.specify/feature.json"]
+        kind: json
+        source:
+          - {path: docs/stages/01-specify.md, lines: [26, 26], quote: "Persist the feature directory to `/tmp/speckit-sdd/.specify/feature.json`:"}
+      plan:
+        locations: ["{artifact}/001-issue/plan.md"]
+        template: sandbox/specify/templates/plan-template.md
+        source:
+          - {path: docs/stages/02-plan.md, lines: [7, 7], quote: "**Execute plan workflow**: Follow the structure in IMPL_PLAN template to:"}
+          - {path: docs/core-workflow.md, lines: [26, 26], quote: "| 2 | plan | `/speckit-sdd/stages/02-plan.md` | `setup-plan.sh --json` | `plan.md`, `research.md`, `data-model.md`, `quickstart.md`"}
+      research:
+        locations: ["{artifact}/001-issue/research.md"]
+        source:
+          - {path: docs/stages/02-plan.md, lines: [11, 11], quote: "Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"}
+      data_model:
+        locations: ["{artifact}/001-issue/data-model.md"]
+        source:
+          - {path: docs/stages/02-plan.md, lines: [12, 12], quote: "Phase 1: Generate data-model.md, contracts/, quickstart.md - always all three"}
+      quickstart:
+        locations: ["{artifact}/001-issue/quickstart.md"]
+        source:
+          - {path: docs/stages/02-plan.md, lines: [12, 12], quote: "Phase 1: Generate data-model.md, contracts/, quickstart.md - always all three"}
+      tasks:
+        locations: ["{artifact}/001-issue/tasks.md"]
+        template: sandbox/specify/templates/tasks-template.md
+        source:
+          - {path: docs/stages/03-tasks.md, lines: [21, 21], quote: "**Generate tasks.md**: Use TASKS_TEMPLATE_CONTENT (from the JSON output above) as the structure."}
+      convergence:
+        locations: ["{artifact}/001-issue/convergence.md"]
+        template: docs/stages/05-converge.md
+        source:
+          - {path: docs/stages/05-converge.md, lines: [130, 131], quote: "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1"}
+          - {path: docs/core-workflow.md, lines: [39, 39], quote: "Round 1: implement works through the whole of `tasks.md`; converge writes `convergence.md`."}
+      convergence_2:
+        locations: ["{artifact}/001-issue/convergence-2.md"]
+        template: docs/stages/05-converge.md
+        optional: true
+      convergence_3:  # never written by an honest run: "at most two rounds" (CW:38)
+        locations: ["{artifact}/001-issue/convergence-3.md"]
+        optional: true
+
+# Stage windows by the stage documents' reads, in order (CW:32 "Begin every stage by opening its document"): a stage
+# runs from its document's first read after the previous stage began to where the next stage begins, so round 2's
+# implement opens at 04-implement.md's re-read after converge (05-converge.md:188-190), not at its round-1 read.
+scoring:
+  item_weight: {must: 1.0, should: 0.25}
+  stage: {formula: sigma_kappa}
+  substantive_threshold: 0.5
+  windows: reads
+  next_read: after_start
+  signals: [order, process, "stage:*"]
+  # the global items are prohibitions and write rules a run doing nothing satisfies: scaled by the mean stage score
+  # they govern the work instead of crediting inaction (as aidlc_v4_gen; G9 frontmatter_stub)
+  process_scale: stage_mean
+  compliance: mean
+  selftest:
+    template_copy_stage_max: 0.10
+    frontmatter_stub_compliance_max: 0.05
+    x_fill_no_real_test_compliance_max: 0.50
+    honest_golden_min: 0.95
+    # Mutations of records this workflow never asks for: no artifact records a test result (a failing run followed by
+    # a passing re-run contradicts nothing the documents ask, hidden_failure), and "the existing tests related to the
+    # change" (CW:79-80) are run by a run of the whole suite as well (full_suite_rerun). The runs the documents do ask
+    # for -- a baseline before the first code change and a run after the last (CW:79-80, IM:62, IM:65) -- are judged by
+    # the implement stage's exec_evidence items, and echo_evidence / tmp_dummy_tests / agent_runner keep their bound.
+    hidden_failure_min_drop: 0.0
+    full_suite_rerun_min_drop: 0.0
+
+gates:
+  # a stage's own closing artifact missing at the end zeroes the stage; implement's result is the code change
+  # (CW:28, CW:76): without one the stage did nothing. The other artifacts' existence is an ordinary must item.
+  speckit_sdd.specify.spec.artifact_exists: {zero_stage: true}
+  speckit_sdd.plan.plan.artifact_exists: {zero_stage: true}
+  speckit_sdd.tasks.tasks.artifact_exists: {zero_stage: true}
+  speckit_sdd.implement.run.code_change: {zero_stage: true}
+  # implement works from tasks.md (IM:35, IM:82): without it, or with the template still in it, the stage did not run
+  speckit_sdd.implement.tasks.artifact_exists: {zero_stage: true}
+  speckit_sdd.converge.convergence.artifact_exists: {zero_stage: true}
+  speckit_sdd.converge_2.convergence_2.artifact_exists: {zero_stage: true}
+  # an artifact still holding its template's placeholders is the template, not the stage's result (SY:67 "replacing
+  # placeholders"; TPL_TASKS:28 "MUST replace these with actual tasks"); DESIGN §9 template_copy_stage_max 0.10
+  "speckit_sdd.*.no_template_residue": {cap_stage: 0.1}
+  "speckit_sdd.*.no_template_residue.fill_marks": {cap_stage: 0.1}
+
+llm:
+  backend: claude-cli
+  model: claude-opus-5-5
+  samples: 2
+  batch: 16
+  chunk_lines: 80
+  max_rounds: 2
+  max_budget_usd: 3.0
+  max_total_usd: 16.0  # the run's cap (about 25 USD) less what the calls in flight (parallel x max per call) can add
+  parallel: 4
+  timeout: 900
+
+# Items the templates do not yield (or yield too weakly): every rule about the run -- reads, the scripts, the
+# repository, the verification scripts' red / green runs, tasks.md's ticks and appended phase, the rounds -- and the
+# artifacts' fields the skeletons cannot state (the checklist's sixteen items, the research format, the round report).
+# Each replaces compiled or extracted items on the same subject.
+manual:
+  # ============================================================== global
+  - id: speckit_sdd.global.run.doc_read_first.cw
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: doc_read_first, params: {doc: CW}}
+    availability: [trace]
+    modality_evidence: "imperative (INS:4 'Start by opening ... the very first action'; SP:66 'Open ... as your first action')"
+    sources:
+      - {path: instruction.md, lines: [4, 5], quote: "Start by opening /speckit-sdd/core-workflow.md, and make that the very first action you take, ahead of any look at the repository."}
+      - {path: system-prompt.j2, lines: [66, 66], quote: "1. Open /speckit-sdd/core-workflow.md as your first action."}
+  - id: speckit_sdd.global.run.order.round_1
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["read:SY", "write:spec", "read:PL", "write:plan", "read:TK", "write:tasks", "read:IM", "first_repo_write", "read:CV", "write:convergence"], invalidate: [read_ahead, multi_read]}}
+    availability: [trace]
+    modality_evidence: "CW:32-33 'Begin every stage by opening its document'; CW:37-40 the order; CW:76 only implement edits the repository"
+    sources:
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: docs/core-workflow.md, lines: [37, 37], quote: "1. specify, plan and tasks run once each, in that order."}
+      - {path: docs/core-workflow.md, lines: [38, 40], quote: "2. implement and converge then alternate, in at most two rounds: - Round 1: implement works through the whole of `tasks.md`; converge writes `convergence.md`."}
+      - {path: docs/core-workflow.md, lines: [76, 76], quote: "- implement is the only stage that edits `/testbed`; the other stages only read it and run commands in it."}
+    note: "each stage document read as its stage begins, then its artifact written: spec, plan, tasks, the first repository edit, convergence.md; a document first seen before the previous artifact (read ahead, e.g. all five at once) or only in a multi-document read voids its pair; a write counts only when its artifact is substantive"
+  - id: speckit_sdd.global.run.order.round_2
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["write:convergence", "write:convergence_2"]}}
+    applies_when: &round2 {any: [{field_matches: {artifact: convergence, section: '*', label: Outcome, pattern: '^\W*tasks_appended\b'}}, {artifact_exists: convergence_2}]}
+    availability: [trace]
+    modality_evidence: "CW:40-41 'round 2 follows ... converge writes `convergence-2.md`'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [40, 41], quote: "If that report's **Outcome** is `tasks_appended`, round 2 follows: implement does only the unchecked tasks (the new `## Phase N: Convergence`), and converge writes `convergence-2.md`."}
+    note: "round 2 (when convergence.md's Outcome is tasks_appended, or round 2 was run): convergence-2.md written after convergence.md, both substantive"
+  - id: speckit_sdd.global.run.speckit_holds.no_round_after_converged
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {not: {all: [{field_matches: {artifact: convergence, section: '*', label: Outcome, pattern: '^\W*converged\b'}}, {artifact_exists: convergence_2}]}}}}
+    availability: [sandbox_file]
+    modality_evidence: "CW:42-43 'The chain is over as soon as a converge round records `converged`'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [42, 43], quote: "The chain is over as soon as a converge round records `converged`, or after round 2 whatever it found. Then call `finish`."}
+      - {path: docs/stages/05-converge.md, lines: [191, 192], quote: "On `converged`, in either round: no further implement pass is needed for this feature's specified scope. The workflow is complete; finish the task."}
+    note: "no round-2 report after a round-1 report whose Outcome is converged"
+  - id: speckit_sdd.global.run.speckit_holds.at_most_two_rounds
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {not: {artifact_exists: convergence_3}}}}
+    availability: [sandbox_file]
+    modality_evidence: "CW:38 'in at most two rounds'; CV:193 'Round 2, whatever the outcome: the workflow is complete'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [38, 38], quote: "2. implement and converge then alternate, in at most two rounds:"}
+      - {path: docs/stages/05-converge.md, lines: [193, 193], quote: "Round 2, whatever the outcome: the workflow is complete; finish the task."}
+    note: "no third round report (convergence-3.md)"
+  - id: speckit_sdd.global.run.speckit_sdd_no_fetch.issue_links
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.no_fetch, params: {}}
+    availability: [trace]
+    modality_evidence: "CW:49-50 'Links in the issue stay closed ... nothing is searched for online'; SY:5 'do not open links'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [49, 50], quote: "Links in the issue stay closed (where one matters, note it as `[UNVERIFIED — not fetched]`), nothing is searched for online, and no package is installed."}
+      - {path: docs/stages/01-specify.md, lines: [5, 5], quote: "do not open links found in the issue and do not look anything up"}
+    note: "no command fetching a URL: curl / wget / a text browser on a URL, a Python urlopen / requests / httpx call on a URL literal, a git clone of a URL"
+  - id: speckit_sdd.global.run.prohibited_action.install
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: install}}
+    availability: [trace]
+    modality_evidence: "CW:50 'no package is installed'; IM:61 'no dependency installation'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [48, 50], quote: "Use only that text, the repository and what is already installed. Links in the issue stay closed (where one matters, note it as `[UNVERIFIED — not fetched]`), nothing is searched for online, and no package is installed."}
+      - {path: docs/stages/04-implement.md, lines: [61, 61], quote: "**Setup first**: Setup phase tasks (repository already initialized, no dependency installation)"}
+  - id: speckit_sdd.global.run.prohibited_action.test_file_write
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: test_file_write}}
+    availability: [trace]
+    modality_evidence: "CW:77 'No test file is added or changed there'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [77, 77], quote: "No test file is added or changed there."}
+      - {path: docs/stages/04-implement.md, lines: [62, 62], quote: "the repository's test files are not written or edited."}
+    note: "no edit of a test file that existed at BASE_SHA"
+  - id: speckit_sdd.global.run.speckit_sdd_created_files.tests
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.created_files, params: {test_paths: true}}
+    availability: [trace]
+    modality_evidence: "CW:77 'No test file is added'; TK:43 'never test files in the repository'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [77, 78], quote: "No test file is added or changed there. The tests this workflow writes are the verification scripts in `FEATURE_DIR/checks/`"}
+      - {path: docs/stages/03-tasks.md, lines: [43, 43], quote: "their files are verification scripts under `/tmp/speckit-sdd/specs/001-issue/checks/`"}
+    note: "no test file created in the repository (a test_*.py / tests/ path absent at BASE_SHA), kept or removed again"
+  - id: speckit_sdd.global.run.speckit_sdd_created_files.scratch
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|plan|tasks|research|data-model|quickstart|requirements|convergence(?:-2)?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:82 'Nothing of the workflow lands in `/testbed`')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [82, 84], quote: "Nothing of the workflow lands in `/testbed`: no spec copies, notes, summaries or scratch scripts. All of that belongs in `FEATURE_DIR`, with verification scripts and scratch files under `FEATURE_DIR/checks/`."}
+    note: "no spec copy, note, summary or scratch / check script created in the repository (a file absent at BASE_SHA named like one), kept or removed again"
+  - id: speckit_sdd.global.run.speckit_sdd_paths_written.scripts_outside_checks
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.paths_written, params: {pattern: '^/tmp/(?!speckit-sdd/specs/001-issue/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$'}}
+    availability: [trace]
+    modality_evidence: "CW:84 'A script written anywhere else ... breaks this rule'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [83, 84], quote: "with verification scripts and scratch files under `FEATURE_DIR/checks/`. A script written anywhere else — `/tmp/test_x.py`, `/testbed/repro.py` — breaks this rule."}
+    note: "no script written under /tmp outside the feature directory (the repository side is the scratch item)"
+  - id: speckit_sdd.global.run.speckit_sdd_untouched.shipped
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.untouched, params: {prefixes: [/tmp/speckit-sdd/.specify/scripts, /tmp/speckit-sdd/.specify/templates, /tmp/speckit-sdd/.specify/memory]}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:18-19 'leave them as they are')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [18, 19], quote: "The files under `/tmp/speckit-sdd/.specify/scripts/`, `templates/` and `memory/` are Spec Kit's own; leave them as they are."}
+    note: "no write of the trace under the shipped scripts, templates or constitution (an edited script would print what its caller wants)"
+  - id: speckit_sdd.global.run.prohibited_action.ignore_files
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write, pattern: '(?:^|/)\.[\w-]*ignore$'}}
+    availability: [trace]
+    modality_evidence: "CW:81 'stay untouched'; IM:43 'do not create or edit them'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [81, 81], quote: "- Ignore files (`.gitignore`, `.dockerignore` and so on) stay untouched."}
+      - {path: docs/stages/04-implement.md, lines: [43, 43], quote: "**Ignore files**: the repository's ignore files (`.gitignore`, `.dockerignore` and the like) are not part of the change; do not create or edit them."}
+  - id: speckit_sdd.global.run.prohibited_action.git_branch
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: command, pattern: '\bgit\s+(?:c\w+\s+-[bB]\s|sw\w+\s+-[cC]\s|branch\s+(?!-)[\w./-]+)'}}
+    availability: [trace]
+    modality_evidence: "SY:16 'no git branch is created'"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [16, 16], quote: "2. **Branch**: no git branch is created. Where a template asks for the branch, write `001-issue`."}
+  - id: speckit_sdd.global.run.speckit_holds.spec_written_by_specify
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {all: [{absent: {fact: artifact_write, artifact: spec, window: ["stage_end:specify", "end"]}}, {absent: {fact: artifact_write, artifact: req_checklist, window: ["stage_end:specify", "end"]}}]}}}
+    availability: [trace]
+    modality_evidence: "CW:66-68 'Changed later: no'; IM:6 'do NOT modify checklist files'; CV:20 'MUST NOT modify spec.md'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [66, 68], quote: "| File in `FEATURE_DIR` | Written by | Changed later | |-----------------------|------------|---------------| | `spec.md`, `checklists/requirements.md` | specify | no |"}
+      - {path: docs/stages/04-implement.md, lines: [6, 6], quote: "do NOT modify checklist files or markers"}
+    note: "spec.md and checklists/requirements.md are not written after the specify stage"
+  - id: speckit_sdd.global.run.speckit_holds.plan_docs_written_by_plan
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {all: [{absent: {fact: artifact_write, artifact: plan, window: ["stage_end:plan", "end"]}}, {absent: {fact: artifact_write, artifact: research, window: ["stage_end:plan", "end"]}}, {absent: {fact: artifact_write, artifact: data_model, window: ["stage_end:plan", "end"]}}, {absent: {fact: artifact_write, artifact: quickstart, window: ["stage_end:plan", "end"]}}]}}}
+    availability: [trace]
+    modality_evidence: "CW:69 'Changed later: no'; CV:20 'MUST NOT modify ... plan.md'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [69, 69], quote: "| `plan.md`, `research.md`, Phase 1 files | plan | no |"}
+      - {path: docs/stages/05-converge.md, lines: [20, 20], quote: "- modify `spec.md` or `plan.md` in any way;"}
+    note: "plan.md, research.md, data-model.md, quickstart.md are not written after the plan stage"
+  - id: speckit_sdd.global.run.speckit_holds.report_written_once_per_round
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {absent: {fact: artifact_write, artifact: convergence, window: ["stage_end:converge", "end"]}}}}
+    availability: [trace]
+    modality_evidence: "CW:71 'converge, one per round | no'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [71, 71], quote: "| `convergence.md`, `convergence-2.md` | converge, one per round | no |"}
+    note: "convergence.md is not written after the round-1 converge stage"
+  - id: speckit_sdd.global.tasks.speckit_sdd_tasks.later_edits
+    stage: global
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: later_edits, window: ["stage_end:tasks", "end"]}}
+    availability: [trace]
+    modality_evidence: "CW:70 'only by implement's [X] marks and by converge appending'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [70, 70], quote: "| `tasks.md` | tasks | only by implement's `[X]` marks and by converge appending a `## Phase N: Convergence` |"}
+      - {path: docs/stages/05-converge.md, lines: [21, 22], quote: "- rewrite, renumber, reorder, or delete any existing task (including tasks from a prior Convergence phase);"}
+    note: "every write of tasks.md after the tasks stage only ticks boxes or appends (its earlier content known and kept)"
+  # ============================================================== specify
+  - id: speckit_sdd.specify.run.doc_read.sy
+    stage: specify
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: SY, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:32 'Begin every stage by opening its document'; CW:25 'Open first'; SP:69-70)"
+    sources: &open_doc
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: system-prompt.j2, lines: [69, 70], quote: "Each stage starts by opening its document under /speckit-sdd/stages/"}
+    note: "01-specify.md read (alone in its call, at least half of it seen) in the specify window"
+  - id: speckit_sdd.specify.run.doc_read.spec_template
+    stage: specify
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TPL_SPEC}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (SY:39 'Load the spec template')"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [39, 39], quote: "Load the spec template (`/tmp/speckit-sdd/.specify/templates/spec-template.md`, now copied to `SPEC_FILE`) to understand required sections."}
+    note: "the template (or its copy at SPEC_FILE, which shows the same text) seen in the specify window"
+  - id: speckit_sdd.specify.run.doc_read.constitution
+    stage: specify
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CONSTITUTION}}
+    availability: [trace]
+    modality_evidence: "IF EXISTS load (SY:41); the shipped constitution exists in every run"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [41, 41], quote: "**IF EXISTS**: Load `/tmp/speckit-sdd/.specify/memory/constitution.md` for project principles and governance constraints."}
+  - id: speckit_sdd.specify.run.prohibited_action.repo_write
+    stage: specify
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "CW:76 'implement is the only stage that edits `/testbed`'"
+    sources: &only_implement
+      - {path: docs/core-workflow.md, lines: [76, 76], quote: "- implement is the only stage that edits `/testbed`; the other stages only read it and run commands in it."}
+    note: "no write into the repository in the specify window"
+  - id: speckit_sdd.specify.feature_json.present
+    stage: specify
+    target: {type: artifact, ref: feature_json}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "the stage's output (CW:25); the later stages' scripts locate the feature through it (SY:33)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [25, 25], quote: "`spec.md`, `checklists/requirements.md` (and `/tmp/speckit-sdd/.specify/feature.json`) |"}
+      - {path: docs/stages/01-specify.md, lines: [26, 33], quote: "Persist the feature directory to `/tmp/speckit-sdd/.specify/feature.json`:"}
+    note: "feature.json exists at the end (not a stage gate: spec.md closes the stage)"
+  - id: speckit_sdd.specify.feature_json.speckit_sdd_feature_json
+    stage: specify
+    target: {type: artifact, ref: feature_json}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.feature_json, params: {}}
+    modality_evidence: "the JSON SY:27-31 gives, 'relative to the project root' (SY:32)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [27, 32], quote: "```json { \"feature_directory\": \"specs/001-issue\" } ``` The value is relative to the project root `/tmp/speckit-sdd`."}
+    note: "valid JSON whose feature_directory (relative to /tmp/speckit-sdd, or absolute) is the directory holding spec.md"
+  - id: speckit_sdd.specify.spec.item_format.created
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: should
+    check: {kind: item_format, params: {pattern: '^\*\*Created\*\*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "the template's [DATE] placeholder (TPL_SPEC:5); the format is read off the placeholder's name: should"
+    sources:
+      - {path: sandbox/specify/templates/spec-template.md, lines: [5, 5], quote: "**Created**: [DATE]"}
+    note: "the Created value is a date (YYYY-MM-DD)"
+  - id: speckit_sdd.specify.spec.item_format.story_priority
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: User Scenarios & Testing, pattern: '^#{3}\s+User Story\s+\d+\b.*\(Priority:\s*P\d+\)', of_pattern: '^#{3}\s+User Story\s+\d+\b'}}
+    modality_evidence: "template instruction (TPL_SPEC:18 'Assign priorities (P1, P2, P3, etc.) to each story'); tasks orders story phases by them (TK:25)"
+    sources:
+      - {path: sandbox/specify/templates/spec-template.md, lines: [18, 18], quote: "Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical."}
+      - {path: sandbox/specify/templates/spec-template.md, lines: [26, 26], quote: "### User Story 1 - [Brief Title] (Priority: P1)"}
+    note: "every user story heading carries its (Priority: Pn)"
+  - id: speckit_sdd.specify.spec.item_format.clarifications_resolved
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '\[NEEDS CLARIFICATION', max: 0}}
+    modality_evidence: "SY:127 'replace the marker in the spec with it' (nobody answers a question); SY:89 the checklist item"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [127, 127], quote: "Nobody will answer a question about them. For each clarification needed (max 3), take the most plausible answer, replace the marker in the spec with it, and record the choice in the spec's `## Assumptions` section"}
+      - {path: docs/stages/01-specify.md, lines: [53, 53], quote: "**LIMIT: Maximum 3 [NEEDS CLARIFICATION] markers total**"}
+    note: "no [NEEDS CLARIFICATION] marker is left in the final spec"
+  - id: speckit_sdd.specify.spec.item_format.no_embedded_checklist
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s', max: 0}}
+    modality_evidence: "prohibition (SY:141 'DO NOT')"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [141, 141], quote: "- DO NOT create any checklists that are embedded in the spec."}
+  - id: speckit_sdd.specify.spec.item_format.no_na_section
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '(?i)^\s*(?:[-*+]\s+)?(?:\*\*|_)?N/?A(?:\*\*|_)?\.?\s*$', max: 0}}
+    modality_evidence: "prohibition (SY:147 'don't leave as \"N/A\"')"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [147, 147], quote: "- When a section doesn't apply, remove it entirely (don't leave as \"N/A\")"}
+    note: "no line that is only N/A (a section left as N/A)"
+  - id: speckit_sdd.specify.spec.section_present.edge_cases
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Edge Cases, level: 3}}
+    modality_evidence: "binding (SY:67 'preserving section order and headings')"
+    sources:
+      - {path: sandbox/specify/templates/spec-template.md, lines: [71, 71], quote: "### Edge Cases"}
+      - {path: docs/stages/01-specify.md, lines: [67, 67], quote: "preserving section order and headings"}
+  - id: speckit_sdd.specify.spec.field_filled.edge_cases
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Edge Cases}}
+    none_allowed: unspecified
+    modality_evidence: "binding (SY:67 'replacing placeholders'); template comment (TPL_SPEC:74-75 'Fill them out')"
+    sources:
+      - {path: sandbox/specify/templates/spec-template.md, lines: [74, 79], quote: "ACTION REQUIRED: The content in this section represents placeholders. Fill them out with the right edge cases. --> - What happens when [boundary condition]? - How does system handle [error scenario]?"}
+      - {path: docs/stages/01-specify.md, lines: [67, 67], quote: "replacing placeholders with concrete details derived from the feature description (the issue)"}
+  - id: speckit_sdd.specify.spec.field_filled.functional_requirements
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Functional Requirements}}
+    none_allowed: "no"
+    modality_evidence: "imperative outline step (SY:57-58 'Generate Functional Requirements / Each requirement must be testable'); mandatory section (SY:145)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [57, 58], quote: "5. Generate Functional Requirements Each requirement must be testable"}
+      - {path: docs/stages/01-specify.md, lines: [145, 145], quote: "- **Mandatory sections**: Must be completed for every feature"}
+    note: "the requirement lines hold requirements, not placeholders or none"
+  - id: speckit_sdd.specify.spec.field_filled.measurable_outcomes
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Measurable Outcomes}}
+    none_allowed: "no"
+    modality_evidence: "imperative outline step (SY:60-61 'Define Success Criteria'); mandatory section (SY:145)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [60, 61], quote: "6. Define Success Criteria Create measurable, technology-agnostic outcomes"}
+      - {path: docs/stages/01-specify.md, lines: [145, 145], quote: "- **Mandatory sections**: Must be completed for every feature"}
+  - id: speckit_sdd.specify.spec.no_template_residue.fill_marks
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: &fill_marks ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:T\d{3,}\s+)?(?:\[(?:P|US\d+)\]\s+)*(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^(?:\*\*|__)[\w /&().-]{1,60}(?:\*\*|__)\s*:\s*(?:\*\*|__)?\s*(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (SY:67 'replacing placeholders with concrete details'): a value that is only a fill-in mark (x, ..., ?) is a placeholder left in place"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [67, 67], quote: "replacing placeholders with concrete details derived from the feature description (the issue)"}
+      - {path: sandbox/specify/templates/spec-template.md, lines: [84, 85], quote: "ACTION REQUIRED: The content in this section represents placeholders. Fill them out with the right functional requirements."}
+    note: "a list item, bold field or table cell holding only a fill-in mark: x, ..., ?"
+  - id: speckit_sdd.specify.spec.no_template_residue.examples
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check:
+      kind: no_template_residue
+      params:
+        patterns:
+          - 'auth method not specified - email/password, SSO, OAuth\?'
+          - 'retention period not specified'
+          - 'allow users to create accounts'
+          - 'Users can complete account creation in under 2 minutes'
+    modality_evidence: "binding (SY:67 'replacing placeholders'); the template's example values"
+    sources:
+      - {path: sandbox/specify/templates/spec-template.md, lines: [90, 90], quote: "- **FR-001**: System MUST [specific capability, e.g., \"allow users to create accounts\"]"}
+      - {path: sandbox/specify/templates/spec-template.md, lines: [96, 99], quote: "*Example of marking unclear requirements:* - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?] - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]"}
+      - {path: sandbox/specify/templates/spec-template.md, lines: [115, 115], quote: "- **SC-001**: [Measurable metric, e.g., \"Users can complete account creation in under 2 minutes\"]"}
+    note: "the template's example requirements and markers (a clarification marker is legit syntax, so only its sample text is residue)"
+  - id: speckit_sdd.specify.spec.speckit_sdd_links.unverified
+    stage: specify
+    target: {type: artifact, ref: spec}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.links, params: {}}
+    modality_evidence: "imperative (SY:6 'quote it as it appears, marked')"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [6, 6], quote: "Where a link matters to the spec, quote it as it appears, marked `[UNVERIFIED — not fetched]`."}
+    note: "every link the spec names (outside code; local addresses aside) is on a line marked [UNVERIFIED — not fetched]; not applicable without a link"
+  # -- checklists/requirements.md: the skeleton of SY:73-108
+  - id: speckit_sdd.specify.req_checklist.item_format.purpose
+    stage: specify
+    target: {type: artifact, ref: req_checklist}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^(?:\*\*|__)?Purpose(?:\*\*|__)?\s*:(?:\*\*|__)?\s+Validate specification completeness and quality before proceeding to planning'}}
+    modality_evidence: "imperative (SY:71 'Generate a checklist file ... using the structure below'); the line has no placeholder"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [76, 76], quote: "**Purpose**: Validate specification completeness and quality before proceeding to planning"}
+  - id: speckit_sdd.specify.req_checklist.item_format.content_quality
+    stage: specify
+    target: {type: artifact, ref: req_checklist}
+    class: content
+    requirement: must
+    check:
+      kind: item_format
+      params:
+        section: Content Quality
+        pattern: '^\s*[-*+]\s+\[[ xX]\]\s+(?:No implementation details \(languages, frameworks, APIs\)|Focused on user value and business needs|Written for non-technical stakeholders|All mandatory sections completed)'
+        min: 4
+    modality_evidence: "'with these validation items' (SY:71)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [80, 85], quote: "## Content Quality - [ ] No implementation details (languages, frameworks, APIs) - [ ] Focused on user value and business needs - [ ] Written for non-technical stakeholders - [ ] All mandatory sections completed"}
+  - id: speckit_sdd.specify.req_checklist.item_format.requirement_completeness
+    stage: specify
+    target: {type: artifact, ref: req_checklist}
+    class: content
+    requirement: must
+    check:
+      kind: item_format
+      params:
+        section: Requirement Completeness
+        pattern: '^\s*[-*+]\s+\[[ xX]\]\s+(?:No \[NEEDS CLARIFICATION\] markers remain|Requirements are testable and unambiguous|Success criteria are measurable|Success criteria are technology-agnostic|All acceptance scenarios are defined|Edge cases are identified|Scope is clearly bounded|Dependencies and assumptions identified)'
+        min: 8
+    modality_evidence: "'with these validation items' (SY:71)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [87, 96], quote: "## Requirement Completeness - [ ] No [NEEDS CLARIFICATION] markers remain - [ ] Requirements are testable and unambiguous - [ ] Success criteria are measurable - [ ] Success criteria are technology-agnostic (no implementation details) - [ ] All acceptance scenarios are defined - [ ] Edge cases are identified - [ ] Scope is clearly bounded - [ ] Dependencies and assumptions identified"}
+  - id: speckit_sdd.specify.req_checklist.item_format.feature_readiness
+    stage: specify
+    target: {type: artifact, ref: req_checklist}
+    class: content
+    requirement: must
+    check:
+      kind: item_format
+      params:
+        section: Feature Readiness
+        pattern: '^\s*[-*+]\s+\[[ xX]\]\s+(?:All functional requirements have clear acceptance criteria|User scenarios cover primary flows|Feature meets measurable outcomes defined in Success Criteria|No implementation details leak into specification)'
+        min: 4
+    modality_evidence: "'with these validation items' (SY:71)"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [98, 103], quote: "## Feature Readiness - [ ] All functional requirements have clear acceptance criteria - [ ] User scenarios cover primary flows - [ ] Feature meets measurable outcomes defined in Success Criteria - [ ] No implementation details leak into specification"}
+  - id: speckit_sdd.specify.req_checklist.item_format.validated
+    stage: specify
+    target: {type: artifact, ref: req_checklist}
+    class: content
+    requirement: should
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\[[xX]\]\s', of_pattern: '^\s*[-*+]\s+\[[ xX]\]\s'}}
+    modality_evidence: "'Mark checklist complete' (SY:116) read as ticking the items that pass; a failing item may stay open with its note (SY:122): should"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [116, 116], quote: "**If all items pass**: Mark checklist complete and proceed to **Next Stage** below"}
+      - {path: docs/stages/01-specify.md, lines: [130, 130], quote: "**Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status"}
+    note: "share of the checklist's items ticked"
+  # ============================================================== plan
+  - id: speckit_sdd.plan.run.doc_read.pl
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: PL, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:32; SY:134 'open `/speckit-sdd/stages/02-plan.md` and start the plan stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: docs/stages/01-specify.md, lines: [134, 134], quote: "open `/speckit-sdd/stages/02-plan.md` and start the plan stage."}
+    note: "02-plan.md read (alone in its call, at least half of it seen) in the plan window"
+  - id: speckit_sdd.plan.run.speckit_sdd_script.setup_plan
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: setup-plan.sh, args: [--json], keys: [FEATURE_SPEC, IMPL_PLAN, FEATURE_DIR], window: ["stage_start:plan", ["first_write:plan", "stage_end:plan"]]}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (PL:3 'Run ...'); SP:70-71 'run it and rely on the paths it prints'"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [3, 3], quote: "1. **Setup**: Run `/tmp/speckit-sdd/.specify/scripts/bash/setup-plan.sh --json` (from any working directory: it finds the project root `/tmp/speckit-sdd` from its own location) and parse JSON for FEATURE_SPEC, IMPL_PLAN, FEATURE_DIR, BRANCH."}
+      - {path: docs/core-workflow.md, lines: [26, 26], quote: "| 2 | plan | `/speckit-sdd/stages/02-plan.md` | `setup-plan.sh --json` |"}
+      - {path: system-prompt.j2, lines: [70, 71], quote: "where the document says to run a Spec Kit script, run it and rely on the paths it prints."}
+    note: "the shipped setup-plan.sh ran with --json, before the run's own first write of plan.md, and printed its paths (or exited 0): an echoed JSON, a copy run from elsewhere or a failed run is no run"
+  - id: speckit_sdd.plan.run.speckit_read.spec
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [spec]}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (PL:5 'Read FEATURE_SPEC')"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [5, 5], quote: "2. **Load context**: Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`. Load IMPL_PLAN template (already copied)."}
+  - id: speckit_sdd.plan.run.doc_read.constitution
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CONSTITUTION}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (PL:5 'Read ... constitution.md')"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [5, 5], quote: "2. **Load context**: Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`."}
+  - id: speckit_sdd.plan.run.doc_read.plan_template
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TPL_PLAN}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (PL:5 'Load IMPL_PLAN template (already copied)')"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [5, 5], quote: "Load IMPL_PLAN template (already copied)."}
+      - {path: sandbox/specify/templates/plan-template.md, lines: [7, 7], quote: "**Note**: This template is filled in by the plan stage; its stage document (`/speckit-sdd/stages/02-plan.md`) describes the execution workflow."}
+    note: "the plan template (or the copy setup-plan.sh made at IMPL_PLAN, which shows the same text) seen in the plan window"
+  - id: speckit_sdd.plan.run.prohibited_action.repo_write
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "CW:76 'implement is the only stage that edits `/testbed`'"
+    sources: *only_implement
+    note: "no write into the repository in the plan window"
+  - id: speckit_sdd.plan.run.speckit_holds.no_tasks_yet
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {absent: {fact: artifact_write, artifact: tasks, window: "stage:plan"}}}}
+    availability: [trace]
+    modality_evidence: "the plan template's tree: tasks.md is NOT created by the plan stage (TPL_PLAN:56)"
+    sources:
+      - {path: sandbox/specify/templates/plan-template.md, lines: [56, 56], quote: "└── tasks.md             # Phase 2 output (tasks stage - NOT created by the plan stage)"}
+  - id: speckit_sdd.plan.research.present
+    stage: plan
+    target: {type: artifact, ref: research}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "imperative outline step (PL:11 'Phase 0: Generate research.md'); Phase 1 prerequisite (PL:41); CW:26"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [11, 11], quote: "- Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"}
+      - {path: docs/stages/02-plan.md, lines: [41, 41], quote: "**Prerequisites:** `research.md` complete"}
+  - id: speckit_sdd.plan.data_model.present
+    stage: plan
+    target: {type: artifact, ref: data_model}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "'always all three' (PL:12); 'created every time' (PL:43)"
+    sources: &always_written
+      - {path: docs/stages/02-plan.md, lines: [12, 12], quote: "Phase 1: Generate data-model.md, contracts/, quickstart.md - always all three"}
+      - {path: docs/stages/02-plan.md, lines: [43, 43], quote: "**Always written**: data-model.md and quickstart.md are created every time; when nothing in one of them applies to this change, its whole body is one line `N/A — <reason>`."}
+  - id: speckit_sdd.plan.quickstart.present
+    stage: plan
+    target: {type: artifact, ref: quickstart}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "'always all three' (PL:12); 'created every time' (PL:43)"
+    sources: *always_written
+  - id: speckit_sdd.plan.data_model.speckit_sdd_plan_docs.na_body
+    stage: plan
+    target: {type: artifact, ref: data_model}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.plan_docs, params: {rule: na_body}}
+    modality_evidence: "PL:43 'its whole body is one line `N/A — <reason>`'"
+    sources: *always_written
+    note: "data-model.md holds content, or its whole body is one line 'N/A — <reason>' (a bare N/A or an empty file fails)"
+  - id: speckit_sdd.plan.quickstart.speckit_sdd_plan_docs.na_body
+    stage: plan
+    target: {type: artifact, ref: quickstart}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.plan_docs, params: {rule: na_body}}
+    modality_evidence: "PL:43 'its whole body is one line `N/A — <reason>`'"
+    sources: *always_written
+    note: "quickstart.md holds content, or its whole body is one line 'N/A — <reason>'"
+  - id: speckit_sdd.plan.plan.speckit_sdd_plan_docs.contracts
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.plan_docs, params: {rule: contracts}}
+    modality_evidence: "PL:43 'replace it in plan.md with one line per contract file you write, or ... `contracts/  # N/A — <reason>`'"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [43, 43], quote: "Contracts are recorded in plan.md's Documentation tree: the copied template has a `contracts/` line marked `<REPLACE in plan.md: …>`; replace it in plan.md with one line per contract file you write, or, when there is none, with `contracts/  # N/A — <reason>` and create no file."}
+      - {path: sandbox/specify/templates/plan-template.md, lines: [55, 55], quote: "├── contracts/           # <REPLACE in plan.md: one line per contract file you wrote, or `N/A — <reason>` and no file>"}
+    note: "the Documentation tree names every file under FEATURE_DIR/contracts/, or (none written) holds 'contracts/  # N/A — <reason>'; the <REPLACE ...> mark is gone"
+  - id: speckit_sdd.plan.plan.field_filled.technical_context
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Technical Context}}
+    none_allowed: unspecified
+    modality_evidence: "imperative (PL:8 'Fill Technical Context from the repository')"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [8, 8], quote: "- Fill Technical Context from the repository - its build files, CI configuration and installed environment; nobody names a tech stack (mark unknowns as \"NEEDS CLARIFICATION\")"}
+  - id: speckit_sdd.plan.plan.item_format.constitution_skipped
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: Constitution Check, pattern: '(?i)skipped\s*[—–-]+\s*template'}}
+    modality_evidence: "PL:9 'write \"skipped — template\" in Constitution Check'; the shipped constitution is the unfilled template (CONSTITUTION:1)"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [9, 9], quote: "If the constitution is an unfilled template (`[ALL_CAPS]` placeholders with `<!-- Example: ... -->` comments), it has no principles - its comments are examples, not rules: write \"skipped — template\" in Constitution Check and evaluate no gate"}
+      - {path: sandbox/specify/memory/constitution.md, lines: [1, 1], quote: "# [PROJECT_NAME] Constitution"}
+    note: "the Constitution Check section says 'skipped — template'"
+  - id: speckit_sdd.plan.plan.no_template_residue.clarifications
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['NEEDS CLARIFICATION']}}
+    modality_evidence: "Phase 0 resolves every NEEDS CLARIFICATION (PL:11, PL:37); PL:68"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [11, 11], quote: "- Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"}
+      - {path: docs/stages/02-plan.md, lines: [37, 37], quote: "**Output**: research.md with all NEEDS CLARIFICATION resolved"}
+      - {path: docs/stages/02-plan.md, lines: [68, 68], quote: "- Unresolved clarifications are not an error: Phase 0 resolves each from repository evidence or by the most plausible reading recorded in research.md"}
+  - id: speckit_sdd.plan.plan.no_template_residue.option_labels
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?m)^\s*#?\s*(?:\[REMOVE IF UNUSED\]\s*)?Option \d+:', '\[REMOVE IF UNUSED\]']}}
+    modality_evidence: "template instruction (TPL_PLAN:61-64 'The delivered plan must not include Option labels')"
+    sources:
+      - {path: sandbox/specify/templates/plan-template.md, lines: [61, 64], quote: "ACTION REQUIRED: Replace the placeholder tree below with the concrete layout for this feature. Delete unused options and expand the chosen structure with real paths (e.g., apps/admin, packages/something). The delivered plan must not include Option labels."}
+  - id: speckit_sdd.plan.plan.field_filled.structure_decision
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Source Code (repository root), label: Structure Decision}}
+    none_allowed: unspecified
+    modality_evidence: "binding (PL:7); the label's value is a placeholder (TPL_PLAN:104-105)"
+    sources:
+      - {path: sandbox/specify/templates/plan-template.md, lines: [104, 105], quote: "**Structure Decision**: [Document the selected structure and reference the real directories captured above]"}
+      - {path: docs/stages/02-plan.md, lines: [7, 7], quote: "Follow the structure in IMPL_PLAN template"}
+  - id: speckit_sdd.plan.plan.item_format.date
+    stage: plan
+    target: {type: artifact, ref: plan}
+    class: content
+    requirement: should
+    check: {kind: item_format, params: {pattern: '\*\*Date\*\*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "the template's [DATE] placeholder (TPL_PLAN:3): should"
+    sources:
+      - {path: sandbox/specify/templates/plan-template.md, lines: [3, 3], quote: "**Branch**: `001-issue` | **Date**: [DATE] | **Spec**: [link]"}
+  # -- research.md: the format of PL:30-33
+  - id: speckit_sdd.plan.research.field_filled.decision
+    stage: plan
+    target: {type: artifact, ref: research}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: "*", label: Decision}}
+    none_allowed: "no"
+    modality_evidence: "imperative outline step (PL:30 'Consolidate findings ... using format'; the dictionary misses the verb after the bold label); PL:35 'recorded in the same format'"
+    sources: &research_format
+      - {path: docs/stages/02-plan.md, lines: [30, 33], quote: "3. **Consolidate findings** in `research.md` using format: - Decision: [what was chosen] - Rationale: [why chosen] - Alternatives considered: [what else evaluated]"}
+      - {path: docs/stages/02-plan.md, lines: [35, 35], quote: "An unknown the evidence does not settle is decided by the most plausible reading and recorded in the same format; nobody is asked."}
+  - id: speckit_sdd.plan.research.field_filled.rationale
+    stage: plan
+    target: {type: artifact, ref: research}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: "*", label: Rationale}}
+    none_allowed: "no"
+    modality_evidence: "imperative outline step (PL:30); the value is why it was chosen (PL:32)"
+    sources: *research_format
+  - id: speckit_sdd.plan.research.field_filled.alternatives
+    stage: plan
+    target: {type: artifact, ref: research}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: "*", label: Alternatives considered}}
+    none_allowed: "no"
+    modality_evidence: "imperative outline step (PL:30); the value is what else was evaluated (PL:33)"
+    sources: *research_format
+  - id: speckit_sdd.plan.research.no_template_residue.fill_marks
+    stage: plan
+    target: {type: artifact, ref: research}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: *fill_marks}}
+    modality_evidence: "the format's values are placeholders to replace (PL:31-33 '[what was chosen]' ...): a fill-in mark is one left in place"
+    sources: *research_format
+  - id: speckit_sdd.plan.run.order.research_before_data_model
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["first_write:research", "first_write:data_model"]}}
+    availability: [trace]
+    modality_evidence: "Phase 1 prerequisite (PL:41)"
+    sources: &phase1_prereq
+      - {path: docs/stages/02-plan.md, lines: [41, 41], quote: "**Prerequisites:** `research.md` complete"}
+  - id: speckit_sdd.plan.run.order.research_before_quickstart
+    stage: plan
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["first_write:research", "first_write:quickstart"]}}
+    availability: [trace]
+    modality_evidence: "Phase 1 prerequisite (PL:41)"
+    sources: *phase1_prereq
+  # ============================================================== tasks
+  - id: speckit_sdd.tasks.run.doc_read.tk
+    stage: tasks
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TK, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:32; PL:17 'open `/speckit-sdd/stages/03-tasks.md` and start the tasks stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: docs/stages/02-plan.md, lines: [17, 17], quote: "open `/speckit-sdd/stages/03-tasks.md` and start the tasks stage."}
+    note: "03-tasks.md read (alone in its call, at least half of it seen) in the tasks window"
+  - id: speckit_sdd.tasks.run.speckit_sdd_script.setup_tasks
+    stage: tasks
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: setup-tasks.sh, args: [--json], keys: [FEATURE_DIR, TASKS_TEMPLATE_CONTENT], window: ["stage_start:tasks", ["first_write:tasks", "stage_end:tasks"]]}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (TK:3 'Run ...'); TK:21 'Use TASKS_TEMPLATE_CONTENT (from the JSON output above)'"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [3, 3], quote: "1. **Setup**: Run `/tmp/speckit-sdd/.specify/scripts/bash/setup-tasks.sh --json` (from any working directory: it finds the project root `/tmp/speckit-sdd` from its own location) and parse FEATURE_DIR, TASKS_TEMPLATE_CONTENT, TASKS_TEMPLATE, and AVAILABLE_DOCS list."}
+      - {path: docs/stages/03-tasks.md, lines: [21, 21], quote: "**Generate tasks.md**: Use TASKS_TEMPLATE_CONTENT (from the JSON output above) as the structure."}
+      - {path: system-prompt.j2, lines: [70, 71], quote: "where the document says to run a Spec Kit script, run it and rely on the paths it prints."}
+    note: "the shipped setup-tasks.sh ran with --json before tasks.md was first written, and printed its JSON (or exited 0)"
+  - id: speckit_sdd.tasks.run.speckit_read.required
+    stage: tasks
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [plan, spec], window: ["stage_start:tasks", ["first_write:tasks", "stage_end:tasks"]]}}
+    availability: [trace]
+    modality_evidence: "Required (TK:6), loaded (step 2) before tasks.md is generated (step 4)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [5, 6], quote: "2. **Load design documents**: Read from FEATURE_DIR: - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)"}
+  - id: speckit_sdd.tasks.run.speckit_read.optional
+    stage: tasks
+    class: evidence
+    requirement: should
+    check: {kind: speckit.read, params: {artifacts: [data_model, research, quickstart], window: ["stage_start:tasks", ["first_write:tasks", "stage_end:tasks"]]}}
+    availability: [trace]
+    modality_evidence: "Optional (TK:7) documents, used when they exist (TK:14-16): should"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [7, 7], quote: "- **Optional**: data-model.md (entities), contracts/ (interface contracts), research.md (decisions), quickstart.md (test scenarios)"}
+  - id: speckit_sdd.tasks.run.doc_read.constitution
+    stage: tasks
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CONSTITUTION}}
+    availability: [trace]
+    modality_evidence: "IF EXISTS load (TK:8); the shipped constitution exists"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [8, 8], quote: "- **IF EXISTS**: Load `/tmp/speckit-sdd/.specify/memory/constitution.md` for project principles and governance constraints"}
+  - id: speckit_sdd.tasks.run.prohibited_action.repo_write
+    stage: tasks
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "CW:76 'implement is the only stage that edits `/testbed`'"
+    sources: *only_implement
+    note: "no write into the repository in the tasks window"
+  - id: speckit_sdd.tasks.tasks.item_format.heading
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^#\s+(?:\*\*|__)?Tasks(?:\*\*|__)?\s*:\s+\S'}}
+    modality_evidence: "imperative (TK:22 'Correct feature name from plan.md')"
+    sources:
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [1, 1], quote: "# Tasks: [FEATURE NAME]"}
+      - {path: docs/stages/03-tasks.md, lines: [22, 22], quote: "- Correct feature name from plan.md"}
+  - id: speckit_sdd.tasks.tasks.no_template_residue.header
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['\[FEATURE NAME\]', '\bTXXX\b']}}
+    modality_evidence: "binding (TK:21 'as the structure'); the title's placeholder and the template's TXXX task ids (TK:56 sequential ids)"
+    sources:
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [1, 1], quote: "# Tasks: [FEATURE NAME]"}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [153, 154], quote: "- [ ] TXXX [P] Documentation updates in docs/ - [ ] TXXX Code cleanup and refactoring"}
+      - {path: docs/stages/03-tasks.md, lines: [56, 56], quote: "2. **Task ID**: Sequential number (T001, T002, T003...) in execution order"}
+  - id: speckit_sdd.tasks.tasks.item_format.phase_setup
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^#{2}\s+Phase\s+1\s*:\s+Setup\b'}}
+    modality_evidence: "Fill with (TK:23); 'Keep the Setup, Foundational and Polish phase headings' (TK:28)"
+    sources: &keep_phases
+      - {path: docs/stages/03-tasks.md, lines: [28, 28], quote: "- Keep the Setup, Foundational and Polish phase headings even when a phase has no task; such a phase holds the one line `No tasks — <reason>`"}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [41, 43], quote: "DO keep the Setup, Foundational and Polish phase headings, even when a phase has no task for this change: such a phase then holds the one line `No tasks — <reason>`."}
+  - id: speckit_sdd.tasks.tasks.item_format.phase_foundational
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^#{2}\s+Phase\s+2\s*:\s+Foundational\b'}}
+    modality_evidence: "Fill with (TK:24); TK:28"
+    sources: *keep_phases
+  - id: speckit_sdd.tasks.tasks.item_format.phase_story
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^#{2}\s+Phase\s+\d+\s*:\s+User Story\s+\d+\b'}}
+    modality_evidence: "Fill with (TK:25); CRITICAL (TK:41)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [25, 25], quote: "- Phase 3+: One phase per user story (in priority order from spec.md)"}
+      - {path: docs/stages/03-tasks.md, lines: [41, 41], quote: "**CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing."}
+  - id: speckit_sdd.tasks.tasks.item_format.phase_polish
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^#{2}\s+Phase\s+(?:\d+|N)\s*:\s+Polish\b'}}
+    modality_evidence: "Fill with (TK:27); TK:28"
+    sources: *keep_phases
+    note: "the template's literal 'Phase N' or a number (conflicts)"
+  - id: speckit_sdd.tasks.tasks.speckit_sdd_tasks.empty_phases
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: empty_phases}}
+    modality_evidence: "TK:28 'such a phase holds the one line `No tasks — <reason>`'"
+    sources: *keep_phases
+    note: "Setup, Foundational and Polish each hold a task or the line 'No tasks — <reason>' (ratio over the three)"
+  - id: speckit_sdd.tasks.tasks.speckit_sdd_tasks.story_tests
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: story_tests}}
+    modality_evidence: "TK:43 'every user story gets test tasks under `### Tests for User Story N`, and their files are verification scripts under ... checks/'"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [43, 43], quote: "So every user story gets test tasks under `### Tests for User Story N`, and their files are verification scripts under `/tmp/speckit-sdd/specs/001-issue/checks/` (for example `/tmp/speckit-sdd/specs/001-issue/checks/test_[name].py`), never test files in the repository."}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [7, 7], quote: "Here the task message is that request: every user story gets its test tasks, and their files are verification scripts under `/tmp/speckit-sdd/specs/001-issue/checks/`, never test files in the repository."}
+    note: "every user-story phase has a 'Tests for User Story N' part with a task naming a file under checks/ (ratio)"
+  - id: speckit_sdd.tasks.tasks.cross_ref.one_phase_per_story
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: should
+    check:
+      kind: cross_ref
+      params:
+        left: {headings: {artifact: spec, level: 3, pattern: 'User Story\s+(\d+)', group: 1}}
+        right: {headings: {artifact: tasks, level: 2, pattern: 'User Story\s+(\d+)', group: 1}}
+        relation: subset
+    modality_evidence: "Fill with (TK:25); both sides written by the agent (unanchored): should"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [25, 25], quote: "- Phase 3+: One phase per user story (in priority order from spec.md)"}
+      - {path: docs/stages/03-tasks.md, lines: [80, 80], quote: "- Each user story (P1, P2, P3...) gets its own phase"}
+  # -- the task line grammar (TK:45-75), one item per rule
+  - id: speckit_sdd.tasks.tasks.item_format.checkbox
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^- \[[ xX]\] T\d{3,}\b', of_pattern: '^\s*(?:[-*+]\s+\[[^\]\n]?\]|(?:[-*+]\s+)?(?:\[[^\]\n]?\]\s+)?T\d{3,}\b)'}}
+    modality_evidence: "ALWAYS (TK:55); REQUIRED format (TK:45-47)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [47, 47], quote: "Every task MUST strictly follow this format:"}
+      - {path: docs/stages/03-tasks.md, lines: [55, 55], quote: "1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)"}
+    note: "every task line (a checkbox item, or a line whose first token is a T### id) starts with '- [ ] T###'; the box may be ticked later"
+  - id: speckit_sdd.tasks.tasks.item_format.format
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^- \[[ xX]\] T\d{3,}(?: \[P\])?(?: \[US\d+\])? (?!\[(?:P|US\d+)\])\S', of_pattern: '^\s*(?:[-*+]\s+\[[^\]\n]?\]|(?:[-*+]\s+)?(?:\[[^\]\n]?\]\s+)?T\d{3,}\b)'}}
+    modality_evidence: "MUST strictly follow this format (TK:47-50)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [47, 50], quote: "Every task MUST strictly follow this format: ```text - [ ] [TaskID] [P?] [Story?] Description with file path"}
+      - {path: docs/stages/03-tasks.md, lines: [29, 29], quote: "- All tasks must follow the strict checklist format (see Task Generation Rules below)"}
+    note: "checkbox, id, then [P] and [USn] in that order, then the description"
+  - id: speckit_sdd.tasks.tasks.item_format.sequential_ids
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\[[ xX]\]\s+T(\d{3,})\b', sequence: {group: 1, start: 1}}}
+    modality_evidence: "Sequential number (TK:56) in a MUST format; converge continues the numbering (CV:160-161)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [56, 56], quote: "2. **Task ID**: Sequential number (T001, T002, T003...) in execution order"}
+      - {path: docs/stages/05-converge.md, lines: [160, 161], quote: "assigning zero-padded IDs `T{M+1:03d}, T{M+2:03d}, …`:"}
+  - id: speckit_sdd.tasks.tasks.speckit_task_lines.story_label
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit.task_lines, params: {rule: story_label}}
+    modality_evidence: "REQUIRED / MUST (TK:58, TK:62)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [58, 59], quote: "4. **[Story] label**: REQUIRED for user story phase tasks only - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)"}
+      - {path: docs/stages/03-tasks.md, lines: [62, 62], quote: "- User Story phases: MUST have story label"}
+  - id: speckit_sdd.tasks.tasks.speckit_task_lines.no_story_label
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit.task_lines, params: {rule: no_story_label}}
+    modality_evidence: "NO story label (TK:60, 61, 63)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [60, 61], quote: "- Setup phase: NO story label - Foundational phase: NO story label"}
+      - {path: docs/stages/03-tasks.md, lines: [63, 63], quote: "- Polish phase: NO story label"}
+  - id: speckit_sdd.tasks.tasks.speckit_task_lines.phase_order
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit.task_lines, params: {rule: phase_order}}
+    modality_evidence: "Fill with, in order (TK:23-27); Phase Structure (TK:105-110)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [23, 25], quote: "- Phase 1: Setup tasks - only what this change needs in the existing repository (no project initialization, dependency installation or tool configuration) - Phase 2: Foundational tasks (prerequisites shared by this change's user stories) - Phase 3+: One phase per user story (in priority order from spec.md)"}
+      - {path: docs/stages/03-tasks.md, lines: [110, 110], quote: "- **Final Phase**: Polish & Cross-Cutting Concerns"}
+  - id: speckit_sdd.tasks.tasks.speckit_task_lines.story_tasks
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit.task_lines, params: {rule: story_tasks}}
+    modality_evidence: "each story phase includes implementation tasks (TK:26); CRITICAL organisation by story (TK:41)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [26, 26], quote: "- Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks"}
+      - {path: docs/stages/03-tasks.md, lines: [41, 41], quote: "**CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing."}
+  - id: speckit_sdd.tasks.tasks.speckit_task_lines.parallel_files
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: should
+    check: {kind: speckit.task_lines, params: {rule: parallel_files}}
+    modality_evidence: "ONLY if parallelizable (TK:57); 'different files' is the checkable half: should"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [57, 57], quote: "3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)"}
+  - id: speckit_sdd.tasks.tasks.item_format.file_path
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: should
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\[[ xX]\]\s+T\d{3,}\b.*?(?:[\w.-]+/[\w./-]+|\b[\w-]+\.[A-Za-z][A-Za-z0-9]{0,7}\b)', of_pattern: '^\s*[-*+]\s+\[[ xX]\]\s+T\d{3,}\b'}}
+    modality_evidence: "TK:64 asks for an exact file path, but TK:68 shows a path-less task as CORRECT (conflict): share of tasks naming a path, should"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [64, 64], quote: "5. **Description**: Clear action with exact file path"}
+      - {path: docs/stages/03-tasks.md, lines: [68, 68], quote: "- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`"}
+  - id: speckit_sdd.tasks.tasks.item_format.unchecked_when_written
+    stage: tasks
+    target: {type: artifact, ref: tasks, state: stage_end}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\[[xX]\]\s+T\d{3,}\b', max: 0}}
+    modality_evidence: "ALWAYS start with '- [ ]' (TK:55): when the tasks stage ends, no task is ticked"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [55, 55], quote: "1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)"}
+      - {path: docs/stages/03-tasks.md, lines: [50, 50], quote: "- [ ] [TaskID] [P?] [Story?] Description with file path"}
+  - id: speckit_sdd.tasks.tasks.no_template_residue.fill_marks
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: *fill_marks}}
+    modality_evidence: "the template's tasks MUST be replaced with actual tasks (TPL_TASKS:28); a task that is only a fill-in mark is none"
+    sources:
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [28, 28], quote: "The tasks stage MUST replace these with actual tasks based on:"}
+      - {path: docs/stages/03-tasks.md, lines: [35, 35], quote: "The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context."}
+  - id: speckit_sdd.tasks.tasks.no_template_residue.sample_tasks
+    stage: tasks
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check:
+      kind: no_template_residue
+      params:
+        patterns:
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Create project structure per implementation plan\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Configure linting and formatting tools\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Setup database schema and migrations framework\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Implement authentication/authorization framework\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Setup API routing and middleware structure\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Create base models/entities that all stories depend on\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Configure error handling and logging infrastructure\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Setup environment configuration management\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Add validation and error handling\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Add logging for user story 1 operations\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Integrate with User Story 1 components \(if needed\)\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Documentation updates in docs/\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Code cleanup and refactoring\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Performance optimization across all stories\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Additional unit tests \(if requested\) in /tmp/speckit-sdd/specs/001-issue/checks/unit/\s*$'
+          - '(?m)^\s*[-*+]\s+\[[ xX]\]\s+T\w+\s+(?:\[\w+\]\s+)*Security hardening\s*$'
+    modality_evidence: "prohibition (TPL_TASKS:39 'DO NOT keep'; TPL_TASKS:28 'MUST replace these')"
+    sources:
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [26, 28], quote: "IMPORTANT: The tasks below are SAMPLE TASKS for illustration purposes only. The tasks stage MUST replace these with actual tasks based on:"}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [39, 39], quote: "DO NOT keep these sample tasks in the generated tasks.md file."}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [51, 53], quote: "- [ ] T001 Create project structure per implementation plan - [ ] T002 Initialize [language] project with [framework] dependencies - [ ] T003 [P] Configure linting and formatting tools"}
+    note: "the template's sample tasks without a placeholder (the bracketed ones are template residue); 'Run quickstart.md validation' is a task an honest list may hold"
+  # ============================================================== implement (round 1)
+  - id: speckit_sdd.implement.run.doc_read.im
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: IM, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:32; TK:37 'open `/speckit-sdd/stages/04-implement.md` and start the implement stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: docs/stages/03-tasks.md, lines: [37, 37], quote: "open `/speckit-sdd/stages/04-implement.md` and start the implement stage."}
+    note: "04-implement.md read (alone in its call, at least half of it seen) in the round-1 implement window"
+  - id: speckit_sdd.implement.tasks.artifact_exists
+    stage: implement
+    target: {type: artifact, ref: tasks}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "REQUIRED (IM:35); the stage assumes a complete task breakdown in tasks.md (IM:82)"
+    sources: &implement_tasks
+      - {path: docs/stages/04-implement.md, lines: [35, 35], quote: "- **REQUIRED**: Read tasks.md for the complete task list and execution plan"}
+      - {path: docs/stages/04-implement.md, lines: [82, 82], quote: "Note: This stage assumes a complete task breakdown exists in tasks.md."}
+  - id: speckit_sdd.implement.tasks.no_template_residue
+    stage: implement
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['\[FEATURE NAME\]', '\bTXXX\b', '\[Title\]', '\[Entity1\]', '\[language\]', '\[endpoint\]', '\[Brief description of what this story delivers\]', '(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:T\d{3,}\s+)?(?:\[(?:P|US\d+)\]\s+)*(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*)?(?:x+|\.{2,}|…+|\?+)\s*$']}}
+    modality_evidence: "the stage executes a complete task breakdown (IM:82); the template's tasks MUST be replaced (TPL_TASKS:28)"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [82, 82], quote: "Note: This stage assumes a complete task breakdown exists in tasks.md."}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [28, 28], quote: "The tasks stage MUST replace these with actual tasks based on:"}
+    note: "tasks.md still holding the template's placeholders caps the implement stage too: there was no task list to work through"
+  - id: speckit_sdd.implement.run.speckit_sdd_script.prerequisites
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: check-prerequisites.sh, args: [--json, --require-tasks, --include-tasks], keys: [FEATURE_DIR, AVAILABLE_DOCS], window: ["stage_start:implement", [{first: {fact: repo_edit, window: "stage:implement"}}, "stage_end:implement"]]}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (IM:3 'Run ...'); CW:28"
+    sources: &prereq_implement
+      - {path: docs/stages/04-implement.md, lines: [3, 3], quote: "1. Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` (from any working directory: it finds the project root `/tmp/speckit-sdd` from its own location) and parse FEATURE_DIR and AVAILABLE_DOCS list."}
+      - {path: docs/core-workflow.md, lines: [28, 28], quote: "| 4 | implement | `/speckit-sdd/stages/04-implement.md` | `check-prerequisites.sh --json --require-tasks --include-tasks` |"}
+    note: "the shipped check-prerequisites.sh ran with --json --require-tasks --include-tasks before the window's first repository edit, and printed its JSON (or exited 0)"
+  - id: speckit_sdd.implement.run.speckit_read.checklists
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [req_checklist]}}
+    availability: [trace]
+    modality_evidence: "imperative (IM:6 'scan checkbox state'; IM:8 'Scan all checklist files')"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [6, 8], quote: "- Treat checklist markers as a read-only check: scan checkbox state and proceed; do NOT modify checklist files or markers - `checklists/requirements.md` is the built-in spec-quality checklist maintained by the specify stage - Scan all checklist files in the checklists/ directory"}
+  - id: speckit_sdd.implement.run.speckit_read.required
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [tasks, plan]}}
+    availability: [trace]
+    modality_evidence: "REQUIRED (IM:35-36)"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [35, 36], quote: "- **REQUIRED**: Read tasks.md for the complete task list and execution plan - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure"}
+  - id: speckit_sdd.implement.run.speckit_read.if_exists
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [data_model, research, quickstart]}}
+    availability: [trace]
+    modality_evidence: "IF EXISTS: Read (IM:37, 39, 41): the documents that exist"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [37, 37], quote: "- **IF EXISTS**: Read data-model.md for entities and relationships"}
+      - {path: docs/stages/04-implement.md, lines: [39, 39], quote: "- **IF EXISTS**: Read research.md for technical decisions and constraints"}
+      - {path: docs/stages/04-implement.md, lines: [41, 41], quote: "- **IF EXISTS**: Read quickstart.md for integration scenarios"}
+  - id: speckit_sdd.implement.run.doc_read.constitution
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CONSTITUTION}}
+    availability: [trace]
+    modality_evidence: "IF EXISTS: Read (IM:40); the shipped constitution exists"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [40, 40], quote: "- **IF EXISTS**: Read /tmp/speckit-sdd/.specify/memory/constitution.md for governance constraints"}
+  - id: speckit_sdd.implement.run.code_change
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {exists: {fact: repo_edit, final: true, window: "stage:implement"}}}}
+    availability: [trace]
+    modality_evidence: "imperative outline step (IM:51 'Execute implementation following the task plan'); CW:28 'the code change in /testbed'; CW:76"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [51, 51], quote: "6. Execute implementation following the task plan:"}
+      - {path: docs/core-workflow.md, lines: [28, 28], quote: "then the code change in `/testbed`, then the scripts again (passing); `[X]` marks in `tasks.md` |"}
+    note: "an edit, in the round-1 implement window, of a repository file that stays in the final change"
+  - id: speckit_sdd.implement.run.exec_evidence.baseline
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test, window: ["stage_start:implement", [{first: {fact: repo_edit, final: true, window: "stage:implement"}}, "stage_end:implement"]]}}
+    availability: [trace]
+    modality_evidence: "CW:79-80 'The existing tests related to the change are run before implementing, for a baseline'; IM:62 'Before implementing, also run the existing repository tests'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [79, 80], quote: "The existing tests related to the change are run before implementing, for a baseline, and again afterwards."}
+      - {path: docs/stages/04-implement.md, lines: [62, 62], quote: "Before implementing, also run the existing repository tests related to the change and record the baseline; run them again after"}
+    note: "a valid run of base-repository tests in the implement window before its first code change (an echoed summary, a dummy test under /tmp or an agent-written runner is none)"
+  - id: speckit_sdd.implement.run.exec_evidence.after_change
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test, window: [["stage_start:implement", {last: {fact: repo_edit, final: true, window: "stage:implement"}}], "stage_end:implement"]}}
+    availability: [trace]
+    modality_evidence: "CW:80 'and again afterwards'; IM:65 'then run existing tests for changed modules'; IM:79"
+    sources:
+      - {path: docs/core-workflow.md, lines: [79, 80], quote: "The existing tests related to the change are run before implementing, for a baseline, and again afterwards."}
+      - {path: docs/stages/04-implement.md, lines: [65, 65], quote: "- **Polish and validation**: Polish phase tasks, then run existing tests for changed modules"}
+      - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
+    note: "a valid run of base-repository tests after the window's last code change, inside the implement window"
+  - id: speckit_sdd.implement.run.speckit_holds.tests_pass
+    stage: implement
+    class: evidence
+    requirement: should
+    check: {kind: speckit.holds, params: {predicate: {counts: {fact: valid_run, kind: test, window: [["stage_start:implement", {last: {fact: repo_edit, final: true, window: "stage:implement"}}], "stage_end:implement"], which: last, failed_or_errors: 0}}}}
+    availability: [trace]
+    modality_evidence: "'Validate that tests pass' (IM:79); a pre-existing failure the change does not touch can remain: should"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
+  - id: speckit_sdd.implement.run.speckit_sdd_checks.written
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.checks, params: {rule: written, dir: "{artifact}/001-issue/checks"}}
+    availability: [trace]
+    modality_evidence: "IM:53 'write that story's verification scripts in `FEATURE_DIR/checks/`'; CW:72 'implement, for the verification scripts of the test tasks'"
+    sources: &tdd
+      - {path: docs/stages/04-implement.md, lines: [53, 53], quote: "- **Each user story starts with its test tasks**: before any code edit for a story, write that story's verification scripts in `FEATURE_DIR/checks/`, run them and see them fail; only then implement the story, and run them again to see them pass"}
+      - {path: docs/core-workflow.md, lines: [77, 79], quote: "The tests this workflow writes are the verification scripts in `FEATURE_DIR/checks/`: each is run and seen failing before the code it covers exists, and passing once it does."}
+    note: "a script written under FEATURE_DIR/checks/ in the implement window"
+  - id: speckit_sdd.implement.run.speckit_sdd_checks.red_green
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.checks, params: {rule: red_green, dir: "{artifact}/001-issue/checks"}}
+    availability: [trace]
+    modality_evidence: "CW:78-79 'each is run and seen failing before the code it covers exists, and passing once it does'; IM:56 'Follow TDD approach'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [77, 79], quote: "The tests this workflow writes are the verification scripts in `FEATURE_DIR/checks/`: each is run and seen failing before the code it covers exists, and passing once it does."}
+      - {path: docs/stages/04-implement.md, lines: [56, 56], quote: "- **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks. The test tasks are the verification scripts in `FEATURE_DIR/checks/`: write and run them and confirm they fail, implement, then run them again and confirm they pass"}
+    note: "each verification script tasks.md names (else each one run) ran failing, then -- after a code change, with the script itself not rewritten in between -- passing, by its call's own exit code or output (ratio)"
+  - id: speckit_sdd.implement.run.speckit_sdd_checks.before_code
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.checks, params: {rule: before_code, dir: "{artifact}/001-issue/checks"}}
+    availability: [trace]
+    modality_evidence: "IM:53 'before any code edit for a story, write that story's verification scripts ..., run them and see them fail'"
+    sources: *tdd
+    note: "a verification script ran failing before the window's first code change"
+  - id: speckit_sdd.implement.run.speckit_sdd_checks.pass_last
+    stage: implement
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.checks, params: {rule: pass_last, dir: "{artifact}/001-issue/checks"}}
+    availability: [trace]
+    modality_evidence: "IM:79 'Validate that tests pass: the verification scripts'; CW:79 'and passing once it does'"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
+      - {path: docs/core-workflow.md, lines: [77, 79], quote: "each is run and seen failing before the code it covers exists, and passing once it does."}
+    note: "each verification script's last run in the window passes, after the window's last code change (ratio)"
+  - id: speckit_sdd.implement.tasks.speckit_sdd_tasks.ticked
+    stage: implement
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: ticked}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "IMPORTANT (IM:73); Done When (IM:90); CW:40 'implement works through the whole of `tasks.md`'"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [73, 73], quote: "- **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file."}
+      - {path: docs/stages/04-implement.md, lines: [90, 90], quote: "- [ ] All tasks in tasks.md completed and marked `[X]`"}
+    note: "share of tasks.md's tasks ticked ([X] or [x]) when the round-1 implement window ends"
+  - id: speckit_sdd.implement.tasks.speckit_sdd_tasks.ticked_after_work
+    stage: implement
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: ticked_after_work, dir: "{artifact}/001-issue/checks"}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "a tick claims completion (IM:73 'For completed tasks ... mark'); a box ticked before the work it names, or untraceably, is refuted by the trace"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [73, 73], quote: "- **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file."}
+      - {path: docs/stages/04-implement.md, lines: [68, 68], quote: "- Record progress only by marking each completed task [X] in tasks.md (see below); do not report progress in messages"}
+    note: "every task ticked in the window was ticked inside it, after a write or a run of a path it names (ratio)"
+  # ============================================================== converge (round 1)
+  - id: speckit_sdd.converge.convergence.artifact_exists
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    modality_evidence: "the stage's output (CW:29, CW:39 'converge writes `convergence.md`'); CV:130-131 (the dictionary reads no imperative after 'Before appending anything,')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [39, 39], quote: "Round 1: implement works through the whole of `tasks.md`; converge writes `convergence.md`."}
+      - {path: docs/stages/05-converge.md, lines: [130, 131], quote: "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1"}
+  - id: speckit_sdd.converge.run.doc_read.cv
+    stage: converge
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CV, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:32; IM:86 'open `/speckit-sdd/stages/05-converge.md` and start this round's converge stage')"
+    sources: &open_cv
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+      - {path: docs/stages/04-implement.md, lines: [86, 86], quote: "open `/speckit-sdd/stages/05-converge.md` and start this round's converge stage."}
+    note: "05-converge.md read (alone in its call, at least half of it seen) in the round-1 converge window"
+  - id: speckit_sdd.converge.run.speckit_sdd_script.prerequisites
+    stage: converge
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: check-prerequisites.sh, args: [--json, --require-spec, --require-tasks, --include-tasks], keys: [FEATURE_DIR, AVAILABLE_DOCS], window: ["stage_start:converge", ["first_write:convergence", "stage_end:converge"]]}}
+    availability: [trace]
+    modality_evidence: "imperative (CV:38 'Run ... once'); CW:29"
+    sources: &prereq_converge
+      - {path: docs/stages/05-converge.md, lines: [38, 38], quote: "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` once (from any working directory: it finds the project root `/tmp/speckit-sdd` from its own location) and parse JSON for FEATURE_DIR and AVAILABLE_DOCS."}
+      - {path: docs/core-workflow.md, lines: [29, 29], quote: "| 5 | converge | `/speckit-sdd/stages/05-converge.md` | `check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` |"}
+    note: "the shipped check-prerequisites.sh ran with --json --require-spec --require-tasks --include-tasks before the round report was written, and printed its JSON (or exited 0)"
+  - id: speckit_sdd.converge.run.speckit_read.intent
+    stage: converge
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [spec, plan, tasks], window: ["stage_start:converge", ["first_write:convergence", "stage_end:converge"]]}}
+    availability: [trace]
+    modality_evidence: "imperative (CV:4 'Read `spec.md`, `plan.md`, and `tasks.md` as the sole source of intent'); step 2 loads them (CV:49-71)"
+    sources: &intent
+      - {path: docs/stages/05-converge.md, lines: [3, 5], quote: "Read `spec.md`, `plan.md`, and `tasks.md` as the **sole source of intent** (with the constitution as governing constraints)"}
+    note: "spec.md, plan.md and tasks.md read in the converge window before the round report"
+  - id: speckit_sdd.converge.run.prohibited_action.repo_write
+    stage: converge
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "MUST NOT (CV:17-24 'modify, create, or delete any application code'); CW:76"
+    sources: &no_code
+      - {path: docs/stages/05-converge.md, lines: [17, 18], quote: "**APPEND-ONLY, NEVER REWRITE**: The stage's **only** writes are its round report (step 6) and appending a new `## Phase N: Convergence` section to `tasks.md`. It MUST NOT:"}
+      - {path: docs/stages/05-converge.md, lines: [23, 24], quote: "- modify, create, or delete any application code — completing the appended tasks is the job of the implement stage (`/speckit-sdd/stages/04-implement.md`)."}
+    note: "no write into the repository in the converge window"
+  - id: speckit_sdd.converge.tasks.write_discipline.append_only
+    stage: converge
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: append_only, artifact: tasks, window: "stage:converge"}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "APPEND-ONLY, NEVER REWRITE (CV:17); CV:21-22"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [17, 17], quote: "**APPEND-ONLY, NEVER REWRITE**: The stage's **only** writes are its round report (step 6) and appending a new"}
+      - {path: docs/stages/05-converge.md, lines: [21, 22], quote: "- rewrite, renumber, reorder, or delete any existing task (including tasks from a prior Convergence phase);"}
+    note: "every write of tasks.md in the converge window keeps the earlier content as its prefix"
+  - id: speckit_sdd.converge.convergence.section_present.findings
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Convergence Findings, level: 2}}
+    modality_evidence: "the report's structure (CV:130-134)"
+    sources: &report_structure
+      - {path: docs/stages/05-converge.md, lines: [130, 132], quote: "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1, `FEATURE_DIR/convergence-2.md` in round 2 (rounds: `/speckit-sdd/core-workflow.md`), with this structure:"}
+      - {path: docs/stages/05-converge.md, lines: [134, 134], quote: "## Convergence Findings"}
+  - id: speckit_sdd.converge.convergence.field_enum.round
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: Convergence Findings, label: Round, values: ['1']}}
+    modality_evidence: "the report's field (CV:136) for the round this report is (CV:131)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [136, 136], quote: "- **Round**: 1 | 2"}
+      - {path: docs/stages/05-converge.md, lines: [130, 131], quote: "`FEATURE_DIR/convergence.md` in round 1"}
+  - id: speckit_sdd.converge.convergence.field_enum.outcome
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: Convergence Findings, label: Outcome, values: [converged, tasks_appended]}}
+    modality_evidence: "the report's field (CV:137); CV:153, CV:177 the two outcomes"
+    sources: &outcome
+      - {path: docs/stages/05-converge.md, lines: [137, 137], quote: "- **Outcome**: converged | tasks_appended"}
+      - {path: docs/core-workflow.md, lines: [40, 41], quote: "If that report's **Outcome** is `tasks_appended`, round 2 follows"}
+  - id: speckit_sdd.converge.convergence.item_format.table_header
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {section: Convergence Findings, pattern: '^\|\s*ID\s*\|\s*Gap Type\s*\|\s*Severity\s*\|\s*Source\s*\|\s*Evidence\s*\|\s*Remaining Work\s*\|'}}
+    modality_evidence: "the report's findings table (CV:139)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [139, 140], quote: "| ID | Gap Type | Severity | Source | Evidence | Remaining Work | |----|----------|----------|--------|----------|----------------|"}
+      - {path: docs/stages/05-converge.md, lines: [130, 132], quote: "with this structure:"}
+  - id: speckit_sdd.converge.convergence.item_format.summary_metrics
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*(?:\*\*)?Summary metrics:?(?:\*\*)?:?\s*'}}
+    modality_evidence: "the report's metrics (CV:143-149); CV:181 'Include the summary counts of what was checked'"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [143, 149], quote: "**Summary metrics:** - Requirements / acceptance criteria checked - Plan decisions checked - Constitution principles checked (or \"skipped — template\") - Findings by gap type (missing / partial / contradicts / unrequested) - Findings by severity"}
+      - {path: docs/stages/05-converge.md, lines: [181, 181], quote: "- Include the summary counts of what was checked."}
+  - id: speckit_sdd.converge.convergence.item_format.constitution_skipped
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: should
+    check: {kind: item_format, params: {pattern: '(?i)constitution[^\n]*skipped\s*[—–-]+\s*template'}}
+    modality_evidence: "CV:147 '(or \"skipped — template\")'; CV:31-32 'If the constitution is an unfilled template, skip constitution checks gracefully'; the shipped one is: should"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [147, 147], quote: "- Constitution principles checked (or \"skipped — template\")"}
+      - {path: docs/stages/05-converge.md, lines: [31, 32], quote: "If the constitution is an unfilled template, skip constitution checks gracefully rather than failing."}
+  - id: speckit_sdd.converge.convergence.no_template_residue
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.py', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
+    modality_evidence: "the skeleton's value choices and example row (CV:136-141) are what the report fills"
+    sources: &report_residue
+      - {path: docs/stages/05-converge.md, lines: [136, 137], quote: "- **Round**: 1 | 2 - **Outcome**: converged | tasks_appended"}
+      - {path: docs/stages/05-converge.md, lines: [141, 141], quote: "| F1 | missing  | HIGH     | FR-008 | Example: no append-only guard detected in path/to/module.py when writing tasks.md | Add append-only enforcement |"}
+    note: "the example finding row and the copied value choices"
+  - id: speckit_sdd.converge.convergence.speckit_sdd_report.findings
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: findings}}
+    modality_evidence: "classify every finding by gap type (CV:98) and severity (CV:118-126)"
+    sources: &gaps
+      - {path: docs/stages/05-converge.md, lines: [97, 98], quote: "For each item in the intent inventory, inspect the current code in scope and produce a `Finding` only where there is a gap. Classify every finding by **gap type**:"}
+      - {path: docs/stages/05-converge.md, lines: [170, 170], quote: "`<gap-type>` is one of `missing`, `partial`, `contradicts`, `unrequested`."}
+      - {path: docs/stages/05-converge.md, lines: [120, 126], quote: "- **CRITICAL**: violates a constitution MUST principle"}
+    note: "every finding row names one gap type (missing / partial / contradicts / unrequested) and one severity (CRITICAL / HIGH / MEDIUM / LOW) (ratio)"
+  - id: speckit_sdd.converge.convergence.speckit_sdd_report.outcome_rows
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: outcome_rows}}
+    modality_evidence: "CV:153 'one or more actionable findings (`tasks_appended` outcome)'; CV:116 'Nothing remains: produce zero findings and follow the converged branch'"
+    sources: &outcome_branches
+      - {path: docs/stages/05-converge.md, lines: [153, 153], quote: "**If there are one or more actionable findings** (`tasks_appended` outcome):"}
+      - {path: docs/stages/05-converge.md, lines: [116, 116], quote: "- **Nothing remains**: produce zero findings and follow the converged branch in Step 7."}
+      - {path: docs/stages/05-converge.md, lines: [177, 177], quote: "**If there are no actionable findings** (`converged` outcome):"}
+    note: "tasks_appended lists a finding row; converged lists none"
+  - id: speckit_sdd.converge.convergence.speckit_sdd_report.converged_line
+    stage: converge
+    target: {type: artifact, ref: convergence}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: converged_line}}
+    modality_evidence: "imperative (CV:180 'Write as the round report's last line')"
+    sources: &converged_line
+      - {path: docs/stages/05-converge.md, lines: [180, 180], quote: "- Write as the round report's last line: **\"✅ Converged — the implementation satisfies the spec, plan, and tasks.\"**"}
+    note: "a converged report ends with the converged sentence; not applicable otherwise"
+  - id: speckit_sdd.converge.run.speckit_holds.tasks_unchanged_when_converged
+    stage: converge
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {absent: {fact: artifact_write, artifact: tasks, window: "stage:converge"}}}}
+    applies_when: {field_matches: {artifact: convergence, section: '*', label: Outcome, pattern: '^\W*converged\b'}}
+    availability: [trace]
+    modality_evidence: "MUST (CV:26-27 'leave `tasks.md` byte-for-byte unchanged'); CV:179 'Do not modify `tasks.md` at all'"
+    sources: &unchanged
+      - {path: docs/stages/05-converge.md, lines: [26, 27], quote: "When the codebase already satisfies everything, the stage MUST leave `tasks.md` **byte-for-byte unchanged** (no empty Convergence header) and record a clean result in its round report."}
+      - {path: docs/stages/05-converge.md, lines: [179, 179], quote: "- Do **not** modify `tasks.md` at all — no empty phase header."}
+    note: "when convergence.md's Outcome is converged: no write of tasks.md in the converge window"
+  - id: speckit_sdd.converge.tasks.speckit_sdd_tasks.appended
+    stage: converge
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: appended, report: convergence}}
+    applies_when: {field_matches: {artifact: convergence, section: '*', label: Outcome, pattern: '^\W*tasks_appended\b'}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CV:155 'Append to the **end** of `tasks.md`'; CV:159 'Write a single new section header'; CV:130 'Before appending anything, write ... report')"
+    sources: &append
+      - {path: docs/stages/05-converge.md, lines: [155, 159], quote: "Append to the **end** of `tasks.md`, per the append contract: 1. Scan all existing task IDs; let `M` be the maximum. Determine the next phase number `N` (highest existing phase + 1). 2. Write a single new section header `## Phase N: Convergence`."}
+      - {path: docs/stages/05-converge.md, lines: [130, 130], quote: "Before appending anything, write a compact, severity-graded summary to this round's report:"}
+    note: "when convergence.md's Outcome is tasks_appended: a write in the converge window appends a new '## Phase N: Convergence' to tasks.md, after the report's first write"
+  - id: speckit_sdd.converge.tasks.speckit_sdd_tasks.convergence_phase
+    stage: converge
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: convergence_phase}}
+    modality_evidence: "CV:157-158 'next phase number `N` (highest existing phase + 1)'; CV:174-175 'add a new, separately-numbered one below it'"
+    sources: &phase_number
+      - {path: docs/stages/05-converge.md, lines: [157, 158], quote: "Scan all existing task IDs; let `M` be the maximum. Determine the next phase number `N` (highest existing phase + 1)."}
+      - {path: docs/stages/05-converge.md, lines: [174, 175], quote: "Never reuse or renumber existing IDs. If a prior Convergence phase exists, add a new, separately-numbered one below it — do not touch the old one."}
+    note: "every Convergence phase is numbered one past the highest phase before it, and no other phase follows it; not applicable without one"
+  - id: speckit_sdd.converge.tasks.speckit_sdd_tasks.convergence_lines
+    stage: converge
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: convergence_lines}}
+    modality_evidence: "CV:160-170 'Emit one checklist item per actionable finding ... `- [ ] T042 <imperative description> per <source-ref> (<gap-type>)`'"
+    sources: &conv_lines
+      - {path: docs/stages/05-converge.md, lines: [160, 164], quote: "Emit one checklist item per actionable finding, ordered CRITICAL/HIGH first, assigning zero-padded IDs `T{M+1:03d}, T{M+2:03d}, …`: ```markdown - [ ] T042 <imperative description> per <source-ref> (<gap-type>)"}
+      - {path: docs/stages/05-converge.md, lines: [170, 170], quote: "`<gap-type>` is one of `missing`, `partial`, `contradicts`, `unrequested`."}
+    note: "every task of a Convergence phase reads '- [ ] T### <description> per <source-ref> (<gap-type>)' (ratio); not applicable without one"
+  # ============================================================== implement_2 (round 2: only when convergence.md's Outcome is tasks_appended)
+  - id: speckit_sdd.implement_2.run.doc_read.im
+    stage: implement_2
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: IM, single_doc: true, min_coverage: 0.5}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "imperative (CV:188-190 'open the implement stage document ... again'); CW:32"
+    sources: &reopen_im
+      - {path: docs/stages/05-converge.md, lines: [188, 190], quote: "- On `tasks_appended` in round 1: open the implement stage document (`/speckit-sdd/stages/04-implement.md`) again and complete the new Convergence phase's tasks (round 2), then return to this document and write `convergence-2.md`."}
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+    note: "04-implement.md read again (alone in its call, at least half of it seen) after the round-1 converge stage began"
+  - id: speckit_sdd.implement_2.run.speckit_sdd_script.prerequisites
+    stage: implement_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: check-prerequisites.sh, args: [--json, --require-tasks, --include-tasks], keys: [FEATURE_DIR, AVAILABLE_DOCS], window: ["stage_start:implement_2", [{first: {fact: repo_edit, window: "stage:implement_2"}}, "stage_end:implement_2"]]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "the implement document's first step (IM:3), carried out from the document again (CW:32-33)"
+    sources: *prereq_implement
+    note: "check-prerequisites.sh --json --require-tasks --include-tasks ran again in round 2, before its first repository edit"
+  - id: speckit_sdd.implement_2.run.speckit_read.tasks
+    stage: implement_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [tasks]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "REQUIRED (IM:35); round 2 executes the unchecked tasks (IM:52)"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [35, 35], quote: "- **REQUIRED**: Read tasks.md for the complete task list and execution plan"}
+      - {path: docs/stages/04-implement.md, lines: [52, 52], quote: "- **Round 2**: when the converge stage has appended a `## Phase N: Convergence` and sent you back here, execute only the unchecked tasks (normally that newest phase); do not redo `[X]` tasks or the setup tasks"}
+  - id: speckit_sdd.implement_2.tasks.speckit_sdd_tasks.ticked
+    stage: implement_2
+    target: {type: artifact, ref: tasks}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: ticked, open_at_start: true}}
+    applies_when: *round2
+    availability: [trace, sandbox_file]
+    modality_evidence: "IM:52 'execute only the unchecked tasks'; IM:73 'mark the task off as [X]'"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [52, 52], quote: "- **Round 2**: when the converge stage has appended a `## Phase N: Convergence` and sent you back here, execute only the unchecked tasks (normally that newest phase); do not redo `[X]` tasks or the setup tasks"}
+      - {path: docs/stages/04-implement.md, lines: [73, 73], quote: "- **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file."}
+    note: "share of the tasks unchecked when round 2 began that are ticked when its implement window ends"
+  - id: speckit_sdd.implement_2.tasks.speckit_sdd_tasks.ticked_after_work
+    stage: implement_2
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: ticked_after_work, dir: "{artifact}/001-issue/checks"}}
+    applies_when: *round2
+    availability: [trace, sandbox_file]
+    modality_evidence: "a tick claims completion (IM:73)"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [73, 73], quote: "- **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file."}
+    note: "every task ticked in round 2 was ticked inside its implement window, after a write or a run of a path it names (ratio)"
+  - id: speckit_sdd.implement_2.run.exec_evidence.after_change
+    stage: implement_2
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test, window: [["stage_start:implement_2", {last: {fact: repo_edit, final: true, window: "stage:implement_2"}}], "stage_end:implement_2"]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "completion validation (IM:79) of the round's work; CW:80"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
+    note: "a valid run of base-repository tests in the round-2 implement window, after its last code change"
+  - id: speckit_sdd.implement_2.run.speckit_sdd_checks.pass_last
+    stage: implement_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.checks, params: {rule: pass_last, dir: "{artifact}/001-issue/checks"}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "completion validation (IM:79 'the verification scripts in `FEATURE_DIR/checks/`')"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
+    note: "each verification script's last run in the round-2 implement window passes, after the window's last code change (ratio)"
+  - id: speckit_sdd.implement_2.run.speckit_holds.code_change
+    stage: implement_2
+    class: evidence
+    requirement: should
+    check: {kind: speckit.holds, params: {predicate: {exists: {fact: repo_edit, final: true, window: "stage:implement_2"}}}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "round 2 completes the Convergence phase's tasks (CV:188-189); a task may only review or justify code (CV:105-107): should"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [188, 189], quote: "open the implement stage document (`/speckit-sdd/stages/04-implement.md`) again and complete the new Convergence phase's tasks (round 2)"}
+      - {path: docs/stages/05-converge.md, lines: [105, 107], quote: "(surfaced for awareness — converge does **not** delete code, it only appends a task to review/justify or remove it)."}
+  # ============================================================== converge_2 (round 2)
+  - id: speckit_sdd.converge_2.convergence_2.artifact_exists
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    applies_when: {field_matches: {artifact: convergence, section: '*', label: Outcome, pattern: '^\W*tasks_appended\b'}}
+    modality_evidence: "CW:41 'converge writes `convergence-2.md`'"
+    sources:
+      - {path: docs/core-workflow.md, lines: [40, 41], quote: "If that report's **Outcome** is `tasks_appended`, round 2 follows: implement does only the unchecked tasks (the new `## Phase N: Convergence`), and converge writes `convergence-2.md`."}
+      - {path: docs/stages/05-converge.md, lines: [131, 131], quote: "`FEATURE_DIR/convergence-2.md` in round 2"}
+    note: "convergence-2.md exists when convergence.md's Outcome is tasks_appended"
+  - id: speckit_sdd.converge_2.run.doc_read.cv
+    stage: converge_2
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CV, single_doc: true, min_coverage: 0.5}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "imperative (CV:189-190 'then return to this document and write `convergence-2.md`'; IM:86)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [189, 190], quote: "then return to this document and write `convergence-2.md`."}
+      - {path: docs/stages/04-implement.md, lines: [86, 86], quote: "open `/speckit-sdd/stages/05-converge.md` and start this round's converge stage."}
+    note: "05-converge.md read again (alone in its call, at least half of it seen) after round 2's implement began"
+  - id: speckit_sdd.converge_2.run.speckit_sdd_script.prerequisites
+    stage: converge_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.script, params: {name: check-prerequisites.sh, args: [--json, --require-spec, --require-tasks, --include-tasks], keys: [FEATURE_DIR, AVAILABLE_DOCS], window: ["stage_start:converge_2", ["first_write:convergence_2", "stage_end:converge_2"]]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "imperative (CV:38 'Run ... once') in this round's converge stage"
+    sources: *prereq_converge
+  - id: speckit_sdd.converge_2.run.speckit_read.tasks
+    stage: converge_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit.read, params: {artifacts: [tasks], window: ["stage_start:converge_2", ["first_write:convergence_2", "stage_end:converge_2"]]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "CV:4 (tasks.md is a source of intent; round 2 changed its boxes)"
+    sources: *intent
+    note: "tasks.md read in the round-2 converge window before its report"
+  - id: speckit_sdd.converge_2.run.speckit_read.spec_plan
+    stage: converge_2
+    class: evidence
+    requirement: should
+    check: {kind: speckit.read, params: {artifacts: [spec, plan], window: ["stage_start:converge_2", ["first_write:convergence_2", "stage_end:converge_2"]]}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "CV:4; spec.md and plan.md are unchanged since round 1 (CW:68-69), already read by its converge stage: should"
+    sources: *intent
+  - id: speckit_sdd.converge_2.run.prohibited_action.repo_write
+    stage: converge_2
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    applies_when: *round2
+    availability: [trace]
+    modality_evidence: "MUST NOT (CV:17-24); after round 2 the workflow is complete (CV:193)"
+    sources: *no_code
+    note: "no write into the repository from round 2's converge stage to the end"
+  - id: speckit_sdd.converge_2.tasks.write_discipline.append_only
+    stage: converge_2
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: append_only, artifact: tasks, window: "stage:converge_2"}}
+    applies_when: *round2
+    availability: [trace, sandbox_file]
+    modality_evidence: "APPEND-ONLY, NEVER REWRITE (CV:17)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [21, 22], quote: "- rewrite, renumber, reorder, or delete any existing task (including tasks from a prior Convergence phase);"}
+  - id: speckit_sdd.converge_2.convergence_2.section_present.findings
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Convergence Findings, level: 2}}
+    modality_evidence: "the report's structure (CV:130-134)"
+    sources: *report_structure
+  - id: speckit_sdd.converge_2.convergence_2.field_enum.round
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: Convergence Findings, label: Round, values: ['2']}}
+    modality_evidence: "the report's field (CV:136) for the round this report is (CV:131)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [136, 136], quote: "- **Round**: 1 | 2"}
+      - {path: docs/stages/05-converge.md, lines: [131, 131], quote: "`FEATURE_DIR/convergence-2.md` in round 2"}
+  - id: speckit_sdd.converge_2.convergence_2.field_enum.outcome
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: Convergence Findings, label: Outcome, values: [converged, tasks_appended]}}
+    modality_evidence: "the report's field (CV:137)"
+    sources: *outcome
+  - id: speckit_sdd.converge_2.convergence_2.item_format.table_header
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {section: Convergence Findings, pattern: '^\|\s*ID\s*\|\s*Gap Type\s*\|\s*Severity\s*\|\s*Source\s*\|\s*Evidence\s*\|\s*Remaining Work\s*\|'}}
+    modality_evidence: "the report's findings table (CV:139)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [139, 140], quote: "| ID | Gap Type | Severity | Source | Evidence | Remaining Work | |----|----------|----------|--------|----------|----------------|"}
+  - id: speckit_sdd.converge_2.convergence_2.item_format.summary_metrics
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: structure
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*(?:\*\*)?Summary metrics:?(?:\*\*)?:?\s*'}}
+    modality_evidence: "the report's metrics (CV:143-149)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [143, 149], quote: "**Summary metrics:** - Requirements / acceptance criteria checked - Plan decisions checked - Constitution principles checked (or \"skipped — template\") - Findings by gap type (missing / partial / contradicts / unrequested) - Findings by severity"}
+  - id: speckit_sdd.converge_2.convergence_2.no_template_residue
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.py', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
+    modality_evidence: "the skeleton's value choices and example row (CV:136-141) are what the report fills"
+    sources: *report_residue
+  - id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.findings
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: findings}}
+    modality_evidence: "classify every finding by gap type (CV:98) and severity (CV:118-126)"
+    sources: *gaps
+  - id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.outcome_rows
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: outcome_rows}}
+    modality_evidence: "CV:153; CV:116; CV:177"
+    sources: *outcome_branches
+  - id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.converged_line
+    stage: converge_2
+    target: {type: artifact, ref: convergence_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_sdd.report, params: {rule: converged_line}}
+    modality_evidence: "imperative (CV:180)"
+    sources: *converged_line
+  - id: speckit_sdd.converge_2.run.speckit_holds.tasks_unchanged_when_converged
+    stage: converge_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit.holds, params: {predicate: {absent: {fact: artifact_write, artifact: tasks, window: "stage:converge_2"}}}}
+    applies_when: {field_matches: {artifact: convergence_2, section: '*', label: Outcome, pattern: '^\W*converged\b'}}
+    availability: [trace]
+    modality_evidence: "MUST (CV:26-27); CV:179"
+    sources: *unchanged
+  - id: speckit_sdd.converge_2.tasks.speckit_sdd_tasks.appended
+    stage: converge_2
+    target: {type: artifact, ref: tasks}
+    class: evidence
+    requirement: must
+    check: {kind: speckit_sdd.tasks, params: {rule: appended, report: convergence_2}}
+    applies_when: {field_matches: {artifact: convergence_2, section: '*', label: Outcome, pattern: '^\W*tasks_appended\b'}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CV:155-159); 'add a new, separately-numbered one below it' (CV:174-175)"
+    sources: *append
+
+# Extracted (G5/G7) items dropped on review. Each names the G4 statement it came from (gen-work/statements.jsonl).
+exclude:
+  # -- the same requirement as a reviewed (manual) or stage-model item, in another id or with other parameters: one item judges it
+  - {statement: "*", kind: artifact_exists, reason: "every artifact's existence is a stage-model or manual item (the stage gates, the Phase 1 files, the checklist, feature.json, convergence-2.md conditional on round 1's Outcome); a second copy double-counts it, and an unconditional convergence-2.md fails the one-round run"}
+  - {statement: "*", kind: speckit_sdd.script, reason: "each stage's script run is a manual item whose window ends at the stage's own first write (plan.md, tasks.md, the round report) or first repository edit; the extracted copies use the whole stage window or miss the flags"}
+  - {statement: "*", kind: speckit_sdd.tasks, reason: "every tasks.md rule (story_tests, empty_phases, ticked, ticked_after_work, later_edits, appended, convergence_phase, convergence_lines) is a manual item with the window and round condition its stage gives it; the extracted copies drop the round conditions (an appended phase required of a converged round) or the window"}
+  - {statement: "*", kind: speckit_sdd.report, reason: "the round reports' rules are manual items per round (convergence-2.md's apply with round 2)"}
+  - {statement: "*", kind: speckit_sdd.plan_docs, reason: "duplicates the manual contracts / na_body items (PL:43)"}
+  - {statement: "*", kind: speckit_sdd.feature_json, reason: "duplicates the manual feature_json item (SY:26-32)"}
+  - {statement: "*", kind: speckit_sdd.checks, reason: "the verification scripts' rules (written, red_green, before_code, pass_last) are manual items per implement round"}
+  - {statement: "*", kind: speckit_sdd.no_fetch, reason: "duplicates the global no_fetch item (CW:49-50), which covers every stage"}
+  - {statement: "*", kind: speckit_sdd.links, reason: "the spec's links item (SY:6) is manual; PL:28 'a link you rely on is recorded as [UNVERIFIED — not fetched]' names no artifact (research.md / plan.md alike) -- the no_fetch item carries the rule"}
+  - {statement: "*", kind: speckit_sdd.untouched, reason: "duplicates the manual shipped-trees item (CW:18-19)"}
+  - {statement: "*", kind: speckit_sdd.created_files, reason: "duplicates the manual test / scratch items (CW:77, CW:82-84); cw-037's 'any new .md file' would fail a documentation change the feature itself needs"}
+  - {statement: "*", kind: speckit_sdd.paths_written, reason: "duplicates the manual scripts-outside-checks item (CW:83-84), which also covers /tmp subdirectories"}
+  - {statement: "*", kind: speckit.task_lines, reason: "duplicates the manual tasks.md line-rule items (one per rule, TK:57-63)"}
+  - {statement: "*", kind: speckit.read, reason: "the artifact reads are manual items per stage (plan PL:5, tasks TK:5-7, implement IM:35-41, converge CV:3-5), with the window before the stage's own write where the document orders it"}
+  - {statement: "*", kind: speckit.holds, reason: "the write rules (CW:66-71: spec / checklist / plan documents / round reports not written later), the round rules (CW:38-43) and converge's no-touch rules are manual items; cv-007 (spec / plan not written in converge) is part of the global plan-documents item"}
+  - {statement: "*", kind: speckit.tasks_done, reason: "marked_after_code fails a test task ticked once its verification script is written and seen failing -- before any code edit, as IM:53 orders; the manual ticked_after_work item ties each tick to the work its task names"}
+  - {statement: "*", kind: doc_read, reason: "the stage documents', templates' and constitution's reads are manual items, one per stage window"}
+  - {statement: "*", kind: field_literal, reason: "the Round value is the manual field_enum item per round report (CV:136)"}
+  - {statement: "*", kind: write_discipline, reason: "converge's append-only rule is the manual write_discipline item per round (CV:17)"}
+  - {statement: "sy-0[0-6]*", kind: item_format, reason: "duplicates the compiled Feature Branch line and the manual clarifications_resolved item (no marker left, SY:127), which supersedes the at-most-3 count"}
+  - {statement: "sy-04[0-9]", kind: no_template_residue, reason: "duplicates the manual clarifications_resolved item (SY:127)"}
+  - {statement: "sy-05[0-9]", kind: no_template_residue, reason: "duplicates the manual no_na_section item (SY:147), which matches a line that is only N/A instead of any line starting with it"}
+  - {statement: "tk-0[2-6]*", kind: item_format, reason: "duplicates the manual task-line items (checkbox, format, sequential_ids, file_path, unchecked_when_written)"}
+  - {statement: "tk-045", kind: cross_ref, reason: "duplicates the manual one_phase_per_story item (TK:25)"}
+  - {statement: "pl-014", kind: no_template_residue, reason: "duplicates the manual plan clarifications item (the whole plan, PL:11)"}
+  - {statement: "pl-034", kind: no_template_residue, reason: "duplicates the manual contracts item, which fails on the <REPLACE ...> mark (PL:43)"}
+  - {statement: "cv-059", kind: item_format, reason: "duplicates the manual appended / convergence_phase items (CV:155-159)"}
+  - {statement: "cw-036", kind: prohibited_action, reason: "duplicates the manual ignore-files item (CW:81)"}
+  # -- misreadings
+  - {statement: "pl-046", kind: no_template_residue, reason: "PL:67 'use project-relative paths for references in documentation' read as 'no /tmp/speckit-sdd/ anywhere': the templates the agent fills write the absolute feature path themselves (TPL_PLAN:5, TPL_PLAN:50, TPL_TASKS:3), so every honest plan, research and quickstart fails it (conflicts)"}
+  - {statement: "cw-039", kind: prohibited_action, reason: "CW:88 explains that the scripts' hints name slash commands; it forbids nothing (running '/speckit.plan' in a shell is a failing command, not a rule)"}
+
+# Contradictions and gaps the documents leave, and how the rubric reads them (P3: both readings where expressible; a
+# value set the template fixes is not relaxed; the workflow over the system prompt's generic sections, CW:6).
+conflicts:
+  - description: "Rounds: the stage documents describe one implement and one converge stage; core-workflow.md alternates them in at most two rounds, round 2 only when convergence.md's Outcome is tasks_appended (CW:38-43)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [38, 41], quote: "2. implement and converge then alternate, in at most two rounds: - Round 1: implement works through the whole of `tasks.md`; converge writes `convergence.md`. - If that report's **Outcome** is `tasks_appended`, round 2 follows: implement does only the unchecked tasks (the new `## Phase N: Convergence`), and converge writes `convergence-2.md`."}
+      - {path: docs/stages/05-converge.md, lines: [188, 190], quote: "- On `tasks_appended` in round 1: open the implement stage document (`/speckit-sdd/stages/04-implement.md`) again and complete the new Convergence phase's tasks (round 2), then return to this document and write `convergence-2.md`."}
+    resolution: "seven stages (specify, plan, tasks, implement, converge, implement_2, converge_2); the round-2 stages' items apply when convergence.md's Outcome is tasks_appended or convergence-2.md exists, and convergence-2.md's existence (zero_stage) when the Outcome is tasks_appended; a stage with no applicable item is no signal, so a round-1 converged run is scored on five stages, order and process; a round-2 report after converged, or a third report, fails a global item"
+  - description: "Stage windows: every stage begins by opening its document (CW:32-33), the round-2 stages open the same documents again (CV:188-190); no line forbids reading a later stage's document early"
+    sources:
+      - {path: docs/core-workflow.md, lines: [32, 33], quote: "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."}
+    resolution: "a stage's window opens at its document's first read after the previous stage began (scoring.next_read: after_start in reads mode), so round 2 opens at the re-reads and a read ahead opens nothing early; each stage's read is judged in its own window, and the round-1 order item voids a document first seen before the previous artifact (e.g. all five at once)"
+  - description: "The shipped constitution is the unfilled template: the stages load it (SY:41, PL:5, TK:8, IM:40), but it holds no principle, so plan writes 'skipped — template' and converge skips its checks (PL:9, CV:31-32)"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [9, 9], quote: "write \"skipped — template\" in Constitution Check and evaluate no gate"}
+      - {path: docs/stages/05-converge.md, lines: [31, 32], quote: "If the constitution is an unfilled template, skip constitution checks gracefully rather than failing."}
+    resolution: "the loads are required where a stage document says so (must, in the stage's window; converge's 'if not an unfilled template' load is not); plan.md's Constitution Check says 'skipped — template' (must); the round report's metrics line says so (should); no constitution principle is checked"
+  - description: "N/A: the spec must not leave a section as N/A (SY:147), while data-model.md / quickstart.md with nothing to hold are the one line 'N/A — <reason>' (PL:43) and plan.md's tree may say 'contracts/  # N/A — <reason>'"
+    sources:
+      - {path: docs/stages/01-specify.md, lines: [147, 147], quote: "- When a section doesn't apply, remove it entirely (don't leave as \"N/A\")"}
+      - {path: docs/stages/02-plan.md, lines: [43, 43], quote: "when nothing in one of them applies to this change, its whole body is one line `N/A — <reason>`."}
+    resolution: "different artifacts, both rules kept: no N/A-only line in spec.md; a Phase 1 file is content or one 'N/A — <reason>' line (a bare N/A fails); the contracts line lists the contract files or gives its reason"
+  - description: "Tests: 'Tests are OPTIONAL' upstream (TK:43, the template's '(OPTIONAL - only if tests requested)' headings), but here the task message is the request: every story gets test tasks, as verification scripts under checks/ (TK:43, CW:77-79)"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [43, 43], quote: "Here the task message is that request; if it says the tests are already taken care of, it means the grader's own tests, which you never see."}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [82, 82], quote: "### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️"}
+    resolution: "every story phase needs a 'Tests for User Story N' part naming a checks/ file (must; the heading matched by its prefix, so the template's suffix may stay); the verification scripts must be written, seen failing before the code and passing after it (must)"
+  - description: "TDD per story: a story's verification scripts fail before 'any code edit for a story' (IM:53); the trace does not say which code edit belongs to which story"
+    sources:
+      - {path: docs/stages/04-implement.md, lines: [53, 53], quote: "before any code edit for a story, write that story's verification scripts in `FEATURE_DIR/checks/`, run them and see them fail; only then implement the story, and run them again to see them pass"}
+      - {path: docs/core-workflow.md, lines: [77, 79], quote: "each is run and seen failing before the code it covers exists, and passing once it does."}
+    resolution: "per verification script (those tasks.md names, else every one run): a failing run, then a code change, then a passing run with the script not rewritten in between (red_green, ratio); a failing run before the stage's first code change (before_code); each script's last run passing after the last code change (pass_last); pass / fail by the call's own exit code when the script is the command's last segment, else by failure / pass text no other segment of the command could print"
+  - description: "Scripts and their outputs: the stages run the shipped scripts and rely on what they print (SP:70-71); setup-plan.sh writes plan.md itself, so the trace never shows the copy's text"
+    sources:
+      - {path: system-prompt.j2, lines: [70, 71], quote: "where the document says to run a Spec Kit script, run it and rely on the paths it prints."}
+      - {path: docs/stages/02-plan.md, lines: [5, 5], quote: "Load IMPL_PLAN template (already copied)."}
+    resolution: "each script must run at its shipped path with the stage's flags and succeed by its own call's output (an echoed JSON, a copy run elsewhere, an edited script or a failed run is no run); the plan template's load is judged as a read of its text (the copy shows it); plan.md's content items read the sandbox file"
+  - description: "Convergence outcome: tasks_appended 'if there are one or more actionable findings', converged 'if there are no actionable findings' (CV:153, 177); every finding is a gap, and unrequested code too gets a task (CV:105-107)"
+    sources:
+      - {path: docs/stages/05-converge.md, lines: [116, 116], quote: "- **Nothing remains**: produce zero findings and follow the converged branch in Step 7."}
+      - {path: docs/stages/05-converge.md, lines: [105, 107], quote: "converge does **not** delete code, it only appends a task to review/justify or remove it"}
+    resolution: "converged lists no finding row and tasks_appended at least one (must); converged leaves tasks.md unwritten in the window, tasks_appended appends a Convergence phase after the report (must)"
+  - description: "tasks.md task lines: TK:64 asks every description for an exact file path, but TK:68 shows a path-less task as CORRECT; the template's Polish heading is the literal 'Phase N' (TPL_TASKS:149) while phases are numbered"
+    sources:
+      - {path: docs/stages/03-tasks.md, lines: [64, 64], quote: "5. **Description**: Clear action with exact file path"}
+      - {path: docs/stages/03-tasks.md, lines: [68, 68], quote: "- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`"}
+      - {path: sandbox/specify/templates/tasks-template.md, lines: [149, 149], quote: "## Phase N: Polish & Cross-Cutting Concerns"}
+    resolution: "both readings: the path rule is a should ratio; the Polish heading may keep 'N' or take a number"
+  - description: "The generic system prompt keeps AGENTS.md in the repository (SP:11), deletes a temporary test file once done (SP:28) and asks the user when unsure (SP:48); the workflow puts nothing of its own in /testbed (CW:82-84) and has nobody to ask (CW:54-60)"
+    sources:
+      - {path: system-prompt.j2, lines: [28, 28], quote: "- If you need to create a temporary file for testing, delete it once you've confirmed your solution works"}
+      - {path: docs/core-workflow.md, lines: [82, 84], quote: "Nothing of the workflow lands in `/testbed`: no spec copies, notes, summaries or scratch scripts."}
+      - {path: docs/core-workflow.md, lines: [58, 59], quote: "if you catch yourself about to ask something, decide it instead: take the most plausible reading and write it down where it belongs"}
+    resolution: "the workflow wins (CW:6 'it takes precedence over any procedure you would follow otherwise'): a scratch / check script created in the repository fails its item even when removed again; no item rewards asking; AGENTS.md is not itemized"
+  - description: "PL:67 asks for project-relative paths in documentation, while the templates the stages fill write the absolute feature path (TPL_PLAN:5 the Input line, TPL_PLAN:50 the Documentation tree, TPL_TASKS:3)"
+    sources:
+      - {path: docs/stages/02-plan.md, lines: [67, 67], quote: "- Use absolute paths for filesystem operations; use project-relative paths for references in documentation"}
+      - {path: sandbox/specify/templates/plan-template.md, lines: [5, 5], quote: "**Input**: Feature specification from `/tmp/speckit-sdd/specs/001-issue/spec.md`"}
+    resolution: "no path-form item: the template's own absolute paths are allowed, and a relative reference is too"

@@ -1,0 +1,952 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "downgrade_reason": "The assessment may call for a dependency, and that exception cannot be checked; an install is only a likely sign of a new dependency.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "do not introduce dependencies that the assessment did not call for."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-036",
+    "target": {
+     "ref": "install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "The assessment may call for a dependency, and that exception cannot be checked; an install is only a likely sign of a new dependency.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "do not introduce dependencies that the assessment did not call for."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-036",
+    "target": {
+     "ref": "install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "The assessment may call for a dependency, and that exception cannot be checked; an install is only a likely sign of a new dependency.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "do not introduce dependencies that the assessment did not call for."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-036",
+    "target": {
+     "ref": "install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "assessment",
+     "mode": "no_rewrite",
+     "window": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never edit `assessment.md` — it is the contract you are working against."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-049",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "assessment",
+     "mode": "no_rewrite",
+     "window": "stage:fix_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never edit `assessment.md` — it is the contract you are working against."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-049",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "assessment",
+     "mode": "no_rewrite",
+     "window": "stage:fix_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never edit `assessment.md` — it is the contract you are working against."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-049",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Conditional on the project having obvious test commands, which cannot be observed.",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:fix"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-040",
+    "target": {
+     "ref": "test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Conditional on the project having obvious test commands, which cannot be observed.",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:fix_2"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-040",
+    "target": {
+     "ref": "test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Conditional on the project having obvious test commands, which cannot be observed.",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:fix_3"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-040",
+    "target": {
+     "ref": "test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "fact": "valid_run",
+       "kind": "test",
+       "window": [
+        "stage_start:fix",
+        "write:fix"
+       ]
+      }
+     }
+    },
+    "params": {
+     "label": "Commands run",
+     "run_kind": "test",
+     "section": "Local Verification",
+     "type": "command_run",
+     "window": [
+      "stage_start:fix",
+      "write:fix"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "run the tests that exercise the changed paths. Capture pass/fail and key output."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-041",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "fact": "valid_run",
+       "kind": "test",
+       "window": [
+        "stage_start:fix_2",
+        "write:fix_2"
+       ]
+      }
+     }
+    },
+    "params": {
+     "label": "Commands run",
+     "run_kind": "test",
+     "section": "Local Verification",
+     "type": "command_run",
+     "window": [
+      "stage_start:fix_2",
+      "write:fix_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "run the tests that exercise the changed paths. Capture pass/fail and key output."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-041",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "fact": "valid_run",
+       "kind": "test",
+       "window": [
+        "stage_start:fix_3",
+        "write:fix_3"
+       ]
+      }
+     }
+    },
+    "params": {
+     "label": "Commands run",
+     "run_kind": "test",
+     "section": "Local Verification",
+     "type": "command_run",
+     "window": [
+      "stage_start:fix_3",
+      "write:fix_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "run the tests that exercise the changed paths. Capture pass/fail and key output."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-041",
+    "target": {
+     "ref": "fix_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind can tell whether a test suite is destructive or depends on the network.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not run destructive or network-dependent suites."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-042",
+    "target": {
+     "ref": "test suites",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       46,
+       46
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write to `BUG_DIR/` + `FIX_REPORT` (round 1: `fix.md`) using this structure:"
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-043",
+    "target": {
+     "ref": "fix",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       46,
+       46
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write to `BUG_DIR/` + `FIX_REPORT` (round 1: `fix.md`) using this structure:"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-043",
+    "target": {
+     "ref": "fix_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       46,
+       46
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write to `BUG_DIR/` + `FIX_REPORT` (round 1: `fix.md`) using this structure:"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-043",
+    "target": {
+     "ref": "fix_3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The section is only required when the agent disagrees with the assessment; its presence is part of the fix report structure.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Deviations from Assessment"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Record disagreements in this round's fix report under **Deviations from Assessment**."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-050",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The section is only required when the agent disagrees with the assessment; its presence is part of the fix report structure.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Deviations from Assessment"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Record disagreements in this round's fix report under **Deviations from Assessment**."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-050",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The section is only required when the agent disagrees with the assessment; its presence is part of the fix report structure.",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Deviations from Assessment"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Record disagreements in this round's fix report under **Deviations from Assessment**."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-050",
+    "target": {
+     "ref": "fix_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not stop here and do not report to the user: nobody is waiting for a report. Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-044",
+    "target": {
+     "ref": "test",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "write:fix",
+      "stage_end:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-046",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "write:fix_2",
+      "stage_end:test_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-046",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "write:fix_3",
+      "stage_end:test_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-046",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:fix",
+      "stage_start:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-047",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:fix_2",
+      "stage_start:test_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-047",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:fix_3",
+      "stage_start:test_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-047",
+    "target": {
+     "ref": "fix_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No fact lists writes to paths outside both the repository and BUG_DIR.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never modify files outside the repository, except this workflow's reports and checks in `BUG_DIR`."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-048",
+    "target": {
+     "ref": "writes outside repository",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No fact lists deleted files, and no kind checks whether the assessment explicitly required a deletion.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never delete files unless the assessment explicitly required it."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-051",
+    "target": {
+     "ref": "file deletion",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_start:fix_2",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never rewrite an earlier round's fix report."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-052",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_2",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_start:fix_3",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never rewrite an earlier round's fix report."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-052",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "The output is this round's verification report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-002",
+    "target": {
+     "ref": "test",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "The output is this round's verification report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-002",
+    "target": {
+     "ref": "test_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "The output is this round's verification report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-002",
+    "target": {
+     "ref": "test_3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "It only applies if the agent finds the assessment was wrong, which cannot be observed. The section's presence is already checked under fx-050.",
+    "statement": "fx-037"
+   },
+   {
+    "reason": "Same rule as fx-049 (do not edit assessment.md), which is already itemized for each fix round.",
+    "statement": "fx-039"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "dbb3e01594ff20e9e246e4ddc530e98d8e20f884b33a508ce9d415f9b65d5a9f",
+ "key": "09a590e8f7d987cba02f4df0f432bcb85b51a02610044bf8b9566f5612b205c2",
+ "meta": {
+  "at": "2026-10-16T06:15:03Z",
+  "cost_usd": 0.2117456,
+  "duration_ms": 78767,
+  "num_turns": 2,
+  "wall_s": 80.06
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "24f8a818848e22ab75f4447e919c9ce376e74fe1d1250f821c0416350e665e01",
+ "salt": "sample1",
+ "schema_sha256": "3001fadc5aee6546c6eeb57ad453bc3a658354e0899935b332599131b0d23bb4",
+ "version": "2.1.283"
+}

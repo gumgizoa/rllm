@@ -1,0 +1,370 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "init"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "global",
+    "statement": "ex-020",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs a check that explore read or searched repository source files; no kind expresses reads of repo code (doc_read only covers declared sources).",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Explore the actual codebase when relevant, don't just theorize"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-027",
+    "target": {
+     "ref": "codebase investigation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Only applies when there is a question only the person could answer; that condition cannot be observed, so the check is softened.",
+    "kind": "openspec_ff.note",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "(?i)assumption"
+     ],
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "take the most plausible reading of the issue, mark it as an **assumption** (not as confirmed intent) in your summary, and continue"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-029",
+    "target": {
+     "ref": "explore summary",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Conditional on explore having recorded assumptions; the proposal template names no section for assumptions.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a cross-reference between the explore summary's assumptions and the proposal text.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "ff writes it into the proposal."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ex-030",
+    "target": {
+     "ref": "proposal",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Track decisions in the conversation, not in files."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-043",
+    "target": {
+     "ref": "decision record",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The summary lives in the conversation and has no fixed format; checking that it separates confirmed facts, assumptions, defaults and open questions needs semantic judgement.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Separate what the issue and the code confirm from assumptions, proposed defaults and unresolved questions; the summary under **Ending Discovery** carries them to ff."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-044",
+    "target": {
+     "ref": "Ending Discovery summary",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Write no file (see the guardrails below)."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-045",
+    "target": {
+     "ref": "file writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Diagrams are drawn in conversation text; finding them and checking for non-ASCII glyphs is not covered by any kind.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       97,
+       98
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "**Draw with plain ASCII only** — borders `+` `-` `|`, arrows `-->` `<--` `^` `v`, markers `*` `x`. ... Keep every diagram character ASCII."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-051",
+    "target": {
+     "ref": "diagram characters",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       116
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "At the start, quickly check what exists: ```bash openspec list --json ```"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-055",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need an order check: `openspec list --json` before the first code read or search in explore. There is no event for 'other exploration'.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "At the start, quickly check what exists:"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-056",
+    "target": {
+     "ref": "openspec list --json before other exploration",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --specs",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       123,
+       126
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "It does not include the project's durable capabilities, so list those too: ```bash openspec list --specs ```"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-057",
+    "target": {
+     "ref": "openspec list --specs",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The sandbox uses the local openspec/ root, so no standalone store is expected; but whether one is registered is not checked directly.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "--store",
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "append `--store \"<id>\"` only for a registered standalone store"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-059",
+    "target": {
+     "ref": "--store flag on openspec list/show",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This rule only applies when no OpenSpec root exists ('never create the root as a side effect'). Here the root already exists and ff must write under openspec/changes, so the condition cannot be expressed as a predicate.",
+    "statement": "ex-021"
+   },
+   {
+    "reason": "It only applies before asking a factual question. In planning mode nobody answers, and asking a question is not an observable event. Investigating the code is covered by ex-027.",
+    "statement": "ex-031"
+   },
+   {
+    "reason": "Repeats ex-051 (ASCII-only diagrams), which is already itemized as unimplemented.",
+    "statement": "ex-052"
+   },
+   {
+    "reason": "Optional (MAY): adding --json to `openspec list --specs` is left to the agent.",
+    "statement": "ex-058"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "fd81e05263e31e91ae774cfaddf684fde300d755a93a8a566757ed4be59d7c4f",
+ "key": "604a642f78e498871f49e5a17eae9f3354486b41cb9c87b06285f908fe415c5f",
+ "meta": {
+  "at": "2026-10-16T06:17:33Z",
+  "cost_usd": 0.23216299999999998,
+  "duration_ms": 51419,
+  "num_turns": 2,
+  "wall_s": 52.84
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "a77fd744db6b4ed0a1571f1fb4ca57cbda581548d4c51ba1f1cd253361ce1f90",
+ "version": "2.1.283"
+}

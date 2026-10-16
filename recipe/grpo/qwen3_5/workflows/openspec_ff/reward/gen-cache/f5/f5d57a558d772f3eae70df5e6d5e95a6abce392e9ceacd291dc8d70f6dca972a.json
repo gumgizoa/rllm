@@ -1,0 +1,284 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       145,
+       145
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-112",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "not": {
+      "artifact_exists": "design"
+     }
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Covers only the absent case; an empty design.md is not expressible as a predicate.",
+    "params": {
+     "min": 1,
+     "pattern": "[Nn]ot verified",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Otherwise, if the design artifact's `contextFiles.<id>` file is absent or empty: mark **Design Adherence** as not verified."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-106",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "absent": {
+      "fact": "repo_edit",
+      "final": true
+     }
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "No final repo change = implementation changes cannot be identified.",
+    "params": {
+     "min": 1,
+     "pattern": "[Nn]ot verified",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       136,
+       136
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If implementation changes cannot be identified, mark **Code Pattern Consistency** as not verified and explain the missing evidence."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-108",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "all": [
+      {
+       "artifact_exists": "spec"
+      },
+      {
+       "relation": {
+        "left": {
+         "headings": {
+          "artifact": "spec",
+          "level": 2,
+          "pattern": "^(ADDED|MODIFIED) Requirements"
+         }
+        },
+        "rel": "disjoint",
+        "right": {
+         "literal": [
+          "ADDED Requirements",
+          "MODIFIED Requirements"
+         ]
+        }
+       }
+      }
+     ]
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Not applicable \\(no ADDED or MODIFIED requirements\\)",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "For a change that only removes or renames requirements, the Correctness cell reads `Not applicable (no ADDED or MODIFIED requirements)`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-114",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind can tell which checks were skipped versus scored as passing.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check. ... Never score a skipped check as passing."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-114",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need the reported file:line refs matched against the requirements' implementation in the diff; no kind ties a reference to a requirement.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       108
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Search codebase for implementation evidence\n      - If found, note file paths and line ranges"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-092",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No selector can pick out scenarios under REMOVED requirements to compare with the 'Scenario not covered' warnings.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       121,
+       121
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Skip scenarios under a REMOVED requirement; that behavior is meant to be gone."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-100",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Depends on the agent's own finding that the code diverges from the spec. The run gives no observable sign of this, so no applies_when can express it.",
+    "statement": "vf-094"
+   },
+   {
+    "reason": "Recommendation wording that applies only when divergence is detected, which is not observable.",
+    "statement": "vf-095"
+   },
+   {
+    "reason": "Depends on the agent judging a scenario uncovered. That judgment is not observable as a predicate.",
+    "statement": "vf-098"
+   },
+   {
+    "reason": "Recommendation wording that applies only when a scenario is uncovered, which is not observable.",
+    "statement": "vf-099"
+   },
+   {
+    "reason": "This harness's schema defines a design artifact (design.md is written in ff), so the 'no design artifact' condition never holds.",
+    "statement": "vf-101"
+   },
+   {
+    "reason": "Depends on the agent finding that a design decision was contradicted, which is not observable.",
+    "statement": "vf-104"
+   },
+   {
+    "reason": "Recommendation wording that applies only when a design contradiction is detected, which is not observable.",
+    "statement": "vf-105"
+   },
+   {
+    "reason": "Depends on the agent's judgment that 'significant deviations' were found, which is not observable.",
+    "statement": "vf-110"
+   },
+   {
+    "reason": "Recommendation wording that applies only when pattern deviations are found, which is not observable.",
+    "statement": "vf-111"
+   },
+   {
+    "reason": "The Summary Scorecard skeleton is already compiled from the template (the Summary section).",
+    "statement": "vf-113"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "a0b2f20a2d4a25f85236374fd4b4243542a934653de6bfd34c13f696065884ae",
+ "key": "f5d57a558d772f3eae70df5e6d5e95a6abce392e9ceacd291dc8d70f6dca972a",
+ "meta": {
+  "at": "2026-10-15T04:47:55Z",
+  "cost_usd": 0.19619,
+  "duration_ms": 39341,
+  "num_turns": 2,
+  "wall_s": 40.43
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "ec7383ea5cb500f97e0be96fd239f689ce3bd18e749b3284eff5d9874735db05",
+ "version": "2.1.283"
+}

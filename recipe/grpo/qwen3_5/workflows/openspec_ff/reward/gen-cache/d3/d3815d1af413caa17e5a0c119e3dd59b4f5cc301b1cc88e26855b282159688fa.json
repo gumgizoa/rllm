@@ -1,0 +1,540 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "change",
+     "pattern": "issue$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The change name is fixed: `issue`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-013",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "new change",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       26
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Create the change directory** ... openspec new change \"issue\" ... This creates a scaffolded change in the planning home resolved by the CLI."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-015",
+    "target": {
+     "ref": "openspec new change \"issue\"",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "status --change",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       32
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Get the artifact build order** ... openspec status --change \"issue\" --json ... Parse the JSON to get:"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-016",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Proxy check: writing artifacts under the repo-local openspec/ is the observable symptom of assuming repo-local paths.",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "^/testbed/openspec/",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Use these instead of assuming repo-local paths."
+     },
+     {
+      "lines": [
+       58,
+       58
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The target project is the repository at `/testbed`; the planning home (`/openspec`) is separate from the code."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-017",
+    "target": {
+     "ref": "planningHome/changeRoot/artifactPaths usage",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checkable in principle via a todo-tool call in the ff window; no kind expresses a todo-tool usage check.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Use a todo list to track progress through the artifacts."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-018",
+    "target": {
+     "ref": "todo list",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Concrete dependency edges come from the schema graph, not stated in the cited line.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:proposal",
+      "first_write:spec",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Loop through artifacts in dependency order (artifacts with no pending dependencies first)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-019",
+    "target": {
+     "ref": "artifact creation order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Concrete dependency edges come from the schema graph, not stated in the cited line.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:proposal",
+      "first_write:design",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Loop through artifacts in dependency order (artifacts with no pending dependencies first)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-019",
+    "target": {
+     "ref": "artifact creation order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "ok": true,
+     "rule": "ran",
+     "sub": "instructions",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       44,
+       46
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Get instructions: ... openspec instructions <artifact-id> --change \"issue\" --json"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-020",
+    "target": {
+     "ref": "openspec instructions <artifact-id> --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires comparing artifact text against the context/rules text returned by the instructions JSON; no kind compares artifacts to CLI output.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       49,
+       50
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "`context`: Project background (constraints for you - do NOT include in output) ... `rules`: Artifact-specific rules (constraints for you - do NOT include in output)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-021",
+    "target": {
+     "ref": "proposal",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal"
+     ],
+     "window": [
+      "first_write:proposal",
+      "first_write:design"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in the conversation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-023",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "design"
+     ],
+     "deltas": true,
+     "window": [
+      "first_write:design",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in the conversation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-023",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Proxy: an inspection command touching /testbed before the first artifact draft stands in for inspecting relevant implementation.",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "exists": {
+       "fact": "command",
+       "pattern": "/testbed",
+       "window": [
+        "stage_start:ff",
+        "first_write:proposal"
+       ]
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       57,
+       58
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "**Inspect the relevant project before drafting**: Read `context` and `rules` first, then inspect relevant implementation ... The target project is the repository at `/testbed`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-024",
+    "target": {
+     "ref": "project source inspection",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       57,
+       57
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Keep inspection read-only and proportional to the change"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-025",
+    "target": {
+     "ref": "inspection read-only",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "(?i)explore the codebase",
+      "(?i)make a plan"
+     ],
+     "section": "Tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       60,
+       60
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Do this discovery now, rather than leaving generic \"explore the codebase\" or \"make a plan\" tasks for implementation."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-032",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Otherwise create the artifact file using `template` as the structure and write it to `resolvedOutputPath`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-035",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Otherwise create the artifact file using `template` as the structure and write it to `resolvedOutputPath`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-035",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Otherwise create the artifact file using `template` as the structure and write it to `resolvedOutputPath`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-035",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Otherwise create the artifact file using `template` as the structure and write it to `resolvedOutputPath`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-035",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Conditional on the change declaring skip_specs, which no reference-language predicate can observe; the skipped artifact id is also only known from CLI output.",
+    "statement": "ff-022"
+   },
+   {
+    "reason": "Implicit context for ff-024; the /testbed inspection target is already covered by the ff-024 item and the ff-017 repo-local path check.",
+    "statement": "ff-027"
+   },
+   {
+    "reason": "Conditional on the instruction field delegating creation to a skill/command, which is only visible in CLI JSON output and cannot be expressed as an applies_when predicate.",
+    "statement": "ff-034"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b34c21ba8341242b9c1c1ce03f08b5e9b0eb4d6524312af1b326907f04334b39",
+ "key": "d3815d1af413caa17e5a0c119e3dd59b4f5cc301b1cc88e26855b282159688fa",
+ "meta": {
+  "at": "2026-10-16T06:18:43Z",
+  "cost_usd": 0.14183380000000004,
+  "duration_ms": 58538,
+  "num_turns": 2,
+  "wall_s": 60.03
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "b632f5b660b9b7da6fa888bc75fc7511bbf4673a43e050070774d2876616ba7a",
+ "version": "2.1.283"
+}

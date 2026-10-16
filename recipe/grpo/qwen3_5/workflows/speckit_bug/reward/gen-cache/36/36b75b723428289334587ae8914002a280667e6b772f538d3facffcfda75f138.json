@@ -1,0 +1,710 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:assess"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "docs/stages/01-assess.md",
+      "quote": "Never modify source files during assessment"
+     }
+    ],
+    "stage": "assess",
+    "statement": "as-036",
+    "target": {
+     "ref": "source_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:assess"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "docs/stages/01-assess.md",
+      "quote": "this stage only reads and writes inside `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "assess",
+    "statement": "as-037",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Path extraction from free text is heuristic; backticked tokens may not all be file paths.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "assessment",
+       "group": 1,
+       "pattern": "`([^`]+/[^`]+)`",
+       "section": "Suspected Code Paths"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       117,
+       117
+      ],
+      "path": "docs/stages/01-assess.md",
+      "quote": "Never invent reproduction steps or file paths that are not supported by either the report or the codebase."
+     }
+    ],
+    "stage": "assess",
+    "statement": "as-039",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "assessment",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       118,
+       118
+      ],
+      "path": "docs/stages/01-assess.md",
+      "quote": "Never rewrite `assessment.md` once it is written."
+     }
+    ],
+    "stage": "global",
+    "statement": "as-040",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "record the changes in this round's fix report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-002",
+    "target": {
+     "ref": "fix",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "record the changes in this round's fix report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-002",
+    "target": {
+     "ref": "fix_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "record the changes in this round's fix report in `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-002",
+    "target": {
+     "ref": "fix_3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:fix",
+     "before": "write:assessment"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "This stage is **only** valid after `assessment.md` exists."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-003",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix",
+     "pattern": "fix\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       12
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "| 1 | `fix.md` | — |"
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-005",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_2",
+     "pattern": "fix-2\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "| 2 | `fix-2.md` | `test.md` |"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-005",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_3",
+     "pattern": "fix-3\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "| 3 | `fix-3.md` | `test-2.md` |"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-005",
+    "target": {
+     "ref": "fix_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "`BUG_DIR/assessment.md` MUST exist."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-006",
+    "target": {
+     "ref": "assessment",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": {
+      "first": {
+       "created": false,
+       "fact": "repo_edit"
+      }
+     },
+     "before": "write:assessment"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "If it does not, the assessment stage has not run: carry it out first (`/speckit/stages/01-assess.md`)."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-007",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write this round's `FIX_REPORT` once."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-008",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_2",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write this round's `FIX_REPORT` once."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-008",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_3",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write this round's `FIX_REPORT` once."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-008",
+    "target": {
+     "ref": "fix_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_start:fix_2",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never rewrite the fix report of an earlier round."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-009",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "fix_2",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_start:fix_3",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never rewrite the fix report of an earlier round."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-009",
+    "target": {
+     "ref": "fix_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment"
+     ],
+     "window": [
+      "stage_start:fix",
+      "first_write:fix"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Read `BUG_DIR/assessment.md` in full."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-010",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment"
+     ],
+     "window": [
+      "stage_start:fix_2",
+      "first_write:fix_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Read `BUG_DIR/assessment.md` in full."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-010",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment"
+     ],
+     "window": [
+      "stage_start:fix_3",
+      "first_write:fix_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Read `BUG_DIR/assessment.md` in full."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-010",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "fix",
+      "test"
+     ],
+     "window": [
+      "stage_start:fix_2",
+      "first_write:fix_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "In rounds 2 and 3, also read the previous round's fix report and verification report in full"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "fx-012",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "fix_2",
+      "test_2"
+     ],
+     "window": [
+      "stage_start:fix_3",
+      "first_write:fix_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "In rounds 2 and 3, also read the previous round's fix report and verification report in full"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "fx-012",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "fact": "diff_paths"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "assessment",
+       "group": 1,
+       "pattern": "`([^`]+)`"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       30,
+       30
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope"
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-018",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The stage list already caps the workflow at three fix/test rounds (fix, fix_2, fix_3); no kind checks for a fourth round outside the declared artifacts.",
+    "statement": "fx-004"
+   },
+   {
+    "reason": "Only required when the assessment has unresolved [NEEDS CLARIFICATION] items; that condition cannot be written as an applies_when predicate (field_matches needs a label), so the Deviations from Assessment requirement can't be conditioned on it.",
+    "statement": "fx-016"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d13006ae3fef006459a80b88e7f8e9c2747c6783a36dc8701f605e2fdcf02806",
+ "key": "36b75b723428289334587ae8914002a280667e6b772f538d3facffcfda75f138",
+ "meta": {
+  "at": "2026-10-14T01:56:19Z",
+  "cost_usd": 0.1464388,
+  "duration_ms": 52501,
+  "num_turns": 2,
+  "wall_s": 53.68
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "ec61d61bf000e96598dc07ca8e66051102b57af28cdf8ac3e95505e95842539c",
+ "salt": "sample1",
+ "schema_sha256": "65d609bd03234118edb627024b33a6c9d0a60991e76993c6902d6be1f06bb779",
+ "version": "2.1.283"
+}

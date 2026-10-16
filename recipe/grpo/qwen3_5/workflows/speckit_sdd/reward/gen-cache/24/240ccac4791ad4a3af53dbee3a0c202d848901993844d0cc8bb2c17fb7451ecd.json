@@ -1,0 +1,144 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "note": "The spec file must sit in the fixed feature directory, which shows the directory was created and used.",
+    "params": {
+     "artifact": "spec",
+     "pattern": "^/tmp/speckit-sdd/specs/001-issue/spec\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       25
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "`SPECIFY_FEATURE_DIRECTORY` is `/tmp/speckit-sdd/specs/001-issue`. ... - `mkdir -p SPECIFY_FEATURE_DIRECTORY` - Copy `/tmp/speckit-sdd/.specify/templates/spec-template.md` to `SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point"
+     }
+    ],
+    "stage": "specify",
+    "statement": "critic-1-001-0",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The engine can only check that plan.md's tree lists the contract files written, or a 'contracts/ # N/A — <reason>' line. Whether the interfaces identified are complete takes judgement.",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "plan",
+     "rule": "contracts"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       50,
+       51
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "2. **Define interface contracts** (if project has external interfaces) → `FEATURE_DIR/contracts/`: - Identify what interfaces the project exposes to users or other systems"
+     }
+    ],
+    "stage": "plan",
+    "statement": "critic-1-002-1",
+    "target": {
+     "ref": "plan",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "The cited line is a completion-checklist entry, not an imperative or MUST sentence.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "note": "The converge stage has to begin by reading its stage doc.",
+    "params": {
+     "doc": "CV"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "- [ ] The converge stage (`/speckit-sdd/stages/05-converge.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "converge",
+    "statement": "critic-1-003-2",
+    "target": {
+     "ref": "read:CV",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "The cited line is a completion-checklist entry, not an imperative or MUST sentence.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No event or kind captures a summary or report message to the user between the end of implement and the start of converge.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "with no report in between"
+     }
+    ],
+    "stage": "implement",
+    "statement": "critic-1-003-2",
+    "target": {
+     "ref": "stage_end:implement",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "c5624b8d3d338e42d0d5d809a84c2cc0d4b6ca7e808026c03091f893434415f2",
+ "key": "240ccac4791ad4a3af53dbee3a0c202d848901993844d0cc8bb2c17fb7451ecd",
+ "meta": {
+  "at": "2026-10-15T05:18:27Z",
+  "cost_usd": 0.131491,
+  "duration_ms": 19770,
+  "num_turns": 2,
+  "wall_s": 20.86
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "critic1sample0",
+ "schema_sha256": "4e37298d5a4671ce56e6f496ed527dfe0b025ff2a3495f5f68cabdc80240c98c",
+ "version": "2.1.283"
+}
