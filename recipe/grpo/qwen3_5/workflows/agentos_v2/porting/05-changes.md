@@ -23,7 +23,7 @@
 | 14 | 공백 정규화 | (언급 없음) | 편집한 원문과 최종 문서 모두 `_port.convert`와 같은 규칙으로 빈 줄 3개 이상을 2개로, 끝 개행 1개로 정리. 편집 없이 렌더하면 참조 렌더(`scratchpad/agentos-render`)와 바이트 동일(create-tasks만 빈 줄 하나 차이)함을 확인 | 다른 port와 같은 정규화, 의미 변화 없음 |
 | 15 | "missing-section" 테스트 | stage 4 표준 테스트 | 이 port는 `Section`을 쓰지 않으므로, 대신 `{{workflows/...}}` 참조가 풀리지 않는 upstream(파일명 변경)이면 build가 실패하는지 검사 | gaps "Harness / build notes"대로 `Edit`만 사용 |
 | 16 | 렌더 테스트용 upstream 위치 | — | 테스트 기본 경로 `../agent-os-v2.1.1`(rllm 옆) 또는 `AGENT_OS_V2_DIR`. 없으면 렌더 테스트 3개는 skip. 이번 검증은 `scratchpad/agentos-v2.1.1-wt`(tag worktree, HEAD = 고정 commit)로 실행 | 전체 clone의 HEAD는 v3이라 그대로 쓸 수 없음. worktree 생성법은 `build.py` docstring |
-| 17 | 줄 수 | standards 펼침으로 약 +400줄, 편집 약 50건 | 4개 문서 986줄 → 1,329줄(+343). 렌더 전 편집 55건(env 30, semantic 25) + 렌더 단계 5건 | 실제 값 (G9-5 반영 후) |
+| 17 | 줄 수 | standards 펼침으로 약 +400줄, 편집 약 50건 | 4개 문서 986줄 → 1,329줄(+343). 렌더 전 편집 57건(env 32, semantic 25) + 렌더 단계 5건 | 실제 값 (G9-5, G5-8 반영 후) |
 | 18 | backend migrations 표준 9줄 | (계획에 없음) | "Always commit migrations to version control …" 줄 삭제 | 4단계에서 발견한 새 gap G9-5, 사용자 결정(2026-10-16). G9-2의 커밋·브랜치 줄과 같은 종류 |
 | 19 | 보고서 절 번호 | 2절 삭제(G5-6), 1·3·4절 번호 유지 | 3·4절 → 2·3절로 번호 다시 매김, roadmap 안내 문장의 "section 3" → "section 2 (Roadmap Updates)" | smoke 1에서 발견한 G5-8(3/8이 스스로 번호를 바꿈), 사용자 결정 |
 
