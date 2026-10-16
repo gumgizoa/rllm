@@ -11,7 +11,9 @@ What carries over is ``git diff --binary`` between two snapshots of the
 workdir taken with ``git add -A`` into a scratch index: one before the agent
 starts (:meth:`FreshSandboxEvaluator.snapshot`), one at grading time.
 ``.gitignore`` is respected, so installed dependencies and build output do
-not carry over, nor do new files over ``RLLM_FRESH_VERIFY_MAX_FILE_MB``.
+not carry over, nor do new test files the agent wrote (grading uses only the
+hidden test patch; gold-patch paths excepted) or new files over
+``RLLM_FRESH_VERIFY_MAX_FILE_MB``.
 Everything outside the workdir is discarded. Wrap order matters: this sits
 *inside* :class:`~rllm.sandbox.git_history.GitHistoryRestoringEvaluator`, so
 the original ``.git`` (whose config the agent never touched) is back before
@@ -20,10 +22,12 @@ the diff is taken.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shlex
 import tempfile
+from pathlib import Path
 
 from rllm.eval.types import EvalOutput
 
@@ -50,32 +54,50 @@ set -eu
 cd {wd}
 export GIT_INDEX_FILE=/tmp/rllm-base-index
 rm -f "$GIT_INDEX_FILE"
+# Seeded from the repo's own index: its stat data lets `add -A` skip
+# re-hashing unchanged files, which dominates the cost on large trees.
+cp "$(env -u GIT_INDEX_FILE {_GIT} rev-parse --git-path index)" "$GIT_INDEX_FILE" 2>/dev/null || true
 {_GIT} add -A . >/dev/null
 {_GIT} write-tree
 rm -f "$GIT_INDEX_FILE"
 """
 
 
-def _extract_cmd(workdir: str, base_tree: str, max_file_mb: int) -> str:
+def _extract_cmd(workdir: str, base_tree: str, max_file_mb: int, keep: list[str] = ()) -> str:
     wd = shlex.quote(workdir)
     base = shlex.quote(base_tree)
+    keep_arr = " ".join(shlex.quote(k) for k in keep)
     return f"""
 set -u
 rm -rf {_STAGE} && mkdir -p {_STAGE} || exit 3
 cd {wd} || exit 2
 # A throwaway index: the repo's own index is left as the agent had it.
 export GIT_INDEX_FILE={_STAGE}/index
-{_GIT} read-tree {base} || exit 4
+# Seeded from the restored repo index (stat cache), as in the snapshot.
+cp "$(env -u GIT_INDEX_FILE {_GIT} rev-parse --git-path index)" "$GIT_INDEX_FILE" 2>/dev/null \\
+    || {_GIT} read-tree {base} || exit 4
 {_GIT} add -A . >/dev/null 2>{_STAGE}/add.err || {{ cat {_STAGE}/add.err >&2; exit 4; }}
-# Large new files (build output the agent forgot to ignore) stay behind.
-{_GIT} diff --cached --name-only --diff-filter=A -z {base} | while IFS= read -r -d '' f; do
+# New files that stay behind:
+#  * test files the agent wrote. Grading only uses the hidden test patch, and
+#    a test file that runs under a whole-suite command (npm test) could tamper
+#    with the runner. Files the gold patch itself adds are kept.
+#  * large files (build output the agent forgot to ignore).
+KEEP=({keep_arr})
+is_kept() {{ local k; for k in ${{KEEP[@]+"${{KEEP[@]}}"}}; do [ "$k" = "$1" ] && return 0; done; return 1; }}
+{_GIT} diff --cached --name-only --diff-filter=A -z {base} > {_STAGE}/added
+while IFS= read -r -d '' f; do
+    is_kept "$f" && continue
+    case "/$f" in
+      */__tests__/*|*/test_*.py|*_test.py|*_test.go|*/conftest.py|*.test.[cm][jt]s|*.test.[jt]s|*.test.[jt]sx|*.spec.[cm][jt]s|*.spec.[jt]s|*.spec.[jt]sx)
+        {_GIT} rm -q --cached -- "$f" && echo "dropped agent test file: $f"; continue ;;
+    esac
     if [ -f "$f" ] && [ "$(stat -c %s -- "$f" 2>/dev/null || echo 0)" -gt $(( {max_file_mb} * 1048576 )) ]; then
-        {_GIT} rm -q --cached -- "$f" && echo "skipped large untracked file: $f" >&2
+        {_GIT} rm -q --cached -- "$f" && echo "skipped large untracked file: $f"
     fi
-done
+done < {_STAGE}/added
 after="$({_GIT} write-tree)" || exit 5
 {_GIT} diff --binary --no-color --no-ext-diff --no-textconv {base} "$after" > {_STAGE}/agent.patch || exit 5
-rm -f {_STAGE}/index {_STAGE}/add.err
+rm -f {_STAGE}/index {_STAGE}/add.err {_STAGE}/added
 echo "patch_bytes=$(stat -c %s {_STAGE}/agent.patch)"
 """
 
@@ -114,6 +136,15 @@ class FreshSandboxEvaluator:
             raise RuntimeError(f"fresh-sandbox verify: bad base tree for {self.task.id}: {out[-200:]!r}")
         self.base_tree = tree
 
+    @staticmethod
+    def _keep_paths(task) -> list[str]:
+        """Paths the gold patch touches (tests/config.json ``harness_keep_paths``): never dropped."""
+        cfg = Path(task.task_dir) / "tests" / "config.json"
+        try:
+            return list(json.loads(cfg.read_text()).get("harness_keep_paths") or [])
+        except (OSError, ValueError):
+            return []
+
     def _fail(self, reason: str, detail: str = "") -> EvalOutput:
         logger.warning("fresh-sandbox verify %s: %s %s", self.task.id, reason, detail[-500:])
         # Not the agent's fault when the harness cannot move the patch: mark it
@@ -129,7 +160,7 @@ class FreshSandboxEvaluator:
         if not self.base_tree:
             return self._fail("fresh_verify_no_base_tree")
         try:
-            out = self.agent_sandbox.exec(_extract_cmd(workdir, self.base_tree, self.max_file_mb), timeout=900, user="root")
+            out = self.agent_sandbox.exec(_extract_cmd(workdir, self.base_tree, self.max_file_mb, self._keep_paths(task)), timeout=900, user="root")
         except Exception as e:  # noqa: BLE001
             return self._fail("agent_patch_extract_failed", str(e))
 
@@ -150,7 +181,7 @@ class FreshSandboxEvaluator:
                 return self._fail("agent_patch_apply_failed", f"{out}\n{e}")
             self.inner.sandbox = fresh
             result = self.inner.evaluate(task, episode)
-            result.metadata = {**(result.metadata or {}), "graded_in": "fresh_sandbox", "agent_patch": (out or "").strip()[-300:]}
+            result.metadata = {**(result.metadata or {}), "graded_in": "fresh_sandbox", "agent_patch": (out or "").strip()[-1000:]}
             return result
         except Exception as e:  # noqa: BLE001
             return self._fail("fresh_verify_failed", f"{type(e).__name__}: {e}")
@@ -170,7 +201,13 @@ class FreshSandboxEvaluator:
 
 
 def fresh_verify_enabled() -> bool:
-    return os.environ.get("RLLM_FRESH_SANDBOX_VERIFY", "").strip().lower() in {"1", "true", "yes", "on"}
+    """On unless RLLM_FRESH_SANDBOX_VERIFY is set to 0/false/no/off.
+
+    Default-on on purpose: a training run that forgets the variable would
+    otherwise grade in the agent's sandbox, which is exactly where RL learns
+    to look for holes.
+    """
+    return os.environ.get("RLLM_FRESH_SANDBOX_VERIFY", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 __all__ = ["FreshSandboxEvaluator", "fresh_verify_enabled"]

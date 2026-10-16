@@ -300,7 +300,7 @@ class SandboxTaskHooks:
 
             evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
 
-            # Grade the agent's diff in a clean sandbox (RLLM_FRESH_SANDBOX_VERIFY=1).
+            # Grade the agent's diff in a clean sandbox (on unless RLLM_FRESH_SANDBOX_VERIFY=0).
             # Wrapped before the git-history restore below, so the restore runs first.
             from rllm.sandbox.fresh_verify import FreshSandboxEvaluator, fresh_verify_enabled
 
