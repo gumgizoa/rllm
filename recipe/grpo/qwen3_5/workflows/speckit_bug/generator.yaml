@@ -1,0 +1,2045 @@
+# Generator config for speckit_bug: what the generator cannot read off the bug workflow's documents.
+#
+# The agent sees docs/ at /speckit -- core-workflow.md (the package author's hand-written definition of the
+# workflow: stages, rounds, report rules) and stages/01-assess.md, 02-fix.md, 03-test.md (spec-kit's bug
+# extension commands as build.py renders them) -- plus instruction.md and the system prompt. porting/ is the
+# author's decision log, never shown to the agent and never a source. Every decision below cites the line it
+# rests on; paths are relative to this package or to docs/.
+workflow: speckit_bug
+prefix: speckit_bug
+
+ids:
+  docs/core-workflow.md: CW
+  docs/stages/01-assess.md: AS
+  docs/stages/02-fix.md: FX
+  docs/stages/03-test.md: TS
+  instruction.md: INS
+  system-prompt.j2: SP
+
+roles:
+  - docs/core-workflow.md: core
+  - docs/stages/*.md: stage_rule
+
+system_prompt:
+  sections:
+    PROBLEM_SOLVING_WORKFLOW: workflow
+    "*": harness_generic
+
+# core-workflow.md is the workflow's own definition (it has no upstream counterpart to adapt), and the stage
+# documents are the workflow's text: like AI-DLC, no item is adapter-derived.
+adapter_roles: [adapter]
+
+precedence:
+  - order: [stage_rule, core, "system_prompt:workflow", instruction, "system_prompt:harness_generic"]
+    applies_to: all
+    authority:
+      path: docs/core-workflow.md
+      lines: [15, 15]
+      quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."
+
+classify:
+  bug:
+    # The skeletons' placeholders are <angle> spans (`<short title>`, `<ISO 8601 date>`), the sample paths
+    # `path/to/...`, the bracketed [NEEDS CLARIFICATION: …] marks (AS:30 "mark unknowns as [NEEDS
+    # CLARIFICATION]": the mark to write where an unknown remains), and the value choices the report picks one
+    # of: `valid | likely valid, needs reproduction`, `1 | 2 | 3`, `pass / fail / skipped / not-run` (the stage
+    # documents name each value: AS:37-40, TS:42-45, TS:38-39). [UNVERIFIED — not fetched] is literal output
+    # (AS:19-20). The regexes are tried in order, the first span wins: an <angle> span that holds a bracket
+    # (`<Mark unknowns as [NEEDS CLARIFICATION: …].>`, AS:75) is one placeholder.
+    brackets: false
+    placeholder:
+      - '<!--.*?-->'
+      - '`checks/<name>\.py`'
+      - '`<command>` → <[^<>\n]*>'
+      - '`<command>`'
+      - '<[A-Za-z][^<>\n]*>'
+      - '`path/to/[^`\n]*`'
+      - '\[NEEDS CLARIFICATION[^\[\]\n]*\]'
+      - '(?:(?<=\*\*: )|^(?![-*+]\s))[^\s|`<][^|\n]*(?: \| [^|\n]+)+$'
+      - 'pass / fail(?: / skipped)?(?: / not-run)?'
+    legit:
+      - '\[UNVERIFIED — not fetched\]'
+    # the field lines whose value is fixed (CW:50-51 keep the `- **Field**:` lines exactly): the slug, the source,
+    # the report links; the two table headers
+    literal:
+      - '^\s*- \*\*(?:Slug|Source|Assessment)\*\*: \S'
+      - '^\s*\| (?:File|Check) \|'
+    # the Recommendation section lists three example phrasings (TS:85 "<One paragraph. Examples:>")
+    exemplar:
+      - '^\s*- "(?:Close|Hold|Reopen) —'
+    markers:
+      mandatory: []
+      optional: ['\(optional\)']
+      conditional: []
+    none_tokens: [none, "n/a", "not applicable"]
+
+templates:
+  - id: assessment
+    path: docs/stages/01-assess.md
+    block: {fence: markdown, index: 0}
+    artifact: assessment
+    stage: assess
+    rules: bug
+    literals: patterns
+    binding: &keep
+      path: docs/core-workflow.md
+      lines: [50, 51]
+      quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."
+    binding_requirement: must
+    sections:
+      # its labels open lists (AS:93-97) that an honest report may separate from the label by a blank line, which a
+      # label's value never crosses: the section's items are manual (heading, labels, Preferred, the two lists)
+      Proposed Remediation:
+        requirement: skip
+        authority: {path: docs/stages/01-assess.md, lines: [93, 97], quote: "**Files likely to change**: - `path/to/file.py` **Checks to run**: - <reproduction script under BUG_DIR/checks/, or an existing repository test to run>"}
+      # its entries are [NEEDS CLARIFICATION: ...] marks (AS:30), which a field reading takes for a bracketed
+      # placeholder: the section's items are manual (heading, not left empty)
+      Open Questions:
+        requirement: skip
+        authority: {path: docs/stages/01-assess.md, lines: [30, 30], quote: "mark unknowns as `[NEEDS CLARIFICATION]` rather than guessing."}
+  - id: fix
+    path: docs/stages/02-fix.md
+    block: {fence: markdown, index: 0}
+    artifact: fix
+    stage: fix
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: &fix_sections
+      # CW:50-51 binds the `#`/`##` headings and the `- **Field**:` lines; the Changes table's rows are the template's
+      # example (should; its heading is a manual must item)
+      Changes:
+        requirement: should
+        authority: {path: docs/core-workflow.md, lines: [50, 51], quote: "the `#`/`##` headings and the `- **Field**:` lines"}
+      # "<Empty if none. ...>": the section may be left empty (its heading is a manual must item)
+      Deviations from Assessment:
+        requirement: skip
+        authority: {path: docs/stages/02-fix.md, lines: [90, 90], quote: "<Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why.>"}
+      # `- Commands run:` / `- Manual checks:` are not the bold `- **Field**:` lines CW:50-51 binds, and "Manual checks:
+      # <what was verified by hand, if anything>" may have nothing to say: should (a recorded command is checked
+      # against the trace by a manual must item)
+      Local Verification:
+        requirement: should
+        authority: {path: docs/core-workflow.md, lines: [50, 51], quote: "the `#`/`##` headings and the `- **Field**:` lines"}
+      # the Checks Added table (FX:74-76) and the baseline's plain `- Test files:` / `- `<command>` before the change:`
+      # lines (FX:80-81) are neither `#`/`##` headings nor bold `- **Field**:` lines: should, as Changes / Local
+      # Verification. Both headings are manual must items, and what the rows and the baseline claim (a check seen
+      # failing before the change, the baseline run before it) is checked against the trace by manual must items.
+      Checks Added:
+        requirement: should
+        authority: {path: docs/core-workflow.md, lines: [50, 51], quote: "the `#`/`##` headings and the `- **Field**:` lines"}
+      "Baseline: Existing Tests":
+        requirement: should
+        authority: {path: docs/core-workflow.md, lines: [50, 51], quote: "the `#`/`##` headings and the `- **Field**:` lines"}
+  - id: test
+    path: docs/stages/03-test.md
+    block: {fence: markdown, index: 0}
+    artifact: test
+    stage: test
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: &test_sections
+      # the table's rows are the template's example checks (TS:34 lint "if the project uses them"); its heading is a
+      # manual must item
+      Checks Performed:
+        requirement: should
+        authority: {path: docs/core-workflow.md, lines: [50, 51], quote: "the `#`/`##` headings and the `- **Field**:` lines"}
+  - id: fix_2
+    path: docs/stages/02-fix.md
+    block: {fence: markdown, index: 0}
+    artifact: fix_2
+    stage: fix_2
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: *fix_sections
+  - id: test_2
+    path: docs/stages/03-test.md
+    block: {fence: markdown, index: 0}
+    artifact: test_2
+    stage: test_2
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: *test_sections
+  - id: fix_3
+    path: docs/stages/02-fix.md
+    block: {fence: markdown, index: 0}
+    artifact: fix_3
+    stage: fix_3
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: *fix_sections
+  - id: test_3
+    path: docs/stages/03-test.md
+    block: {fence: markdown, index: 0}
+    artifact: test_3
+    stage: test_3
+    rules: bug
+    literals: patterns
+    binding: *keep
+    binding_requirement: must
+    sections: *test_sections
+
+stage_model:
+  fixed:
+    roots:
+      artifact: /tmp/speckit/bugs/issue
+      code: "{WORKDIR}"
+    # CW:17-28: assess once, then fix / test rounds, at most three; a round after the first runs only when the
+    # previous verification report's Result is partial or failed (CW:26-27). The later rounds' reports are
+    # optional artifacts: their template items apply when they exist, their existence is required by the
+    # manual items conditional on the previous Result.
+    stages:
+      - id: assess
+        doc: docs/stages/01-assess.md
+        artifacts: [assessment]
+        order_artifact: assessment
+      - id: fix
+        doc: docs/stages/02-fix.md
+        artifacts: [fix]
+        order_artifact: fix
+        requires: [assessment]
+      - id: test
+        doc: docs/stages/03-test.md
+        artifacts: [test]
+        order_artifact: test
+        requires: [assessment, fix]
+      - id: fix_2
+        doc: docs/stages/02-fix.md
+        artifacts: [fix_2]
+        order_artifact: fix_2
+        requires: [assessment, fix, test]
+      - id: test_2
+        doc: docs/stages/03-test.md
+        artifacts: [test_2]
+        order_artifact: test_2
+        requires: [assessment, fix_2]
+      - id: fix_3
+        doc: docs/stages/02-fix.md
+        artifacts: [fix_3]
+        order_artifact: fix_3
+        requires: [assessment, fix_2, test_2]
+      - id: test_3
+        doc: docs/stages/03-test.md
+        artifacts: [test_3]
+        order_artifact: test_3
+        requires: [assessment, fix_3]
+    artifacts:
+      assessment:
+        locations: ["{artifact}/assessment.md"]
+        template: docs/stages/01-assess.md
+        source:
+          - {path: docs/core-workflow.md, lines: [11, 11], quote: "| 1. Assess | `/speckit/stages/01-assess.md` | `assessment.md` |"}
+          - {path: docs/stages/01-assess.md, lines: [50, 50], quote: "Write to `BUG_DIR/assessment.md` using this structure:"}
+          - {path: docs/stages/01-assess.md, lines: [3, 3], quote: "The output is a single assessment file at `/tmp/speckit/bugs/issue/assessment.md` that the later stages"}
+      fix:
+        locations: ["{artifact}/fix.md"]
+        template: docs/stages/02-fix.md
+        source:
+          - {path: docs/core-workflow.md, lines: [21, 21], quote: "Round 1: `fix.md`, then `test.md`."}
+          - {path: docs/stages/02-fix.md, lines: [46, 46], quote: "Write to `BUG_DIR/` + `FIX_REPORT` (round 1: `fix.md`) using this structure:"}
+      test:
+        locations: ["{artifact}/test.md"]
+        template: docs/stages/03-test.md
+        source:
+          - {path: docs/core-workflow.md, lines: [21, 21], quote: "Round 1: `fix.md`, then `test.md`."}
+          - {path: docs/stages/03-test.md, lines: [50, 50], quote: "Write to `BUG_DIR/` + `TEST_REPORT` (round 1: `test.md`) using this structure:"}
+      fix_2:
+        locations: ["{artifact}/fix-2.md"]
+        template: docs/stages/02-fix.md
+        optional: true
+      test_2:
+        locations: ["{artifact}/test-2.md"]
+        template: docs/stages/03-test.md
+        optional: true
+      fix_3:
+        locations: ["{artifact}/fix-3.md"]
+        template: docs/stages/02-fix.md
+        optional: true
+      test_3:
+        locations: ["{artifact}/test-3.md"]
+        template: docs/stages/03-test.md
+        optional: true
+
+# Stage windows by report writes (a stage runs from the previous report's write to its own): the fix and test
+# documents govern three rounds each, so a window by the first read of the document would put every round in
+# round 1. The reads are still judged per stage, in each window (CW:15).
+scoring:
+  item_weight: {must: 1.0, should: 0.25}
+  stage: {formula: sigma_kappa}
+  substantive_threshold: 0.5
+  windows: writes
+  signals: [order, process, "stage:*"]
+  # the global items are prohibitions and write rules a run doing nothing satisfies: scaled by the mean stage
+  # score they govern the work instead of crediting inaction (as aidlc_v4_gen; G9 frontmatter_stub)
+  process_scale: stage_mean
+  compliance: mean
+  selftest:
+    template_copy_stage_max: 0.10
+    frontmatter_stub_compliance_max: 0.05
+    x_fill_no_real_test_compliance_max: 0.50
+    honest_golden_min: 0.95
+    # A record the bug workflow never asks for: a failing run followed by a clean re-run of the same tests. The test
+    # stage records the checks it ran and their result (TS:37), not every attempt; AI-DLC's "never left as none to look
+    # clean" (BT:98) has no counterpart here.
+    hidden_failure_min_drop: 0.0
+
+gates:
+  "speckit_bug.*.artifact_exists": {zero_stage: true}
+  # an artifact still holding its template's placeholders (or values that are only fill-in marks) is the template,
+  # not the stage's result (CW:50-51 keep the structure, the <...> spans are what the report fills); DESIGN §9
+  # template_copy_stage_max 0.10
+  "speckit_bug.*.no_template_residue": {cap_stage: 0.1}
+  "speckit_bug.*.no_template_residue.fill_marks": {cap_stage: 0.1}
+
+llm:
+  backend: claude-cli
+  model: claude-opus-5-5
+  samples: 2
+  batch: 16
+  chunk_lines: 80
+  max_rounds: 2
+  max_budget_usd: 3.0
+  max_total_usd: 11.0  # the run's cap (20 USD) less what the calls in flight (parallel x max per call) can add
+  parallel: 3
+  timeout: 900
+
+
+
+# Extracted (G5) items dropped on review. Each names the G4 statement it came from (gen-work/statements.jsonl).
+exclude:
+  # -- the same requirement as a reviewed (manual) or stage-model item, in another kind or with other parameters
+  - {statement: "*", kind: artifact_exists, reason: "every report's existence is the stage model's item (zero_stage gate) or, for the later rounds, a manual item conditional on the previous Result; a second copy double-counts it, and an extracted 'fix-2.md exists when test-2.md does' is implied by the round's own gate"}
+  - {statement: as-026, kind: prohibited_action, reason: "duplicates the manual assess repo_write prohibition (AS:116, CW:54), which covers new files too"}
+  - {statement: as-036, kind: prohibited_action, reason: "duplicates the manual assess repo_write prohibition (AS:116)"}
+  - {statement: as-037, kind: prohibited_action, reason: "duplicates the manual assess repo_write prohibition (AS:116-117)"}
+  - {statement: as-007, kind: speckit_bug.no_fetch, reason: "duplicates the global no_fetch item (CW:33-34, AS:18), which covers every stage"}
+  - {statement: "cw-02[56]", kind: speckit_bug.no_fetch, reason: "duplicates the manual global no_fetch item"}
+  - {statement: as-011, kind: speckit_bug.links, reason: "duplicates the manual links item (AS:19-20)"}
+  - {statement: fx-011, kind: write_discipline, reason: "an earlier round's report not rewritten in the next round (FX:19, FX:107): the report's own write_discipline once fails any rewrite; scored in a later round's stage it would also make that stage a signal of a run that never reached it"}
+  - {statement: fx-052, kind: write_discipline, reason: "an earlier round's report not rewritten in the next round (FX:19, FX:107): the report's own write_discipline once fails any rewrite; scored in a later round's stage it would also make that stage a signal of a run that never reached it"}
+  - {statement: ts-008, kind: write_discipline, reason: "an earlier round's verification report not rewritten (TS:20): the report's own write_discipline once fails any rewrite"}
+  - {statement: fx-049, kind: write_discipline, reason: "'Never edit assessment.md' (FX:105) is the assessment's write_discipline once (AS:14, AS:118), which fails any later edit"}
+  - {statement: cw-034, kind: write_discipline, reason: "'never rewrite an earlier report' (CW:47-48) is each report's write_discipline once (one write over the report's life)"}
+  - {statement: "fx-01[25]", kind: speckit_bug.read, reason: "duplicates the manual per-round report reads (FX:20-21), which are conditional on the round; these also applied to rounds that never ran"}
+  - {statement: cw-022, kind: speckit_bug.read, reason: "duplicates the manual round-2/3 reads of the previous verification report (FX:21), which are conditional on the round"}
+  - {statement: ts-032, kind: speckit_bug.read, reason: "duplicates the manual round-2/3 reads of the previous verification report (FX:21)"}
+  - {statement: fx-046, kind: doc_read, reason: "duplicates the manual doc_read of 03-test.md (FX:99-100), judged in each round's test window"}
+  - {statement: "ts-01[159]", kind: speckit_bug.checks_table, reason: "duplicates the manual Checks Performed items (TS:30-39), whose claim windows run from the round's last repository edit to the report"}
+  - {statement: ts-021, kind: speckit_bug.checks_table, reason: "duplicates the manual test_run item (TS:38, TS:72)"}
+  - {statement: ts-010, kind: speckit_bug.checks_table, reason: "duplicates the manual unrun items (TS:44, TS:106), one per round with the round's conditions"}
+  - {statement: ts-022, kind: speckit_bug.checks_table, reason: "duplicates the manual unrun items (TS:44, TS:106), one per round with the round's conditions"}
+  - {statement: ts-038, kind: speckit_bug.checks_table, reason: "duplicates the manual unrun items (TS:44, TS:106), one per round with the round's conditions"}
+  - {statement: ts-011, kind: speckit_bug.check_scripts, reason: "duplicates the manual run items (TS:30), whose checks are the ones written up to the round's fix report"}
+  - {statement: fx-021, kind: speckit_bug.check_scripts, reason: "duplicates the manual round-1 written item (FX:31)"}
+  - {statement: "fx-02[568]", kind: speckit_bug.checks_added, reason: "duplicates the manual before_run / baseline_run items (FX:32-34, FX:74-81), one per round (optional in rounds 2 and 3)"}
+  - {statement: fx-028, kind: speckit_bug.check_scripts, reason: "duplicates the manual before_change / unchanged items (FX:32-36), whose windows reach the round's first repository edit and its verification report"}
+  - {statement: fx-032, kind: speckit_bug.check_scripts, reason: "duplicates the manual before_change / unchanged items (FX:32-36), whose windows reach the round's first repository edit and its verification report"}
+  - {statement: cw-020, kind: field_enum, reason: "Result is a header field under the title, not in Summary: the item reads a section that never holds it; the manual Result enum (TS:60) reads the header"}
+  - {statement: cw-019, kind: speckit_bug.holds, reason: "duplicates the manual no_round_after_verified item (CW:25); its condition reads Result from Summary, where it never is"}
+  - {statement: cw-021, kind: speckit_bug.holds, reason: "duplicates the manual round-2/3 existence gates (CW:26-27); its condition reads Result from Summary, where it never is"}
+  - {statement: cw-027, kind: speckit_bug.holds, reason: "all three round-1 reports exist: the stage model's existence gates"}
+  - {statement: cw-032, kind: speckit_bug.created_files, reason: "without a pattern it fails any new file in the repository, a new source module of the fix included; the manual scratch / test-file items carry CW:45-46"}
+  - {statement: cw-032, kind: cross_ref, reason: "'no untracked path' fails any new file in the repository, a new source module of the fix included; the manual scratch / test-file items carry CW:45-46"}
+  # -- misreadings
+  - {statement: fx-036, kind: prohibited_action, reason: "'do not introduce dependencies that the assessment did not call for' (FX:37) is about the change (a new import or requirement), not installing a package into the environment to run the tests"}
+  - {statement: as-039, kind: cross_ref, reason: "the template's own entry format is `path/to/file.py:42` (AS:79): a path with its line suffix is never a base path, so the honest run fails it"}
+
+# Contradictions and gaps the documents leave, and how the rubric reads them (P3: both readings where expressible;
+# a value set the template fixes is not relaxed; the workflow over the system prompt's generic sections, CW:4 /
+# SP:61-63).
+conflicts:
+  - description: "Rounds: the stage documents describe one fix and one test stage, core-workflow repeats them up to three times, the later rounds only when the previous verification report's Result is partial or failed (CW:20-28)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [20, 23], quote: "2. **Fix** and **test** then alternate in rounds, at most three: - Round 1: `fix.md`, then `test.md`. - Round 2: `fix-2.md`, then `test-2.md`. - Round 3: `fix-3.md`, then `test-3.md`."}
+      - {path: docs/core-workflow.md, lines: [24, 28], quote: "After each verification report, its **Result** decides:"}
+    resolution: "seven stages (assess, fix, test, fix_2, test_2, fix_3, test_3); the round-2/3 reports are optional artifacts whose template items apply when they exist; their existence (zero_stage) and the round's run items apply when the previous Result is partial or failed (or the round was run); a stage with no applicable item is no signal, so a round-1 verified run is scored on assess, fix, test, order and process; a next round after a verified Result fails a global item"
+  - description: "The stage table says when to read each document (CW:9 'Read when the stage begins', CW:15) but no line forbids reading a later stage's document early"
+    sources:
+      - {path: docs/core-workflow.md, lines: [9, 9], quote: "| Stage | Read when the stage begins | Writes |"}
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+    resolution: "each stage's read is judged in its own window (a read at the start does not count for a later stage); the round-1 order item also voids a document first seen before the previous report (read ahead, e.g. all three at once) -- a reading of 'when the stage begins' as 'not before'"
+  - description: "CW:50-51 binds the `#`/`##` headings and the `- **Field**:` lines; the tables, the plain `- Commands run:` / `- Manual checks:` lines and the example rows are the template's but not named"
+    sources:
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+      - {path: docs/stages/03-test.md, lines: [34, 34], quote: "- Lint / type-check if the project uses them."}
+    resolution: "headings and bold field lines must; the Changes / Checks Added / Checks Performed table rows and the Local Verification / Baseline lines should; what a recorded command or a table row claims is checked against the trace (must) whenever it is written"
+  - description: "FX:32 'It must fail' and TS:43 'passes now after failing before the change': the trace shows that a check ran and what it printed, not whether it failed (the openhands-sdk observations carry no exit-code line, and a check may print the error and exit 0); TS:43 'every example from the issue behaves as the issue expects' and FX:31 'verbatim' need the issue text, which the engine does not have"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail: a check that already passes does not detect the bug, so rewrite it until it fails for the reported reason."}
+      - {path: docs/stages/03-test.md, lines: [43, 43], quote: "every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects"}
+    resolution: "the rubric judges the steps and the record: each check run on the code before the round's first repository edit, the checks left as they were after it, the baseline tests run before it, the fix report's Before column recording fail for a check the trace ran before the edit, its baseline command a valid test run before the edit. Whether a check really fails before and passes after the change is not scored (it needs the checks re-run on the base commit and the patch in the sandbox). The verdict is judged one way only: a verified Result its own Checks Performed table contradicts (a failed row; a skipped / not-run reproduction or fix-check row, TS:44, TS:106) fails; no item rewards or penalizes partial or failed"
+  - description: "Deviations from Assessment may be left empty (FX:90 'Empty if none'), while every other section of the skeleton holds a placeholder to fill"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [90, 90], quote: "<Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why.>"}
+    resolution: "the heading is required, its body is not"
+  - description: "[NEEDS CLARIFICATION: ...] is both the skeleton's placeholder in Open Questions (AS:106) and the mark the report writes for an unknown (AS:30)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [30, 30], quote: "mark unknowns as `[NEEDS CLARIFICATION]` rather than guessing."}
+      - {path: docs/stages/01-assess.md, lines: [106, 106], quote: "- [NEEDS CLARIFICATION: …]"}
+    resolution: "a mark with a question is content (Open Questions not empty); only the template's literal '[NEEDS CLARIFICATION: …]' is residue"
+  - description: "The issue's links are recorded verbatim under Report and marked (AS:19-20); the Report also quotes the issue text, which names them unmarked"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [19, 20], quote: "Record each link verbatim in `assessment.md` under **Report**, marked `[UNVERIFIED — not fetched]`."}
+      - {path: docs/stages/01-assess.md, lines: [63, 63], quote: "<Quoted/condensed issue text. List its links verbatim, each marked [UNVERIFIED — not fetched].>"}
+    resolution: "every link the section names (outside code; local addresses aside) appears on some marked line; the quoted text may repeat it unmarked"
+  - description: "The generic system prompt asks to keep AGENTS.md in the repository (SP:11) and to delete a temporary test file once done (SP:28); the workflow forbids writing reports, checks or scratch files into the repository at all (CW:45-46)"
+    sources:
+      - {path: system-prompt.j2, lines: [11, 11], quote: "* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context."}
+      - {path: system-prompt.j2, lines: [28, 28], quote: "- If you need to create a temporary file for testing, delete it once you've confirmed your solution works"}
+      - {path: docs/core-workflow.md, lines: [45, 46], quote: "Never write reports, checks, or scratch files into the repository."}
+    resolution: "the workflow wins (SP:63 'where the two disagree, the workflow wins'): a scratch / reproduction / test file created in the repository fails its item even when removed again; AGENTS.md is not itemized"
+  - description: "The generic system prompt asks to ask the user for clarification (SP:48); the workflow forbids stopping to ask (CW:38-40)"
+    sources:
+      - {path: system-prompt.j2, lines: [48, 48], quote: "ask the user for clarification."}
+      - {path: docs/core-workflow.md, lines: [38, 40], quote: "Never stop to ask or to report: when something is unclear, take the most plausible reading, record it in the current report, and continue."}
+    resolution: "the workflow wins: no item rewards asking; a run that stops before a stage's report fails that stage's existence gate"
+  - description: "The test stage reads the fix report it just followed (TS:21) and the fix stage the assessment it just wrote (FX:20): both reports are in the agent's own context"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
+      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
+    resolution: "the reads are required as written (must, in the stage's window); a check of the file right after writing it, inside the next stage's window, counts"
+
+# Items the templates do not yield (or yield too weakly): the header fields under each report's title (a title that
+# names the run's own subject, so no section addresses them), the round fields, and every rule about the run --
+# reads, writes, the repository, the test evidence. Each replaces compiled items on the same subject.
+manual:
+  # ============================================================== global
+  - id: speckit_bug.global.run.doc_read_first.cw
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: doc_read_first, params: {doc: CW}}
+    availability: [trace]
+    modality_evidence: "imperative (INS:3 'Begin by opening'; SP:65 'Before acting on the task')"
+    sources:
+      - {path: instruction.md, lines: [3, 3], quote: "Begin by opening /speckit/core-workflow.md"}
+      - {path: system-prompt.j2, lines: [65, 65], quote: "* Before acting on the task, open /speckit/core-workflow.md."}
+  - id: speckit_bug.global.run.order.round_1
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["read:AS", "write:assessment", "read:FX", "write:fix", "read:TS", "write:test"], invalidate: [read_ahead, multi_read, rewrite]}}
+    availability: [trace]
+    modality_evidence: "CW:9 'Read when the stage begins'; CW:15; CW:19-21 the order; CW:47 one write per report"
+    sources:
+      - {path: docs/core-workflow.md, lines: [9, 9], quote: "| Stage | Read when the stage begins | Writes |"}
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: docs/core-workflow.md, lines: [19, 21], quote: "1. **Assess** once. 2. **Fix** and **test** then alternate in rounds, at most three: - Round 1: `fix.md`, then `test.md`."}
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+    note: "each stage document read when its stage begins (after the previous report), then its report written once, assess -> fix -> test; a document first seen before the previous report (read ahead, e.g. all three in one command at the start), a multi-document read and a rewritten report void their pair"
+  - id: speckit_bug.global.run.order.round_2
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["write:test", "write:fix_2", "write:test_2"], invalidate: [rewrite]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "CW:26-27 'start the next round with the fix stage'; CW:22 the round's order"
+    sources:
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "Round 2: `fix-2.md`, then `test-2.md`."}
+      - {path: docs/core-workflow.md, lines: [26, 27], quote: "`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence."}
+    note: "round 2 (when the previous verification report's Result is partial or failed, or round 2 was run): the previous report, then fix-2.md, then test-2.md, each written once"
+  - id: speckit_bug.global.run.order.round_3
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: order, params: {chain: ["write:test_2", "write:fix_3", "write:test_3"], invalidate: [rewrite]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "CW:26-27 'start the next round with the fix stage'; CW:23 the round's order"
+    sources:
+      - {path: docs/core-workflow.md, lines: [23, 23], quote: "Round 3: `fix-3.md`, then `test-3.md`."}
+      - {path: docs/core-workflow.md, lines: [26, 27], quote: "`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence."}
+    note: "round 3 (when the previous verification report's Result is partial or failed, or round 3 was run): the previous report, then fix-3.md, then test-3.md, each written once"
+  - id: speckit_bug.global.run.speckit_bug_holds.no_round_after_verified
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.holds, params: {predicate: {not: {any: [{all: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*verified\b'}}, {artifact_exists: fix_2}]}, {all: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*verified\b'}}, {artifact_exists: fix_3}]}]}}}}
+    availability: [sandbox_file]
+    modality_evidence: "imperative (CW:25 'the workflow is complete. Finish the task.')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [25, 25], quote: "`verified` — the workflow is complete. Finish the task."}
+      - {path: docs/stages/03-test.md, lines: [96, 96], quote: "- `verified` — the workflow is complete; finish the task."}
+    note: "no next round's fix report after a verification report whose Result is verified"
+  - id: speckit_bug.global.run.speckit_bug_no_fetch.issue_links
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.no_fetch, params: {}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:33 'Do not fetch'; AS:18 'Do not fetch')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [33, 34], quote: "Do not fetch links in it and do not look it up online."}
+      - {path: docs/stages/01-assess.md, lines: [18, 18], quote: "Do not fetch URLs found in the issue, and do not look the issue up online."}
+    note: "no command fetching a URL: curl / wget / a text browser on a URL, a Python urlopen / requests / httpx call on a URL literal, a git clone of a URL"
+  - id: speckit_bug.global.run.prohibited_action.test_file_write
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: test_file_write}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:53 'Do not add or edit test files')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [53, 53], quote: "Do not add or edit test files in the repository."}
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "Do not add or edit test files in the repository."}
+    note: "no edit of a test file that existed at BASE_SHA"
+  - id: speckit_bug.global.run.speckit_bug_created_files.tests
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.created_files, params: {test_paths: true}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:53 'Do not add')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [53, 53], quote: "Do not add or edit test files in the repository."}
+      - {path: docs/stages/01-assess.md, lines: [45, 45], quote: "Do not plan to add or edit test files in the repository: the task's tests are already in place."}
+    note: "no test file created in the repository (a test_*.py / tests/ path absent at BASE_SHA), kept or removed again: checks go in BUG_DIR/checks/"
+  - id: speckit_bug.global.run.speckit_bug_created_files.scratch
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:assessment|fix(?:-[23])?|test(?:-[23])?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:45-46 'Never write reports, checks, or scratch files into the repository')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [45, 46], quote: "Never write reports, checks, or scratch files into the repository."}
+      - {path: docs/core-workflow.md, lines: [52, 52], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
+    note: "no report, reproduction / debug / scratch script or summary note created in the repository (a file absent at BASE_SHA named like one), kept or removed again"
+  # ============================================================== assess
+  - id: speckit_bug.assess.run.doc_read.as
+    stage: assess
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: AS, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15 'Read a stage's document as the first step of that stage'; INS:5-6; SP:67)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+    note: "01-assess.md read (alone in its call, at least half of it seen) in the assess window"
+  - id: speckit_bug.assess.assessment.write_discipline.once
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: assessment}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47 'One write per report'; AS:118 'Never rewrite'; FX:105 'Never edit')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/01-assess.md, lines: [14, 14], quote: "`BUG_DIR/assessment.md` is written once."}
+      - {path: docs/stages/01-assess.md, lines: [118, 118], quote: "- Never rewrite `assessment.md` once it is written."}
+      - {path: docs/stages/02-fix.md, lines: [105, 105], quote: "- Never edit `assessment.md` — it is the contract you are working against."}
+    note: "assessment.md written once, in full, in the assess window (a later edit by the fix stage is the rewrite FX:105 forbids)"
+  - id: speckit_bug.assess.run.prohibited_action.repo_write
+    stage: assess
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "prohibition (AS:116 'Never modify'; CW:54 'Only the fix stage edits the repository')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [116, 116], quote: "- Never modify source files during assessment — this stage only reads and writes inside `/tmp/speckit/bugs/issue/`."}
+      - {path: docs/core-workflow.md, lines: [54, 54], quote: "- Only the fix stage edits the repository. The assess and test stages read it and run commands."}
+    note: "no write into the repository in the assess window"
+  - id: speckit_bug.assess.assessment.field_enum.verdict
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Verdict, values: [valid, 'likely valid, needs reproduction']}}
+    modality_evidence: "template choice (AS:58) under CW:50-51 'Keep ... the `- **Field**:` lines'; AS:37 'Decide'"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [58, 58], quote: "- **Verdict**: valid | likely valid, needs reproduction"}
+      - {path: docs/stages/01-assess.md, lines: [37, 39], quote: "Decide whether the report is: - **Valid** — reproducible or clearly grounded in code behavior. - **Likely valid, needs reproduction** — plausible but unverified."}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.field_enum.severity
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Severity, values: [critical, high, medium, low]}}
+    modality_evidence: "template choice (AS:59); AS:40 'Assign a severity'"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [59, 59], quote: "- **Severity**: critical | high | medium | low"}
+      - {path: docs/stages/01-assess.md, lines: [40, 40], quote: "Assign a severity (`critical`, `high`, `medium`, `low`) and a short rationale"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.item_format.created
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Created(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (AS:56)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [56, 56], quote: "- **Created**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the Created value is an ISO 8601 date (YYYY-MM-DD, a time may follow)"
+  - id: speckit_bug.assess.assessment.speckit_bug_links.report
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.links, params: {section: Report (verbatim or summarized)}}
+    modality_evidence: "imperative (AS:19 'Record each link ... marked')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [19, 20], quote: "Record each link verbatim in `assessment.md` under **Report**, marked `[UNVERIFIED — not fetched]`."}
+      - {path: docs/stages/01-assess.md, lines: [63, 63], quote: "<Quoted/condensed issue text. List its links verbatim, each marked [UNVERIFIED — not fetched].>"}
+    note: "every line of the Report section that names a URL carries [UNVERIFIED — not fetched]; not applicable when the section names none"
+  - id: speckit_bug.assess.assessment.section_present.proposed_remediation
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Proposed Remediation, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [86, 86], quote: "## Proposed Remediation"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.label_present.preferred
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: structure
+    requirement: must
+    check: {kind: label_present, params: {section: Proposed Remediation, label: Preferred}}
+    modality_evidence: "binding (CW:50-51 keep the structure the stage document gives)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [88, 88], quote: "**Preferred**: <one or two paragraphs describing the change.>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.label_present.files_likely_to_change
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: structure
+    requirement: must
+    check: {kind: label_present, params: {section: Proposed Remediation, label: Files likely to change}}
+    modality_evidence: "binding (CW:50-51 keep the structure the stage document gives)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [93, 93], quote: "**Files likely to change**:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.label_present.checks_to_run
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: structure
+    requirement: must
+    check: {kind: label_present, params: {section: Proposed Remediation, label: Checks to run}}
+    modality_evidence: "binding (CW:50-51 keep the structure the stage document gives)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [96, 96], quote: "**Checks to run**:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.field_filled.preferred
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Proposed Remediation, label: Preferred}}
+    none_allowed: "no"
+    modality_evidence: "imperative (AS:43 'Outline one preferred fix')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [88, 88], quote: "**Preferred**: <one or two paragraphs describing the change.>"}
+      - {path: docs/stages/01-assess.md, lines: [43, 43], quote: "- Outline one preferred fix and, if non-obvious, one or two alternatives with trade-offs."}
+  - id: speckit_bug.assess.assessment.item_format.remediation_lists
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: Proposed Remediation, pattern: '^\s*[-*+]\s+.*(?:`[^`\n]+`|[\w-]+(?:/[\w.-]+)+|[\w-]+\.[A-Za-z]{1,8}\b)', min: 2}}
+    modality_evidence: "imperative (AS:44 'Identify files to change'; AS:45 'Call out the checks')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [93, 97], quote: "**Files likely to change**: - `path/to/file.py` **Checks to run**: - <reproduction script under BUG_DIR/checks/, or an existing repository test to run>"}
+      - {path: docs/stages/01-assess.md, lines: [44, 45], quote: "Identify files to change and the shape of the change ... Call out the checks that will prove the fix: a reproduction script to write under `BUG_DIR/checks/`, and the existing repository tests to run."}
+    note: "the files and the checks are listed: at least two list items naming a path or a command (a code span), a blank line after the label allowed"
+  - id: speckit_bug.assess.assessment.section_present.open_questions
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Open Questions, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [104, 104], quote: "## Open Questions"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.assess.assessment.item_format.open_questions
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: Open Questions, pattern: '\S', min: 1}}
+    modality_evidence: "template (AS:106) under CW:50-51; the marks are the content (AS:30)"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [106, 106], quote: "- [NEEDS CLARIFICATION: …]"}
+      - {path: docs/stages/01-assess.md, lines: [30, 30], quote: "mark unknowns as `[NEEDS CLARIFICATION]` rather than guessing."}
+    note: "the section is not left empty: its [NEEDS CLARIFICATION: ...] entries, or a none (the template's own '…' is residue)"
+  - id: speckit_bug.assess.assessment.no_template_residue.fill_marks
+    stage: assess
+    target: {type: artifact, ref: assessment}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [53, 53], quote: "# Bug Assessment: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== fix (round 1: fix.md)
+  - id: speckit_bug.fix.run.doc_read.fx
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: FX, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+    note: "02-fix.md read (alone in its call, at least half of it seen) in the round-1 fix window"
+  - id: speckit_bug.fix.fix.write_discipline.once
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: fix}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; FX:19 'Write ... once. Never rewrite')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
+  - id: speckit_bug.fix.run.speckit_bug_read.reports
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment]}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (FX:20 'Read ... in full')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
+    note: "read in the fix window: assessment"
+  - id: speckit_bug.fix.fix.field_enum.round
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['1']}}
+    modality_evidence: "template choice (FX:54) for the round this report is (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [54, 54], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/02-fix.md, lines: [8, 8], quote: "The round decides the report names:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix.fix.field_enum.previous_verification
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Previous verification, values: ['none']}}
+    modality_evidence: "template choice (FX:55): the report this round answers (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [55, 55], quote: "- **Previous verification**: none | ./test.md | ./test-2.md"}
+      - {path: docs/stages/02-fix.md, lines: [10, 10], quote: "| Round | Fix report (`FIX_REPORT`) | Verification report it answers |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix.fix.field_enum.status
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Status, values: [applied, partial, not-applied]}}
+    modality_evidence: "template choice (FX:56)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [56, 56], quote: "- **Status**: applied | partial | not-applied"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix.fix.item_format.fixed
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Fixed(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (FX:52)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [52, 52], quote: "- **Fixed**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix.fix.section_present.changes
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Changes, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [62, 62], quote: "## Changes"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should)"
+  - id: speckit_bug.fix.fix.section_present.deviations
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Deviations from Assessment, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
+  - id: speckit_bug.fix.fix.cross_ref.changes
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix", "write:fix"], final: true}}, right: {ids: {artifact: fix, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
+    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
+      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
+      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
+    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
+  - id: speckit_bug.fix.fix.field_type.commands_run
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Local Verification, label: Commands run, type: command_run, window: "stage:fix"}}
+    applies_when: {field_present: {artifact: fix, section: Local Verification, label: Commands run}}
+    modality_evidence: "template (FX:85) for the commands FX:41 runs; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [85, 85], quote: "- Commands run: `<command>` → <result, brief>"}
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "run the tests that exercise the changed paths. Capture pass/fail and key output."}
+    note: "when the report records commands: the recorded command (a code span of the value) was run in this fix window; a none value is not judged here"
+  - id: speckit_bug.fix.run.exec_evidence.local_tests
+    stage: fix
+    class: evidence
+    requirement: should
+    check: {kind: exec_evidence, params: {kind: test}}
+    availability: [trace]
+    modality_evidence: "conditional imperative (FX:41 'If the project has obvious test commands ... run'): should"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."}
+    note: "a valid test run of base-repository tests in the fix window"
+  - id: speckit_bug.fix.run.prohibited_action.edit_before_doc
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write, window: ["stage_start:fix", {first: {fact: doc_read, doc: FX, window: "stage:fix"}}]}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15 'Read a stage's document as the first step of that stage'): the stage's edits come after its document"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: docs/stages/02-fix.md, lines: [25, 35], quote: "1. **Confirm the plan** ... 2. **Apply the remediation** ... - Make the code changes described by the preferred remediation."}
+    note: "no repository write in this fix window before 02-fix.md is read in it"
+  - id: speckit_bug.fix.run.speckit_bug_check_scripts.written
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: written}}
+    availability: [trace]
+    modality_evidence: "imperative (FX:31 'Copy every example the issue gives ... into a check script under `BUG_DIR/checks/`')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [31, 31], quote: "Copy every example the issue gives (a code snippet, a command, an input with its expected output) verbatim into a check script under `BUG_DIR/checks/`, and script the assessment's reproduction too."}
+      - {path: docs/core-workflow.md, lines: [52, 52], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
+    note: "a file written under /tmp/speckit/bugs/issue/checks/ in the round-1 fix window (later rounds may reuse it)"
+  - id: speckit_bug.fix.fix.section_present.checks_added
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Added, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [72, 72], quote: "## Checks Added"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should), what they claim is checked against the trace"
+  - id: speckit_bug.fix.fix.section_present.baseline
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: "Baseline: Existing Tests", level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [78, 78], quote: "## Baseline: Existing Tests"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its two lines are the template's example (should), the recorded command is checked against the trace"
+  - id: speckit_bug.fix.run.speckit_bug_check_scripts.before_change
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: before_change, written_in: ["start", "stage_end:fix"]}}
+    availability: [trace]
+    modality_evidence: "imperative (FX:30 'Before editing any code ... run it on the code as it is'; FX:32 'Run each check now. It must fail')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [30, 30], quote: "**Before editing any code**, set up what will judge the fix and run it on the code as it is:"}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail: a check that already passes does not detect the bug, so rewrite it until it fails for the reported reason."}
+    note: "every check script written under BUG_DIR/checks/ up to the end of the fix stage was executed after its last write and before this round's first repository edit (a check first written after the change was never seen failing); whether it failed is the sandbox re-run's to judge, not the trace's"
+  - id: speckit_bug.fix.run.speckit_bug_check_scripts.unchanged
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: unchanged, window: ["stage_start:fix", ["write:test", "end"]]}}
+    availability: [trace]
+    modality_evidence: "imperative (FX:36 'The checks written before the change stay as they are; the change has to make them pass')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
+    note: "no write to a check script written before this round's first repository edit, after that edit and up to this round's verification report; not applicable when the round edits nothing"
+  - id: speckit_bug.fix.run.exec_evidence.baseline
+    stage: fix
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test, window: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
+    availability: [trace]
+    modality_evidence: "imperative (FX:33 'Find the existing repository tests for each file you will change ..., run them, and keep the result as the baseline')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline."}
+      - {path: docs/stages/02-fix.md, lines: [30, 30], quote: "**Before editing any code**, set up what will judge the fix and run it on the code as it is:"}
+    note: "a valid run of base-repository tests before round 1's first repository edit (the code is unchanged from the start; rounds 2 and 3 keep round 1's baseline, FX:34)"
+  - id: speckit_bug.fix.fix.speckit_bug_checks_added.before_run
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: before_run}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:74-76 'Before the change | fail: <one line of output>') for FX:32 'Run each check now. It must fail'; a recorded result is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [74, 76], quote: "| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |"}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
+    note: "every row of Checks Added records fail before the change for a check script the run executed after its last write and before this round's first repository edit (no row: fail); an 'N/A' or a 'fail' the trace never ran is not a check seen failing"
+  - id: speckit_bug.fix.fix.speckit_bug_checks_added.baseline_run
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: baseline_run}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:81 '`<command>` before the change: <N passed, M failed (names)>') for FX:33 'run them, and keep the result as the baseline'; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [81, 81], quote: "- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>"}
+      - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "run them, and keep the result as the baseline."}
+    note: "a command recorded under Baseline: Existing Tests (a code span) is a valid test run made before this round's first repository edit"
+  - id: speckit_bug.fix.fix.no_template_residue.fill_marks
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [49, 49], quote: "# Bug Fix: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== test (round 1)
+  - id: speckit_bug.test.run.doc_read.ts
+    stage: test
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TS, single_doc: true, min_coverage: 0.5}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; FX:99-100)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+      - {path: docs/stages/02-fix.md, lines: [99, 100], quote: "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
+    note: "03-test.md read (alone in its call, at least half of it seen) in the round-1 test window"
+  - id: speckit_bug.test.test.write_discipline.once
+    stage: test
+    target: {type: artifact, ref: test}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: test}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; TS:20)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
+  - id: speckit_bug.test.run.speckit_bug_read.reports
+    stage: test
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix]}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (TS:21 'Read both ... in full')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
+    note: "assessment.md and fix.md read in the test window"
+  - id: speckit_bug.test.run.prohibited_action.repo_write
+    stage: test
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    availability: [trace]
+    modality_evidence: "MUST NOT (TS:104); CW:54"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [104, 104], quote: "- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."}
+      - {path: docs/core-workflow.md, lines: [54, 54], quote: "- Only the fix stage edits the repository. The assess and test stages read it and run commands."}
+    note: "no write into the repository in the test window"
+  - id: speckit_bug.test.run.exec_evidence.tests
+    stage: test
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test}}
+    availability: [trace]
+    modality_evidence: "imperative (TS:37 'Execute each planned check'; TS:38 'is expected')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [33, 33], quote: "- Existing test suites for the changed modules."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a valid run of base-repository tests in the test window (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none)"
+  - id: speckit_bug.test.run.speckit_bug_check_scripts.run
+    stage: test
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: run, written_in: ["start", "write:fix"]}}
+    availability: [trace]
+    modality_evidence: "imperative (TS:30 'Run the checks added in the fix'; TS:37)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [30, 30], quote: "- Run the checks added in the fix."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a check script written under BUG_DIR/checks/ up to this round's fix report is executed in the test window"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.results
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: results}}
+    modality_evidence: "template choice (TS:70-73 'pass / fail / skipped / not-run'); TS:38-39 skipped / not-run with a reason"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [70, 70], quote: "| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [38, 39], quote: "record it as `skipped` with a reason. ... record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row of Checks Performed has one result value"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.commands_run
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: commands_run, window: [["stage_start:fix", {last: {fact: repo_edit, window: ["stage_start:fix", "write:test"]}}], "write:test"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'); TS:39 'instead of fabricating a result'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row claiming pass / fail names (as a code span) a command the run executed -- after this round's last repository edit and before test.md is written"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.test_run
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: test_run, window: [["stage_start:fix", {last: {fact: repo_edit, window: ["stage_start:fix", "write:test"]}}], "write:test"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "TS:38 'Running the repository's tests ... is expected'; TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test.md is written"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.consistent
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
+      - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
+    note: "a verified Result has no failed row"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.unrun
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
+      - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+  - id: speckit_bug.test.test.section_present.checks_performed
+    stage: test
+    target: {type: artifact, ref: test}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Performed, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [66, 66], quote: "## Checks Performed"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table's rows are the template's example checks (should)"
+  - id: speckit_bug.test.test.field_enum.round
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['1']}}
+    modality_evidence: "template choice (TS:59) for this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [59, 59], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/03-test.md, lines: [8, 8], quote: "This stage checks the fix report of the same round:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test.test.field_enum.fix
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Fix, values: ['./fix.md']}}
+    modality_evidence: "template choice (TS:58): the fix report of this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [58, 58], quote: "- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md"}
+      - {path: docs/stages/03-test.md, lines: [10, 10], quote: "| Round | Fix report it checks | Verification report (`TEST_REPORT`) |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test.test.field_enum.result
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Result, values: [verified, partial, failed]}}
+    modality_evidence: "template choice (TS:60); TS:42 'Mark the fix as'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [60, 60], quote: "- **Result**: verified | partial | failed"}
+      - {path: docs/stages/03-test.md, lines: [42, 45], quote: "Mark the fix as: - **verified** ... - **partial** ... - **failed**"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test.test.item_format.tested
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Tested(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (TS:56)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [56, 56], quote: "- **Tested**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test.test.no_template_residue.fill_marks
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [53, 53], quote: "# Bug Verification: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== fix_2 (round 2: fix-2.md)
+  - id: speckit_bug.fix_2.fix_2.artifact_exists
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    applies_when: {field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    modality_evidence: "imperative (CW:26-27 'start the next round with the fix stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [26, 27], quote: "`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence."}
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "Round 2: `fix-2.md`, then `test-2.md`."}
+      - {path: docs/stages/02-fix.md, lines: [13, 13], quote: "| 2 | `fix-2.md` | `test.md` |"}
+    note: "fix-2.md exists when the previous verification report's Result is partial or failed"
+  - id: speckit_bug.fix_2.run.doc_read.fx
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: FX, single_doc: true, min_coverage: 0.5}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+      - {path: docs/stages/03-test.md, lines: [97, 98], quote: "`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round's fix stage"}
+    note: "02-fix.md read (alone in its call, at least half of it seen) in the round-2 fix window"
+  - id: speckit_bug.fix_2.fix_2.write_discipline.once
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: fix_2}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; FX:19 'Write ... once. Never rewrite')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
+  - id: speckit_bug.fix_2.run.speckit_bug_read.reports
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix, test]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (FX:20 'Read ... in full'; FX:21 'also read')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
+      - {path: docs/stages/02-fix.md, lines: [21, 21], quote: "- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what failed there is the new evidence this round answers."}
+    note: "read in the fix window: assessment, fix, test"
+  - id: speckit_bug.fix_2.fix_2.field_enum.round
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['2']}}
+    modality_evidence: "template choice (FX:54) for the round this report is (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [54, 54], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/02-fix.md, lines: [8, 8], quote: "The round decides the report names:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_2.fix_2.field_enum.previous_verification
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Previous verification, values: ['./test.md']}}
+    modality_evidence: "template choice (FX:55): the report this round answers (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [55, 55], quote: "- **Previous verification**: none | ./test.md | ./test-2.md"}
+      - {path: docs/stages/02-fix.md, lines: [10, 10], quote: "| Round | Fix report (`FIX_REPORT`) | Verification report it answers |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_2.fix_2.field_enum.status
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Status, values: [applied, partial, not-applied]}}
+    modality_evidence: "template choice (FX:56)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [56, 56], quote: "- **Status**: applied | partial | not-applied"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_2.fix_2.item_format.fixed
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Fixed(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (FX:52)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [52, 52], quote: "- **Fixed**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_2.fix_2.section_present.changes
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Changes, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [62, 62], quote: "## Changes"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should)"
+  - id: speckit_bug.fix_2.fix_2.section_present.deviations
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Deviations from Assessment, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
+  - id: speckit_bug.fix_2.fix_2.cross_ref.changes
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix_2", "write:fix_2"], final: true}}, right: {ids: {artifact: fix_2, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
+    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
+      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
+      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
+    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
+  - id: speckit_bug.fix_2.fix_2.field_type.commands_run
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Local Verification, label: Commands run, type: command_run, window: "stage:fix_2"}}
+    applies_when: {field_present: {artifact: fix_2, section: Local Verification, label: Commands run}}
+    modality_evidence: "template (FX:85) for the commands FX:41 runs; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [85, 85], quote: "- Commands run: `<command>` → <result, brief>"}
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "run the tests that exercise the changed paths. Capture pass/fail and key output."}
+    note: "when the report records commands: the recorded command (a code span of the value) was run in this fix window; a none value is not judged here"
+  - id: speckit_bug.fix_2.run.exec_evidence.local_tests
+    stage: fix_2
+    class: evidence
+    requirement: should
+    check: {kind: exec_evidence, params: {kind: test}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "conditional imperative (FX:41 'If the project has obvious test commands ... run'): should"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."}
+    note: "a valid test run of base-repository tests in the fix window"
+  - id: speckit_bug.fix_2.run.prohibited_action.edit_before_doc
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write, window: ["stage_start:fix_2", {first: {fact: doc_read, doc: FX, window: "stage:fix_2"}}]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15 'Read a stage's document as the first step of that stage'): the stage's edits come after its document"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: docs/stages/02-fix.md, lines: [25, 35], quote: "1. **Confirm the plan** ... 2. **Apply the remediation** ... - Make the code changes described by the preferred remediation."}
+    note: "no repository write in this fix window before 02-fix.md is read in it"
+  - id: speckit_bug.fix_2.fix_2.section_present.checks_added
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Added, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [72, 72], quote: "## Checks Added"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should), what they claim is checked against the trace"
+  - id: speckit_bug.fix_2.fix_2.section_present.baseline
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: "Baseline: Existing Tests", level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [78, 78], quote: "## Baseline: Existing Tests"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its two lines are the template's example (should), the recorded command is checked against the trace"
+  - id: speckit_bug.fix_2.run.speckit_bug_check_scripts.before_change
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: before_change, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:34 'a check added in a later round must fail on the code as it is before this round's change')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [34, 34], quote: "In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change."}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
+    note: "every check script first written in this fix window was executed after its last write and before this round's first repository edit; not applicable when the round adds no check"
+  - id: speckit_bug.fix_2.run.speckit_bug_check_scripts.unchanged
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: unchanged, window: ["stage_start:fix_2", ["write:test_2", "end"]]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:36 'The checks written before the change stay as they are; the change has to make them pass')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
+    note: "no write to a check script written before this round's first repository edit, after that edit and up to this round's verification report; not applicable when the round edits nothing"
+  - id: speckit_bug.fix_2.fix_2.speckit_bug_checks_added.before_run
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: before_run, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:74-76 'Before the change | fail: <one line of output>') for FX:32 'Run each check now. It must fail'; a recorded result is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [74, 76], quote: "| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |"}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
+    note: "every row of Checks Added that names a check script records fail before the change, and the script was executed after its last write and before this round's first repository edit; rows naming no script are left out, none left: not applicable"
+  - id: speckit_bug.fix_2.fix_2.speckit_bug_checks_added.baseline_run
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: baseline_run, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:81 '`<command>` before the change: <N passed, M failed (names)>') for FX:33 'run them, and keep the result as the baseline'; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [81, 81], quote: "- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>"}
+      - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "run them, and keep the result as the baseline."}
+    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:34); not applicable when it names none"
+  - id: speckit_bug.fix_2.fix_2.no_template_residue.fill_marks
+    stage: fix_2
+    target: {type: artifact, ref: fix_2}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [49, 49], quote: "# Bug Fix: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== test_2 (round 2)
+  - id: speckit_bug.test_2.test_2.artifact_exists
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    applies_when: {field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    modality_evidence: "imperative (CW:20 fix and test alternate; FX:100 'begin this round's test stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "Round 2: `fix-2.md`, then `test-2.md`."}
+      - {path: docs/stages/03-test.md, lines: [13, 13], quote: "| 2 | `fix-2.md` | `test-2.md` |"}
+      - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
+    note: "test-2.md exists when round 2 is due (the previous verification report's Result is partial or failed)"
+  - id: speckit_bug.test_2.run.doc_read.ts
+    stage: test_2
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TS, single_doc: true, min_coverage: 0.5}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; FX:99-100)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+      - {path: docs/stages/02-fix.md, lines: [99, 100], quote: "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
+    note: "03-test.md read (alone in its call, at least half of it seen) in the round-2 test window"
+  - id: speckit_bug.test_2.test_2.write_discipline.once
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: test_2}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; TS:20)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
+  - id: speckit_bug.test_2.run.speckit_bug_read.reports
+    stage: test_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_2]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (TS:21 'Read both ... in full')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
+    note: "assessment.md and fix-2.md read in the test window"
+  - id: speckit_bug.test_2.run.prohibited_action.repo_write
+    stage: test_2
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "MUST NOT (TS:104); CW:54"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [104, 104], quote: "- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."}
+      - {path: docs/core-workflow.md, lines: [54, 54], quote: "- Only the fix stage edits the repository. The assess and test stages read it and run commands."}
+    note: "no write into the repository in the test window"
+  - id: speckit_bug.test_2.run.exec_evidence.tests
+    stage: test_2
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (TS:37 'Execute each planned check'; TS:38 'is expected')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [33, 33], quote: "- Existing test suites for the changed modules."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a valid run of base-repository tests in the test window (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none)"
+  - id: speckit_bug.test_2.run.speckit_bug_check_scripts.run
+    stage: test_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: run, written_in: ["start", "write:fix_2"]}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (TS:30 'Run the checks added in the fix'; TS:37)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [30, 30], quote: "- Run the checks added in the fix."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a check script written under BUG_DIR/checks/ up to this round's fix report is executed in the test window"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.results
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: results}}
+    modality_evidence: "template choice (TS:70-73 'pass / fail / skipped / not-run'); TS:38-39 skipped / not-run with a reason"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [70, 70], quote: "| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [38, 39], quote: "record it as `skipped` with a reason. ... record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row of Checks Performed has one result value"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.commands_run
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: commands_run, window: [["stage_start:fix_2", {last: {fact: repo_edit, window: ["stage_start:fix_2", "write:test_2"]}}], "write:test_2"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'); TS:39 'instead of fabricating a result'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row claiming pass / fail names (as a code span) a command the run executed -- after this round's last repository edit and before test-2.md is written"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.test_run
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: test_run, window: [["stage_start:fix_2", {last: {fact: repo_edit, window: ["stage_start:fix_2", "write:test_2"]}}], "write:test_2"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "TS:38 'Running the repository's tests ... is expected'; TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test-2.md is written"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.consistent
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
+      - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
+    note: "a verified Result has no failed row"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.unrun
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
+      - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+  - id: speckit_bug.test_2.test_2.section_present.checks_performed
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Performed, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [66, 66], quote: "## Checks Performed"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table's rows are the template's example checks (should)"
+  - id: speckit_bug.test_2.test_2.field_enum.round
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['2']}}
+    modality_evidence: "template choice (TS:59) for this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [59, 59], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/03-test.md, lines: [8, 8], quote: "This stage checks the fix report of the same round:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_2.test_2.field_enum.fix
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Fix, values: ['./fix-2.md']}}
+    modality_evidence: "template choice (TS:58): the fix report of this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [58, 58], quote: "- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md"}
+      - {path: docs/stages/03-test.md, lines: [10, 10], quote: "| Round | Fix report it checks | Verification report (`TEST_REPORT`) |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_2.test_2.field_enum.result
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Result, values: [verified, partial, failed]}}
+    modality_evidence: "template choice (TS:60); TS:42 'Mark the fix as'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [60, 60], quote: "- **Result**: verified | partial | failed"}
+      - {path: docs/stages/03-test.md, lines: [42, 45], quote: "Mark the fix as: - **verified** ... - **partial** ... - **failed**"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_2.test_2.item_format.tested
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Tested(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (TS:56)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [56, 56], quote: "- **Tested**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_2.test_2.no_template_residue.fill_marks
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [53, 53], quote: "# Bug Verification: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== fix_3 (round 3: fix-3.md)
+  - id: speckit_bug.fix_3.fix_3.artifact_exists
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    applies_when: {field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    modality_evidence: "imperative (CW:26-27 'start the next round with the fix stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [26, 27], quote: "`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence."}
+      - {path: docs/core-workflow.md, lines: [23, 23], quote: "Round 3: `fix-3.md`, then `test-3.md`."}
+      - {path: docs/stages/02-fix.md, lines: [14, 14], quote: "| 3 | `fix-3.md` | `test-2.md` |"}
+    note: "fix-3.md exists when the previous verification report's Result is partial or failed"
+  - id: speckit_bug.fix_3.run.doc_read.fx
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: FX, single_doc: true, min_coverage: 0.5}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+      - {path: docs/stages/03-test.md, lines: [97, 98], quote: "`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round's fix stage"}
+    note: "02-fix.md read (alone in its call, at least half of it seen) in the round-3 fix window"
+  - id: speckit_bug.fix_3.fix_3.write_discipline.once
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: fix_3}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; FX:19 'Write ... once. Never rewrite')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
+  - id: speckit_bug.fix_3.run.speckit_bug_read.reports
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_2, test_2]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (FX:20 'Read ... in full'; FX:21 'also read')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
+      - {path: docs/stages/02-fix.md, lines: [21, 21], quote: "- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what failed there is the new evidence this round answers."}
+    note: "read in the fix window: assessment, fix_2, test_2"
+  - id: speckit_bug.fix_3.fix_3.field_enum.round
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['3']}}
+    modality_evidence: "template choice (FX:54) for the round this report is (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [54, 54], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/02-fix.md, lines: [8, 8], quote: "The round decides the report names:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_3.fix_3.field_enum.previous_verification
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Previous verification, values: ['./test-2.md']}}
+    modality_evidence: "template choice (FX:55): the report this round answers (FX:10-14)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [55, 55], quote: "- **Previous verification**: none | ./test.md | ./test-2.md"}
+      - {path: docs/stages/02-fix.md, lines: [10, 10], quote: "| Round | Fix report (`FIX_REPORT`) | Verification report it answers |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_3.fix_3.field_enum.status
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Status, values: [applied, partial, not-applied]}}
+    modality_evidence: "template choice (FX:56)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [56, 56], quote: "- **Status**: applied | partial | not-applied"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_3.fix_3.item_format.fixed
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Fixed(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (FX:52)"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [52, 52], quote: "- **Fixed**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.fix_3.fix_3.section_present.changes
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Changes, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [62, 62], quote: "## Changes"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should)"
+  - id: speckit_bug.fix_3.fix_3.section_present.deviations
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Deviations from Assessment, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
+  - id: speckit_bug.fix_3.fix_3.cross_ref.changes
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix_3", "write:fix_3"], final: true}}, right: {ids: {artifact: fix_3, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
+    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
+      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
+      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
+    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
+  - id: speckit_bug.fix_3.fix_3.field_type.commands_run
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Local Verification, label: Commands run, type: command_run, window: "stage:fix_3"}}
+    applies_when: {field_present: {artifact: fix_3, section: Local Verification, label: Commands run}}
+    modality_evidence: "template (FX:85) for the commands FX:41 runs; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [85, 85], quote: "- Commands run: `<command>` → <result, brief>"}
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "run the tests that exercise the changed paths. Capture pass/fail and key output."}
+    note: "when the report records commands: the recorded command (a code span of the value) was run in this fix window; a none value is not judged here"
+  - id: speckit_bug.fix_3.run.exec_evidence.local_tests
+    stage: fix_3
+    class: evidence
+    requirement: should
+    check: {kind: exec_evidence, params: {kind: test}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "conditional imperative (FX:41 'If the project has obvious test commands ... run'): should"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."}
+    note: "a valid test run of base-repository tests in the fix window"
+  - id: speckit_bug.fix_3.run.prohibited_action.edit_before_doc
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write, window: ["stage_start:fix_3", {first: {fact: doc_read, doc: FX, window: "stage:fix_3"}}]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15 'Read a stage's document as the first step of that stage'): the stage's edits come after its document"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: docs/stages/02-fix.md, lines: [25, 35], quote: "1. **Confirm the plan** ... 2. **Apply the remediation** ... - Make the code changes described by the preferred remediation."}
+    note: "no repository write in this fix window before 02-fix.md is read in it"
+  - id: speckit_bug.fix_3.fix_3.section_present.checks_added
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Added, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [72, 72], quote: "## Checks Added"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table rows are the template's example (should), what they claim is checked against the trace"
+  - id: speckit_bug.fix_3.fix_3.section_present.baseline
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: "Baseline: Existing Tests", level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [78, 78], quote: "## Baseline: Existing Tests"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; its two lines are the template's example (should), the recorded command is checked against the trace"
+  - id: speckit_bug.fix_3.run.speckit_bug_check_scripts.before_change
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: before_change, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:34 'a check added in a later round must fail on the code as it is before this round's change')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [34, 34], quote: "In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change."}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
+    note: "every check script first written in this fix window was executed after its last write and before this round's first repository edit; not applicable when the round adds no check"
+  - id: speckit_bug.fix_3.run.speckit_bug_check_scripts.unchanged
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: unchanged, window: ["stage_start:fix_3", ["write:test_3", "end"]]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:36 'The checks written before the change stay as they are; the change has to make them pass')"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
+    note: "no write to a check script written before this round's first repository edit, after that edit and up to this round's verification report; not applicable when the round edits nothing"
+  - id: speckit_bug.fix_3.fix_3.speckit_bug_checks_added.before_run
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: before_run, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:74-76 'Before the change | fail: <one line of output>') for FX:32 'Run each check now. It must fail'; a recorded result is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [74, 76], quote: "| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |"}
+      - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
+    note: "every row of Checks Added that names a check script records fail before the change, and the script was executed after its last write and before this round's first repository edit; rows naming no script are left out, none left: not applicable"
+  - id: speckit_bug.fix_3.fix_3.speckit_bug_checks_added.baseline_run
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_added, params: {rule: baseline_run, optional: true}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [sandbox_file, trace]
+    modality_evidence: "template (FX:81 '`<command>` before the change: <N passed, M failed (names)>') for FX:33 'run them, and keep the result as the baseline'; a recorded command is a claim the trace checks"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [81, 81], quote: "- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>"}
+      - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "run them, and keep the result as the baseline."}
+    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:34); not applicable when it names none"
+  - id: speckit_bug.fix_3.fix_3.no_template_residue.fill_marks
+    stage: fix_3
+    target: {type: artifact, ref: fix_3}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [49, 49], quote: "# Bug Fix: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"
+  # ============================================================== test_3 (round 3)
+  - id: speckit_bug.test_3.test_3.artifact_exists
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: structure
+    requirement: must
+    check: {kind: artifact_exists, params: {}}
+    applies_when: {field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    modality_evidence: "imperative (CW:20 fix and test alternate; FX:100 'begin this round's test stage')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [23, 23], quote: "Round 3: `fix-3.md`, then `test-3.md`."}
+      - {path: docs/stages/03-test.md, lines: [14, 14], quote: "| 3 | `fix-3.md` | `test-3.md` |"}
+      - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
+    note: "test-3.md exists when round 3 is due (the previous verification report's Result is partial or failed)"
+  - id: speckit_bug.test_3.run.doc_read.ts
+    stage: test_3
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: TS, single_doc: true, min_coverage: 0.5}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; FX:99-100)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
+      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
+      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
+      - {path: docs/stages/02-fix.md, lines: [99, 100], quote: "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
+    note: "03-test.md read (alone in its call, at least half of it seen) in the round-3 test window"
+  - id: speckit_bug.test_3.test_3.write_discipline.once
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: test_3}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CW:47; TS:20)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
+      - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
+  - id: speckit_bug.test_3.run.speckit_bug_read.reports
+    stage: test_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_3]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (TS:21 'Read both ... in full')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
+    note: "assessment.md and fix-3.md read in the test window"
+  - id: speckit_bug.test_3.run.prohibited_action.repo_write
+    stage: test_3
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "MUST NOT (TS:104); CW:54"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [104, 104], quote: "- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."}
+      - {path: docs/core-workflow.md, lines: [54, 54], quote: "- Only the fix stage edits the repository. The assess and test stages read it and run commands."}
+    note: "no write into the repository in the test window"
+  - id: speckit_bug.test_3.run.exec_evidence.tests
+    stage: test_3
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (TS:37 'Execute each planned check'; TS:38 'is expected')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [33, 33], quote: "- Existing test suites for the changed modules."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a valid run of base-repository tests in the test window (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none)"
+  - id: speckit_bug.test_3.run.speckit_bug_check_scripts.run
+    stage: test_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: run, written_in: ["start", "write:fix_3"]}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (TS:30 'Run the checks added in the fix'; TS:37)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [30, 30], quote: "- Run the checks added in the fix."}
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "- Execute each planned check."}
+    note: "a check script written under BUG_DIR/checks/ up to this round's fix report is executed in the test window"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.results
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: results}}
+    modality_evidence: "template choice (TS:70-73 'pass / fail / skipped / not-run'); TS:38-39 skipped / not-run with a reason"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [70, 70], quote: "| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [38, 39], quote: "record it as `skipped` with a reason. ... record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row of Checks Performed has one result value"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.commands_run
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: commands_run, window: [["stage_start:fix_3", {last: {fact: repo_edit, window: ["stage_start:fix_3", "write:test_3"]}}], "write:test_3"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'); TS:39 'instead of fabricating a result'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+    note: "every row claiming pass / fail names (as a code span) a command the run executed -- after this round's last repository edit and before test-3.md is written"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.test_run
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: test_run, window: [["stage_start:fix_3", {last: {fact: repo_edit, window: ["stage_start:fix_3", "write:test_3"]}}], "write:test_3"]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "TS:38 'Running the repository's tests ... is expected'; TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+      - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test-3.md is written"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.consistent
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
+      - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
+    note: "a verified Result has no failed row"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.unrun
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
+      - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+  - id: speckit_bug.test_3.test_3.section_present.checks_performed
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: structure
+    requirement: must
+    check: {kind: section_present, params: {heading: Checks Performed, level: 2}}
+    modality_evidence: "binding (CW:50-51 'the `#`/`##` headings')"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [66, 66], quote: "## Checks Performed"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "the heading is bound; the table's rows are the template's example checks (should)"
+  - id: speckit_bug.test_3.test_3.field_enum.round
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Round, values: ['3']}}
+    modality_evidence: "template choice (TS:59) for this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [59, 59], quote: "- **Round**: 1 | 2 | 3"}
+      - {path: docs/stages/03-test.md, lines: [8, 8], quote: "This stage checks the fix report of the same round:"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_3.test_3.field_enum.fix
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Fix, values: ['./fix-3.md']}}
+    modality_evidence: "template choice (TS:58): the fix report of this round (TS:10-14)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [58, 58], quote: "- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md"}
+      - {path: docs/stages/03-test.md, lines: [10, 10], quote: "| Round | Fix report it checks | Verification report (`TEST_REPORT`) |"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_3.test_3.field_enum.result
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: '*', label: Result, values: [verified, partial, failed]}}
+    modality_evidence: "template choice (TS:60); TS:42 'Mark the fix as'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [60, 60], quote: "- **Result**: verified | partial | failed"}
+      - {path: docs/stages/03-test.md, lines: [42, 45], quote: "Mark the fix as: - **verified** ... - **partial** ... - **failed**"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_3.test_3.item_format.tested
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: '*', pattern: '^\s*[-*+]\s+(?:\*\*)?Tested(?:\*\*)?\s*:\s*(?:\*\*)?\s*`?\d{4}-\d{2}-\d{2}'}}
+    modality_evidence: "template '<ISO 8601 date>' (TS:56)"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [56, 56], quote: "- **Tested**: <ISO 8601 date>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+  - id: speckit_bug.test_3.test_3.no_template_residue.fill_marks
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: no_template_residue, params: {patterns: ['(?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$', '(?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|']}}
+    modality_evidence: "binding (CW:50-51 keep the structure; the <...> spans are what the report fills): a value that is only a fill-in mark is a placeholder left in place"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [53, 53], quote: "# Bug Verification: <short title>"}
+      - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
+    note: "a field, list item or table cell holding only a fill-in mark: x, ..., ?"

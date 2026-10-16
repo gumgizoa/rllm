@@ -1,0 +1,754 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 1. Assess | `/speckit/stages/01-assess.md` | `assessment.md` |"
+     }
+    ],
+    "stage": "assess",
+    "statement": "cw-002",
+    "target": {
+     "ref": "assessment",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AS",
+     "window": "stage:assess"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       11
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| Stage | Read when the stage begins | Writes | ... | 1. Assess | `/speckit/stages/01-assess.md` | `assessment.md` |"
+     }
+    ],
+    "stage": "assess",
+    "statement": "cw-003",
+    "target": {
+     "ref": "read:AS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 2. Fix | `/speckit/stages/02-fix.md` | `fix.md`, then `fix-2.md`, `fix-3.md` |"
+     }
+    ],
+    "stage": "fix",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": "stage:fix_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 2. Fix | `/speckit/stages/02-fix.md` | `fix.md`, then `fix-2.md`, `fix-3.md` |"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": "stage:fix_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 2. Fix | `/speckit/stages/02-fix.md` | `fix.md`, then `fix-2.md`, `fix-3.md` |"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 2. Fix | `/speckit/stages/02-fix.md` | `fix.md`, then `fix-2.md`, `fix-3.md` |"
+     }
+    ],
+    "stage": "fix",
+    "statement": "cw-005",
+    "target": {
+     "ref": "fix",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 2: `fix-2.md`, then `test-2.md`."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "cw-006",
+    "target": {
+     "ref": "fix_2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 3: `fix-3.md`, then `test-3.md`."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "cw-007",
+    "target": {
+     "ref": "fix_3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": "stage:test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3. Test | `/speckit/stages/03-test.md` | `test.md`, then `test-2.md`, `test-3.md` |"
+     }
+    ],
+    "stage": "test",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": "stage:test_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3. Test | `/speckit/stages/03-test.md` | `test.md`, then `test-2.md`, `test-3.md` |"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": "stage:test_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3. Test | `/speckit/stages/03-test.md` | `test.md`, then `test-2.md`, `test-3.md` |"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3. Test | `/speckit/stages/03-test.md` | `test.md`, then `test-2.md`, `test-3.md` |"
+     }
+    ],
+    "stage": "test",
+    "statement": "cw-009",
+    "target": {
+     "ref": "test",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 2: `fix-2.md`, then `test-2.md`."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "cw-010",
+    "target": {
+     "ref": "test_2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 3: `fix-3.md`, then `test-3.md`."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "cw-011",
+    "target": {
+     "ref": "test_3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AS"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "assess",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:AS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "fix",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "test",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Read a stage's document as the first step of that stage, and carry out the stage from it."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "cw-012",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Assess runs once: the assessment is not rewritten after fixing begins.",
+    "params": {
+     "after": "first_write:fix",
+     "before": "last_write:assessment"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "1. **Assess** once.\n2. **Fix** and **test** then alternate in rounds, at most three:"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-014",
+    "target": {
+     "ref": "write:assessment",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Alternation: round-1 test report precedes round-2 fix.",
+    "params": {
+     "after": "first_write:fix_2",
+     "before": "first_write:test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "**Fix** and **test** then alternate in rounds, at most three: ... Round 2: `fix-2.md`, then `test-2.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "write:fix_2",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Alternation: round-2 test report precedes round-3 fix.",
+    "params": {
+     "after": "first_write:fix_3",
+     "before": "first_write:test_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "**Fix** and **test** then alternate in rounds, at most three: ... Round 3: `fix-3.md`, then `test-3.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "write:fix_3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:test",
+     "before": "first_write:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 1: `fix.md`, then `test.md`."
+     }
+    ],
+    "stage": "test",
+    "statement": "cw-016",
+    "target": {
+     "ref": "write:test",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:test_2",
+     "before": "first_write:fix_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 2: `fix-2.md`, then `test-2.md`."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "cw-017",
+    "target": {
+     "ref": "write:test_2",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:test_3",
+     "before": "first_write:fix_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 3: `fix-3.md`, then `test-3.md`."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "cw-018",
+    "target": {
+     "ref": "write:test_3",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "969769a4ede0ba914a60da887f0d9b29b7d196d1a197e6b163f9ed1123590220",
+ "key": "eea2237aec6fb570a66608fb9690de81a76febf254aeebf411f9779ffb004982",
+ "meta": {
+  "at": "2026-10-14T01:54:42Z",
+  "cost_usd": 0.22706300000000001,
+  "duration_ms": 46563,
+  "num_turns": 2,
+  "wall_s": 47.67
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "ec61d61bf000e96598dc07ca8e66051102b57af28cdf8ac3e95505e95842539c",
+ "salt": "sample1",
+ "schema_sha256": "76f2fa133748b7a425554d5313b0c91837a60e34f90b960199f015447f56494f",
+ "version": "2.1.283"
+}

@@ -1,0 +1,441 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_bug.check_scripts",
+    "none_allowed": "-",
+    "params": {
+     "rule": "written",
+     "window": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write the checks called out in the assessment as scripts under `BUG_DIR/checks/`, so the fix can be verified."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-020",
+    "target": {
+     "ref": "BUG_DIR/checks/",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not add or edit test files in the repository."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-021",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "speckit_bug.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true,
+     "window": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not add or edit test files in the repository."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-021",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "The prohibition only covers dependencies the assessment did not call for; an install action is a proxy that cannot see that exception.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install",
+     "window": "stage:fix"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       32,
+       32
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "do not introduce dependencies that the assessment did not call for."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-023",
+    "target": {
+     "ref": "dependencies",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_bug.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "assessment",
+       "fact": "artifact_write",
+       "window": "stage:fix"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       33,
+       33
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not edit `assessment.md`."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-025",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "speckit_bug.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "assessment",
+       "fact": "artifact_write",
+       "window": [
+        "stage_start:fix",
+        "end"
+       ]
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       93,
+       93
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Never edit `assessment.md` — it is the contract you are working against."
+     }
+    ],
+    "stage": "global",
+    "statement": "fx-035",
+    "target": {
+     "ref": "assessment",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Conditional on the project having obvious test commands, which the engine cannot observe.",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:fix"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise the changed paths."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-026",
+    "target": {
+     "ref": "project test commands",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The rule only says to capture pass/fail and key output; checking that the recorded commands were actually run is an inferred backing check.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "fix",
+       "group": 1,
+       "pattern": "`([^`]+)`",
+       "section": "Local Verification / Commands run"
+      }
+     },
+     "normalize": "command",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "name": "valid_run_commands",
+       "window": [
+        "stage_start:fix",
+        "write:fix"
+       ]
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "run the tests that exercise the changed paths. Capture pass/fail and key output."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-027",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Deviations from Assessment"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Write to `BUG_DIR/` + `FIX_REPORT` (round 1: `fix.md`) using this structure:"
+     },
+     {
+      "lines": [
+       93,
+       93
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Record disagreements in this round's fix report under **Deviations from Assessment**."
+     }
+    ],
+    "stage": "fix",
+    "statement": "fx-029",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "speckit_bug.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "artifact_exists": "test"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Do not stop here and do not report to the user ... begin this round's test stage."
+     }
+    ],
+    "stage": "global",
+    "statement": "fx-030",
+    "target": {
+     "ref": "test",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:fix",
+      "read:TS"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md`"
+     }
+    ],
+    "stage": "global",
+    "statement": "fx-032",
+    "target": {
+     "ref": "/speckit/stages/03-test.md",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:fix",
+      "stage_start:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       88
+      ],
+      "path": "docs/stages/02-fix.md",
+      "quote": "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."
+     }
+    ],
+    "stage": "global",
+    "statement": "fx-033",
+    "target": {
+     "ref": "fix",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The scope-expansion exception depends on 'newly discovered evidence' and on the report naming the expansion explicitly. No single selector covers both the assessment's listed files and a logged expansion note, so this can't be checked as written (it is checkable in principle, but no kind expresses it).",
+    "statement": "fx-019"
+   },
+   {
+    "reason": "This only applies if the agent finds the assessment was wrong. That trigger can't be observed, so it can't be written as an applies_when predicate. The section itself is already checked under fx-029.",
+    "statement": "fx-024"
+   },
+   {
+    "reason": "'Do not report to the user' concerns the agent's conversational output, not an artifact, command or file action. No kind in the vocabulary can see it.",
+    "statement": "fx-031"
+   },
+   {
+    "reason": "No prohibited_action class covers writes outside the repository except BUG_DIR. repo_write only sees writes inside the repository, so the guardrail can't be expressed.",
+    "statement": "fx-034"
+   },
+   {
+    "reason": "This only applies when the agent disagrees with the assessment, which can't be observed. Having the section is already required under fx-029.",
+    "statement": "fx-036"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7a203ac1b05afd3f3f168b636499beb22fbeb9970165800b3c08a5744b718f37",
+ "key": "035231cde2029f33648755a3b633f79c08c5f9f2653d7955b102b1ebb79dbb22",
+ "meta": {
+  "at": "2026-10-14T01:56:54Z",
+  "cost_usd": 0.1287896,
+  "duration_ms": 51502,
+  "num_turns": 2,
+  "wall_s": 53.03
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "ec61d61bf000e96598dc07ca8e66051102b57af28cdf8ac3e95505e95842539c",
+ "salt": "sample1",
+ "schema_sha256": "1b6cbea77d52806dbcc000468ffacf675a221b14a7ceb8f9ea1a4674ba0c5986",
+ "version": "2.1.283"
+}

@@ -14,7 +14,8 @@ to ``/tmp/speckit/bugs/issue/`` -- outside the repository, so neither the diff n
 ``git clean`` reaches them -- with the slug fixed to ``issue``. A failed or partial test loops back
 to fix, at most three rounds (``fix.md``/``test.md``, ``fix-2.md``/``test-2.md``, ``fix-3.md``/
 ``test-3.md``). The documents, the instruction and the system prompt name each other by absolute
-path, so they are versioned together. No compliance scorer yet: resolve rate only.
+path, so they are versioned together. ``reward/`` holds the generated compliance rubric (``speckit_bug/*``
+signals); until ``reward/rubric.yaml`` exists the workflow has no scorer and reports resolve rate only.
 """
 
 from __future__ import annotations
@@ -25,6 +26,14 @@ from ..spec import WorkflowSpec
 
 HERE = Path(__file__).resolve().parent
 
+
+def _scorer():
+    # Imported on use: a run without the workflow never loads the rubric.
+    from .reward.eval import Evaluation
+
+    return Evaluation()
+
+
 SPEC = WorkflowSpec(
     docs_dir=HERE / "docs",
     container_dir="/speckit",
@@ -32,4 +41,6 @@ SPEC = WorkflowSpec(
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
     output_dirs=("/tmp/speckit",),
+    scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
+    reward_signal="speckit_bug/compliance",
 )

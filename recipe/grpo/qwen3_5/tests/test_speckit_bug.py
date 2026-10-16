@@ -121,4 +121,5 @@ def test_harness_uploads_the_documents_and_swaps_the_procedure_section():
     assert "/speckit/core-workflow.md" in ours_section
     assert ours_section != section.search(aidlc).group(0).replace("/ai-dlc", "/speckit")  # reworded, not a path swap
     assert section.sub("", ours) == section.sub("", aidlc)  # the other 15 sections are untouched
-    assert h.evaluation_policy is None  # no scorer yet: resolve rate only
+    # resolve rate only until the generated rubric exists (reward/rubric.yaml), then its scorer
+    assert (h.evaluation_policy is None) == (not (WF / "reward" / "rubric.yaml").is_file())

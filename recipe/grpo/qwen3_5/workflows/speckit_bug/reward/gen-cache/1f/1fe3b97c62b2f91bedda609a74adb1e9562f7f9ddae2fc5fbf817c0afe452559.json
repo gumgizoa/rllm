@@ -1,0 +1,1003 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "After the round-3 report the workflow is complete: no further source edits (no round 4).",
+    "params": {
+     "action": "source_write",
+     "window": [
+      "last_write:test_3",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       100
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Round 3, any result — the workflow is complete; finish the task."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-034",
+    "target": {
+     "ref": "source_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This stage MUST NOT modify source code."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-036",
+    "target": {
+     "ref": "source_write",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:test_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This stage MUST NOT modify source code."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-036",
+    "target": {
+     "ref": "source_write",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:test_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This stage MUST NOT modify source code."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-036",
+    "target": {
+     "ref": "source_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Writes are confined to the bug directory; any repository write in the test stage violates this.",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-037",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:test_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-037",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:test_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "It only runs checks and writes inside `/tmp/speckit/bugs/issue/`."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-037",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "content",
+    "kind": "speckit_bug.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "test",
+       "fact": "artifact_write",
+       "window": "stage:test_2"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never rewrite an earlier round's verification report."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-038",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "content",
+    "kind": "speckit_bug.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "test",
+         "fact": "artifact_write",
+         "window": "stage:test_3"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "test_2",
+         "fact": "artifact_write",
+         "window": "stage:test_3"
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never rewrite an earlier round's verification report."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-038",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs the assessment's reproduction matched against what was actually run in the test stage before the Result is checked for `verified`; none of the kinds does this matching.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise"
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-039",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:assessment",
+      "first_write:fix",
+      "first_write:test"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       1,
+       1
+      ],
+      "path": "instruction.md",
+      "quote": "This task is to be solved with the Spec Kit bug workflow (assess, fix, test)."
+     }
+    ],
+    "stage": "global",
+    "statement": "ins-001",
+    "target": {
+     "ref": "stage_order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "instruction.md",
+      "quote": "Begin by opening /speckit/core-workflow.md"
+     }
+    ],
+    "stage": "global",
+    "statement": "ins-002",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW",
+     "window": [
+      "start",
+      "first_write:assessment"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       65
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Before acting on the task, open /speckit/core-workflow.md."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-004",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "assess",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:AS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "fix",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "test",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text only.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "instruction.md",
+      "quote": "When you reach a stage, open its document before doing anything else for that stage"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AS",
+     "window": [
+      "stage_start:assess",
+      "first_write:assessment"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "assess",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:AS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": [
+      "stage_start:fix",
+      "first_write:fix"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "fix",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "stage_start:test",
+      "first_write:test"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "test",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": [
+      "stage_start:fix_2",
+      "first_write:fix_2"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "fix_2",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_2"
+    },
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "stage_start:test_2",
+      "first_write:test_2"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FX",
+     "window": [
+      "stage_start:fix_3",
+      "first_write:fix_3"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "fix_3",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:FX",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "test_3"
+    },
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TS",
+     "window": [
+      "stage_start:test_3",
+      "first_write:test_3"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       68
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On reaching a stage, first open its stage document under /speckit/stages/"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:TS",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_2"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:test",
+      "first_write:fix_2",
+      "first_write:test_2"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "system-prompt.j2",
+      "quote": "It sets the order of the stages and the report each stage leaves behind."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-005",
+    "target": {
+     "ref": "stage_order",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "fix_3"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:test_2",
+      "first_write:fix_3",
+      "first_write:test_3"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "system-prompt.j2",
+      "quote": "It sets the order of the stages and the report each stage leaves behind."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-005",
+    "target": {
+     "ref": "stage_order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "A stage is finished when its report is written"
+     }
+    ],
+    "stage": "assess",
+    "statement": "sp-008",
+    "target": {
+     "ref": "assessment",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "A stage is finished when its report is written"
+     }
+    ],
+    "stage": "fix",
+    "statement": "sp-008",
+    "target": {
+     "ref": "fix",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "A stage is finished when its report is written"
+     }
+    ],
+    "stage": "test",
+    "statement": "sp-008",
+    "target": {
+     "ref": "test",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "System-prompt (adapter) text only; prohibited_action not allowed for adapter text.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind can detect a turn that stops to ask the user a question.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "No one will reply during the task, so do not pause to ask"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-010",
+    "target": {
+     "ref": "pause_to_ask",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The template already has a fill check on the Residual Risks section of test_3. Whether every unresolved issue is listed there cannot be checked against anything observable.",
+    "statement": "ts-035"
+   },
+   {
+    "reason": "This depends on the same condition as ts-039: a reproduction that was not exercised. That condition cannot be expressed as a predicate, so the downgrade and its explanation cannot be scoped. ts-039 covers this as unimplemented.",
+    "statement": "ts-040"
+   },
+   {
+    "reason": "The order items (ins-001, sp-005) and the report-existence items (sp-008) already cover going straight into the next stage. Whether the agent stopped between stages cannot be observed in any other way.",
+    "statement": "sp-009"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "545d76cdb76d3162a7adae75881a7947b7655c2672f42c46fd34d52945dab2cf",
+ "key": "1fe3b97c62b2f91bedda609a74adb1e9562f7f9ddae2fc5fbf817c0afe452559",
+ "meta": {
+  "at": "2026-10-14T01:58:34Z",
+  "cost_usd": 0.271813,
+  "duration_ms": 68055,
+  "num_turns": 2,
+  "wall_s": 69.14
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "ec61d61bf000e96598dc07ca8e66051102b57af28cdf8ac3e95505e95842539c",
+ "salt": "sample0",
+ "schema_sha256": "fdabdd2572afd1e26debacda50b35bd6ba2fa39b70c873c6280a598eb4aa018a",
+ "version": "2.1.283"
+}

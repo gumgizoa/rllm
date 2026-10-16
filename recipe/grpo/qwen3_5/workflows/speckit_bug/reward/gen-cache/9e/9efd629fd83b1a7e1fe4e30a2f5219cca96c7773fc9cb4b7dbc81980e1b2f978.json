@@ -1,0 +1,778 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "pattern": "test\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "| 1 | `fix.md` | `test.md` |"
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-003",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_2",
+     "pattern": "test-2\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "| 2 | `fix-2.md` | `test-2.md` |"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-003",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_3",
+     "pattern": "test-3\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "| 3 | `fix-3.md` | `test-3.md` |"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-003",
+    "target": {
+     "ref": "test_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "`BUG_DIR/assessment.md` MUST exist."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-005",
+    "target": {
+     "ref": "assessment",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:fix",
+      "first_write:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This round's fix report MUST exist. If not, carry out this round's fix stage first"
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-006",
+    "target": {
+     "ref": "fix before test",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:fix_2",
+      "first_write:test_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This round's fix report MUST exist. If not, carry out this round's fix stage first"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-006",
+    "target": {
+     "ref": "fix_2 before test_2",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:fix_3",
+      "first_write:test_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "This round's fix report MUST exist. If not, carry out this round's fix stage first"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-006",
+    "target": {
+     "ref": "fix_3 before test_3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Write this round's `TEST_REPORT` once."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-007",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_2",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Write this round's `TEST_REPORT` once."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-007",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_3",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Write this round's `TEST_REPORT` once."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-007",
+    "target": {
+     "ref": "test_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "mode": "no_rewrite",
+     "window": "stage:test_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never rewrite the verification report of an earlier round."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-008",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "mode": "no_rewrite",
+     "window": "stage:test_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never rewrite the verification report of an earlier round."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-008",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_2",
+     "mode": "no_rewrite",
+     "window": "stage:test_3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Never rewrite the verification report of an earlier round."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-008",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment",
+      "fix"
+     ],
+     "window": [
+      "stage_start:test",
+      "first_write:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       23
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Read both `assessment.md` and this round's fix report in full so you know:"
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-009",
+    "target": {
+     "ref": "read assessment and fix",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment",
+      "fix_2"
+     ],
+     "window": [
+      "stage_start:test_2",
+      "first_write:test_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       23
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Read both `assessment.md` and this round's fix report in full so you know:"
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-009",
+    "target": {
+     "ref": "read assessment and fix_2",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "assessment",
+      "fix_3"
+     ],
+     "window": [
+      "stage_start:test_3",
+      "first_write:test_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       23
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Read both `assessment.md` and this round's fix report in full so you know:"
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-009",
+    "target": {
+     "ref": "read assessment and fix_3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "rule": "unrun"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Re-run the reproduction steps from the assessment (or their automated equivalent)."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-010",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.check_scripts",
+    "none_allowed": "-",
+    "params": {
+     "rule": "run",
+     "window": [
+      "stage_start:test",
+      "write:test"
+     ],
+     "written_in": "stage:fix"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       30,
+       30
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Run the checks added in the fix."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-011",
+    "target": {
+     "ref": "run fix checks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:test",
+      "write:test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Decide which checks prove nothing was broken:\n     - Existing test suites for the changed modules."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-013",
+    "target": {
+     "ref": "existing test suites",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:test_2",
+      "write:test_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Decide which checks prove nothing was broken:\n     - Existing test suites for the changed modules."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-013",
+    "target": {
+     "ref": "existing test suites",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:test_3",
+      "write:test_3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Decide which checks prove nothing was broken:\n     - Existing test suites for the changed modules."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-013",
+    "target": {
+     "ref": "existing test suites",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "rule": "commands_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Execute each planned check."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-015",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_2",
+     "rule": "commands_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Execute each planned check."
+     }
+    ],
+    "stage": "test_2",
+    "statement": "ts-015",
+    "target": {
+     "ref": "test_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test_3",
+     "rule": "commands_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Execute each planned check."
+     }
+    ],
+    "stage": "test_3",
+    "statement": "ts-015",
+    "target": {
+     "ref": "test_3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "rule": "results"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Capture command, exit status, and a short excerpt of relevant output"
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-016",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Mapping 'skip network-dependent checks' to 'no URL fetch' is inferred",
+    "kind": "speckit_bug.no_fetch",
+    "none_allowed": "-",
+    "params": {
+     "window": "stage:test"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "If a check is destructive or network-dependent, skip it and record it as `skipped` with a reason."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-017",
+    "target": {
+     "ref": "network-dependent checks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_bug.checks_table",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "test",
+     "rule": "test_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/stages/03-test.md",
+      "quote": "Running the repository's tests for the changed modules is neither, and is expected."
+     }
+    ],
+    "stage": "test",
+    "statement": "ts-018",
+    "target": {
+     "ref": "test",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The stage configuration already allows at most three fix/test rounds and defines no fourth-round artifact, so there is nothing more for the engine to check.",
+    "statement": "ts-004"
+   },
+   {
+    "reason": "The rule only applies if a broader regression suite touching the changed files exists, which can't be expressed as a predicate. The run of the existing tests is already checked under ts-013.",
+    "statement": "ts-012"
+   },
+   {
+    "reason": "The rule only applies if the project uses lint or type-checking, which no predicate in the reference language can express.",
+    "statement": "ts-014"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "891643ba859677afbc590b0b41c534aec197aff177d56e3fdf74a495cf8a6760",
+ "key": "9efd629fd83b1a7e1fe4e30a2f5219cca96c7773fc9cb4b7dbc81980e1b2f978",
+ "meta": {
+  "at": "2026-10-16T06:14:53Z",
+  "cost_usd": 0.15450980000000003,
+  "duration_ms": 53565,
+  "num_turns": 2,
+  "wall_s": 54.9
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "24f8a818848e22ab75f4447e919c9ce376e74fe1d1250f821c0416350e665e01",
+ "salt": "sample1",
+ "schema_sha256": "2cfe82b158bb389183c6e32670faabd536ea89cf5dce6878e260f0db4359a7df",
+ "version": "2.1.283"
+}

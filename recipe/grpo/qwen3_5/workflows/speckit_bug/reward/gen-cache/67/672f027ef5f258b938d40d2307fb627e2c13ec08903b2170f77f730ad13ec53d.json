@@ -1,0 +1,47 @@
+{
+ "answer": {
+  "conflicts": [
+   {
+    "description": "g5.cw-019.0 says fix_2 must not exist, but the must-level artifact_exists check, g5.cw-006.0 and the round-2 order chain all require fix_2 to be written.",
+    "items": [
+     "g5.cw-019.0",
+     "speckit_bug.fix_2.fix_2.artifact_exists",
+     "g5.cw-006.0",
+     "speckit_bug.global.run.order.round_2"
+    ]
+   },
+   {
+    "description": "g5.cw-019.1 says fix_3 must not exist, but the must-level artifact_exists check, g5.cw-007.0 and the round-3 order chain all require fix_3 to be written.",
+    "items": [
+     "g5.cw-019.1",
+     "speckit_bug.fix_3.fix_3.artifact_exists",
+     "g5.cw-007.0",
+     "speckit_bug.global.run.order.round_3"
+    ]
+   },
+   {
+    "description": "g5.cw-014.0 wants the assessment written after the first fix write (and implies a later rewrite), but round_1 requires write:assessment before read:FX/write:fix and forbids rewrites, and write_discipline.once allows only one assessment write.",
+    "items": [
+     "g5.cw-014.0",
+     "speckit_bug.global.run.order.round_1",
+     "speckit_bug.assess.assessment.write_discipline.once"
+    ]
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d4709ac59ce5886d3f48b62b13be2d07472133ac9fa427c29ddee2768b244e06",
+ "key": "672f027ef5f258b938d40d2307fb627e2c13ec08903b2170f77f730ad13ec53d",
+ "meta": {
+  "at": "2026-10-14T02:00:06Z",
+  "cost_usd": 0.19526939999999998,
+  "duration_ms": 19231,
+  "num_turns": 2,
+  "wall_s": 20.32
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "815ac70492ae64d16ad931a83a4345aecf089c358056fb6d8a2184f18da485c1",
+ "salt": "",
+ "schema_sha256": "97c74f547c8c9601cdcda7d2689062d848791b9996334e97a68f025c56b994ba",
+ "version": "2.1.283"
+}
