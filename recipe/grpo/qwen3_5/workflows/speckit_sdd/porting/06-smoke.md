@@ -22,11 +22,41 @@
 | step 범위 | 57–150 | 26–90 |
 | 의존성 설치 | 0 | dvc `pip install` 3회 (수용) |
 
+**새 행동 발생** (`05-changes.md` "agent 행동 변화"의 새 행동 추가 행, 해당 단계까지 간 rollout 기준):
+
+| 행 | 새 행동 | think off | think on |
+|---|---|---|---|
+| 2 | constitution이 빈 템플릿이면 생략 기록 (plan 작성분) | 1/1 | 4/4 (dvc는 "Passed - Constitution is template-only (no gates)"로 다른 문구) |
+| 3 | Phase 1 파일 모두 기록 (data-model·quickstart 둘 다, plan 작성분) | 1/1 | 4/4 |
+| 3 | 그중 `N/A — <이유>` 사용 | 0/1 | 1/4 (1884 data-model만) |
+| 4 | user story별 `### Tests for User Story N` (tasks.md 작성분) | 1/2 (dvc, 경로는 `checks/` 아님) | 4/4 (경로 `checks/` 4/4) |
+| 5 | 빈 phase를 `No tasks — <이유>`로 유지 (tasks.md 작성분) | 1/2 | 4/4 |
+| 8 | 구현 전 기존 테스트 실행 / 구현 후 재실행 | 0 / 미측정 | 4 / 미측정 |
+| 10 | 실패 task를 미체크로 두고 계속 | 발생 확인 0 (dvc의 미체크는 150 step 도달) | 0 (미체크 task 남긴 rollout 0/4) |
+| 11 | 회차 보고서 + `- **Outcome**:` 줄 | 0/5 | 2/5 형식 준수 + moto 형식 불일치 1 |
+| 12 | `tasks_appended` → implement·converge 2회차 | 0/5 | **0/5** (moto의 `convergence-2.md`는 1회차 보고서 이름 오류) |
+
 ## 남은 문제
 - 코드 수정 전 실패 확인, `checks/` 위치, contracts 줄의 실제 사유 기록: 일부만 지켜짐 → compliance scorer로 넘김(`later.md`).
 - think off의 진입 문서 미열람 3/5: instruction은 smoke 2와 같으므로 변동으로 판단.
-- converge 보고서 형식 불일치, 2회차 미발생 → scorer 설계 때 다룸.
+- converge 보고서 형식 불일치 → scorer 설계 때 다룸.
+- **2회차 반복(행 12)과 실패 task 계속(행 10)은 smoke에서 한 번도 발동하지 않음** → 검증되지 않은 규칙. SWE-bench Verified 499에서도 2회차는 거의 없음(아래 "참고"), converge가 사실상 항상 `converged`를 냄 → `later.md` "No path back to spec/plan".
 - conan-13721은 smoke 1–3 모두 미해결.
+
+## 참고: SWE-bench Verified 499 (smoke 아님, 2026-10-15)
+
+설정: smoke와 같은 모델·harness·150턴·262k·T=1.0, think on, `instruction_position=suffix`, git history 공개, 커밋 `7c88c420`.
+결과 `rllm-home/eval_results/swebv499_speckitsdd_262k-150_think_t1/`. resolve 245/499 (workflow 없음 300/499).
+새 행동 발생 (각 산출물을 쓴 rollout 기준):
+
+| 행 | 새 행동 | 발생 |
+|---|---|---|
+| 2 | constitution 생략 기록 ("skipped — template" 문구) | 282/488 |
+| 3 | data-model·quickstart 둘 다 기록 | 417/488 |
+| 4 | user story별 Tests 소절 / 테스트 task 경로 `checks/` | 456/477 / 463/477 |
+| 5 | 빈 phase `No tasks — <이유>` | 302/477 |
+| 11 | `convergence.md` 작성 / `- **Outcome**:` 줄 형식 준수 | 335/499 / 269/334 |
+| 12 | Convergence phase 추가 / `convergence-2.md` 작성 | **16/477 / 4/499** |
 
 ---
 

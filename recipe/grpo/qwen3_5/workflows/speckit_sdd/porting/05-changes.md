@@ -1,5 +1,11 @@
 # Changes: speckit_sdd  (upstream github/spec-kit@0443760, SDD 최소 체인 specify → plan → tasks → implement ⇄ converge)
 
+## 계획 대비 달라진 점
+
+없음 (비교할 `03-plan.md` 없음).
+이 port는 결정(`03-decisions.md`)에서 바로 구현으로 진행했고, 행동 변화를 미리 검토하는 계획 문서를 만들지 않음.
+구현 중 해석은 아래 "변경" 각 항목에, 결정 자체의 변경(smoke 후 Revision 1–3, G9-5 되돌림)은 `03-decisions.md`에 기록.
+
 ## 구성 (`recipe/grpo/qwen3_5/workflows/speckit_sdd/`)
 
 | 파일 | 출처 | 내용 |
@@ -14,7 +20,8 @@
 | `instruction.md` | 직접 작성 | "첫 행동으로 `/speckit-sdd/core-workflow.md` 열기, 문서는 저장소 밖 루트 경로". 다른 워크플로우와 다른 문장 |
 | `system-prompt.j2` | SDK 기본 프롬프트 복사 | 절차 섹션만 새로 작성, 나머지 15개 섹션은 SDK 기본과 동일 |
 | `__init__.py`, `LICENSE-spec-kit` | — | SPEC 등록 정보(문서 `/speckit-sdd`, `.specify` → `/tmp/speckit-sdd/.specify`, 산출물 경로, setup 스크립트), MIT 고지 |
-| `porting/01~06-*.md` | 단계별 기록 | 조사·gap·결정·변경·smoke |
+| `README.md` | 직접 작성 | 동료용 파이프라인 안내(진행 흐름, 산출물 형식, rollout 후 남는 것). 패키지 루트라 sandbox에 올라가지 않음 |
+| `porting/01~06-*.md`, `porting/later.md` | 단계별 기록 | 조사·gap·결정·변경·smoke, 나중에 시도할 아이디어 |
 
 원문: `templates/commands/{specify,plan,tasks,implement,converge}.md`(stage 문서 5개, 1,236줄 → 675줄),
 `templates/{spec,plan,tasks,checklist}-template.md`(sandbox 템플릿 4개), `scripts/bash/{common,check-prerequisites,setup-plan,setup-tasks}.sh`와
@@ -56,6 +63,27 @@
 - **템플릿 편집**: `build.py`가 `templates/*-template.md`를 sandbox용으로 변환할 때 적용(24건). 범주 5·6·7(MVP·병렬 예시 삭제, phase 범위와 빈 phase 표기, Phase 1 N/A 표기, 테스트 요청 문장과 테스트 task 예시 경로, plan Source Code 안내)
 - **환경 파일**: `sandbox/specify/`(스크립트 원본·템플릿·constitution), `setup.sh`, `__init__.py`. 범주 3·4
 - **새로 작성**: 진입 문서, instruction, system prompt 절차 섹션, converge 보고서 양식. 범주 2·3·7·9의 규칙 대부분
+
+## agent 행동 변화
+
+| # | 단계 | upstream 원래 행동 | 지금 행동 | 바꾼 이유 | 원문으로 되돌리면 |
+|---|---|---|---|---|---|
+| 1 | plan (Phase 0) | research agent를 보내 unknown과 best practice를 조사 | agent가 저장소·설치 환경을 직접 읽어 해소, 근거가 없으면 가장 타당한 해석을 `research.md`(Decision / Rationale / Alternatives)에 기록 | 온라인 조회는 정답 유출 경로, 답할 사람 없음 (G6-1, G4-2) | 가능하지만 정답 PR 유출 위험 |
+| 2 | plan (Constitution Check) | constitution 원칙으로 gate 평가, 위반이 정당화되지 않으면 ERROR | **새 행동 추가**: constitution이 빈 템플릿이면 "skipped — template" 기록, gate 평가 없음 | upstream `specify init` 직후 상태를 탑재, converge에만 있던 생략 규칙을 plan에도 (G7-6) | 가능하지만 placeholder 주석을 원칙으로 읽을 위험 |
+| 3 | plan (Phase 1) | data-model·contracts·quickstart 작성, contracts는 순수 내부 변경이면 생략 | **새 행동 추가**: 셋 다 항상 기록. 해당 없으면 data-model·quickstart 본문 한 줄 `N/A — <이유>`, contracts는 plan.md 문서 트리 줄에 파일 목록 또는 `contracts/  # N/A — <이유>` | 존재와 생략 사유를 확인 가능하게 (G9-4 rev·rev2, G9-6) | 가능 |
+| 4 | tasks | 테스트 task는 요청이 있을 때만, 파일은 저장소 `tests/…` | **새 행동 추가**: task 메시지를 테스트 요청으로 보고 user story마다 `### Tests for User Story N` 생성, 파일은 `FEATURE_DIR/checks/`의 검증 스크립트 | 채점 테스트는 숨겨져 있음, 저장소 테스트 파일 수정 금지 (G9-1 rev2) | 가능하지만 테스트 task가 없어지거나 저장소 테스트를 수정 |
+| 5 | tasks | Setup = 프로젝트 초기화·의존성 설치·lint, Polish = 문서·리팩터·성능·보안 | 이번 변경에 필요한 것만. **새 행동 추가**: Setup·Foundational·Polish 제목은 항상 유지, 빈 phase는 `No tasks — <이유>` | 기존 저장소, 설치 금지, 구조 확인 가능 (G9-3, G9-3 rev) | 가능하지만 범위 밖 작업 증가 |
+| 6 | tasks → implement | MVP 전략: US1만 구현 후 "STOP and VALIDATE"·배포, 팀 병렬 실행 예시 | **원래 행동 삭제**: 모든 phase를 한 번에 완료 | 중간에 멈추면 rollout 종료 (G4-6, G7-7) | 불가 (멈춤 = 종료) |
+| 7 | implement (checklist) | 미체크 항목이 있으면 진행 여부를 묻고 대기 | 상태만 확인하고 upstream의 "proceed" 분기로 진행 | 답할 사람 없음 (G4-4) | 불가 (질문 = 종료) |
+| 8 | implement (테스트) | 테스트가 요청된 경우 테스트 task를 먼저 실행해 실패 확인 후 구현 | 같은 TDD 순서를 user story마다 적용(검증 스크립트 실패 확인 → 구현 → 통과 확인). **새 행동 추가**: 구현 전 관련 기존 저장소 테스트를 실행해 baseline 기록, 구현 후 재실행 | 테스트 요청이 항상 있음, 회귀 확인 (G9-1 rev2, G9-7) | 가능 |
+| 9 | implement (ignore 파일) | 매번 `.gitignore`·`.dockerignore` 등을 생성·보완 | **원래 행동 삭제**: ignore 파일 생성·수정 금지 | issue와 무관한 저장소 변경, patch 수집에 영향 (G9-2) | 가능하지만 patch 오염 |
+| 10 | implement (task 실패) | 실패하면 중단하고 다음 행동을 제안 | **새 행동 추가**: 실패 task는 미체크로 두고 의존하지 않는 task 계속, 진행할 수 없으면 converge로 이동 | 멈추면 rollout 종료 (G4-5) | 불가 (멈춤 = 종료) |
+| 11 | converge (보고) | 결과를 채팅으로 출력, `converged`면 파일 기록 없음 | **새 행동 추가**: 회차 보고서 `convergence.md` / `convergence-2.md` 작성(findings 표, summary metrics, `- **Round**:`, `- **Outcome**:` 줄) | 텍스트 응답 = 종료, 판정 기록 (G2-4, G8-1) | 불가 |
+| 12 | converge → implement | 사람이 Converged가 나올 때까지 반복(상한 없음) | **새 행동 추가**: `tasks_appended`면 implement 2회차(미체크 task만) → converge 2회차, 2회차 뒤에는 결과와 무관하게 종료 | 반복을 결정할 사람 없음, step 예산 150 (G8-1, G8-2) | 불가 (반복할 사람 없음) |
+
+**표에서 뺀 것**: 입력 = issue, plan 기술 스택 = 저장소(G1-1, G1-3), 보고 후 멈춤 → 다음 단계 문서 열기와 슬래시 명령 안내 대체(G2-1, G2-2), 범위 밖 명령 언급 삭제(G2-3), specify의 질문·ERROR·"warn user" → 가정 기록(G1-2, G4-1, G4-3), 이름·경로 고정과 feature 폴더 준비(specify가 원래 직접 수행, 번호·이름 생성만 삭제: G5-1~G5-3, G7-4, D-4), `checks/` 위치 규칙(G5-5), hook 삭제(G7-1), 스크립트 원본 실행과 오류 안내 해석(G7-2, G7-3), jq 색상 wrapper(G7-8), 온라인 조회·설치 금지.
+
+**smoke에서 반드시 확인할 것** (새 행동 추가 행 2, 3, 4, 5, 8, 10, 11, 12): `06-smoke.md` "새 행동 발생".
 
 ## 변경
 

@@ -58,6 +58,19 @@ All rows decided (2026-10-13).
 
 | G7-8 | (c) `setup.sh` (`WorkflowSpec.setup_script`, run as root before the agent) writes `/usr/local/bin/jq` = `exec <real jq> -M "$@"`, ahead of `/usr/bin` on the task images' PATH; idempotent; no-op without jq. Scripts and stage docs unchanged | env | user 2026-10-14 | found in stage 4; verified in the MONAI image under `script -qec`: plain JSON, wrapper rerun-safe |
 
+## Operational rows, as speckit_bug (recorded 2026-10-16)
+
+The feasibility notes below say "G3-1 = new text; G8-4, G10-1..3 = operational (as bug)". Spelled out here so
+every gap row has a decision row; nothing new is decided (precedent: `speckit_bug/porting/03-decisions.md`).
+
+| Gap ID | Decision | Tag | Decided | Notes |
+|---|---|---|---|---|
+| G3-1 | hand-written entry document `docs/core-workflow.md` (stages, rounds, artifact dir, nobody waiting, who writes what) | (new text) | precedent, 2026-10-13 | as bug G3-1 |
+| G8-4 | no text change; steps per stage measured in the smoke | — | precedent, 2026-10-13 | step budget 150 |
+| G10-1 | SDK `<PROBLEM_SOLVING_WORKFLOW>` section rewritten for speckit_sdd | — | precedent, 2026-10-13 | as bug G10-1 |
+| G10-2 | SDK's "ask the user" / "confirm with the user" wording kept, for comparability with `none` and the other workflows | — | precedent, 2026-10-13 | as bug G10-2 |
+| G10-3 | dataset `swegym293_aidlc` with `instruction_position=prefix` | — | precedent, 2026-10-13 | as bug G10-3 |
+
 ## G7-2 (b) feasibility — verified 2026-10-13
 
 Arrangement: the spec-kit **project root is `/tmp/speckit-sdd/`** (outside the repo), shipped with
