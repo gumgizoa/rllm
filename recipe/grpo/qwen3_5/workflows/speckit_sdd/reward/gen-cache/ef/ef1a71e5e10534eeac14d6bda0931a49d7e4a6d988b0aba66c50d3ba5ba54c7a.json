@@ -1,0 +1,60 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "yes",
+    "kind": "path_name",
+    "line_end": 23,
+    "line_start": 20,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Check that the feature directory exists at the fixed path and holds the stage artifacts",
+    "path": "docs/stages/01-specify.md",
+    "quote": "`SPECIFY_FEATURE_DIRECTORY` is `/tmp/speckit-sdd/specs/001-issue`. ... `mkdir -p SPECIFY_FEATURE_DIRECTORY`",
+    "stage": "specify",
+    "target": "Feature directory /tmp/speckit-sdd/specs/001-issue is created and used for spec artifacts"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 51,
+    "line_start": 51,
+    "modality": "must",
+    "none_allowed": "unspecified",
+    "notes": "Check plan/contracts artifacts for an identification of exposed interfaces; it takes judgement to tell whether they are complete",
+    "path": "docs/stages/02-plan.md",
+    "quote": "- Identify what interfaces the project exposes to users or other systems",
+    "stage": "plan",
+    "target": "Plan identifies the interfaces the project exposes to users or other systems (contracts)"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 92,
+    "line_start": 92,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Check the transcript order: no final or summary report between the end of implement and the start of converge",
+    "path": "docs/stages/04-implement.md",
+    "quote": "- [ ] The converge stage (`/speckit-sdd/stages/05-converge.md`) opened next, with no report in between",
+    "stage": "implement",
+    "target": "Converge stage starts right after implement, with no intermediate report to the user"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7e68fcc556ba45f8a6c5507206a4bd4e5fd6242a773c080a9a6c500c1d901bdc",
+ "key": "ef1a71e5e10534eeac14d6bda0931a49d7e4a6d988b0aba66c50d3ba5ba54c7a",
+ "meta": {
+  "at": "2026-10-15T05:18:07Z",
+  "cost_usd": 0.042011,
+  "duration_ms": 8508,
+  "num_turns": 2,
+  "wall_s": 9.76
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round1",
+ "schema_sha256": "907d3d781c1cb6f38a37195975b0ef23f6058039dd96fb0abf09f09c5f6d4858",
+ "version": "2.1.283"
+}

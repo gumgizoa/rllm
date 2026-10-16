@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.pl-046.1",
+    "reason": "The text says to \"use project-relative paths for references in documentation\", so an absolute /tmp/speckit-sdd/ path left in research breaks that rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-046.2",
+    "reason": "The text says to \"use project-relative paths for references in documentation\", which applies to quickstart the same way and rules out /tmp/speckit-sdd/ paths.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-048.0",
+    "reason": "\"Plan workflow executed and design artifacts generated\" requires a plan artifact at minimum.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-048.1",
+    "reason": "\"design artifacts generated\" includes research.md, which the plan workflow always produces.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.pl-048.2",
+    "reason": "\"design artifacts generated\" does not name data-model specifically, and a data model is usually only needed when entities exist, so a hard must is stricter than written.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.tk-001.0",
+    "reason": "The text says \"**Setup**: Run `.../setup-tasks.sh --json`\" as the first step of the tasks stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-015.0",
+    "reason": "\"Generate tasks organized by user story\" supports checking that story tasks carry story labels.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-022.0",
+    "reason": "\"One phase per user story (in priority order from spec.md)\" directly supports a phase-order check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-023.0",
+    "reason": "\"Each phase includes: ... tests (if requested)\", together with line 43's \"every user story gets test tasks\", supports a should-level story-tests check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-025.0",
+    "reason": "\"Keep the Setup, Foundational and Polish phase headings even when a phase has no task; such a phase holds the one line `No tasks — <reason>`\" is an explicit requirement.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-026.0",
+    "reason": "\"All tasks must follow the strict checklist format\" supports requiring each checkbox line to carry a unique T### ID.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-033.0",
+    "reason": "\"Tasks MUST be organized by user story\" directly supports the story_tasks rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-034.0",
+    "reason": "\"every user story gets test tasks under `### Tests for User Story N`\" directly supports this check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-038.0",
+    "reason": "\"ALWAYS start with `- [ ]`\" applies to task lines, but of_pattern `T\\d{3}` also catches non-task lines that just mention IDs, such as dependency notes, so the check is stricter than written.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.tk-039.0",
+    "reason": "\"Sequential number (T001, T002, T003...) in execution order\" supports the sequence and uniqueness check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-040.0",
+    "reason": "\"Include ONLY if task is parallelizable (different files, ...)\" supports checking that [P] tasks touch different files.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-041.0",
+    "reason": "\"[US1], [US2], [US3], etc. (maps to user stories from spec.md)\" supports a should-level check that every label maps to a story in spec.md.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-042.0",
+    "reason": "\"Setup phase: NO story label ... Foundational phase: NO story label ... Polish phase: NO story label\" directly supports this check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-043.0",
+    "reason": "\"User Story phases: MUST have story label\" is explicit.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-045.0",
+    "reason": "\"Each user story (P1, P2, P3...) gets its own phase\" supports checking that every spec story has a matching phase heading in tasks.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "f5fc441e2d79f6a1e31423755d3cf13e48b265937c58189ad5537df3e3ef814c",
+ "key": "6cf8a8ae7a63b1262a1bb08224929180270363a638bac877ef2c2b4e4037c927",
+ "meta": {
+  "at": "2026-10-15T05:19:11Z",
+  "cost_usd": 0.08401,
+  "duration_ms": 19752,
+  "num_turns": 2,
+  "wall_s": 21.36
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

@@ -1,0 +1,742 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "The stage's **only** writes are its round report (step 6) and appending a new `## Phase N: Convergence` section to `tasks.md`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-007",
+    "target": {
+     "ref": "convergence",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Second converge round applies the same stage document.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "The stage's **only** writes are its round report (step 6) and appending a new `## Phase N: Convergence` section to `tasks.md`."
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-007",
+    "target": {
+     "ref": "convergence_2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "mode": "append_only",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**APPEND-ONLY, NEVER REWRITE**: The stage's **only** writes are its round report (step 6) and appending a new `## Phase N: Convergence` section to `tasks.md`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-007",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "mode": "append_only",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**APPEND-ONLY, NEVER REWRITE**: The stage's **only** writes are its round report (step 6) and appending a new `## Phase N: Convergence` section to `tasks.md`."
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-007",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "spec",
+         "fact": "artifact_write",
+         "window": "stage:converge"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "plan",
+         "fact": "artifact_write",
+         "window": "stage:converge"
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       20
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "It MUST NOT: ... - modify `spec.md` or `plan.md` in any way;"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-007",
+    "target": {
+     "ref": "spec/plan writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "spec",
+         "fact": "artifact_write",
+         "window": "stage:converge_2"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "plan",
+         "fact": "artifact_write",
+         "window": "stage:converge_2"
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       20
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "It MUST NOT: ... - modify `spec.md` or `plan.md` in any way;"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-007",
+    "target": {
+     "ref": "spec/plan writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "convergence_phase",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "appending a new `## Phase N: Convergence` section to `tasks.md`"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-008",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "appended",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       22
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "rewrite, renumber, reorder, or delete any existing task (including tasks from a prior Convergence phase);"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-009",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "appended",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       21,
+       22
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "rewrite, renumber, reorder, or delete any existing task (including tasks from a prior Convergence phase);"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-009",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       24
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "modify, create, or delete any application code — completing the appended tasks is the job of the implement stage"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-010",
+    "target": {
+     "ref": "application code writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       24
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "modify, create, or delete any application code — completing the appended tasks is the job of the implement stage"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-010",
+    "target": {
+     "ref": "application code writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Checked against the round report: a converged report implies no appended Convergence phase.",
+    "params": {
+     "artifact": "tasks",
+     "report": "convergence",
+     "rule": "convergence_phase",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       27
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "When the codebase already satisfies everything, the stage MUST leave `tasks.md` **byte-for-byte unchanged** (no empty Convergence header)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-011",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "report": "convergence_2",
+     "rule": "convergence_phase",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       27
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "When the codebase already satisfies everything, the stage MUST leave `tasks.md` **byte-for-byte unchanged** (no empty Convergence header)"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-011",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence",
+     "rule": "converged_line"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       27
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "and record a clean result in its round report."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-012",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence_2",
+     "rule": "converged_line"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       27
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "and record a clean result in its round report."
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-012",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-spec",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` once"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-016",
+    "target": {
+     "ref": "check-prerequisites.sh",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-spec",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` once"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-016",
+    "target": {
+     "ref": "check-prerequisites.sh",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The statement only derives paths; reading the derived artifacts is implied by the later loading steps, not stated here.",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "spec",
+      "plan",
+      "tasks"
+     ],
+     "window": "stage:converge"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       38,
+       42
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Derive absolute paths: - SPEC = FEATURE_DIR/spec.md - PLAN = FEATURE_DIR/plan.md - TASKS = FEATURE_DIR/tasks.md"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-018",
+    "target": {
+     "ref": "read spec/plan/tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Implicit: appended tasks continue the ID sequence under the next phase number.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "convergence_lines",
+     "window": "stage:converge"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Task IDs (to compute the next ID and next phase number)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-027",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence",
+     "rule": "findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       98,
+       105
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Classify every finding by **gap type**: - **`missing`**: ... - **`partial`**: ... - **`contradicts`**: ... - **`unrequested`**"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-038",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence_2",
+     "rule": "findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       98,
+       105
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Classify every finding by **gap type**: - **`missing`**: ... - **`partial`**: ... - **`contradicts`**: ... - **`unrequested`**"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-038",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Gap type and severity are covered by the report findings rule; no kind checks the per-finding source-ref, stable id and evidence fields.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       109,
+       110
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Each `Finding` records: a stable id, the `source-ref` it traces to, the `gap-type`, a severity, and a short human-readable description with the evidence (the file/area observed)."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-040",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence",
+     "rule": "outcome_rows"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Nothing remains**: produce zero findings and follow the converged branch in Step 7."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-042",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence_2",
+     "rule": "outcome_rows"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Nothing remains**: produce zero findings and follow the converged branch in Step 7."
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-042",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "note": "The findings rule checks that each finding has exactly one severity from CRITICAL/HIGH/MEDIUM/LOW.",
+    "params": {
+     "artifact": "convergence",
+     "rule": "findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       118,
+       126
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "### 5. Assign Severity ... - **CRITICAL**: ... - **HIGH**: ... - **MEDIUM**: ... - **LOW**:"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-043",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The condition (a prerequisite artifact is missing and the script exits non-zero) and the 'restart this stage' order cannot be written as an applies_when predicate in the reference language.",
+    "statement": "cv-019"
+   },
+   {
+    "reason": "Only applies when prerequisites are missing; that condition can't be written as a predicate, and 'partial output' has no checkable definition.",
+    "statement": "cv-020"
+   },
+   {
+    "reason": "Already covered by the cv-010 prohibited_action repo_write items for the converge windows. No kind can tell a code deletion apart from any other repo write.",
+    "statement": "cv-039"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "4ef85887e2975a1d49c8d4ff62d1042ab897ac5558cfba4f168179a92c80c9da",
+ "key": "2c8d201cfce88010b873d90a7bec48ae9575621a34b2c03d074d7f311655f1c1",
+ "meta": {
+  "at": "2026-10-15T05:16:43Z",
+  "cost_usd": 0.1637556,
+  "duration_ms": 55952,
+  "num_turns": 2,
+  "wall_s": 57.38
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "589124e0a63de36a301526db8c37eb5767793ff7345f906a753cc75661391cfa",
+ "version": "2.1.283"
+}

@@ -1,0 +1,825 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Round 1 implement ticks every task of tasks.md",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 1: implement works through the whole of `tasks.md`; converge writes `convergence.md`."
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-017",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "converge writes `convergence.md`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-017",
+    "target": {
+     "ref": "convergence",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Round 2 implement works only the tasks open at its start",
+    "params": {
+     "artifact": "tasks",
+     "open_at_start": true,
+     "rule": "ticked_after_work",
+     "window": "stage:implement_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       41
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "round 2 follows: implement does only the unchecked tasks (the new `## Phase N: Convergence`)"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "cw-018",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Applies only when round 2 runs (convergence.md Outcome tasks_appended)",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       41
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "and converge writes `convergence-2.md`."
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cw-018",
+    "target": {
+     "ref": "convergence_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "note": "No third converge round",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "convergence_3",
+       "fact": "artifact_write"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       43
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The chain is over as soon as a converge round records `converged`, or after round 2 whatever it found."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-019",
+    "target": {
+     "ref": "convergence_3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Calling the finish tool is not expressible as a fact",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Then call `finish`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-019",
+    "target": {
+     "ref": "finish",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       49,
+       50
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Links in the issue stay closed (where one matters, note it as `[UNVERIFIED — not fetched]`)"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-022",
+    "target": {
+     "ref": "issue links",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "'where one matters' is a judgment the engine cannot fully see",
+    "kind": "speckit_sdd.links",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       49,
+       50
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "where one matters, note it as `[UNVERIFIED — not fetched]`"
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-022",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       50,
+       50
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "nothing is searched for online, and no package is installed."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-023",
+    "target": {
+     "ref": "package install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       50,
+       50
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "nothing is searched for online"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-023",
+    "target": {
+     "ref": "web search",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:SY",
+      "read:PL",
+      "read:TK",
+      "read:IM",
+      "read:CV"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       57,
+       57
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "go from one stage straight into the next; a stage ends by opening the next document, not with a summary;"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-024",
+    "target": {
+     "ref": "stage transitions",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       61,
+       62
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the checkboxes in `tasks.md` are the record of implement's progress; a task-tracking tool is optional scratch beside them, never a substitute."
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-026",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "spec",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:specify",
+          "end"
+         ]
+        }
+       },
+       {
+        "absent": {
+         "artifact": "req_checklist",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:specify",
+          "end"
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| `spec.md`, `checklists/requirements.md` | specify | no |"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-027",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "plan",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:plan",
+          "end"
+         ]
+        }
+       },
+       {
+        "absent": {
+         "artifact": "research",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:plan",
+          "end"
+         ]
+        }
+       },
+       {
+        "absent": {
+         "artifact": "data_model",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:plan",
+          "end"
+         ]
+        }
+       },
+       {
+        "absent": {
+         "artifact": "quickstart",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:plan",
+          "end"
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| `plan.md`, `research.md`, Phase 1 files | plan | no |"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-028",
+    "target": {
+     "ref": "plan",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "later_edits"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| `tasks.md` | tasks | only by implement's `[X]` marks and by converge appending a `## Phase N: Convergence` |"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-029",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "convergence",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:converge",
+          "end"
+         ]
+        }
+       },
+       {
+        "absent": {
+         "artifact": "convergence_2",
+         "fact": "artifact_write",
+         "window": [
+          "stage_end:converge_2",
+          "end"
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| `convergence.md`, `convergence-2.md` | converge, one per round | no |"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-030",
+    "target": {
+     "ref": "convergence",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "note": "Round 1 converge writes only its own report",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "convergence_2",
+       "fact": "artifact_write",
+       "window": "stage:converge"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "converge, one per round"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-030",
+    "target": {
+     "ref": "convergence_2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "specify, plan, tasks",
+    "params": {
+     "action": "repo_write",
+     "window": [
+      "start",
+      "stage_start:implement"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       76
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement is the only stage that edits `/testbed`; the other stages only read it and run commands in it."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-032",
+    "target": {
+     "ref": "/testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       76
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement is the only stage that edits `/testbed`"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-032",
+    "target": {
+     "ref": "/testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       76
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement is the only stage that edits `/testbed`"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cw-032",
+    "target": {
+     "ref": "/testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "No test file is added or changed there."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-033",
+    "target": {
+     "ref": "/testbed test files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "No test file is added or changed there."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-033",
+    "target": {
+     "ref": "/testbed test files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "red_green"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       79
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "the verification scripts in `FEATURE_DIR/checks/`: each is run and seen failing before the code it covers exists, and passing once it does."
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-034",
+    "target": {
+     "ref": "checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "before_code"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "each is run and seen failing before the code it covers exists"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-034",
+    "target": {
+     "ref": "checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:implement",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       80
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The existing tests related to the change are run before implementing, for a baseline,"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-035",
+    "target": {
+     "ref": "existing related tests",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "last_change_write",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       80
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The existing tests related to the change are run before implementing, for a baseline, and again afterwards."
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-035",
+    "target": {
+     "ref": "existing related tests",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Permissive (as needed / may): checks/ may be written by implement for verification scripts and by any stage for scratch files; no obligation to check.",
+    "statement": "cw-031"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "5176298cfc0f2d53d38618820300a8375b03efb3b34f531021fb9601287052f6",
+ "key": "6f65019ea103afd67efd61aeec74a68c905d4815dc1d3d6aaa068cc6a1cc4fe4",
+ "meta": {
+  "at": "2026-10-15T05:11:18Z",
+  "cost_usd": 0.254536,
+  "duration_ms": 52502,
+  "num_turns": 2,
+  "wall_s": 53.67
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "bed795f0b5aa6234cd9e8356aa7e7087b60cdd1eda8d5b06c34d6ee6619b2eba",
+ "version": "2.1.283"
+}

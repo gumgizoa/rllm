@@ -1,0 +1,411 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "note": "Conditional on existence is built into speckit.read (only artifacts existing at the end are required to be read); mapping entities itself is not checkable.",
+    "params": {
+     "artifacts": [
+      "data_model"
+     ],
+     "window": [
+      "stage_start:tasks",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "If data-model.md exists: Extract entities and map to user stories"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-012",
+    "target": {
+     "ref": "data_model",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_label"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Generate tasks organized by user story (see Task Generation Rules below)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-015",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       19
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Generate tasks organized by user story ... Validate task completeness (each user story has all needed tasks, independently testable)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-015",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts and the title formats come from the templates, not the cited line.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "headings": {
+       "artifact": "tasks",
+       "group": 1,
+       "level": 1,
+       "pattern": "^Tasks: (.+)$"
+      }
+     },
+     "normalize": "text",
+     "relation": "equal",
+     "right": {
+      "headings": {
+       "artifact": "plan",
+       "group": 1,
+       "level": 1,
+       "pattern": "^Implementation Plan: (.+)$"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Correct feature name from plan.md"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-019",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Banning project-init / install / tool-config tasks needs a semantic judgment of the Setup task text.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Phase 1: Setup tasks - only what this change needs in the existing repository (no project initialization, dependency installation or tool configuration)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-020",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "phase_order"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Phase 3+: One phase per user story (in priority order from spec.md)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-022",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tests"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-023",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that every user-story phase has its own goal and independent-test line needs a per-phase check; the story phase headings vary, so no fixed section can be named.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-023",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Banning repo-wide Polish work needs a semantic judgment of the task text.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       27
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Final Phase: Polish - cleanup this change needs (no repository-wide documentation, refactoring, performance or security work)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-024",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "empty_phases"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Keep the Setup, Foundational and Polish phase headings even when a phase has no task; such a phase holds the one line `No tasks — <reason>`"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-025",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "of_pattern": "^- \\[[ xX]\\]",
+     "pattern": "^- \\[[ xX]\\] T\\d{3} ",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "All tasks must follow the strict checklist format (see Task Generation Rules below)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-026",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "File-path detection by regex is heuristic; some valid tasks may name a path without an extension.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "of_pattern": "^- \\[[ xX]\\] T\\d+",
+     "pattern": "^- \\[[ xX]\\] T\\d+ .*[\\w./-]+\\.\\w+"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       30,
+       30
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Clear file paths for each task"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-027",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "no_story_label"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Before moving on, confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)."
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-030",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "contracts/ has no artifact ID, so no read or mapping check can name it, and mapping contracts to stories is a semantic step.",
+    "statement": "tk-013"
+   },
+   {
+    "reason": "Already covered by the compiled template labels (Phase Dependencies / User Story Dependencies). The graph's content is not mechanically checkable beyond that.",
+    "statement": "tk-016"
+   },
+   {
+    "reason": "Using the template as the structure is already covered by the compiled template sections and labels. Which variable the template came from (TASKS_TEMPLATE_CONTENT or TASKS_TEMPLATE) can't be seen.",
+    "statement": "tk-018"
+   },
+   {
+    "reason": "The Foundational phase heading is already compiled from the template skeleton (Phase Dependencies / Foundational (Phase 2)); its 'shared prerequisites' content is semantic.",
+    "statement": "tk-021"
+   },
+   {
+    "reason": "The Dependencies section is already compiled from the template skeleton (Phase Dependencies / User Story Dependencies).",
+    "statement": "tk-028"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "899b5a209bec221ec33f6c50a86c4747837546a2323407bcfb11b4db59c88db2",
+ "key": "fdc86fe99faefa98e1cf5fe9f41760215b0419e598f476237c30bc587d2eeefd",
+ "meta": {
+  "at": "2026-10-15T05:14:11Z",
+  "cost_usd": 0.23674900000000001,
+  "duration_ms": 51034,
+  "num_turns": 2,
+  "wall_s": 52.25
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "f163e534fccee483a035586c5b5b6851ee54658bfbad35b0e81c260458f12d86",
+ "version": "2.1.283"
+}

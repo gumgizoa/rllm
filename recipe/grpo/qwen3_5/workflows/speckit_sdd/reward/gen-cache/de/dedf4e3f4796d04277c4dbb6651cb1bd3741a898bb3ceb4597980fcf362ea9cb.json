@@ -1,0 +1,93 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 90,
+    "line_start": 88,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Inferred: the agent should not type the slash command in the hint. It should treat the hint as meaning a stage's output file is missing and carry out that stage's document. The 'Run /speckit.plan first' candidate is quoted hint text, not a direct instruction.",
+    "quote": "The scripts are Spec Kit's own and print Spec Kit's hints, written for someone typing slash commands. An error like \"plan.md not found ... Run /speckit.plan first\" means that the stage named in the hint has not produced its file yet",
+    "stage": "global",
+    "target": "script failure hints naming slash commands"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 94,
+    "line_start": 92,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "If a failing script's hint names /speckit.specify or says 'Feature directory not found', carry out the specify stage first.",
+    "quote": "| `/speckit.specify`, or \"Feature directory not found\" | `/speckit-sdd/stages/01-specify.md` |",
+    "stage": "global",
+    "target": "/speckit-sdd/stages/01-specify.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 95,
+    "line_start": 92,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "If the hint names /speckit.plan, carry out the plan stage first.",
+    "quote": "| `/speckit.plan` | `/speckit-sdd/stages/02-plan.md` |",
+    "stage": "global",
+    "target": "/speckit-sdd/stages/02-plan.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 96,
+    "line_start": 92,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "If the hint names /speckit.tasks, carry out the tasks stage first.",
+    "quote": "| `/speckit.tasks` | `/speckit-sdd/stages/03-tasks.md` |",
+    "stage": "global",
+    "target": "/speckit-sdd/stages/03-tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "execution_evidence",
+    "line_end": 98,
+    "line_start": 98,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "After finishing the missing stage, rerun the script that failed.",
+    "quote": "After that, run the failing script again.",
+    "stage": "global",
+    "target": "failing Spec Kit script"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "tool_or_command",
+    "line_end": 98,
+    "line_start": 98,
+    "modality": "may",
+    "none_allowed": "-",
+    "notes": "Stated as a fact: scripts can be run from any directory, including /testbed.",
+    "quote": "The scripts work from any directory, `/testbed` included.",
+    "stage": "global",
+    "target": "Spec Kit scripts working directory"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "487a1efaa4c0a23be30013f56a6f0d64bad8c3e6196cc5e5011163561e784ed2",
+ "key": "dedf4e3f4796d04277c4dbb6651cb1bd3741a898bb3ceb4597980fcf362ea9cb",
+ "meta": {
+  "at": "2026-10-15T05:08:45Z",
+  "cost_usd": 0.052543,
+  "duration_ms": 13072,
+  "num_turns": 2,
+  "wall_s": 14.38
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "63c046e20df0b0819018b7c801b4a0a80865719b4186d9ec5f5cccb924ba4bc0",
+ "version": "2.1.283"
+}

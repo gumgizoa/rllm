@@ -1,0 +1,398 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "max": 3,
+     "pattern": "\\[NEEDS CLARIFICATION"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       155,
+       155
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "**Limit clarifications**: Maximum 3 [NEEDS CLARIFICATION] markers"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-060",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether each success criterion carries a specific metric is a semantic judgment; no deterministic kind checks it without inventing a regex.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       178
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Success criteria must be: ... **Measurable**: Include specific metrics (time, percentage, count, rate)"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-066",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No closed vocabulary of framework/language/tool names is given; checking technology-agnosticism needs semantic judgment.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       179
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Success criteria must be: ... **Technology-agnostic**: No mention of frameworks, languages, databases, or tools"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-067",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       199,
+       199
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Specification written to `SPEC_FILE` and validated against quality checklist"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-070",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The checklist file as the record of validation is inferred, not stated on this line.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       199,
+       199
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "validated against quality checklist"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-070",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The 'no report in between' part cannot be expressed; only the ordering of spec write before opening the plan doc is checked.",
+    "params": {
+     "chain": [
+      "last_write:spec",
+      "read:PL"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       200,
+       200
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "The plan stage (`/speckit-sdd/stages/02-plan.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "global",
+    "statement": "sy-071",
+    "target": {
+     "ref": "transition to plan stage",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json"
+     ],
+     "keys": [
+      "FEATURE_SPEC",
+      "IMPL_PLAN",
+      "FEATURE_DIR",
+      "BRANCH"
+     ],
+     "name": "setup-plan.sh"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "**Setup**: Run `/tmp/speckit-sdd/.specify/scripts/bash/setup-plan.sh --json` ... and parse JSON for FEATURE_SPEC, IMPL_PLAN, FEATURE_DIR, BRANCH."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-001",
+    "target": {
+     "ref": "setup-plan.sh --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "spec"
+     ],
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-005",
+    "target": {
+     "ref": "read spec.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Read FEATURE_SPEC and `/tmp/speckit-sdd/.specify/memory/constitution.md`."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-005",
+    "target": {
+     "ref": "read constitution.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "plan"
+     ],
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Load IMPL_PLAN template (already copied)."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-006",
+    "target": {
+     "ref": "read plan.md (IMPL_PLAN)",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CONSTITUTION",
+      "last_write:plan"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Fill Constitution Check section from constitution."
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-010",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-014",
+    "target": {
+     "ref": "research",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "That resolved markers are removed from plan.md's Technical Context is inferred; the line only says research.md resolves them.",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "NEEDS CLARIFICATION"
+     ],
+     "section": "Technical Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "docs/stages/02-plan.md",
+      "quote": "resolve all NEEDS CLARIFICATION"
+     }
+    ],
+    "stage": "plan",
+    "statement": "pl-014",
+    "target": {
+     "ref": "plan",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Conditional on setup-plan.sh exiting non-zero for a missing file or feature directory; that condition (exit status plus hint) cannot be expressed as a predicate. The script's eventual success is already checked under pl-001.",
+    "statement": "pl-003"
+   },
+   {
+    "reason": "Following the IMPL_PLAN template structure is already covered by the compiled template sections and labels for plan.",
+    "statement": "pl-007"
+   },
+   {
+    "reason": "Whether Technical Context values came from the repository's build files, CI config and environment, rather than from guessing, is not tied to any one run fact or selector. It is a semantic judgment.",
+    "statement": "pl-008"
+   },
+   {
+    "reason": "Which Technical Context fields are actually unknown is not observable, so no deterministic check can require a NEEDS CLARIFICATION marker on a given field.",
+    "statement": "pl-009"
+   },
+   {
+    "reason": "Only applies when the constitution is an unfilled template ([ALL_CAPS] placeholders with Example comments). No predicate in the reference language reads a source document's content, so the condition cannot be written as applies_when.",
+    "statement": "pl-011"
+   },
+   {
+    "reason": "Depends on the same unfilled-constitution condition, which cannot be expressed. Also, 'evaluate no gate' is not visible as a distinct action or field value.",
+    "statement": "pl-012"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d26167ac2cc7b9c5506e81db4b1ea5801354327b425dcca3f00b28b6d191f2b5",
+ "key": "d10e6ee68b2099642b864758943cc575f82bce80fd457a0d88869d8753069f1b",
+ "meta": {
+  "at": "2026-10-15T05:12:56Z",
+  "cost_usd": 0.232891,
+  "duration_ms": 44066,
+  "num_turns": 2,
+  "wall_s": 45.14
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "6877fc7e7d7339f65aed74037120e994d8ef937b562c7b5e92a5578413f9abc3",
+ "version": "2.1.283"
+}

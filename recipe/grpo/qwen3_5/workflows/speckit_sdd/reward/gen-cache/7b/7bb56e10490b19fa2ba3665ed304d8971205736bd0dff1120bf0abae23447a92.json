@@ -1,0 +1,891 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Each stage's order artifact is written, in stage order, by the agent itself.",
+    "params": {
+     "chain": [
+      "first_write:spec",
+      "first_write:plan",
+      "first_write:tasks",
+      "first_write:convergence"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "you run all five stages yourself, back to back, in this session."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-001",
+    "target": {
+     "ref": "all five stages",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.untouched",
+    "none_allowed": "-",
+    "params": {
+     "prefixes": [
+      "/tmp/speckit-sdd/.specify/scripts/",
+      "/tmp/speckit-sdd/.specify/templates/",
+      "/tmp/speckit-sdd/.specify/memory/"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       19
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The files under `/tmp/speckit-sdd/.specify/scripts/`, `templates/` and `memory/` are Spec Kit's own; leave them as they are."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-002",
+    "target": {
+     "ref": "/tmp/speckit-sdd/.specify/scripts, templates, memory",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 1 | specify | `/speckit-sdd/stages/01-specify.md` | none; the stage sets the feature up itself | `spec.md`, `checklists/requirements.md` (and `/tmp/speckit-sdd/.specify/feature.json`) |"
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-004",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`spec.md`, `checklists/requirements.md` (and `/tmp/speckit-sdd/.specify/feature.json`)"
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-004",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "(and `/tmp/speckit-sdd/.specify/feature.json`)"
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-004",
+    "target": {
+     "ref": "feature_json",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "That feature.json must point at the feature directory holding spec.md is implied, not stated.",
+    "kind": "speckit_sdd.feature_json",
+    "none_allowed": "-",
+    "note": "feature.json must point at FEATURE_DIR.",
+    "params": {
+     "artifact": "feature_json",
+     "feature_of": "spec"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "none; the stage sets the feature up itself | `spec.md`, `checklists/requirements.md` (and `/tmp/speckit-sdd/.specify/feature.json`)"
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-004",
+    "target": {
+     "ref": "feature_json",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json"
+     ],
+     "name": "setup-plan.sh",
+     "window": "stage:plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 2 | plan | `/speckit-sdd/stages/02-plan.md` | `setup-plan.sh --json` |"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-005",
+    "target": {
+     "ref": "setup-plan.sh --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`plan.md`, `research.md`, `data-model.md`, `quickstart.md` (both always; body `N/A — <reason>` when nothing applies)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-006",
+    "target": {
+     "ref": "plan",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`plan.md`, `research.md`, `data-model.md`, `quickstart.md` (both always; body `N/A — <reason>` when nothing applies)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-006",
+    "target": {
+     "ref": "research",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`plan.md`, `research.md`, `data-model.md`, `quickstart.md` (both always; body `N/A — <reason>` when nothing applies)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-006",
+    "target": {
+     "ref": "data_model",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`plan.md`, `research.md`, `data-model.md`, `quickstart.md` (both always; body `N/A — <reason>` when nothing applies)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-006",
+    "target": {
+     "ref": "quickstart",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "data_model",
+     "rule": "na_body"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "body `N/A — <reason>` when nothing applies"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-007",
+    "target": {
+     "ref": "data_model",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "quickstart",
+     "rule": "na_body"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "body `N/A — <reason>` when nothing applies"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-007",
+    "target": {
+     "ref": "quickstart",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.plan_docs",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "plan",
+     "rule": "contracts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "contract files under `contracts/` (listed in plan.md's Documentation tree, or `contracts/  # N/A — <reason>` there and no file)"
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-008",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json"
+     ],
+     "name": "setup-tasks.sh",
+     "window": "stage:tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       27
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3 | tasks | `/speckit-sdd/stages/03-tasks.md` | `setup-tasks.sh --json` | `tasks.md` |"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "cw-009",
+    "target": {
+     "ref": "setup-tasks.sh --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       27
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 3 | tasks | `/speckit-sdd/stages/03-tasks.md` | `setup-tasks.sh --json` | `tasks.md` |"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "cw-009",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`check-prerequisites.sh --json --require-tasks --include-tasks`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-010",
+    "target": {
+     "ref": "check-prerequisites.sh",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "before_code",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "per user story, first its verification scripts in `checks/` (run, seen failing), then the code change in `/testbed`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-011",
+    "target": {
+     "ref": "checks/ verification scripts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "red_green",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "first its verification scripts in `checks/` (run, seen failing), then the code change in `/testbed`, then the scripts again (passing)"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-011",
+    "target": {
+     "ref": "checks/ verification scripts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "pass_last",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "then the code change in `/testbed`, then the scripts again (passing)"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-011",
+    "target": {
+     "ref": "checks/ verification scripts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`[X]` marks in `tasks.md`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-012",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "That a tick comes after the task's work is implied by the listed order, not stated.",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work",
+     "window": "stage:implement"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "then the scripts again (passing); `[X]` marks in `tasks.md`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-012",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-spec",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "`check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` | `convergence.md` (round 2: `convergence-2.md`)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-013",
+    "target": {
+     "ref": "check-prerequisites.sh",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "| 5 | converge | `/speckit-sdd/stages/05-converge.md` | `check-prerequisites.sh --json --require-spec --require-tasks --include-tasks` | `convergence.md` (round 2: `convergence-2.md`)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-013",
+    "target": {
+     "ref": "convergence",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "SY",
+     "window": [
+      "stage_start:specify",
+      [
+       "first_write:spec",
+       "stage_end:specify"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+     }
+    ],
+    "stage": "specify",
+    "statement": "cw-014",
+    "target": {
+     "ref": "stage documents",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "PL",
+     "window": [
+      "stage_start:plan",
+      [
+       "first_write:plan",
+       "stage_end:plan"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+     }
+    ],
+    "stage": "plan",
+    "statement": "cw-014",
+    "target": {
+     "ref": "stage documents",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TK",
+     "window": [
+      "stage_start:tasks",
+      [
+       "first_write:tasks",
+       "stage_end:tasks"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+     }
+    ],
+    "stage": "tasks",
+    "statement": "cw-014",
+    "target": {
+     "ref": "stage documents",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IM",
+     "window": [
+      "stage_start:implement",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "stage_end:implement"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+     }
+    ],
+    "stage": "implement",
+    "statement": "cw-014",
+    "target": {
+     "ref": "stage documents",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CV",
+     "window": [
+      "stage_start:converge",
+      [
+       "first_write:convergence",
+       "stage_end:converge"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       33
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Begin every stage by opening its document, and carry the stage out from that document rather than from memory."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cw-014",
+    "target": {
+     "ref": "stage documents",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Once each: the earlier stage's artifact is not rewritten after the next stage has started.",
+    "params": {
+     "chain": [
+      "last_write:spec",
+      "first_write:plan",
+      "last_write:plan",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "specify, plan and tasks run once each, in that order."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "specify, plan, tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.holds",
+    "none_allowed": "-",
+    "note": "No third convergence report means no third round.",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "convergence_3",
+       "fact": "artifact_write"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement and converge then alternate, in at most two rounds"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-016",
+    "target": {
+     "ref": "implement/converge rounds",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Already covered by the cw-004 items: spec.md and checklists/requirements.md must exist under FEATURE_DIR when specify ends, and the feature directory exists exactly when they do. A separate check would only repeat them.",
+    "statement": "cw-003"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "939092ac26f11bb6bcc2f5cbafb56ced2f095507cb59556d0900d9c0ecaabfb6",
+ "key": "7bb56e10490b19fa2ba3665ed304d8971205736bd0dff1120bf0abae23447a92",
+ "meta": {
+  "at": "2026-10-15T05:11:38Z",
+  "cost_usd": 0.32665099999999997,
+  "duration_ms": 72676,
+  "num_turns": 2,
+  "wall_s": 73.84
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "bf04e35c22bd4ba8cfbad8df676c8fffde605934c70b5e1e6b33b68fbcfe0a03",
+ "version": "2.1.283"
+}

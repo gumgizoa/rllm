@@ -1,0 +1,33 @@
+{
+ "config": {
+  "path": "generator.yaml",
+  "sha256": "a42cb78f0734901be6d0d816a0000efc315e33f52637c6cc37767863d4170dd9"
+ },
+ "generator": "workflow_rubric.generator 0.1",
+ "kinds": "registry",
+ "llm": {
+  "backend": "claude-cli",
+  "cli": "2.1.283",
+  "model": "claude-opus-5-5"
+ },
+ "rubric_sha256": "7563cc10822ed11475b160218e305b3106f36731d4106e2a9a689988dad74953",
+ "sources": {
+  "docs/core-workflow.md": "72f8bc0b024b600bfe58a5288dc604d7c558e171b0ae74d62b7cd83392757254",
+  "docs/stages/01-specify.md": "297d880bd04b1fa00e1ea6426798d89caadb00c6ecd57a06ac66e93820b13d58",
+  "docs/stages/02-plan.md": "ceb5e3b435e0bc56017157f1162b637395d6bd5068d036c19ef02818845f9a33",
+  "docs/stages/03-tasks.md": "d87f49e4ab2c7fb74bc12ff6742f54e453f5e0c024b8607a7b3a84b5d70aeebf",
+  "docs/stages/04-implement.md": "09cbd404b885155fea310bfe2db64e49a4fa69c70fd76bbccbc84f83b8c4340e",
+  "docs/stages/05-converge.md": "9dc8324ce9cc507be86f1e7066c0df01d9fb943b456d122bb734875371a51cc9",
+  "instruction.md": "6366e18a25681d4b2537ac2886411303fc41c8ec812b0f160988b31bfb7962bb",
+  "sandbox/specify/memory/constitution.md": "ce7549540fa45543cca797a150201d868e64495fdff39dc38246fb17bd4024b3",
+  "sandbox/specify/scripts/bash/check-prerequisites.sh": "5e5e3dbfe29d8ca0a6f06de80fb2042cd3d26f42cff475b3a097c4aa0d70f16d",
+  "sandbox/specify/scripts/bash/common.sh": "53cb1c23e349db4586c272436ce35c6e2f36a9c0b5351a85e0b216d9887a26b7",
+  "sandbox/specify/scripts/bash/setup-plan.sh": "d0bd298c026446f3c63167130d65e49e4aa4485de6bef18bcdfd57b19aa0de96",
+  "sandbox/specify/scripts/bash/setup-tasks.sh": "0f7d7e996ed4a26ab7bf09bf10540366ee402b930a4a9cbc0ee7bc6a8bd0013b",
+  "sandbox/specify/templates/checklist-template.md": "6dd8102c855d232ae5d1c8de21575bc9ab6a7a6ff51c4fa805a024b63e6c0445",
+  "sandbox/specify/templates/plan-template.md": "71e9eb8a006b9164518dabb537466ee0f54707940d47e40bfad3ca08a6a6cc8e",
+  "sandbox/specify/templates/spec-template.md": "2047c07665225f9086c05b1800a07a25766cacd1ed347ff0c700b8b4e27a74bd",
+  "sandbox/specify/templates/tasks-template.md": "c571ad507918328df3496220ed9fd32fc03661c16dad336d605426d7e9dd4d8e",
+  "system-prompt.j2": "b04e6daac4d15b202838204a3f1aafcab666a0f075ac9ff9df0bc73225e308c7"
+ }
+}

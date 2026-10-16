@@ -1,0 +1,583 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "note": "The rerun after any missing prior stage must succeed within implement",
+    "params": {
+     "args": [
+      "--json",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "keys": [
+      "FEATURE_DIR",
+      "AVAILABLE_DOCS"
+     ],
+     "name": "check-prerequisites.sh",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` ... and parse FEATURE_DIR and AVAILABLE_DOCS list. If the script exits non-zero ... carry it out first from its stage document ... then run the script again."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-002",
+    "target": {
+     "ref": "check-prerequisites",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Absoluteness of every path passed/used is not expressible by an available kind",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "All paths must be absolute."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-003",
+    "target": {
+     "ref": "script args paths",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".*/checklists/.*",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "(if FEATURE_DIR/checklists/ exists):\n   - Treat checklist markers as a read-only check: scan checkbox state and proceed; do NOT modify checklist files or markers"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-005",
+    "target": {
+     "ref": "req_checklist",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".*/checklists/.*",
+     "window": "stage:implement_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       6
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "(if FEATURE_DIR/checklists/ exists):\n   - Treat checklist markers as a read-only check: scan checkbox state and proceed; do NOT modify checklist files or markers"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-005",
+    "target": {
+     "ref": "req_checklist",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "tasks"
+     ],
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**REQUIRED**: Read tasks.md for the complete task list and execution plan"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-010",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "tasks"
+     ],
+     "window": "stage:implement_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**REQUIRED**: Read tasks.md for the complete task list and execution plan"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-010",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "plan"
+     ],
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**REQUIRED**: Read plan.md for tech stack, architecture, and file structure"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-011",
+    "target": {
+     "ref": "plan",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "note": "speckit.read only requires reading artifacts that exist, matching IF EXISTS",
+    "params": {
+     "artifacts": [
+      "data_model"
+     ],
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IF EXISTS**: Read data-model.md for entities and relationships"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-012",
+    "target": {
+     "ref": "data_model",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "contracts/ is not a declared artifact or source; reading it if present cannot be expressed",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       38,
+       38
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IF EXISTS**: Read contracts/ for API specifications and test requirements"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-013",
+    "target": {
+     "ref": "contracts/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "research"
+     ],
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IF EXISTS**: Read research.md for technical decisions and constraints"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-014",
+    "target": {
+     "ref": "research",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IF EXISTS**: Read /tmp/speckit-sdd/.specify/memory/constitution.md for governance constraints"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-015",
+    "target": {
+     "ref": "CONSTITUTION",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "quickstart"
+     ],
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**IF EXISTS**: Read quickstart.md for integration scenarios"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-016",
+    "target": {
+     "ref": "quickstart",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "pattern": "(^|/)\\.(gitignore|dockerignore)$",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "the repository's ignore files (`.gitignore`, `.dockerignore` and the like) are not part of the change; do not create or edit them."
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-017",
+    "target": {
+     "ref": "ignore file write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "pattern": "(^|/)\\.(gitignore|dockerignore)$",
+     "window": "stage:implement_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "the repository's ignore files (`.gitignore`, `.dockerignore` and the like) are not part of the change; do not create or edit them."
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-017",
+    "target": {
+     "ref": "ignore file write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Restricting round-2 work to unchecked tasks needs task-to-action mapping not available",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       52,
+       52
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "execute only the unchecked tasks (normally that newest phase)"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-020",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Detecting redone [X]/setup tasks needs task-to-action mapping not available",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       52,
+       52
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "do not redo `[X]` tasks or the setup tasks"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-021",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "written",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "before any code edit for a story, write that story's verification scripts in `FEATURE_DIR/checks/`, run them and see them fail"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-022",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "before_code",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "before any code edit for a story, write that story's verification scripts in `FEATURE_DIR/checks/`, run them and see them fail"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-022",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "red_green",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "run them and see them fail; only then implement the story, and run them again to see them pass"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-023",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.checks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "pass_last",
+     "window": "stage:implement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "only then implement the story, and run them again to see them pass"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-023",
+    "target": {
+     "ref": "FEATURE_DIR/checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Phase completion ordering of executed work cannot be mapped from trace to tasks.md phases",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       54,
+       54
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "**Phase-by-phase execution**: Complete each phase before moving to the next"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-024",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "6e669ecc82f001d1f6294e150efd3ec0e3cf2ca8b4180652a28cfa9a392bdeb4",
+ "key": "40b74ac460fc12b3a1e5a1df23aea13d44a74f589101aff193ad126b354e87c1",
+ "meta": {
+  "at": "2026-10-15T05:15:21Z",
+  "cost_usd": 0.12966619999999998,
+  "duration_ms": 45027,
+  "num_turns": 2,
+  "wall_s": 46.12
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "41f8fdb876b2ed60f1659f83bb33a2767a3fa7dd9325eea610ab6cac86bf03bd",
+ "version": "2.1.283"
+}

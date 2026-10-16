@@ -1,0 +1,863 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": {
+     "exists": {
+      "artifact": "tasks",
+      "fact": "artifact_write",
+      "window": "stage:converge"
+     }
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": {
+      "first": {
+       "artifact": "tasks",
+       "fact": "artifact_write",
+       "window": "stage:converge"
+      }
+     },
+     "before": "first_write:convergence"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       130,
+       131
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Before appending anything, write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-048",
+    "target": {
+     "ref": "convergence",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "exists": {
+      "artifact": "tasks",
+      "fact": "artifact_write",
+      "window": "stage:converge_2"
+     }
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": {
+      "first": {
+       "artifact": "tasks",
+       "fact": "artifact_write",
+       "window": "stage:converge_2"
+      }
+     },
+     "before": "first_write:convergence_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       130,
+       131
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Before appending anything, write a compact, severity-graded summary to this round's report: ... `FEATURE_DIR/convergence-2.md` in round 2"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-048",
+    "target": {
+     "ref": "convergence_2",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       130,
+       131
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-049",
+    "target": {
+     "ref": "convergence",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       130,
+       131
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "write a compact, severity-graded summary to this round's report: `FEATURE_DIR/convergence.md` in round 1, `FEATURE_DIR/convergence-2.md` in round 2"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-050",
+    "target": {
+     "ref": "convergence_2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Convergence Findings",
+     "level": 2
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       132,
+       134
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "with this structure: ## Convergence Findings"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-051",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "convergence_2"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Convergence Findings",
+     "level": 2
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       132,
+       134
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "with this structure: ## Convergence Findings"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-051",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "params": {
+     "label": "Round",
+     "section": "Convergence Findings",
+     "text": "1"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       136,
+       136
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "- **Round**: 1 | 2"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-052",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "convergence_2"
+    },
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "params": {
+     "label": "Round",
+     "section": "Convergence Findings",
+     "text": "2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       136,
+       136
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "- **Round**: 1 | 2"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-052",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_enum",
+    "none_allowed": "no",
+    "params": {
+     "label": "Outcome",
+     "section": "Convergence Findings",
+     "values": [
+      "converged",
+      "tasks_appended"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       137,
+       137
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "- **Outcome**: converged | tasks_appended"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-053",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "convergence_2"
+    },
+    "class": "content",
+    "kind": "field_enum",
+    "none_allowed": "no",
+    "params": {
+     "label": "Outcome",
+     "section": "Convergence Findings",
+     "values": [
+      "converged",
+      "tasks_appended"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       137,
+       137
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "- **Outcome**: converged | tasks_appended"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-053",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^\\|\\s*ID\\s*\\|\\s*Gap Type\\s*\\|\\s*Severity\\s*\\|\\s*Source\\s*\\|\\s*Evidence\\s*\\|\\s*Remaining Work\\s*\\|",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       139,
+       140
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "| ID | Gap Type | Severity | Source | Evidence | Remaining Work |"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-054",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence",
+     "rule": "findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       139,
+       141
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "| ID | Gap Type | Severity | Source | Evidence | Remaining Work |"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-054",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "convergence_2"
+    },
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence_2",
+     "rule": "findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       139,
+       141
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "| ID | Gap Type | Severity | Source | Evidence | Remaining Work |"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-054",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Requirements / acceptance criteria checked",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       143,
+       145
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Summary metrics:** ... - Requirements / acceptance criteria checked"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-055",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Plan decisions checked",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       143,
+       146
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Summary metrics:** ... - Plan decisions checked"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-055",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Constitution principles checked",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       143,
+       147
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Summary metrics:** ... - Constitution principles checked (or \"skipped — template\")"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-055",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Findings by gap type",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       143,
+       148
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Summary metrics:** ... - Findings by gap type (missing / partial / contradicts / unrequested)"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-055",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "Findings by severity",
+     "section": "Convergence Findings"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       143,
+       149
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**Summary metrics:** ... - Findings by severity"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-055",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "report": "convergence",
+     "rule": "appended",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       153,
+       155
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "**If there are one or more actionable findings** (`tasks_appended` outcome): Append to the **end** of `tasks.md`, per the append contract:"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-057",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "mode": "append_only",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       155,
+       155
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Append to the **end** of `tasks.md`, per the append contract:"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-057",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "mode": "append_only",
+     "window": "stage:converge_2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       155,
+       155
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Append to the **end** of `tasks.md`, per the append contract:"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-057",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "report": "convergence",
+     "rule": "convergence_phase",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       157,
+       159
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Scan all existing task IDs; let `M` be the maximum. Determine the next phase number `N` (highest existing phase + 1). 2. Write a single new section header `## Phase N: Convergence`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-058",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^## Phase \\d+: Convergence"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Write a single new section header `## Phase N: Convergence`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-059",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence",
+     "rule": "outcome_rows"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       160,
+       160
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Emit one checklist item per actionable finding"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-060",
+    "target": {
+     "ref": "convergence",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "convergence_2"
+    },
+    "class": "content",
+    "kind": "speckit_sdd.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "convergence_2",
+     "rule": "outcome_rows"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       160,
+       160
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "Emit one checklist item per actionable finding"
+     }
+    ],
+    "stage": "converge_2",
+    "statement": "cv-060",
+    "target": {
+     "ref": "convergence_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Ordering of appended tasks by the severity of their linked findings needs a join between tasks.md lines and report rows that no kind expresses.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       160,
+       160
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "ordered CRITICAL/HIGH first"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-061",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "^- \\[[ xX]\\] (T\\d{3})",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       160,
+       161
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "assigning zero-padded IDs `T{M+1:03d}, T{M+2:03d}, …`:"
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-062",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_matches": {
+      "artifact": "convergence",
+      "label": "Outcome",
+      "pattern": "tasks_appended",
+      "section": "Convergence Findings"
+     }
+    },
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "report": "convergence",
+     "rule": "convergence_lines",
+     "window": "stage:converge"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       167,
+       170
+      ],
+      "path": "docs/stages/05-converge.md",
+      "quote": "`<source-ref>` traces the task to its origin: e.g. `FR-003`, `SC-002`, `US1/AC2`, `plan: storage decision`, `Constitution II`. `<gap-type>` is one of `missing`, `partial`, `contradicts`, `unrequested`."
+     }
+    ],
+    "stage": "converge",
+    "statement": "cv-063",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Optional (MAY): the 'skipped — template' value is an allowed alternative, not a requirement; the required constitution metric line is already covered under cv-055.",
+    "statement": "cv-056"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "aa88588df30fe532f0ce927a9634fa1e84894e7d655393ea928fdb757ccfab02",
+ "key": "d9c6e7b2ebe155318f52350d3c70031d5f11d2d58964f34475840daac8f2efa3",
+ "meta": {
+  "at": "2026-10-15T05:17:15Z",
+  "cost_usd": 0.17672999999999997,
+  "duration_ms": 61631,
+  "num_turns": 2,
+  "wall_s": 62.79
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "35927ef4e5c4373150f3f90e4abf03b041699e5532e0e1ea2b465420a7aec4da",
+ "version": "2.1.283"
+}

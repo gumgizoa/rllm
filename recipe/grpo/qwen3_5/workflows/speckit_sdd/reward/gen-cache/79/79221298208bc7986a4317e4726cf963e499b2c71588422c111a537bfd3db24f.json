@@ -1,0 +1,438 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind detects a tool-less completion reply at the tasks/implement boundary; checkable in principle from the trace.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Nothing is reported at the end of this stage: no one reads a completion message, and a reply without a tool call ends the session."
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-031",
+    "target": {
+     "ref": "end-of-stage reply",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "read:IM",
+     "before": "last_write:tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Once tasks.md is written, open `/speckit-sdd/stages/04-implement.md` and start the implement stage."
+     }
+    ],
+    "stage": "global",
+    "statement": "tk-032",
+    "target": {
+     "ref": "read:IM",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Tasks MUST be organized by user story to enable independent implementation and testing."
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-033",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tests"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "So every user story gets test tasks under `### Tests for User Story N`"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-034",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "their files are verification scripts under `/tmp/speckit-sdd/specs/001-issue/checks/` (for example `/tmp/speckit-sdd/specs/001-issue/checks/test_[name].py`), never test files in the repository."
+     }
+    ],
+    "stage": "global",
+    "statement": "tk-035",
+    "target": {
+     "ref": "test file creation in repository",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "of_pattern": "^\\s*- \\[",
+     "pattern": "^- \\[ \\] T\\d{3} (\\[P\\] )?(\\[US\\d+\\] )?\\S"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       47,
+       59
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Every task MUST strictly follow this format: ... **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox) ... (T001, T002, T003...) ... **[P] marker** ... Format: [US1], [US2], [US3], etc."
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-037",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "of_pattern": "T\\d{3}",
+     "pattern": "^- \\[ \\] T\\d{3}"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       56
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox) 2. **Task ID**: Sequential number (T001, T002, T003...) in execution order"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-038",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^- \\[ \\] T(\\d{3})",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       56
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "ALWAYS start with `- [ ]` (markdown checkbox) 2. **Task ID**: Sequential number (T001, T002, T003...) in execution order"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-039",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "parallel_files"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       57,
+       57
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-040",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (tasks.md and spec.md).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "tasks",
+       "group": 1,
+       "pattern": "\\[US(\\d+)\\]"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "headings": {
+       "artifact": "spec",
+       "group": 1,
+       "level": 3,
+       "pattern": "User Story (\\d+)"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       58,
+       59
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**[Story] label**: REQUIRED for user story phase tasks only\n   - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-041",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "no_story_label"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       60,
+       63
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Setup phase: NO story label ... Foundational phase: NO story label ... Polish phase: NO story label"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-042",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_label"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "User Story phases: MUST have story label"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-043",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether every task description names an exact file path has no dedicated kind; a regex for 'a path' would be invented.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Description**: Clear action with exact file path"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-044",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (tasks.md and spec.md).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "headings": {
+       "artifact": "tasks",
+       "group": 1,
+       "level": 2,
+       "pattern": "Phase \\d+: User Story (\\d+)"
+      }
+     },
+     "normalize": "id",
+     "relation": "superset",
+     "right": {
+      "headings": {
+       "artifact": "spec",
+       "group": 1,
+       "level": 3,
+       "pattern": "User Story (\\d+)"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       80,
+       80
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Each user story (P1, P2, P3...) gets its own phase"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-045",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The template's 'User Story Dependencies' section, already compiled from the skeleton, covers this. 'Most stories should be independent' is a judgement call that no rule can check.",
+    "statement": "tk-047"
+   },
+   {
+    "reason": "This only applies when interface contracts exist, and a contract-to-story mapping can't be expressed as an observable predicate or selector. Issue-fix runs usually record contracts as N/A.",
+    "statement": "tk-048"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "781d8ca6f314f1094321cda814a75d8846a456c88fa4f34e31634a1a93144bee",
+ "key": "79221298208bc7986a4317e4726cf963e499b2c71588422c111a537bfd3db24f",
+ "meta": {
+  "at": "2026-10-15T05:14:27Z",
+  "cost_usd": 0.223487,
+  "duration_ms": 44732,
+  "num_turns": 2,
+  "wall_s": 45.77
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "e913685ab619fa9bbce47ce6bb79fd100e35a6e0c3608e80bd215c2aab59634d",
+ "version": "2.1.283"
+}

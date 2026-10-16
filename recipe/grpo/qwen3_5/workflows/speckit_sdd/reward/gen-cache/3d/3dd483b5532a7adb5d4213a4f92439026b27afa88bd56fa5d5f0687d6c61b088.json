@@ -1,0 +1,502 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Tests count as requested; test tasks must precede implementation tasks in each story phase.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tests"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "If tests requested: Each interface contract → contract test task [P] before implementation in that story's phase"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-049",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "implicit: phase presence is inferred from the phase structure list",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "empty_phases"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Phase 1**: Setup (only what this change needs in the existing repository; `No tasks — <reason>` if empty)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-057",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "empty_phases"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "`No tasks — <reason>` if empty"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-059",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "No tasks — <reason>"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "`No tasks — <reason>` if empty"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-059",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "implicit: presence of the phase is inferred",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "empty_phases"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-060",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "phase_order"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "blocking prerequisites - MUST complete before user stories"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-061",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "implicit ordering rule",
+    "kind": "speckit.task_lines",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "phase_order"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Phase 3+**: User Stories in priority order (P1, P2, P3...)"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-062",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "implicit; only the tests-first part is checkable",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "note": "Models → Services → Endpoints → Integration sub-ordering is not checked.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "story_tests"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "Within each story: Tests (if requested) → Models → Services → Endpoints → Integration"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-063",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "implicit: presence of the final phase is inferred",
+    "kind": "speckit_sdd.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "empty_phases"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       110,
+       110
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "**Final Phase**: Polish & Cross-Cutting Concerns"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-065",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       114,
+       114
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "tasks.md generated with all phases, task IDs, and file paths"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-066",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Task ID format T001 follows the tasks template.",
+    "params": {
+     "min": 1,
+     "of_pattern": "^- \\[[ xX]\\] ",
+     "pattern": "^- \\[[ xX]\\] T\\d{3}",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       114,
+       114
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "tasks.md generated with all phases, task IDs, and file paths"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-067",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "path-shape regex is an approximation not given by the document",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "of_pattern": "^- \\[[ xX]\\] T\\d{3}",
+     "pattern": "^- \\[[ xX]\\] T\\d{3} .*[\\w-]+/[\\w./-]+"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       114,
+       114
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "tasks.md generated with all phases, task IDs, and file paths"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-068",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IM"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       115
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "The implement stage (`/speckit-sdd/stages/04-implement.md`) opened next, with no report in between"
+     }
+    ],
+    "stage": "implement",
+    "statement": "tk-069",
+    "target": {
+     "ref": "read:IM",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "last_write:tasks",
+      "read:IM"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       115
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "The implement stage (`/speckit-sdd/stages/04-implement.md`) opened next"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-069",
+    "target": {
+     "ref": "read:IM",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind observes assistant status reports/stops between stages.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       115
+      ],
+      "path": "docs/stages/03-tasks.md",
+      "quote": "with no report in between"
+     }
+    ],
+    "stage": "tasks",
+    "statement": "tk-070",
+    "target": {
+     "ref": "stage_end:tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`"
+     }
+    ],
+    "stage": "implement",
+    "statement": "im-001",
+    "target": {
+     "ref": "SCRIPT_CHECK_PREREQUISITES",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "speckit_sdd.script",
+    "none_allowed": "-",
+    "params": {
+     "args": [
+      "--json",
+      "--require-tasks",
+      "--include-tasks"
+     ],
+     "name": "check-prerequisites.sh"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/04-implement.md",
+      "quote": "Run `/tmp/speckit-sdd/.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`"
+     }
+    ],
+    "stage": "implement_2",
+    "statement": "im-001",
+    "target": {
+     "ref": "SCRIPT_CHECK_PREREQUISITES",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Mapping data-model entities to the user stories that need them is a semantic judgement; no selector can pull entity names out of data-model.md and match them to story phases reliably.",
+    "statement": "tk-050"
+   },
+   {
+    "reason": "Quoting field constraints word for word would mean pulling free-form constraint text out of data-model.md and matching it against task descriptions. No kind can do that.",
+    "statement": "tk-053"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "5503509deb02ce860571af7eedffcd10b65479eeb9f841e726bcdcc2e8522be4",
+ "key": "3dd483b5532a7adb5d4213a4f92439026b27afa88bd56fa5d5f0687d6c61b088",
+ "meta": {
+  "at": "2026-10-15T05:14:59Z",
+  "cost_usd": 0.22820499999999996,
+  "duration_ms": 47483,
+  "num_turns": 2,
+  "wall_s": 48.52
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample0",
+ "schema_sha256": "6dad19f33ef8326a8808b1aec85f0b41c5cbf0045e9cbd9de71cd2d9506f011c",
+ "version": "2.1.283"
+}

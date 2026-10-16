@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.tk-049.0",
+    "reason": "The text says \"Each interface contract → contract test task [P] before implementation in that story's phase\", and the rule is already a should, which fits the \"If tests requested\" condition.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-059.0",
+    "reason": "Line 105 requires an empty phase to state \"`No tasks — <reason>` if empty\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-059.1",
+    "reason": "\"<reason>\" in \"`No tasks — <reason>`\" is a placeholder meant to be filled in, so leaving it unfilled is template residue.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-061.0",
+    "reason": "The text explicitly says \"blocking prerequisites - MUST complete before user stories\", which supports a must on phase order.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-062.0",
+    "reason": "The text directly states \"Phase 3+: User Stories in priority order (P1, P2, P3...)\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-063.0",
+    "reason": "The text gives a clear order within each story: \"Tests (if requested) → Models → Services → Endpoints → Integration\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-066.0",
+    "reason": "The text says \"tasks.md generated\", which directly implies the artifact exists.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-067.0",
+    "reason": "\"tasks.md generated with all phases, task IDs\" supports checking that every task line has a unique T### ID.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.tk-068.0",
+    "reason": "\"tasks.md generated with ... task IDs, and file paths\" supports, as a should, checking that task lines include file paths.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-010.0",
+    "reason": "The text says \"**REQUIRED**: Read tasks.md for the complete task list\", which supports a must.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-011.0",
+    "reason": "The text says \"**REQUIRED**: Read plan.md for tech stack, architecture, and file structure\", which supports a must.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-012.0",
+    "reason": "The text only says \"**IF EXISTS**: Read data-model.md\", but the item is an unconditional must with applies_when=None, so it is stricter than written.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.im-014.0",
+    "reason": "The text only says \"**IF EXISTS**: Read research.md\", but the item is an unconditional must with no existence condition.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.im-016.0",
+    "reason": "The text only says \"**IF EXISTS**: Read quickstart.md\", but the item is an unconditional must with no existence condition.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.im-033.0",
+    "reason": "The parenthetical \"(repository already initialized, no dependency installation)\" supports a should-level ban on installing during implement.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-056.0",
+    "reason": "\"the `[X]` marks in tasks.md ... are the record\" supports checking that tasks are marked once their code is done.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-058.0",
+    "reason": "\"Once every task you can complete is marked, open ... 05-converge.md\" supports checking that tasks are ticked before converge is read.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.im-059.0",
+    "reason": "The completion criterion directly states \"All tasks in tasks.md completed and marked `[X]`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-003.0",
+    "reason": "The text says to \"append each piece of remaining work as a new, traceable task at the bottom of `tasks.md`\" during converge.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cv-007.0",
+    "reason": "\"The stage's **only** writes are its round report (step 6)\" implies the converge round report artifact should exist.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "2f9e0ef29d839e2ee970e07c666bdf55488cb3fbf335d4f440d1979f97554696",
+ "key": "3acd14ebaa7bf6df7a2a0249f68aa5ddbf4a22ee8736e4a27fe4724d0883b655",
+ "meta": {
+  "at": "2026-10-15T05:19:32Z",
+  "cost_usd": 0.0718174,
+  "duration_ms": 19587,
+  "num_turns": 2,
+  "wall_s": 20.7
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

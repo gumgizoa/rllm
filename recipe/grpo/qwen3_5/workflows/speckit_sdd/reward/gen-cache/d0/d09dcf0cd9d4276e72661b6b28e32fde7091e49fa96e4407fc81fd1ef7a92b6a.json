@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cw-023.0",
+    "reason": "The text says outright that \"no package is installed\" during the workflow.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-026.0",
+    "reason": "\"the checkboxes in `tasks.md` are the record of implement's progress ... never a substitute\" means the tasks must be ticked as the work is done in implement.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-027.0",
+    "reason": "The later-edits column for `spec.md` and `checklists/requirements.md` says \"no\" after the specify stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-028.0",
+    "reason": "The later-edits column for `plan.md`, `research.md` and the \"Phase 1 files\" says \"no\" after the plan stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-029.0",
+    "reason": "`tasks.md` may be edited later \"only by implement's `[X]` marks and by converge appending a `## Phase N: Convergence`\", which is exactly the later_edits rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-030.0",
+    "reason": "The table gives `convergence.md` and `convergence-2.md` as \"converge, one per round\" with later edits \"no\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-036.0",
+    "reason": "\"Ignore files (`.gitignore`, `.dockerignore` and so on) stay untouched\" directly forbids writing to them.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-037.0",
+    "reason": "\"Nothing of the workflow lands in `/testbed`: no spec copies, notes, summaries\", so creating .md files in the repo breaks the rule.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-038.0",
+    "reason": "The text names \"A script written anywhere else — `/tmp/test_x.py` ... breaks this rule\" as a violation, so the check forbids that case.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-039.0",
+    "reason": "The text only explains that hints are \"written for someone typing slash commands\" and never states a ban on running `/speckit.*` commands, so the ban is only implied.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.sy-002.0",
+    "reason": "\"quote it as it appears, marked `[UNVERIFIED — not fetched]`\" directly sets the required link format.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-006.0",
+    "reason": "\"Where a template asks for the branch, write `001-issue`\" directly sets the value of the Feature Branch field.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-008.0",
+    "reason": "\"Copy ... spec-template.md to `SPECIFY_FEATURE_DIRECTORY/spec.md`\" requires the spec file to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-010.0",
+    "reason": "\"Persist the feature directory to `/tmp/speckit-sdd/.specify/feature.json`\" with `\"feature_directory\": \"specs/001-issue\"` defines the check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-012.0",
+    "reason": "\"The spec directory and file are always created by this stage\" requires the spec to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-018.0",
+    "reason": "\"LIMIT: Maximum 3 [NEEDS CLARIFICATION] markers total\" directly sets max 3.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-031.0",
+    "reason": "\"Generate a checklist file at `SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md`\" requires the checklist to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-042.0",
+    "reason": "\"replace the marker in the spec with it\" means no [NEEDS CLARIFICATION] markers may remain in the final spec.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-048.0",
+    "reason": "\"Once `SPEC_FILE` and `checklists/requirements.md` are written\" assumes the spec exists.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.sy-048.1",
+    "reason": "\"Once `SPEC_FILE` and `checklists/requirements.md` are written\" assumes the requirements checklist exists.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "816dead2f114b2f0fc9ae2dbe0be38597bcfcac0eb7c92495e1f8533db30b648",
+ "key": "d09dcf0cd9d4276e72661b6b28e32fde7091e49fa96e4407fc81fd1ef7a92b6a",
+ "meta": {
+  "at": "2026-10-15T05:19:12Z",
+  "cost_usd": 0.084748,
+  "duration_ms": 20453,
+  "num_turns": 2,
+  "wall_s": 21.95
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

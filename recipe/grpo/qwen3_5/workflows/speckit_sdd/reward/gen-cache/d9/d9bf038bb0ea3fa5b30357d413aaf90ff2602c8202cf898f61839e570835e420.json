@@ -1,0 +1,189 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 105,
+    "line_start": 105,
+    "modality": "implicit",
+    "none_allowed": "yes",
+    "notes": "Phase 1 Setup has to be present. If it has no tasks, write 'No tasks — <reason>'.",
+    "quote": "**Phase 1**: Setup (only what this change needs in the existing repository; `No tasks — <reason>` if empty)",
+    "stage": "tasks",
+    "target": "tasks.md Phase 1 Setup section"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 105,
+    "line_start": 105,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Setup should list only what this change needs, not a greenfield project setup.",
+    "quote": "Setup (only what this change needs in the existing repository",
+    "stage": "tasks",
+    "target": "Phase 1 Setup tasks scope"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "placeholder_forbidden",
+    "line_end": 105,
+    "line_start": 105,
+    "modality": "must",
+    "none_allowed": "yes",
+    "notes": "An empty Phase 1 needs a real reason. The literal <reason> placeholder must not be left in.",
+    "quote": "`No tasks — <reason>` if empty",
+    "stage": "tasks",
+    "target": "empty Phase 1 marker"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 106,
+    "line_start": 106,
+    "modality": "implicit",
+    "none_allowed": "unspecified",
+    "notes": "Phase 2 Foundational has to be present.",
+    "quote": "**Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)",
+    "stage": "tasks",
+    "target": "tasks.md Phase 2 Foundational section"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 106,
+    "line_start": 106,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Foundational tasks come before and block the user story phases.",
+    "quote": "blocking prerequisites - MUST complete before user stories",
+    "stage": "tasks",
+    "target": "Phase 2 relative to user story phases"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 107,
+    "line_start": 107,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Phase 3 and later are one phase per user story, ordered by priority.",
+    "quote": "**Phase 3+**: User Stories in priority order (P1, P2, P3...)",
+    "stage": "tasks",
+    "target": "user story phases"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 108,
+    "line_start": 108,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Include test tasks only if tests were requested.",
+    "quote": "Within each story: Tests (if requested) → Models → Services → Endpoints → Integration",
+    "stage": "tasks",
+    "target": "task order within each story phase"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 109,
+    "line_start": 109,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Each phase should be a complete, independently testable increment",
+    "stage": "tasks",
+    "target": "each phase"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 110,
+    "line_start": 110,
+    "modality": "implicit",
+    "none_allowed": "unspecified",
+    "notes": "The last phase is Polish & Cross-Cutting Concerns.",
+    "quote": "**Final Phase**: Polish & Cross-Cutting Concerns",
+    "stage": "tasks",
+    "target": "tasks.md final Polish phase"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "artifact_exists",
+    "line_end": 114,
+    "line_start": 114,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "tasks.md exists and contains every phase.",
+    "quote": "tasks.md generated with all phases",
+    "stage": "tasks",
+    "target": "tasks.md"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "structure",
+    "line_end": 114,
+    "line_start": 114,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Every task has an ID.",
+    "quote": "tasks.md generated with ... task IDs",
+    "stage": "tasks",
+    "target": "tasks in tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "structure",
+    "line_end": 114,
+    "line_start": 114,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Tasks name file paths.",
+    "quote": "tasks.md generated with ... file paths",
+    "stage": "tasks",
+    "target": "tasks in tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 115,
+    "line_start": 115,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The implement stage doc is the next thing opened.",
+    "quote": "The implement stage (`/speckit-sdd/stages/04-implement.md`) opened next",
+    "stage": "tasks",
+    "target": "/speckit-sdd/stages/04-implement.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 115,
+    "line_start": 115,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "No status report or stop between the tasks and implement stages.",
+    "quote": "with no report in between",
+    "stage": "tasks",
+    "target": "transition from tasks to implement"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "55e03455dd793aa41e56fafc694c36e1a58e4758005f2290532e755dcd46a7fc",
+ "key": "d9bf038bb0ea3fa5b30357d413aaf90ff2602c8202cf898f61839e570835e420",
+ "meta": {
+  "at": "2026-10-15T05:09:32Z",
+  "cost_usd": 0.0534086,
+  "duration_ms": 16264,
+  "num_turns": 2,
+  "wall_s": 17.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "63c046e20df0b0819018b7c801b4a0a80865719b4186d9ec5f5cccb924ba4bc0",
+ "version": "2.1.283"
+}

@@ -1,0 +1,246 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "speckit_sdd.feature_json",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "feature_json",
+     "feature_of": "spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       32
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Persist the feature directory to `/tmp/speckit-sdd/.specify/feature.json`: ... The value is relative to the project root `/tmp/speckit-sdd`."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-010",
+    "target": {
+     "ref": "feature_json",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "The spec directory and file are always created by this stage"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-012",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "TPL_SPEC",
+     "window": "stage:specify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Load the spec template (`/tmp/speckit-sdd/.specify/templates/spec-template.md`, now copied to `SPEC_FILE`) to understand required sections."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-013",
+    "target": {
+     "ref": "read:TPL_SPEC",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Ordering against the spec write is implied (load to understand required sections), not stated.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "last_write:spec",
+     "before": "read:TPL_SPEC"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Load the spec template ... to understand required sections."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-013",
+    "target": {
+     "ref": "read:TPL_SPEC",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "The constitution is shipped in the sandbox, so the IF EXISTS condition holds.",
+    "params": {
+     "doc": "CONSTITUTION",
+     "window": "stage:specify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "**IF EXISTS**: Load `/tmp/speckit-sdd/.specify/memory/constitution.md` for project principles and governance constraints."
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-014",
+    "target": {
+     "ref": "read:CONSTITUTION",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Counts lines with a marker; approximates the total-markers limit.",
+    "params": {
+     "max": 3,
+     "pattern": "\\[NEEDS CLARIFICATION"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "**LIMIT: Maximum 3 [NEEDS CLARIFICATION] markers total**"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-018",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "docs/stages/01-specify.md",
+      "quote": "Generate a checklist file at `SPECIFY_FEATURE_DIRECTORY/checklists/requirements.md`"
+     }
+    ],
+    "stage": "specify",
+    "statement": "sy-031",
+    "target": {
+     "ref": "req_checklist",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Checking that only one feature directory exists under specs/ would need a directory count. No kind or fact selector can express that.",
+    "statement": "sy-011"
+   },
+   {
+    "reason": "The compiled template items already cover filling User Scenarios & Testing. The rule against an ERROR exit is about the agent's reasoning and leaves nothing observable to check.",
+    "statement": "sy-020"
+   },
+   {
+    "reason": "The compiled template items already check that Functional Requirements is filled. Whether each requirement is testable is a semantic judgment that no deterministic kind can check.",
+    "statement": "sy-021"
+   },
+   {
+    "reason": "The compiled template section and label items already cover the Assumptions section. Whether an assumption is a 'reasonable default' cannot be checked deterministically.",
+    "statement": "sy-022"
+   },
+   {
+    "reason": "The compiled template items already check that Measurable Outcomes is filled. Being technology-agnostic and measurable is a semantic quality that no kind can check.",
+    "statement": "sy-023"
+   },
+   {
+    "reason": "This applies only if data is involved. That condition is semantic and cannot be written as a predicate.",
+    "statement": "sy-026"
+   },
+   {
+    "reason": "The compiled template skeleton items (headings and labels) already cover using the template structure.",
+    "statement": "sy-028"
+   },
+   {
+    "reason": "The compiled no_template_residue and field_filled items already cover replacing the placeholders.",
+    "statement": "sy-029"
+   },
+   {
+    "reason": "The compiled section_present items already check that the headings are present. Checking that they stay in the template's order would need an ordering check over headings, and no kind offers one (cross_ref only compares sets).",
+    "statement": "sy-030"
+   },
+   {
+    "reason": "The checklist's section names and validation items are inside the fenced block after line 73, which is not in the cited excerpt. Without those lines they cannot be quoted word for word to back literal parameters.",
+    "statement": "sy-032"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "2a3a524fdfa927484b68df99642983a66c05fbbfceecdd2577d85e3f4e337189",
+ "key": "52cb181d1efe43334cdd24d3d4c6abe93e27e2479deb86955b8492499bc7a06a",
+ "meta": {
+  "at": "2026-10-15T05:12:11Z",
+  "cost_usd": 0.0845666,
+  "duration_ms": 31735,
+  "num_turns": 2,
+  "wall_s": 32.77
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "72d1d084f4258231eab89413fac4dd5ff9164e93fc9e150ba4670372a66a080b",
+ "salt": "sample1",
+ "schema_sha256": "2762e807389c07ef289b307499e1274fe13212f1930534cdb6b4b9f3eae35749",
+ "version": "2.1.283"
+}

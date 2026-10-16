@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cw-002.0",
+    "reason": "The text says the files under scripts/, templates/ and memory/ \"are Spec Kit's own; leave them as they are\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-004.0",
+    "reason": "The specify stage's outputs explicitly list \"`checklists/requirements.md`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-004.1",
+    "reason": "The outputs include \"(and `/tmp/speckit-sdd/.specify/feature.json`)\", and \"the stage sets the feature up itself\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-005.0",
+    "reason": "The plan row names the script as \"`setup-plan.sh --json`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-006.0",
+    "reason": "\"`plan.md`\" is a listed plan-stage output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-006.1",
+    "reason": "\"`research.md`\" is a listed plan-stage output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-006.2",
+    "reason": "\"`data-model.md`\" is listed, and the text says \"(both always; body `N/A — <reason>` when nothing applies)\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-006.3",
+    "reason": "\"`quickstart.md`\" is listed, and the text says \"(both always; body `N/A — <reason>` when nothing applies)\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-008.0",
+    "reason": "Contract files must be \"listed in plan.md's Documentation tree, or `contracts/  # N/A — <reason>` there and no file\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-009.0",
+    "reason": "The tasks row names the script as \"`setup-tasks.sh --json`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-009.1",
+    "reason": "The tasks row lists \"`tasks.md`\" as its output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-011.0",
+    "reason": "The text says \"first its verification scripts in `checks/` (run, seen failing), then the code change\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-012.0",
+    "reason": "The implement stage's output is \"`[X]` marks in `tasks.md`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-013.0",
+    "reason": "The converge row lists \"`convergence.md`\" as its output.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-017.0",
+    "reason": "The text says \"Round 1: implement works through the whole of `tasks.md`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-017.1",
+    "reason": "The text says \"converge writes `convergence.md`\" in round 1.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-018.0",
+    "reason": "\"round 2 follows\" only when round 1 did not converge (the chain \"is over as soon as a converge round records `converged`\"), but the item has no applies_when condition.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cw-018.1",
+    "reason": "\"converge writes `convergence-2.md`\" happens only if round 2 runs, yet the item checks for it unconditionally (applies_when=None).",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cw-019.0",
+    "reason": "The chain ends \"after round 2 whatever it found\", so no convergence-3 should be written.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-022.0",
+    "reason": "Unfetched links \"where one matters\" must be noted \"as `[UNVERIFIED — not fetched]`\".",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "91ac00bfcc76004a7b9031166a7df23f82bf15af969ffe5ebc676200dce52d2b",
+ "key": "fcf8bb830c51680a38486a83057d16daa99a279f06d56ccd93c30b2389136644",
+ "meta": {
+  "at": "2026-10-15T05:19:13Z",
+  "cost_usd": 0.08364500000000001,
+  "duration_ms": 21663,
+  "num_turns": 2,
+  "wall_s": 23.29
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}
