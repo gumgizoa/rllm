@@ -75,13 +75,16 @@ def test_agent_test_files_are_dropped_but_gold_paths_kept(repo):
     (repo / "web" / "a.test.ts").write_text("test('x', () => {})\n")
     (repo / "web" / "__tests__").mkdir()
     (repo / "web" / "__tests__" / "b.js").write_text("// x\n")
+    (repo / "web" / "__snapshots__").mkdir()
+    (repo / "web" / "__snapshots__" / "a.test.ts.snap").write_text("exports[`x 1`] = `1`;\n")
     (repo / "pkg").mkdir()
     (repo / "pkg" / "zz_test.go").write_text("package pkg\n")
     (repo / "tests" / "test_gold_adds.py").write_text("# the gold patch adds this one\n")
     out, patch = _extract(repo, base, keep=["tests/test_gold_adds.py"])
     assert "src/helper.py" in patch
     assert "tests/test_gold_adds.py" in patch
-    for dropped in ("tests/test_mine.py", "tests/conftest.py", "web/a.test.ts", "web/__tests__/b.js", "pkg/zz_test.go"):
+    dropped_files = ("tests/test_mine.py", "tests/conftest.py", "web/a.test.ts", "web/__tests__/b.js", "web/__snapshots__/a.test.ts.snap", "pkg/zz_test.go")
+    for dropped in dropped_files:
         assert dropped not in patch, dropped
         assert f"dropped agent test file: {dropped}" in out
 

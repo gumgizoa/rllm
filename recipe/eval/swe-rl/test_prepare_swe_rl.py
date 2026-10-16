@@ -7,6 +7,7 @@ Run inside the rllm venv (needs unidiff):  python recipe/eval/swe-rl/test_prepar
 from __future__ import annotations
 
 import importlib.util
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -233,6 +234,32 @@ def test_specific_evidence_pytest_and_js() -> None:
     assert _hits(jp, "PASS src/a.test.ts")  # jest
     assert not _hits(jp, "      Tests  3 passed (3)")  # forged summary
     assert prep.specific_evidence("js", "diff --git a/src/a.ts b/src/a.ts\n") is None
+
+
+def test_evidence_survives_ansi_colours() -> None:
+    """test.sh strips colour codes before matching; runners colour PASS/check marks."""
+    import subprocess
+
+    src = (Path(__file__).with_name("prepare_swe_rl.py")).read_text()
+    sed_expr = re.search(r"sed '(s/[^']*)' \"\$LOG\"", src).group(1)
+
+    def colored_hit(pats: list[str], log: str) -> bool:
+        clean = subprocess.run(["sed", sed_expr], input=log, capture_output=True, text=True).stdout
+        return _hits(pats, clean)
+
+    esc = "\x1b"
+    jest = f"{esc}[0m{esc}[7m{esc}[1m{esc}[32m PASS {esc}[39m{esc}[22m{esc}[27m{esc}[0m {esc}[2msrc/{esc}[22m{esc}[1ma.test.ts{esc}[22m"
+    vitest = f" {esc}[32m✓{esc}[39m src/a.test.ts {esc}[2m({esc}[22m{esc}[2m3 tests{esc}[22m{esc}[2m)"
+    js = prep.specific_evidence("js", "diff --git a/src/a.test.ts b/src/a.test.ts\n")
+    assert colored_hit(js, jest)
+    # vitest puts a colour code between the check mark and the space: only the stripped log matches.
+    assert not _hits(js, vitest) and colored_hit(js, vitest)
+    gotest = f"{esc}[32m--- PASS: TestNewThing (0.00s){esc}[0m"
+    go = prep.specific_evidence("go_test_v", "diff --git a/a_test.go b/a_test.go\n+func TestNewThing(t *testing.T) {\n")
+    assert colored_hit(go, gotest)
+    py = prep.specific_evidence("pytest", "diff --git a/tests/test_core.py b/tests/test_core.py\n")
+    pyt = f"tests/test_core.py::test_a {esc}[32mPASSED{esc}[0m{esc}[32m                 [100%]{esc}[0m"
+    assert colored_hit(py, pyt)
 
 
 def test_real_v1_patches_parse(limit: int = 300) -> None:

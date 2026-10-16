@@ -78,9 +78,10 @@ cp "$(env -u GIT_INDEX_FILE {_GIT} rev-parse --git-path index)" "$GIT_INDEX_FILE
     || {_GIT} read-tree {base} || exit 4
 {_GIT} add -A . >/dev/null 2>{_STAGE}/add.err || {{ cat {_STAGE}/add.err >&2; exit 4; }}
 # New files that stay behind:
-#  * test files the agent wrote. Grading only uses the hidden test patch, and
-#    a test file that runs under a whole-suite command (npm test) could tamper
-#    with the runner. Files the gold patch itself adds are kept.
+#  * test files the agent wrote, with their jest snapshots (a .snap left
+#    without its test is "obsolete" and fails the run). Grading only uses the
+#    hidden test patch, and a test file that runs under a whole-suite command
+#    (npm test) could tamper with the runner. Files the gold patch adds are kept.
 #  * large files (build output the agent forgot to ignore).
 KEEP=({keep_arr})
 is_kept() {{ local k; for k in ${{KEEP[@]+"${{KEEP[@]}}"}}; do [ "$k" = "$1" ] && return 0; done; return 1; }}
@@ -88,7 +89,8 @@ is_kept() {{ local k; for k in ${{KEEP[@]+"${{KEEP[@]}}"}}; do [ "$k" = "$1" ] &
 while IFS= read -r -d '' f; do
     is_kept "$f" && continue
     case "/$f" in
-      */__tests__/*|*/test_*.py|*_test.py|*_test.go|*/conftest.py|*.test.[cm][jt]s|*.test.[jt]s|*.test.[jt]sx|*.spec.[cm][jt]s|*.spec.[jt]s|*.spec.[jt]sx)
+      */__tests__/*|*/__snapshots__/*|*.snap|*/test_*.py|*_test.py|*_test.go|*/conftest.py|\\
+      *.test.[cm][jt]s|*.test.[jt]s|*.test.[jt]sx|*.spec.[cm][jt]s|*.spec.[jt]s|*.spec.[jt]sx)
         {_GIT} rm -q --cached -- "$f" && echo "dropped agent test file: $f"; continue ;;
     esac
     if [ -f "$f" ] && [ "$(stat -c %s -- "$f" 2>/dev/null || echo 0)" -gt $(( {max_file_mb} * 1048576 )) ]; then
