@@ -1,0 +1,89 @@
+== openspec --version: 1.14.1
+== tree
+/openspec
+/openspec/changes
+/openspec/changes/archive
+/openspec/changes/archive/.gitkeep
+/openspec/config.yaml
+/openspec/schemas
+/openspec/schemas/spec-driven-sandbox
+/openspec/schemas/spec-driven-sandbox/schema.yaml
+/openspec/schemas/spec-driven-sandbox/templates
+/openspec/schemas/spec-driven-sandbox/templates/design.md
+/openspec/schemas/spec-driven-sandbox/templates/proposal.md
+/openspec/schemas/spec-driven-sandbox/templates/spec.md
+/openspec/schemas/spec-driven-sandbox/templates/tasks.md
+/openspec/specs
+/openspec/specs/.gitkeep
+
+== no TTY: openspec list --json
+{
+  "changes": [],
+  "root": {
+    "path": "/",
+    "source": "nearest"
+  }
+}
+[exit=0]
+
+== no TTY: openspec list --specs
+No specs found.
+[exit=0]
+
+== no TTY: openspec list --specs --json
+{
+  "specs": [],
+  "root": {
+    "path": "/",
+    "source": "nearest"
+  }
+}
+[exit=0]
+
+== TTY (script -qec, 60 s): openspec list --json
+{
+  "changes": [],
+  "root": {
+    "path": "/",
+    "source": "nearest"
+  }
+}
+[exit=0, 244 ms]
+
+== TTY (script -qec, 60 s): openspec list --specs
+No specs found.
+[exit=0, 245 ms]
+
+== TTY (script -qec, 60 s): openspec list --specs --json
+{
+  "specs": [],
+  "root": {
+    "path": "/",
+    "source": "nearest"
+  }
+}
+[exit=0, 244 ms]
+
+== TTY without CI=1 (bare node, 20 s): openspec list --specs
+No specs found.
+[exit=0]
+
+== TTY without CI=1 (bare node, 20 s): openspec list --specs --json
+{
+  "specs": [],
+  "root": {
+    "path": "/",
+    "source": "nearest"
+  }
+}
+[exit=0]
+
+== tree after (nothing written by list)
+/openspec/changes/archive/.gitkeep
+/openspec/config.yaml
+/openspec/schemas/spec-driven-sandbox/schema.yaml
+/openspec/schemas/spec-driven-sandbox/templates/design.md
+/openspec/schemas/spec-driven-sandbox/templates/proposal.md
+/openspec/schemas/spec-driven-sandbox/templates/spec.md
+/openspec/schemas/spec-driven-sandbox/templates/tasks.md
+/openspec/specs/.gitkeep

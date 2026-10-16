@@ -15,9 +15,10 @@ SWE task(issue 하나를 받아 저장소 코드를 고치는 과제)를 OpenSpe
   - 지침 문서는 sandbox 안의 파일로 제공하고, agent가 순서대로 직접 엶.
   - CLI는 실제로 sandbox에 설치되어 원본과 똑같이 동작함.
   - 사람이 하던 단계 연결·질문 답변·승인은 진입 문서의 규칙으로 대체함.
-- 절차는 **ff → apply → verify → archive** 네 단계.
-  원본 문서가 소개하는 확장 경로(`/opsx:new → /opsx:ff → /opsx:apply → /opsx:verify → /opsx:archive`)에서 new를 뺀 형태임.
+- 절차는 **explore → ff → apply → verify → archive** 다섯 단계.
+  원본 문서가 소개하는 확장 경로(`/opsx:new → /opsx:ff → /opsx:apply → /opsx:verify → /opsx:archive`)에서 new를 빼고, 원본에서 선택 단계인 explore(코드를 읽고 문제를 파악하는 단계)를 맨 앞에 항상 넣은 형태임.
   ff가 change(작업 단위 폴더) 생성을 직접 하므로 new가 따로 필요 없음.
+  explore는 파일을 하나도 쓰지 않고, 알아낸 내용을 요약 메시지로 남겨 ff에 넘김.
 - 기능 추가와 버그 수정을 구분하지 않음. 원본도 같은 절차로 둘 다 다룸.
 
 ## 2. sandbox 구성
@@ -27,7 +28,7 @@ agent가 시작하기 전에 harness가 sandbox를 아래처럼 준비함.
 | 경로 | 내용 | 누가 만드나 |
 |---|---|---|
 | `/testbed` | 고칠 저장소 (SWE-Gym task 이미지에 들어 있음) | task 이미지 |
-| `/opsx/` | agent가 읽는 지침 문서: `core-workflow.md`, `stages/01-ff.md`, `02-apply.md`, `03-verify.md` | harness 업로드 |
+| `/opsx/` | agent가 읽는 지침 문서: `core-workflow.md`, `stages/00-explore.md`, `01-ff.md`, `02-apply.md`, `03-verify.md` | harness 업로드 |
 | `/openspec/` | OpenSpec 계획 폴더(planning root). change, spec, 설정, 스키마가 모두 여기 생김 | 준비 스크립트 |
 | `/opt/rllm/agent/node/` | node v22.23.3 + openspec CLI 1.14.1 | 전용 agent 이미지(읽기 전용 마운트) |
 | `/usr/local/bin/openspec` | CLI 실행 스크립트 | 준비 스크립트 |
@@ -56,7 +57,8 @@ agent가 시작하기 전에 harness가 sandbox를 아래처럼 준비함.
   - "task 묶음마다 테스트와 문서를 작성하라" → "기존 테스트 실행이나 확인 스크립트로 검증, 저장소 테스트 파일은 수정 금지, 문서는 issue가 요구할 때만"
   - tasks 예시 중 의존성 설치·단위 테스트 추가·문서 작성 예시를 이 환경에 맞는 예시로 교체
 - **설정** (`config.yaml`)의 `context`는 모든 산출물 지침과 apply 지침에, `rules`는 해당 산출물 지침에만 CLI가 붙여서 보여 줌.
-  - `context`: 고칠 저장소는 `/testbed`, 계획 폴더는 그 밖, 테스트 파일은 이미 준비됨(수정 금지), 설치·네트워크 없음, 확인 스크립트는 `checks/`, 기존 spec 없음.
+  - `context`: 고칠 저장소는 `/testbed`, 계획 폴더는 그 밖, 테스트 파일은 이미 준비됨(수정 금지), 설치·네트워크 없음, 확인 스크립트는 ff부터 `checks/`, 기존 spec 없음.
+  - explore도 이 파일을 직접 읽음(CLI를 거치지 않음).
   - `rules`: proposal과 specs에 "기존 spec이 없으니 모든 기능은 New Capabilities로, 모든 delta는 `## ADDED Requirements`로".
 
 ## 3. agent가 받는 입력
@@ -64,7 +66,7 @@ agent가 시작하기 전에 harness가 sandbox를 아래처럼 준비함.
 - **system prompt**: openhands-sdk 기본 프롬프트에서 절차 섹션(`<PROBLEM_SOLVING_WORKFLOW>`)만 이 워크플로우용으로 바꾼 것.
   나머지 섹션(도구 사용 규칙 등)은 기본 그대로임.
 - **사용자 메시지 1개**: 앞에 워크플로우 안내(`instruction.md`), 뒤에 SWE-Gym task 본문.
-  - 안내 요지: "OpenSpec change로 풀어라. 첫 행동으로 `/opsx/core-workflow.md`를 열어라. `/opsx`는 저장소 밖 최상위 디렉터리다."
+  - 안내 요지: "OpenSpec change로 풀어라. 먼저 아무것도 쓰지 않고 explore한 뒤 ff부터 진행하라. 첫 행동으로 `/opsx/core-workflow.md`를 열어라. `/opsx`는 저장소 밖 최상위 디렉터리다."
   - task 본문은 SWE-Gym 기본 프롬프트에서 자체 6단계 절차를 뺀 버전(`swegym293_aidlc` 데이터셋)을 씀. 절차가 두 개면 agent가 워크플로우를 무시하는 경향이 있었기 때문임.
   - issue는 `<issue_description>` 태그 안에 있음.
 - **도구**: openhands-sdk의 터미널, 파일 편집기, task tracker 세 가지. `openspec`은 별도 도구가 아니라 터미널로 실행하는 명령임.
@@ -73,8 +75,8 @@ agent가 시작하기 전에 harness가 sandbox를 아래처럼 준비함.
 ## 4. 진행 흐름
 
 ```
-/opsx:ff  ──►  /opsx:apply  ──►  /opsx:verify  ──►  archive  ──►  finish
-(계획 작성)     (코드 구현)        (구현 점검)          (마무리)
+/opsx:explore  ──►  /opsx:ff  ──►  /opsx:apply  ──►  /opsx:verify  ──►  archive  ──►  finish
+(문제 파악)          (계획 작성)     (코드 구현)        (구현 점검)          (마무리)
 ```
 
 agent는 진입 문서 `/opsx/core-workflow.md`를 읽고, 단계마다 해당 단계 문서를 열어 따름.
@@ -83,12 +85,16 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 
 | 단계 | 시작 명령 | 하는 일 | 남기는 것 |
 |---|---|---|---|
+| explore | `openspec list --json`, `openspec list --specs`, `config.yaml` 읽기 | issue와 코드를 읽고, 기존 코드·기존 테스트·issue 예시를 그대로 실행해 문제와 바꿀 위치를 파악. 직접 짠 코드(한 줄 `python -c` 포함)와 파일 쓰기 금지 | 파일 없음. ff 문서를 여는 turn에 "What We Figured Out" 요약(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문 + 근거) |
 | ff | `openspec new change "issue"` → `openspec status` → 산출물마다 `openspec instructions <산출물>` | issue와 저장소 코드를 읽고 계획 산출물 작성 | `proposal.md`, `specs/<기능>/spec.md`, `design.md`(필요할 때만), `tasks.md` |
 | apply | `openspec instructions apply` | tasks.md의 작업을 하나씩 구현하고 체크박스 갱신. 확인 스크립트 작성·실행 | `/testbed` 코드 변경, `tasks.md`의 `- [x]`, `checks/*.py` |
 | verify | `openspec status`로 맥락 확인 후 직접 점검 (verify를 대신하는 CLI 명령은 없음) | 구현을 산출물과 대조해 완전성·정확성·일관성 점검 | `verify.md` |
 | archive | `openspec archive issue --yes` | delta spec 형식 검증 → 메인 spec에 병합 → change 폴더 보관 | `/openspec/specs/<기능>/spec.md`, `/openspec/changes/archive/<날짜>-issue/` |
 
 단계 사이 규칙은 아래와 같음.
+
+- explore는 요약의 "문제"와 "바꿀 위치"를 근거와 함께 말할 수 있으면 끝남. 남은 질문은 열린 채로 둬도 됨. step 상한은 없음.
+- ff는 원문 그대로이고, explore 요약을 근거로 proposal의 Why와 design의 Context·Decisions를 씀. 요약의 가정은 proposal에 옮김.
 
 - verify는 1회만 함. 보고서 결과와 관계없이 다음은 archive이고, 남은 문제는 보고서에 기록됨.
 - archive는 `verify.md`가 있을 때만 실행함.
@@ -130,6 +136,7 @@ spec과 delta spec의 관계는 다음과 같음.
 - **사람이 없음**: 질문하거나 보고하려고 멈추지 않음. 도구 호출 없이 메시지만 내면 그 즉시 세션이 끝나기 때문임(openhands-sdk 동작).
   불명확한 점은 가장 타당한 해석을 골라 해당 산출물에 기록하고 진행함.
 - **입력**: issue 본문이 유일한 입력. 본문 속 링크를 열거나 온라인에서 찾아보지 않음.
+- **explore**: 읽기·검색과 기존 코드·기존 테스트·issue 예시 실행만 함. 직접 짠 코드 실행과 파일 쓰기(저장소, `/tmp`, `checks/` 모두) 금지. 사람만 답할 수 있는 질문은 가정으로 요약에 기록하고, 선택지는 agent가 추천안과 대안으로 정함.
 - **저장소**: apply 단계만 `/testbed`를 수정함.
   - 테스트 파일은 추가·수정하지 않음.
   - README, `docs/`, changelog는 issue가 요구할 때만 수정함.
@@ -167,7 +174,7 @@ rollout이 끝나면 sandbox는 사라지고, 아래 두 가지가 episode JSON�
 
 ## 8. smoke에서 관찰된 실제 동작
 
-SWE-Gym task 5개 × 1회, Qwen3.5-9B, 150 step 기준 마지막 실행 결과임.
+SWE-Gym task 5개 × 1회, Qwen3.5-9B, 150 step 기준 마지막 실행 결과임. explore 단계를 넣기 전(ff → archive) 결과이고, explore를 넣은 뒤의 smoke는 아직 없음.
 task 수가 적어 경향을 보는 수준이고, 5개 중 기능 요청은 1개(나머지는 버그 수정)임.
 
 | | thinking 끔 | thinking 켬 |
@@ -198,7 +205,7 @@ task 수가 적어 경향을 보는 수준이고, 5개 중 기능 요청은 1개
 | 경로 | 내용 |
 |---|---|
 | `docs/core-workflow.md` | 진입 문서 (직접 작성) |
-| `docs/stages/01-ff.md`, `02-apply.md`, `03-verify.md` | 단계 문서. 원본 skill 문서를 `build.py`로 변환한 결과 |
+| `docs/stages/00-explore.md`, `01-ff.md`, `02-apply.md`, `03-verify.md` | 단계 문서. 원본 skill 문서를 `build.py`로 변환한 결과 |
 | `sandbox/schemas/spec-driven-sandbox/` | 수정 스키마와 템플릿 4개. `build.py`로 생성 |
 | `sandbox/openspec-config.yaml` | `/openspec/config.yaml`로 설치되는 프로젝트 설정 (직접 작성) |
 | `setup.sh` | agent 시작 전 sandbox 준비 스크립트 |

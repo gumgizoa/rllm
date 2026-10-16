@@ -1,6 +1,8 @@
-"""OpenSpec OPSX workflow: new -> ff -> apply -> verify -> archive (Fission-AI/OpenSpec), as a ``WorkflowSpec``.
+"""OpenSpec OPSX workflow: explore -> ff -> apply -> verify -> archive (Fission-AI/OpenSpec), as a ``WorkflowSpec``.
 
-    docs/              -> /opsx: core-workflow.md (hand-written), stages/01-new.md 02-ff.md 03-apply.md 04-verify.md
+    docs/              -> /opsx: core-workflow.md (hand-written), stages/00-explore.md 01-ff.md 02-apply.md
+                       03-verify.md (explore writes nothing; its summary feeds ff, porting/03-decisions.md
+                       "Explore extension")
     sandbox/schemas/   the forked schema ``spec-driven-sandbox`` (schema.yaml + templates), uploaded beside
                        the documents and installed into /openspec/schemas/ by setup.sh
     build.py           regenerates docs/stages/ and the fork from the OpenSpec checkout and names every

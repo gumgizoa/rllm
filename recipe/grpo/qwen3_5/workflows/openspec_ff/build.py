@@ -6,10 +6,12 @@
 
 Two outputs, one ``_port.Port`` each:
 
-``STAGES``  the four OPSX skills the chain new -> ff -> apply -> verify uses
-            (``skills/openspec-<x>-change/SKILL.md``, the committed renders) -> ``docs/stages/0N-<x>.md``,
-            uploaded to ``/opsx/stages/``. Archive is the CLI's ``openspec archive issue --yes``, so the
-            archive and sync skills are not shipped (porting/03-decisions.md D-5).
+``STAGES``  the four OPSX skills the chain explore -> ff -> apply -> verify uses
+            (``skills/openspec-explore/SKILL.md`` and ``skills/openspec-<x>-change/SKILL.md``, the committed
+            renders) -> ``docs/stages/00-explore.md`` (G5-4) and ``0N-<x>.md``, uploaded to ``/opsx/stages/``.
+            Archive is the CLI's ``openspec archive issue --yes``, so the archive and sync skills are not
+            shipped (porting/03-decisions.md D-5). explore keeps one sentence with "ask the user" verbatim
+            (G4-14): ``FORBIDDEN_ALLOWED`` exempts that one occurrence in that one source only.
 ``FORK``    ``schemas/spec-driven/`` (``schema.yaml`` + four templates) -> ``sandbox/schemas/spec-driven-sandbox/``,
             what ``openspec schema fork spec-driven spec-driven-sandbox`` writes (the ``name:`` set and the
             yaml library's ``[ tasks ]`` spacing; checked against the CLI 1.14.1 output) plus the decided
@@ -32,7 +34,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .._port import Edit, Port, list_edits
+from .._port import Edit, Port, Section, list_edits
 from .._port import build as _build
 from .._port import convert as _convert
 from .._port import drift as _drift
@@ -48,6 +50,7 @@ UPSTREAM_COMMIT = "9111a7654d7800391459431fff4eaf66e33a3d2e"
 
 CHANGE_DIR = "/openspec/changes/issue/"
 STAGE_DOCS = {
+    "explore": "/opsx/stages/00-explore.md",  # G5-4: added in front, 01-03 not renumbered
     "ff": "/opsx/stages/01-ff.md",
     "apply": "/opsx/stages/02-apply.md",
     "verify": "/opsx/stages/03-verify.md",
@@ -55,6 +58,7 @@ STAGE_DOCS = {
 ENTRY_DOC = "/opsx/core-workflow.md"
 
 SOURCES: dict[str, tuple[str, str]] = {
+    "explore": ("skills/openspec-explore/SKILL.md", "00-explore.md"),
     "ff": ("skills/openspec-ff-change/SKILL.md", "01-ff.md"),
     "apply": ("skills/openspec-apply-change/SKILL.md", "02-apply.md"),
     "verify": ("skills/openspec-verify-change/SKILL.md", "03-verify.md"),
@@ -85,7 +89,23 @@ FORBIDDEN = (
     "MUST prompt",
     "When prompting",
     "verify-2.md",
+    # explore (G4-13, G4-17, G4-18, G7-10, G2-12)
+    "Want me to",
+    "yes/no question",
+    "Where's your head at?",
+    "Which one's burning?",
+    "What's the context?",
+    "capture the exploration",
+    "Don't manually scaffold",
+    "this summary is optional",
 )
+
+# Sentences a source keeps verbatim although they contain a FORBIDDEN string. Each must occur exactly once
+# in that source's output; only that occurrence is exempt, and every other source is checked in full.
+FORBIDDEN_ALLOWED: dict[str, tuple[str, ...]] = {
+    # G4-14: explore:48's prohibition is kept as upstream wrote it.
+    "explore": ("Do not ask the user to repeat facts you can verify.",),
+}
 
 # Left in the forked schema, these mean an edit missed a case.
 FORK_FORBIDDEN = (
@@ -129,9 +149,368 @@ _INPUT_ISSUE = (
 
 _SELECT_ASK = "   - If ambiguous, run `openspec list --json` to get available changes and ask the user to select one\n"
 
+# explore (skills/openspec-explore/SKILL.md -> 00-explore.md): porting/03-decisions.md "Explore extension".
+# The capture transition and "When a change exists" go as sections (EXPLORE_SECTIONS, G4-17).
+EXPLORE_EDITS: tuple[Edit, ...] = (
+    Edit(
+        "explore",
+        "Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.\n",
+        "Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.\n\n"
+        "**Input**: The issue in the task message, between `<issue_description>` and `</issue_description>`: "
+        "the problem to understand. It is the source material for this exploration; nobody will add to it.\n",
+        "env",
+        "G1-4: input = the issue (upstream's \"User brings a specific problem\")",
+    ),
+    Edit(
+        "explore",
+        "but you must NEVER write code or implement features. ",
+        "but you must NEVER write code or implement features. Here a read-only command is one that runs only "
+        "what already exists and writes no file: reading, searching, running existing code and existing tests, "
+        "and running the issue's own example exactly as given. Code you compose yourself is writing code, a "
+        "one-line `python -c` or a snippet piped to stdin included, and so is any file write (in the "
+        f"repository, in `/tmp`, under `{CHANGE_DIR}checks/`, by shell redirection or heredoc). Files a run "
+        "leaves behind by itself, such as `__pycache__` or `.pytest_cache`, are not your writes. Varying the "
+        "issue's example is left to ff and apply, which keep their scripts under `checks/`. ",
+        "semantic",
+        "G9-5: the read-only boundary, \"NEVER write code\" taken literally (composed snippets included)",
+    ),
+    Edit(
+        "explore",
+        "If the user asks you to implement something, do not start it here: say that explore mode does not "
+        "implement, and point them at `/openspec-propose`, which turns the discussion into a change. The work "
+        "happens from that change, never from explore mode.",
+        "The task asks you to implement a fix; that request is carried out later in this session by the ff and "
+        "apply actions, not here: do not start it in explore mode. The work happens from the change ff creates, "
+        "never from explore mode.",
+        "env",
+        "G4-16/G2-10: the task's own request to implement goes to ff -> apply, no refusal in words",
+    ),
+    Edit(
+        "explore",
+        "You MAY create or update OpenSpec change artifacts (proposals, designs, specs) within a confirmed "
+        "scope—that's capturing thinking, not implementing. Answering design or clarifying questions is never "
+        "consent to write. Before the first write-capable action, name the artifacts or files you would change "
+        "and what you would do, ask a direct yes/no question, and wait for the user's confirmation in a "
+        "separate message. Confirmation covers only the scope you described; ask again before expanding it. An "
+        "explicit request from the user to capture the exploration as a new change is itself that "
+        "confirmation, covering the change and the change artifacts the request names; scaffold it first as "
+        "described below.",
+        "In this session explore writes nothing, change artifacts included: the ff action creates the change "
+        "and writes its artifacts from what you found here.",
+        "semantic",
+        "G4-13: explore writes nothing; the yes/no write question and the capture request dropped",
+    ),
+    Edit(
+        "explore",
+        "There are no fixed steps, no required sequence, no mandatory outputs.",
+        "There are no fixed steps and no required sequence. The one required output is the summary under "
+        "**Ending Discovery**, written when exploration is done.",
+        "semantic",
+        "G2-12/G8-6: the summary is the one mandatory output",
+    ),
+    Edit(
+        "explore",
+        "When the user is planning a change, guide them toward shared understanding with focused discovery "
+        "questions. For open-ended discussion, follow the conversation without imposing an interview or a "
+        "required output.",
+        "Here the issue is the planned change, and nobody answers questions: work toward shared understanding "
+        "by putting focused discovery questions to the issue, the code and the tests. A question only the "
+        "person could answer (intent, priorities, scope the issue leaves open) gets no reply: take the most "
+        "plausible reading of the issue, mark it as an **assumption** (not as confirmed intent) in your "
+        "summary, and continue; ff writes it into the proposal.",
+        "semantic",
+        "G4-14: discovery questions go to the evidence; person-only questions become assumptions",
+    ),
+    Edit(
+        "explore",
+        "- **Keep questions focused** - Ask one focused question at a time, and briefly explain why it matters "
+        "and which decision it unlocks. Batch questions only if the user asks for a batch; keep them small and "
+        "group related decisions.",
+        "- **Keep questions focused** - Take one focused question at a time, and note why it matters and which "
+        "decision it unlocks; settle it from the evidence or record it as an assumption.",
+        "semantic",
+        "G4-14: one question at a time, settled or assumed instead of asked",
+    ),
+    Edit(
+        "explore",
+        "Do not invent intent, priorities, or external constraints: ask the user when only they can answer.",
+        "Do not invent intent, priorities, or external constraints: when only the person could answer, record "
+        "the most plausible reading of the issue as an assumption, not as confirmed intent.",
+        "semantic",
+        "G4-14: person-only question -> assumption",
+    ),
+    Edit(
+        "explore",
+        "Separate confirmed decisions from proposed defaults and unresolved questions. Silence is not "
+        "acceptance. Accepting an answer or a batch of recommendations is not permission to write. Keep "
+        "file-write confirmation separate from discovery questions and follow the guardrails below.",
+        "Separate what the issue and the code confirm from assumptions, proposed defaults and unresolved "
+        "questions; the summary under **Ending Discovery** carries them to ff. Write no file (see the "
+        "guardrails below).",
+        "semantic",
+        "G2-12/G4-13/G4-14: the record goes into the summary; the write-confirmation sentences dropped",
+    ),
+    Edit(
+        "explore",
+        "Stop asking when the user has enough clarity. Let them pause, pivot, or defer a decision; do not "
+        "exhaust every branch or force a proposal.",
+        "Stop once the problem and where the change goes can be stated with evidence (see **Ending "
+        "Discovery**); a decision the evidence cannot settle stays an open question for ff. Do not exhaust "
+        "every branch.",
+        "semantic",
+        "G8-6/G4-15: the end condition in place of the person's clarity; deferring is an open question",
+    ),
+    Edit(
+        "explore",
+        "The CLI already uses SQLite and has no remote service. Is sharing state\n"
+        "across devices in scope? That determines whether local storage is enough.\n"
+        "If this stays a single-device tool, I recommend keeping SQLite to avoid\n"
+        "adding a service to operate; shared state would need a separate sync design.\n",
+        "The CLI already uses SQLite and has no remote service. Nothing in the issue\n"
+        "or the code needs state shared across devices, so I assume a single-device\n"
+        "tool (assumption, with that evidence). On that reading I recommend keeping\n"
+        "SQLite; if the assumption is wrong, shared state needs a separate sync design.\n",
+        "semantic",
+        "G4-19: the example's scope question becomes an assumption from evidence (decided wording)",
+    ),
+    Edit(
+        "explore",
+        "- Ask clarifying questions that emerge from what they said\n",
+        "- Raise the clarifying questions the issue leaves open, and settle each from the code or record it as "
+        "an assumption\n",
+        "semantic",
+        "G4-14: clarifying questions settled or assumed",
+    ),
+    Edit(
+        "explore",
+        "- Recommend a path (if asked)\n",
+        "- Recommend a path, with the alternatives and why\n",
+        "semantic",
+        "G4-15: the agent states its preferred option with alternatives (nobody asks)",
+    ),
+    Edit(
+        "explore",
+        "- Suggest spikes or investigations\n",
+        "- Turn a spike or investigation you would suggest into a specific open question for ff's discovery "
+        "to settle\n",
+        "semantic",
+        "G4-15: a suggested spike -> a specific open question for ff (ff:78)",
+    ),
+    Edit(
+        "explore",
+        "- Reach a conclusion\n",
+        "- Settle every open question (the problem and where the change goes do need evidence; see **Ending "
+        "Discovery**)\n",
+        "semantic",
+        "G8-6: open questions may stay open, the end condition does not",
+    ),
+    Edit(
+        "explore",
+        "**User brings a vague idea:**\n"
+        "```\n"
+        "User: I'm thinking about adding real-time collaboration\n"
+        "\n"
+        "You: Real-time collab is a big space. Let me think about this...\n"
+        "\n"
+        "      COLLABORATION SPECTRUM\n"
+        "      ============================================\n"
+        "\n"
+        "      Awareness          Coordination         Sync\n"
+        "          |                   |                 |\n"
+        "          v                   v                 v\n"
+        "      +--------+         +--------+        +--------+\n"
+        "      |Presence|         |Cursors |        |  CRDT  |\n"
+        '      |  "3    |         | Multi  |        |Conflict|\n'
+        '      |online" |         | select |        |  free  |\n'
+        "      +--------+         +--------+        +--------+\n"
+        "          |                   |                 |\n"
+        "       trivial            moderate           complex\n"
+        "\n"
+        "      Where's your head at?\n"
+        "```\n\n",
+        "",
+        "semantic",
+        "G4-18: vague-idea example dropped (ends on a question to the person)",
+    ),
+    Edit(
+        "explore",
+        "     I see three tangles. Which one's burning?\n",
+        "     I see three tangles. [traces each against the issue until the problem and\n"
+        "     where the change goes are clear, then writes the summary from Ending\n"
+        f"     Discovery and opens {STAGE_DOCS['ff']} in the same turn]\n",
+        "semantic",
+        "G4-18/G2-12: the kept example's closing question becomes the summary and the hand-off to ff",
+    ),
+    Edit(
+        "explore",
+        "**User is stuck mid-implementation:**\n"
+        "```\n"
+        "User: /openspec-explore add-auth-system\n"
+        "      The OAuth integration is more complex than expected\n"
+        "\n"
+        "You: [reads change artifacts]\n"
+        "\n"
+        '     You\'re on task 4: "Implement OAuth flow"\n'
+        "\n"
+        "     Let me trace what's involved...\n"
+        "\n"
+        "     [draws diagram, explores options, suggests paths]\n"
+        "\n"
+        "     Want to update the design to reflect this?\n"
+        "     Or add a spike task to investigate?\n"
+        "```\n\n",
+        "",
+        "env",
+        "G4-17: mid-implementation example dropped (no change exists before ff)",
+    ),
+    Edit(
+        "explore",
+        "**User wants to compare options:**\n"
+        "```\n"
+        "User: Should we use Postgres or SQLite?\n"
+        "\n"
+        "You: Generic answer is boring. What's the context?\n"
+        "\n"
+        "User: A CLI tool that tracks local dev environments\n"
+        "\n"
+        "You: That changes everything.\n"
+        "\n"
+        "     +-------------------------------------------------+\n"
+        "     |          CLI TOOL DATA STORAGE                  |\n"
+        "     +-------------------------------------------------+\n"
+        "\n"
+        "     Key constraints:\n"
+        "     - No daemon running\n"
+        "     - Must work offline\n"
+        "     - Single user\n"
+        "\n"
+        "                  SQLite          Postgres\n"
+        "     Deployment   embedded        needs server\n"
+        "     Offline      yes             no\n"
+        "     Single file  yes             no\n"
+        "\n"
+        "     SQLite. Not even close.\n"
+        "\n"
+        "     Unless... is there a sync component?\n"
+        "```\n",
+        "",
+        "semantic",
+        "G4-18: compare-options example dropped (a dialog of questions to the person)",
+    ),
+    Edit(
+        "explore",
+        "There's no required ending. Discovery might:\n"
+        "\n"
+        '- **Flow into a proposal**: "Ready to start? Run `/openspec-propose` and this becomes a change."\n'
+        '- **Result in artifact updates**: "Updated design.md with these decisions"\n'
+        "- **Just provide clarity**: User has what they need, moves on\n"
+        '- **Continue later**: "We can pick this up anytime"\n',
+        "Here discovery has one ending: it flows into the ff action. Exploration is done once the summary "
+        "below can state **The problem** and **Where the change goes**, each with its evidence; **Open "
+        f"questions** may stay open. Then open `{STAGE_DOCS['ff']}` and continue: ff turns what you found "
+        "into a change.\n",
+        "semantic",
+        "G8-6/G2-10: one ending (into ff) and its condition; the other three endings need a person",
+    ),
+    Edit(
+        "explore",
+        "When it feels like things are crystallizing, you might summarize:\n",
+        f"When exploration is done, write this summary inside a tool call (the `think` tool, for example) "
+        f"before the tool call that opens `{STAGE_DOCS['ff']}`; a message without a tool call ends the "
+        "session. Back every entry with its evidence: the `file:line` you read, the command you ran and what "
+        "it printed.\n",
+        "semantic",
+        "G2-12/G2-11/G2-14: the summary always, with evidence, in a tool call before ff is opened",
+    ),
+    Edit(
+        "explore",
+        "**The problem**: [crystallized understanding]\n"
+        "\n"
+        "**The approach**: [if one emerged]\n"
+        "\n"
+        "**Open questions**: [if any remain]\n"
+        "\n"
+        "**Next steps** (if ready):\n"
+        "- Turn this into a change: `/openspec-propose`\n"
+        "- Keep exploring: just keep talking\n",
+        "**The problem**: [crystallized understanding, with evidence]\n"
+        "\n"
+        "**How the area works**: [the code path involved, with evidence]\n"
+        "\n"
+        "**Where the change goes**: [preferred option and why; alternatives and their tradeoffs]\n"
+        "\n"
+        "**Assumptions**: [readings of the issue only the person could have confirmed]\n"
+        "\n"
+        "**Open questions**: [if any remain, each specific enough for ff's discovery to settle]\n"
+        "\n"
+        f"**Next step**: open {STAGE_DOCS['ff']} - ff turns this into a change\n",
+        "semantic",
+        "G2-12/G2-10/G4-15: the summary's fields (docs/existing-projects.md:51-57) and the hand-off to ff",
+    ),
+    Edit(
+        "explore",
+        "But this summary is optional. Sometimes the thinking IS the value.",
+        "Here the summary is required: ff builds the proposal's Why and the design's Context and Decisions "
+        "(choice, rationale, alternatives) on it, and writes your assumptions into the proposal.",
+        "semantic",
+        "G2-12/G4-15: the summary is what ff grounds the proposal and design in",
+    ),
+    Edit(
+        "explore",
+        "Creating or updating OpenSpec change artifacts within the confirmed scope is fine, writing anything "
+        "else is not.",
+        "In this session explore writes no change artifact either; ff creates them. Running code you composed "
+        "is writing code too, whether as `python -c \"...\"` or as a heredoc piped to `python3`: when you want "
+        "to try a variant of the issue's example, record it as an open question for ff instead.",
+        "semantic",
+        "G4-13/G9-6: explore writes nothing; composed code named as writing code in the guardrail",
+    ),
+    Edit(
+        "explore",
+        "When the user is ready to build, name the handoff rather than starting: `/openspec-propose` turns "
+        "the discussion into a change, and the work happens there.",
+        f"When exploration is done, open `{STAGE_DOCS['ff']}` rather than starting to build: ff turns what you "
+        "found into a change, and the work happens there.",
+        "env",
+        "G4-16/G2-10: hand-off to ff in place of naming propose (decided wording)",
+    ),
+    Edit(
+        "explore",
+        "- **Don't auto-capture** - Offer to save insights, don't just do it. Read-only commands and tools need "
+        "no confirmation. Before the first write-capable action—including `openspec new change` or another "
+        "command that writes files—name the artifacts or files and proposed changes, ask a direct yes/no "
+        "question, and wait for explicit confirmation in a separate user message. That confirmation covers "
+        "only the described scope; ask again before expanding it. Answers to design or clarifying questions "
+        "are never consent to write. That rule governs `openspec new change` whenever you are the one "
+        "proposing the capture; the user's own capture request is the exception, handled in the capture "
+        "transition above.",
+        "- **Don't auto-capture** - Do not save insights to files: nothing is captured during explore, and "
+        "`openspec new change` is ff's first command. Read-only commands and tools, as bounded at the top, "
+        "need no confirmation; a command that writes files is not one of them.",
+        "semantic",
+        "G4-13/G9-5: no offer, no yes/no write question; the change is ff's",
+    ),
+    Edit(
+        "explore",
+        '- **Don\'t manually scaffold changes** - Never create a new change directory under `openspec/changes/` '
+        'by hand. Always use `openspec new change "<name>"` (with `--store <id>` when applicable) so required '
+        "metadata such as `.openspec.yaml` is created before writing artifacts.\n",
+        "",
+        "env",
+        "G7-10: scaffolding guardrail dropped with the capture text (explore never scaffolds)",
+    ),
+)
+
+EXPLORE_SECTIONS: tuple[Section, ...] = (
+    Section("explore", "### When no change exists", None, "env", "G4-17/G4-13: capture transition and its offer dropped", level=3),
+    Section("explore", "### When a change exists", "---\n", "env", "G4-17: no change exists before ff; the section separator kept", level=3),
+)
+
 EDITS: tuple[Edit, ...] = (
-    # ------------------------------------------------------------------ all three
-    *(Edit(s, _STORE, "", "env", "G7-3/Q7: store-selection paragraph dropped (no store is ever registered here)") for s in SOURCES),
+    # ------------------------------------------------------------------ all four
+    *(Edit(s, _STORE, "", "env", "G7-3/Q7/G7-7: store-selection paragraph dropped (no store is ever registered here)") for s in SOURCES),
+    # ------------------------------------------------------------------ explore
+    *EXPLORE_EDITS,
     # ------------------------------------------------------------------ ff
     Edit("ff", _INPUT_UPSTREAM, _INPUT_ISSUE, "env", "G1-1/G5-1: input = the issue; change name fixed `issue`"),
     Edit(
@@ -409,14 +788,31 @@ SUBSTITUTIONS: tuple[tuple[str, str], ...] = (
     ("<change-name>", "issue"),
 )
 
+# The engine checks every FORBIDDEN string that no allowed sentence contains; the rest are checked per
+# source by ``forbidden_left`` (G4-14), which ``convert`` / ``build`` / ``main`` run on every stage document.
+_PER_SOURCE = tuple(w for w in FORBIDDEN if any(w in s for kept in FORBIDDEN_ALLOWED.values() for s in kept))
+
 STAGES = Port(
     sources=SOURCES,
     out_dir=OUT_DIR,
     upstream_commit=UPSTREAM_COMMIT,
+    sections=EXPLORE_SECTIONS,
     edits=EDITS,
     substitutions=SUBSTITUTIONS,
-    forbidden=FORBIDDEN,
+    forbidden=tuple(w for w in FORBIDDEN if w not in _PER_SOURCE),
 )
+
+
+def forbidden_left(key: str, text: str) -> list[str]:
+    """FORBIDDEN strings left in one stage document, after removing that source's allowed sentences.
+
+    An allowed sentence must occur exactly once, so a second occurrence (or a missing one) fails too."""
+    for sentence in FORBIDDEN_ALLOWED.get(key, ()):
+        n = text.count(sentence)
+        if n != 1:
+            raise ValueError(f"{key}: allowed sentence occurs {n} times (want 1): {sentence!r}")
+        text = text.replace(sentence, "")
+    return [w for w in FORBIDDEN if w in text]
 
 # ---------------------------------------------------------------------- the forked schema
 
@@ -527,7 +923,11 @@ PORTS: dict[str, Port] = {"stages": STAGES, "fork": FORK}
 
 def convert(key: str, upstream: str) -> str:
     """One stage document from its upstream text."""
-    return _convert(STAGES, key, upstream)
+    text = _convert(STAGES, key, upstream)
+    left = forbidden_left(key, text)
+    if left:
+        raise ValueError(f"{key}: upstream wording left after conversion: {left}")
+    return text
 
 
 def convert_fork(key: str, upstream: str) -> str:
@@ -536,11 +936,14 @@ def convert_fork(key: str, upstream: str) -> str:
 
 
 def build(upstream: Path) -> dict[str, str]:
-    return _build(STAGES, upstream)
+    return {out: convert(key, (upstream / src).read_text(encoding="utf-8")) for key, (src, out) in SOURCES.items()}
 
 
 def build_fork(upstream: Path) -> dict[str, str]:
     return _build(FORK, upstream)
+
+
+BUILDERS = {"stages": build, "fork": build_fork}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -560,8 +963,8 @@ def main(argv: list[str] | None = None) -> int:
     if commit != UPSTREAM_COMMIT:
         print(f"warning: upstream at {commit}, outputs pinned to {UPSTREAM_COMMIT}", file=sys.stderr)
     rc = 0
-    for port in PORTS.values():
-        built = _build(port, args.upstream)
+    for label, port in PORTS.items():
+        built = BUILDERS[label](args.upstream)
         if args.check:
             for name in _drift(port, built):
                 print(f"drift: {port.out_dir.relative_to(HERE)}/{name}", file=sys.stderr)

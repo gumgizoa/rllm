@@ -1,4 +1,5 @@
-Solve this task as an OpenSpec change, taken through ff, apply, verify and archive with the
+Solve this task as an OpenSpec change. Explore the issue first, reading and running what exists
+without writing anything; then take the change through ff, apply, verify and archive with the
 `openspec` command-line tool that is installed here.
 
 Your first action is to open /opsx/core-workflow.md, before you look at the repository. The /opsx

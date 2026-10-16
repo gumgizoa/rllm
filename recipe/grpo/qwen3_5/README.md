@@ -297,7 +297,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
 | `openhands-sdk` | `aidlc_v4` | `OpenHandsSdkWorkflow` with `workflows/aidlc_v4/` | `workflow_harness.py` |
 | `openhands-sdk` | `speckit_bug` | `OpenHandsSdkWorkflow` with `workflows/speckit_bug/` (Spec Kit assess → fix → test; no scorer yet) | `workflow_harness.py` |
-| `openhands-sdk` | `openspec_ff` | `OpenHandsSdkWorkflow` with `workflows/openspec_ff/` (OpenSpec ff → apply → verify → archive, real `openspec` CLI in its own agent image; no scorer yet) | `workflow_harness.py` |
+| `openhands-sdk` | `openspec_ff` | `OpenHandsSdkWorkflow` with `workflows/openspec_ff/` (OpenSpec explore → ff → apply → verify → archive, real `openspec` CLI in its own agent image; no scorer yet) | `workflow_harness.py` |
 | `openhands-sdk` | `speckit_sdd` | `OpenHandsSdkWorkflow` with `workflows/speckit_sdd/` (Spec Kit specify → plan → tasks → implement ⇄ converge, upstream `.specify/` scripts run from `/tmp/speckit-sdd`; feature tasks; no scorer yet) | `workflow_harness.py` |
 | `mini-swe-agent` | `aidlc_v4` | refused at startup (no system-prompt seam) | — |
 

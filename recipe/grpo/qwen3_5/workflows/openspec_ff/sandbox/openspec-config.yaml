@@ -11,7 +11,7 @@ context: |
   The change comes from one issue, given in the task; nobody will add to it.
   The test files for this issue are already in place in the repository and are not to be added to or edited.
   The environment is fully set up: no packages are installed and nothing is fetched from the network.
-  Scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.
+  From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.
   /openspec/specs/ starts empty in this project: no capability and no requirement exists yet.
 
 rules:

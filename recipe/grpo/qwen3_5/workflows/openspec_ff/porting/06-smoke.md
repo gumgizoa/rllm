@@ -124,3 +124,58 @@ otherwise. Each arm on its own vLLM server with identical flags.
 - The resolve gap is not the loop: most of it is sphinx-8593 (1/3 vs 3/3), where two loop-arm rollouts
   never wrote any planning artifact.
 - Decision: G8-1 dropped; the committed docs are now the `noloop` docs.
+
+## Run 5 (2026-10-15) — explore before ff (Explore extension)
+
+Same setting as runs 2–4 (5 tasks × think off/on, 150 steps). vLLM: think off :8231, think on :8233 (reused,
+one request each confirmed thinking off/on). Results: `openspec_smoke/results/openspec_ff_think{off,on}_150t_20261015_203601`;
+counts from `explore_smoke` scans of the tool calls, then checked by hand on MONAI-2238 (on), MONAI-1884 (off),
+moto-7365 (on, off).
+
+| | think off | think on |
+|---|---|---|
+| resolve | 5/5 | 5/5 |
+| entry doc read / never | 4/5 (moto-4950 never) | 4/5 (moto-4950 never) |
+| explore entered | 3/5 (MONAI-3384 read the entry doc, then no workflow; moto-4950) | 4/5 |
+| explore steps (open 00-explore → open 01-ff) | 13, 17, ~63 (moto-7365: never opened 01-ff, ran `openspec new change` at 67) | 22, 17, 25, 32 |
+| "What We Figured Out" summary written | 3/3 | 2/4 (MONAI-1884, moto-7365: one-line note, no summary) |
+| … in the turn that opens 01-ff (G2-12) | 1/3 (others: a `think` tool call one turn earlier) | 0/2 (`think` call 1 or 14 turns earlier) |
+| composed code run during explore (G9-5: not allowed) | **3/3** (`python -c` / `python3 << EOF` 2, 2, 16×) | **4/4** (1 each) |
+| files written during explore (G9-5: not allowed) | 0/3 | **1/4** (moto-7365: `cat > /tmp/test_decimal_issue.py`, `/tmp/test_sub_issue.py`) |
+| existing code/tests run during explore | 1/3 | 3/4 |
+| ff opened after explore | 2/3 | 4/4 |
+| design.md cites explore findings (by hand, 2 checked) | MONAI-1884: line 678-679 and the numpy/torch single-item results from explore steps 14-15 | MONAI-2238: the loop-order analysis of explore step 19 |
+| design.md Decisions with an alternative | 3/3 | 4/4 |
+| steps | 38–121 | 21–85 |
+
+- explore ran and fed ff: the designs restate what explore found, with code locations and run results.
+- The no-code boundary does not hold: every explore run composed and ran code (one-line `python -c` or a
+  heredoc piped to `python3`), and one wrote reproduction scripts to `/tmp`. → G9-6 (open).
+- The summary lands in a `think` tool call one turn before the ff document is opened, not in that turn (5/6
+  summaries). It is still in the trajectory; → G2-14 (open).
+- Workflow skipped as in earlier runs: moto-4950 never opens the entry document (both arms, runs 2–5);
+  think-off MONAI-3384 reads it and works without the workflow.
+
+## Run 6 (2026-10-16) — after G9-6 (composed code named in the guardrail) and G2-14 (summary in a tool call before ff)
+
+Same setting as run 5 (:8231 off, :8233 on). Results: `openspec_smoke/results/openspec_ff_think{off,on}_150t_20261016_120157`.
+Explore window = from opening `00-explore.md` to opening `01-ff.md` or writing the proposal; checked by hand on
+moto-7365 (off, on) and MONAI-3384 (on).
+
+| | think off | think on |
+|---|---|---|
+| resolve | 5/5 | 5/5 |
+| explore entered | 4/5 (MONAI-3384: entry doc at step 17, no explore, no workflow) | 4/5 (MONAI-3384: entry doc, then straight into the code, ff later; design at 49) |
+| summary written (in a tool call or message before ff/proposal) | 3/4 (moto-7365 none) | 2/4 (MONAI-2238, moto-7365 none) |
+| clean explore (no composed code, no file) | **0/4** | **2/4** (MONAI-1884, moto-4950) |
+| composed code during explore | 4/4 (2, 3, 17, 6 calls) | 2/4 (1, 17) |
+| files written during explore | 3/4 (moto-7365: repro scripts in `/testbed`, removed before the end) | 1/4 (moto-7365: `/tmp` scripts, one of them a fix script for `dynamo_type.py` at step 38) |
+| 01-ff.md opened after explore | 1/4 | 3/4 |
+| change archived | 2/5 (moto-4950, moto-7365 left the workflow after explore; MONAI-3384 never in it) | **5/5** |
+| repo files in the final patch other than source | 0 | 0 |
+| steps | 48–102 | 52–100 |
+
+- G9-6's wording did not stop composed code: think off 4/4 (run 5: 3/3), think on 2/4 (run 5: 4/4).
+- think off moto-7365 and moto-4950: explore turns into debugging and fixing, and the planning chain never
+  starts. think on moto-7365 does the same until step 82, then writes the artifacts afterwards (fix first, plan later).
+- think on: two fully clean explore runs (MONAI-1884, moto-4950: reading only, summary in `think`, ff at 11).

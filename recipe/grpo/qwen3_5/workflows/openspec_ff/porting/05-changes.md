@@ -1,5 +1,7 @@
 # Changes: openspec_ff  (upstream Fission-AI/OpenSpec@9111a76, npm 1.14.1)
 
+explore 단계 추가(2026-10-15)는 맨 아래 "Explore extension" 절. 아래 기존 기록은 ff → archive 부분.
+
 원문: `skills/openspec-{new-change,ff-change,apply-change,verify-change}/SKILL.md`(stage 문서 4개),
 `schemas/spec-driven/schema.yaml` + `templates/*.md`(CLI가 서빙하는 artifact 지침). 편집 목록은
 `python -m recipe.grpo.qwen3_5.workflows.openspec_ff.build --list`.
@@ -110,3 +112,141 @@
 
 **추가 (val ablation 이후, 2026-10-14)**
 - verify ↔ apply 반복 삭제(G8-1 drop, 7번 대체): verify는 1회, `verify.md` 작성 후 결과와 무관하게 archive. 남은 문제는 보고서에 기록. 03-verify.md의 다음 단계는 "archive 단계로 이동" 한 줄(G2-5), 보고서 파일은 `verify.md` 하나(G5-3). core-workflow.md의 "Verify Rounds"를 "Verify Once"로 교체, archive 조건에서 `verify-2.md` 삭제. `loop` 태그 제거, `verify-2.md`를 FORBIDDEN에 추가(build.py, tests/test_openspec_ff.py, README.md).
+
+
+# Explore extension (2026-10-15)  (upstream `skills/openspec-explore/SKILL.md`@9111a76)
+
+근거: `03-decisions.md` "Explore extension", 승인된 계획 `03-plan.md`. 편집 목록은 `build.py --list`의 `explore` 줄.
+
+## 계획 대비 달라진 점
+
+| # | 항목 | 계획(03-plan.md) | 실제 구현 | 이유 |
+|---|---|---|---|---|
+| 1 | 단계 문서 편집 수 | 약 25건 | 30건: Edit 28(store 단락 공통 편집 포함) + Section 2. env 8, semantic 22 | 요약 블록, 끝맺음 4개, guardrail 문장마다 anchor를 따로 둠. "Planning a Change"의 질문 문장(`:46`, `:51`, `:52`, `:53`, `:73`)에도 G4-14를 문장별로 적용 |
+| 2 | `/openspec-propose` 안내 5곳 (G2-10) | 5곳 모두 "`01-ff.md`를 열고 계속"으로 변경 | 4곳(`:14`, `:318`, `:335`, `:345`) 변경. `:162`는 capture 전환과 함께 삭제 | `:162`는 G4-17이 지우는 `:150-162` 안에 있음 |
+| 3 | capture 전환 삭제 범위 (G4-17) | `explore:150-195` | `### When no change exists`(`:148`) 제목과 `:150` "Think freely"까지 포함해 두 소절 전체 삭제. 소절 사이 구분선 `---` 하나는 유지 | 제목만 남으면 빈 소절이 됨 |
+| 4 | 질문 → 가정 (G4-14) 적용 위치 | "범위·의도 질문은 가정 기록으로" | `:46`을 규칙 문단으로 바꿈(사람만 답할 질문 → 가정, 요약에 표시, ff가 proposal에 옮김). `:51`, `:52`, `:53`, `:73`은 그 규칙에 맞춰 수정. Stance의 `:35-36`("Ask questions that emerge naturally" 등)과 `:48` 끝 문장("ask only for the clarification needed")은 원문 유지 | `:48`은 결정상 원문 그대로. `:35-36`은 질문을 지시하지 않는 태도 서술이라 바로 위 규칙 문단으로 충분하다고 판단 |
+| 5 | 요약을 필수 산출물로 만드는 범위 (G2-12, G8-6) | 끝 조건과 요약 블록 | `:16` "no mandatory outputs"와 `:204` "Reach a conclusion"도 변경 | 요약이 필수라는 결정과 정면으로 충돌하는 문장 |
+| 6 | G9-5 경계 문장 | 허용·금지 목록 | 결정 note의 "issue 예시를 변형하는 일은 ff·apply(`checks/`)가 함"까지 한 문장 추가 | 결정 행 Notes에 적힌 내용 |
+| 7 | `core-workflow.md` | 행동 표 행, 흐름 줄, 읽기/실행 규칙 | 그 밖에 "From Explore to ff" 절(끝 조건, 요약, ff가 요약을 근거로 씀), Fixed Names의 checks 줄("From the ff action on … Explore writes none"), Input 줄(explore와 ff), "No One Will Answer"의 가정 기록 위치에 explore 요약 추가 | `02-gaps.md` "New text the port must write (explore)"와 "Conflicts"(`core-workflow.md:34`, `:51-53`)에 적힌 항목 |
+| 8 | system prompt 절차 섹션 | explore를 첫 단계로 명시 | 3번 항목의 가정 기록 위치에도 "explore's summary" 추가 | explore에는 artifact가 없음(G4-14) |
+| 9 | 금지어 검사 `explore:48` 예외 | `FORBIDDEN` 예외 | 공용 엔진(`workflows/_port.py`)은 그대로 두고 `build.py`에 `FORBIDDEN_ALLOWED`와 `forbidden_left()`를 추가. 허용 문장은 explore에서만, 정확히 1회일 때만 면제. 나머지 문서는 "ask the user"까지 전부 검사. 이를 위해 stage 문서 `build()`가 `_port.build` 대신 `convert()`를 거침(`BUILDERS`) | 패키지 밖 파일은 수정하지 않는다는 작업 제약 |
+| 10 | 삭제 문구 금지어 | — | `FORBIDDEN`에 8개 추가("Want me to", "yes/no question", 세 예시의 마무리 질문, "capture the exploration", "Don't manually scaffold", "this summary is optional") | 지운 문장이 upstream 변경으로 되살아나면 build가 실패하도록 |
+| 11 | G4-16 문장 | "The task asks you to implement a fix; …" | 결정 문안 그대로 | 기능 추가 task에도 "a fix"로 읽힘(D-6). 문안은 결정대로 두고 기록만 함 |
+| 12 | 공용 README | — | `recipe/grpo/qwen3_5/README.md` workflow 표의 openspec_ff 행을 "explore → ff → …"로 변경 | 단계 목록이 적힌 행 |
+| 13 | `__init__.py` docstring | explore 반영 | 오래된 "new → ff, 01-new … 04-verify" 표기도 같이 고침 | D-7 이후 갱신이 빠져 있었음 |
+| 14 | G7-9 probe | smoke 전에 시험 | stage 4에서 시험함(`cli-probe/05`): 빈 트리에서 `list --json` → `changes: []`, `list --specs` → `No specs found.`, `--json` → `specs: []`. TTY 유무와 관계없이 모두 exit 0, 약 245 ms. 아무것도 쓰지 않음 | 로컬 agent image(`rllm-agent-f268c8df48c7`)가 있어서 가능 |
+
+## 구성 (explore로 바뀐 파일)
+
+| 파일 | 출처 | 내용 |
+|---|---|---|
+| `docs/stages/00-explore.md` | OpenSpec 원문을 변환 | explore 단계 문서: 입력, 읽기 전용 경계, 쓰기 없음, 질문 → 가정, 끝 조건, "What We Figured Out" 요약, ff로 넘어가기 (원문 353줄 → 222줄) |
+| `docs/core-workflow.md` | 직접 작성 | explore 행·흐름 줄·"From Explore to ff" 절·explore 실행 규칙 추가 (91줄 → 105줄) |
+| `instruction.md`, `system-prompt.j2` | 직접 작성 / SDK 기본 프롬프트 복사 | explore를 ff 앞에 명시. 첫 행동은 그대로 `/opsx/core-workflow.md`. 나머지 15개 섹션 동일 |
+| `sandbox/openspec-config.yaml` | 직접 작성 | `context`의 checks 줄을 "From the ff action on, …"으로 |
+| `build.py` | 직접 작성 | `SOURCES`·`STAGE_DOCS`에 explore, explore 편집 30건, `FORBIDDEN_ALLOWED`·`forbidden_left`, `BUILDERS` |
+| `__init__.py`, `README.md` | — / 직접 작성 | docstring과 안내서에 explore 반영 |
+| `porting/cli-probe/05-*` | 단계별 기록 | G7-9 probe 스크립트와 출력 |
+| `tests/test_openspec_ff.py` | 직접 작성 | 문서 5개, 금지어 예외의 범위, explore의 hand-off·쓰기 없음·요약·G4-19 문장, config 줄 |
+
+## 수정한 내용
+
+### 각 단계 수행 방식 변화 (explore)
+
+| Before (upstream explore) | After (rllm) |
+|---|---|
+| 1. **사람**이 (선택) agent 앱 채팅창에 `/opsx:explore`를 입력하고 바꿀 영역이나 문제를 말합니다.<br>2. **agent 앱**이 `openspec-explore` SKILL.md를 지침으로 불러옵니다.<br>3. agent가 `openspec list`·`list --specs`·`show`와 `config.yaml`로 현황을 보고, 코드를 읽고 읽기 전용 명령을 실행합니다.<br>  • 다이어그램과 선택지를 보여 주며 **사람에게 한 번에 하나씩 질문**합니다.<br>  • 코드는 쓰지 않습니다. change 문서는 **사람의 yes 뒤에만** 씁니다.<br>4. 정해진 끝이 없습니다. **사람**이 `/opsx:propose`를 입력하면 끝나고, 대화 내용이 proposal로 옮겨집니다. | 1. task 메시지(instruction + issue)가 탐색 주제입니다.<br>2. agent가 `core-workflow.md`를 읽고 **`/opsx/stages/00-explore.md`를 먼저** 엽니다.<br>3. agent가 `openspec list --json`, `list --specs`(빈 트리: `No specs found.`)와 `config.yaml`을 보고, 코드를 읽고 검색합니다.<br>  • 실행은 **기존 코드·기존 테스트, issue 예시를 그대로**만 합니다. 직접 짠 코드(한 줄 `python -c` 포함)와 파일 쓰기는 하지 않습니다.<br>  • 사람만 답할 수 있는 질문은 **가정**으로 요약에 기록하고, 선택은 agent가 추천안과 대안으로 정합니다.<br>4. 문제와 바꿀 위치를 근거와 함께 말할 수 있으면 **"What We Figured Out" 요약**(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문)을 쓰고 같은 turn에 `01-ff.md`를 엽니다.<br>5. ff부터는 기존과 같습니다. ff는 요약을 근거로 proposal과 design을 씁니다. |
+
+### 수정 사항
+
+| # | 범주 | 내용 |
+|---|---|---|
+| 1 | **사람 피드백이 필요한 부분 삭제** | 쓰기 전 yes/no 질문, "Want me to create a proposal?" 제안, 질문으로 끝나는 예시 대화 삭제. 범위·의도 질문은 요약의 가정으로, "Planning a Change" 예시의 범위 질문은 근거에서 끌어낸 가정과 틀렸을 때의 대안으로, 사람의 선택은 agent의 추천안·대안으로 대체 |
+| 2 | **보고 후 멈춤 → 다음 단계로 진행** | `/openspec-propose` 안내 4곳을 "`/opsx/stages/01-ff.md`를 열고 계속"으로 변경(5번째는 capture 전환과 함께 삭제). 구현 요청 거절 문장을 "구현은 이 세션의 ff·apply가 수행"으로 변경 |
+| 3 | **이름·경로 고정** | explore 단계 문서 `00-explore.md`(기존 01–03 유지). change 이름은 기존대로 ff의 `issue` |
+| 4 | **실행 환경 구성** | 해당 없음(CLI·이미지 그대로). 빈 spec 트리의 `openspec list --specs` 동작을 probe로 확인 |
+| 5 | **agent 앱 전용 요소 삭제** | explore의 frontmatter, store 선택 문단 삭제 |
+| 6 | **SWE task 조건에 맞춤** | 해당 없음(explore는 원래 파일을 쓰지 않음) |
+| 7 | **절차 구조 변경** | ff 앞에 explore 단계 추가(선택 → 항상). 끝 조건은 요약의 문제·바꿀 위치를 근거와 함께 말할 수 있을 때, 요약은 필수. capture 전환, "When a change exists", 손으로 change를 만들지 말라는 guardrail, 상황별 예시 4개 중 3개 삭제 |
+| 8 | **환경 사실 명시** | config `context`와 진입 문서의 checks 문장을 "From the ff action on, …"으로 변경 |
+| 9 | **harness·데이터셋 설정** | `instruction.md`와 system prompt 절차 섹션에 explore를 ff 앞에 명시. build.py 금지어 검사에 explore의 `:48` 문장 1회 예외 |
+| 10 | **범위·방식 결정** | "코드 작성"의 경계: 기존 코드·테스트와 issue 예시를 그대로 실행하는 것만 허용, 직접 짠 코드와 파일 쓰기 금지. explore는 change 문서도 쓰지 않음 |
+| 11 | **원문 유지** | "NEVER write code"(`:14`, `:345`), 사실 확인 문장 `:48`, Stance 목록, 현황 명령과 config 읽기(`:122-146`), project-root guard, "Visualize"와 ASCII 규칙, 원문 ff 문서 전체("reuse findings … inspect more only as needed" 포함) |
+
+**적용 위치**
+- **단계 문서 편집**: `build.py`가 `skills/openspec-explore/SKILL.md`를 `00-explore.md`로 변환할 때 태그 편집 30건(env 8, semantic 22). 범주 1, 2, 5, 7, 10
+- **환경 파일**: `sandbox/openspec-config.yaml` 1줄. 범주 8
+- **새로 작성**: `core-workflow.md`(행동 표 행, 흐름 줄, "From Explore to ff", explore 실행 규칙, checks 줄), `instruction.md`, system prompt 절차 섹션. 범주 7, 8, 9, 10
+- **build·test**: `build.py`의 `SOURCES`·`STAGE_DOCS`·`FORBIDDEN`(+8)·`FORBIDDEN_ALLOWED`, 테스트, README, `__init__.py` docstring
+
+## agent 행동 변화 (explore)
+
+| # | 단계 | upstream 원래 행동 | 지금 행동 | 바꾼 이유 | 원문으로 되돌리면 |
+|---|---|---|---|---|---|
+| 1 | explore | 선택 단계. 사람이 `/opsx:explore`를 부를 때만 실행 | **새 행동 추가**: 매 rollout에서 ff 전에 항상 실행(진입 문서의 흐름 줄과 행동 표 첫 행, instruction, system prompt) | 재현 전에 design을 확정하는 계획 고착을 줄이려고 사용자가 순서를 정함 (G3-2) | 가능 (explore 없는 기존 openspec_ff) |
+| 2 | explore | "run read-only commands or tools … NEVER write code". 직접 짠 snippet 실행 여부는 원문상 불명확 | **원래 행동 삭제**(불명확한 부분): 기존 코드·테스트와 issue 예시를 그대로 실행하는 것만 허용, 한 줄 `python -c`를 포함한 직접 짠 코드와 모든 파일 쓰기 금지 | "NEVER write code"를 문자 그대로 적용 (G9-5) | 가능 (snippet 허용 시 재현은 늘지만 원문 규칙과 충돌) |
+| 3 | explore | 끝이 없음("There's no required ending"), 사람의 명령으로 끝남 | **새 행동 추가**: 요약의 문제·바꿀 위치를 근거와 함께 말할 수 있으면 끝내고 ff로 감. 남은 질문은 열어 둠 | 끝낼 사람이 없음 (G8-6) | 불가 (무인 실행에 끝이 없음) |
+| 4 | explore | 결정은 대화에 남김. 요약은 선택 | **새 행동 추가**: "What We Figured Out" 요약을 항상 작성(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문 + `file:line`·명령 출력 근거), ff 문서를 여는 turn에 둠 | 확인 가능한 기록, ff의 근거 (G2-12, G2-11) | 가능하지만 근거가 대화에 흩어짐 |
+| 5 | explore | yes를 받으면 change 문서 작성, capture 요청 시 change 생성 | **원래 행동 삭제**: 아무것도 쓰지 않음. change는 ff가 만듦 | 답할 사람이 없고, ff의 `new change`와 충돌 (G4-13, G4-17, G7-10) | 가능하지만 ff 2단계 변경 필요 (`later.md`) |
+| 6 | explore | 추천안을 말하고 사람이 고름("The user decides"). spike는 사람에게 제안 | **새 행동 추가**: agent가 추천안·대안·이유를 요약의 "Where the change goes"에 쓰고 ff가 design.md Decisions에 기록. spike는 ff 조사에서 풀 구체적 질문으로 넘김 | 고를 사람이 없음 (G4-15) | 불가 (선택할 사람 없음) |
+| 7 | explore | 예시: 코드 확인 후 사람에게 범위 질문("Is sharing state across devices in scope?") | **새 행동 유도**: 같은 예시가 근거에서 가정을 끌어내고("Nothing in the issue or the code needs state shared across devices, so I assume …") 틀렸을 때의 대안을 함께 적음 | G4-14 규칙과 같은 행동을 예시로 보임 (G4-19) | 가능하지만 예시가 질문하는 행동을 보임 |
+| 8 | ff | explore 대화를 보고 proposal을 씀 | **새 행동 유도**: 요약을 근거로 proposal Why·design Context·Decisions를 쓰고 가정을 proposal에 옮김(explore 문서와 진입 문서에 명시). ff 문서는 원문 그대로 | explore 결과를 계획에 반영 (G2-12, G2-13) | 가능 |
+
+**표에서 뺀 것**: 입력 = issue(G1-4), propose 안내 → ff 문서 열기(G2-10), 구현 요청 문장(G4-16), 질문 → 가정 기록 단순 대체(G4-14), 메시지는 tool call과 같은 turn에(G2-11), frontmatter·store 삭제(G7-7, G7-8), 질문으로 끝나는 예시 3개 삭제(G4-18), 현황 명령 유지(G7-9), config·진입 문서의 checks 문장(G10-9).
+
+**smoke에서 반드시 확인할 것** (새 행동 추가 행 1, 3, 4, 6): explore가 매번 실행되는지, explore 중 파일 쓰기와 직접 짠 코드가 0인지, 끝 조건에 맞춰 요약을 쓰고 같은 turn에 ff로 가는지, 요약의 추천안이 design Decisions에 기록되는지. 함께 측정: explore와 ff의 step 수, ff 조사량(G2-13), 계획 고착 사례 수.
+
+## 변경 (explore)
+
+**E1. explore 단계 문서 추가** (00-explore.md, build.py, core-workflow.md) — G5-4, G3-2, G7-7, G7-8
+- 원문은 사람이 원할 때 부르는 선택 단계. `skills/openspec-explore/SKILL.md`를 `docs/stages/00-explore.md`로 변환해 ff 앞에 추가, 기존 01–03 번호는 유지.
+- frontmatter 삭제, store 선택 문단은 기존 공통 편집으로 삭제.
+
+**E2. 입력을 issue로 명시** (00-explore.md, core-workflow.md) — G1-4
+- 원문은 사람이 가져오는 주제가 입력. `**Input**` 줄로 `<issue_description>`의 issue를 탐색 자료로 명시, 진입 문서의 입력 절에 explore 추가.
+
+**E3. 읽기 전용 경계와 쓰기 없음** (00-explore.md, core-workflow.md, openspec-config.yaml) — G9-5, G4-13, G7-10, G10-9 — **semantic 포함**
+- 원문은 읽기 전용 명령은 자유, 코드는 금지, change 문서는 사람의 yes 뒤에 작성하는 구조.
+- 읽기 전용 = 기존 코드·기존 테스트·issue 예시를 그대로 실행하고 파일을 쓰지 않는 것으로 명시. 직접 짠 코드(한 줄 `python -c`, stdin snippet)와 모든 파일 쓰기(저장소, `/tmp`, `checks/`, redirection, heredoc) 금지, 실행 부산물은 예외(G9-5, semantic).
+- change 문서 작성 허용 문장, yes/no 확인 절차, auto-capture guardrail을 "explore는 아무것도 쓰지 않음, `openspec new change`는 ff의 첫 명령"으로 변경(G4-13, semantic). 손으로 change를 만들지 말라는 guardrail 삭제(G7-10).
+- config `context`와 진입 문서 Fixed Names의 checks 문장에 "From the ff action on" 추가(G10-9).
+
+**E4. 질문을 가정·추천안으로 대체** (00-explore.md, system-prompt.j2) — G4-14, G4-15, G4-19 — **semantic**
+- 원문은 사람에게 한 번에 하나씩 묻고, 추천안을 말하되 사람이 고르는 구조.
+- "Planning a Change" 첫 문단을 규칙으로 변경: 질문은 issue·코드·테스트에 던지고, 사람만 답할 질문은 가장 타당한 해석을 가정으로 요약에 표시, ff가 proposal에 옮김. `:51`, `:52`(금지어 "ask the user" 포함), `:53`, `:73`을 같은 규칙에 맞춤. `:48`은 원문 그대로(G4-14).
+- "Recommend a path (if asked)" → 대안과 이유를 붙여 항상 추천, spike 제안 → ff 조사용 구체적 질문, "Let them pause, pivot, or defer" → 끝 조건과 열린 질문(G4-15).
+- 예시(`:57-64`)의 범위 질문을 결정 문안대로 근거 기반 가정 + 틀렸을 때의 대안으로 변경, 첫 문장은 유지(G4-19).
+
+**E5. 끝 조건과 필수 요약** (00-explore.md, core-workflow.md) — G8-6, G2-12, G2-11, G2-10 — **semantic**
+- 원문은 끝이 없고 요약은 선택, 끝맺음은 propose 명령 안내 등 4가지.
+- "no mandatory outputs" → 요약이 유일한 필수 산출물, "Reach a conclusion" → 열린 질문만 남겨도 됨.
+- 끝맺음 4개를 "ff로 넘어감" 하나로: 요약의 문제와 바꿀 위치를 근거와 함께 말할 수 있으면 끝.
+- 요약 필드를 문제 / 동작 방식 / 바꿀 위치(추천안·대안) / 가정 / 남은 질문으로 변경, 각 항목에 `file:line`·명령 출력 근거, ff 문서를 여는 tool call과 같은 turn에 작성. "this summary is optional" → ff가 proposal Why·design Context·Decisions를 이 요약 위에 씀.
+- 진입 문서에 "From Explore to ff" 절 추가.
+
+**E6. propose 안내를 ff 문서로 연결** (00-explore.md) — G2-10, G4-16
+- 원문은 구현 요청을 말로 거절하고 `/openspec-propose`를 안내하는 구조. task 메시지 자체가 구현 요청이라 문자 그대로면 텍스트 응답으로 종료.
+- `:14`의 거절 문장을 "구현은 이 세션의 ff·apply가 수행, explore에서는 시작하지 않음"으로, `:318`·`:335`·`:345`의 propose 안내를 "`/opsx/stages/01-ff.md`를 열고 계속"으로 변경. `:162`는 E7에서 삭제.
+
+**E7. 쓰이지 않는 분기와 예시 삭제** (00-explore.md) — G4-17, G4-18 — **semantic 포함**
+- capture 전환(`### When no change exists`)과 `### When a change exists` 소절 삭제(ff 전에는 change가 없음, G4-17). 구현 중 예시 삭제(G4-17).
+- 상황별 예시는 "User brings a specific problem"만 유지하고, 마무리 질문 "Which one's burning?"을 "요약을 쓰고 같은 turn에 ff 문서를 엶"으로 변경. 막연한 아이디어·선택지 비교 예시 삭제(G4-18, semantic).
+
+**E8. 첫 단계 명시와 금지어 검사** (instruction.md, system-prompt.j2, build.py, tests) — G10-8, G4-14
+- instruction과 절차 섹션에 "explore 먼저, 아무것도 쓰지 않음, 그다음 ff → archive" 명시. 첫 행동은 그대로 `/opsx/core-workflow.md` 열기, 나머지 15개 섹션 동일.
+- `FORBIDDEN_ALLOWED`: explore의 "Do not ask the user to repeat facts you can verify."만 1회 면제, 다른 문서와 두 번째 등장은 실패. 지운 explore 문구 8개를 `FORBIDDEN`에 추가.
+
+**원문 그대로 둔 부분 (explore)**: "NEVER write code" 두 곳, `:48` 사실 확인 문장 전체, Stance 목록, "Follow dependencies", Visualize와 ASCII 규칙, OpenSpec Awareness(`list --json`, `list --specs`, `show`, config 읽기), project-root guard, Guardrails의 나머지 항목, ff 문서 전체.
+
+**원문 없이 새로 쓴 문서 (explore 관련)**: `docs/core-workflow.md`의 explore 부분, `instruction.md`, `system-prompt.j2`의 `<PROBLEM_SOLVING_WORKFLOW>` 섹션.
+
+### Explore extension — stage 6 back-edges (2026-10-16)
+
+- **G9-6** (semantic, user): `00-explore.md` Guardrails "Don't implement" names composed code (`python -c "..."`,
+  a heredoc piped to `python3`) as writing code and sends variants of the issue's example to ff as open
+  questions; `core-workflow.md` explore rule names the same plus scripts in `/tmp`. Edit note `G4-13/G9-6`.
+- **G2-14** (env, user): the summary goes inside a tool call (e.g. `think`) before the tool call that opens
+  `01-ff.md`, no longer "in the same turn"; `00-explore.md` (edit note `G2-12/G2-11/G2-14`), `core-workflow.md`
+  actions-table row and "From Explore to ff".
+- Verified: `build --check` rc=0; recipe tests 136 passed (test_openspec_ff updated for both).

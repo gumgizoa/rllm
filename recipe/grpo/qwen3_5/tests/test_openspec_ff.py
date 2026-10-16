@@ -48,7 +48,7 @@ def _upstream(port, key: str) -> str:
 @pytest.mark.parametrize("label", ["stages", "fork"])
 def test_committed_outputs_match_a_fresh_build(label):
     port = build.PORTS[label]
-    built = {n: t for n, t in build._build(port, UPSTREAM).items()}
+    built = build.BUILDERS[label](UPSTREAM)
     for name, text in built.items():
         assert (port.out_dir / name).read_text(encoding="utf-8") == text, f"{label}: {name} drifted; rerun build.py"
     on_disk = sorted(p.relative_to(port.out_dir).as_posix() for p in port.out_dir.rglob("*") if p.is_file())
@@ -68,6 +68,22 @@ def test_upstream_wording_left_behind_fails_the_build():
     text = _upstream(build.STAGES, "verify").replace("**Verification Heuristics**", "- Ask the user first.\n\n**Verification Heuristics**")
     with pytest.raises(ValueError, match="left after conversion"):
         build.convert("verify", text)
+
+
+@needs_upstream
+def test_ask_the_user_is_allowed_once_in_explore_only():
+    # G4-14: explore:48's "Do not ask the user to repeat facts you can verify." stays verbatim; nothing else may.
+    kept = build.FORBIDDEN_ALLOWED["explore"][0]
+    assert "ask the user" in kept and "ask the user" in build.FORBIDDEN
+    assert kept in build.convert("explore", _upstream(build.STAGES, "explore"))
+    ff = _upstream(build.STAGES, "ff").replace("**Guardrails**", f"{kept}\n\n**Guardrails**")
+    with pytest.raises(ValueError, match="left after conversion"):
+        build.convert("ff", ff)  # the allowance is per source
+    explore = _upstream(build.STAGES, "explore")
+    with pytest.raises(ValueError, match="left after conversion"):
+        build.convert("explore", explore.replace("## Guardrails", "Otherwise ask the user.\n\n## Guardrails"))
+    with pytest.raises(ValueError, match="occurs 2 times"):
+        build.convert("explore", explore.replace("## Guardrails", f"{kept}\n\n## Guardrails"))
 
 
 def test_every_edit_is_tagged_and_cites_its_gap():
@@ -97,10 +113,10 @@ def test_documents_point_only_at_documents_that_exist():
 
 def test_removed_upstream_wording_is_gone():
     docs = _docs()
+    keys = {out: key for key, (_, out) in build.SOURCES.items()}
     for name, text in docs.items():
         if name.startswith("stages/"):
-            for bad in build.FORBIDDEN:
-                assert bad not in text, (name, bad)
+            assert build.forbidden_left(keys[name.removeprefix("stages/")], text) == [], name
     for path in build.FORK_DIR.rglob("*"):
         if path.is_file():
             for bad in build.FORK_FORBIDDEN:
@@ -200,7 +216,7 @@ def test_instruction_and_prompt_send_the_agent_to_the_entry_document_first():
 
 def test_harness_picks_up_documents_and_tooling():
     h = OpenHandsSdkWorkflow(workflow=NAME, instruction_position="prefix")
-    assert h._expected_doc_count() == len(_docs()) == 4  # core-workflow + ff, apply, verify (D-7: no new stage)
+    assert h._expected_doc_count() == len(_docs()) == 5  # core-workflow + explore, ff, apply, verify (D-7: no new stage)
     composed = h.compose_instruction("TASK")
     assert composed.startswith("Solve this task as an OpenSpec change") and composed.endswith("\n\nTASK")
     assert h.evaluation_policy is None  # no scorer yet
@@ -234,7 +250,7 @@ def test_cli_wrapper_is_non_interactive_and_setup_checks_a_tty_run():
 def test_no_new_stage_and_ff_creates_the_change():
     # D-7: the chain starts at ff, whose own step 2 (upstream) runs `openspec new change "issue"`.
     docs = _docs()
-    assert sorted(docs) == ["core-workflow.md", "stages/01-ff.md", "stages/02-apply.md", "stages/03-verify.md"]
+    assert sorted(docs) == ["core-workflow.md", "stages/00-explore.md", "stages/01-ff.md", "stages/02-apply.md", "stages/03-verify.md"]
     assert 'openspec new change "issue"' in docs["stages/01-ff.md"]
     assert "/opsx:new" not in docs["core-workflow.md"] and "01-new" not in "".join(docs.values())
 
@@ -254,3 +270,56 @@ def test_project_config_carries_facts_without_operation_guidance():
     assert "ADDED Requirements" in " ".join(cfg["rules"]["specs"])
     fork = (openspec_ff.SPEC.sandbox_files[openspec_ff.FORK_STAGED] / "schema.yaml").read_text(encoding="utf-8")
     assert "starts empty" not in fork  # G7-5 lives in the rules now, not in the fork
+
+
+# ---------------------------------------------------------------------- explore (porting/03-decisions.md "Explore extension")
+
+
+def test_explore_comes_first_and_hands_off_to_ff():
+    docs = _docs()
+    entry, explore = docs["core-workflow.md"], docs["stages/00-explore.md"]
+    assert "/opsx:explore ──► /opsx:ff" in entry  # G3-2: chain line
+    assert entry.index("/opsx/stages/00-explore.md") < entry.index("/opsx/stages/01-ff.md")  # actions table order
+    assert "What We Figured Out" in entry and "openspec list --json" in entry
+    assert explore.count(build.STAGE_DOCS["ff"]) >= 4  # G2-10: every hand-off goes to ff
+    assert "/openspec-propose" not in explore and "openspec-apply-change" not in explore
+    h = OpenHandsSdkWorkflow(workflow=NAME, instruction_position="prefix")
+    sec = SECTION.search(h.system_prompt_file.read_text(encoding="utf-8")).group(0)
+    for text in (h.instruction_text(), sec):  # G10-8: explore named before ff, first action unchanged
+        assert text.lower().index("explore") < re.search(r"\bff\b", text).start()
+
+
+def test_explore_writes_nothing_and_composes_no_code():
+    explore = _docs()["stages/00-explore.md"]
+    entry = _docs()["core-workflow.md"]
+    assert "NEVER write code or implement features" in explore and "Never write code or implement features" in explore  # kept
+    assert "In this session explore writes nothing" in explore  # G4-13
+    assert "python -c" in explore and "python -c" in entry  # G9-5 boundary, in the stage and the entry document
+    for gone in ("### When no change exists", "### When a change exists", "Don't manually scaffold", "yes/no", "Want me to"):
+        assert gone not in explore, gone  # G4-17, G7-10, G4-13
+    assert 'openspec new change "issue"' not in explore  # only ff runs it
+    assert "Explore writes none." in entry and "writes no file anywhere" in entry
+
+
+def test_explore_ends_with_the_summary_ff_builds_on():
+    explore = _docs()["stages/00-explore.md"]
+    for field in ("**The problem**", "**How the area works**", "**Where the change goes**", "**Assumptions**", "**Open questions**"):
+        assert field in explore, field  # G2-12
+    assert "There's no required ending" not in explore and "summary is optional" not in explore  # G8-6, G2-12
+    assert "inside a tool call (the `think` tool, for example) before the tool call that opens" in explore  # G2-11, G2-14
+    assert "heredoc piped to `python3`" in explore  # G9-6: composed code named in the guardrail
+    assert "Do not ask the user to repeat facts you can verify." in explore  # G4-14: explore:48 verbatim
+    assert "I assume a single-device\ntool (assumption, with that evidence)" in explore  # G4-19
+    assert "Is sharing state" not in explore
+    for gone in ("User brings a vague idea", "User is stuck mid-implementation", "User wants to compare options"):
+        assert gone not in explore  # G4-18, G4-17
+    assert "User brings a specific problem" in explore
+    ff = _docs()["stages/01-ff.md"]
+    assert "reuse findings for later artifacts and inspect more only as needed" in ff  # G2-13: ff verbatim
+
+
+def test_config_says_checks_start_with_ff():
+    from recipe.grpo.qwen3_5.workflows import openspec_ff
+
+    cfg = yaml.safe_load(openspec_ff.SPEC.sandbox_files[openspec_ff.CONFIG_STAGED].read_text(encoding="utf-8"))
+    assert "From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/." in cfg["context"]  # G10-9

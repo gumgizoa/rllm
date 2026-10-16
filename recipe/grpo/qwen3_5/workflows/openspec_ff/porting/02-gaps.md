@@ -160,3 +160,247 @@ glibc 2.35) and `debian:bullseye-slim` (glibc 2.31); probes and the bundle recip
 | `src/core/templates/workflows/{project-root,store-selection,new-change,ff-change}.ts` | 37 + 7 + 178 + 263 |
 | `src/core/templates/workflows/{apply-change,verify-change,archive-change,sync-specs}.ts` | compared to the renders |
 | `src/core/planning-home.ts`, `src/core/version-check.ts`, `docs/customization.md`, `docs/agent-contract.md` | relevant parts |
+
+## Explore extension (stage 2, 2026-10-15)
+
+Scope: upstream's **explore** stage added before ff in the same session (user, 2026-10-15). Already decided
+by the user and not reopened here: the position (explore → ff → apply → verify → archive) and explore's
+no-code rule kept as upstream has it. Upstream checked at `9111a7654d7800391459431fff4eaf66e33a3d2e`
+(`git rev-parse HEAD`, nothing checked out). Short names as above, plus `explore` =
+`skills/openspec-explore/SKILL.md` (committed render, 353 lines) and `explore.ts` =
+`src/core/templates/workflows/explore.ts` (skill body `:80-392`, command body `:405-606`).
+
+What the CLI serves for explore at run time: **nothing**. `openspec instructions` serves artifacts and
+apply; the only operation ids are `apply`, `archive` (`src/core/project-config.ts:8`); the schema has no
+explore entry (`grep -i explore schemas/spec-driven/schema.yaml`: no hit). Explore reads
+`<root.path>/openspec/config.yaml` itself (`explore:142-146`), not through `instructions` JSON. So every
+edit for explore is a stage-document edit; the fork needs none.
+
+Coupling between explore and the planning actions, as upstream writes it:
+- Hand-off target is **propose** (`explore:14,162,318,335,345`; `docs/explore.md:3,89-98`;
+  `docs/workflows.md:38-40,115,143`), or `/opsx:new` in the expanded set (`docs/explore.md:104`,
+  `docs/commands.md:101`; `docs/workflows.md:202` explore → new → continue). Upstream never pairs explore
+  with **ff**; ff is for "Clear requirements" / "If you can describe the full scope upfront"
+  (`docs/workflows.md:408-416`). The hand-off lines are optional-workflow conditionals on `propose` /
+  `apply` (`explore.ts:40-74`), resolved in the render with every workflow installed.
+- Findings travel in the **conversation**: "Track decisions in the conversation, not in files"
+  (`explore:53`); "the AI carries the context from your conversation into the artifacts"
+  (`docs/explore.md:91,98`); "Creating proposal based on our exploration… [Writes proposal incorporating
+  investigation insights]" (`docs/workflows.md:234-235`).
+- Writes: only OpenSpec change artifacts, only after a yes/no confirmation in a separate message or the
+  person's own capture request (`explore:14,155,349`; `docs/explore.md:30,36`); the capture path runs
+  `openspec new change "<name>"` itself (`explore:157`). Code: never, "on any path, capture included"
+  (`docs/explore.md:34`).
+
+| ID | Type | Upstream location | What the text does | Why it breaks in rllm (evidence) | Proposed handling | Tag | Status |
+|---|---|---|---|---|---|---|---|
+| G1-4 | G1 input | `explore.ts:415-420` (command variant only: "The argument after `/opsx:explore` is whatever the user wants to think about … Nothing (just enter explore mode)"); skill: `explore:70` "Depending on what the user brings", entry points `explore:210-310` | input = whatever the person brings; the skill render states no input | the only input is the issue (`scripts/prepare_swegym.py:166-180`); nobody brings anything more | add "**Input**: the issue in `<issue_description>`: the problem to understand" — upstream's entry point "User brings a specific problem" (`explore:235-264`) (P2). precedent: openspec_ff G1-1 | env | decided |
+| G2-10 | G2 hand-off | `explore:14` ("point them at `/openspec-propose`"), `:162` ("stop there and name where the work continues: `/openspec-propose` … `/openspec-apply-change` …"), `:318`, `:335`, `:345` ("name the handoff rather than starting") | explore never moves on by itself; it names the next command for the person, and that command is propose | "stop and name" = a text-only reply = end (lessons); propose is not shipped and `/openspec-` is in `FORBIDDEN` (`build.py:80`; 7 hits in `explore`, counted); the render's "propose not installed" fallbacks are offers to the person (`explore.ts:43,49,61,67,73`) | every hand-off → "when exploration is done (G8-6), open `/opsx/stages/01-ff.md` and continue: ff writes the planning artifacts from what you found". ff stands in for propose: same artifact loop in one go (`01-survey.md:185-187`); the user fixed the order (P2). precedent: openspec_ff G2-2 | env | decided |
+| G2-11 | G2 hand-off | `explore:12,37,90-109,351` (visualize, ASCII diagrams), `:48` "Summarize relevant findings", `:160` "Tell the user about a deliberate conditional skip", `:206` (need not "Be brief"), `:323-339` summary | explore's whole output is prose and diagrams addressed to the person | a message without a tool call ends the session (lessons); explore writes no file, so all its output is message text — more tool-less temptation than any other stage | the rule the other stages already follow (`core-workflow.md:49-50`): every note, diagram and summary rides in a turn that also makes a tool call (P2). precedent: openspec_ff G2-7 | env | decided |
+| G2-12 | G2 hand-off | `explore:53` ("Track decisions in the conversation, not in files"); `docs/explore.md:91,98`; `docs/workflows.md:234-235`; optional summary `explore:323-339` | findings reach the proposal through the conversation; nothing is written unless the person says yes (`docs/explore.md:36`) | the context does survive (one session, no condenser, `06-smoke.md:3`), but leaves nothing checkable (P3), and core-workflow's "write the assumption into the artifact at hand" (`core-workflow.md:51-53`) has no artifact during explore | options: (a) conversation only, upstream as is; (b) upstream's "What We Figured Out" summary (`explore:325-337`) made always, written in the turn that opens the ff document; ff grounds proposal/design in it (P2: upstream's own output; P3: always); (c) a file — departs from `explore:345` and `docs/explore.md:36`; (d) capture path — see G4-13 (b). Proposed (b). → Q-E2 | semantic | decided |
+| G2-13 | G2 hand-off | ff `:74-78` (port `01-ff.md:56-60`): "re-read them from disk … (the user may have edited them)"; "Inspect the relevant project before drafting … reuse findings for later artifacts and inspect more only as needed"; "Distinguish observed behavior from assumptions" | ff runs its own discovery before each artifact and reuses what it found | after explore, "findings" include explore's; a literal agent may count explore as ff's discovery and draft the proposal at once, so the commitment point (proposal/design) is still the end of investigation, now fed by explore's conclusion (unverified for explore; in openspec_ff runs investigation nearly stopped after the proposal, user's analysis) | keep ff verbatim: upstream's own explore → propose path meets the same discovery text (`skills/openspec-propose/SKILL.md:123`, same lines as ff) (P2); measure ff's inspection after explore in the smoke. Alternative: one sentence in core-workflow (Q-E3) | env | decided |
+| G3-2 | G3 entry document | none: upstream draws explore as optional before propose (`docs/workflows.md:38-40,115`) | — | `core-workflow.md:7` (chain), `:15-22` (actions table) and `:62` ("Only the apply action edits `/testbed`. ff and verify read it and run commands in it") name ff → archive only | explore becomes the first action: table row (open the explore document; starts from `openspec list --json`, `explore:126`; leaves: nothing on disk, the findings summary per G2-12); chain line `explore ──► ff ──► …`; the read-only line names explore with its no-code rule (G9-5) (P2). precedent: openspec_ff G3-1 | (new text) | decided |
+| G4-13 | G4 interactive | `explore:14` ("Before the first write-capable action, name the artifacts or files … ask a direct yes/no question, and wait for the user's confirmation in a separate message"), `:349` (same, "including `openspec new change`"), `:53` ("Silence is not acceptance"), `:150-152` (offer "Want me to create a proposal?"), `docs/explore.md:36` | explore writes nothing on its own; a write needs a yes in a separate message, or the person's own capture request (`explore:14` last sentence, `:155`) | nobody answers: the offer or the yes/no question ends the session (lessons); the yes never arrives | (a) explore writes nothing — upstream's outcome when no yes comes ("Silence is not acceptance"); the offer and the yes/no question dropped; ff creates the change as now (P2, P4). (b) core-workflow acts as the person's capture request, scope "scaffold the change" — then ff step 2 `openspec new change "issue"` exits 1 "already exists" (`02-gaps.md:51`, verified `cli-probe/03`), against D-7. Proposed (a). → Q-E5 | semantic | decided |
+| G4-14 | G4 interactive | `explore:12` ("Follow the conversation"), `:35-36`, `:46-55` (focused discovery questions, one at a time), `:73`; `:52` ("Do not invent intent, priorities, or external constraints: ask the user when only they can answer"); `:48` ("state that limitation and ask only for the clarification needed"); dialogs ending in a question `:232,263,287,309` | the person's answers fix scope and intent | ask = end (lessons); the issue is the only statement of intent | keep `:48`'s investigation rule verbatim ("Before asking a factual question … inspect … Do not ask the user to repeat facts you can verify"); a question only the person could answer → take the most plausible reading of the issue, mark it as an assumption (not as confirmed intent) in the summary (G2-12), continue; ff writes it into the proposal (P2). precedent: openspec_ff G4-2, speckit_bug G4-3 | semantic | decided |
+| G4-15 | G4 interactive | `explore:52` ("state your preferred option and why … with alternatives and their tradeoffs"), `:55` ("Let them pause, pivot, or defer a decision"), `:84-88` ("Recommend a path (if asked)"), `:114` ("Suggest spikes or investigations"), `:195` ("The user decides"); `docs/explore.md:70-79` (the person picks the option) | explore lays out options; the person chooses | nobody chooses; a suggestion to a person is an end | the agent states its preferred option with the alternatives and reasons (`:52`'s own format) and carries it to ff, where design.md **Decisions** records choice, rationale and alternatives (G4-3 as decided; `tpl/design.md:15-17` "decisions with rationale and alternatives considered"); a suggested spike → a specific open question for ff's discovery (`ff:78` "Keep any necessary follow-up investigation specific to an unresolved question") (P2). precedent: openspec_ff G4-3 | semantic | decided |
+| G4-16 | G4 interactive | `explore:14` ("If the user asks you to implement something, do not start it here: say that explore mode does not implement, and point them at `/openspec-propose`"), `:345` | refuse in words and name the command | the task message itself asks to implement ("Can you help me implement the necessary changes…", `scripts/prepare_swegym.py:176`) and the instruction says to solve it (`instruction.md:1`); a literal reading replies with a text-only refusal → end | explore document: the task's request to implement is carried out by ff → apply later in this session; explore does not start it and, when done, opens the ff document (G2-10) (P2) | env | decided |
+| G4-17 | G4 interactive | `explore:150-162` (capture transition: "ask before expanding the capture" `:158,160`, "stop after scaffolding and show its status" `:162`), `:164-195` ("When a change exists": offers, "The user decides"), `:266-281` (mid-implementation example) | branches for a person who asks to capture, or for a change already in flight | before ff no change exists (ff creates it, D-7); under G4-13 (a) capture is never entered; their asks/stops would end the session; mid-change explore (`docs/explore.md:112`) is outside the decided order | drop both branches (unreachable; ask/stop text) (P4). precedent: openspec_ff G1-2 (unreachable ask branch dropped). Under G4-13 (b): keep the capture transition, scaffold only, and change ff step 2 | env | decided |
+| G4-18 | G4 interactive | `explore:210-310` ("Handling Different Entry Points": four dialogs ending on a question to the person — "Where's your head at?", "Which one's burning?", "Want to update the design…?", "What's the context?"); `explore:199-206` ("What You Don't Have To Do") | illustrations of the stance | they model ending a turn on a question; a question without a tool call ends the session (lessons); whether Qwen3.5 imitates them is (unverified) | (a) keep verbatim, G2-11 covers it; (b) keep only "User brings a specific problem" (`:235-264`, the one an issue matches) without its closing question; (c) drop all (P4). Related: speckit_sdd G7-7 (examples that do not apply deleted). → Q-E6 | semantic | decided |
+| G5-4 | G5 paths & IDs | (rllm side) `/opsx/stages/01-ff.md` … `03-verify.md` (`build.py:50-61`) | — | the new stage needs a document path; renumbering touches `STAGE_DOCS`, the G2-3/G2-4 edit texts (`build.py:212,221,276`), tests and README | (a) `00-explore.md` (nothing renumbered); (b) renumber 01-explore … 04-verify as D-7 did. If any capture text stays, the `"<name>"` → `"issue"` substitution (`build.py:407-410`) covers its 9 hits (P3). precedent: openspec_ff D-7, G5-2 | env | decided |
+| G7-7 | G7 machinery | `explore:18` (Store selection; `explore.ts:86`) | sticky `--store <id>` | no store is registered (G7-3) | dropped by the existing `_STORE` edit applied to every source (`build.py:134`); `explore:18` matches it exactly once (checked) (P4). precedent: openspec_ff G7-3/Q7 | env | decided |
+| G7-8 | G7 machinery | `explore:1-10` (frontmatter `allowed-tools`, `compatibility`, `metadata`) | agent-app metadata | no app reads it | strip (`Port.frontmatter`). precedent: openspec_ff G7-2 | env | decided |
+| G7-9 | G7 machinery | `explore:122-146` ("Check for context": `openspec list --json`, `openspec list --specs` (+`--json`), `openspec show "<spec-id>" --type spec …`, then read `<root.path>/openspec/config.yaml` directly) | inventory of active changes and capabilities, then the project's `context` and `rules` | `/openspec/specs/` starts empty (G7-5), so `list --specs` lists nothing and `show` has no id; what `list --specs` prints on an empty tree, and under the TTY with `CI=1`, is (unverified) — no node on this host, not probed; config.yaml is read raw, so explore sees `context` and both `rules` entries (`sandbox/openspec-config.yaml`), told they apply "only when you write that artifact" (`explore:144`) | keep verbatim (upstream machinery, P5); probe `openspec list --specs` / `--specs --json` under `script -qec` with the wrapper before the smoke (lessons "CLIs inside the sandbox") | env | decided |
+| G8-6 | G8 loops & ends | `explore:16` ("a stance, not a workflow … no fixed steps, no required sequence, no mandatory outputs"), `:199-206` (need not "Reach a conclusion"), `:314-321` ("There's no required ending": proposal / artifact updates / just clarity / continue later), `:39` ("Patient"), `:347` ("Don't rush"), `:55` ("Stop asking when the user has enough clarity") | the person ends explore by typing the next command | one session, `agent_step_limit: 150` (`config/config.yaml:68`); ff → archive took 53–111 steps in the smoke (`06-smoke.md:36,94`), 71 on average in the val ablation (`06-smoke.md:119`); with no end condition explore may run into the limit with no patch, or end at once with nothing explored | (a) end condition from upstream's crystallization summary: explore ends once "The problem" and "The approach" (`explore:327-330`) can be stated from what was read and run ("Open questions" may stay open); of the four endings only "flow into a proposal" applies (P4); (b) (a) plus a stated step cap (no upstream counterpart; P3 checkable); (c) no condition. Proposed (a). → Q-E4 | semantic | decided |
+| G9-5 | G9 task conflicts | `explore:14` ("run read-only commands or tools without confirmation, but you must NEVER write code"), `:345` ("Creating or updating OpenSpec change artifacts … is fine, writing anything else is not"), `:349` ("Read-only commands and tools need no confirmation. Before the first write-capable action—including `openspec new change` or another command that writes files…"), `:114` ("Suggest spikes"), `docs/explore.md:26,34` | no code written; read-only commands run freely; the text draws the operational line at commands that write files | the agent's own runs are the only check of behavior here (principles, standing fact); the baseline ran code 7.0× before its first edit vs 3.1× before design in openspec_ff (user's analysis); the port sends reproduction scripts to `checks/` (`core-workflow.md:34`, config `context`), a file explore may not write. The rule stays (user decision); the open point is the boundary | literal line from `:349`: a command is read-only when it writes no file. Allowed: read, grep, run existing tests and existing code, run the issue's own example as given. Not allowed: create or edit any file (repo, `/tmp`, `checks/`), incl. shell redirection or heredoc into a file. Not settled by the text: agent-composed `python -c` / stdin snippets ("NEVER write code" vs "read-only command") → Q-E1 (P1, P2; P3: "no file written during explore" is checkable from the trajectory) | semantic | decided |
+| G10-8 | G10 harness & dataset | `instruction.md:1-2` ("taken through ff, apply, verify and archive"); `system-prompt.j2:61-63` ("planned in artifacts, implemented, verified and archived"), `:68-71` | — | both name the chain without explore; an agent going by them may open ff first | rewrite both to name explore first (fresh text, lessons "Generalization"); keep the first action = open `/opsx/core-workflow.md` (G10-4) (P5). precedent: openspec_ff G10-1, G10-4 | — | decided |
+| G10-9 | G10 harness & dataset | (rllm side) `sandbox/openspec-config.yaml` `context:` "Scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/" (G10-7); `core-workflow.md:34` | — | explore reads config.yaml itself (`explore:142-146`), so the line reaches explore and points at a script it may not write, in a directory that does not exist before ff's `openspec new change` | (a) keep: a fact, true from ff on; the explore document says scripts start with ff (G9-5); (b) reword to "From the ff action on, scripts …" — G10-7 kept config to plain facts (P3) | env | decided |
+| G4-19 | G4 interactive | `explore:57-64` ("For example, after inspecting the relevant code:" — a message that states what the code shows, then asks "Is sharing state across devices in scope? That determines whether local storage is enough.", then gives a conditional recommendation "If this stays a single-device tool, I recommend keeping SQLite …") | the one worked example of "Planning a Change" (`explore:44-64`): inspect first (`:48`), then ask the person the scope question only they can answer, with a grounded recommendation (`:52`) | found in stage 4 (2026-10-15): no row cites `:57-64` (G4-14 covers `:46-55`, G4-18 the entry-point dialogs `:210-310`). Under G4-14 a question only the person could answer becomes an assumption, but this example models asking it; a question in a message is harmless only when the turn also calls a tool (G2-11), and whether Qwen3.5 imitates the example is (unverified) | options: (a) keep verbatim; the G4-14 rule written beside it turns its question into an assumption; (b) reword the example so the scope question becomes a stated assumption with the same inspect-then-recommend shape (`:52`'s format, G4-15); (c) drop it, as G4-18 dropped three examples. Closest precedent: G4-18 (an example's closing question rewritten into the decided behavior) | semantic | decided (found in stage 4) |
+| G7-10 | G7 machinery | `explore:350` ("**Don't manually scaffold changes** - Never create a new change directory under `openspec/changes/` by hand. Always use `openspec new change "<name>"` (with `--store <id>` when applicable) so required metadata such as `.openspec.yaml` is created before writing artifacts.") | the scaffolding guardrail of the capture path | found in stage 4 (2026-10-15): no row cites `:350`. Under G4-13 (a) explore never scaffolds, so the line cannot fire; after the `"<name>"` → `"issue"` substitution (`build.py:407-410`) it reads "Always use `openspec new change "issue"`" in a document that otherwise says explore writes nothing and ff runs that command | (a) keep verbatim: still true from ff on, no ask or stop in it (like the project-root guard, "Upstream text that works as is"); (b) drop with the capture text it belongs to (G4-17's "unreachable" reasoning; Q7 dropped the no-op store paragraph). Revisit with G4-13 (b) (`later.md`) either way | env | decided (found in stage 4) |
+| G9-6 | G9 task conflicts | port `docs/stages/00-explore.md` (G9-5 sentence; `explore:14,345` "NEVER write code") | explore may run existing code, existing tests and the issue's example as given; no composed code, no file | found in stage 6 (run 5, 2026-10-15): composed code run in 7/7 explore runs (`python -c`, `python3 << EOF`), reproduction scripts written to `/tmp` in 1/7 (think-on moto-7365); checked by hand on MONAI-1884 off steps 14-15, moto-7365 on steps 21-34 | (a) make the boundary harder to miss in 00-explore.md (e.g. one line in the Stance and in Guardrails naming `python -c` / heredoc-to-python as writing code) and in core-workflow; (b) take G9-5's option (b): any command that writes no file is allowed, composed snippets included (departs from "NEVER write code"); (c) accept and keep measuring | semantic | decided (found in stage 6) |
+| G2-14 | G2 hand-off | port `00-explore.md` (G2-12 sentence "write this summary in the same turn as the tool call that opens /opsx/stages/01-ff.md") | the summary rides in the turn that opens ff | found in stage 6 (run 5): 5/6 summaries are in a `think` tool call 1–14 turns before ff is opened; 2/4 think-on explore runs wrote no summary | (a) accept: a `think` call is a tool call and stays in the trajectory (the reason for the rule, a text-only turn, does not arise); (b) reword to "in a tool call before you open 01-ff.md"; (c) keep and push harder | env | decided (found in stage 6) |
+
+### G2-12
+- 원래 행동: explore에서 알아낸 것(원인, 선택지, 결정)은 파일이 아니라 대화에만 남는다. 사람이 이어서 `/opsx:propose`를 치면 AI가 그 대화 내용을 proposal에 반영한다. 사람이 "저장해" 또는 yes라고 하지 않으면 아무것도 쓰지 않는다.
+- 예시: smoke 과제(예: MONAI-2238)에서 explore가 원인 코드를 찾고 두 가지 수정안을 비교했다면, 그 비교는 대화에만 있고 ff가 proposal.md의 Why와 design.md의 Decisions를 쓸 때 대화를 보고 옮겨 적는다. (b)안이면 ff 문서를 여는 tool call과 같은 turn에 "What We Figured Out"(문제·접근·남은 질문) 요약을 매번 남긴다.
+- 원문: [explore:53](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L53), [explore:323-339](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L323-L339), [docs/explore.md:89-98](../../../../../../../OpenSpec/docs/explore.md#L89-L98), [docs/workflows.md:232-235](../../../../../../../OpenSpec/docs/workflows.md#L232-L235)
+
+### G2-13
+- 원래 행동: ff는 artifact마다 쓰기 전에 관련 코드·테스트를 읽기 전용으로 살펴보고(discovery), 이미 알아낸 것은 다음 artifact에 재사용하며 필요할 때만 더 본다.
+- 예시: explore에서 원인 함수를 찾은 뒤 ff에 들어가면, agent가 "이미 찾았다"며 추가 확인 없이 바로 proposal을 쓰고 design에서 원인·범위를 확정할 수 있다. openspec_ff에서 본 계획 고정(plan lock-in)이 explore 결론을 그대로 받아 같은 지점에서 일어날 수 있다는 뜻.
+- 원문: [ff:74-78](../../../../../../../OpenSpec/skills/openspec-ff-change/SKILL.md#L74-L78), [propose:123](../../../../../../../OpenSpec/skills/openspec-propose/SKILL.md#L123) (explore → propose 경로에서도 같은 문장)
+
+### G4-13
+- 원래 행동: explore는 change artifact(proposal·design·specs)만 쓸 수 있는데, 그것도 쓰기 전에 "무엇을 쓸지" 말하고 yes/no를 물은 뒤 사람의 별도 답을 기다린다. 사람이 먼저 "change로 만들어"라고 요청하면 그 요청이 승인이 된다(capture = 탐색 결과를 change로 저장하는 것).
+- 예시: smoke 과제에서 explore가 "proposal 만들까요?"라고 물으면 그 메시지로 rollout이 끝난다. (a)안은 아예 쓰지 않고 ff로 넘어감, (b)안은 진입 문서를 "change 만들어" 요청으로 보고 explore가 `openspec new change "issue"`를 실행 — 그러면 ff 2단계의 같은 명령이 "already exists"로 실패한다.
+- 원문: [explore:14](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L14), [explore:150-157](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L150-L157), [explore:349](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L349), [docs/explore.md:36](../../../../../../../OpenSpec/docs/explore.md#L36)
+
+### G4-14
+- 원래 행동: 계획 중인 사람에게 한 번에 하나씩 질문해 범위와 의도를 좁힌다. 코드로 확인할 수 있는 사실은 묻지 말고 직접 찾으며, 사람만 답할 수 있는 의도·우선순위는 지어내지 말고 묻는다.
+- 예시: issue가 "옵션 X가 무시된다"고만 하고 기본값을 바꿀지 말하지 않으면, upstream은 사람에게 묻는다. 여기서는 issue 문장에 가장 맞는 해석을 고르고 "가정"으로 요약에 표시한 뒤, ff가 proposal에 옮긴다.
+- 원문: [explore:46-55](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L46-L55), [explore:35-36](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L35-L36), [explore:73](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L73)
+
+### G4-15
+- 원래 행동: 선택지를 비교해 추천안과 이유를 말하되, 어느 쪽으로 갈지는 사람이 정한다. "spike"(구현 전에 가능성만 시험해 보는 짧은 조사·시제품) 제안도 사람에게 한다.
+- 예시: 수정 위치가 호출부와 내부 함수 두 곳 가능할 때, agent가 추천안과 대안을 적고 ff의 design.md Decisions에 선택·근거·대안을 기록한다. spike 제안은 ff discovery에서 풀 구체적 질문으로 넘긴다.
+- 원문: [explore:52](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L52), [explore:84-88](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L84-L88), [explore:114](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L114), [explore:195](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L195), [docs/explore.md:70-79](../../../../../../../OpenSpec/docs/explore.md#L70-L79)
+
+### G4-16
+- 원래 행동: 사람이 explore 중에 "구현해 줘"라고 하면 시작하지 않고, explore는 구현하지 않는다고 말한 뒤 propose 명령을 알려 준다.
+- 예시: SWE task 메시지 자체가 "implement the necessary changes"라고 요청하므로, 문자 그대로 읽으면 explore가 첫 응답으로 "explore는 구현하지 않습니다, propose를 쓰세요"라고 쓰고 끝난다. 처리안은 "구현 요청은 이 세션의 ff → apply가 수행, explore는 끝나면 ff 문서를 연다".
+- 원문: [explore:14](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L14), [explore:345](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L345)
+
+### G4-18
+- 원래 행동: 사람이 들고 오는 상황 네 가지(막연한 아이디어, 구체적 문제, 구현 중 막힘, 선택지 비교)에 대한 대화 예시. 모두 AI가 다이어그램을 그린 뒤 사람에게 질문하며 끝난다.
+- 예시: 모델이 "Which one's burning?" 같은 마무리를 따라 하면 tool call 없는 질문으로 rollout이 끝난다. issue에 맞는 예시는 "구체적 문제" 하나뿐.
+- 원문: [explore:210-310](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L210-L310), [explore:199-206](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L199-L206)
+
+### G7-9
+- 원래 행동: 시작할 때 진행 중인 change 목록(`openspec list --json`)과 프로젝트가 이미 가진 capability(기능 단위 spec) 목록(`openspec list --specs`)을 보고, 관련 spec은 `openspec show`로 전부 읽은 뒤 `openspec/config.yaml`의 context·rules를 직접 읽는다.
+- 예시: 이 sandbox에서는 change도 spec도 없으므로 목록 두 개가 비어 나오고 `show`는 호출할 대상이 없다. config.yaml에서는 우리가 넣은 환경 사실(checks 디렉터리 포함)을 읽는다. `list --specs`의 빈 출력과 TTY 동작은 아직 확인 안 됨.
+- 원문: [explore:122-146](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L122-L146)
+
+### G8-6
+- 원래 행동: explore는 절차가 아니라 태도(stance)라서 정해진 단계·순서·산출물·끝이 없다. 서두르지 말고, 결론에 꼭 도달할 필요도 없다. 끝내는 것은 사람이 다음 명령을 칠 때.
+- 예시: 150 step 예산에서 ff → archive가 이미 53–111 step을 쓴다. 끝 조건이 없으면 explore가 코드 탐색을 계속하다 patch 없이 step 한도에 걸리거나, 반대로 `openspec list` 한 번 보고 바로 ff로 갈 수 있다. (a)안은 upstream 요약의 "문제"와 "접근"을 근거와 함께 말할 수 있으면 끝.
+- 원문: [explore:16](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L16), [explore:199-206](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L199-L206), [explore:314-339](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L314-L339), [explore:347](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L347)
+
+### G9-5
+- 원래 행동: explore는 생각하는 단계라 코드를 쓰지도 구현하지도 않는다. 파일 읽기·검색·읽기 전용 명령 실행은 승인 없이 할 수 있고, 파일을 쓰는 명령은 승인이 필요한 쓰기 행동이다. 쓸 수 있는 것은 change artifact뿐이며 그 밖의 파일은 안 된다.
+- 예시: issue의 재현 예시를 `python -c`로 그대로 실행하거나 기존 테스트 `pytest tests/test_x.py -k y`를 돌리는 것은 파일을 만들지 않는다(실행 부산물 `__pycache__`·`.pytest_cache` 제외). `/tmp/repro.py`나 `checks/repro.py`를 만드는 것은 파일 쓰기라 금지. agent가 직접 짠 여러 줄 snippet을 stdin으로 실행하는 것은 원문만으로는 판정 불가.
+- 원문: [explore:14](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L14), [explore:345](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L345), [explore:349](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L349), [explore:114](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L114), [docs/explore.md:26-36](../../../../../../../OpenSpec/docs/explore.md#L26-L36)
+
+### G10-9
+- 원래 행동: (upstream 없음) openspec_ff가 G10-7로 config.yaml `context`에 넣은 환경 사실 중 "재현·확인 스크립트는 checks/에 둔다"는 줄.
+- 예시: explore가 config.yaml을 직접 읽고 이 줄을 보면 "재현 스크립트를 checks/에 쓰라"는 뜻으로 받아들여 금지된 파일 쓰기를 하거나, 아직 없는 디렉터리를 만들 수 있다.
+- 원문: [explore:142-146](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L142-L146)
+
+### G4-19
+- 원래 행동: "Planning a Change"의 유일한 예시. 코드를 먼저 확인해 사실을 말한 뒤, 사람만 답할 수 있는 범위 질문("여러 기기 간 상태 공유가 범위에 들어가나요?")을 하고, 그 답에 따라 달라지는 추천안을 붙인다.
+- 예시: issue가 "옵션 X가 무시된다"고만 할 때 agent가 이 예시를 따라 "기본값도 바꿔야 하나요?"라고 묻는 메시지를 쓰면, tool call이 없으면 rollout이 끝나고, 있으면 질문이 답 없이 남는다. G4-14 규칙대로라면 "issue는 기본값을 말하지 않으므로 유지한다고 가정"으로 기록해야 하는데 예시는 반대로 질문을 보여 준다.
+- 원문: [explore:44-64](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L44-L64)
+
+### G7-10
+- 원래 행동: change 디렉터리를 손으로 만들지 말고 항상 `openspec new change`로 만들라는 guardrail. capture 경로(사람이 저장을 요청한 경우)에서 쓰인다.
+- 예시: explore 문서 끝 guardrail에 "Always use `openspec new change "issue"`"가 남으면, 아무것도 쓰지 않는다는 문장과 나란히 change 생성 명령이 보인다. 발동 조건(capture)은 G4-13 (a)로 없어졌다.
+- 원문: [explore:350](../../../../../../../OpenSpec/skills/openspec-explore/SKILL.md#L350)
+
+### New text the port must write (explore)
+
+- **Explore stage document** (`docs/stages/00-explore.md` or renumbered, G5-4), built by `build.py` from
+  `explore` (add to `SOURCES`; tagged `Edit`s): Input line (G1-4); the five hand-offs → "open the ff
+  document" (G2-10); write rule = "writes nothing" (G4-13 a); questions → assumptions (G4-14);
+  recommendation instead of the person's choice (G4-15); "the task's request to implement is done by ff →
+  apply" (G4-16); capture and "When a change exists" dropped (G4-17); examples per Q-E6 (G4-18); the
+  read-only boundary sentence (G9-5); the end condition (G8-6). Store paragraph and frontmatter go by the
+  existing mechanisms (G7-7, G7-8).
+- **What explore leaves** (no code, no file): the "What We Figured Out" summary — problem, approach with
+  alternatives, assumptions, open questions — in the turn that opens the ff document (G2-12 b, G2-11).
+- **How it reaches ff**: ff unchanged (G2-13); it reads the summary from the conversation and grounds
+  proposal **Why** / design **Context**, **Decisions** (alternatives considered) in it
+  (`tpl/proposal.md:3-5`, `tpl/design.md:3,15-17`); explore's assumptions become stated assumptions in the
+  proposal (core-workflow "No One Will Answer", `core-workflow.md:51-53`).
+- **`core-workflow.md`**: chain line, actions row, "explore reads `/testbed` and runs commands, writes no
+  file anywhere" next to `:62`, and where checks scripts start (G10-9) (G3-2).
+- **`instruction.md`, `system-prompt.j2` procedure section** naming explore first (G10-8).
+- `build.py` / tests / README / `__init__.py` docstring: new source, `STAGE_DOCS`, and a `FORBIDDEN`
+  exception (next bullet).
+
+### Harness notes (explore)
+
+- `FORBIDDEN` "ask the user" (`build.py:70`) also hits `explore:48` "Do not ask the user to repeat facts
+  you can verify" — a prohibition to keep (G4-14); the build fails unless it is reworded or allowed per
+  source. `explore:52` is the other hit (handled by G4-14).
+- Skill vs command variant: the port uses skill renders (`01-survey.md:6-7`). The command body adds
+  `**Input**` (`explore.ts:415-420`) and "If the user mentioned a specific change name, read its
+  artifacts" (`explore.ts:519`), and replaces the summary block with one line (`explore.ts:592`). The
+  summary used by G2-12 (b) / G8-6 (a) exists in the skill only.
+- The SDK default "ask the user for clarification" / "confirm with the user" lines stay
+  (`system-prompt.j2:48,174`; Q6). Explore puts many more "ask" lines in front of the agent before any
+  edit; G4-14's edits carry the weight.
+- Leak exposure: a longer investigation phase widens the reach to answer routes (git history was kept in
+  the val ablation, `06-smoke.md:106`; newer package copies, lessons "Leaks"); G6-1's rule covers the
+  network only. (unverified that explore makes this more likely)
+- Run side effects: test runs leave `__pycache__` / `.pytest_cache`; the SWE-bench Pro verifier cleans
+  untracked runtime files before applying the patch (`rllm/data/swebench_pro_builder.py:320-332`); for
+  SWE-Gym / SWE-bench Verified (unverified).
+- Which task template the 60.1% no-workflow baseline used is (unverified): the SkyRL template carries
+  "EXPLORATION" and "TEST CREATION: … create a script to reproduce" (`scripts/prepare_swegym.py:120-135`),
+  the AI-DLC one does not (`:166-180`). That bears on how much of the reproduction gap a no-code explore
+  can close.
+
+### Open questions for the user (explore)
+
+1. **Q-E1 (a) What counts as "writing code"** (G9-5). Upstream literally allows "read files, search code,
+   investigate the codebase, and run read-only commands or tools" (`explore:14`) and forbids "NEVER write
+   code" (`explore:14,345`) and any file except change artifacts (`explore:345`); its operational line is
+   "another command that writes files" (`explore:349`). By that: reading tests, grep, running existing tests
+   and existing code, running the issue's example as given = allowed; a script file anywhere (`/tmp`,
+   `checks/`) = not allowed. Not settled by the text: agent-composed `python -c` or stdin snippets. Choose:
+   (i) only existing code and the issue's own example; (ii) any command that writes no file, composed
+   snippets included; (iii) stricter: no code execution at all, reading only.
+2. **Q-E2 (b) Where explore's findings are recorded** (G2-12): (a) conversation only, as upstream; (b)
+   upstream's summary always, in the turn that opens ff (proposed); (c) a file (departs from "writes
+   nothing"); (d) capture as the person's request (collides with ff step 2 / D-7).
+3. **Q-E3 (c) ff's "reuse findings … inspect more only as needed"** (G2-13): keep ff verbatim and measure
+   (proposed; upstream's explore → propose meets the same text), or add one core-workflow sentence (e.g.
+   ff re-checks explore's conclusion against the code before the proposal) — the latter adds an action
+   upstream does not have (P2).
+4. **Q-E4 (d) How explore ends unattended** (G8-6): (a) when "The problem" and "The approach" of the
+   summary can be stated from evidence (proposed); (b) (a) plus a step cap — which number; (c) no
+   condition.
+5. **Q-E5 Explore's writes** (G4-13): (a) writes nothing, ff creates the change (proposed), or (b) core-
+   workflow requests a capture (scaffold only) and ff step 2 changes.
+6. **Q-E6 Entry-point examples and document name** (G4-18, G5-4): keep / keep one / drop; `00-explore.md`
+   or renumber.
+7. **Q-E7 Config line on `checks/`** (G10-9): keep as a fact, or reword to "from the ff action on".
+
+### Conflicts with existing openspec_ff decisions
+
+- **D-7 / G7-1**: ff step 2 runs `openspec new change "issue"` and the "already exists → continue" line is
+  dropped. Any explore write path that scaffolds the change (G4-13 b, the capture transition) makes ff's
+  step 2 exit 1.
+- **G10-7** (config `context`) and `core-workflow.md:34`: "scripts to reproduce or check behavior live in
+  `checks/`" reaches explore (it reads config.yaml itself) and invites the script explore may not write
+  (G9-5, G10-9).
+- **G4-2 / `core-workflow.md:51-53`** "record the assumption in the artifact at hand": explore has no
+  artifact, and upstream says to track decisions "in the conversation, not in files" (`explore:53`).
+- **`core-workflow.md:62`** lists ff and verify as the read-and-run actions; explore must be added with a
+  stricter rule (no file at all).
+- **`build.py` `FORBIDDEN`** "ask the user" vs `explore:48`'s prohibition (harness notes).
+
+### Upstream intent for explore on existing code (`docs/existing-projects.md`, added at the user's request 2026-10-15)
+
+Person-facing guide, not agent-facing text (nothing here is uploaded); it states what explore is for on a
+brownfield repository, which bears on several rows above.
+- Purpose and position: "Let the AI read the relevant area. This is where `/opsx:explore` earns its keep on
+  an unfamiliar or large codebase … let it map how things work **before proposing anything**"
+  (`docs/existing-projects.md:41`); the thirty-second flow puts it first, optional (`:19`); "the key habit
+  for understanding code before you change it" (`:130`). A SWE task repository is that case (G3-2, the
+  order the user fixed).
+- What explore produces: the example traces the request flow, states the current structure and "the
+  cleanest insertion point", then offers to scope it (`:51-54`); "the AI now understands your actual
+  structure, so the proposal it writes will fit your code, not a generic template" (`:57`). Bears on
+  G2-12 (what is left for ff: how the area works + where the change goes), G8-6 (an end the summary can
+  state), G2-13 (ff's proposal should rest on it). The closing offer "Want me to scope it?" is the
+  question G4-13 / G4-18 handle.
+- Input as source material: existing documents are "source material for exploration, not … specs to
+  convert … paste or point the AI at the relevant section" (`:90`); the example "reads it, asks clarifying
+  questions, then helps scope a change" (`:99`). The issue plays that role (G1-4); the clarifying questions
+  are G4-14's.
+
+### Sources read (explore)
+
+| File | Lines |
+|---|---|
+| `skills/openspec-explore/SKILL.md` | 353 (all) |
+| `src/core/templates/workflows/explore.ts` | 608 (all; skill vs command bodies compared) |
+| `docs/explore.md` | 127 (all) |
+| `docs/existing-projects.md` | 134 (all; added 2026-10-15 at the user's request) |
+| `docs/workflows.md` | 1-60, 100-262, 395-552 (every explore mention, `grep -n -i explore`) |
+| `docs/commands.md` | 79-115 |
+| `docs/concepts.md` | 165-185 |
+| `src/core/templates/optional-workflow.ts` | 187 (all) |
+| `src/core/project-config.ts` | 8-64, 101-160 |
+| `skills/openspec-ff-change/SKILL.md`, `skills/openspec-propose/SKILL.md` | discovery lines (ff 74-78, propose 123) |
+| `schemas/spec-driven/templates/{proposal,design}.md` | 34 + 21 |
+| rllm: `openspec_ff/{porting/*, docs/*, instruction.md, system-prompt.j2 (60-75, 48, 174), build.py, __init__.py, sandbox/openspec-config.yaml}`, `scripts/prepare_swegym.py:100-182`, `config/config.yaml:61-68`, `workflow_harness.py:265-290`, `rllm/harnesses/tools/openhands_sdk_runner.py:99-126`, `rllm/data/swebench_pro_builder.py:305-335`, `speckit_bug` / `speckit_sdd` `03-decisions.md` | as listed |

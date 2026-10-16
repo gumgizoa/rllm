@@ -16,3 +16,10 @@ root — 03 uses `openspec init --tools none` at `/`, which is the intended setu
 `archive --yes`. 03: `init`, `schema fork`, fork selected through `config.yaml`, `new change` re-run,
 `store list`.
 04: `checks/repro.py` inside the change dir; `validate --strict` and `archive --yes` pass, `checks/` moves with the change into `changes/archive/<date>-issue/`.
+
+05 (2026-10-15, G7-9, explore's "Check for context"): run in the agent image `rllm-agent-f268c8df48c7`
+(node v22.23.3 + CLI 1.14.1 baked in; command in the script header), setup.sh's wrapper (`CI=1`), `init`
+at `/`, fork + `openspec-config.yaml` installed, cwd `/testbed`. Output: `05-list-specs-empty-tree.out`.
+On the empty tree `openspec list --json` → `{"changes": [], "root": {"path": "/", ...}}`; `list --specs`
+→ `No specs found.`; `list --specs --json` → `{"specs": [], "root": {...}}`; all exit 0, with and without
+a TTY (`script -qec`: ~245 ms each; the bare CLI without `CI=1` returns under a TTY too). Nothing written.
