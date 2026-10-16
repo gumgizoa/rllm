@@ -1,0 +1,308 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "if a task stays impossible, leave it unchecked with a one-line reason under it and continue with the rest"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-066",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       109,
+       109
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Completion: every task is checked, or the only unchecked ones carry their one-line reason."
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-067",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The status display is chat output; no kind checks message content.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       113
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Display: - Tasks completed this session - Overall progress: \"N/M tasks complete\""
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-068",
+    "target": {
+     "ref": "completion status display",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": [
+      "stage_start:apply",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       114,
+       114
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Then open the verify stage document (`/opsx/stages/03-verify.md`) and continue"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-069",
+    "target": {
+     "ref": "read:VF",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "design",
+      "tasks"
+     ],
+     "deltas": true,
+     "window": [
+      "stage_start:apply",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       149,
+       149
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Always read context files before starting (from the apply instructions output)"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-073",
+    "target": {
+     "ref": "read context files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The runtime context text is not a fixed pattern the document gives, so residue patterns cannot be written from the document.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       162,
+       162
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Do not copy runtime context or operation guidance into implementation files or planning artifacts"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-090",
+    "target": {
+     "ref": "implementation files/planning artifacts",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": [
+      "stage_start:verify",
+      [
+       "first_write:verify",
+       "stage_end:verify"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-002",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind counts retries of a non-archive openspec call after a non-zero exit.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-003",
+    "target": {
+     "ref": "openspec list retry",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "openspec init",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-011",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Applies only when a task is unclear, which the trace cannot show; whether a note line belongs to a particular task cannot be expressed as a predicate.",
+    "statement": "ap-059"
+   },
+   {
+    "reason": "Applies only when a task needs work beyond the spec, which cannot be observed or expressed as an applies_when predicate.",
+    "statement": "ap-062"
+   },
+   {
+    "reason": "Repeats ap-066 / ap-067 (unchecked task carries a one-line reason), which the done_or_reasoned items already cover.",
+    "statement": "ap-078"
+   },
+   {
+    "reason": "Applies only after a 'Declared in' / 'Invalid store declaration in' store error, a branch no predicate can express; in this sandbox the root already exists.",
+    "statement": "vf-005"
+   },
+   {
+    "reason": "Applies only in the auto-selected no-root branch; how the workflow was reached cannot be observed, and the sandbox has a root.",
+    "statement": "vf-007"
+   },
+   {
+    "reason": "Applies only in the explicit-request no-root branch; the condition cannot be expressed, and the sandbox has a root.",
+    "statement": "vf-008"
+   },
+   {
+    "reason": "The root already exists in this sandbox, and legitimate artifact writes go under openspec/, so 'hand-created root files' cannot be told apart. Running openspec init is covered by the vf-011 item.",
+    "statement": "vf-010"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7bb33c2693b3befece619c9911514c21871a5a99c4a9d056fb489a7312536ee0",
+ "key": "c5a28e98d506c28eadc41e99a343cae87446ec03c382b2841c3b8b826547a16a",
+ "meta": {
+  "at": "2026-10-14T06:45:15Z",
+  "cost_usd": 0.08218059999999999,
+  "duration_ms": 29288,
+  "num_turns": 2,
+  "wall_s": 30.5
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "ec351502751498102abe6dc229d3024dfa017e7d38daa71a7289f6ea55316ac9",
+ "version": "2.1.283"
+}

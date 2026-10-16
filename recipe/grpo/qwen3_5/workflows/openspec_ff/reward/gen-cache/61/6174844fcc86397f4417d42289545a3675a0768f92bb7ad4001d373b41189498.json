@@ -1,0 +1,472 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       10
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the proposal document that establishes WHY this change is needed."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-001",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Why"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-002",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "params": {
+     "section": "Why"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Why**: 1-2 sentences on the problem or opportunity."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-002",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^\\s*[-*] \\S",
+     "section": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 2,
+     "pattern": "^\\s*\\|.*\\|",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       200,
+       201
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Use clear markdown with:\n- Table for summary scorecard"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-132",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "exists": {
+      "fact": "repo_edit",
+      "final": true
+     }
+    },
+    "class": "content",
+    "downgrade_reason": "Code references are only expected where the report points at code; presence of at least one reference is an inferred proxy.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "`[^`]+:\\d+`"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       203,
+       203
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Code references in format: `file.ts:123`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-134",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "consider reviewing"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       205,
+       205
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "No vague suggestions like \"consider reviewing\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-136",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Final Assessment phrase depends on issue counts (no CRITICAL, >=1 WARNING) and no skipped checks; the conditions cannot be expressed as observable predicates.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       182,
+       182
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If no CRITICAL issues, one or more warnings, and no checks were skipped: \"No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements).\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-119",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Phrase conditional on only suggestions and no skipped checks; condition not expressible.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       183,
+       183
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If only suggestions and no checks were skipped: \"No critical issues or warnings. Z suggestion(s) to consider. Ready for archive (with noted improvements).\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-120",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Phrase conditional on zero issues and no skipped checks; condition not expressible.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       184,
+       184
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If no issues and no checks were skipped: \"All checks passed. Ready for archive.\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-121",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "A skipped check is not an observable fact in the reference language; readiness claim cannot be conditioned on it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If any check was skipped and there are no CRITICAL issues: do not claim readiness."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-122",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Required phrase applies only when a check was skipped, which is not observable.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Say \"No critical issues found in the checks that ran. <check(s)> not verified: <reason>.\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-123",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires matching the warning count in the assessment against the number of WARNING issues listed; no kind counts issues against a number in text.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Include the warning count when nonzero."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-124",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires matching the suggestion count against listed SUGGESTION issues; not expressible.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       186,
+       186
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Include the suggestion count when nonzero in every final assessment."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-125",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Per-issue recommendation pairing with file/line refs 'where applicable' needs issue-block parsing not offered by any kind.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       196,
+       196
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "**Actionability**: Every issue must have a specific recommendation with file/line references where applicable"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-131",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Grouping of issue lists by severity (only for severities that occur) cannot be checked without knowing the group headings; no template heading defined.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       202,
+       202
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-133",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Applies only when the change includes breaking changes, which is a judgment the run cannot observe; no predicate can express the condition.",
+    "statement": "schema-004"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b8e918227cc9a20afc20dc1a537154830b86281a7060597e66430d2d5fd9150c",
+ "key": "6174844fcc86397f4417d42289545a3675a0768f92bb7ad4001d373b41189498",
+ "meta": {
+  "at": "2026-10-16T06:22:14Z",
+  "cost_usd": 0.10785,
+  "duration_ms": 37652,
+  "num_turns": 2,
+  "wall_s": 39.19
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "a3c4faf51f012ea826e298b2dd7083f4d8ae1a3f19679b898e43e60d489ba0c5",
+ "version": "2.1.283"
+}

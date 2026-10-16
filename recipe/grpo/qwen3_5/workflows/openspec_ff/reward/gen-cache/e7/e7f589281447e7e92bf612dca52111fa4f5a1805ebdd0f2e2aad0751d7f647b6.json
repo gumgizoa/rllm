@@ -1,0 +1,252 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "A markdown table needs at least a header row and a separator row in the Summary section.",
+    "params": {
+     "min": 2,
+     "pattern": "^\\s*\\|.*\\|",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       200,
+       201
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Use clear markdown with:\n- Table for summary scorecard"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-132",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The document sets the format for code references but does not say how many a report must have; requiring at least one is an inference.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "`[^`]+:[0-9]+`"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       203,
+       203
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Code references in format: `file.ts:123`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-134",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "consider reviewing"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       205,
+       205
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "No vague suggestions like \"consider reviewing\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-136",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       10
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the proposal document that establishes WHY this change is needed."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-001",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Why"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Why**: 1-2 sentences on the problem or opportunity."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-002",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^\\s*- ",
+     "section": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The required sentence depends on the report's own issue counts (no CRITICAL, at least one WARNING) and on no check being skipped. The predicate language cannot count issues by severity or detect skipped checks, so the condition cannot go in applies_when.",
+    "statement": "vf-119"
+   },
+   {
+    "reason": "The required sentence depends on there being only suggestions and no skipped checks. Neither condition can be expressed in the predicate language.",
+    "statement": "vf-120"
+   },
+   {
+    "reason": "The required sentence depends on the report having no issues and no skipped checks. That condition cannot be expressed as a predicate, and without it a plain field_literal would wrongly fail reports that do have issues.",
+    "statement": "vf-121"
+   },
+   {
+    "reason": "Whether a check was skipped is a judgement inside the report. No observable fact or predicate captures it, so the ban on claiming readiness cannot be made conditional.",
+    "statement": "vf-122"
+   },
+   {
+    "reason": "The sentence only applies when a check was skipped and there are no CRITICAL issues. Neither condition can be expressed, and the template has free-form placeholders (<check(s)>, <reason>).",
+    "statement": "vf-123"
+   },
+   {
+    "reason": "Including the warning count depends on the number of WARNING issues in the report, and no selector or predicate counts issues by severity.",
+    "statement": "vf-124"
+   },
+   {
+    "reason": "Including the suggestion count depends on the number of SUGGESTION issues, which the predicate language cannot count.",
+    "statement": "vf-125"
+   },
+   {
+    "reason": "Whether every issue has a specific, actionable recommendation (with file/line references where applicable) is a judgement about each issue's content. No kind can check it per issue.",
+    "statement": "vf-131"
+   },
+   {
+    "reason": "Grouping issues by severity only applies when issues of that severity exist, and the grouping can be headings, bold labels or lists. No observable condition or fixed heading string can be checked reliably.",
+    "statement": "vf-133"
+   },
+   {
+    "reason": "The **BREAKING** marker is only required when a change is breaking. Whether a change is breaking is a judgement about meaning and cannot be expressed as a predicate.",
+    "statement": "schema-004"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b8e918227cc9a20afc20dc1a537154830b86281a7060597e66430d2d5fd9150c",
+ "key": "e7f589281447e7e92bf612dca52111fa4f5a1805ebdd0f2e2aad0751d7f647b6",
+ "meta": {
+  "at": "2026-10-16T06:21:41Z",
+  "cost_usd": 0.18888,
+  "duration_ms": 34004,
+  "num_turns": 2,
+  "wall_s": 35.6
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample0",
+ "schema_sha256": "a3c4faf51f012ea826e298b2dd7083f4d8ae1a3f19679b898e43e60d489ba0c5",
+ "version": "2.1.283"
+}

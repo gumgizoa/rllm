@@ -1,0 +1,365 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "The trigger is the text of a `status` error message (starts with `Declared in` / `Invalid store declaration in`). No predicate reads command output, and no kind checks what the agent showed the user.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "stop before writing and show the user that error's `message` and `fix`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-007",
+    "target": {
+     "ref": "stop on store declaration error",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "note": "The user never asks for init in this harness, so any `openspec init` during verify breaks the rule.",
+    "params": {
+     "rule": "absent",
+     "sub": "init",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-014",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "The announcement goes in an assistant message. No kind inspects assistant message text.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Always announce: \"Using change: issue\"."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-021",
+    "target": {
+     "ref": "change announcement",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "params": {
+     "rule": "ran",
+     "sub": "status",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       30
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "2. **Check status to understand the schema**\n   ```bash\n   openspec status --change \"issue\" --json\n   ```\n   Parse the JSON to understand:"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-022",
+    "target": {
+     "ref": "openspec status --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "params": {
+     "rule": "ran",
+     "sub": "instructions apply",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       39
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "3. **Get planning context and load artifacts**\n\n   ```bash\n   openspec instructions apply --change \"issue\" --json\n   ```"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-024",
+    "target": {
+     "ref": "openspec instructions apply --change \"issue\" --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.read_files",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "design",
+      "tasks"
+     ],
+     "change": "issue",
+     "deltas": true,
+     "window": [
+      "stage_start:verify",
+      [
+       "first_write:verify",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Read all available artifacts from `contextFiles`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-025",
+    "target": {
+     "ref": "contextFiles artifacts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "The order comes only from the step numbering. The document never states it outright.",
+    "kind": "order",
+    "params": {
+     "chain": [
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "openspec status",
+        "window": "stage:verify"
+       }
+      },
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "openspec instructions apply",
+        "window": "stage:verify"
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       26,
+       38
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "2. **Check status to understand the schema** ... 3. **Get planning context and load artifacts** ... openspec instructions apply --change \"issue\" --json"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-026",
+    "target": {
+     "ref": "status before instructions apply",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "note": "Implementing a task during verify shows up as an in-place edit of repository source.",
+    "params": {
+     "action": "source_write",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Do not implement tasks or archive the change during verification."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-028",
+    "target": {
+     "ref": "task implementation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "params": {
+     "rule": "absent",
+     "sub": "archive",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Do not implement tasks or archive the change during verification."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-029",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "params": {
+     "heading": "Completeness"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       47,
+       48
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Create a report structure with three dimensions:\n   - **Completeness**: Track tasks and spec coverage"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-031",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "params": {
+     "heading": "Correctness"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       47,
+       49
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Create a report structure with three dimensions: ... - **Correctness**: Track requirement implementation and scenario coverage"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-032",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "params": {
+     "heading": "Coherence"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       47,
+       50
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Create a report structure with three dimensions: ... - **Coherence**: Track design adherence and pattern consistency"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-033",
+    "target": {
+     "ref": "verify",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This only applies when `openspec list --json` returns `\"root\": null`. Nothing in the reference language can read that output. The concrete sub-rules are vf-014, vf-015 and vf-016, and vf-014 is itemized.",
+    "statement": "vf-013"
+   },
+   {
+    "reason": "This only applies when there is no root. The no-root state cannot be written as an applies_when predicate. Without the condition the rule would wrongly forbid the verify report, which is itself an openspec/ file.",
+    "statement": "vf-015"
+   },
+   {
+    "reason": "This only applies when there is no root, which cannot be written as a predicate. Whether a command created the root as a side effect is also not visible separately from ordinary openspec/ writes.",
+    "statement": "vf-016"
+   },
+   {
+    "reason": "This is the umbrella statement. Its three dimensions are itemized separately as vf-031, vf-032 and vf-033.",
+    "statement": "vf-030"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "876a82e945887af70861748831733337da65e1da5d017249c0996bd3f43d1165",
+ "key": "5ecc21964fe46159eeda7ed7ca819204bc28b10df48cc7d1e025d0614e335fcb",
+ "meta": {
+  "at": "2026-10-15T04:45:57Z",
+  "cost_usd": 0.09792499999999998,
+  "duration_ms": 36099,
+  "num_turns": 2,
+  "wall_s": 37.22
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "aeeec9261041226ec2078f59510b40e1731b2fa1464d84217c000d31c8477b90",
+ "version": "2.1.283"
+}

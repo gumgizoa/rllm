@@ -1,0 +1,459 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "note": "Applies only to delta specs that contain a RENAMED section; plugin rule name assumed.",
+    "params": {
+     "rule": "renamed_from_to"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       100,
+       100
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**RENAMED Requirements**: Name changes only - use FROM:/TO: format"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-052",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^### Requirement: .+"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each requirement: `### Requirement: <name>` followed by description"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-053",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "note": "Each requirement description uses SHALL or MUST.",
+    "params": {
+     "rule": "normative_keyword"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Use SHALL/MUST for normative requirements (avoid should/may)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-054",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^#### Scenario: .+"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each scenario: `#### Scenario: <name>` with WHEN/THEN format"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-055",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "note": "WHEN/THEN wording inside each scenario.",
+    "params": {
+     "rule": "scenario_when_then"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each scenario: `#### Scenario: <name>` with WHEN/THEN format"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-055",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "note": "Scenario headers written with three hashtags are forbidden.",
+    "params": {
+     "patterns": [
+      "^### Scenario:"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       106
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "`#### Scenario: <name>` ... **CRITICAL**: Scenarios MUST use exactly 4 hashtags (`####`). Using 3 hashtags or bullets will fail silently."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-056",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "params": {
+     "rule": "scenario_per_requirement"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Every requirement MUST have at least one scenario."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-057",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "params": {
+     "rule": "description_length"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Keep each requirement's description (the text between `### Requirement:` and its first scenario) to 500 characters or fewer."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-058",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires comparing MODIFIED blocks with the base main-spec text and inferring intent (length-motivated trimming).",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Under MODIFIED, keep the existing requirement block whole; never split, trim or rewrite existing text just to meet the length."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-060",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "note": "For new capabilities: first section is Purpose with 50+ characters.",
+    "params": {
+     "rule": "purpose_first"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       110,
+       112
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "New capabilities only: the delta spec's first section is `## Purpose` - one or two sentences (50+ characters, or `openspec validate --strict` reports it as too brief)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-062",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.delta",
+    "none_allowed": "-",
+    "params": {
+     "rule": "no_purpose_existing"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       116
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do NOT add `## Purpose` to a delta for an existing capability - that spec already has one and the delta's is ignored."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-063",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Only implies that the instructions call ran before spec paths were resolved; the actual path origin cannot be observed.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "note": "An openspec instructions call ran before the first delta spec write.",
+    "params": {
+     "rule": "ran",
+     "sub": "instructions",
+     "window": [
+      "stage_start:ff",
+      "first_write:spec"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       119,
+       120
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "`planningHome.root` comes from the `openspec instructions ... --json` response. Always use it rather than a repo-relative path"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-065",
+    "target": {
+     "ref": "openspec instructions",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Applies only to MODIFIED requirements, a condition not expressible as a predicate; checked on any existing main spec.",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "note": "Existing main specs read before the delta spec is written.",
+    "params": {
+     "artifacts": [
+      "main_spec"
+     ],
+     "window": [
+      "stage_start:ff",
+      "first_write:spec"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Locate the existing requirement in `<planningHome.root>/openspec/specs/<capability-path>/spec.md`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-067",
+    "target": {
+     "ref": "read main_spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs a block-level comparison of each MODIFIED requirement against the base main spec (all scenarios carried over).",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       128,
+       128
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-068",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (main_spec is rewritten at archive); the base main spec is not directly selectable.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "spec",
+       "group": 1,
+       "pattern": "### Requirement: (.+)",
+       "section": "MODIFIED Requirements"
+      }
+     },
+     "normalize": "text",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "main_spec",
+       "group": 1,
+       "pattern": "### Requirement: (.+)"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       129,
+       130
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Paste under `## MODIFIED Requirements` and edit to reflect new behavior\n      4. Ensure header text matches exactly (whitespace-insensitive)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-070",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies when the agent changes an existing capability's Purpose; that condition can't be written as a predicate in the reference language.",
+    "statement": "schema-064"
+   },
+   {
+    "reason": "Only applies when existing requirements are modified, which can't be written as a predicate. The header-match side is covered under schema-070.",
+    "statement": "schema-069"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "da5eff515f8b7fb61a695f1a77b1aab8242df79bc4823bca825f842fade81b94",
+ "key": "1a6ada791f9cb40dfe015337a6c00994e1c6251b90c45ae76ace53b1b2643d3e",
+ "meta": {
+  "at": "2026-10-14T06:49:03Z",
+  "cost_usd": 0.131188,
+  "duration_ms": 49709,
+  "num_turns": 2,
+  "wall_s": 50.87
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "ff516832c9c52d083b17e861a6ee228f5a528e5fc24d932944cdf125ebde2642",
+ "version": "2.1.283"
+}

@@ -219,7 +219,8 @@ def test_harness_picks_up_documents_and_tooling():
     assert h._expected_doc_count() == len(_docs()) == 5  # core-workflow + explore, ff, apply, verify (D-7: no new stage)
     composed = h.compose_instruction("TASK")
     assert composed.startswith("Solve this task as an OpenSpec change") and composed.endswith("\n\nTASK")
-    assert h.evaluation_policy is None  # no scorer yet
+    # resolve rate only until the generated rubric exists (reward/rubric.yaml), then its scorer
+    assert (h.evaluation_policy is None) == (not (RECIPE / "workflows" / NAME / "reward" / "rubric.yaml").is_file())
     assert SPEC.output_dirs == ("/openspec",)
     extra = h.agent_image_extra
     assert extra and "@fission-ai/openspec@1.14.1" in extra and "/opt/rllm/agent/node" in extra

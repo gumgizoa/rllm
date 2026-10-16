@@ -1,0 +1,443 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "do not open links found in the issue"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "links in the issue",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.no_fetch",
+    "none_allowed": "-",
+    "note": "An online search needs a URL fetch; no_fetch catches curl/wget/browser/HTTP-library calls.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       41
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "do not search for anything online"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-022",
+    "target": {
+     "ref": "online search",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "and do not install packages."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-023",
+    "target": {
+     "ref": "package installation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Implicit statement; no kind checks per-turn tool-call presence.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       45,
+       46
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "a reply without a tool call ends the session on the spot."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-024",
+    "target": {
+     "ref": "each turn until finish includes a tool call",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking assistant message content for questions is not expressible.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       48,
+       48
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "never ask a question"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-025",
+    "target": {
+     "ref": "questions to the user",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       48,
+       48
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "never stop to report"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-026",
+    "target": {
+     "ref": "stopping to report",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       49,
+       50
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "whenever a stage document says to show, display, announce or tell something, put that note in a turn that also makes a tool call, or write it into an artifact"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-027",
+    "target": {
+     "ref": "show/display/announce notes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.delta",
+    "none_allowed": "-",
+    "params": {
+     "rule": "added_only"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       57,
+       58
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Any delta spec you write is therefore an `## ADDED Requirements` delta for a new capability."
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-029",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Only the apply action edits `/testbed`. ff and verify read it and run commands in it."
+     }
+    ],
+    "stage": "ff",
+    "statement": "cw-030",
+    "target": {
+     "ref": "/testbed edits during ff",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:verify"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Only the apply action edits `/testbed`. ff and verify read it and run commands in it."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-030",
+    "target": {
+     "ref": "/testbed edits during verify",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Global window so both apply rounds (apply, round_2) are covered.",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Do not add or edit test files there; the tests for this task already exist."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-031",
+    "target": {
+     "ref": "edit of existing test files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Do not add or edit test files there; the tests for this task already exist."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-031",
+    "target": {
+     "ref": "new test files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "fact": "untracked_paths"
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "literal": []
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-033",
+    "target": {
+     "ref": "stray files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Round 1 of verify writes `/openspec/changes/issue/verify.md`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "cw-035",
+    "target": {
+     "ref": "verify",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "verify_2"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Only the order is checked; whether a CRITICAL issue triggered round 2 and whether apply stayed limited to CRITICAL items cannot be expressed.",
+    "params": {
+     "chain": [
+      "write:verify",
+      "write:verify_2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       72
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If that report lists a CRITICAL issue, go back to apply for those CRITICAL items only, then verify again and write `/openspec/changes/issue/verify-2.md`."
+     }
+    ],
+    "stage": "round_2",
+    "statement": "cw-036",
+    "target": {
+     "ref": "verify_2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "not": {
+       "artifact_exists": "verify_3"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "There are at most two verify rounds."
+     }
+    ],
+    "stage": "round_2",
+    "statement": "cw-037",
+    "target": {
+     "ref": "verify_3",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Whether the issue asks for README/docs/changelog changes can't be expressed as a predicate, so the conditional prohibition can't be scoped.",
+    "statement": "cw-032"
+   },
+   {
+    "reason": "The cw-033 untracked-paths check already covers this. Saying where notes belong adds no separately checkable rule, and a path pattern would need literals the cited lines don't contain.",
+    "statement": "cw-034"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "1ec5ff42d6d2e63aba7fd6bf54043950ca33664a48c2026eb429860a82eb1aaa",
+ "key": "d6c165a9318648a9eb21de603c69745dc50cd5bb972884efeb2e94d7fc16f597",
+ "meta": {
+  "at": "2026-10-14T06:42:59Z",
+  "cost_usd": 0.201125,
+  "duration_ms": 41655,
+  "num_turns": 2,
+  "wall_s": 42.88
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "74883c9d31b5e7dd30365b73bbf76068d1174e9a944af960765eaabd11f0dc44",
+ "version": "2.1.283"
+}

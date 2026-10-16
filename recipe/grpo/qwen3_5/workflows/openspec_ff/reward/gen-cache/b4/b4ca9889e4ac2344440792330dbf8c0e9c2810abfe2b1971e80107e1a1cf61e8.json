@@ -1,0 +1,165 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "path_name",
+    "line_end": 10,
+    "line_start": 10,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Code changes belong in /testbed, not in the planning home.",
+    "quote": "The code this change edits is the repository at /testbed.",
+    "stage": "apply",
+    "target": "code edits location (/testbed)"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "path_name",
+    "line_end": 10,
+    "line_start": 10,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Planning artifacts live under /openspec, outside the repository.",
+    "quote": "This planning home, /openspec, sits outside it.",
+    "stage": "global",
+    "target": "planning artifacts location (/openspec)"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 11,
+    "line_start": 11,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "The agent should not wait for or ask for more input on the issue.",
+    "quote": "The change comes from one issue, given in the task; nobody will add to it.",
+    "stage": "global",
+    "target": "change scope / no further user input"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 12,
+    "line_start": 12,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "Don't add or change test files in /testbed; a diff on test files can catch violations.",
+    "quote": "The test files for this issue are already in place in the repository and are not to be added to or edited.",
+    "stage": "apply",
+    "target": "repository test files"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 13,
+    "line_start": 13,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "Stated as a fact; it means no package installs.",
+    "quote": "The environment is fully set up: no packages are installed",
+    "stage": "global",
+    "target": "package installation"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 13,
+    "line_start": 13,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "No network fetches.",
+    "quote": "nothing is fetched from the network.",
+    "stage": "global",
+    "target": "network access"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "path_name",
+    "line_end": 14,
+    "line_start": 14,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Applies from ff onward (ff, apply, verify, archive); reproduction and check scripts go in the checks directory.",
+    "quote": "From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.",
+    "stage": "global",
+    "target": "/openspec/changes/issue/checks/"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 15,
+    "line_start": 15,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Background fact behind the rules that follow; the agent shouldn't refer to existing capabilities.",
+    "quote": "/openspec/specs/ starts empty in this project: no capability and no requirement exists yet.",
+    "stage": "global",
+    "target": "/openspec/specs/ initial state"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "section",
+    "line_end": 19,
+    "line_start": 19,
+    "modality": "must",
+    "none_allowed": "no",
+    "notes": "Proposal rule; every capability, including ones a fix corrects, is listed as new.",
+    "quote": "list every capability under New Capabilities, including behavior a fix corrects",
+    "stage": "ff",
+    "target": "proposal.md New Capabilities section"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 19,
+    "line_start": 19,
+    "modality": "must",
+    "none_allowed": "yes",
+    "notes": "The Modified Capabilities section must be empty.",
+    "quote": "and leave Modified Capabilities empty.",
+    "stage": "ff",
+    "target": "proposal.md Modified Capabilities section"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 21,
+    "line_start": 21,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "No MODIFIED, REMOVED or RENAMED requirement sections in spec deltas.",
+    "quote": "write every delta as `## ADDED Requirements` of a new capability",
+    "stage": "ff",
+    "target": "specs delta files (## ADDED Requirements)"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 21,
+    "line_start": 21,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The corrected behavior is written as an ADDED requirement.",
+    "quote": "a fix states the corrected behavior as a new requirement.",
+    "stage": "ff",
+    "target": "spec requirements for fixes"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "953e91a373cf5fc2524dcbd7fc4463790a1bf676cf32e761b92400ac309ac3cf",
+ "key": "b4ca9889e4ac2344440792330dbf8c0e9c2810abfe2b1971e80107e1a1cf61e8",
+ "meta": {
+  "at": "2026-10-16T06:14:53Z",
+  "cost_usd": 0.053211,
+  "duration_ms": 16271,
+  "num_turns": 2,
+  "wall_s": 17.69
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "2c7a024e165b632f146aaea64986e009bd252bd3d30548a3b3859a6c8365fc41",
+ "version": "2.1.283"
+}

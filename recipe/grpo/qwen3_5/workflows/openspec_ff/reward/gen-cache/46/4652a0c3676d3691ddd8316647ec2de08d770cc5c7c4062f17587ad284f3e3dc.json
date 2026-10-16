@@ -1,0 +1,372 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "note": "Each capability path the proposal lists must have a delta spec at exactly specs/<capability-path>/spec.md.",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "New capabilities: use the exact path from the proposal at `specs/<capability-path>/spec.md`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-040",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "note": "Every segment of the capability path must be kebab-case (lowercase words joined by hyphens).",
+    "params": {
+     "artifact": "spec",
+     "pattern": "specs/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*/spec\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Any path segment newly introduced in the proposal must be kebab-case."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-041",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Needs a nesting-depth comparison between new capability paths and the existing main-spec layout at BASE_SHA; no kind can express this.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "do not add a new domain level when the project uses a flat layout."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-043",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "A modified capability's delta path must equal an existing main-spec path; no kind can tell modified deltas apart from new ones.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Modified capabilities: use the exact existing path from `openspec/specs/<capability-path>/` when creating the delta"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-044",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "note": "Moving or renaming a capability means writing under openspec/specs/; no such write may happen during ff.",
+    "params": {
+     "pattern": "openspec/specs/",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "use the exact existing path from `openspec/specs/<capability-path>/` ... Do not move or rename the capability."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-047",
+    "target": {
+     "ref": "main_spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that spec files were written one at a time (not batched in one call) needs a per-capability write-separation check, which no kind provides.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       80,
+       81
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Write the spec files one at a time, so the user sees progress and an interrupted run keeps the files it already wrote:"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-048",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Resume order (start with the first capability that has no file) is not expressible.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       84
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Before writing anything, compare the capabilities the proposal lists with the `specs/<capability-path>/spec.md` files that already exist, and start with the first capability that has no file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-049",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "mode": "no_rewrite",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       85
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do not rewrite an existing file unless the user asks you to."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-050",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Stop when every capability the proposal lists has its file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-054",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The skip_specs: true exception in .openspec.yaml cannot be expressed as an applies_when predicate.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       91,
+       92
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "There must be at least one spec file unless the change's `.openspec.yaml` sets `skip_specs: true`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-055",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Applies only when skip_specs is not set; that condition cannot be expressed.",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "declared"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       93,
+       94
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "If the proposal lists no capabilities and `skip_specs` is not set, revisit the proposal first."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-056",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^## (ADDED|MODIFIED|REMOVED) Requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       96,
+       99
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Delta operations (use ## headers):\n      - **ADDED Requirements**: New capabilities\n      - **MODIFIED Requirements**: Changed behavior ... - **REMOVED Requirements**: Deprecated features"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-057",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.delta",
+    "none_allowed": "-",
+    "note": "Implicit rule: new behavior goes under ## ADDED Requirements.",
+    "params": {
+     "rule": "added_only"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       97,
+       97
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**ADDED Requirements**: New capabilities"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-058",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "'Follow the project's existing organization' is too vague to check mechanically; its one checkable part (no new domain level in a flat layout) is covered as schema-043.",
+    "statement": "schema-042"
+   },
+   {
+    "reason": "Applies only to modified capabilities, and whether the proposal or deltas hold modified capabilities cannot be expressed as an applies_when predicate (rule 7).",
+    "statement": "schema-045"
+   },
+   {
+    "reason": "Whether a standalone store is registered cannot be observed with the reference predicates, so the condition on --store use cannot be expressed.",
+    "statement": "schema-046"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "bf1aa092ff88749c467e0d7afe351886201c535f827d665c88871d7c87d89dcd",
+ "key": "4652a0c3676d3691ddd8316647ec2de08d770cc5c7c4062f17587ad284f3e3dc",
+ "meta": {
+  "at": "2026-10-15T04:51:01Z",
+  "cost_usd": 0.23760399999999998,
+  "duration_ms": 49526,
+  "num_turns": 2,
+  "wall_s": 50.72
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "08d9f531cdcb942a80b36bcfb310e3db1c9fa453be9d3f6ec2a563bf56ae9efc",
+ "version": "2.1.283"
+}

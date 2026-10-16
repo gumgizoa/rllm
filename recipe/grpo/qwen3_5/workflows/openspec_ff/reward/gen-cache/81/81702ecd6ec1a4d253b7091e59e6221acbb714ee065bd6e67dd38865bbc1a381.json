@@ -1,0 +1,129 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 1,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Overall framing: the work must take the form of an OpenSpec change.",
+    "quote": "Solve this task as an OpenSpec change.",
+    "stage": "global",
+    "target": "task handled as an OpenSpec change"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 1,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Exploration has to come before any other stage.",
+    "quote": "Explore the issue first",
+    "stage": "explore",
+    "target": "explore stage precedes ff/apply/verify/archive"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 2,
+    "line_start": 1,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "During explore the agent may read and run existing code, but it must not write anything.",
+    "quote": "reading and running what exists without writing anything",
+    "stage": "explore",
+    "target": "no file writes during explore"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 3,
+    "line_start": 2,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "All four stages are required, in this order, after explore.",
+    "quote": "then take the change through ff, apply, verify and archive",
+    "stage": "global",
+    "target": "stage sequence ff -> apply -> verify -> archive"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "tool_or_command",
+    "line_end": 3,
+    "line_start": 2,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The stages must be run with the installed openspec CLI.",
+    "quote": "with the `openspec` command-line tool that is installed here.",
+    "stage": "global",
+    "target": "openspec CLI"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "read_doc",
+    "line_end": 5,
+    "line_start": 5,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "This file must be read first, before the agent opens anything in /testbed.",
+    "quote": "Your first action is to open /opsx/core-workflow.md, before you look at the repository.",
+    "stage": "global",
+    "target": "/opsx/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "order",
+    "line_end": 5,
+    "line_start": 5,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Ordering rule: core-workflow.md is opened before any access to /testbed.",
+    "quote": "Your first action is to open /opsx/core-workflow.md, before you look at the repository.",
+    "stage": "global",
+    "target": "reading core-workflow.md precedes any repository access"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 7,
+    "line_start": 6,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Implied: before each action, read the stage document that core-workflow.md names for it.",
+    "quote": "That file names the stage document to read for each action",
+    "stage": "global",
+    "target": "stage document for each action"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 7,
+    "line_start": 6,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Implied: each action starts with the openspec command that core-workflow.md names for it.",
+    "quote": "and the `openspec` command each action starts from.",
+    "stage": "global",
+    "target": "openspec command starting each action"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7ff4aba72b373cab67f70804edeb6e56ff754b25820ebd1021c21f21816efe4c",
+ "key": "81702ecd6ec1a4d253b7091e59e6221acbb714ee065bd6e67dd38865bbc1a381",
+ "meta": {
+  "at": "2026-10-16T06:15:04Z",
+  "cost_usd": 0.039889,
+  "duration_ms": 12354,
+  "num_turns": 2,
+  "wall_s": 14.1
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "2c7a024e165b632f146aaea64986e009bd252bd3d30548a3b3859a6c8365fc41",
+ "version": "2.1.283"
+}

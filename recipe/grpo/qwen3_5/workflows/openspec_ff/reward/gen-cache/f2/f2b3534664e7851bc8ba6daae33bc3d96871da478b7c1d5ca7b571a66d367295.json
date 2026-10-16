@@ -1,0 +1,377 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "(schemas|templates|openspec/config\\.yaml)",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Never write code or implement features. Workflow configuration counts too: creating or editing schemas, templates, or `openspec/config.yaml` is a change, not thinking."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-083",
+    "target": {
+     "ref": "workflow configuration writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "all": [
+       {
+        "absent": {
+         "artifact": "change",
+         "fact": "artifact_write",
+         "window": "stage:explore"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "proposal",
+         "fact": "artifact_write",
+         "window": "stage:explore"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "spec",
+         "fact": "artifact_write",
+         "window": "stage:explore"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "design",
+         "fact": "artifact_write",
+         "window": "stage:explore"
+        }
+       },
+       {
+        "absent": {
+         "artifact": "tasks",
+         "fact": "artifact_write",
+         "window": "stage:explore"
+        }
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "In this session explore writes no change artifact either; ff creates them."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-084",
+    "target": {
+     "ref": "change artifact writes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Heredoc variant piped to python3 not separately matched (no literal pattern in the text).",
+    "params": {
+     "action": "command",
+     "pattern": "python3? -c",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Running code you composed is writing code too, whether as `python -c \"...\"` or as a heredoc piped to `python3`"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-085",
+    "target": {
+     "ref": "python -c",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:FF",
+      "first_repo_write"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "When exploration is done, open `/opsx/stages/01-ff.md` rather than starting to build"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-087",
+    "target": {
+     "ref": "read:FF",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".*",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       219,
+       219
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Do not save insights to files: nothing is captured during explore"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-091",
+    "target": {
+     "ref": "insight files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "new change",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       219,
+       219
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Do not save insights to files: nothing is captured during explore, and `openspec new change` is ff's first command."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-092",
+    "target": {
+     "ref": "openspec new change",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       219,
+       219
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Read-only commands and tools, as bounded at the top, need no confirmation; a command that writes files is not one of them."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-094",
+    "target": {
+     "ref": "file-writing commands",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks reads of arbitrary repository source files during explore.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       221,
+       221
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "**Do explore the codebase** - Ground discussions in reality"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-096",
+    "target": {
+     "ref": "codebase reads",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": [
+      "stage_start:ff",
+      [
+       "first_write:change",
+       "first_write:proposal",
+       "first_repo_write",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-001",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind counts retries of openspec list after a non-zero exit.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-003",
+    "target": {
+     "ref": "openspec list retries",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "init",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-011",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Conditional on a store being selected; store selection is not observable as a predicate in the reference language.",
+    "statement": "ff-002"
+   },
+   {
+    "reason": "Applies only when a status error message starts with 'Declared in' / 'Invalid store declaration in'; command output content is not expressible as a predicate.",
+    "statement": "ff-004"
+   },
+   {
+    "reason": "Conditional on the store-declaration error (not observable), and showing the message/fix to the user is not checkable by any kind.",
+    "statement": "ff-005"
+   },
+   {
+    "reason": "Applies only in the no-root branches (\"root\": null), a condition read from command output that cannot be expressed as applies_when.",
+    "statement": "ff-010"
+   },
+   {
+    "reason": "Applies only in the no-root branches (\"root\": null); in the sandbox the openspec/ root exists and change artifacts are legitimately created there, so an unconditional check would be wrong.",
+    "statement": "ff-012"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d5d21caca1c4c3008b82248887d643ad67b13adeb8eb9d2a4f34edddde77615a",
+ "key": "f2b3534664e7851bc8ba6daae33bc3d96871da478b7c1d5ca7b571a66d367295",
+ "meta": {
+  "at": "2026-10-16T06:18:25Z",
+  "cost_usd": 0.1263196,
+  "duration_ms": 48093,
+  "num_turns": 2,
+  "wall_s": 49.54
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "e37c6178161c35f0185c5eb7f8cd6df3d6fd9f69b7d0c87009c46874570a791e",
+ "version": "2.1.283"
+}

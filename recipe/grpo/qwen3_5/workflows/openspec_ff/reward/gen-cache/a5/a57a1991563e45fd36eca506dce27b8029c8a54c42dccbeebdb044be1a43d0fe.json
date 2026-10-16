@@ -1,0 +1,94 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Every New Capabilities bullet must name a kebab-case capability path (segments of lowercase alphanumerics joined by hyphens, optionally nested with '/'). Whether the path follows the project's existing spec organization is a judgment call and is not checked.",
+    "params": {
+     "min": 1,
+     "of_pattern": "^- `",
+     "pattern": "^- `[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*`",
+     "section": "New Capabilities"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       18
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Use kebab-case for path segments you introduce (e.g., user-auth or identity/user-auth) that follow the project's existing spec organization."
+     },
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "- `<capability-path>`: <brief description of what this capability covers>"
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-004-3",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Each Modified Capabilities entry must equal a capability directory under openspec/specs/ at BASE_SHA. No selector maps base_paths (file paths like openspec/specs/<cap>/spec.md) to capability paths, so cross_ref cannot compare them directly.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Use the exact existing path under openspec/specs/."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-005-4",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is a permission, not an obligation: Modified Capabilities may be left empty when no requirement changes. Leftover template placeholders are already caught by the compiled skeleton checks, and nothing observable ties an empty section to a run event.",
+    "statement": "critic-1-006-5"
+   },
+   {
+    "reason": ".openspec.yaml is not a declared artifact, so no kind or predicate can read its skip_specs key. The condition (no new or modified capabilities) could be expressed, but the required check on .openspec.yaml cannot.",
+    "statement": "critic-1-007-6"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "33cc4d224404abda1ff05a91019b6a30451a5ccf14cbbdf4ac427ee5412c715d",
+ "key": "a57a1991563e45fd36eca506dce27b8029c8a54c42dccbeebdb044be1a43d0fe",
+ "meta": {
+  "at": "2026-10-14T06:50:33Z",
+  "cost_usd": 0.139978,
+  "duration_ms": 26421,
+  "num_turns": 2,
+  "wall_s": 27.56
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "critic1sample1",
+ "schema_sha256": "5b26660b9565d4ac29af74d423c56c1b11cd0573ab708e5896b2755084111598",
+ "version": "2.1.283"
+}

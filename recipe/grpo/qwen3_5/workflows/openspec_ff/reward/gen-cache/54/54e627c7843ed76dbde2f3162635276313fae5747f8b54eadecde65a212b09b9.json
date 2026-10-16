@@ -1,0 +1,141 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "path_name",
+    "line_end": 10,
+    "line_start": 10,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "Code changes go in /testbed, not in /openspec; planning artifacts live in /openspec.",
+    "quote": "The code this change edits is the repository at /testbed. This planning home, /openspec, sits outside it.",
+    "stage": "apply",
+    "target": "code edits location (/testbed)"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 11,
+    "line_start": 11,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "The agent should not wait for or ask for more input; the scope is the single issue given.",
+    "quote": "The change comes from one issue, given in the task; nobody will add to it.",
+    "stage": "global",
+    "target": "scope of change / clarification"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 12,
+    "line_start": 12,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "Do not add new test files or edit existing ones.",
+    "quote": "The test files for this issue are already in place in the repository and are not to be added to or edited.",
+    "stage": "apply",
+    "target": "test files in /testbed"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 13,
+    "line_start": 13,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "Do not install packages or fetch anything from the network.",
+    "quote": "The environment is fully set up: no packages are installed and nothing is fetched from the network.",
+    "stage": "global",
+    "target": "package installation / network access"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "path_name",
+    "line_end": 14,
+    "line_start": 14,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Any reproduce/check scripts must go under /openspec/changes/issue/checks/.",
+    "quote": "Scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.",
+    "stage": "apply",
+    "target": "reproduction/check scripts location"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 15,
+    "line_start": 15,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "No existing capability or requirement to reference or modify.",
+    "quote": "/openspec/specs/ starts empty in this project: no capability and no requirement exists yet.",
+    "stage": "ff",
+    "target": "existing specs"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "section",
+    "line_end": 19,
+    "line_start": 19,
+    "modality": "must",
+    "none_allowed": "no",
+    "notes": "Rule for the proposal artifact.",
+    "quote": "list every capability under New Capabilities, including behavior a fix corrects",
+    "stage": "ff",
+    "target": "proposal.md New Capabilities"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 19,
+    "line_start": 19,
+    "modality": "must",
+    "none_allowed": "yes",
+    "notes": "The Modified Capabilities section must be empty.",
+    "quote": "and leave Modified Capabilities empty.",
+    "stage": "ff",
+    "target": "proposal.md Modified Capabilities"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "section",
+    "line_end": 21,
+    "line_start": 21,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "No MODIFIED/REMOVED/RENAMED sections are allowed.",
+    "quote": "write every delta as `## ADDED Requirements` of a new capability",
+    "stage": "ff",
+    "target": "specs delta files"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 21,
+    "line_start": 21,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Corrected behavior is written as an ADDED requirement.",
+    "quote": "a fix states the corrected behavior as a new requirement.",
+    "stage": "ff",
+    "target": "specs requirements for fix"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "af0a2871bf8fd1123ab1e6415a47ee40b0e386018a682532b0d9606f0aa583d2",
+ "key": "54e627c7843ed76dbde2f3162635276313fae5747f8b54eadecde65a212b09b9",
+ "meta": {
+  "at": "2026-10-14T06:41:46Z",
+  "cost_usd": 0.0476342,
+  "duration_ms": 15126,
+  "num_turns": 2,
+  "wall_s": 16.42
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "9619ffb0ae761b63b61d725aca4d246b87a6279ee45b90cbcc58a10036a40135",
+ "version": "2.1.283"
+}

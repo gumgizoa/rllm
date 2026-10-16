@@ -1,0 +1,201 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "Would need the config's context/operationGuidance text as residue patterns over every artifact and the diff; that text is not available to cite, so no kind can express it here.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       80
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Do not copy `context` or `operationGuidance` verbatim into implementation files or planning artifacts unless the user separately asks for that content."
+     }
+    ],
+    "stage": "apply",
+    "statement": "critic-1-002-1",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "Comparing capability names against proposal headings needs a name-to-heading normalization (kebab vs Title Case) no selector offers; spotting task-like names needs judgment.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       16
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Do not name implementation tasks or proposal sections."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-004-3",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "The document gives no list of catch-all names to use as a literal deny-list, so a cross_ref literal cannot be cited.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Avoid broad catch-all names."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-005-4",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Every listed capability entry in New Capabilities uses kebab-case path segments (slash-separated). Fit with the existing spec organization is not checked.",
+    "params": {
+     "of_pattern": "^- `",
+     "pattern": "^- `[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*`",
+     "section": "New Capabilities"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       20
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Use kebab-case for path segments you introduce (e.g., user-auth or identity/user-auth) ... - `<capability-path>`: <brief description of what this capability covers>"
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-006-5",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": "Needs the Modified Capabilities names to be mapped to openspec/specs/<cap>/spec.md at BASE_SHA; base_paths holds file paths, and no selector turns a capability name into that path.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "Use the exact existing path under openspec/specs/."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-007-6",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "note": ".openspec.yaml is not a declared artifact, so its content cannot be checked under the condition that both capability sections are empty.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       28
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/templates/proposal.md",
+      "quote": "A change with no capabilities at all (pure refactor, tooling, docs) must set `skip_specs: true` in its .openspec.yaml - openspec validate rejects a zero-delta change without that marker."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-009-8",
+    "target": {
+     "ref": "change",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "The change artifact resolves only to changes/issue (or its archived -issue form), so its existence at the end of ff shows the fixed name was used.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The change name is fixed: `issue`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "critic-1-011-10",
+    "target": {
+     "ref": "change",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This only lets the section be empty. Whether requirements change is a judgment call the run can't show, so no predicate can tie emptiness to it.",
+    "statement": "critic-1-008-7"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "9cbaca9bc7a71d3889ac60f1611eb9fe973ae32b5f3c3ea5baa2b0632bbd007e",
+ "key": "9fac7c8dcb1b734ddd47e124bb287eec94894acedbd12de80b52c4ef898089d3",
+ "meta": {
+  "at": "2026-10-16T06:25:42Z",
+  "cost_usd": 0.165661,
+  "duration_ms": 30788,
+  "num_turns": 2,
+  "wall_s": 32.26
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "critic1sample0",
+ "schema_sha256": "bfd0b4396cd70825ed702ff9ad06b2760095445eee52bb060ee0e5cd29a9cd7f",
+ "version": "2.1.283"
+}

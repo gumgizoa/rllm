@@ -1,0 +1,434 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.holds",
+    "none_allowed": "-",
+    "note": "No third verify round: after verify-2 the run goes to archive.",
+    "params": {
+     "predicate": {
+      "not": {
+       "artifact_exists": "verify_3"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       74
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "There are at most two verify rounds. After round 2 move on to archive whatever it found"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-038",
+    "target": {
+     "ref": "verify_3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "verify_2"
+    },
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "event": "last_write:verify_2",
+     "rule": "after"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       74
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "After round 2 move on to archive whatever it found; the report records what is still open."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-038",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "verify_2"
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "A second round (verify-2.md) exists only if the first report lists a CRITICAL issue.",
+    "params": {
+     "min": 1,
+     "pattern": "CRITICAL"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       74
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If that report lists a CRITICAL issue, go back to apply ... WARNING and SUGGESTION items never trigger a round."
+     }
+    ],
+    "stage": "round_2",
+    "statement": "cw-039",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "note": "After the first archive call no code paths are written.",
+    "params": {
+     "rule": "specs_only"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The code change must be complete before this step"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-040",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "event": "first_write:verify",
+     "rule": "after"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       79
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "archive only once `/openspec/changes/issue/verify.md` (or `verify-2.md`) exists."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-041",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "archive",
+     "window": "stage:archive"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       80
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "archive only once ... Then run once:"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-043",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "note": "Archive is done through the CLI, not by hand-moving the change.",
+    "params": {
+     "rule": "by_cli"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       80
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "archive only once ... Then run once:"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-043",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "specs_only"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       91
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Exit code 1: correct only what the error message names in the delta spec (its format, or a spec file that is missing)"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-045",
+    "target": {
+     "ref": "delta spec fixes after archive failure",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "note": "At most one retry, and only after a failed call.",
+    "params": {
+     "rule": "retries"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "then run the same command one more time. If it fails again, call `finish` without archiving."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-046",
+    "target": {
+     "ref": "openspec archive issue --yes",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "note": "After a second failure, no archive is made by hand.",
+    "params": {
+     "rule": "by_cli"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "If it fails again, call `finish` without archiving."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-047",
+    "target": {
+     "ref": "finish without archiving",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "absent",
+     "sub": "--no-validate"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Never add `--no-validate`"
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-048",
+    "target": {
+     "ref": "--no-validate flag",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": "stage:archive"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       93
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "do not reopen tasks or apply: the code is done, and judging it was verify's job."
+     }
+    ],
+    "stage": "archive",
+    "statement": "cw-049",
+    "target": {
+     "ref": "reopening tasks / returning to apply during archive",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": [
+      "start",
+      [
+       "first_write:change",
+       "first_write:proposal",
+       "first_write:spec",
+       "first_write:design",
+       "first_write:tasks",
+       {
+        "first": {
+         "fact": "command",
+         "pattern": "new change"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-001",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "note": "The user never asks for init in this harness.",
+    "params": {
+     "rule": "absent",
+     "sub": "init"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "never create the root as a side effect: do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "global",
+    "statement": "ff-008",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies if the verify report is missing at archive time. That case is already caught by the cw-041 ordering check, and the 'missing at archive' condition cannot be written as a separate applies_when predicate.",
+    "statement": "cw-042"
+   },
+   {
+    "reason": "Calling the `finish` tool after exit code 0 is a harness action. None of the available kinds can check whether finish was called, so it is left out rather than marked unimplemented with no checkable form.",
+    "statement": "cw-044"
+   },
+   {
+    "reason": "Only applies when `openspec list --json` returns root null with a non-zero exit. The sandbox project has a root, and 'retrying or working around it' cannot be expressed as an observable predicate.",
+    "statement": "ff-002"
+   },
+   {
+    "reason": "Only applies when a status error starts with 'Declared in' / 'Invalid store declaration in'. That error text cannot be expressed as an applies_when predicate, and showing the user the message/fix cannot be checked.",
+    "statement": "ff-003"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "fd3300c34ff517f69c105599dbae7b501a73b82b962a59f6e18a66683f8a0481",
+ "key": "a2fbc407e8a9453d9f0af3092f6b7b86a03053c6c69264f7e6bd1f4f0258ab93",
+ "meta": {
+  "at": "2026-10-14T06:43:49Z",
+  "cost_usd": 0.1260256,
+  "duration_ms": 48864,
+  "num_turns": 2,
+  "wall_s": 49.95
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "a7e5d25be811a36d9eadb180c0e4911e0646b25efd5d57a8fb103d41c5add4b4",
+ "version": "2.1.283"
+}

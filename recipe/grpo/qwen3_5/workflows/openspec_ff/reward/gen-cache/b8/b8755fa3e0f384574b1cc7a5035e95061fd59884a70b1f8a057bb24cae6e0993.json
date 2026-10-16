@@ -1,0 +1,47 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 101,
+    "line_start": 101,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "Exploration behaviour guidance: point out risks / failure modes. Only an LLM judge can check this from the transcript.",
+    "path": "docs/stages/00-explore.md",
+    "quote": "- Identify what could go wrong",
+    "stage": "explore",
+    "target": "risk identification during exploration"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "placeholder_forbidden",
+    "line_end": 162,
+    "line_start": 162,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "A rule could grep artifacts and changed files for known context/instruction text, but deciding whether something counts as leaked guidance needs judgement.",
+    "path": "docs/stages/02-apply.md",
+    "quote": "- Do not copy runtime context or operation guidance into implementation files or planning artifacts",
+    "stage": "apply",
+    "target": "implementation files and planning artifacts"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "2161d051b4dc2bf577759a81647c0b955744820e7d1cace4b8b792636e60704c",
+ "key": "b8755fa3e0f384574b1cc7a5035e95061fd59884a70b1f8a057bb24cae6e0993",
+ "meta": {
+  "at": "2026-10-16T06:25:51Z",
+  "cost_usd": 0.023953,
+  "duration_ms": 7396,
+  "num_turns": 2,
+  "wall_s": 8.91
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round2",
+ "schema_sha256": "93061ee017b95d9774cded5df5fd2e99d687428c97f43247caed5a5b930827eb",
+ "version": "2.1.283"
+}

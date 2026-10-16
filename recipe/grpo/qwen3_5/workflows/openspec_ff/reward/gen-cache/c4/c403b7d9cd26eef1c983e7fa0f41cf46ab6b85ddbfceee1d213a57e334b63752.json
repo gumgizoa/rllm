@@ -1,0 +1,20 @@
+{
+ "answer": {
+  "conflicts": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "6685c2ee6aa8f20e445275879fa9186bd21ac3d455ec97631c870565a55bbf8d",
+ "key": "c403b7d9cd26eef1c983e7fa0f41cf46ab6b85ddbfceee1d213a57e334b63752",
+ "meta": {
+  "at": "2026-10-15T05:00:14Z",
+  "cost_usd": 0.10982740000000002,
+  "duration_ms": 19289,
+  "num_turns": 2,
+  "wall_s": 20.61
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "815ac70492ae64d16ad931a83a4345aecf089c358056fb6d8a2184f18da485c1",
+ "salt": "",
+ "schema_sha256": "97c74f547c8c9601cdcda7d2689062d848791b9996334e97a68f025c56b994ba",
+ "version": "2.1.283"
+}

@@ -1,0 +1,328 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "The skip_specs: true exception in .openspec.yaml cannot be observed, so this item does not apply it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       55
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create specification files that define WHAT the system should do."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-026",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       74,
+       74
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create one spec file per capability listed in the proposal's Capabilities section."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-031",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The rule covers only newly introduced segments. The pattern checks every spec path, including existing modified-capability paths that might not be kebab-case.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "pattern": "specs/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*/spec\\.md$"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Any path segment newly introduced in the proposal must be kebab-case."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-034",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs to compare the depth of new spec paths with the layout of the existing openspec/specs tree. No available kind can do that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Follow the project's existing organization; do not add a new domain level when the project uses a flat layout."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-035",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs a mapping of modified-capability delta paths to existing main spec paths. No selector can separate modified capabilities from new ones.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Modified capabilities: use the exact existing path from `openspec/specs/<capability-path>/` when creating the delta at `specs/<capability-path>/spec.md`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-036",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Moving or renaming an existing capability means a write under openspec/specs/. During ff, the change should only write delta specs under changes/.",
+    "params": {
+     "action": "repo_write",
+     "pattern": "openspec/specs/",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do not move or rename the capability."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-039",
+    "target": {
+     "ref": "move_or_rename_main_spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs a per-file write sequence, with one spec file per write call and no batched writes. No available kind checks this.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       80,
+       81
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Write the spec files one at a time, so the user sees progress and an interrupted run keeps the files it already wrote:"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-040",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This resume behaviour needs to know which spec files existed before the stage and which capability was written first. No available kind expresses that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       84
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Before writing anything, compare the capabilities the proposal lists with the `specs/<capability-path>/spec.md` files that already exist, and start with the first capability that has no file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-041",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "source_write covers only files that existed at BASE_SHA, which matches 'an existing file'.",
+    "params": {
+     "action": "source_write",
+     "pattern": "specs/.*/spec\\.md",
+     "window": "stage:ff"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       85
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "with the `specs/<capability-path>/spec.md` files that already exist, ... Do not rewrite an existing file unless the user asks you to."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-042",
+    "target": {
+     "ref": "rewrite_existing_spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Stop when every capability the proposal lists has its file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-046",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "This is inferred: at least one spec file means the proposal must declare at least one capability. The skip_specs exception cannot be observed, so the item does not apply it.",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "note": "The spec-file existence check itself is already covered by the schema-026 artifact_exists item.",
+    "params": {
+     "rule": "declared"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       91,
+       94
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "There must be at least one spec file unless the change's `.openspec.yaml` sets `skip_specs: true` ... If the proposal lists no capabilities and `skip_specs` is not set, revisit the proposal first."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-047",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is guidance on what good spec content looks like (observable behaviour, inputs and outputs, constraints, testable scenarios). It is a quality judgment. Checking for scenario headings would need a literal that is not in the cited lines, and the spec template was not provided.",
+    "statement": "schema-028"
+   },
+   {
+    "reason": "'Preserve the full path' is checked through schema-031 (openspec.capabilities listed_have_specs compares the exact capability paths) and schema-036.",
+    "statement": "schema-032"
+   },
+   {
+    "reason": "This duplicates schema-031: the listed_have_specs rule already checks that each listed capability has a spec file at its exact path.",
+    "statement": "schema-033"
+   },
+   {
+    "reason": "The rule applies only when the change modifies an existing capability. The reference language has no observable predicate for that, so no applies_when can be written.",
+    "statement": "schema-037"
+   },
+   {
+    "reason": "The rule depends on whether a registered standalone store exists. That cannot be observed, so it is not itemized.",
+    "statement": "schema-038"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "e345b79ce081a8875857bb72689a5b551c587d2d37eac31712d59edc75c12454",
+ "key": "f8987b35821d151afc8cae3367395b6cecdd1fb7f5cd16106e79ced9da2b739f",
+ "meta": {
+  "at": "2026-10-16T06:23:12Z",
+  "cost_usd": 0.1416796,
+  "duration_ms": 55921,
+  "num_turns": 2,
+  "wall_s": 57.48
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "2bd128d8aaf30b0a3adbd193abec103754284aa509b36b7c4e8cb237d541da44",
+ "version": "2.1.283"
+}

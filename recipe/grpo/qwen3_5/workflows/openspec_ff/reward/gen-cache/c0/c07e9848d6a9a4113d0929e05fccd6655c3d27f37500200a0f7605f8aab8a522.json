@@ -1,0 +1,452 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": {
+     "all": [
+      {
+       "artifact_exists": "spec"
+      },
+      {
+       "relation": {
+        "left": {
+         "headings": {
+          "artifact": "spec",
+          "level": 2,
+          "pattern": "(ADDED|MODIFIED)"
+         }
+        },
+        "rel": "equal",
+        "right": {
+         "literal": []
+        }
+       }
+      }
+     ]
+    },
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "note": "Applies only when the change's delta specs have no ADDED or MODIFIED section heading.",
+    "params": {
+     "label": "Correctness",
+     "section": "Summary",
+     "text": "Not applicable (no ADDED or MODIFIED requirements)"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "For a change that only removes or renames requirements, the Correctness cell reads `Not applicable (no ADDED or MODIFIED requirements)`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-119",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.verify",
+    "none_allowed": "-",
+    "note": "Incomplete tasks must show up as a CRITICAL issue: if the task list still had an open box when the report was written, the report must list a CRITICAL issue.",
+    "params": {
+     "artifact": "verify",
+     "rule": "open_tasks_critical",
+     "tasks": "tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       163,
+       164
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "1. **CRITICAL** (Must fix before archive):\n      - Incomplete tasks"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-120",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Knowing that every check in a dimension was skipped means mapping checks to dimensions, and no predicate can do that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If all checks in a dimension were skipped, start the cell with `Not verified`."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-115",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs the requirement count N in the report checked against the ADDED/MODIFIED requirements counted in the deltas. No kind compares a number in a report to a count over the deltas.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       159,
+       159
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Count only ADDED and MODIFIED requirements in N, and report REMOVED and RENAMED requirements separately"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-118",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether a recommendation is specific and actionable is a semantic judgement.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       168,
+       168
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Each with specific, actionable recommendation"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-122",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this means sorting divergences into WARNING and confirming each has a recommendation, and both are semantic.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       170,
+       173
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "2. **WARNING** (Should fix):\n      - Spec/design divergences\n      - Missing scenario coverage\n      - Each with specific recommendation"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-123",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this means sorting findings into SUGGESTION and confirming each has a recommendation, and both are semantic.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       175,
+       178
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "3. **SUGGESTION** (Nice to fix):\n      - Pattern inconsistencies\n      - Minor improvements\n      - Each with specific recommendation"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-124",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This depends on how many CRITICAL issues the report lists. The Final Assessment is not a compiled section or label, and predicates cannot count issues.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       181,
+       181
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-125",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This needs the set of skipped checks to cross-reference against the Final Assessment, and no selector exposes that set.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       181,
+       181
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If any check was skipped, also name every skipped check and its reason."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-126",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The condition rests on issue counts and skipped checks, and no predicate can express either.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       182,
+       182
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If no CRITICAL issues, one or more warnings, and no checks were skipped: \"No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements).\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-127",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The condition rests on issue counts and skipped checks, and no predicate can express either.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       183,
+       183
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If only suggestions and no checks were skipped: \"No critical issues or warnings. Z suggestion(s) to consider. Ready for archive (with noted improvements).\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-128",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The condition rests on issue counts and skipped checks, and no predicate can express either.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       184,
+       184
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If no issues and no checks were skipped: \"All checks passed. Ready for archive.\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-129",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The rule is to make no readiness claim when checks were skipped and there are no CRITICAL issues. Neither half of that condition can be expressed as a predicate over the report.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "If any check was skipped and there are no CRITICAL issues: do not claim readiness."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-130",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The phrase is required only when checks were skipped and there are no CRITICAL issues, and that condition cannot be expressed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Say \"No critical issues found in the checks that ran. <check(s)> not verified: <reason>.\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-131",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This means checking the Final Assessment's warning count against the warnings the report lists, and no kind counts listed issues.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       185,
+       185
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Include the warning count when nonzero."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-132",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "This means checking the Final Assessment's suggestion count against the suggestions the report lists, and no kind counts listed issues.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       186,
+       186
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Include the suggestion count when nonzero in every final assessment."
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-133",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "2e706445653a5d09f07ace377a55405e81b273aba9ba407a5dbd14845cc07ce4",
+ "key": "c07e9848d6a9a4113d0929e05fccd6655c3d27f37500200a0f7605f8aab8a522",
+ "meta": {
+  "at": "2026-10-15T04:48:42Z",
+  "cost_usd": 0.126215,
+  "duration_ms": 45974,
+  "num_turns": 2,
+  "wall_s": 47.18
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "e9e026a5d8cb70ba2107d549b2c88dca04db483e84b600744cc1f698c3866f0d",
+ "version": "2.1.283"
+}

@@ -1,0 +1,417 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "openspec.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "verification"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       227,
+       229
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each task MUST state how to verify completion (a test, command, observable behavior, or delivered artifact). Put the verification in that task's checkbox description."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-103",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Per-group verification timed to each group's landing cannot be expressed; overall execution evidence is covered by schema-106.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       232,
+       234
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-105",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.evidence",
+    "none_allowed": "-",
+    "params": {
+     "rule": "test_or_check",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       232,
+       234
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-106",
+    "target": {
+     "ref": "apply",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       234,
+       235
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Do NOT add or edit test files in the repository - the task's tests are already in place."
+     }
+    ],
+    "stage": "global",
+    "statement": "schema-107",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The test files for this issue are already in place in the repository and are not to be added to or edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-003",
+    "target": {
+     "ref": "test files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": [
+      "first_write:tasks"
+     ],
+     "before": [
+      "first_write:spec",
+      "first_write:design"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       267,
+       269
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "requires: - specs - design"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-115",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": [
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ],
+     "before": [
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       271,
+       273
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "apply: requires: [ tasks ] tracks: tasks.md"
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-116",
+    "target": {
+     "ref": "apply",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "written",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       275,
+       275
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Read context files, work through pending tasks, mark complete as you go."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-119",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "openspec_ff.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "done_or_reasoned"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       275,
+       279
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "work through pending tasks, mark complete as you go. ... When a blocker stays unresolved, leave that task unchecked with a one-line reason and continue with the rest."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-121",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Sentence is declarative (environment description), not an explicit MUST/do not.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The environment is fully set up: no packages are installed and nothing is fetched from the network."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-004",
+    "target": {
+     "ref": "package installation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Sentence is declarative (environment description), not an explicit MUST/do not.",
+    "kind": "openspec_ff.no_fetch",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "nothing is fetched from the network."
+     }
+    ],
+    "stage": "global",
+    "statement": "config-004",
+    "target": {
+     "ref": "network access",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Declarative location statement; no explicit MUST.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Telling a reproduce/check script apart from other written files (e.g. new source files) needs a classifier the vocabulary lacks; the cited line gives no literal path pattern for scripts written elsewhere.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "Scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/."
+     }
+    ],
+    "stage": "apply",
+    "statement": "config-005",
+    "target": {
+     "ref": "reproduction/check scripts location",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires classifying files written under /openspec as code vs planning artifacts; no kind expresses it.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       10,
+       10
+      ],
+      "path": "sandbox/openspec-config.yaml",
+      "quote": "The code this change edits is the repository at /testbed. This planning home, /openspec, sits outside it."
+     }
+    ],
+    "stage": "apply",
+    "statement": "config-001",
+    "target": {
+     "ref": "code edits location",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Documentation edits are allowed only when the issue asks for them; whether the issue asks can't be expressed as a predicate, so applies_when can't be written.",
+    "statement": "schema-108"
+   },
+   {
+    "reason": "Optional ('When applicable'): MAY-level, so no item.",
+    "statement": "schema-113"
+   },
+   {
+    "reason": "Covered by schema-121 (openspec_ff.tasks done_or_reasoned: each task ticked or given a reason at the end) and schema-119 (tasks written during apply); a separate item would duplicate them.",
+    "statement": "schema-118"
+   },
+   {
+    "reason": "The trigger ('when a task is unclear') can't be observed, so the condition can't be expressed as a predicate.",
+    "statement": "schema-120"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "0d421cd395ee71a4ea30602ccb6d4e067556560321529f66d7294faaa2c01ca6",
+ "key": "7ced589eb7fa4fa52a992a6c191ab04513f58a5e3b3614ca3a2d86a54363f38e",
+ "meta": {
+  "at": "2026-10-14T06:49:34Z",
+  "cost_usd": 0.21976700000000002,
+  "duration_ms": 49605,
+  "num_turns": 2,
+  "wall_s": 50.88
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "326f4115406e3a6daf1a6bbbd1454d05b2e8de979e440b2ee11604cdf8f035de",
+ "version": "2.1.283"
+}

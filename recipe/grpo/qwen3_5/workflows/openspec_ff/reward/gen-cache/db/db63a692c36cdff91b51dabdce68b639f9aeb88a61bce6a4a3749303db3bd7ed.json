@@ -1,0 +1,417 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Context"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Sections:\n      - **Context**: Only the current state and constraints needed to explain the approach."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-083",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Decisions"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Sections: ... - **Decisions**: Key technical choices with rationale (why X over Y?)."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-083",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Risks / Trade-offs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       176,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Sections: ... - **Risks / Trade-offs**: Known limitations, things that could go wrong."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-083",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "A text match for a proposal reference only approximates 'reference instead of restating'.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "proposal",
+     "section": "Context"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       177,
+       177
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Reference the proposal for motivation instead of restating it (e.g., \"See proposal.md - Why\")."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-085",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "params": {
+     "section": "Decisions"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**Decisions**: Key technical choices with rationale (why X over Y?)."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-088",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "downgrade_reason": "A keyword match only approximates 'alternatives for each decision'; it cannot check that every decision has one.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "[Aa]lternatives?",
+     "section": "Decisions"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       179,
+       179
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Include alternatives considered for each decision."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-089",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "→",
+     "section": "Risks / Trade-offs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       180,
+       180
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-090",
+    "target": {
+     "ref": "design",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "artifact_exists": "design"
+    },
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:proposal",
+      "first_write:design"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       196,
+       197
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "requires:\n      - proposal"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-098",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       204,
+       204
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the task list that breaks down the implementation work."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-099",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "has_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       211,
+       212
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "**IMPORTANT: Follow the template below for tracked tasks.** The apply phase parses\n      checkbox format to track progress."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-102",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "max": 0,
+     "pattern": "^\\s*- \\[[~-]\\]"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       212,
+       215
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "A box holding only `x` counts as done, ... Every\n      other marker, including `- [~]`, `- [-]` and an empty `- []`, reads as\n      unfinished."
+     }
+    ],
+    "stage": "apply",
+    "statement": "schema-103",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^## \\d+"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       218,
+       218
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Group related tracked tasks under ## numbered headings"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-104",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^- \\[[ xX]\\] \\d+\\.\\d+ \\S"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       219,
+       219
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-105",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "design.md is only created when one of the listed criteria applies (lines 170-174). Those criteria are judgment calls that no predicate can express, so the file's existence can't be required unconditionally. The design items above use applies_when artifact_exists instead.",
+    "statement": "schema-081"
+   },
+   {
+    "reason": "The Goals / Non-Goals section and its filled check are already compiled from the design template skeleton. 'Don't restate the proposal's scope' is a semantic judgment that no kind can check.",
+    "statement": "schema-086"
+   },
+   {
+    "reason": "Migration Plan is optional ('if applicable'), so per rule 3 it gets no item.",
+    "statement": "schema-091"
+   },
+   {
+    "reason": "Open Questions is optional ('Omit if none'), so per rule 3 it gets no item.",
+    "statement": "schema-092"
+   },
+   {
+    "reason": "The Workflow follow-up section is explicitly optional, and whether it applies depends on the requested workflow, which no predicate can express.",
+    "statement": "schema-109"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "1a73a0ecb5da4ed29bcd45336c12bdd20d6b5d8d9e990e5d06dfa52fab54fd9f",
+ "key": "db63a692c36cdff91b51dabdce68b639f9aeb88a61bce6a4a3749303db3bd7ed",
+ "meta": {
+  "at": "2026-10-15T04:52:41Z",
+  "cost_usd": 0.10932660000000001,
+  "duration_ms": 40734,
+  "num_turns": 2,
+  "wall_s": 41.84
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "fabce1cfdaa82443ddca43c9ae8c824ac35283ada0de07f7cf4aef78581a48cd",
+ "version": "2.1.283"
+}

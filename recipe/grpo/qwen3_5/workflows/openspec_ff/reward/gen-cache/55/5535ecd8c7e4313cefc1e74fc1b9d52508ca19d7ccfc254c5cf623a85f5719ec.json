@@ -1,0 +1,528 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "The sentence only says to follow the schema. This particular rule (each listed capability has a delta spec) is inferred from it.",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "change": "issue",
+     "rule": "listed_have_specs"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       98,
+       98
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The schema defines what each artifact should contain - follow it"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-058",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The sentence only says to follow the schema. The rule that the tasks artifact must have checkbox tasks is inferred from it.",
+    "kind": "openspec.tasks",
+    "none_allowed": "-",
+    "params": {
+     "rule": "has_tasks"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       98,
+       98
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "The schema defines what each artifact should contain - follow it"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-058",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal"
+     ],
+     "change": "issue",
+     "window": [
+      "stage_start:ff",
+      "first_write:design"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Read dependency artifacts for context before creating new ones"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-059",
+    "target": {
+     "ref": "design",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal"
+     ],
+     "change": "issue",
+     "window": [
+      "stage_start:ff",
+      "first_write:spec"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Read dependency artifacts for context before creating new ones"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-059",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "openspec.read_files",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "proposal",
+      "design"
+     ],
+     "change": "issue",
+     "deltas": true,
+     "window": [
+      "stage_start:ff",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Always read dependency artifacts before creating a new one - re-read from disk, not from conversation memory"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-064",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "<context>",
+      "<rules>",
+      "<project_context>"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-061",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "<context>",
+      "<rules>",
+      "<project_context>"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-061",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "<context>",
+      "<rules>",
+      "<project_context>"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-061",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "<context>",
+      "<rules>",
+      "<project_context>"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-061",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-063",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-063",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-063",
+    "target": {
+     "ref": "design",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-063",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks for a read, stat or ls of each artifact between its write and the next artifact's write.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       109,
+       109
+      ],
+      "path": "docs/stages/01-ff.md",
+      "quote": "Verify each artifact file exists after writing before proceeding to next"
+     }
+    ],
+    "stage": "ff",
+    "statement": "ff-066",
+    "target": {
+     "ref": "post-write existence check",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "list --json",
+     "window": [
+      "stage_start:apply",
+      [
+       "first_repo_write",
+       "stage_end:apply"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json`"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-002",
+    "target": {
+     "ref": "openspec list --json",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind can detect a repeated `openspec list` call or a workaround that follows a non-zero exit with root null.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it."
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-005",
+    "target": {
+     "ref": "openspec list non-zero exit",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "openspec init",
+     "window": "stage:apply"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       12,
+       12
+      ],
+      "path": "docs/stages/02-apply.md",
+      "quote": "do not run `openspec init` until the user asks for it"
+     }
+    ],
+    "stage": "apply",
+    "statement": "ap-014",
+    "target": {
+     "ref": "openspec init",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This only applies when the `instruction` field names a skill or command. That field's content can't be observed with a reference-language predicate.",
+    "statement": "ff-057"
+   },
+   {
+    "reason": "The template sections and filled-value checks are already compiled from the template skeletons.",
+    "statement": "ff-060"
+   },
+   {
+    "reason": "This restates ff-061, which already checks for the `<context>`/`<rules>`/`<project_context>` residue patterns.",
+    "statement": "ff-062"
+   },
+   {
+    "reason": "This only applies when a store is selected, and no available predicate can tell whether a store was selected.",
+    "statement": "ap-003"
+   },
+   {
+    "reason": "This only applies when a status error starts with 'Declared in' or 'Invalid store declaration in'. Command output can't be tested with the predicates, and 'showing the user' can't be checked.",
+    "statement": "ap-007"
+   },
+   {
+    "reason": "This only applies in the no-root branch (\"root\": null), which isn't observable. Running `openspec init` is covered by ap-014.",
+    "statement": "ap-013"
+   },
+   {
+    "reason": "This only applies in the no-root branch. A plain created_files check on openspec/ would wrongly flag the change artifacts that ff is supposed to create.",
+    "statement": "ap-015"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "de3fdca90a56a931c73b4ce60f7bd89981772eb23deb31539869c88d529abe6a",
+ "key": "5535ecd8c7e4313cefc1e74fc1b9d52508ca19d7ccfc254c5cf623a85f5719ec",
+ "meta": {
+  "at": "2026-10-15T04:43:41Z",
+  "cost_usd": 0.23101,
+  "duration_ms": 44381,
+  "num_turns": 2,
+  "wall_s": 45.61
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "4e78916fe2e44e2a2b5e917e293f52195fbb275faf8f91063742698b3bef7fe5",
+ "version": "2.1.283"
+}

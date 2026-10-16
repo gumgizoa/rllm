@@ -1,0 +1,309 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FF",
+     "window": "stage:ff"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "ff",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:FF",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "AP",
+     "window": "stage:apply"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "apply",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:AP",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "VF",
+     "window": "stage:verify"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "system-prompt.j2",
+      "quote": "On entering one, read its stage document in /opsx/stages/"
+     }
+    ],
+    "stage": "verify",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:VF",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4); checks only that the stage doc is read before the stage's first openspec command.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:FF",
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "openspec",
+        "window": "stage:ff"
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "read its stage document in /opsx/stages/ and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "ff",
+    "statement": "sp-007",
+    "target": {
+     "ref": "openspec command (ff)",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4); checks only that the stage doc is read before the stage's first openspec command.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:AP",
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "openspec",
+        "window": "stage:apply"
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "read its stage document in /opsx/stages/ and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "apply",
+    "statement": "sp-007",
+    "target": {
+     "ref": "openspec command (apply)",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4); checks only that the stage doc is read before the stage's first openspec command.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:VF",
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "openspec",
+        "window": "stage:verify"
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       70
+      ],
+      "path": "system-prompt.j2",
+      "quote": "read its stage document in /opsx/stages/ and begin from the `openspec` command it names"
+     }
+    ],
+    "stage": "verify",
+    "statement": "sp-007",
+    "target": {
+     "ref": "openspec command (verify)",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Harness system-prompt text (rule 4).",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether every assumption the agent made is recorded in an artifact cannot be expressed by any kind.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       72,
+       73
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Write assumptions into the change's artifacts rather than asking"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-009",
+    "target": {
+     "ref": "proposal",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Harness system-prompt text (rule 4).",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Detecting questions addressed to the user in assistant text is not expressible by any kind.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       72,
+       73
+      ],
+      "path": "system-prompt.j2",
+      "quote": "Nobody replies before the task ends. Write assumptions into the change's artifacts rather than asking"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-010",
+    "target": {
+     "ref": "asking the user",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Harness system-prompt text (rule 4).",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind checks for turns that contain text but no tool call.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       73,
+       74
+      ],
+      "path": "system-prompt.j2",
+      "quote": "keep every progress note in a turn that also calls a tool"
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-011",
+    "target": {
+     "ref": "text-only turn",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Harness system-prompt text (rule 4); checks that the archive step succeeded before the run ended (finish).",
+    "kind": "openspec_ff.archive",
+    "none_allowed": "-",
+    "params": {
+     "rule": "succeeded"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       74,
+       74
+      ],
+      "path": "system-prompt.j2",
+      "quote": "call finish only once the archive step is done"
+     }
+    ],
+    "stage": "archive",
+    "statement": "sp-012",
+    "target": {
+     "ref": "openspec archive",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "8e11ea63b4f26074b2b4b7dcc03c654d4b694a7ddd9d6ddce1f86d1bed90a734",
+ "key": "b59bb64ce4cb21b2ae05bf6a472b5f43c0102222478f408648c0591c77e613d1",
+ "meta": {
+  "at": "2026-10-15T04:54:47Z",
+  "cost_usd": 0.14588500000000001,
+  "duration_ms": 32632,
+  "num_turns": 2,
+  "wall_s": 33.85
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample0",
+ "schema_sha256": "c6f2c0799f77e5b471c12dc44099a0d828fa6a207d073e8f421794711d8428eb",
+ "version": "2.1.283"
+}

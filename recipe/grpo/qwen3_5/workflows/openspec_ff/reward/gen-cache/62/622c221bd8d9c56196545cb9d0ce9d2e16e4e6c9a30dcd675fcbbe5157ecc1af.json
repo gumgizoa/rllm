@@ -1,0 +1,382 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "show .*--type spec.*--no-scenarios",
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "To look at one, run `openspec show \"<spec-id>\" --type spec --json --no-scenarios` (same `--store` rule)"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-060",
+    "target": {
+     "ref": "openspec show --type spec --json --no-scenarios",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Which specs are 'relevant' is not observable; a project with no relevant spec needs no full read.",
+    "kind": "openspec_ff.cli",
+    "none_allowed": "-",
+    "params": {
+     "rule": "ran",
+     "sub": "show (?!.*--no-scenarios).*--type spec",
+     "window": "stage:explore"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       129,
+       129
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Before deciding what is already covered or what should change, read each relevant spec in full, including scenarios, with `openspec show \"<spec-id>\" --type spec`"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-061",
+    "target": {
+     "ref": "openspec show <spec-id> --type spec (full read)",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Which specs are 'relevant' is not observable; the decision point is approximated by the first proposal write.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:proposal",
+     "before": {
+      "first": {
+       "fact": "command",
+       "pattern": "openspec show (?!.*--no-scenarios).*--type spec"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       129,
+       129
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Before deciding what is already covered or what should change, read each relevant spec in full"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-062",
+    "target": {
+     "ref": "full spec read before decisions",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CONFIG",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       131,
+       131
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Then read the project's own context from the resolved root - `<root.path>/openspec/config.yaml` (or `config.yml`)."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-063",
+    "target": {
+     "ref": "read openspec/config.yaml",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No selector exposes the config file's context/rules text for comparison with artifact contents.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       135,
+       135
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "do NOT copy them into the conversation or into any artifact you create"
+     }
+    ],
+    "stage": "global",
+    "statement": "ex-067",
+    "target": {
+     "ref": "proposal",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:EX",
+      "read:FF"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       189,
+       189
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Here discovery has one ending: it flows into the ff action."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-071",
+    "target": {
+     "ref": "transition to ff",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "FF"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       189,
+       189
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Then open `/opsx/stages/01-ff.md` and continue"
+     }
+    ],
+    "stage": "global",
+    "statement": "ex-074",
+    "target": {
+     "ref": "read /opsx/stages/01-ff.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.note",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "The problem",
+      "Where the change goes"
+     ],
+     "window": [
+      "stage_start:explore",
+      "read:FF"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       189,
+       189
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Exploration is done once the summary below can state **The problem** and **Where the change goes**, each with its evidence"
+     },
+     {
+      "lines": [
+       191,
+       191
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "write this summary inside a tool call (the `think` tool, for example) before the tool call that opens `/opsx/stages/01-ff.md`"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-072",
+    "target": {
+     "ref": "explore summary in a tool call before opening 01-ff.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec_ff.note",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "The problem",
+      "[\\w./-]+:\\d+"
+     ],
+     "window": [
+      "stage_start:explore",
+      "read:FF"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       191,
+       191
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Back every entry with its evidence: the `file:line` you read, the command you ran and what it printed."
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-077",
+    "target": {
+     "ref": "summary entries backed by file:line evidence",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No selector reaches the assumptions written in the explore summary (a tool-call note), so they can't be cross-referenced with the proposal.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       209,
+       209
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "and writes your assumptions into the proposal."
+     }
+    ],
+    "stage": "ff",
+    "statement": "ex-080",
+    "target": {
+     "ref": "proposal",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "**Don't implement** - Never write code or implement features. Workflow configuration counts too"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-082",
+    "target": {
+     "ref": "code changes during explore",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "python3? -c",
+     "window": "stage:explore"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/stages/00-explore.md",
+      "quote": "Running code you composed is writing code too, whether as `python -c \"...\"` or as a heredoc piped to `python3`"
+     }
+    ],
+    "stage": "explore",
+    "statement": "ex-082",
+    "target": {
+     "ref": "running composed code during explore",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The path built from root.path is checked by the ex-063 read of the resolved config file. The skip-if-absent condition is implicit because the sandbox config exists.",
+    "statement": "ex-064"
+   },
+   {
+    "reason": "Already covered by the ex-072 note item, whose window ends at read:FF (the summary is in a tool call before 01-ff.md is opened).",
+    "statement": "ex-075"
+   },
+   {
+    "reason": "This describes a consequence (the session ends), not a separately checkable requirement. The tool-call requirement is covered by the ex-072 note item.",
+    "statement": "ex-076"
+   },
+   {
+    "reason": "An implicit structural expectation. The skeleton headings (lines 193-207) aren't in the cited lines, so no literal patterns can be grounded beyond ex-072.",
+    "statement": "ex-078"
+   },
+   {
+    "reason": "The summary is required, which the ex-072 note item already checks.",
+    "statement": "ex-079"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "26d4961091b7c67e25a80b32d512efcb1a2186c229afbb3290f94b0a6925e527",
+ "key": "622c221bd8d9c56196545cb9d0ce9d2e16e4e6c9a30dcd675fcbbe5157ecc1af",
+ "meta": {
+  "at": "2026-10-16T06:17:43Z",
+  "cost_usd": 0.11624219999999999,
+  "duration_ms": 45219,
+  "num_turns": 2,
+  "wall_s": 46.62
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "6467869b4d1f3d17a25661fc856c60e82eabebb3a113662917d5e065726501e5",
+ "salt": "sample1",
+ "schema_sha256": "d8d610f61d3ab7ce82d242f858fcec27e87dd489dec8c6bf5ede5833c55c8c86",
+ "version": "2.1.283"
+}

@@ -1,0 +1,457 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Summary scorecard rendered as a markdown table (header, separator, at least one row).",
+    "params": {
+     "min": 3,
+     "pattern": "^\\s*\\|.*\\|\\s*$",
+     "section": "Summary"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       200,
+       201
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Use clear markdown with:\n- Table for summary scorecard"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-142",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The document does not fix the grouping form (headings vs. bold labels); only presence of the severity group labels is checked.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "(CRITICAL|WARNING|SUGGESTION)"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       202,
+       202
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-143",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Code references are only required where issues point to code; a report without code-anchored findings cannot be told apart.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "`[^`\\s]+\\.[A-Za-z0-9]+:[0-9]+`"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       203,
+       203
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "Code references in format: `file.ts:123`"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-144",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "no_template_residue",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "(?i)consider reviewing"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       205,
+       205
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "No vague suggestions like \"consider reviewing\""
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-146",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       10,
+       10
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Create the proposal document that establishes WHY this change is needed."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-001",
+    "target": {
+     "ref": "proposal",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "note": "The 1-2 sentence length limit is not checked.",
+    "params": {
+     "heading": "Why"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Why**: 1-2 sentences on the problem or opportunity."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-002",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^\\s*- \\S",
+     "section": "What Changes"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **What Changes**: Bullet list of changes."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-003",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Capabilities"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Capabilities**: Identify which specs will be created or modified:"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-006",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "declared"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Capabilities**: Identify which specs will be created or modified:"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-006",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each becomes a new `specs/<capability-path>/spec.md`."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-008",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "Kebab-case applies only to segments the change introduces; existing capability paths being modified may follow another convention.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "pattern": "specs/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*/spec\\.md$"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each becomes a new `specs/<capability-path>/spec.md`. ... Use kebab-case for path segments you introduce (e.g., `user-auth` or `identity/user-auth`)"
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-012",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Judging whether new capability paths fit the existing openspec/specs layout needs semantic comparison; no kind expresses it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "and follow the project's existing spec organization."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-013",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "section_present",
+    "none_allowed": "-",
+    "params": {
+     "heading": "Modified Capabilities"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "- **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-014",
+    "target": {
+     "ref": "proposal",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "openspec.capabilities",
+    "none_allowed": "-",
+    "params": {
+     "rule": "listed_have_specs"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "sandbox/schemas/spec-driven-sandbox/schema.yaml",
+      "quote": "Each needs a delta spec file."
+     }
+    ],
+    "stage": "ff",
+    "statement": "schema-016",
+    "target": {
+     "ref": "spec",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Pairing each issue with a specific recommendation (and file/line refs where applicable) needs per-issue semantic judgment; no kind expresses it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       196,
+       196
+      ],
+      "path": "docs/stages/03-verify.md",
+      "quote": "**Actionability**: Every issue must have a specific recommendation with file/line references where applicable"
+     }
+    ],
+    "stage": "verify",
+    "statement": "vf-141",
+    "target": {
+     "ref": "verify",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies when the change has breaking changes, and the rule engine cannot observe that condition. No applies_when predicate can express it.",
+    "statement": "schema-005"
+   },
+   {
+    "reason": "The 'New Capabilities' section is already compiled from the template skeleton. Its content (at least one listed capability) is covered by the openspec.capabilities 'declared' item under schema-006, and the list may legitimately be empty when only modified capabilities exist.",
+    "statement": "schema-007"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "003e58fea497ad7e61a751a762ba0292ae91e7f773a249b9b403f986f6d6a277",
+ "key": "90c9b9c6d8547d14b225434eec28cb6c874a0d0bcfeeb8095cdd45395009a98c",
+ "meta": {
+  "at": "2026-10-15T04:49:31Z",
+  "cost_usd": 0.1308754,
+  "duration_ms": 47971,
+  "num_turns": 2,
+  "wall_s": 49.11
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "d7219ce205025128395ec9e5d4cf6f1c9a563631e8f26f84812e3a1cabddc717",
+ "salt": "sample1",
+ "schema_sha256": "31545565eea36d99aa98fbc46affdfcf12b402d6d586d5369af48ac484017f47",
+ "version": "2.1.283"
+}

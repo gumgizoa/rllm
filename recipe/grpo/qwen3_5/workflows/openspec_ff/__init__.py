@@ -19,7 +19,8 @@ Unlike the other ports, the upstream CLI runs in the sandbox (porting/03-decisio
 paths, per-artifact instructions, validation and archive are OpenSpec's own, and the text it serves
 from ``schema.yaml`` is changed through upstream's project-local schema fork (D-4). The planning tree
 ``/openspec`` sits outside the repository and is collected as the workflow's output; the change is
-always ``issue``. No compliance scorer yet: resolve rate only.
+always ``issue``. ``reward/`` holds the generated compliance rubric (``openspec_ff/*`` signals); until
+``reward/rubric.yaml`` exists the workflow has no scorer and reports resolve rate only.
 """
 
 from __future__ import annotations
@@ -32,6 +33,14 @@ HERE = Path(__file__).resolve().parent
 FORK_NAME = "spec-driven-sandbox"
 FORK_STAGED = f"/opt/rllm/openspec_ff/{FORK_NAME}"  # setup.sh copies it into /openspec/schemas/
 CONFIG_STAGED = "/opt/rllm/openspec_ff/config.yaml"  # setup.sh installs it as /openspec/config.yaml
+
+
+def _scorer():
+    # Imported on use: a run without the workflow never loads the rubric.
+    from .reward.eval import Evaluation
+
+    return Evaluation()
+
 
 SPEC = WorkflowSpec(
     docs_dir=HERE / "docs",
@@ -46,4 +55,6 @@ SPEC = WorkflowSpec(
         CONFIG_STAGED: HERE / "sandbox" / "openspec-config.yaml",  # G10-7: becomes /openspec/config.yaml
     },
     setup_script=HERE / "setup.sh",
+    scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
+    reward_signal="openspec_ff/compliance",
 )
