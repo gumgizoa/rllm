@@ -158,7 +158,8 @@ def test_decided_behaviors_are_in_the_commands():
     assert "⚠️ No Updates Needed` with that reason" in impl  # G7-8
     assert "Run the entire tests suite for the application so that ALL tests run." in impl  # G8-2 verbatim
     assert "DO NOT attempt to fix any failing tests." in impl  # G8-3 verbatim
-    assert "## 2. Documentation Verification" not in impl and "## 3. Roadmap Updates" in impl  # G5-6
+    assert "Documentation Verification" not in impl  # G5-6
+    assert "## 2. Roadmap Updates" in impl and "## 3. Test Suite Results" in impl and "## 4." not in impl  # G5-8
 
 
 # ---- the harness and the hand-written text

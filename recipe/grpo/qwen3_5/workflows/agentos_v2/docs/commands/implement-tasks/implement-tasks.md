@@ -232,7 +232,7 @@ IF you have concluded that this task has NOT been completed, then mark this chec
 
 Open `agent-os/product/roadmap.md` and check to see whether any item(s) match the description of the current spec that has just been implemented.  If so, then ensure that these item(s) are marked as completed by updating their checkbox(s) to `- [x]`.
 
-This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it. In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes.
+This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it. In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.
 
 ### Step 3: Run entire tests suite
 
@@ -280,7 +280,7 @@ The content of this report should follow this structure:
 
 ---
 
-## 3. Roadmap Updates
+## 2. Roadmap Updates
 
 **Status:** ✅ Updated | ⚠️ No Updates Needed | ❌ Issues Found
 
@@ -292,7 +292,7 @@ The content of this report should follow this structure:
 
 ---
 
-## 4. Test Suite Results
+## 3. Test Suite Results
 
 **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures
 

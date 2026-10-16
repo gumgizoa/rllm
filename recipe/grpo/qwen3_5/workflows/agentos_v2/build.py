@@ -642,9 +642,9 @@ EDITS: tuple[Edit, ...] = (
         "by updating their checkbox(s) to `- [x]`.\n"
         "\n"
         "This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create "
-        "it. In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes.",
+        "it. In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.",
         "env",
-        "G7-8: no roadmap; section 3 records No Updates Needed",
+        "G7-8: no roadmap; report section 2 (Roadmap Updates, G5-8) records No Updates Needed",
     ),
     Edit(
         "wf/verification-report",
@@ -673,8 +673,10 @@ EDITS: tuple[Edit, ...] = (
         "\n",
         "",
         "semantic",
-        "G5-6: report section 2 (implementation / area-verifier documents) deleted; sections 1, 3, 4 keep their numbers",
+        "G5-6: report section 2 (implementation / area-verifier documents) deleted",
     ),
+    Edit("wf/verification-report", "## 3. Roadmap Updates", "## 2. Roadmap Updates", "env", "G5-8: sections renumbered 1-3 after G5-6"),
+    Edit("wf/verification-report", "## 4. Test Suite Results", "## 3. Test Suite Results", "env", "G5-8: sections renumbered 1-3 after G5-6"),
     # ---- standards (inlined into the commands, G7-3)
     Edit(
         "std/global/conventions",

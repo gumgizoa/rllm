@@ -18,13 +18,14 @@
 | 9 | G9-1 적용 위치 | group의 테스트 2–8개와 마지막 group 최대 10개를 `S/checks/` 스크립트로 | tasks 예시(G9-4 원문 유지)는 그대로, create-tasks-list "Important Constraints"에 한 항목 추가("Write these tests as check scripts outside the repository … The test-writing standard applies to these scripts."), implement "Self-verify" 줄에 괄호 한 구절 추가. test-writing 표준 파일은 무변경 | G9-4가 예시 원문 유지를 정했으므로 예시 밖 두 곳에 둠 |
 | 10 | G1-3 문구 | 제품 맥락을 README, 패키징·빌드 정보, 문서 목차에서 | 세 항목의 굵은 이름(Read Product Mission / Roadmap / Tech Stack)과 하위 bullet은 원문 유지, "Load `agent-os/product/X.md`"만 교체: mission → README, roadmap → 문서 목차(`docs/` 차례), tech stack → `pyproject.toml`·`setup.py`·`setup.cfg`·`package.json`. 앞 문장에 "product 문서가 없으니 저장소에서" 한 문장 추가 | 세 파일 ↔ 세 출처 대응은 해석. 경로를 남기지 않아 에이전트가 없는 파일을 찾지 않게 |
 | 11 | G1-1 "user's description" | 입력 = issue | Step 1 문장과 책임 목록 1번만 교체. Step 2의 "from the user's description"(문장·bash 주석)과 첫 줄 "You are helping me…"는 원문 유지, 진입 문서가 "user's description" = issue라고 정의 | 최소 편집 |
-| 12 | G7-8 문구 | roadmap 만들지 말고 3절 `⚠️ No Updates Needed` + 이유 | 원문 Step 2 문장 유지 + 바로 뒤 한 단락 추가. 원문 문장 속 `agent-os/product/roadmap.md` 경로는 남음 | 결정이 "keep the step, add one line" |
+| 12 | G7-8 문구 | roadmap 만들지 말고 3절(G5-8 후 2절) `⚠️ No Updates Needed` + 이유 | 원문 Step 2 문장 유지 + 바로 뒤 한 단락 추가. 원문 문장 속 `agent-os/product/roadmap.md` 경로는 남음 | 결정이 "keep the step, add one line" |
 | 13 | 엔진(`_port.py`) | 렌더 단계 필요 시 공용 변경 또는 build.py에서 구동, 4단계에 기록 | `_port.py` 무변경. build.py가 `_port.convert`(태그 편집·anchor 검사) → upstream `project-install.sh` 실행 → 4개 파일 수집·후처리를 직접 구동하고, `--list`/`--check`용 `main`을 자체 정의(openspec_ff와 같은 방식). `drift`는 `docs/commands/` 아래 남는 파일까지 검사 | 다른 port 소유 공용 엔진을 건드리지 않음 |
 | 14 | 공백 정규화 | (언급 없음) | 편집한 원문과 최종 문서 모두 `_port.convert`와 같은 규칙으로 빈 줄 3개 이상을 2개로, 끝 개행 1개로 정리. 편집 없이 렌더하면 참조 렌더(`scratchpad/agentos-render`)와 바이트 동일(create-tasks만 빈 줄 하나 차이)함을 확인 | 다른 port와 같은 정규화, 의미 변화 없음 |
 | 15 | "missing-section" 테스트 | stage 4 표준 테스트 | 이 port는 `Section`을 쓰지 않으므로, 대신 `{{workflows/...}}` 참조가 풀리지 않는 upstream(파일명 변경)이면 build가 실패하는지 검사 | gaps "Harness / build notes"대로 `Edit`만 사용 |
 | 16 | 렌더 테스트용 upstream 위치 | — | 테스트 기본 경로 `../agent-os-v2.1.1`(rllm 옆) 또는 `AGENT_OS_V2_DIR`. 없으면 렌더 테스트 3개는 skip. 이번 검증은 `scratchpad/agentos-v2.1.1-wt`(tag worktree, HEAD = 고정 commit)로 실행 | 전체 clone의 HEAD는 v3이라 그대로 쓸 수 없음. worktree 생성법은 `build.py` docstring |
 | 17 | 줄 수 | standards 펼침으로 약 +400줄, 편집 약 50건 | 4개 문서 986줄 → 1,329줄(+343). 렌더 전 편집 55건(env 30, semantic 25) + 렌더 단계 5건 | 실제 값 (G9-5 반영 후) |
 | 18 | backend migrations 표준 9줄 | (계획에 없음) | "Always commit migrations to version control …" 줄 삭제 | 4단계에서 발견한 새 gap G9-5, 사용자 결정(2026-10-16). G9-2의 커밋·브랜치 줄과 같은 종류 |
+| 19 | 보고서 절 번호 | 2절 삭제(G5-6), 1·3·4절 번호 유지 | 3·4절 → 2·3절로 번호 다시 매김, roadmap 안내 문장의 "section 3" → "section 2 (Roadmap Updates)" | smoke 1에서 발견한 G5-8(3/8이 스스로 번호를 바꿈), 사용자 결정 |
 
 ## 구성 (`recipe/grpo/qwen3_5/workflows/agentos_v2/`)
 
@@ -63,10 +64,10 @@
 | 5 | **agent 앱 전용 요소 삭제** | `@agent-os/standards/...` 참조 목록을 각 파일 내용으로 펼쳐 넣음(shape-spec 5개, 나머지 14개). 첫머리 "번호 붙은 파일을 순서대로 읽고 실행" → "아래 PHASE를 순서대로, 하나를 끝내고 다음". implementer 서브에이전트 위임 → 직접 수행. orchestrator 언급 삭제, spec-writer·spec-shaper → "the write-spec stage"·"the shape-spec stage", tasks 예시의 폐지된 역할 이름(database-engineer 등) → task 번호와 group 이름. 브라우저 확인 문장 삭제 |
 | 6 | **SWE task 조건에 맞춤** | task group마다 쓰는 테스트 2–8개와 테스트 검토 group의 추가 테스트를 저장소 테스트 파일이 아닌 `S/checks/` 아래 스크립트로 작성·실행(create-tasks 제약 한 항목, implement 자체 검증 줄). 진입 문서: 작업·임시 파일은 `S/`·`S/checks/`, `/testbed`에는 워크플로우 파일을 두지 않음, 저장소 테스트 파일 추가·수정 금지 |
 | 7 | **절차 구조 변경** | implement-tasks를 "호출 한 번에 group 하나"에서 "미체크 group이 남으면 PHASE 2 반복, 모두 체크되면 PHASE 3 한 번"으로 변경("assigned" = 현재 group). shape-spec PHASE 1에 issue 원문을 `planning/initialization.md`로 저장하는 Step 4 추가(원문 책임 목록에 있으나 단계가 없던 것) |
-| 8 | **환경 사실 명시** | product 문서(mission·roadmap·tech-stack)가 없으므로 제품 맥락은 저장소의 README, 문서 목차, 패키징·빌드 정보에서 파악. roadmap은 만들지 말고 보고서 3절에 `⚠️ No Updates Needed`와 이유 기록. 진입 문서·instruction·system prompt: `/agent-os`는 루트 바로 아래이며 저장소 밖, 자리표시 4종은 같은 spec 폴더, standards 이름표는 열 파일이 아님, tasks.md 체크박스가 기록(TaskTracker는 보조) |
+| 8 | **환경 사실 명시** | product 문서(mission·roadmap·tech-stack)가 없으므로 제품 맥락은 저장소의 README, 문서 목차, 패키징·빌드 정보에서 파악. roadmap은 만들지 말고 보고서 2절(Roadmap Updates)에 `⚠️ No Updates Needed`와 이유 기록. 진입 문서·instruction·system prompt: `/agent-os`는 루트 바로 아래이며 저장소 밖, 자리표시 4종은 같은 spec 폴더, standards 이름표는 열 파일이 아님, tasks.md 체크박스가 기록(TaskTracker는 보조) |
 | 9 | **harness·데이터셋 설정** | `swegym293_aidlc` + instruction prefix, `--hide-git-history`(실행 설정, 문서 변경 없음). system prompt의 SDK 절차 섹션을 agentos_v2용으로 새로 작성, SDK의 "ask the user"·"confirm with the user" 문구는 유지 |
 | 10 | **범위·방식 결정** | bugfix·feature 모두 한 workflow로("feature = issue가 요구하는 변경, 수정이든 추가든"). plan-product 제외. standards 정리: `tech-stack.md`(빈 양식) 미설치, conventions 7줄(README 최신화·커밋/브랜치/PR·의존성 최신화·코드 리뷰·머지 전 테스트·feature flag·changelog) 삭제, coding-style 3줄(dead code 삭제·하위 호환 무시·DRY) 삭제. 폐지된 구현 보고서 흔적 삭제(보고서 폴더 설명, 보고서 존재 확인, 보고서 2절). 네트워크·설치 금지 규칙은 추가하지 않음 |
-| 11 | **원문 유지** | 검증 단계의 "테스트 전체 실행"과 "실패는 고치지 말고 기록만"; requirements·spec 템플릿(User Stories 포함); tasks의 웹앱 예시 구조와 "Group tasks by specialization"; 보고서 머리 `Verifier: implementation-verifier`와 3·4절 번호; "Use Read tool", "THINK HARD"; 날짜 + 이름 폴더 규칙과 자리표시; visuals 폴더, 필수 `ls`, 시안 관련 후속 질문·템플릿; 질문 양식 문장; write-spec의 코드 검색 단계; 나머지 standards 11개 파일 전체 |
+| 11 | **원문 유지** | 검증 단계의 "테스트 전체 실행"과 "실패는 고치지 말고 기록만"; requirements·spec 템플릿(User Stories 포함); tasks의 웹앱 예시 구조와 "Group tasks by specialization"; 보고서 머리 `Verifier: implementation-verifier`; "Use Read tool", "THINK HARD"; 날짜 + 이름 폴더 규칙과 자리표시; visuals 폴더, 필수 `ls`, 시안 관련 후속 질문·템플릿; 질문 양식 문장; write-spec의 코드 검색 단계; 나머지 standards 11개 파일 전체 |
 
 **적용 위치** (범주와 별개)
 - **렌더 전 원문 편집**: `build.py`가 v2.1.1의 `commands/*/single-agent/*.md`(11건), `workflows/**`(40건), `standards/global/{conventions,coding-style}.md`(3건)에 태그 편집 적용, 총 54건(`--list`). 범주 1, 2, 3, 5, 6, 7, 8, 10
@@ -86,8 +87,8 @@
 | 6 | implement PHASE 1 | 지정된 group이 없으면 "**Should we proceed with implementation of all task groups in tasks.md?**" 묻고 대기 (`U/commands/implement-tasks/single-agent/1-determine-tasks.md#L7-L13`) | tasks.md의 **모든 group을 순서대로**, 첫 group부터 PHASE 2를 직접 수행 (질문이 제안한 쪽) | 답할 사람 없음 (G4-4) | 불가 (답할 사람 없음) |
 | 7 | implement PHASE 2 | "Implement … **ONLY those task(s) that have been assigned to you**", 남으면 "**Would you like to proceed with implementation of the remaining tasks?**" (`U/workflows/implementation/implement-tasks.md#L1`, `U/commands/implement-tasks/single-agent/2-implement-tasks.md#L17-L23`) | **새 행동 추가**: 한 번에 현재 group 하나, 미체크 task가 남으면 다음 group으로 PHASE 2 반복, 모두 체크되면 PHASE 3 | 사람이 다시 호출하던 반복을 agent가 이어 감 (G4-5) | 불가 (첫 group 뒤 세션 종료) |
 | 8 | implement PHASE 2 | "IF your task involves user-facing UI, and IF you have access to browser testing tools, open a browser…" (`implement-tasks.md#L16`) | **원래 행동 삭제** | 사용자 결정 (G6-2) | 가능 (도구가 없어 조건이 거짓) |
-| 9 | implement PHASE 3 Step 1, 보고서 | 미완료 task는 "Check for existence of an implementation report … in `agent-os/spec/[this-spec]/implementation/`", 보고서 2절 "Documentation Verification" (`U/workflows/implementation/verification/verify-tasks.md#L5`, `create-verification-report.md#L37-L49`) | **원래 행동 삭제**: 보고서 확인 항목과 2절. 미완료 판단은 원문의 코드 spot check로만. 보고서는 1·3·4절(번호 유지) | v2.1.0에서 폐지된 구현 보고서의 흔적 (G5-6) | 가능하지만 항상 "없음" |
-| 10 | implement PHASE 3 Step 2 | "Open `agent-os/product/roadmap.md` and check … mark … `- [x]`" (`U/workflows/implementation/verification/update-roadmap.md#L1`) | **새 행동 추가**: 원문 문장 뒤 "이 프로젝트에는 roadmap이 없으니 만들지 말고, 보고서 3절 Status `⚠️ No Updates Needed`, Notes에 이유" | roadmap 없음, plan-product 제외 (G7-8) | 가능하지만 없는 파일을 열거나 만들 위험 |
+| 9 | implement PHASE 3 Step 1, 보고서 | 미완료 task는 "Check for existence of an implementation report … in `agent-os/spec/[this-spec]/implementation/`", 보고서 2절 "Documentation Verification" (`U/workflows/implementation/verification/verify-tasks.md#L5`, `create-verification-report.md#L37-L49`) | **원래 행동 삭제**: 보고서 확인 항목과 2절. 미완료 판단은 원문의 코드 spot check로만. 보고서는 1·2·3절(G5-8로 번호 다시 매김) | v2.1.0에서 폐지된 구현 보고서의 흔적 (G5-6) | 가능하지만 항상 "없음" |
+| 10 | implement PHASE 3 Step 2 | "Open `agent-os/product/roadmap.md` and check … mark … `- [x]`" (`U/workflows/implementation/verification/update-roadmap.md#L1`) | **새 행동 추가**: 원문 문장 뒤 "이 프로젝트에는 roadmap이 없으니 만들지 말고, 보고서 2절 Status `⚠️ No Updates Needed`, Notes에 이유" | roadmap 없음, plan-product 제외 (G7-8) | 가능하지만 없는 파일을 열거나 만들 위험 |
 | 11 | 모든 명령 (standards) | conventions: README 최신 유지, 커밋·feature branch·PR, 의존성 최신화, 코드 리뷰, 머지 전 테스트, feature flag, changelog (`U/standards/global/conventions.md#L4-L11`) | **원래 행동 삭제**: 7줄 삭제 (3·6줄만 유지) | 팀 절차·issue 밖 작업, 의존성 최신화의 네트워크 사용 (G9-2) | 가능 (`later.md`의 실제 개발 관례 변형) |
 | 12 | 모든 명령 (standards) | coding-style: "Remove Dead Code", "Backward compatibility only when required: … assume you do not need …", "DRY Principle" (`U/standards/global/coding-style.md#L8-L10`) | **원래 행동 삭제**: 3줄 삭제 | issue 밖 정리·리팩터링, 기존 동작 파손 위험 (G9-3) | 가능 (같은 변형) |
 
@@ -104,7 +105,7 @@
 
 **2. 제품 문서 → 저장소** (shape-spec.md, implement-tasks.md)
 - 원문은 `agent-os/product/{mission,roadmap,tech-stack}.md`를 읽음. 세 항목의 읽는 대상을 README, 문서 목차, 패키징·빌드 정보로 교체하고 "product 문서 없음" 한 문장 추가 (G1-3, env).
-- 검증 Step 2(roadmap 체크)는 원문 유지, "roadmap 없음, 만들지 말 것, 3절 `⚠️ No Updates Needed` + 이유" 한 단락 추가 (G7-8, env).
+- 검증 Step 2(roadmap 체크)는 원문 유지, "roadmap 없음, 만들지 말 것, 2절 `⚠️ No Updates Needed` + 이유" 한 단락 추가 (G7-8, env).
 
 **3. 사람에게 묻고 기다리기 → 스스로 답하고 기록** (shape-spec.md, create-tasks.md, implement-tasks.md) — **semantic** 포함
 - shape-spec 질문: 생성 규칙·양식 유지, "Required output format" → "Required format", "OUTPUT … and STOP" → "보내지 말고 issue·저장소로 스스로 답하고 근거를 남김", 후속 질문 머리·"Then STOP" 교체, Step 4 "receiving user's answers from the orchestrator" → "after answering the questions yourself", 제약 "Save user's exact answers" → "Record each assumed answer and its basis", 마지막 제약 "OUTPUT questions and STOP" 삭제, 템플릿 `**Answer:** [User's answer]` 3곳 → `(assumed) [your answer] — [its basis…]` (G4-1, **semantic**).
@@ -146,6 +147,7 @@
 - conventions 4·5·7·8·9·10·11줄 삭제(README·버전 관리·의존성·코드 리뷰·머지 전 테스트·feature flag·changelog), 1·3·6줄 유지 (G9-2, **semantic**).
 - coding-style 8·9·10줄 삭제(dead code·하위 호환·DRY), 1–7줄 유지 (G9-3, **semantic**).
 - backend/migrations 9줄 삭제(migration을 version control에 커밋), 1–8줄 유지 (G9-5, **semantic**).
+- 최종 보고서 절 번호를 1·2·3으로 다시 매김(Tasks Verification, Roadmap Updates, Test Suite Results), roadmap 안내 문장도 2절로 (G5-8, env).
 
 **10. 원문 유지로 결정한 것** (문서 변경 없음)
 - 검증 Step 3 전체 테스트 실행과 "DO NOT attempt to fix any failing tests" (G8-2, G8-3), requirements·spec 템플릿 (G1-4), 웹앱 tasks 예시 (G9-4), 명령별 step 수 측정은 smoke (G8-4), 네트워크·설치 규칙 없음 (G6-1).
