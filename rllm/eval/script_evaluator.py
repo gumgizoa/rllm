@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shlex
 from pathlib import Path
 
 from rllm.eval.types import EvalOutput, Signal
@@ -64,9 +65,19 @@ class ShellScriptEvaluator:
 
         v_user = self.verifier_user
 
-        # Prepare reward directories
+        # Prepare reward directories. Clear what the agent left first: the
+        # reward is read from the first file that *exists*, so a reward.json
+        # planted during the rollout is graded as-is whenever the verifier
+        # does not overwrite it (script failed to start, its write went into a
+        # path the agent turned into a directory, ...). /tests too, since
+        # upload_dir merges into it.
+        reward_files = " ".join(shlex.quote(p) for p in _REWARD_PATHS + ([self.reward_file_override] if self.reward_file_override else []))
         try:
-            self.sandbox.exec("mkdir -p /tmp/rllm /logs/verifier", timeout=10, user=v_user)
+            self.sandbox.exec(
+                f'rm -rf {reward_files} /tests; for d in /logs /tmp/rllm /logs/verifier; do {{ [ -d "$d" ] && [ ! -L "$d" ]; }} || rm -rf "$d"; done; mkdir -p /tmp/rllm /logs/verifier',
+                timeout=30,
+                user=v_user,
+            )
         except Exception:
             pass
 
