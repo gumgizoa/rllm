@@ -1,0 +1,379 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "pattern": "planning/requirements\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       208,
+       208
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "record ALL gathered information to ONE FILE at this location with this name: `[spec-path]/planning/requirements.md`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-067",
+    "target": {
+     "ref": "requirements",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       208,
+       208
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "After all questions are answered, record ALL gathered information to ONE FILE"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-068",
+    "target": {
+     "ref": "requirements",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Level-2 headings of requirements.md must be drawn only from the template's level-2 headings.",
+    "params": {
+     "left": {
+      "headings": {
+       "artifact": "requirements",
+       "group": 1,
+       "level": 2,
+       "pattern": "^(.*)$"
+      }
+     },
+     "normalize": "text",
+     "relation": "subset",
+     "right": {
+      "literal": [
+       "Initial Description",
+       "Requirements Discussion",
+       "Visual Assets",
+       "Requirements Summary"
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       210,
+       210
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Include ONLY the items specified in the following structure:"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-070",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.holds",
+    "none_allowed": "-",
+    "note": "A shell command touching the visuals folder must run in shape_spec before requirements.md is first written (its findings go into the file).",
+    "params": {
+     "predicate": {
+      "exists": {
+       "fact": "command",
+       "pattern": "visuals",
+       "window": [
+        "stage_start:shape_spec",
+        [
+         "first_write:requirements",
+         "stage_end:shape_spec"
+        ]
+       ]
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       292,
+       292
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**MANDATORY**: Always run bash command to check visuals folder after answering the questions"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-071",
+    "target": {
+     "ref": "bash check of planning/visuals",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "absent": {
+       "artifact": "spec",
+       "fact": "artifact_write",
+       "window": "stage:shape_spec"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       293,
+       293
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "DO NOT write technical specifications for development."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-072",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "max": 3,
+     "pattern": "^\\s*\\d+\\.",
+     "section": "Follow-up Questions"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       297,
+       297
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Keep follow-ups minimal (1-3 questions max)"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-078",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.requirements",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "rule": "answers"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       298,
+       298
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Record each assumed answer and its basis"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-079",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires matching each file actually in planning/visuals to a documented finding with a fidelity level; no kind compares spec-folder visual files with requirements content.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       299,
+       299
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Document all visual findings including fidelity level"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-080",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Documented paths may name directories or use a format the template does not fix as backticked paths, so a strict subset of base file paths can over-reject.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "requirements",
+       "group": 1,
+       "pattern": "`([^`]+)`",
+       "section": "Existing Code to Reference"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       300,
+       300
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Document paths to similar features for the write-spec stage to reference"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-081",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "read:WS",
+     "before": "write:requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       304,
+       304
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Once you've completed your research and documented it in `planning/requirements.md`, open `/agent-os/commands/write-spec/write-spec.md` and continue with that command."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-082",
+    "target": {
+     "ref": "transition to write-spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Code-style consistency of the diff needs a formatter/linter judgment; no kind expresses it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       315,
+       315
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Automated Formatting**: Maintain consistent code style (indenting, line breaks, etc.)"
+     }
+    ],
+    "stage": "global",
+    "statement": "ss-085",
+    "target": {
+     "ref": "code formatting",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is a follow-up question put to the user in conversation, and it only applies when visual filenames contain lo-fi keywords. The reference language has no predicate for filenames in the visuals folder, so applies_when cannot express the condition.",
+    "statement": "ss-057"
+   },
+   {
+    "reason": "This sets the format of follow-up questions put to the user in conversation, not of an artifact. No trace or artifact selector can check it.",
+    "statement": "ss-063"
+   },
+   {
+    "reason": "The requirements.md template skeleton (headings, labels, fallback lines) is already compiled into items. Extra-section deviations are covered by the ss-070 item.",
+    "statement": "ss-069"
+   },
+   {
+    "reason": "Duplicates ss-067/ss-068, which already check that requirements.md exists at the fixed path.",
+    "statement": "ss-073"
+   },
+   {
+    "reason": "The bash-based visuals check is covered by the ss-071 item. Whether the recorded findings come from files rather than user statements cannot be told apart beyond that command evidence.",
+    "statement": "ss-074"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "f37d6c54f4b4017fb5e710f215f05d13821ada8c57985e952e07fb27d794daaa",
+ "key": "d6de2b28c936cd1981ceb80a37b993b76deb605a7abe3a335145c973e5e10db8",
+ "meta": {
+  "at": "2026-10-16T08:16:07Z",
+  "cost_usd": 0.12845879999999998,
+  "duration_ms": 59433,
+  "num_turns": 2,
+  "wall_s": 60.98
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "76b9014c05df563772f8c9d2140285ef9a0e7deb6dbafcf1c726d25eb0dc1464",
+ "version": "2.1.283"
+}

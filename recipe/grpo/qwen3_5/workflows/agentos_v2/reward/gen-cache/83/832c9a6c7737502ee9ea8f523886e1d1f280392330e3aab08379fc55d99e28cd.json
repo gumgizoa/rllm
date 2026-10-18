@@ -1,0 +1,189 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 3,
+    "line_start": 3,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Phases must run sequentially",
+    "quote": "Carefully carry out the PHASE sections below in order, finishing one before the next.",
+    "stage": "create_tasks",
+    "target": "PHASE execution order"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "artifact_exists",
+    "line_end": 11,
+    "line_start": 9,
+    "modality": "must",
+    "none_allowed": "no",
+    "notes": "At least one of the two files has to exist",
+    "quote": "The FIRST STEP is to make sure you have ONE OR BOTH of these files to inform your tasks breakdown: - `/tmp/agent-os/specs/[this-spec]/spec.md` - `/tmp/agent-os/specs/[this-spec]/planning/requirements.md`",
+    "stage": "create_tasks",
+    "target": "spec.md and/or planning/requirements.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 13,
+    "line_start": 13,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Conditional: applies when the files are not already in context. Dictionary flagged this as a prohibition, but it is a conditional requirement.",
+    "quote": "IF you don't have ONE OR BOTH of those files in your current conversation context, then find the spec folder under `/tmp/agent-os/specs/` (this run creates one) and read the files there.",
+    "stage": "create_tasks",
+    "target": "/tmp/agent-os/specs/[this-spec]/ files"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 13,
+    "line_start": 13,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Conditional: shape-spec and write-spec must run before create-tasks if the spec files are missing",
+    "quote": "If they do not exist yet, carry out the shape-spec document (`/agent-os/commands/shape-spec/shape-spec.md`) and the write-spec document (`/agent-os/commands/write-spec/write-spec.md`) first.",
+    "stage": "create_tasks",
+    "target": "shape-spec and write-spec workflows"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "structure",
+    "line_end": 17,
+    "line_start": 17,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "please break those down into an actionable tasks list with strategic grouping and ordering",
+    "stage": "create_tasks",
+    "target": "tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 23,
+    "line_start": 23,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Read and analyze the spec.md and/or requirements.md to inform the tasks list you will create.",
+    "stage": "create_tasks",
+    "target": "spec.md / requirements.md"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "order",
+    "line_end": 24,
+    "line_start": 24,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Break the requirements into a list of tasks in an order that takes their dependencies into account.",
+    "stage": "create_tasks",
+    "target": "tasks.md task ordering"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "structure",
+    "line_end": 25,
+    "line_start": 25,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Group tasks that require the same skill or stack specialization together (backend, api, ui design, etc.)",
+    "stage": "create_tasks",
+    "target": "tasks.md task groups"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "structure",
+    "line_end": 26,
+    "line_start": 26,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Groups have to contain sub-tasks",
+    "quote": "Create the markdown tasks list broken into groups with sub-tasks.",
+    "stage": "create_tasks",
+    "target": "tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 34,
+    "line_start": 32,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Read each of these files (whichever are available) and analyze them to understand the requirements for this feature implementation:",
+    "stage": "create_tasks",
+    "target": "spec.md / planning/requirements.md"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "cross_artifact",
+    "line_end": 36,
+    "line_start": 36,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "",
+    "quote": "Use your learnings to inform the tasks list and groupings you will create in the next step.",
+    "stage": "create_tasks",
+    "target": "tasks.md vs spec/requirements"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "artifact_exists",
+    "line_end": 40,
+    "line_start": 40,
+    "modality": "must",
+    "none_allowed": "no",
+    "notes": "",
+    "quote": "Generate `/tmp/agent-os/specs/[current-spec]/tasks.md`.",
+    "stage": "create_tasks",
+    "target": "/tmp/agent-os/specs/[current-spec]/tasks.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "placeholder_forbidden",
+    "line_end": 42,
+    "line_start": 42,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The example format must be adapted to the feature; template placeholders should not be copied verbatim",
+    "quote": "The following is an example format - adapt the content of the tasks list to match what THIS feature actually needs.",
+    "stage": "create_tasks",
+    "target": "tasks.md content"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "structure",
+    "line_end": 42,
+    "line_start": 42,
+    "modality": "may",
+    "none_allowed": "-",
+    "notes": "Group names and structure can differ from the example",
+    "quote": "The exact tasks, task groups, and organization will vary based on the feature's specific requirements.",
+    "stage": "create_tasks",
+    "target": "tasks.md organization"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "be237df59ad5c6c3b467022d7e57dfbc3d3174904a4222a60117a3f24b0d4985",
+ "key": "832c9a6c7737502ee9ea8f523886e1d1f280392330e3aab08379fc55d99e28cd",
+ "meta": {
+  "at": "2026-10-16T08:10:38Z",
+  "cost_usd": 0.08455800000000001,
+  "duration_ms": 18407,
+  "num_turns": 2,
+  "wall_s": 19.75
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "f32f17343eb4775898523e268bd0de7ba64dd955660d257cf1eda6d40f4302e7",
+ "version": "2.1.283"
+}

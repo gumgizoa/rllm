@@ -1,0 +1,509 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       227,
+       229
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "IF you have concluded that this task has been completed, then mark it's checkbox and its' sub-tasks checkboxes as completed with `- [x]`. ... IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-130",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "final_verification",
+     "rule": "incomplete_listed"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       229,
+       229
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "mark this checkbox with ⚠️ and note it's incompleteness in your verification report."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-131",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "agent-os/product/roadmap\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       235,
+       235
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it."
+     }
+    ],
+    "stage": "global",
+    "statement": "it-133",
+    "target": {
+     "ref": "agent-os/product/roadmap.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "params": {
+     "label": "Status",
+     "section": "Roadmap Updates",
+     "text": "⚠️ No Updates Needed"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       235,
+       235
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-134",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "suite_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       239,
+       239
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Run the entire tests suite for the application so that ALL tests run."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-135",
+    "target": {
+     "ref": "test suite",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "whole_suite"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       239,
+       239
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Run the entire tests suite for the application so that ALL tests run."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-135",
+    "target": {
+     "ref": "test suite",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "final_verification",
+     "rule": "test_counts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       239,
+       241
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Verify how many tests are passing and how many have failed or produced errors. ... Include these counts and the list of failed tests in your final verification report."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-137",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.report",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "final_verification",
+     "rule": "failed_listed"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       241,
+       241
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Include these counts and the list of failed tests in your final verification report."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-137",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "final_verification"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       247,
+       247
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Create your final verification report in `/tmp/agent-os/specs/[this-spec]/verifications/final-verification.md`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-139",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:initialization",
+      "first_write:requirements"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Carefully carry out the PHASE sections below in order, finishing one before the next."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-001",
+    "target": {
+     "ref": "phase ordering",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Initialize Spec Structure**: Create the spec folder with date prefix"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-003",
+    "target": {
+     "ref": "spec_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir",
+     "pattern": ".*/\\d{4}-\\d{2}-\\d{2}-[^/]+$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Create the spec folder with date prefix"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-003",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Single spec folder is implied by 'the spec folder', not stated explicitly.",
+    "kind": "agentos_v2.spec_folder",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       16,
+       16
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Create the spec folder with date prefix"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-003",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "initialization"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Save Raw Idea**: Document the user's exact description without modification"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-004",
+    "target": {
+     "ref": "initialization",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir",
+     "pattern": ".*/\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Determine a kebab-case spec name from the user's description, then create the spec folder:"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-008",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "visuals_dir"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "then create the spec folder:"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-009",
+    "target": {
+     "ref": "visuals_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "implementation_dir"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       54
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Create 2 folders:\n- `$SPEC_PATH/implementation/`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-010",
+    "target": {
+     "ref": "implementation_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "verifications_dir"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       55
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Create 2 folders: ... - `$SPEC_PATH/verifications/`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-010",
+    "target": {
+     "ref": "verifications_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Line 235 overrides this for the project: there is no roadmap.md, so nothing can be ticked. The no-create rule and the status record are covered by it-133 and it-134.",
+    "statement": "it-132"
+   },
+   {
+    "reason": "The report skeleton (title, fields, sections) is already compiled from the template. This statement adds no rule beyond that structure.",
+    "statement": "it-140"
+   },
+   {
+    "reason": "Same as ss-010 (the implementation/ and verifications/ folders must exist). Those items are emitted under ss-010.",
+    "statement": "ss-005"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "901bd857f972c2d8f2225d4e304cbe0b133216eb440d7cbbf5c5e2eda4203416",
+ "key": "6e213cab848e3d9bc7e8c2c03b0771289e904ce7343a2f23aaa345d924c52dd5",
+ "meta": {
+  "at": "2026-10-16T08:14:53Z",
+  "cost_usd": 0.220571,
+  "duration_ms": 46484,
+  "num_turns": 2,
+  "wall_s": 48.14
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample0",
+ "schema_sha256": "cac1adfc79c875fd34319437102cb891c67478e9378b902504807b8ba9171589",
+ "version": "2.1.283"
+}

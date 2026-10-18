@@ -1,0 +1,253 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.checks",
+    "none_allowed": "-",
+    "note": "Tests are written during implement_tasks as check scripts in the spec's checks folder.",
+    "params": {
+     "dir": "{artifact}/{SPEC}/checks",
+     "rule": "written",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ct-027",
+    "target": {
+     "ref": "{artifact}/{SPEC}/checks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No in-place edit of an existing repository test file.",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "do not add or change test files in the repository."
+     }
+    ],
+    "stage": "global",
+    "statement": "ct-028",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.created_files",
+    "none_allowed": "-",
+    "note": "No new test file created in the repository.",
+    "params": {
+     "test_paths": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       215,
+       215
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "do not add or change test files in the repository."
+     }
+    ],
+    "stage": "global",
+    "statement": "ct-028",
+    "target": {
+     "ref": "repository test files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "note": "Each task group needs its parts, including acceptance criteria.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "group_parts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       216,
+       216
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "**Include acceptance criteria** for each task group"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-030",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Applies only when the visuals folder has files, which no predicate can test; checking that tasks.md references them has no matching kind.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Conditional cross-reference to visual files.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       217,
+       217
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "**Reference visual assets** if visuals are available"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-031",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       221,
+       221
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Once the tasks list has been created at `/tmp/agent-os/specs/[this-spec]/tasks.md`"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-032",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "Read the implement-tasks command after tasks.md is written.",
+    "params": {
+     "doc": "IT",
+     "window": [
+      "first_write:tasks",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       221,
+       221
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "open `/agent-os/commands/implement-tasks/implement-tasks.md` and continue with that command."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-033",
+    "target": {
+     "ref": "/agent-os/commands/implement-tasks/implement-tasks.md",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "API coding standard. It applies only if the change has API endpoints, which no predicate can test, and no deterministic kind checks endpoint naming in code.",
+    "statement": "ct-036"
+   },
+   {
+    "reason": "API coding standard (plural resource nouns). It depends on the domain, and no kind checks it.",
+    "statement": "ct-038"
+   },
+   {
+    "reason": "API coding standard (nesting depth). It depends on the domain, and no kind checks it.",
+    "statement": "ct-039"
+   },
+   {
+    "reason": "Database migration standard. It applies only if migrations exist, and no kind checks code semantics.",
+    "statement": "ct-043"
+   },
+   {
+    "reason": "Database model naming standard. It depends on the domain, and no kind checks it.",
+    "statement": "ct-049"
+   },
+   {
+    "reason": "Database table timestamp standard. It depends on the domain, and no kind checks it.",
+    "statement": "ct-050"
+   },
+   {
+    "reason": "Database query standard (parameterized queries). It depends on the domain, and no kind checks code semantics.",
+    "statement": "ct-057"
+   },
+   {
+    "reason": "Database query prohibition (no SQL interpolation). It depends on the domain, and no kind checks code semantics.",
+    "statement": "ct-058"
+   },
+   {
+    "reason": "Database query standard (no SELECT *). It depends on the domain, and no kind checks it.",
+    "statement": "ct-060"
+   },
+   {
+    "reason": "Frontend accessibility standard (alt text and labels). It applies only to UI code, and no kind checks it.",
+    "statement": "ct-069"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "12a34919c60e51dc2251b29461e6247c9775c80b8c40f2870fb83fbdb6b5ce14",
+ "key": "5e8525dba7c6abead1d7ec6f0271a80160f32ae9b3d755bb773affbaea8d3b21",
+ "meta": {
+  "at": "2026-10-16T08:13:10Z",
+  "cost_usd": 0.16987000000000002,
+  "duration_ms": 23776,
+  "num_turns": 2,
+  "wall_s": 25.07
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "b6b170c8180b58dd30b3ab5906332f5c3569ca81609714c44071dc07b04ef721",
+ "version": "2.1.283"
+}

@@ -1,0 +1,283 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "any": [
+       {
+        "artifact_exists": "spec"
+       },
+       {
+        "artifact_exists": "requirements"
+       }
+      ]
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       11
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "The FIRST STEP is to make sure you have ONE OR BOTH of these files to inform your tasks breakdown:"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-002",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "after": "first_write:tasks",
+     "before": "write:spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       13,
+       13
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "If they do not exist yet, carry out the shape-spec document (`/agent-os/commands/shape-spec/shape-spec.md`) and the write-spec document (`/agent-os/commands/write-spec/write-spec.md`) first."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-004",
+    "target": {
+     "ref": "write:spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The agent wrote these files itself earlier in the run, so they may already be in context (ct-003 makes the re-read conditional).",
+    "kind": "agentos_v2.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "spec",
+      "requirements"
+     ],
+     "window": [
+      "start",
+      "first_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       32,
+       34
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Read each of these files (whichever are available) and analyze them to understand the requirements for this feature implementation:"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-010",
+    "target": {
+     "ref": "read:spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "group_parts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Create the markdown tasks list broken into groups with sub-tasks."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-009",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Generate `/tmp/agent-os/specs/[current-spec]/tasks.md`."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-012",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind counts the tests each task group writes.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       210,
+       210
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Each task group (1-3) should write 2-8 focused tests maximum"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-021",
+    "target": {
+     "ref": "tasks",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "Window ends at the last tasks.md write (the final tick), before the PHASE 3 whole-suite verification run.",
+    "params": {
+     "action": "full_suite",
+     "window": [
+      "stage_start:implement_tasks",
+      "last_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       212,
+       212
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "Test verification should run ONLY the newly written tests, not the entire suite"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ct-023",
+    "target": {
+     "ref": "full_suite",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "test_first"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       214,
+       214
+      ],
+      "path": "docs/commands/create-tasks/create-tasks.md",
+      "quote": "each task group starts with writing 2-8 tests (x.1 sub-task)"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ct-025",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The PHASE 1 before PHASE 2 order is checked by the ct-010 read item (window ends at first_write:tasks) and the ct-004 order item; no separate check is needed.",
+    "statement": "ct-001"
+   },
+   {
+    "reason": "This applies only when the files are not already in context, which the engine cannot observe. The read itself is covered by the ct-010 item.",
+    "statement": "ct-003"
+   },
+   {
+    "reason": "Whether the grouping and ordering are 'strategic' is a judgement call. The basic group/sub-task structure is covered by the ct-009 group_parts item.",
+    "statement": "ct-005"
+   },
+   {
+    "reason": "This repeats ct-010 (read spec.md and/or requirements.md), which already has an item.",
+    "statement": "ct-006"
+   },
+   {
+    "reason": "The example-format lines in the template are not part of the cited excerpt, so no fingerprint or residue pattern can be cited verbatim. Whether the content is adapted to the feature is a judgement call.",
+    "statement": "ct-013"
+   },
+   {
+    "reason": "Grouping tasks by specialty (back-end vs. front-end) is a judgement call. Only the existence of groups can be checked, and the ct-009 item already covers that.",
+    "statement": "ct-020"
+   },
+   {
+    "reason": "This applies only if a dedicated test-coverage group exists, which no predicate can express, and no kind counts the additional tests added.",
+    "statement": "ct-024"
+   },
+   {
+    "reason": "The rule that each group ends with a sub-task running only its own tests is covered by the ct-009 group_parts item. The 'only those tests' part during implementation is covered by the ct-023 full_suite prohibition.",
+    "statement": "ct-026"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "86c7cf483149ed3482a7c3c20d0d5d71bf448d99ab581963d7e9355629c2bea7",
+ "key": "08b8d5a19b725e574b5ca7012c723fdbe08bfac41f282ee8daf3e5cedb45fdb1",
+ "meta": {
+  "at": "2026-10-16T08:13:27Z",
+  "cost_usd": 0.20764,
+  "duration_ms": 40719,
+  "num_turns": 2,
+  "wall_s": 41.93
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "5261a51cf120a9c968cb8ee355b3fc6135643cfaad6971a2c9fc23d5849cae30",
+ "version": "2.1.283"
+}

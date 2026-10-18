@@ -1,0 +1,34 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 94,
+    "line_start": 94,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "Coding standard: implemented queries should not use SELECT *; a grep for 'SELECT \\*' in changed code can flag violations, but whether each column selected is actually needed requires judgement.",
+    "path": "docs/commands/implement-tasks/implement-tasks.md",
+    "quote": "- **Select Only Needed Data**: Request only the columns you need rather than using SELECT * for better performance",
+    "stage": "implement_tasks",
+    "target": "implemented code / database queries"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b50d782100e443f5028377cff980ab9502e5dade0cfd286abb7c9dd2d44697c1",
+ "key": "e0d277d76d329b14ca5f4f313137e544c89035e56a5ce3d1ac34b65533a6b7a5",
+ "meta": {
+  "at": "2026-10-18T14:32:18Z",
+  "cost_usd": 0.0230006,
+  "duration_ms": 6037,
+  "num_turns": 2,
+  "wall_s": 7.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round2",
+ "schema_sha256": "c9c0431dd0b2aaee626898716699e4cc007a92f1ed19051afbc908c46c29082a",
+ "version": "2.1.283"
+}

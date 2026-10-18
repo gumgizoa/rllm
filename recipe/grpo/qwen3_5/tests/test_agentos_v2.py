@@ -192,4 +192,5 @@ def test_harness_uploads_every_document():
     composed = h.compose_instruction("TASK")
     assert composed.startswith(h.instruction_text().strip()) and composed.endswith("\n\nTASK")
     assert SPEC.output_dirs == ("/tmp/agent-os",)
-    assert h.evaluation_policy is None  # no scorer yet: resolve rate only
+    # resolve rate only until the generated rubric exists (reward/rubric.yaml), then its scorer
+    assert (h.evaluation_policy is None) == (not (RECIPE / "workflows" / NAME / "reward" / "rubric.yaml").is_file())

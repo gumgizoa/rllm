@@ -1,0 +1,344 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The four commands' output artifacts are first written in command order.",
+    "params": {
+     "chain": [
+      "first_write:requirements",
+      "first_write:spec",
+      "first_write:tasks",
+      "first_write:final_verification"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       6,
+       7
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Here you carry out all four command documents yourself, one after another, in this single session."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-001",
+    "target": {
+     "ref": "command sequence",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "SS",
+     "window": [
+      "stage_start:shape_spec",
+      [
+       "first_write:requirements",
+       "stage_end:shape_spec"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it, and work from that document rather than from memory"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-003",
+    "target": {
+     "ref": "read:SS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "WS",
+     "window": [
+      "stage_start:write_spec",
+      [
+       "first_write:spec",
+       "stage_end:write_spec"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it, and work from that document rather than from memory"
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "cw-003",
+    "target": {
+     "ref": "read:WS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CT",
+     "window": [
+      "stage_start:create_tasks",
+      [
+       "first_write:tasks",
+       "stage_end:create_tasks"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it, and work from that document rather than from memory"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "cw-003",
+    "target": {
+     "ref": "read:CT",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IT",
+     "window": [
+      "stage_start:implement_tasks",
+      [
+       {
+        "first": {
+         "fact": "repo_edit"
+        }
+       },
+       "first_write:final_verification",
+       "stage_end:implement_tasks"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       14
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it, and work from that document rather than from memory"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-003",
+    "target": {
+     "ref": "read:IT",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a formatter/linter check on the diff.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       216,
+       216
+      ],
+      "path": "docs/commands/write-spec/write-spec.md",
+      "quote": "Maintain consistent code style (indenting, line breaks, etc.)"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ws-093",
+    "target": {
+     "ref": "repository diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need an indentation-consistency check on changed files.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       219,
+       219
+      ],
+      "path": "docs/commands/write-spec/write-spec.md",
+      "quote": "Use consistent indentation (spaces or tabs)"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ws-097",
+    "target": {
+     "ref": "repository diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a scan of added comments for change/fix narration.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       227,
+       227
+      ],
+      "path": "docs/commands/write-spec/write-spec.md",
+      "quote": "Do not leave code comments that speak to recent or temporary changes or fixes."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ws-101",
+    "target": {
+     "ref": "repository diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need secret scanning of the final diff.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       234,
+       234
+      ],
+      "path": "docs/commands/write-spec/write-spec.md",
+      "quote": "never commit secrets or API keys to version control"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ws-105",
+    "target": {
+     "ref": "repository diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "'milliseconds' is a loose target and run timing depends on the environment.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need per-test timing from the test runs.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       272,
+       272
+      ],
+      "path": "docs/commands/write-spec/write-spec.md",
+      "quote": "Keep unit tests fast (milliseconds) so developers run them frequently during development"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ws-131",
+    "target": {
+     "ref": "unit tests",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Only applies when the change defines API endpoints. That condition can't be written as an applies_when predicate, and no kind checks endpoint naming.",
+    "statement": "ws-033"
+   },
+   {
+    "reason": "Only applies when the change defines nested resource URLs. The condition can't be expressed, and no kind measures URL nesting depth.",
+    "statement": "ws-034"
+   },
+   {
+    "reason": "Only applies when the change creates database tables. The condition can't be expressed, and no kind inspects table schemas.",
+    "statement": "ws-045"
+   },
+   {
+    "reason": "Only applies when the change writes SQL queries. The condition can't be expressed, and no kind greps the diff for SELECT *.",
+    "statement": "ws-055"
+   },
+   {
+    "reason": "A SHOULD preference that only applies to CSS changes. The condition can't be expressed, and no kind checks CSS units.",
+    "statement": "ws-086"
+   },
+   {
+    "reason": "Only applies to mobile UI work. The condition can't be expressed, and tap-target size can't be judged from static files.",
+    "statement": "ws-088"
+   },
+   {
+    "reason": "A judgement call ('except in narrow contexts') with no objective threshold the engine could check.",
+    "statement": "ws-095"
+   },
+   {
+    "reason": "Only applies where the change raises or handles errors. Telling 'specific' from 'generic' exception types is a judgement call and can't be expressed with these kinds.",
+    "statement": "ws-108"
+   },
+   {
+    "reason": "Implicit location fact. Reading the workflow docs at /agent-os/ is already checked by the cw-003 doc_read items. The statement adds no separate rule that can be checked.",
+    "statement": "cw-002"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "c85d0f7a59a89a7183c71ebcd6d2e402072a03cc8cee9b9f1195f91350c906aa",
+ "key": "e4fb78d682e1dfd51421d2515bf0f48832b1ea3efb47f60deb39af006f752316",
+ "meta": {
+  "at": "2026-10-16T08:16:42Z",
+  "cost_usd": 0.181329,
+  "duration_ms": 33483,
+  "num_turns": 2,
+  "wall_s": 34.76
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample0",
+ "schema_sha256": "d6667f38721d714a87a169803989af95aa2b1a71b7b9cad66a5e1ff275e7866b",
+ "version": "2.1.283"
+}

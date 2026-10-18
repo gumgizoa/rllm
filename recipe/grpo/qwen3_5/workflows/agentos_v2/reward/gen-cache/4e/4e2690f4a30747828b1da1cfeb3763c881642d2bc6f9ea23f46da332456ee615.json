@@ -1,0 +1,463 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Implement all tasks assigned to you and ONLY those task(s) that have been assigned to you."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-008",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.read",
+    "none_allowed": "-",
+    "note": "Visuals are optional (if any) and not itemized.",
+    "params": {
+     "artifacts": [
+      "spec",
+      "requirements"
+     ],
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Analyze the provided spec.md, requirements.md, and visuals (if any)"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-011",
+    "target": {
+     "ref": "read spec.md and requirements.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       32
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you've implemented to mark that as done by updating their checkbox to checked state: `- [x]`"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-014",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.checks",
+    "none_allowed": "-",
+    "note": "Vacuous when no check scripts were written (if any).",
+    "params": {
+     "dir": "{artifact}/{SPEC}/checks",
+     "rule": "pass_last",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-017",
+    "target": {
+     "ref": "run check scripts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "PHASE 2 end is approximated by the last write of tasks.md; PHASE 3 legitimately runs the whole suite.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "full_suite",
+     "window": [
+      "stage_start:implement_tasks",
+      "last_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Running ONLY the tests you've written"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-017",
+    "target": {
+     "ref": "PHASE 2 test runs",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true,
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-018",
+    "target": {
+     "ref": "check script location",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "last_write:tasks",
+      "first_write:final_verification"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "IF all tasks are now marked as done (with `- [x]`) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with PHASE 3 below."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-019",
+    "target": {
+     "ref": "PHASE 3 transition",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "groups_in_order",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       45,
+       45
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "repeat PHASE 2 for the next task group with unchecked tasks."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-020",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Requires semantic code review of API endpoints; applies only when the change adds endpoints.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       56,
+       56
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Consistent Naming**: Use consistent, lowercase, hyphenated or underscored naming conventions for endpoints across the API"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-023",
+    "target": {
+     "ref": "endpoint naming",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on API work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       57,
+       57
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Versioning**: Implement API versioning strategy (URL path or headers) to manage breaking changes"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-024",
+    "target": {
+     "ref": "API versioning",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on API work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       58,
+       58
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Plural Nouns**: Use plural nouns for resource endpoints"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-025",
+    "target": {
+     "ref": "resource endpoint names",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on API work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       59,
+       59
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Nested Resources**: Limit nesting depth to 2-3 levels maximum"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-026",
+    "target": {
+     "ref": "URL nesting depth",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on API work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Rate Limiting Headers**: Include rate limit information in response headers"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-029",
+    "target": {
+     "ref": "rate limiting headers",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on migrations being added.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Reversible Migrations**: Always implement rollback/down methods to enable safe migration reversals"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-030",
+    "target": {
+     "ref": "reversible migrations",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on DB model work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Clear Naming**: Use singular names for models and plural for tables following your framework's conventions"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-036",
+    "target": {
+     "ref": "model/table naming",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on DB table work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       80,
+       80
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Timestamps**: Include created and updated timestamps on all tables"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-037",
+    "target": {
+     "ref": "table timestamps",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Semantic code review; conditional on DB schema work.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       83,
+       83
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "**Indexes on Foreign Keys**: Index foreign key columns and other frequently queried fields"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-040",
+    "target": {
+     "ref": "foreign key indexes",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d766aebca95a51570acef47031adb3779c67f0fcbfc91d9bcd0322eb5efda7a7",
+ "key": "4e2690f4a30747828b1da1cfeb3763c881642d2bc6f9ea23f46da332456ee615",
+ "meta": {
+  "at": "2026-10-16T08:14:08Z",
+  "cost_usd": 0.10919679999999998,
+  "duration_ms": 36720,
+  "num_turns": 2,
+  "wall_s": 37.93
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "68a79b4f64f093f3898722ee113fcf8f75739266a0ee442ef5fe3715db84f5e1",
+ "version": "2.1.283"
+}

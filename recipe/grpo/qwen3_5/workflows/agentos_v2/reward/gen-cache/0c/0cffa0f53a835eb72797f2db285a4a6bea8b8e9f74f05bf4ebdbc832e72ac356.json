@@ -1,0 +1,300 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "suite_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       216,
+       216
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Now that we've implemented all tasks in tasks.md, we must run final verifications and produce a verification report"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-126",
+    "target": {
+     "ref": "final_verification",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "That code stays frozen during verification is inferred from the 'implemented all tasks' ordering; it is not stated outright.",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "code_frozen"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       216,
+       216
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Now that we've implemented all tasks in tasks.md, we must run final verifications"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-126",
+    "target": {
+     "ref": "final_verification",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       222,
+       222
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "ensure that all tasks and their sub-tasks are marked as completed with `- [x]`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-127",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       227,
+       227
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "IF you have concluded that this task has been completed, then mark it's checkbox and its' sub-tasks checkboxes as completed with `- [x]`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-129",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a static scan of the diff for SQL strings built from interpolated input.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       92,
+       92
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "never interpolate user input into SQL strings"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-045",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a grep of added code for SELECT *.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Request only the columns you need rather than using SELECT * for better performance"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-047",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Frontend-only; whether alt attributes are present on added img elements could be checked in the diff.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Provide descriptive alt text for images"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-056",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Frontend-only; whether added inputs have associated labels could be checked in the diff.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       107,
+       107
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "meaningful labels for all form inputs"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-057",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a scan of added comments for change or fix wording (fixed, changed, temporary, etc.).",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       167,
+       167
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Do not leave code comments that speak to recent or temporary changes or fixes."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-095",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need a secret scanner run over the final diff.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       174,
+       174
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "never commit secrets or API keys to version control"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-099",
+    "target": {
+     "ref": "diff",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is the positive form of it-045 (parameterized queries/ORM). Checking it needs a semantic review of query code, and it-045 already covers the part that can be checked.",
+    "statement": "it-044"
+   },
+   {
+    "reason": "Heading order in frontend markup only matters for frontend work, and that condition can't be written as a predicate. Whether the order is 'proper' is also a judgement call.",
+    "statement": "it-060"
+   },
+   {
+    "reason": "A 'prefer' style guideline that only applies to CSS work. Whether a fixed-pixel value is appropriate can't be decided mechanically.",
+    "statement": "it-079"
+   },
+   {
+    "reason": "A general style guideline. The engine has no formatter or linter evidence kind, and 'consistent style' is subjective.",
+    "statement": "it-087"
+   },
+   {
+    "reason": "Naming quality comes with an exception for 'narrow contexts', so no deterministic check can tell which abbreviations are allowed.",
+    "statement": "it-089"
+   },
+   {
+    "reason": "Indentation consistency is a general style guideline. No kind checks it, and it overlaps with it-087.",
+    "statement": "it-091"
+   },
+   {
+    "reason": "Advice to configure an editor or linter is a general standard, not a required workflow action. The run can't show whether it was followed.",
+    "statement": "it-092"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "84aa5d7b86ba4f5a08314229e4ea608ffde86af1abe76f389498dbd612369371",
+ "key": "0cffa0f53a835eb72797f2db285a4a6bea8b8e9f74f05bf4ebdbc832e72ac356",
+ "meta": {
+  "at": "2026-10-16T08:14:11Z",
+  "cost_usd": 0.16877799999999998,
+  "duration_ms": 25134,
+  "num_turns": 2,
+  "wall_s": 26.52
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "fe1e988fd6ec2f6fc6eda8455dc27ec974362d3f132002a97c981c5909da5207",
+ "version": "2.1.283"
+}
