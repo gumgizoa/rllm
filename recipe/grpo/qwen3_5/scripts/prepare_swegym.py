@@ -323,12 +323,18 @@ def local_images() -> set[str] | None:
     return {ln.strip() for ln in out.splitlines() if ln.strip()}
 
 
-def build(parquet: Path, *, name: str, split: str, out_root: Path, limit: int | None, image_prefix: str, description: str, have_images: set[str] | None, evaluate_src: Path | None = None, instruction: str = "skyrl") -> int:
+def build(parquet: Path, *, name: str, split: str, out_root: Path, limit: int | None, image_prefix: str, description: str, have_images: set[str] | None, evaluate_src: Path | None = None, instruction: str = "skyrl", ids: list[str] | None = None) -> int:
     from rllm.data import DatasetRegistry
 
     specs = swegym_eval.load_specs()
     grade_src = Path(__file__).with_name("grade.py")
     instances = read_instances(parquet)
+    if ids:
+        by_id = {inst["instance_id"]: inst for inst in instances}
+        unknown = [i for i in ids if i not in by_id]
+        if unknown:
+            sys.exit(f"--ids: not in {parquet.name}: {unknown}")
+        instances = [by_id[i] for i in ids]  # the given order
     if limit and limit > 0:
         instances = instances[:limit]
 
@@ -377,6 +383,11 @@ def main() -> None:
     ap.add_argument("--train-limit", type=int, default=None, help="Keep the first N train instances (default: all 293).")
     ap.add_argument("--val-limit", type=int, default=None, help="Keep the first N validation instances (default: all 23).")
     ap.add_argument("--image-prefix", default=DEFAULT_IMAGE_PREFIX, help="Registry prefix for the SWE-Gym instance images (default: %(default)s).")
+    ap.add_argument(
+        "--ids",
+        default=None,
+        help="Keep only these instance ids (comma-separated, or a file with one id per line), in the given order; applied before --train-limit / --val-limit. For small targeted sets, e.g. the long-context smoke test.",
+    )
     ap.add_argument("--train-only", action="store_true")
     ap.add_argument("--val-only", action="store_true")
     ap.add_argument("--no-image-check", action="store_true", help="Do not consult `docker images` for missing images.")
@@ -407,6 +418,11 @@ def main() -> None:
             args.train_name = f"{TRAIN_NAME}_{args.instruction}"
         if args.val_name == VAL_NAME:
             args.val_name = f"{VAL_NAME}_{args.instruction}"
+    ids: list[str] | None = None
+    if args.ids:
+        src = Path(args.ids).expanduser()
+        raw = src.read_text(encoding="utf-8").splitlines() if src.is_file() else args.ids.split(",")
+        ids = [i.strip() for i in raw if i.strip() and not i.strip().startswith("#")]
     evaluate_src = Path(args.evaluate_py).expanduser().resolve() if args.evaluate_py else None
     if evaluate_src is not None and not evaluate_src.is_file():
         sys.exit(f"--evaluate-py: {evaluate_src} is not a file")
@@ -433,6 +449,7 @@ def main() -> None:
             instruction=args.instruction,
             have_images=have,
             evaluate_src=evaluate_src,
+            ids=ids,
         )
     if not args.train_only:
         summary["val"] = build(
@@ -446,6 +463,7 @@ def main() -> None:
             instruction=args.instruction,
             have_images=have,
             evaluate_src=evaluate_src,
+            ids=ids,
         )
     print(json.dumps(summary))
 
