@@ -5732,7 +5732,7 @@ items:
   check:
     kind: field_enum
     params:
-      section: 4. Test Suite Results
+      section: 3. Test Suite Results
       label: Status
       values:
       - ✅ All Passing
@@ -6074,7 +6074,7 @@ items:
   check:
     kind: item_format
     params:
-      section: 3. Roadmap Updates
+      section: 2. Roadmap Updates
       pattern: (?i)roadmap\.md|plan-product|\bno\b[^\n]*\broadmap\b|\broadmap\b[^\n]*\b(?:not|no)\b
   requirement: must
   modality_evidence: imperative (IT:235 'with that reason in its Notes')
@@ -6090,12 +6090,12 @@ items:
     - 235
     - 235
     quote: 'This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it.
-      In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes.'
+      In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.'
   impl_refs: []
   derived_by: manual
   template: C-F10
   log_only: false
-  note: 'section 3 says why: the project has no roadmap'
+  note: 'section 2 says why: the project has no roadmap'
 - id: agentos_v2.implement_tasks.final_verification.item_format.roadmap_status
   scope: common
   class: content
@@ -6107,7 +6107,7 @@ items:
   check:
     kind: item_format
     params:
-      section: 3. Roadmap Updates
+      section: 2. Roadmap Updates
       pattern: ^\s*(?:\*\*|__)?Status:?(?:\*\*|__)?:?\s*⚠️?\s*No Updates Needed
   requirement: must
   modality_evidence: imperative (IT:235 'record Status `⚠️ No Updates Needed`')
@@ -6122,7 +6122,7 @@ items:
     lines:
     - 235
     - 235
-    quote: In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes.
+    quote: In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.
   impl_refs: []
   derived_by: manual
   template: C-F10
@@ -6160,12 +6160,12 @@ items:
     lines:
     - 283
     - 283
-    quote: '## 3. Roadmap Updates'
+    quote: '## 2. Roadmap Updates'
   - doc: IT
     lines:
     - 295
     - 295
-    quote: '## 4. Test Suite Results'
+    quote: '## 3. Test Suite Results'
   - doc: IT
     lines:
     - 249
@@ -6760,7 +6760,7 @@ items:
     lines:
     - 295
     - 297
-    quote: '## 4. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
+    quote: '## 3. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -8877,9 +8877,9 @@ conflicts:
     quote: '- Running ONLY the tests you''ve written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`,
       not repository test files) and ensuring those tests pass.'
 - type: documented
-  description: The report's structure 'should' be followed (IT:249), while section 3's status and its reason are imperative
+  description: The report's structure 'should' be followed (IT:249), while section 2's status and its reason are imperative
     (IT:235) and the counts and failed tests must be included (IT:241)
-  resolution: the report's headings, labels and status value sets are should; its existence, section 3's status and reason,
+  resolution: the report's headings, labels and status value sets are should; its existence, section 2's status and reason,
     the Test Summary counts (against a PHASE 3 run), the failed tests and a Test Suite status the run does not refute are
     must
   items: []
@@ -8893,7 +8893,7 @@ conflicts:
     lines:
     - 235
     - 235
-    quote: In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes.
+    quote: In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.
 - type: documented
   description: shape-spec's questions are 4-8 numbered ones plus the reusability question at the end (SS:121-123), which requirements.md
     may record as one more **Qn:**
@@ -8927,7 +8927,7 @@ conflicts:
   description: 'The report has four **Status:** lines (IT:257, 269, 285, 297), each with its own value set (G7 critic: a whole-report
     Status enum would demand the header''s values everywhere)'
   resolution: the header enum reads the document's first Status line only (a section-less field read stops at the first match,
-    the header under the title); sections 1, 3 and 4 are read in their own sections; all four items stand
+    the header under the title); sections 1, 2 and 3 are read in their own sections; all four items stand
   items: []
   sources:
   - path: docs/commands/implement-tasks/implement-tasks.md

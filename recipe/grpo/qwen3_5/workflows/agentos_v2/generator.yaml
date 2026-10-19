@@ -168,7 +168,7 @@ templates:
       # "⚠️ No Updates Needed" (IT:235): no roadmap item is marked, so the list of updated items stays empty
       Updated Roadmap Items:
         requirement: skip
-        authority: {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes."}
+        authority: {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes."}
       # the shape of an entry (`- [x] Task Group 1: [Title]`); its content is the run's task groups
       Completed Tasks:
         requirement: skip
@@ -327,7 +327,7 @@ exclude:
   - {statement: ws-028, kind: order, reason: "duplicates a pair of the manual command order chain (write:spec before read:CT)"}
   - {statement: ss-016, kind: agentos_v2.paths_written, reason: "duplicates the manual global empty_folders item (CW:57, SS:67), which covers the whole run"}
   - {statement: ss-067, kind: path_match, reason: "the artifact's location fixes the name: the item cannot fail when requirements.md is found"}
-  - {statement: it-134, kind: field_literal, reason: "its section 'Roadmap Updates' never matches the report's '## 3. Roadmap Updates'; the manual roadmap_status item reads that section"}
+  - {statement: it-134, kind: field_literal, reason: "its section 'Roadmap Updates' never matches the report's '## 2. Roadmap Updates'; the manual roadmap_status item reads that section"}
   - {statement: ws-026, kind: cross_ref, reason: "duplicates the manual no_extra_sections item (WS:101)"}
   - {statement: ss-081, kind: cross_ref, reason: "every backticked path with a slash anywhere in requirements.md -- paths the change will create and the spec folder's own included -- is no repository path claim; the manual existing_code_paths item checks the found features' paths (SS:175-177)"}
 
@@ -353,11 +353,11 @@ conflicts:
     sources:
       - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [39, 39], quote: "- Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass."}
     resolution: "read as every check script written so far: each one's last run must pass after the last code change of implement-tasks (pass_last); upstream states no fail-first step, so a check failing before the change is not required"
-  - description: "The report's structure 'should' be followed (IT:249), while section 3's status and its reason are imperative (IT:235) and the counts and failed tests must be included (IT:241)"
+  - description: "The report's structure 'should' be followed (IT:249), while section 2's status and its reason are imperative (IT:235) and the counts and failed tests must be included (IT:241)"
     sources:
       - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [249, 249], quote: "The content of this report should follow this structure:"}
-      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes."}
-    resolution: "the report's headings, labels and status value sets are should; its existence, section 3's status and reason, the Test Summary counts (against a PHASE 3 run), the failed tests and a Test Suite status the run does not refute are must"
+      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes."}
+    resolution: "the report's headings, labels and status value sets are should; its existence, section 2's status and reason, the Test Summary counts (against a PHASE 3 run), the failed tests and a Test Suite status the run does not refute are must"
   - description: "shape-spec's questions are 4-8 numbered ones plus the reusability question at the end (SS:121-123), which requirements.md may record as one more **Qn:**"
     sources:
       - {path: docs/commands/shape-spec/shape-spec.md, lines: [121, 123], quote: "Based on the initial idea, generate 4-8 targeted, NUMBERED questions that explore requirements while suggesting reasonable defaults. **CRITICAL: Always include the reusability question at the END of your questions.**"}
@@ -371,7 +371,7 @@ conflicts:
     sources:
       - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [257, 257], quote: "**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed"}
       - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [285, 285], quote: "**Status:** ✅ Updated | ⚠️ No Updates Needed | ❌ Issues Found"}
-    resolution: "the header enum reads the document's first Status line only (a section-less field read stops at the first match, the header under the title); sections 1, 3 and 4 are read in their own sections; all four items stand"
+    resolution: "the header enum reads the document's first Status line only (a section-less field read stops at the first match, the header under the title); sections 1, 2 and 3 are read in their own sections; all four items stand"
 
 # Items the skeletons do not yield (or yield too weakly): every rule about the run -- the reads, the spec folder, the
 # repository, the check scripts, tasks.md's groups and ticks, PHASE 3's test run -- and the fields the skeletons cannot
@@ -1242,7 +1242,7 @@ manual:
     class: content
     requirement: should
     target: {type: artifact, ref: final_verification}
-    check: {kind: field_enum, params: {section: "4. Test Suite Results", label: Status, values: ["✅ All Passing", "⚠️ Some Failures", "❌ Critical Failures"], prefix_ok: true}}
+    check: {kind: field_enum, params: {section: "3. Test Suite Results", label: Status, values: ["✅ All Passing", "⚠️ Some Failures", "❌ Critical Failures"], prefix_ok: true}}
     modality_evidence: "IT:249 'should follow this structure'; IT:297 the value choices"
     sources:
       - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [297, 297], quote: "**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures"}
@@ -1251,20 +1251,20 @@ manual:
     class: content
     requirement: must
     target: {type: artifact, ref: final_verification}
-    check: {kind: item_format, params: {section: "3. Roadmap Updates", pattern: '^\s*(?:\*\*|__)?Status:?(?:\*\*|__)?:?\s*⚠️?\s*No Updates Needed'}}
+    check: {kind: item_format, params: {section: "2. Roadmap Updates", pattern: '^\s*(?:\*\*|__)?Status:?(?:\*\*|__)?:?\s*⚠️?\s*No Updates Needed'}}
     modality_evidence: "imperative (IT:235 'record Status `⚠️ No Updates Needed`')"
     sources:
-      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes."}
+      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes."}
   - id: agentos_v2.implement_tasks.final_verification.item_format.roadmap_reason
     stage: implement_tasks
     class: content
     requirement: must
     target: {type: artifact, ref: final_verification}
-    check: {kind: item_format, params: {section: "3. Roadmap Updates", pattern: '(?i)roadmap\.md|plan-product|\bno\b[^\n]*\broadmap\b|\broadmap\b[^\n]*\b(?:not|no)\b'}}
+    check: {kind: item_format, params: {section: "2. Roadmap Updates", pattern: '(?i)roadmap\.md|plan-product|\bno\b[^\n]*\broadmap\b|\broadmap\b[^\n]*\b(?:not|no)\b'}}
     modality_evidence: "imperative (IT:235 'with that reason in its Notes')"
     sources:
-      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it. In section 3 of the report, record Status `⚠️ No Updates Needed` with that reason in its Notes."}
-    note: "section 3 says why: the project has no roadmap"
+      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [235, 235], quote: "This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it. In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes."}
+    note: "section 2 says why: the project has no roadmap"
   - id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.test_counts
     stage: implement_tasks
     class: content
@@ -1298,7 +1298,7 @@ manual:
     availability: [sandbox_file, trace]
     modality_evidence: "IT:297 the status choices, judged against the run (a claim the run refutes)"
     sources:
-      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [295, 297], quote: "## 4. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures"}
+      - {path: docs/commands/implement-tasks/implement-tasks.md, lines: [295, 297], quote: "## 3. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures"}
     note: "All Passing only when the PHASE 3 run has no failure or error; Some / Critical Failures only when it has"
   - id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.tasks_status
     stage: implement_tasks

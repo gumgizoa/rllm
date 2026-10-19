@@ -188,8 +188,10 @@ rollout이 끝나면 sandbox는 사라지고, 아래 두 가지가 episode JSON�
 | `stray_files`, `stray_files_truncated` | agent 실행 중 `/tmp`(출력 폴더 제외)나 `/agent-os`에 생기거나 바뀐 파일(이름과 크기만, 최대 500개). pytest 임시 폴더, `__pycache__`, 편집기 되돌리기 기록은 제외 |
 | `workflow` | 워크플로우 이름과 버전 해시(문서·instruction·system prompt 기준). 지금 패키지 = `0f91c41d…`(smoke 2와 같음), smoke 1은 `cbf2c64b…` |
 
-- 지금 reward는 숨겨진 테스트 통과 여부(`is_correct`, trajectory `reward` 1.0 / 0.0)뿐임. `metrics`에 `f2p_success`/`f2p_total`, `p2p_success`/`p2p_total`, `steps_used`가 있음.
-- 이 워크플로우에는 준수율 채점기가 아직 없음. 실행하면 "no compliance scorer … resolve rate only" 경고가 한 줄 나옴.
+- 해결 여부는 숨겨진 테스트 통과(`is_correct`, trajectory `reward` 1.0 / 0.0)임. `metrics`에 `f2p_success`/`f2p_total`, `p2p_success`/`p2p_total`, `steps_used`가 있음.
+- 준수율 채점기는 `reward/`에 있음: 문서에서 자동 생성한 `reward/rubric.yaml`(사람용 요약 `reward/rubric.md`)과 전용 검사 `reward/checks.py`. 신호 이름은 `agentos_v2/…`, 학습 reward에 더해지는 신호는 `agentos_v2/compliance`(`__init__.py`의 `reward_signal`).
+- `rubric.lock`은 rubric을 만들 때의 문서·설정 해시임. 문서를 바꾸면 `python -m recipe.grpo.qwen3_5.workflow_rubric.generator check agentos_v2 --llm none`이 어긋난 인용과 해시를 알려 줌.
+- 아래 smoke와 SWE-bench 결과는 채점기 등록 전에 돌린 것이라 해결 여부만 있음.
 - 산출물 위치는 끝난 방식과 관계없이 항상 `S` 아래임(옮기는 단계가 없음). 중간에 끝났으면 그때까지 쓴 파일만 있고, spec 폴더를 만들기 전에 끝났으면 `workflow_outputs`가 비어 있음.
 - spec 폴더 이름을 미리 알 수 없으므로 `/tmp/agent-os/specs/*/`로 찾아야 함.
 
@@ -235,6 +237,27 @@ task 수가 적어 경향을 보는 수준이고, 비율이 아닌 건수로 읽
 - conan-13721은 smoke 1·2 모두 실패했고, 다른 워크플로우(speckit_sdd) smoke 3회에서도 3/3 실패함. 워크플로우와 무관하게 어려운 task로 보이나 확인하지 않음.
 - conan 테스트가 `/tmp/tmp*`에 파일을 대량으로 만들어 `stray_files`가 500개 상한에 걸림(두 실행 모두). 저장소 밖이라 patch에는 영향 없음.
 
+### SWE-bench Verified 499 (2026-10-16~17)
+
+- 설정: Qwen3.5-9B think on, 150 turn, 262k, condenser 없음, T=1.0, instruction은 task 뒤(suffix), git history 숨기지 않음, 1회. 다른 워크플로우의 같은 실행과 조건이 같음.
+- 결과 위치: `rllm-home/eval_results/swebv499_agentosv2_262k-150_think_t1/`.
+
+| 워크플로우 | 해결 | 이 워크플로우만 해결 / 상대만 해결 |
+|---|---|---|
+| 없음 | 300/499 (60.1%) | 27 / 77 |
+| aidlc_v4 | 282/499 (56.5%) | 42 / 74 |
+| speckit_bug | 278/499 (55.7%) | 38 / 66 |
+| openspec_ff + explore | 276/499 (55.3%) | 44 / 70 |
+| **agentos_v2** | **250/499 (50.1%)** | — |
+| speckit_sdd | 245/499 (49.1%) | 54 / 49 |
+| openspec_ff | 242/499 (48.5%) | 58 / 50 |
+
+- 진입 문서를 첫 행동으로 읽음 499/499, 명령 4개 모두 426/499, 최종 보고서 431/499, `checks/` 스크립트 191/499.
+- 체인을 끝까지 따르고 `finish`한 429건의 해결률 56.4%(242).
+- 텍스트 응답으로 끝난 27건 중 26건은 형식이 깨진 tool call이 텍스트로 처리된 것임(같은 종료: 워크플로우 없음 14/499, speckit_sdd 31, aidlc_v4 28).
+- 워크플로우 없음 대비 놓친 77건: 체인을 다 거쳤지만 오답 45, 깨진 tool call 종료 19, 보고서 없이 종료 6, step 한도 6, 기타 1.
+- 자세한 집계는 `porting/06-smoke.md` 마지막 절.
+
 ## 9. 파일 구성
 
 | 경로 | 내용 |
@@ -243,7 +266,7 @@ task 수가 적어 경향을 보는 수준이고, 비율이 아닌 건수로 읽
 | `docs/commands/{shape-spec,write-spec,create-tasks,implement-tasks}/<명령>.md` | 명령 문서. 원본을 `build.py`로 렌더한 결과 |
 | `instruction.md`, `system-prompt.j2` | 사용자 메시지 앞 안내, system prompt |
 | `build.py` | 원본 → 명령 문서 변환기. `--list`로 원본 대비 바꾼 곳 전체 목록, `--upstream <v2.1.1 checkout> --check`로 생성 결과가 최신인지 확인. tag checkout(worktree) 만드는 법은 docstring에 있음 |
-| `__init__.py` | 워크플로우 등록 정보(`container_dir="/agent-os"`, `entry_doc`, `output_dirs=("/tmp/agent-os",)`, 채점기 없음) |
+| `__init__.py` | 워크플로우 등록 정보(`container_dir="/agent-os"`, `entry_doc`, `output_dirs=("/tmp/agent-os",)`, 채점기 `reward/eval.py`, `reward_signal="agentos_v2/compliance"`) |
 | `LICENSE-agent-os` | 원본 MIT 라이선스 고지 |
 | `porting/` | 이식 기록: 원본 조사, 어긋나는 지점 목록, 결정 사항, 계획, 변경 요약, smoke 결과, 나중에 시도할 아이디어(`later.md`) |
 

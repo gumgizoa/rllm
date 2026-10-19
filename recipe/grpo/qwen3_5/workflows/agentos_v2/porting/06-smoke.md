@@ -121,3 +121,38 @@ T=1.0. `swegym293_aidlc` task 8개(MONAI-1884·2238·3384, conan-13721, moto-495
 - G5-8 수정은 의도대로 동작: 양식을 따른 7개 보고서가 모두 1·2·3 번호.
 - 새 workflow 보완 항목 없음. dvc-4075가 보고서 양식을 통째로 무시한 것(1/8)은 core-workflow "Write each file in the
   structure its document gives"가 분명하므로 agent 잘못(학습 대상).
+
+## SWE-bench Verified 499 평가 (2026-10-16 18:33 – 10-17 06:25)
+
+- 설정: `rllm-home/run_swebv499.sh swebv499_agentosv2_262k-150_think_t1 agentos_v2 150 8225 1.0 true` — Qwen3.5-9B think on,
+  150 turns, 262k, condenser 없음, T=1.0 / top_p 0.95, instruction **suffix**, git history 숨기지 않음, 동시 8, 1회.
+  다른 workflow의 swebv499 실행과 같은 조건. 결과: `rllm-home/eval_results/swebv499_agentosv2_262k-150_think_t1/`.
+- 집계 스크립트: `scratchpad/agentos-smoke/agg.py` (episode tool call + `workflow_outputs`).
+
+| workflow (같은 설정) | 해결 | agentos_v2만 해결 / 상대만 해결 | McNemar p |
+|---|---|---|---|
+| none | 300/499 (60.1%) | 27 / 77 | 9.7e-07 |
+| aidlc_v4 | 282/499 (56.5%) | 42 / 74 | 0.004 |
+| speckit_bug | 278/499 (55.7%) | 38 / 66 | 0.008 |
+| openspec_ff + explore | 276/499 (55.3%) | 44 / 70 | 0.019 |
+| **agentos_v2** | **250/499 (50.1%)** | — | — |
+| speckit_sdd | 245/499 (49.1%) | 54 / 49 | 0.69 |
+| openspec_ff | 242/499 (48.5%) | 58 / 50 | 0.50 |
+
+| 따름 지표 | 결과 |
+|---|---|
+| 진입 문서를 call 0–2에 읽음 / `/testbed/agent-os` 참조 | 499/499 / 0 |
+| 명령 4개 모두 열기 / 순서대로 | 426 / 424 |
+| initialization.md · requirements.md · spec.md · tasks.md · 보고서 | 498 · 471 · 435 · 469 · 431 |
+| 보고서 절 번호 1·2·3 / roadmap `No Updates Needed` | 405 / 404 |
+| `checks/` 스크립트 | 191 |
+| spec 폴더 1개 | 498 (0개 1) |
+| step 중앙값 / p90 / 150 도달 | 71 / 115 / 14 |
+
+끝난 방식별 (전체 / 해결):
+- 체인 완료 후 `finish` 429 / 242 (56.4%)
+- `finish`했지만 보고서 없음 28 / 5
+- 텍스트 응답으로 종료 27 / 2 — 이 중 26은 **형식이 깨진 tool call**(`<tool_call><file_editor><parameter=…>`, `<function=terminal=command>`)이 텍스트로 처리된 것. 같은 패턴의 종료: none 14/499, speckit_sdd 31, aidlc_v4 28 → workflow 공통으로 늘어나는 parser·모델 문제.
+- 150 step 도달 14 / 1
+
+none 대비 잃은 77건: 체인 완료 후 오답 45, 깨진 tool call 종료 19, 보고서 없이 finish 6, step 한도 6, 기타 1. 저장소별 django 36, sympy 13, sphinx 10, xarray 8, matplotlib 5.

@@ -877,7 +877,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         runs = _phase3_runs(ctx)
         if not runs:
             return Result.no(item, "no valid PHASE 3 test run to compare with")
-        summ = M.section(text, "Test Summary") or M.section(text, "4. Test Suite Results", match="prefix") or text
+        summ = M.section(text, "Test Summary") or M.section(text, "3. Test Suite Results", match="prefix") or text
         got = {k: _num(M.field_value(summ, k)) for k in ("Total Tests", "Passing", "Failing", "Errors")}
 
         def score(r) -> int:
@@ -891,7 +891,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
             k = score(best)
             return Result.ratio(item, k, 4, f"step {best.step}: {best.passed} passed / {best.failed} failed / {best.errors} errors vs {got}")
         if rule == "suite_status":
-            st = _status(text, "4. Test Suite Results")
+            st = _status(text, "3. Test Suite Results")
             if not st:
                 return Result.no(item, "no Test Suite Results Status")
             bad = best.failed + best.errors
