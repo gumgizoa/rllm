@@ -1,0 +1,271 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking this means looking at the assistant's messages in the trace to see whether a turn asks the questions and then stops to wait for an answer. None of the available kinds can do that.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       152,
+       152
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Nobody will answer these questions, so do not send them as a message."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-041",
+    "target": {
+     "ref": "sending clarifying questions as a message",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.requirements",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "rule": "answers"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       152,
+       152
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Answer each one yourself with the most plausible reading of the issue and the repository, and note the basis of each answer."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-043",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "agentos_v2.holds",
+    "none_allowed": "-",
+    "note": "The required command is an ls of [spec-path]/planning/visuals/.",
+    "params": {
+     "predicate": {
+      "exists": {
+       "fact": "command",
+       "pattern": "\\bls\\b.*visuals",
+       "window": "stage:shape_spec"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       160,
+       162
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**CRITICAL**: You MUST run the following bash command even if the user says \"no visuals\" or doesn't mention visuals"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-046",
+    "target": {
+     "ref": "visual assets check command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every reuse path recorded must be a real repository path, so that write-spec can reference it.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "requirements",
+       "group": 1,
+       "pattern": "\\(assumed\\) `?([^\\s`]+)`? —",
+       "section": "Reusability Opportunities"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       175,
+       177
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Make note of these paths/names for the write-spec stage to reference ... Record each as `(assumed) <path> — <basis>`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-052",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "relation": {
+      "left": {
+       "ids": {
+        "artifact": "requirements",
+        "pattern": "No similar existing features identified for reference\\.",
+        "section": "Reusability Opportunities"
+       }
+      },
+      "rel": "equal",
+      "right": {
+       "literal": []
+      }
+     }
+    },
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "\\(assumed\\) \\S.* — \\S.*",
+     "section": "Reusability Opportunities"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       177,
+       177
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Record each as `(assumed) <path> — <basis>`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-053",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "relation": {
+      "left": {
+       "ids": {
+        "artifact": "requirements",
+        "pattern": "\\(assumed\\)",
+        "section": "Reusability Opportunities"
+       }
+      },
+      "rel": "equal",
+      "right": {
+       "literal": []
+      }
+     }
+    },
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "params": {
+     "section": "Reusability Opportunities",
+     "text": "No similar existing features identified for reference."
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       177,
+       177
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "if you find none, record \"No similar existing features identified for reference.\""
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-054",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The questions are drafted internally and never sent (ss-041). No artifact section is set aside for them, so a numbered list of 4-8 questions can't be told apart from other numbered lists in requirements.md.",
+    "statement": "ss-032"
+   },
+   {
+    "reason": "This sets where the reusability question goes in the unsent question message. No artifact keeps that message, so the order can't be checked.",
+    "statement": "ss-033"
+   },
+   {
+    "reason": "This is about how the unsent questions are numbered, and they aren't recorded in a fixed artifact section. Whether each question has its answer and basis is covered by the requirements 'answers' rule (ss-043).",
+    "statement": "ss-034"
+   },
+   {
+    "reason": "This is about how the unsent questions are worded, and no artifact section records them. It also only guides style; nothing can check it reliably.",
+    "statement": "ss-036"
+   },
+   {
+    "reason": "This sets the order of the unsent questions (exclusions last), and no artifact records them. Exclusions end up in Scope Boundaries / Out of Scope, which the template already covers.",
+    "statement": "ss-039"
+   },
+   {
+    "reason": "This is the format of the question message, which is never sent (ss-041). The template is only a sample of the message and no artifact keeps it.",
+    "statement": "ss-040"
+   },
+   {
+    "reason": "Duplicates ss-043: the stored answers and their basis are checked through the requirements 'answers' rule.",
+    "statement": "ss-045"
+   },
+   {
+    "reason": "This only applies if the visuals ls returns filenames, and no predicate can test whether files exist in the visuals folder. In autonomous runs it is normally empty.",
+    "statement": "ss-047"
+   },
+   {
+    "reason": "This only applies if visual files are found, and that condition can't be expressed as a predicate. There's also no fixed section for per-visual observations.",
+    "statement": "ss-049"
+   },
+   {
+    "reason": "This only applies if visual files are found, and that condition can't be expressed as a predicate. The fidelity check is internal and leaves nothing to observe.",
+    "statement": "ss-050"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "4f79a42a443735ef60f529af28da02cfe3a846ea9dd98c1cca11b26e8ad0cecc",
+ "key": "2a7f6f85bb71975364dd6a9c9818bea1af48767c99c947466ffff7f6cfe1043e",
+ "meta": {
+  "at": "2026-10-16T08:15:43Z",
+  "cost_usd": 0.20384599999999997,
+  "duration_ms": 47967,
+  "num_turns": 2,
+  "wall_s": 49.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "ccf5aefb27f82dff0a557e86bafefb5441b2d4612c798221fe3d75b62467d669",
+ "version": "2.1.283"
+}

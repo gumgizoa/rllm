@@ -13,7 +13,8 @@ in between; here one session runs the four commands, and ``core-workflow.md`` (h
 counterpart) strings them together. The coding standards are written out inside each command document,
 so they are not shipped separately. Spec files go to ``/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`` --
 upstream's dated folder with the name the agent picks, moved outside the repository so neither the diff
-nor the agent's ``git clean`` reaches it. No rounds, no compliance scorer yet: resolve rate only.
+nor the agent's ``git clean`` reaches it. No rounds. ``reward/`` holds the generated compliance rubric
+(``agentos_v2/*`` signals); until ``reward/rubric.yaml`` exists the workflow has no scorer and reports resolve rate only.
 """
 
 from __future__ import annotations
@@ -24,6 +25,14 @@ from ..spec import WorkflowSpec
 
 HERE = Path(__file__).resolve().parent
 
+
+def _scorer():
+    # Imported on use: a run without the workflow never loads the rubric.
+    from .reward.eval import Evaluation
+
+    return Evaluation()
+
+
 SPEC = WorkflowSpec(
     docs_dir=HERE / "docs",
     container_dir="/agent-os",
@@ -31,4 +40,6 @@ SPEC = WorkflowSpec(
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
     output_dirs=("/tmp/agent-os",),
+    scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
+    reward_signal="agentos_v2/compliance",
 )

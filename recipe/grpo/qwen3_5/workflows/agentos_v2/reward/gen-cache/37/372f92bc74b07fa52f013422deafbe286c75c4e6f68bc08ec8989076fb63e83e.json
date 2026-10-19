@@ -1,0 +1,286 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "note": "All tasks of tasks.md end up implemented (ticked); the 'ONLY those' scope part cannot be checked deterministically.",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Implement all tasks assigned to you and ONLY those task(s) that have been assigned to you."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-008",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.read",
+    "none_allowed": "-",
+    "note": "Visuals are optional ('if any') and left out.",
+    "params": {
+     "artifacts": [
+      "spec",
+      "requirements"
+     ],
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "1. Analyze the provided spec.md, requirements.md, and visuals (if any)"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-011",
+    "target": {
+     "ref": "read spec.md and requirements.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       32,
+       32
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you've implemented to mark that as done by updating their checkbox to checked state: `- [x]`"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-014",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.checks",
+    "none_allowed": "-",
+    "note": "Check scripts may not exist ('if any'); every one that was run must last have passed after the final code change.",
+    "params": {
+     "dir": "{artifact}/{SPEC}/checks",
+     "rule": "pass_last",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-017",
+    "target": {
+     "ref": "run check scripts",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "There is no event that marks the PHASE 2/PHASE 3 boundary; the last write of tasks.md stands in for it, and PHASE 3 does require the whole suite.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "full_suite",
+     "window": [
+      "stage_start:implement_tasks",
+      "last_write:tasks"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "Running ONLY the tests you've written"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-017",
+    "target": {
+     "ref": "self-verification test runs",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true,
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-018",
+    "target": {
+     "ref": "check script location",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Inferred: PHASE 3 (the report) may only start once tasks.md has its final ticks; the order is approximated through artifact writes.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "last_write:tasks",
+      "first_write:final_verification"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "IF all tasks are now marked as done (with `- [x]`) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with PHASE 3 below."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-019",
+    "target": {
+     "ref": "PHASE 3 transition",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "groups_in_order",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       45,
+       45
+      ],
+      "path": "docs/commands/implement-tasks/implement-tasks.md",
+      "quote": "repeat PHASE 2 for the next task group with unchecked tasks."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "it-020",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "A coding-style standard for API endpoint naming. It only applies when the task touches APIs, which the reference language cannot express, and no kind can check it deterministically against the diff.",
+    "statement": "it-023"
+   },
+   {
+    "reason": "An API versioning design standard that only applies if the change involves APIs. It is a design judgment that no kind can check.",
+    "statement": "it-024"
+   },
+   {
+    "reason": "A rule that resource endpoints use plural nouns. It only applies to API work and is a semantic code property that no kind can check.",
+    "statement": "it-025"
+   },
+   {
+    "reason": "A limit on URL nesting depth. It only applies to API work and no deterministic kind covers it.",
+    "statement": "it-026"
+   },
+   {
+    "reason": "Rate-limit response headers. It only applies to API work and is a semantic code property that no kind can check.",
+    "statement": "it-029"
+   },
+   {
+    "reason": "Reversible migrations. It only applies if the change adds migrations, which cannot be expressed as an observable predicate, and no kind can check it.",
+    "statement": "it-030"
+   },
+   {
+    "reason": "Model/table naming conventions. It only applies to database model work and is a semantic code property that no kind can check.",
+    "statement": "it-036"
+   },
+   {
+    "reason": "Timestamps on tables. It only applies to database schema work and no kind can check it.",
+    "statement": "it-037"
+   },
+   {
+    "reason": "Indexes on foreign keys. It only applies to database schema work and no kind can check it.",
+    "statement": "it-040"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d766aebca95a51570acef47031adb3779c67f0fcbfc91d9bcd0322eb5efda7a7",
+ "key": "372f92bc74b07fa52f013422deafbe286c75c4e6f68bc08ec8989076fb63e83e",
+ "meta": {
+  "at": "2026-10-16T08:14:05Z",
+  "cost_usd": 0.19379799999999997,
+  "duration_ms": 36230,
+  "num_turns": 2,
+  "wall_s": 37.41
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample0",
+ "schema_sha256": "68a79b4f64f093f3898722ee113fcf8f75739266a0ee442ef5fe3715db84f5e1",
+ "version": "2.1.283"
+}

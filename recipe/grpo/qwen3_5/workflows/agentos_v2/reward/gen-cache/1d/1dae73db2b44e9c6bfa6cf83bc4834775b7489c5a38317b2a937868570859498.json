@@ -1,0 +1,377 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.paths_written",
+    "none_allowed": "-",
+    "note": "Nothing may be written inside verifications/ during shape_spec.",
+    "params": {
+     "pattern": ".*/verifications/.+",
+     "window": "stage:shape_spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       57
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "- `$SPEC_PATH/verifications/` ... Leave these folders empty, for now."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-011",
+    "target": {
+     "ref": "verifications_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "initialization"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       61,
+       61
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Write the issue text from `<issue_description>` to `$SPEC_PATH/planning/initialization.md`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-012",
+    "target": {
+     "ref": "initialization",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No selector exposes the issue_description text, so the verbatim comparison cannot be expressed.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       61,
+       61
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "exactly as given, without modification."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-013",
+    "target": {
+     "ref": "initialization",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir",
+     "pattern": "^\\d{4}-\\d{2}-\\d{2}-[^/]+$",
+     "relative_to": "{artifact}"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       65,
+       65
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Always use dated folder names (YYYY-MM-DD-spec-name)"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-014",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.spec_folder",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       66,
+       66
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Follow folder structure exactly"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-015",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": ".*/implementation/.+",
+     "window": "stage:shape_spec"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Implementation folder should be empty, for now"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-016",
+    "target": {
+     "ref": "implementation_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:initialization",
+      "write:requirements"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Now that you've initialized the folder for this new spec, proceed with the research phase."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-017",
+    "target": {
+     "ref": "PHASE 2 after PHASE 1",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.read",
+    "none_allowed": "-",
+    "params": {
+     "artifacts": [
+      "initialization"
+     ],
+     "window": [
+      "first_write:initialization",
+      "first_write:requirements"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "Read the raw idea from `[spec-path]/planning/initialization.md` to understand what the user wants to build."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-026",
+    "target": {
+     "ref": "read initialization.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Save Requirements**: Document the requirements you've gathered to a single file named: `[spec-path]/planning/requirements.md`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-025",
+    "target": {
+     "ref": "requirements",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.repo_read",
+    "none_allowed": "-",
+    "note": "Window ends at the first requirements write: context is read before questions are generated (ss-027).",
+    "params": {
+     "patterns": [
+      "(.*/)?README(\\.[A-Za-z]+)?"
+     ],
+     "window": [
+      "stage_start:shape_spec",
+      "first_write:requirements"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       96,
+       97
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Read Product Mission**: Read the repository's README to understand: ... The product's overall mission and purpose"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-029",
+    "target": {
+     "ref": "read README",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The docs/ index is given only as an example; the repository may lack a docs/ folder and the index file name varies.",
+    "kind": "agentos_v2.repo_read",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "docs/.+"
+     ],
+     "window": [
+      "stage_start:shape_spec",
+      "first_write:requirements"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Read Product Roadmap**: Read the repository's documentation index (e.g. the table of contents of its `docs/`) to understand:"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-030",
+    "target": {
+     "ref": "read docs index",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.repo_read",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      "(.*/)?(pyproject\\.toml|setup\\.py|setup\\.cfg|package\\.json)"
+     ],
+     "window": [
+      "stage_start:shape_spec",
+      "first_write:requirements"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "docs/commands/shape-spec/shape-spec.md",
+      "quote": "**Read Product Tech Stack**: Read the repository's packaging and build metadata (e.g. `pyproject.toml`, `setup.py`, `setup.cfg`, `package.json`) to understand:"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ss-031",
+    "target": {
+     "ref": "read packaging metadata",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Duplicates ss-026 (reading initialization.md during shape_spec), which is already itemized.",
+    "statement": "ss-019"
+   },
+   {
+    "reason": "Summary of Step 2. Its checkable parts (reading the README, the docs index and the packaging metadata) are itemized under ss-029, ss-030 and ss-031.",
+    "statement": "ss-020"
+   },
+   {
+    "reason": "The answers are written by the agent itself and visuals are only processed if any are provided. 'Analyzing' them leaves no observable trace that can be checked, and the visuals condition cannot be expressed as a predicate.",
+    "statement": "ss-023"
+   },
+   {
+    "reason": "The ordering (product context before question generation) is enforced by the windows of the ss-029, ss-030 and ss-031 items, which end at the first write of requirements.md. Repository reads have no order event of their own.",
+    "statement": "ss-027"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "48b4f5a162b062e358ba506bfafa594a39146cfa380dacaba81a49b9d278bdbf",
+ "key": "1dae73db2b44e9c6bfa6cf83bc4834775b7489c5a38317b2a937868570859498",
+ "meta": {
+  "at": "2026-10-16T08:15:06Z",
+  "cost_usd": 0.11695719999999998,
+  "duration_ms": 43202,
+  "num_turns": 2,
+  "wall_s": 44.61
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "ed2426c6a6c91b17810ed53e17bd0a1ca943115fbdf2dcac11cfc50627860307",
+ "version": "2.1.283"
+}

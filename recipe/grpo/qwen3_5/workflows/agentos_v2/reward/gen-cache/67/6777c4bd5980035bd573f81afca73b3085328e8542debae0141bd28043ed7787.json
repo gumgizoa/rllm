@@ -1,0 +1,99 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 94,
+    "line_start": 94,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Code standard: a grep for 'SELECT *' in the changed code can check it.",
+    "path": "docs/commands/implement-tasks/implement-tasks.md",
+    "quote": "- **Select Only Needed Data**: Request only the columns you need rather than using SELECT * for better performance",
+    "stage": "implement_tasks",
+    "target": "implemented query code (no SELECT *)"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 114,
+    "line_start": 114,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "A benefit of reading product context; judging question quality is subjective.",
+    "path": "docs/commands/shape-spec/shape-spec.md",
+    "quote": "- Ask more relevant and contextual questions",
+    "stage": "shape_spec",
+    "target": "clarifying questions informed by product context"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "other",
+    "line_end": 115,
+    "line_start": 115,
+    "modality": "should",
+    "none_allowed": "unspecified",
+    "notes": "The requirements artifact may list reusable features.",
+    "path": "docs/commands/shape-spec/shape-spec.md",
+    "quote": "- Identify existing features that might be reused or referenced",
+    "stage": "shape_spec",
+    "target": "reusable existing features identified in shaping"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 116,
+    "line_start": 116,
+    "modality": "should",
+    "none_allowed": "-",
+    "notes": "Semantic alignment check.",
+    "path": "docs/commands/shape-spec/shape-spec.md",
+    "quote": "- Ensure the feature aligns with product goals",
+    "stage": "shape_spec",
+    "target": "feature alignment with product mission/goals"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "tool_or_command",
+    "line_end": 154,
+    "line_start": 154,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Heading says the visual check is mandatory; a tool call listing the planning/visuals folder is evidence that it ran.",
+    "path": "docs/commands/shape-spec/shape-spec.md",
+    "quote": "### Step 4: Process Answers and MANDATORY Visual Check",
+    "stage": "shape_spec",
+    "target": "visuals folder check after receiving answers"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "execution_evidence",
+    "line_end": 68,
+    "line_start": 67,
+    "modality": "prohibition",
+    "none_allowed": "-",
+    "notes": "The agent runs on its own: it must not stop to ask the user or end a turn without a tool call before all stages are complete.",
+    "path": "docs/core-workflow.md",
+    "quote": "No person reads your messages, answers a question, reviews a result or starts the next command, and a reply that calls no tool ends the session at once, with the work unfinished.",
+    "stage": "global",
+    "target": "agent turns (every reply must call a tool until the work is done; no waiting on the user)"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d013bbe4f600f681b251ba323875712fff91463054e9e86c653d7eacf44002d5",
+ "key": "6777c4bd5980035bd573f81afca73b3085328e8542debae0141bd28043ed7787",
+ "meta": {
+  "at": "2026-10-18T14:31:48Z",
+  "cost_usd": 0.04813700000000001,
+  "duration_ms": 11532,
+  "num_turns": 2,
+  "wall_s": 12.89
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round1",
+ "schema_sha256": "c9c0431dd0b2aaee626898716699e4cc007a92f1ed19051afbc908c46c29082a",
+ "version": "2.1.283"
+}

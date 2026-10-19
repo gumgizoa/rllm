@@ -1,0 +1,676 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "agentos_v2.requirements",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "rule": "answers"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       72
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Where a document has you ask questions, write them as it describes, then answer each one yourself from the issue and the repository, and record the answer with its basis where the document says"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-022",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "\\*\\*Answer:\\*\\* \\(assumed\\) .+ — .+"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       72
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "record the answer with its basis where the document says (`**Answer:** (assumed) <answer> — <basis>` in `requirements.md`)."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-023",
+    "target": {
+     "ref": "requirements",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind detects a turn that ends the session waiting for user input.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       72,
+       72
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Never wait for a reply."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-024",
+    "target": {
+     "ref": "waiting for user reply",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:SS",
+      "read:WS",
+      "read:CT",
+      "read:IT"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "When a command is done, open the next command document right away instead of summing up."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-025",
+    "target": {
+     "ref": "transition to next command",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Plain-text assistant messages are not a checkable fact in the vocabulary.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       74
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Send no plain-text message at all before `finish`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-025",
+    "target": {
+     "ref": "no plain-text message before finish",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       75,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The checkboxes in `S/tasks.md` are the record of what has been implemented; the TaskTracker tool may serve as a private scratch list, but it does not replace ticking `tasks.md`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-026",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Ticking only after the work is done is inferred from 'record of what has been implemented'.",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       75,
+       77
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The checkboxes in `S/tasks.md` are the record of what has been implemented"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-026",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:shape_spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       82
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-029",
+    "target": {
+     "ref": "/testbed during shape-spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:write_spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       82
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing."
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "cw-029",
+    "target": {
+     "ref": "/testbed during write-spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "window": "stage:create_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       82
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "cw-029",
+    "target": {
+     "ref": "/testbed during create-tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "code_frozen"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       83
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement-tasks PHASE 3 runs tests and writes its report without changing code, so the code change is complete before PHASE 3 begins."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-030",
+    "target": {
+     "ref": "code changes during PHASE 3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.verify",
+    "none_allowed": "-",
+    "params": {
+     "rule": "suite_run"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       83
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "implement-tasks PHASE 3 runs tests and writes its report without changing code"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-030",
+    "target": {
+     "ref": "PHASE 3 test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.checks",
+    "none_allowed": "-",
+    "params": {
+     "dir": "{artifact}/{SPEC}/checks",
+     "rule": "written"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The tests the task groups call for are scripts in `S/checks/`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-031",
+    "target": {
+     "ref": "S/checks/",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       85
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "No test file in the repository is added or edited."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-032",
+    "target": {
+     "ref": "repository test files edited",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.created_files",
+    "none_allowed": "-",
+    "params": {
+     "test_paths": true,
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       85
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "No test file in the repository is added or edited."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-032",
+    "target": {
+     "ref": "repository test files added",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.created_files",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "(^|/)(spec|tasks|requirements|initialization|final-verification|notes|summary)\\.md$",
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       87
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary scripts."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-033",
+    "target": {
+     "ref": "workflow files in /testbed",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "No files left untracked in the repository is inferred from the placement rule.",
+    "kind": "agentos_v2.holds",
+    "none_allowed": "-",
+    "params": {
+     "predicate": {
+      "relation": {
+       "left": {
+        "fact": "untracked_paths"
+       },
+       "rel": "subset",
+       "right": {
+        "literal": []
+       }
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       86,
+       87
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "They go to `S/`, scratch files to `S/checks/`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-034",
+    "target": {
+     "ref": "scratch files left in repository",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Excluding /tmp is inferred; the doc names only where scratch files go.",
+    "kind": "agentos_v2.paths_written",
+    "none_allowed": "-",
+    "params": {
+     "pattern": "^/tmp/.*"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       87,
+       87
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "They go to `S/`, scratch files to `S/checks/`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-034",
+    "target": {
+     "ref": "scratch files outside S/checks/",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The finish tool call is not an event in the reference language.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "As soon as `S/verifications/final-verification.md` is written, call `finish`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-036",
+    "target": {
+     "ref": "finish tool call",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "Existence is implied, not stated.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "final_verification"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       91,
+       92
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "As soon as `S/verifications/final-verification.md` is written, call `finish`."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-037",
+    "target": {
+     "ref": "final_verification",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction/adapter text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "SS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       1,
+       2
+      ],
+      "path": "instruction.md",
+      "quote": "four command documents (shape-spec, write-spec, create-tasks, implement-tasks) that you carry out yourself"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "ins-001",
+    "target": {
+     "ref": "read shape-spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction/adapter text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "WS"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       1,
+       2
+      ],
+      "path": "instruction.md",
+      "quote": "four command documents (shape-spec, write-spec, create-tasks, implement-tasks) that you carry out yourself"
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "ins-001",
+    "target": {
+     "ref": "read write-spec",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction/adapter text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CT"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       1,
+       2
+      ],
+      "path": "instruction.md",
+      "quote": "four command documents (shape-spec, write-spec, create-tasks, implement-tasks) that you carry out yourself"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "ins-001",
+    "target": {
+     "ref": "read create-tasks",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Instruction/adapter text only.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IT"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       1,
+       2
+      ],
+      "path": "instruction.md",
+      "quote": "four command documents (shape-spec, write-spec, create-tasks, implement-tasks) that you carry out yourself"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "ins-001",
+    "target": {
+     "ref": "read implement-tasks",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Already covered: the cw-029 per-stage repo_write prohibitions and the cw-030 code_frozen check enforce it. A separate item would check the same thing twice.",
+    "statement": "cw-028"
+   },
+   {
+    "reason": "States a fact about how the run ends. The ordering it implies is already checked by cw-030 (code_frozen) and cw-036; no separate observable rule remains.",
+    "statement": "cw-035"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "64d67a5041eac286a93ba0678defd1209d0a246f7db873431b0b74e2bfb64ddc",
+ "key": "d63ec36a71653e4ec766f56208d6899536ee8258638ec2a33f38a0dcac1b31a5",
+ "meta": {
+  "at": "2026-10-16T08:17:59Z",
+  "cost_usd": 0.16869019999999998,
+  "duration_ms": 61406,
+  "num_turns": 2,
+  "wall_s": 62.76
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "2846612687558a7ee22d8b5fc3690419c1d8702b780ca6b1cc28ec655f26ecc5",
+ "version": "2.1.283"
+}

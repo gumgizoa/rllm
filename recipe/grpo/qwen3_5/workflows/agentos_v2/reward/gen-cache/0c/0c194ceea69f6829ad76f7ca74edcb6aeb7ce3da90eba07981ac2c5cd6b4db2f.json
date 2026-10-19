@@ -1,0 +1,663 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "SS",
+     "window": "stage:shape_spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       16
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it, and work from that document rather than from memory: ... **shape-spec**: `/agent-os/commands/shape-spec/shape-spec.md`"
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:SS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "PHASE 1 creates the spec folder and saves the issue in it."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-005",
+    "target": {
+     "ref": "spec_dir",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "initialization"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "PHASE 1 creates the spec folder and saves the issue in it."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-005",
+    "target": {
+     "ref": "initialization",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "PHASE 2 studies the change, writes its clarifying questions and your answers to them, and saves the requirements."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-006",
+    "target": {
+     "ref": "requirements",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.requirements",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "rule": "answers"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       18
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "writes its clarifying questions and your answers to them, and saves the requirements."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-006",
+    "target": {
+     "ref": "requirements",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "WS",
+     "window": "stage:write_spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       19
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it ... **write-spec**: `/agent-os/commands/write-spec/write-spec.md`"
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:WS",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Searches the repository for code to reuse and writes the specification."
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "cw-008",
+    "target": {
+     "ref": "spec",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Descriptive summary of the command; no target files named, so only a generic repository read is checked.",
+    "kind": "agentos_v2.repo_read",
+    "none_allowed": "-",
+    "params": {
+     "patterns": [
+      ".+"
+     ],
+     "window": [
+      "stage_start:write_spec",
+      "write:spec"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Searches the repository for code to reuse and writes the specification."
+     }
+    ],
+    "stage": "write_spec",
+    "statement": "cw-008",
+    "target": {
+     "ref": "repo_read",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CT",
+     "window": "stage:create_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       21
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it ... **create-tasks**: `/agent-os/commands/create-tasks/create-tasks.md`"
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "cw-009",
+    "target": {
+     "ref": "read:CT",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "group_parts"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Breaks the specification into task groups of checkbox tasks."
+     }
+    ],
+    "stage": "create_tasks",
+    "statement": "cw-010",
+    "target": {
+     "ref": "tasks",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "IT",
+     "window": "stage:implement_tasks"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       14,
+       23
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Open each command document when you reach it ... **implement-tasks**: `/agent-os/commands/implement-tasks/implement-tasks.md`"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-011",
+    "target": {
+     "ref": "read:IT",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "groups_in_order"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "PHASE 1 and PHASE 2 implement every task group in order, one group per pass of PHASE 2."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-012",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "PHASE 1 and PHASE 2 implement every task group in order"
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-012",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Ticking each group after its work is implied by one-group-per-pass, not stated explicitly.",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "ticked_after_work"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "one group per pass of PHASE 2."
+     }
+    ],
+    "stage": "implement_tasks",
+    "statement": "cw-012",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:SS",
+      "read:WS",
+      "read:CT",
+      "read:IT"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with its report. There are no repeat rounds."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-013",
+    "target": {
+     "ref": "command order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "last_write:requirements",
+      "first_write:spec",
+      "last_write:spec",
+      "first_write:tasks",
+      "first_write:final_verification"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       28
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "Each command runs once, in this order ... There are no repeat rounds."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-013",
+    "target": {
+     "ref": "artifact order",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Implicit: the document says no such files exist rather than prohibiting opening them.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "command",
+     "pattern": "agent-os/standards/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       30,
+       32
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "The bold `agent-os/standards/...` lines there only name each standard; there are no separate standards files to open."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-014",
+    "target": {
+     "ref": "open standards files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec_dir",
+     "pattern": "^/tmp/agent-os/specs/\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*/?$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       44
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today's date and a short kebab-case name you choose for the change."
+     }
+    ],
+    "stage": "shape_spec",
+    "statement": "cw-017",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.spec_folder",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       45
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "shape-spec creates the spec folder once ... each of these means that one folder, and every later command works in it."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-018",
+    "target": {
+     "ref": "spec_dir",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "requirements",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:shape_spec",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "leave a file alone once its command is over, except for the checkboxes in `tasks.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "requirements",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "initialization",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:shape_spec",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "leave a file alone once its command is over, except for the checkboxes in `tasks.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "initialization",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "spec",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:write_spec",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "leave a file alone once its command is over, except for the checkboxes in `tasks.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "spec",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "agentos_v2.tasks",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "tasks",
+     "rule": "later_edits"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       63,
+       63
+      ],
+      "path": "docs/core-workflow.md",
+      "quote": "leave a file alone once its command is over, except for the checkboxes in `tasks.md`."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "tasks",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Conditional on need ('make it the first time you need it'); whether S/checks/ was needed can't be observed as a predicate, and the statement imposes no unconditional existence requirement.",
+    "statement": "cw-019"
+   },
+   {
+    "reason": "Per-document structure is already compiled from each artifact's template skeleton (sections/labels); no additional run-tied rule is added here.",
+    "statement": "cw-020"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "7e5413b69d9b16e87a095db6dce0d4de7b869b0956bfeadc87ef407f3f3fef8c",
+ "key": "0c194ceea69f6829ad76f7ca74edcb6aeb7ce3da90eba07981ac2c5cd6b4db2f",
+ "meta": {
+  "at": "2026-10-16T08:17:31Z",
+  "cost_usd": 0.227513,
+  "duration_ms": 46929,
+  "num_turns": 2,
+  "wall_s": 48.29
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "8f43c646a1fb003e4b531bf22c65daed77f57440a9fbb6bd6de2edf7c508b2d7",
+ "salt": "sample1",
+ "schema_sha256": "82c7ee14fc0e6e8b3cae10fa9b0b45c8bd4fbc275ee91597eb0e828da3f8fa81",
+ "version": "2.1.283"
+}
