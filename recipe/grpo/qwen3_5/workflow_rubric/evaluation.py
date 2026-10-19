@@ -200,15 +200,35 @@ class RubricEvaluation(ComplianceEvaluation):
         self.rubric_path = Path(rubric_path)
         self.prefix = prefix
         self.extra = tuple(extra)
-        for p in plugins:
-            if isinstance(p, str):
-                importlib.import_module(p)
+        # Kept by name: the registration has to be repeated wherever this object lands (see
+        # ``_load_plugins``), and a module object would not pickle anyway.
+        self.plugins = tuple(p if isinstance(p, str) else p.__name__ for p in plugins)
+        self._load_plugins()
         self.rubric = schema.load(self.rubric_path)
         checks.validate_params(self.rubric)
         _engine()  # a missing module is an error now, not a 0 on every rollout
         _episode()
 
+    def _load_plugins(self) -> None:
+        """Register the workflow's ``<wf>.*`` check kinds in *this* process.
+
+        ``checks.REGISTRY`` is a module global, filled as a side effect of importing the plugin
+        module. Training pickles the evaluation policy into the Ray actor that runs the sandbox
+        hooks (``SandboxTaskHooks`` -> ``VerlTaskRunner``), and unpickling does not run
+        ``__init__``, so without this the actor scores every plugin-kind item as an engine error
+        (``checks.get`` raises ``RubricError``): measured 2026-10-16, speckit_bug 19 and openspec_ff
+        61-63 errors on every rollout, exactly the unconditional plugin items. Importing an
+        already-imported module is a dict lookup, so calling this on every resolve is free.
+        """
+        for p in self.plugins:
+            importlib.import_module(p)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._load_plugins()
+
     def resolve(self, task, sandbox, kind, config):
+        self._load_plugins()
         inner = FromTaskEvaluation.resolve(self, task, sandbox, kind, config)
         if sandbox is None:
             return inner
