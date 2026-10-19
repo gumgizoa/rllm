@@ -1,0 +1,41 @@
+# @package _global_
+#
+# openhands_9b_speckit_openspec_swegym_reward with a third workflow in the mix: each task
+# runs under speckit_bug, openspec_ff or agentos_v2 (Agent OS v2.1.1 shape-spec -> write-spec
+# -> create-tasks -> implement-tasks), uniform i.i.d. over the three and fixed per task by the
+# hash of (seed, task id), so a GRPO group still shares one workflow. With seed 0 the 293
+# training tasks split 97 / 103 / 93 (speckit_bug / openspec_ff / agentos_v2); the hash is
+# taken modulo the pool size, so most tasks land on a different workflow than in the
+# two-workflow run -- this is a new arm, not a continuation of run 20261018_082600.
+# Validation stays pinned to AI-DLC (val_name).
+#
+# Reward = verifier * <workflow>/compliance (mode mul) with the task's own scorer; agentos_v2's
+# generated rubric (reward/rubric.yaml, agentos_v2/* signals) is wired exactly like the other
+# two. agentos_v2 needs no agent-image extra, sandbox files or setup script (its documents go
+# to /agent-os, its spec folder to /tmp/agent-os), so the mount image is the one openspec_ff
+# already asks for.
+#
+# Everything else -- 250 turns in 262144 (16384 + 245760), thinking on, FSDP1, one update per
+# step -- is inherited. Ulysses sequence parallelism 2 is pinned here rather than passed on
+# the command line: at this window the actor update needs it (measured 2026-10-16/18 on
+# 8 x H200, FSDP1, micro-batch 1: a 246K-token row peaks at 94.5 GB allocated with sp=2, where
+# sp=1 already reached 91-93 GB at 131K). 8 GPUs / sp 2 = 4 data-parallel ranks; 32 x 4 = 128
+# trajectories divide. Keep the checkpoint count bounded on /vast-ib, e.g.
+# trainer.max_actor_ckpt_to_keep=5 (106 GB each).
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_openspec_agentos_swegym_reward trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_openspec_swegym_reward
+
+recipe:
+  workflow:
+    name: [speckit_bug, openspec_ff, agentos_v2]
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-speckit-openspec-agentos-think-reward-swegym293
+
+actor_rollout_ref:
+  actor:
+    ulysses_sequence_parallel_size: 2
