@@ -91,28 +91,39 @@ class ComplianceEvaluation(FromTaskEvaluation):
 
 
 class RoutedSignalEvaluator:
-    """An evaluator with ``workflow/<name>/resolved`` (the verifier's ``is_correct``) appended."""
+    """An evaluator with two signals appended: ``workflow/<name>/resolved`` (the verifier's
+    ``is_correct``) and, when the route has a reward signal, ``workflow/compliance`` -- a copy of
+    that workflow's own compliance (``speckit_bug/compliance`` etc.) under one name shared by
+    every route, so a mix logs one ``batch/workflow/compliance`` averaged over all rollouts
+    beside the per-workflow means (which average over that workflow's rollouts only)."""
 
-    def __init__(self, inner, name: str):
+    def __init__(self, inner, name: str, reward_signal: str | None = None):
         self.inner = inner
         self.name = name
+        self.reward_signal = reward_signal
 
     def evaluate(self, task, episode) -> EvalOutput:
         out = self.inner.evaluate(task, episode)
-        resolved = Signal(f"workflow/{self.name}/resolved", float(bool(out.is_correct)))
-        return EvalOutput(reward=out.reward, is_correct=out.is_correct, signals=[*out.signals, resolved], metadata=out.metadata)
+        appended = [Signal(f"workflow/{self.name}/resolved", float(bool(out.is_correct)))]
+        if self.reward_signal is not None:
+            value = next((s.value for s in out.signals if s.name == self.reward_signal), None)
+            if value is not None:
+                appended.append(Signal("workflow/compliance", float(value)))
+        return EvalOutput(reward=out.reward, is_correct=out.is_correct, signals=[*out.signals, *appended], metadata=out.metadata)
 
 
 class RoutedEvaluation(FromTaskEvaluation):
     """Per task, the evaluation policy of the workflow ``route(task)`` names; the task's verifier alone
-    for a workflow without one (``policies[name] is None``)."""
+    for a workflow without one (``policies[name] is None``). ``reward_signals`` (route name -> the
+    workflow's ``WorkflowSpec.reward_signal``) lets every route also emit ``workflow/compliance``."""
 
-    def __init__(self, policies: dict[str, Any], route: Callable[[Any], str]):
+    def __init__(self, policies: dict[str, Any], route: Callable[[Any], str], reward_signals: dict[str, str | None] | None = None):
         self.policies = policies
         self.route = route
+        self.reward_signals = dict(reward_signals or {})
 
     def resolve(self, task, sandbox, kind, config):
         name = self.route(task)
         policy = self.policies[name]
         inner = super().resolve(task, sandbox, kind, config) if policy is None else policy.resolve(task, sandbox, kind, config)
-        return RoutedSignalEvaluator(inner, name)
+        return RoutedSignalEvaluator(inner, name, self.reward_signals.get(name))

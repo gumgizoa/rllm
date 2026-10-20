@@ -333,7 +333,11 @@ class WorkflowMixin(AgentKwargsMixin):
         if self._routes:
             from .workflow_scoring import RoutedEvaluation
 
-            return RoutedEvaluation({name: route.evaluation_policy for name, route in self._routes.items()}, self.workflow_for)
+            return RoutedEvaluation(
+                {name: route.evaluation_policy for name, route in self._routes.items()},
+                self.workflow_for,
+                reward_signals={name: (route.workflow_spec.reward_signal if route.workflow_spec is not None else None) for name, route in self._routes.items()},
+            )
         factory = self.workflow_spec.scorers.get(self.name) if self.workflow_spec is not None else None
         return factory() if factory is not None else None
 

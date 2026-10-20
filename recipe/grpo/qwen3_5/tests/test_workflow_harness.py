@@ -268,4 +268,6 @@ def test_mix_scores_with_the_task_workflow_and_logs_resolved(monkeypatch):
     marker = SimpleNamespace(evaluate=lambda task, episode: EvalOutput(reward=0.0, is_correct=False, signals=[Signal("aidlc/compliance", 0.4)]))
     policy.policies["aidlc_v4"] = SimpleNamespace(resolve=lambda *a: marker)
     out = policy.resolve(_task("v", recipe_workflow="aidlc_v4"), None, "sandbox-shell", {}).evaluate(None, None)
-    assert [s.name for s in out.signals] == ["aidlc/compliance", "workflow/aidlc_v4/resolved"] and out.signals[1].value == 0.0
+    # ... plus the shared copy of the route's reward signal, so a mix logs one batch/workflow/compliance.
+    assert [s.name for s in out.signals] == ["aidlc/compliance", "workflow/aidlc_v4/resolved", "workflow/compliance"]
+    assert out.signals[1].value == 0.0 and out.signals[2].value == 0.4
