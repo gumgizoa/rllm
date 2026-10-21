@@ -31,6 +31,7 @@ defaults:
 recipe:
   workflow:
     name: [speckit_bug, openspec_ff, agentos_v2]
+    instruction_position: suffix
 
 rllm:
   trainer:
