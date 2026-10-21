@@ -149,6 +149,64 @@ def test_a_stage_never_written_makes_no_claims():
     assert not any(k.startswith(("aidlc/check/e5_", "aidlc/check/t5_")) for k in s)
 
 
+# --- milestone-1 evaluation rubric items -----------------------------------------------------
+
+PATCH = "diff --git a/pkg/mod.py b/pkg/mod.py\n--- a/pkg/mod.py\n+++ b/pkg/mod.py\n@@ -1 +1 @@\n-a\n+b\n"
+PATCH_OTHER = "diff --git a/pkg/other.py b/pkg/other.py\n--- a/pkg/other.py\n+++ b/pkg/other.py\n@@ -1 +1 @@\n-a\n+b\n"
+
+
+def _with_patch(turns, patch):
+    ep = episode(turns)
+    ep.artifacts = {"patch": patch}
+    return ep
+
+
+def _is_core_read(turn) -> bool:
+    return json.loads(turn[0]["function"]["arguments"]).get("path") == "/ai-dlc/core-workflow.md"
+
+
+def test_honest_run_with_its_patch_scores_one_on_the_rubric():
+    s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH), FILES)
+    assert [s[f"aidlc/{k}"] for k in ("entry", "reports", "fidelity", "rubric")] == pytest.approx([1.0] * 4)
+
+
+@pytest.mark.parametrize(("where", "entry"), [("never", 0.0), ("after_stage_docs", 0.0), ("first_but_late", 1 / 3)])
+def test_entry_scores_when_core_workflow_was_read(where, entry):
+    """order_v6 sees only the stage documents, so skipping core-workflow.md, reading it after a stage
+    document, or reading it first but after other work costs aidlc/entry and nothing else."""
+    honest = _content_honest_turns()
+    core = [t for t in honest if _is_core_read(t)]
+    turns = [t for t in honest if not _is_core_read(t)]
+    if where == "after_stage_docs":
+        turns = turns[:-1] + core + turns[-1:]
+    elif where == "first_but_late":  # three repository looks, then core-workflow.md at step 4
+        looks = [(_call(800 + i, "terminal", command=f"ls /testbed/pkg{i}"), "") for i in range(3)]
+        turns = looks + core + turns
+    s = score(SimpleNamespace(id="t"), _with_patch(turns, PATCH), FILES)
+    assert s["aidlc/entry"] == pytest.approx(entry)
+    assert s["aidlc/compliance"] == pytest.approx(1.0) and s["aidlc/rubric"] == pytest.approx(1 - 3 * (1 - entry) / 100)
+
+
+def test_fidelity_is_the_disclosed_share_of_the_diff():
+    both = PATCH + PATCH_OTHER  # stage 4 names pkg/mod.py only
+    s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), both), FILES)
+    assert s["aidlc/fidelity"] == pytest.approx(0.5)
+    empty = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), ""), FILES)
+    assert empty["aidlc/fidelity"] == 0.0  # no change at all: nothing disclosed
+
+
+def test_an_episode_without_a_recorded_patch_gets_no_fidelity():
+    s = score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
+    assert "aidlc/fidelity" not in s and "aidlc/rubric" not in s
+    assert s["aidlc/entry"] == 1.0 and s["aidlc/reports"] == pytest.approx(1.0)
+
+
+def test_the_patch_moves_no_other_signal():
+    without = score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
+    with_patch = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH + PATCH_OTHER), FILES)
+    assert {k: v for k, v in with_patch.items() if k not in ("aidlc/fidelity", "aidlc/rubric")} == without
+
+
 # --- evaluator wrapper -----------------------------------------------------------------------
 
 

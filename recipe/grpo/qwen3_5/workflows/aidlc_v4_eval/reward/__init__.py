@@ -8,8 +8,10 @@
     content_checks.py   the five stage artifacts' claims against the trajectory (evidence / temporal /
                         consistency), 38 checks, each 1 / 0.5 / 0 or not applicable
     evaluator.py        collect_artifacts + score = the compliance signals plus aidlc/content*,
-                        aidlc/content_{evidence,temporal,consistency}, aidlc/content_contradictions and
-                        aidlc/check/<name>; plugged into workflow_scoring.ComplianceEvaluation
+                        aidlc/content_{evidence,temporal,consistency}, aidlc/content_contradictions,
+                        aidlc/check/<name> and the milestone-1 evaluation rubric's items (aidlc/entry,
+                        aidlc/reports, aidlc/fidelity, aidlc/rubric with order_v6 as its order item);
+                        plugged into workflow_scoring.ComplianceEvaluation
 
 ``rubric/``, ``episode.py`` and ``compliance.py`` are copies of ``workflows/aidlc_v4/reward``'s (commit
 4c3ee52c), so ``aidlc/compliance`` and the signals behind it score as aidlc_v4's do, but no longer move
