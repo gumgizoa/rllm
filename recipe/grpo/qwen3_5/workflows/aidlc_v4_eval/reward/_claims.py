@@ -18,7 +18,7 @@ Verdict policy, shared by every workflow: a claim nothing bears on is not applic
 contradicted, so a run cannot lose for a measurement gap; and a report that was never written makes
 no claims. ``none`` is a claim like any other and is held to the evidence that would make it true.
 
-The tool-call parsing (``Run``, ``Action``) is the vendored rubric's, under ``aidlc_v4/reward/rubric``;
+The tool-call parsing (``Run``, ``Action``) is the vendored rubric's, under ``reward/rubric`` (copied from aidlc_v4);
 it is harness-specific (openhands-sdk), not workflow-specific, which is why every workflow reads
 through it.
 """
@@ -31,8 +31,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from statistics import mean
 
-from ...aidlc_v4.reward.rubric import facts as F
-from ...aidlc_v4.reward.rubric.model import Run
+from .rubric import facts as F
+from .rubric.model import Run
 
 SUPPORTED, PARTIAL, CONTRADICTED = 1.0, 0.5, 0.0
 
@@ -537,7 +537,7 @@ def written_texts(run: Run, watch: Iterable[str]) -> dict[str, str]:
     edits, shell heredocs), for a saved episode with no collected files. A write whose text cannot be
     recovered drops the report (a measurement gap, not a verdict). The collected files, when the
     sandbox was read, are the truth and should be preferred."""
-    from ...aidlc_v4.reward.rubric import artifacts as A  # the rubric's shell-write recovery
+    from .rubric import artifacts as A  # the rubric's shell-write recovery
 
     watch = list(watch)
     texts: dict[str, str] = {}

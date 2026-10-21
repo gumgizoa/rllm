@@ -18,10 +18,10 @@ import base64
 
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
-from ...aidlc_v4.reward.compliance import compliance
-from ...aidlc_v4.reward.episode import episode_to_run
-from ...aidlc_v4.reward.rubric import artifacts as A
+from .compliance import compliance
 from .content_checks import content_checks, parsed_artifacts
+from .episode import episode_to_run
+from .rubric import artifacts as A
 
 NAME = "AI-DLC"
 

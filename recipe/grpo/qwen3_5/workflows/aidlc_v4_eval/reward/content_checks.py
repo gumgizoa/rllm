@@ -37,7 +37,7 @@ earns.
 Deliberately not checked: stage 4's ``Executed: no``. The skeleton prescribes that value, so a run
 that did run its script in stage 4 writes a false ``no`` by instruction, not by choice.
 
-The trajectory index, the report readers and the verdict reductions are ``workflows/_claims.py``,
+The trajectory index, the report readers and the verdict reductions are ``reward/_claims.py``,
 shared with the other workflows' content checks; this file holds what is AI-DLC's: the stage
 skeleton's fields and the claims they make.
 """
@@ -47,9 +47,6 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-from ...aidlc_v4.reward.rubric import artifacts as A
-from ...aidlc_v4.reward.rubric import facts as F
-from ...aidlc_v4.reward.rubric.model import Run
 from ._claims import (
     CONTRADICTED,
     PARTIAL,
@@ -102,6 +99,9 @@ from ._claims import (
 from ._claims import (
     test_command_tokens as _command_tokens,
 )
+from .rubric import artifacts as A
+from .rubric import facts as F
+from .rubric.model import Run
 
 FAMILIES = {
     "evidence": [
