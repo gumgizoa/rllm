@@ -442,7 +442,11 @@ class Observed:
         return [(n, c, o) for n, c, o in self.shell if (after is None or n > after) and (before is None or n < before)]
 
     def command_run(self, tokens: list[str], after: int | None = None, before: int | None = None) -> bool:
-        return bool(tokens) and any(all(t in c for t in tokens) for n, c, _ in self.shell_in(after, before))
+        """Some shell step within (after, before) ran a command holding every token, read against the
+        directory it ``cd``'d into (``evidence.command_has_tokens``)."""
+        return bool(tokens) and any(
+            EV.command_has_tokens(raw, tokens) for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before)
+        )
 
     def command_runs(self, command: str, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
         """Shell steps that ran ``command`` as written (all its core tokens present)."""
@@ -479,6 +483,9 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
     (and kept out of ``created``), matched exactly or, for a directory ending in ``/``, by prefix."""
     watch = list(watch)
     obs = Observed()
+    # Files the agent brought into being so far (``evidence.agent_written``), including the action at hand:
+    # ``cat > /tmp/t.py <<EOF ... EOF; pytest /tmp/t.py`` runs the agent's own test, not the repository's.
+    agent_made: list[str] = []
 
     def watched(p: str) -> str | None:
         for wpath in watch:
@@ -489,6 +496,7 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
     for step in run.steps:
         obs.last_step = step.n
         for a in step.actions:
+            agent_made.extend(EV.agent_written(a))
             if a.observation:
                 obs.observations.append(a.observation)
             if a.kind == "view":
@@ -513,7 +521,7 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
             flat = re.sub(r"\s+", " ", cmd).strip()
             obs.shell.append((step.n, flat, out))
             obs.shell_raw.append(cmd)
-            if EV.is_test_attempt(cmd, agent_files=[*obs.created, *obs.writes]):
+            if EV.is_test_attempt(cmd, agent_files=agent_made):
                 obs.test_attempts.append((step.n, flat, out))
                 if F.ran_something(a):
                     obs.test_runs.append((step.n, flat, out))

@@ -6,9 +6,10 @@ bands plus the artifacts' claims against the trajectory (``reward/content_checks
         same workflow (``SPEC.fingerprint`` equals aidlc_v4's) and the rubric parses runs the same way
     reward/compliance.py
         copied from aidlc_v4, with the stage gate's "a real test suite ran" read by ``evidence.py``
-    reward/{evidence.py, content_checks.py, _claims.py, evaluator.py}
-        the evaluation verifier's own evidence readings, the content checks (commit 1b68a8e7) and the
-        scorer that adds them and the milestone-1 evaluation rubric's items
+    reward/{evidence.py, content_checks.py, _claims.py, rule_checks.py, evaluator.py}
+        the evaluation verifier's own evidence readings, the content checks (commit 1b68a8e7), the rule
+        checks, and the scorer that adds them, the milestone-1 evaluation rubric's items and the
+        solution-leak flags
 
 The copy is the point: this is the evaluation verifier, fixed apart from the training one, so a change
 to ``aidlc_v4`` (its documents, its reward) does not move the numbers measured with this package. Do

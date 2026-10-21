@@ -18,6 +18,10 @@ verifier reads differently is here, and ``compliance.py``, ``_claims.py``, ``con
                      the verifier), not the trajectory's writes (22 of 96 runs disagree)
     test files       the task's ``test_patch`` files as well as the path pattern (which misses pytest's
                      ``testing/`` and ``sphinx/testing/``)
+    stage bands      an artifact that is the skeleton verbatim, or has nothing under its frontmatter but
+                     headings, earns band 0 (the rubric gives it 2 of 8, so copying the five skeletons scored
+                     0.45); real content under renamed headings keeps 2; ``Assumptions: none`` fills its
+                     section when no ambiguity needed resolving
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ import json
 import re
 from pathlib import Path
 
+from .rubric import artifacts as A
 from .rubric import facts as F
 
 # Django's runner and nose / ward, which the rubric's TEST_RUN_PATTERNS do not know.
@@ -74,10 +79,54 @@ def _agent_script(segment: str, agent_files) -> bool:
     return bool(name) and any(str(p).rsplit("/", 1)[-1] == name for p in agent_files)
 
 
+_TEST_TARGET = re.compile(r"(\S+\.py)(?:::\S*)?$")
+_RUNNER_PROGRAMS = {"runtests.py", "manage.py", "setup.py"}
+
+
+def _only_agent_tests(segment: str, agent_files) -> bool:
+    """Every test file the runner is pointed at is one the agent wrote (``pytest /tmp/dummy_tests/test_x.py``):
+    its own tests, not the repository's covering ones."""
+    head = _PIPE.split(segment, maxsplit=1)[0]
+    targets = [m.group(1) for t in head.split() if (m := _TEST_TARGET.match(t)) and m.group(1).rsplit("/", 1)[-1] not in _RUNNER_PROGRAMS]
+    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
+    return bool(targets) and all(t.rsplit("/", 1)[-1] in names for t in targets)
+
+
 def is_test_attempt(command: str, agent_files=()) -> bool:
-    """A shell command that invokes a test runner: some segment runs one, is not a lookup, and is not a
-    script the agent wrote (``agent_files``: paths the run created before this command)."""
-    return any(_runner_in(s) and not is_lookup(s) and not _agent_script(s, agent_files) for s in segments(command))
+    """A shell command that invokes a test runner on the repository's tests: some segment runs one, is not
+    a lookup, is not a runner script the agent wrote, and is not pointed only at test files the agent wrote
+    (``agent_files``: paths the run created before this command)."""
+    return any(_runner_in(s) and not is_lookup(s) and not _agent_script(s, agent_files) and not _only_agent_tests(s, agent_files) for s in segments(command))
+
+
+def command_has_tokens(command: str, tokens) -> bool:
+    """Every token of a recorded command (test paths, node ids, labels) appears in ``command``, reading a
+    path written from the repository root against the directory the command ``cd``'d into first:
+    ``tests/runtests.py`` is in ``cd tests && python runtests.py``."""
+    if not tokens:
+        return False
+    cwd = ""
+    for seg in _SEGMENT.split(command or ""):
+        m = re.match(r"^\s*cd\s+(\S+)\s*$", seg)
+        if m:
+            cwd = m.group(1).rstrip("/").removeprefix("/testbed").lstrip("/")
+
+    def found(t: str) -> bool:
+        t = t.removeprefix("/testbed/")
+        return t in command or bool(cwd) and t.startswith(cwd + "/") and t[len(cwd) + 1 :] in command
+
+    return all(found(t) for t in tokens)
+
+
+INSTALL = re.compile(
+    r"^(?:sudo\s+)?(?:(?:pip3?|python[0-9.]*\s+-m\s+pip|uv\s+pip|conda|mamba|micromamba|gem|cargo)\s+install|(?:apt|apt-get|yum|dnf|apk)\s+(?:install|add)|(?:npm|pnpm)\s+(?:install|i|add)|yarn\s+add|python[0-9.]*\s+setup\.py\s+(?:install|develop))\b"
+)
+
+
+def is_env_setup(command: str) -> bool:
+    """The command installs a dependency or sets up the environment (01 / 05: the environment can already
+    build and test the project)."""
+    return any(INSTALL.match(s) for s in segments(command))
 
 
 def runs_script(command: str, path: str) -> bool:
@@ -105,14 +154,25 @@ def exit_code(command: str, output: str) -> int | None:
     return int(codes[-1]) if codes else None
 
 
+def agent_written(a) -> list[str]:
+    """Files this action brought into being: an editor ``create`` that succeeded (the editor refuses an
+    existing file), or a shell write outside the repository. A shell write inside it may be an existing
+    file rewritten (``cat > tests/test_x.py``), so it is not counted as the agent's own."""
+    if a.kind == "create":
+        return [a.path] if a.path and a.status != "fail" else []
+    if a.kind == "shell" and a.status != "fail":
+        return [t for t in F.write_targets(a) if F.OUTSIDE_REPO_RE.match(t) and not t.startswith("/dev/")]
+    return []
+
+
 def ran_real_test(run) -> bool:
     """Any test-runner invocation in the run that did not fail to start (the rubric's ``ran_something``)."""
     agent_files: set[str] = set()
     for step in run.steps:
         for a in step.actions:
+            agent_files.update(agent_written(a))
             if a.kind == "shell" and is_test_attempt(a.command or "", agent_files) and F.ran_something(a):
                 return True
-            agent_files.update(t for t in (F.write_targets(a) if a.kind == "shell" else [a.path or ""] if a.kind == "create" else []) if t)
     return False
 
 
@@ -143,3 +203,42 @@ def task_test_files(task) -> set[str]:
 
 def is_test_file(path: str, test_files=()) -> bool:
     return F.TEST_PATH_RE.search(path) is not None or path in test_files
+
+
+# --- stage bands ------------------------------------------------------------------------------
+
+_DOCS = Path(__file__).resolve().parents[1] / "docs" / "rule-details"
+
+
+def _content_lines(text: str) -> list[str]:
+    body, _ = A.strip_fence(text or "")
+    body = A.FRONTMATTER.sub("", body, count=1)
+    return [ln.strip() for ln in body.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+
+
+def skeleton(stage: int) -> str:
+    """The artifact skeleton stage ``stage``'s rule document prescribes (its fenced markdown block)."""
+    text = next(_DOCS.glob(f"0{stage}-*.md")).read_text()
+    return text.split("```markdown\n", 1)[1].split("```", 1)[0]
+
+
+def is_template_copy(stage: int, text: str) -> bool:
+    """Every line under the headings is a line of the skeleton: nothing was filled in."""
+    lines = _content_lines(text)
+    return bool(lines) and set(lines) <= set(_content_lines(skeleton(stage)))
+
+
+def stage_band(stage: int, text: str) -> int:
+    """The rubric's 8/5/2 band for one artifact (all graded fields / one missing / more), except that an
+    artifact with nothing of its own -- the skeleton verbatim, or nothing under its frontmatter but
+    headings -- earns 0, and ``Assumptions: none`` counts as filled. An artifact with real content under
+    renamed headings keeps the rubric's 2 (the skeleton was not kept, but the stage was worked)."""
+    parsed = A.parse(stage, text)
+    missing = list(A.grade(stage, parsed)["missing"])
+    if stage == 2 and "assumptions" in missing:
+        body = parsed["section_bodies"].get("Assumptions")
+        if body is not None and A._section_has_content(body, True):
+            missing.remove("assumptions")
+    if not _content_lines(text) or is_template_copy(stage, text):
+        return 0
+    return 8 if not missing else 5 if len(missing) == 1 else 2

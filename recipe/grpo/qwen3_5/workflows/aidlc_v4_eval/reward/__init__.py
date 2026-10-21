@@ -10,10 +10,14 @@
                         content checks, kept here so this package is self-contained)
     content_checks.py   the five stage artifacts' claims against the trajectory (evidence / temporal /
                         consistency), 38 checks, each 1 / 0.5 / 0 or not applicable
+    rule_checks.py      whether what the run did kept the workflow's rules, whatever its artifacts claim
+                        (test files untouched, targeted stage-5 tests, no environment setup, no stage-4
+                        reproduction run, artifacts written once, a clean repository): aidlc/rule*
     evaluator.py        collect_artifacts + score = the compliance signals plus aidlc/content*,
                         aidlc/content_{evidence,temporal,consistency}, aidlc/content_contradictions,
                         aidlc/check/<name> and the milestone-1 evaluation rubric's items (aidlc/entry,
-                        aidlc/reports, aidlc/fidelity, aidlc/rubric with order_v6 as its order item);
+                        aidlc/reports, aidlc/fidelity, aidlc/rubric with order_v6 as its order item),
+                        the rule checks and the solution-leak flags (aidlc/leak_history, aidlc/leak_apply);
                         plugged into workflow_scoring.ComplianceEvaluation
 
 ``rubric/`` and ``episode.py`` are byte-identical copies of ``workflows/aidlc_v4/reward``'s (commit

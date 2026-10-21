@@ -21,10 +21,11 @@ from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, Complianc
 
 from . import evidence as EV
 from .compliance import compliance
-from .content_checks import content_checks, parsed_artifacts
+from .content_checks import content_checks, first_write_steps, observe, parsed_artifacts
 from .episode import episode_to_run
 from .rubric import artifacts as A
 from .rubric import score as S
+from .rule_checks import rule_checks
 
 NAME = "AI-DLC"
 
@@ -80,6 +81,11 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     The content checks read the same patch for what the run changed (a truncated one counts as
     unknown), the task's ``test_patch`` files to tell test files (``evidence.task_test_files``), and
     only the artifacts read out of the sandbox, as the compliance signals do.
+
+    ``aidlc/rules`` and ``aidlc/rule/<name>`` are the rule checks (``rule_checks.py``): whether what the
+    run did kept the workflow's rules, whatever its artifacts claim. ``aidlc/leak_history`` /
+    ``aidlc/leak_apply`` flag a run that browsed git history or applied a whole patch; they are a
+    separate ledger, in no score.
     """
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
     recorded = getattr(episode, "artifacts", None) or {}
@@ -88,7 +94,11 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     c = compliance(run)
     facts = c["facts"]
     whole_patch = None if recorded.get("patch_truncated") else patch
-    cc = content_checks(run, parsed_artifacts(run, collected=True), patch=whole_patch, test_files=EV.task_test_files(task))
+    tests = EV.task_test_files(task)
+    parsed = parsed_artifacts(run, collected=True)
+    obs = observe(run)
+    cc = content_checks(run, parsed, obs=obs, patch=whole_patch, test_files=tests)
+    rc = rule_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), whole_patch, tests)
     u = S.unit_scores(facts, S.PROFILES["v4"])
     u["order"] = c["order"]["value"]
     rubric = {"aidlc/entry": u["entry"], "aidlc/reports": u["reports"]}
@@ -108,6 +118,11 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
         **{f"aidlc/content_{fam}": float(v) for fam, v in cc["families"].items() if v is not None},
         "aidlc/content_contradictions": float(cc["contradictions"]),
         **{f"aidlc/check/{k}": float(v) for k, v in cc["checks"].items() if v is not None},
+        **({"aidlc/rules": float(rc["rules"])} if rc["rules"] is not None else {}),
+        **{f"aidlc/rule/{k}": float(v) for k, v in rc["checks"].items() if v is not None},
+        # Solution-leak flags, a separate ledger: not part of any score (rubric/score.py LEAK_FLAGS).
+        "aidlc/leak_history": float(bool(facts["git_history_probe_steps"])),
+        "aidlc/leak_apply": float(bool(facts["git_apply_steps"])),
     }
 
 
