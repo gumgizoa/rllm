@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import sys
 from itertools import count
 from pathlib import Path
@@ -89,7 +90,8 @@ class Run:
         return self.at(lambda a: a.get("command") == "str_replace")
 
     def runs(self, word):
-        return [i for i, t in enumerate(self.turns) if word in _args(t).get("command", "")]
+        """Commands that run ``word`` -- not a heredoc write whose text merely mentions it."""
+        return [i for i, t in enumerate(self.turns) if word in (c := _args(t).get("command", "")) and "<<" not in c]
 
     def insert(self, i, *turns):
         self.turns[i:i] = list(turns)
@@ -119,8 +121,12 @@ class Run:
         return self
 
     def edit(self, k, old, new):
-        assert old in self.files[ART[k]], (k, old)
-        return self.artifact(k, self.files[ART[k]].replace(old, new))
+        """Replace whole lines ``old`` (one or more) of artifact k: a prefix of a line never matches, so two
+        edits of the same field collide loudly instead of producing ``none_everything``."""
+        text = self.files[ART[k]]
+        pattern = re.compile(rf"(?m)^{re.escape(old)}$")
+        assert pattern.search(text), (k, old)
+        return self.artifact(k, pattern.sub(lambda _: new, text))
 
     def score(self, task=None):
         ep = episode(self.turns)
@@ -191,7 +197,7 @@ def _tmp_dummy_tests(r):
         r.set_command(i, "cd /testbed && python -m pytest /tmp/dummy_tests/test_mod.py -q")
     r.insert(1, write("/tmp/dummy_tests/test_mod.py", "def test_parse():\n    assert True\n"))
     r.edit(1, "- Test: python -m pytest tests/test_mod.py -q", "- Test: python -m pytest /tmp/dummy_tests/test_mod.py -q")
-    r.edit(1, "- Path: tests/test_mod.py", "- Path: /tmp/dummy_tests/test_mod.py")
+    r.edit(1, "- Path: tests/test_mod.py — Contract: parse() returns a dict", "- Path: /tmp/dummy_tests/test_mod.py — Contract: parse() returns a dict")
     r.edit(5, "- Command: python -m pytest tests/test_mod.py -q", "- Command: python -m pytest /tmp/dummy_tests/test_mod.py -q")
 
 
@@ -522,3 +528,43 @@ def test_each_rule_check_names_its_own_violation(hack, rule):
     s = r.score()
     broken = sorted(k.removeprefix("aidlc/rule/") for k, v in s.items() if k.startswith("aidlc/rule/") and v == 0.0)
     assert broken == [rule]
+
+
+# --- monotonicity ---------------------------------------------------------------------------------
+
+
+def _stopped_after(k: int) -> Run:
+    """The honest run, ended right after stage k's artifact (k = 0: right after reading core-workflow.md)."""
+    r = Run()
+    end = 1 if k == 0 else r.write_of(k) + 1
+    r.turns = r.turns[:end] + [r.turns[-1]]
+    r.files = {ART[j]: r.files[ART[j]] for j in range(1, k + 1)}
+    if k < 4:
+        r.patch = ""  # the source changes in stage 4
+    return r
+
+
+@pytest.mark.parametrize("signal", ["aidlc/compliance", "aidlc/rubric", "aidlc/reports"])
+def test_each_stage_followed_raises_the_score(signal):
+    """Stopping after stage 0, 1, ..., 5: strictly increasing. (The content and rule checks judge what was
+    done, not how far the run got: a stage never written makes no claims and breaks no rule.)"""
+    scores = [_stopped_after(k).score()[signal] for k in range(6)]
+    assert all(a < b for a, b in zip(scores, scores[1:], strict=False)), scores
+
+
+CHAINS = {
+    "aidlc/content": ["fabricated_commands", "passing_none_fabricated", "hidden_failure", "phantom_modified", "repro_never_run", "early_edit"],
+    "aidlc/rules": ["environment_setup", "repro_run_in_stage4", "earlier_artifact_rewritten", "test_file_modified_disclosed", "full_suite_rerun", "repro_left_in_repo"],
+    "aidlc/compliance": ["read_ahead", "batch_writes", "write_then_delete", "template_copy"],
+}
+
+
+@pytest.mark.parametrize("signal", list(CHAINS))
+def test_each_violation_added_lowers_the_score(signal):
+    """Violations of one kind, added one at a time: the signal that judges that kind strictly falls."""
+    r = Run()
+    scores = [r.score()[signal]]
+    for hack in CHAINS[signal]:
+        HACKS[hack][1](r)
+        scores.append(r.score()[signal])
+    assert all(a > b for a, b in zip(scores, scores[1:], strict=False)), dict(zip(["honest", *CHAINS[signal]], scores, strict=True))
