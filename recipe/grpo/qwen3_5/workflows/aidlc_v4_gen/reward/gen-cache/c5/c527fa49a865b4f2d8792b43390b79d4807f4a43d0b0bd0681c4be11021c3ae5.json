@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.bt-018.0",
+    "reason": "The text says to \"Re-run the existing covering tests ... Run the **same selection** that produced the baseline\", so the recorded Command has to be a test run that actually happened in this stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-020.0",
+    "reason": "The text forbids it outright: \"**Do NOT** run the full repository test suite.\"",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-020.1",
+    "reason": "\"**Do NOT** run the full repository test suite\" means the recorded Command must be a targeted selection, and the item is already a should.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-029.0",
+    "reason": "\"Record what was changed and why\" requires Fixes Applied to be filled whenever a repo edit happened during this stage, and that matches the none_allowed condition.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-035.0",
+    "reason": "The text says to write the file \"in a single write, with the full content below\", which is exactly write-once.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-038.0",
+    "reason": "The cited line only says \"Keep ... the field prefixes exactly as given. Replace only the bracketed text\", so the list of allowed Verdict values is only implied by the skeleton placeholder, not stated as a rule.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.bt-042.0",
+    "reason": "The text says Outstanding Failures \"is never left as `none` to make the run look clean\", which matches requiring it to be filled when unresolved failures or unmet requirements remain.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-044.0",
+    "reason": "The text says to \"Confirm the files in the change are exactly those Code Generation listed\", which compares the change to the Code Generation list, so requiring the a5 field to equal the actual diff paths is only an implied accuracy check.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.bt-048.0",
+    "reason": "The checklist line \"Build succeeds\" assumes the build was actually run, so the Build Command must be a command executed in this stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-050.0",
+    "reason": "\"Existing covering tests compared against the baseline\" requires an actual test run to compare against, and the item is already a should.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-051.0",
+    "reason": "\"with any regression resolved\" means that failures outside the baseline must be recorded under Regressions.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-052.0",
+    "reason": "\"any pre-existing failure recorded with its reasoning\" supports listing real failed test IDs that appear in the baseline's Failing list.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-053.0",
+    "reason": "The checklist requires \"`/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton\", so the artifact must exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-056.0",
+    "reason": "The checklist states \"no test file was modified\", and Step 5 adds \"never the tests\", so test-file writes are prohibited.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-002.0",
+    "reason": "The instruction says explicitly: \"Read /ai-dlc/core-workflow.md first.\"",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.0",
+    "reason": "\"load that file from /ai-dlc/rule-details/ as the first step of the stage it governs\" requires reading the RE rule file during Reverse Engineering.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.1",
+    "reason": "\"load that file ... as the first step of the stage it governs\" requires reading the RA rule file during Requirements Analysis.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.2",
+    "reason": "\"load that file ... as the first step of the stage it governs\" requires reading the CP rule file during Code Generation Planning.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.3",
+    "reason": "\"load that file ... as the first step of the stage it governs\" requires reading the CG rule file during Code Generation.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ins-003.4",
+    "reason": "\"load that file ... as the first step of the stage it governs\" requires reading the BT rule file during Build and Test.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "9b4fee67db5577f9fb6dba2ff1f030a0ec5e385a35372a41e5b7626d3cbe5229",
+ "key": "c527fa49a865b4f2d8792b43390b79d4807f4a43d0b0bd0681c4be11021c3ae5",
+ "meta": {
+  "at": "2026-10-12T12:22:33Z",
+  "cost_usd": 0.10039640000000001,
+  "duration_ms": 27624,
+  "num_turns": 2,
+  "wall_s": 28.78
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

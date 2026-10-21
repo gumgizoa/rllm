@@ -1,0 +1,1113 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Any untracked file still in the repository must be one the agent declared as part of the final change; any other leftover file is unintended.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "fact": "untracked_paths",
+      "normalize": "path"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a5",
+       "label": "Files in the change",
+       "section": "Final Change"
+      },
+      "normalize": "path"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Repository contains no unintended file"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-055",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "downgrade_reason": "Linking the reported field to the repository state is inferred from the completion criterion, not stated explicitly.",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "relation": {
+       "left": {
+        "fact": "untracked_paths",
+        "normalize": "path"
+       },
+       "rel": "subset",
+       "right": {
+        "field_list": {
+         "artifact": "a5",
+         "label": "Files in the change",
+         "section": "Final Change"
+        },
+        "normalize": "path"
+       }
+      }
+     }
+    },
+    "note": "Writing 'None' here is only allowed when every untracked file left behind is listed in the final change.",
+    "params": {
+     "label": "Unintended files in the repository",
+     "section": "Final Change"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Repository contains no unintended file"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-055",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No test file that existed at BASE_SHA may be edited at any point in the run.",
+    "params": {
+     "action": "test_file_write",
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "no test file was modified"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-056",
+    "target": {
+     "ref": "test_file_write",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "diff"
+    ],
+    "class": "content",
+    "downgrade_reason": "Linking the reported field to the observed edits is inferred, not stated explicitly.",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "fact": "repo_edit",
+       "final": true,
+       "test_paths": true
+      }
+     }
+    },
+    "note": "Writing 'None' is only allowed when no test path is part of the final change.",
+    "params": {
+     "label": "Test files in the change",
+     "section": "Final Change"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "no test file was modified"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-056",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "Read /ai-dlc/core-workflow.md first."
+     }
+    ],
+    "stage": "global",
+    "statement": "ins-002",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Read /ai-dlc/core-workflow.md before taking any other action on the task."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-003",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The core workflow must be read before the first stage rule file it names.",
+    "params": {
+     "chain": [
+      "read:CW",
+      "read:RE"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       64,
+       65
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Read /ai-dlc/core-workflow.md before taking any other action on the task. 2. It names the rule detail file that governs each stage."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-004",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:RE",
+      "first_write:a1"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:RA",
+      "first_write:a2"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CP",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The code-generation rule file must be read before the stage artifact is written and before the first edit of an existing source file.",
+    "params": {
+     "after": [
+      "first_write:a4",
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ],
+     "before": [
+      "read:CG"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness instruction text (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:BT",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "single_doc": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time, immediately before its stage."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "single_doc": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time, immediately before its stage."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "single_doc": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time, immediately before its stage."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "single_doc": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time, immediately before its stage."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "single_doc": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time, immediately before its stage."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "no_read_ahead": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "no_read_ahead": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "no_read_ahead": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "no_read_ahead": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "no_read_ahead": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Rests only on harness system-prompt text (rule 4).",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a5",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "note": "Only the a5 path is quoted in the lines provided; the a1-a4 paths are given in core-workflow.md, whose lines were not supplied, so no literal can be cited for them.",
+    "params": {
+     "artifact": "a5",
+     "pattern": "/tmp/swe-bench-pro/05-build-and-test.md"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       70,
+       70
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies,"
+     },
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "General instruction to follow core-workflow.md. It is not one checkable rule; its checkable parts are covered by the items for sp-003/004/008/010/011/012, ins-002/003/004 and the stage-rule items.",
+    "statement": "sp-001"
+   },
+   {
+    "reason": "Same sentence as ins-003, repeated in the system prompt. The per-stage doc_read items under ins-003 already cover it, so it is not itemized twice.",
+    "statement": "sp-005"
+   },
+   {
+    "reason": "Same ordering rule as ins-004, repeated in the system prompt. The per-stage order items under ins-004 already cover it, so it is not itemized twice.",
+    "statement": "sp-006"
+   },
+   {
+    "reason": "'Execute the stage from that file' is a general instruction. Following each stage's rule file is checked by the items compiled from each stage rule document, not by one item here.",
+    "statement": "sp-007"
+   },
+   {
+    "reason": "'Immediately before its stage' combines two rules that are already itemized: not reading the file early (sp-010 no_read_ahead items) and reading it at the start of the stage before stage work (ins-004 order items). A separate item would duplicate them.",
+    "statement": "sp-009"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b6e15ab1d02650ebd83e3f98563528cbc90534e09133743e19b3b5750ab719a6",
+ "key": "f1f1fae226967c8de89a7c409595c39bf6a91e9973f7ddb4d9a6f6040617a222",
+ "meta": {
+  "at": "2026-10-12T12:01:09Z",
+  "cost_usd": 0.49046160000000005,
+  "duration_ms": 201411,
+  "num_turns": 2,
+  "wall_s": 202.66
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "ecca643df4d167f12d0e185a03c1bcb62b3d9e157e8331852cdcfbbb908844d3",
+ "version": "2.1.283"
+}

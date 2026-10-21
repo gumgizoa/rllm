@@ -1,0 +1,50 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "downgrade_reason": "The rule is implied, not stated: the line names the artifact path but has no MUST or imperative, so the item is capped at should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Checks that the reverse-engineering artifact (a1, {artifact}/01-reverse-engineering.md) exists when the reverse_engineering stage ends.",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "critic-2-003-0",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "086b3c6d490fdd82fc85490b1e46eded557bcfc0fa00b89d2287563603fc3acd",
+ "key": "0cb742111f4b04911df7bc773f04dd1d741e43fffe004395ae412d21650cbf06",
+ "meta": {
+  "at": "2026-10-12T12:02:02Z",
+  "cost_usd": 0.081444,
+  "duration_ms": 7196,
+  "num_turns": 2,
+  "wall_s": 8.51
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "critic2sample0",
+ "schema_sha256": "80d610e87cf8ec204377df2f62cea8195891da65003ccf47cfe6cacc95b86ab9",
+ "version": "2.1.283"
+}

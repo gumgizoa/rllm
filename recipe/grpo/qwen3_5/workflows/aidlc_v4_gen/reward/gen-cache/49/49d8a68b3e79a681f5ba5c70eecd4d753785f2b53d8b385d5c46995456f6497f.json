@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.ra-022.0",
+    "reason": "The text explicitly requires writing the artifact \"in a single write, with the full content below\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.ra-030.0",
+    "reason": "The cited line only requires \"All three categories evaluated, each with its heading present\" and says nothing about R-numbered \"- Rn:\" items in the Edge Cases section, so this format check isn't supported.",
+    "verdict": "drop"
+   },
+   {
+    "id": "g5.cp-006.0",
+    "reason": "The text says \"**MANDATORY**: Create one or more explicit steps... Number the steps sequentially\" and requires the `### Step n` headings.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-007.0",
+    "reason": "Every step must record \"**Target file(s)** — full path\", which supports a repo-path type check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-009.0",
+    "reason": "\"For every step, record: ... **Change** — what is added, altered, or removed\" directly supports requiring the Change field in each step.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-013.0",
+    "reason": "\"For every step, record:\" lists \"**Verification** — what the reproduction script must exercise\", which is a mandatory field in each step.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-015.0",
+    "reason": "The \"**CRITICAL — contract preservation**\" rule warns that \"A step that leaves it unstated can silently change a signature\", so each step must state its contract.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-019.0",
+    "reason": "The text requires writing the planning file \"in a single write, with the full content below\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-022.0",
+    "reason": "The text says to keep \"the `### Step n [satisfies Rx]` step headings... exactly as given\", which supports the heading pattern check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-025.0",
+    "reason": "The coverage section \"lists every requirement... against the steps that satisfy it\", which implies the steps it names must exist as headings; a should-level check is reasonable.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-031.0",
+    "reason": "\"Record full paths from the repository root\" directly supports requiring Target to be a repo-relative path.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-034.0",
+    "reason": "\"Never plan a duplicate such as `module_new.py` or `ClassName_modified.java`\" directly supports banning _new/_modified file names.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-038.0",
+    "reason": "The completion criterion that \"every step names target files\" supports a should-level Target-present check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-039.0",
+    "reason": "\"every step names target files, change\" supports a should-level check that each step has a Change field.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-040.0",
+    "reason": "\"every step names target files, change, contract obligations\" supports a should-level Contract-present check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-041.0",
+    "reason": "\"every step names ... verification\" supports a should-level check that each step has a Verification field.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-042.0",
+    "reason": "\"A numbered plan exists in which every step names target files\" supports the Target-present check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-042.1",
+    "reason": "\"every step names target files, change\" supports the Change-present check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-042.2",
+    "reason": "\"every step names ... contract obligations\" supports the Contract-present check.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-042.3",
+    "reason": "\"every step names ... verification, and requirement tag\" supports the Verification-present check.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "57bffd3f59617011a1d3ee6deb29dd0a76aed5d61cf54373affb48f427bee8d9",
+ "key": "49d8a68b3e79a681f5ba5c70eecd4d753785f2b53d8b385d5c46995456f6497f",
+ "meta": {
+  "at": "2026-10-12T12:22:05Z",
+  "cost_usd": 0.0894384,
+  "duration_ms": 27523,
+  "num_turns": 2,
+  "wall_s": 28.74
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

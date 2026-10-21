@@ -1,0 +1,1283 @@
+# Generator config for aidlc_v4_gen: what the generator cannot read off aidlc_v4's documents.
+#
+# The agent sees aidlc_v4's files (docs/ at /ai-dlc, instruction.md, system-prompt.j2); this package
+# only references them. Every decision below cites the line it rests on. Paths are relative to this
+# package or to docs/ (they resolve to ../aidlc_v4/...).
+workflow: aidlc_v4_gen
+prefix: aidlc_gen
+
+# Source ids used in the rubric (the abbreviations of notes/aidlc_instr.md).
+ids:
+  docs/core-workflow.md: CW
+  docs/rule-details/01-reverse-engineering.md: RE
+  docs/rule-details/02-requirements-analysis.md: RA
+  docs/rule-details/03-code-generation-planning.md: CP
+  docs/rule-details/04-code-generation-generation.md: CG
+  docs/rule-details/05-build-and-test.md: BT
+  ../aidlc_v4/instruction.md: INS
+  ../aidlc_v4/system-prompt.j2: SP
+
+roles:
+  - docs/core-workflow.md: core
+  - docs/rule-details/*.md: stage_rule
+
+system_prompt:
+  sections:
+    PROBLEM_SOLVING_WORKFLOW: workflow
+    "*": harness_generic
+
+# AI-DLC's documents, instruction and system-prompt workflow section are the workflow's own text
+# (byte-identical to the harbor originals, notes/aidlc_instr.md §0.2): no adapter text we wrote.
+adapter_roles: [adapter]
+
+precedence:
+  - order: [stage_rule, core, "system_prompt:workflow", instruction, "system_prompt:harness_generic"]
+    applies_to: all
+    authority:
+      path: docs/core-workflow.md
+      lines: [22, 22]
+      quote: "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies"
+
+classify:
+  aidlc:
+    # RE:47 / RA:42 / CP:35 / CG:54 / BT:64 "Replace only the bracketed text": a bracketed span is a
+    # placeholder; unbracketed text is literal output. Requirement-tag brackets are legit syntax whose
+    # words are literal ([satisfies R1, R3] in step headings, [R1] in Plan Execution lines).
+    brackets: true
+    placeholder: []
+    legit:
+      - '\[(?:satisfies\s+)?R\d+(?:,\s*R\d+)*\]'
+    none_tokens: [none, "not applicable", "none stated"]
+
+templates:
+  - id: t1
+    path: docs/rule-details/01-reverse-engineering.md
+    block: {fence: markdown, index: 0}
+    artifact: a1
+    stage: reverse_engineering
+    rules: aidlc
+    binding:
+      path: docs/rule-details/01-reverse-engineering.md
+      lines: [47, 47]
+      quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.
+  - id: t2
+    path: docs/rule-details/02-requirements-analysis.md
+    block: {fence: markdown, index: 0}
+    artifact: a2
+    stage: requirements_analysis
+    rules: aidlc
+    binding:
+      path: docs/rule-details/02-requirements-analysis.md
+      lines: [42, 42]
+      quote: Keep the frontmatter keys, the `##` headings, and the `- Rn:` prefix exactly as given. Replace only the bracketed text.
+  - id: t3
+    path: docs/rule-details/03-code-generation-planning.md
+    block: {fence: markdown, index: 0}
+    artifact: a3
+    stage: code_generation_planning
+    rules: aidlc
+    binding:
+      path: docs/rule-details/03-code-generation-planning.md
+      lines: [35, 35]
+      quote: Keep the frontmatter keys, the `##` headings, the `### Step n [satisfies Rx]` step headings, and the field prefixes exactly as given. Replace only the bracketed text.
+  - id: t4
+    path: docs/rule-details/04-code-generation-generation.md
+    block: {fence: markdown, index: 0}
+    artifact: a4
+    stage: code_generation_generation
+    rules: aidlc
+    binding:
+      path: docs/rule-details/04-code-generation-generation.md
+      lines: [54, 54]
+      quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.
+  - id: t5
+    path: docs/rule-details/05-build-and-test.md
+    block: {fence: markdown, index: 0}
+    artifact: a5
+    stage: build_and_test
+    rules: aidlc
+    binding:
+      path: docs/rule-details/05-build-and-test.md
+      lines: [64, 64]
+      quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.
+
+# Per-field none vocabularies from the template alternatives (DESIGN §5.2): RE:61 offers only
+# "not applicable", RA:55 only "none stated"; every other "[... | none]" field offers "none".
+none_vocab:
+  "Build & Test Commands/Build": ["not applicable"]
+  "Non-Functional Requirements/": ["none stated"]
+
+# Template fields with no none alternative whose prose demands the content (DESIGN §5.2: "no" only where
+# the source asks for content). The fields left silent ("unspecified") are the documented gaps: Created
+# (no created file), Assumptions (RA:62), Existing Tests Path (no covering test, RE:65), Exercises.
+content_required:
+  - artifact: a1
+    section: Affected Scope
+    label: Files
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [19, 19], quote: "Record every path in full, from the repository root"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [74, 74], quote: "Affected scope identified, with full paths and owning module"}
+  - artifact: a1
+    section: Affected Scope
+    label: Owning module
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [17, 17], quote: "Record the module or package that owns those files, and its boundary within the repository"}
+  - artifact: a1
+    section: Affected Scope
+    label: Language/framework
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [18, 18], quote: "Note the language and framework in use"}
+  - artifact: a3
+    section: Reproduction Script
+    label: Path
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [29, 29], quote: "Record the path where the script will be written"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [92, 92], quote: "The reproduction script is planned, with its path recorded"}
+  - artifact: a4
+    section: Reproduction Script
+    label: Path
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [28, 28], quote: "Write the reproduction script at the path the plan records"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [68, 68], quote: "- Path: [full path as written, matching the planned path]"}
+  - artifact: a5
+    section: Final Change
+    label: Files in the change
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [103, 103], quote: "Confirm the files in the change are exactly those Code Generation listed as modified or created"}
+
+stage_model:
+  fixed:
+    roots:
+      artifact: /tmp/swe-bench-pro
+      code: "{WORKDIR}"
+    stages:
+      - id: reverse_engineering
+        doc: docs/rule-details/01-reverse-engineering.md
+        artifacts: [a1]
+        order_artifact: a1
+      - id: requirements_analysis
+        doc: docs/rule-details/02-requirements-analysis.md
+        artifacts: [a2]
+        order_artifact: a2
+        requires: [a1]
+      - id: code_generation_planning
+        doc: docs/rule-details/03-code-generation-planning.md
+        artifacts: [a3]
+        order_artifact: a3
+        requires: [a1, a2]
+      - id: code_generation_generation
+        doc: docs/rule-details/04-code-generation-generation.md
+        artifacts: [a4]
+        order_artifact: a4
+        requires: [a3]
+      - id: build_and_test
+        doc: docs/rule-details/05-build-and-test.md
+        artifacts: [a5]
+        order_artifact: a5
+        requires: [a1, a4]
+    artifacts:
+      a1:
+        locations: ["{artifact}/01-reverse-engineering.md"]
+        template: docs/rule-details/01-reverse-engineering.md
+        source:
+          - {path: docs/core-workflow.md, lines: [24, 24], quote: "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename. Stage 1 writes `/tmp/swe-bench-pro/01-reverse-engineering.md`"}
+          - {path: docs/rule-details/01-reverse-engineering.md, lines: [45, 45], quote: "Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write, with the full content below"}
+      a2:
+        locations: ["{artifact}/02-requirements-analysis.md"]
+        template: docs/rule-details/02-requirements-analysis.md
+        source:
+          - {path: docs/core-workflow.md, lines: [24, 24], quote: "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."}
+          - {path: docs/rule-details/02-requirements-analysis.md, lines: [40, 40], quote: "Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write, with the full content below"}
+      a3:
+        locations: ["{artifact}/03-code-generation-planning.md"]
+        template: docs/rule-details/03-code-generation-planning.md
+        source:
+          - {path: docs/core-workflow.md, lines: [24, 24], quote: "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."}
+          - {path: docs/rule-details/03-code-generation-planning.md, lines: [33, 33], quote: "Write `/tmp/swe-bench-pro/03-code-generation-planning.md` in a single write, with the full content below"}
+      a4:
+        locations: ["{artifact}/04-code-generation-generation.md"]
+        template: docs/rule-details/04-code-generation-generation.md
+        source:
+          - {path: docs/core-workflow.md, lines: [24, 24], quote: "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."}
+          - {path: docs/rule-details/04-code-generation-generation.md, lines: [52, 52], quote: "Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below"}
+      a5:
+        locations: ["{artifact}/05-build-and-test.md"]
+        template: docs/rule-details/05-build-and-test.md
+        source:
+          - {path: docs/core-workflow.md, lines: [24, 24], quote: "Stage 5 writes `/tmp/swe-bench-pro/05-build-and-test.md`"}
+          - {path: docs/rule-details/05-build-and-test.md, lines: [62, 62], quote: "Write `/tmp/swe-bench-pro/05-build-and-test.md` in a single write, with the full content below"}
+
+# DESIGN §9. Stage windows by document reads (CW:11 "Load that file as the first step of the stage").
+scoring:
+  item_weight: {must: 1.0, should: 0.25}
+  stage: {formula: sigma_kappa}
+  substantive_threshold: 0.5
+  windows: reads
+  signals: [order, process, "stage:*"]
+  # The global items are mostly prohibitions and write rules (no install, no test edit, no rewrite) that
+  # a run doing nothing satisfies: scaled by the mean stage score they govern the work instead of
+  # crediting inaction (G9 frontmatter_stub: process 1.0 alone was 1/7 of the reward, 0.15 > 0.05).
+  process_scale: stage_mean
+  compliance: mean
+  selftest:
+    template_copy_stage_max: 0.10
+    frontmatter_stub_compliance_max: 0.05
+    x_fill_no_real_test_compliance_max: 0.50
+    honest_golden_min: 0.95
+
+# A missing artifact or a broken frontmatter zeroes its stage (the old reward's G1/G2); the
+# execution-evidence gates are on the manual items below (cap 0.57 = the old S1/S5 cap, 4/7).
+gates:
+  # the final-state existence item (the stage model's, cited from CW:24); a stage_end existence item
+  # (written within its stage, CW:22) stays a structure item
+  "aidlc_v4_gen.*.artifact_exists": {zero_stage: true}
+  frontmatter: {zero_stage: true}
+  # an artifact still holding its template's bracketed placeholders is the template, not the stage's result
+  # ("Replace only the bracketed text", RE:47 / RA:42 / CP:35 / CG:54 / BT:64); DESIGN §9 template_copy_stage_max 0.10.
+  # On the step24 runs no written artifact keeps a placeholder (every residue failure is an absent artifact).
+  "aidlc_v4_gen.*.no_template_residue": {cap_stage: 0.1}
+
+llm:
+  backend: claude-cli
+  model: claude-opus-5-5
+  claude_bin: /home/gwan7801/.vscode-server/extensions/anthropic.claude-code-2.1.283-linux-x64/resources/native-binary/claude
+  samples: 2
+  batch: 16
+  chunk_lines: 80
+  max_rounds: 3
+  max_budget_usd: 3.0
+  max_total_usd: 18.0  # the run's cap (20 USD) less what the calls in flight (parallel x max per call) can add
+  parallel: 4
+  timeout: 900
+
+# Extracted (G5) items dropped on review. Each names the G4 statement it came from (gen-work/statements.jsonl).
+exclude:
+  - {statement: cw-011, kind: aidlc.executed, reason: "mkdir before the first write: the editor creates the directory itself, and a mkdir in the same call as the write falls outside the window"}
+  - {statement: cw-012, kind: cross_ref, reason: "CW:24 explains why artifacts cannot reach the diff (they sit outside the repository); it asks nothing of the agent"}
+  - {statement: cw-044, kind: item_format, reason: "an R-id line required under each category, Non-Functional included, which RA:55 allows to be 'none stated'; the FR/Edge id lines are compiled from the template"}
+  - {statement: cw-045, kind: item_format, reason: "replaced by the manual id-sequence item (its pattern also hit prose lines starting with an R id, e.g. Assumptions)"}
+  - {statement: cw-049, kind: item_format, reason: "replaced by the manual id-uniqueness item (same pattern problem as cw-045)"}
+  - {statement: ra-009, kind: item_format, reason: "'some R id somewhere' is implied by the template's id-line items"}
+  - {statement: ra-012, kind: item_format, reason: "replaced by the manual id-sequence item (pattern without the ':' of '- Rn:' hits prose lines)"}
+  - {statement: ra-013, kind: item_format, reason: "replaced by the manual id-uniqueness item"}
+  - {statement: ra-029, kind: item_format, reason: "replaced by the manual id-uniqueness item"}
+  - {statement: ra-019, kind: item_format, reason: "requires an '- Rn:' line under Non-Functional Requirements, which RA:55 allows to be 'none stated'"}
+  - {statement: ra-026, kind: item_format, reason: "duplicates the template's Functional Requirements id-line item", merge_into: template}
+  - {statement: cw-055, kind: item_format, reason: "any line starting with a number inside Plan; cp-006 checks the step headings' sequence exactly", merge_into: cp-006}
+  - {statement: cp-037, kind: item_format, reason: "duplicates cp-006 (step heading sequence)", merge_into: cp-006}
+  - {statement: cw-060, kind: item_format, reason: "'an R id in Plan' is implied by the step-heading tag format (cp-022)", merge_into: cp-022}
+  - {statement: cp-008, kind: item_format, reason: "duplicates the template's Target-line shape item", merge_into: template}
+  - {statement: cp-035, kind: item_format, reason: "duplicates cp-022 (step headings carry [satisfies Rn])", merge_into: cp-022}
+  - {statement: cp-014, kind: cross_ref, reason: "duplicates cw-060's tags-subset-of-A2-ids cross_ref (and reads only the first tag of each heading)", merge_into: cw-060}
+  - {statement: cw-064, kind: cross_ref, reason: "every A2 id incl. a '- R3: none stated' line must appear in the plan: one reading of a documented ambiguity (RA:55 vs CP:67/86, aidlc_instr #2); replaced by the manual items that accept both"}
+  - {statement: cp-026, kind: cross_ref, reason: "same as cw-064 for Requirement Coverage; replaced by the manual coverage item"}
+  - {statement: cp-036, kind: cross_ref, reason: "same as cw-064"}
+  - {statement: cp-005, kind: cross_ref, reason: "same as cw-064"}
+  - {statement: cg-034, kind: cross_ref, reason: "same as cw-064 for Plan Execution (A2 ids incl. 'none stated'); the manual PE-tags == A3-tags item carries it"}
+  - {statement: cp-018, kind: field_type, reason: "CP:29 asks only that the path be recorded; the reproduction script may live outside the repository (BT:106), where repo_path can never hold"}
+  - {statement: cg-015, kind: cross_ref, stage: code_generation_generation, reason: "the planned repro path must be a repository write: false for a script under /tmp (BT:106 expects it outside the repo)"}
+  - {statement: cp-029, kind: cross_ref, reason: "stage-4 edits only to planned targets: CG:34-37 allows recorded deviations; the Deviations none predicate checks the consistent reading"}
+  - {statement: cg-043, kind: cross_ref, reason: "whether the repro script is listed under Created is a documented ambiguity (aidlc_instr #8; BT:102/106 vs BT:103): both readings allowed"}
+  - {statement: bt-019, kind: cross_ref, reason: "Regressions values are 'id -> cause -> fix' lines: field_list compares whole lines, so a correct entry never equals an A1 id"}
+  - {statement: bt-026, kind: cross_ref, reason: "same as bt-019 for Pre-existing failures ('id -> reasoning'); the manual test_id item checks the id against the baseline run"}
+  - {statement: cw-040, kind: cross_ref, reason: "same as bt-026"}
+  - {statement: bt-027, kind: cross_ref, reason: "the template value is the literal 'none' (BT:95): ['none'] never equals the empty set of diff test paths; the literal's refuted_by covers it"}
+  - {statement: bt-045, kind: cross_ref, reason: "same as bt-027"}
+  - {statement: re-017, kind: field_filled, reason: "Contract sits after the em dash on the Path line (RE:65), not in sub-blocks: the item fails every artifact; the Path line's shape item checks '— Contract:'"}
+  - {statement: re-027, kind: label_present, reason: "same as re-017: 'Contract' is not a line-leading label"}
+  - {statement: cw-072, kind: cross_ref, reason: "duplicates cg-042 (A4 Modified paths existed at BASE_SHA)", merge_into: cg-042}
+  - {statement: cw-100, kind: cross_ref, reason: "duplicates bt-044 (Files in the change vs the diff)", merge_into: bt-044}
+  - {statement: cg-033, kind: cross_ref, reason: "duplicates cg-026 (Plan Execution step numbers cover the plan's)", merge_into: cg-026}
+  - {statement: bt-005, kind: cross_ref, reason: "string equality of A5 Command and A1 Test is stricter than 'the same selection' (BT:36, BT:81): output flags may differ; the same-selection re-run item compares the selected tests"}
+  # FIX2 review of the regeneration with the extended vocabulary (2026-10-12): duplicates of reviewed manual items, and broken readings
+  - {statement: re-017, kind: aidlc.executed, reason: "duplicates the manual read_tests item (RE:35: every Existing Tests Path read before A1 is written)"}
+  - {statement: cp-032, kind: cross_ref, reason: "the same check as cp-048 (no plan Target is a test file in the change, CP:93) without allow_empty", merge_into: cp-048}
+  - {statement: cw-065, kind: cross_ref, reason: "the same check as cp-048 (normalize placed on the selectors)", merge_into: cp-048}
+  - {statement: cp-043, kind: cross_ref, reason: "the id pattern [A-Z]+-\\d+ matches no AI-DLC id (R1, RA:20): the left side is always empty; the manual coverage items carry CP:90"}
+  - {statement: cg-014, kind: cross_ref, reason: "duplicates the manual plan_execution_tags item (step and tags as pairs, DESIGN §8)"}
+  - {statement: cw-069, kind: cross_ref, reason: "duplicates the manual repro_path item (A4 Path == A3 Path, CG:68)"}
+  - {statement: cg-010, kind: prohibited_action, reason: "duplicates the global duplicate_variant prohibition (CW:146, CG:23)"}
+  - {statement: cg-036, kind: aidlc.executed, reason: "duplicates the manual repro_written item (the A3 / A4 path written between the plan and A4)"}
+  - {statement: bt-055, kind: cross_ref, reason: "compares the untracked files with the whole 'Files in the change' value as one string (a field, not a field list): fails every change of two files; the Unintended literal and repro_not_left carry BT:102-113"}
+  - {statement: bt-047, kind: cross_ref, reason: "duplicates the manual repro_not_left item (the reproduction script not left in the repository, BT:102/106) online only"}
+  - {statement: cw-090, kind: aidlc.executed, reason: "duplicates the manual Stage-5 sequence item (CW:124 build -> reproduce -> re-run)"}
+  - {statement: cw-022, kind: cross_ref, reason: "duplicates the manual coverage_ids item (Coverage ids are A2 ids, CW:42 / CP:67)"}
+  - {statement: bt-043, kind: cross_ref, reason: "every untracked file must be an A4 Created path: contradicts the documented readings that the reproduction script need not be listed under Created (#8) and that Stage-5 fixes need not be in A4 (#9); a file left behind is the Unintended literal's and repro_not_left's (BT:102-106)"}
+  - {statement: cw-031, kind: exec_evidence, reason: "a valid run of A1's Test command before the first source edit duplicates the manual test_run item (the recorded Test is the command of a valid baseline run); scored twice it doubles one miss in Stage 1"}
+
+# Items the extraction did not yield (or yielded in a form that is wrong or too weak): DESIGN §8.
+# Each replaces compiled / extracted items on the same subject (compile._precedence / _supersede).
+manual:
+  # ============================================================== global
+  - id: aidlc_v4_gen.global.run.doc_read_first.cw
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: doc_read_first, params: {doc: CW}}
+    availability: [trace]
+    modality_evidence: "imperative (SP:64 'before taking any other action'; INS:3 'first')"
+    sources:
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [64, 64], quote: "Read /ai-dlc/core-workflow.md before taking any other action on the task."}
+      - {path: ../aidlc_v4/instruction.md, lines: [3, 3], quote: "Read /ai-dlc/core-workflow.md first."}
+  - id: aidlc_v4_gen.global.run.order.stages
+    stage: global
+    class: evidence
+    requirement: must
+    check:
+      kind: order
+      params:
+        chain: ["read:RE", "write:a1", "read:RA", "write:a2", "read:CP", "write:a3", "read:CG", "write:a4", "read:BT", "write:a5"]
+        invalidate: [read_ahead, multi_read, rewrite]
+    availability: [trace]
+    modality_evidence: "CW:7 'always executes, in order'; CW:18 'Do NOT read ... until'; CW:28-29 one write, never rewrite; SP:68-69"
+    sources:
+      - {path: docs/core-workflow.md, lines: [7, 7], quote: "Every stage always executes, in order."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Do NOT read a stage's rule detail file until the previous stage's Completion Criteria are met."}
+      - {path: docs/core-workflow.md, lines: [28, 29], quote: "One write, full content, at the end of the stage ... Never rewrite an earlier stage's artifact."}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+    note: "rule detail read, then its artifact written, stage by stage; a read ahead of the previous artifact, a multi-document read and a rewritten artifact void their pair"
+  - id: aidlc_v4_gen.global.run.prohibited_action.install
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: install}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:134 'Do not', BT:20 'Do NOT'); SP:157-162 (install) yields to the workflow (conflict recorded)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [134, 134], quote: "Do not spend effort on environment setup"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [20, 20], quote: "**Do NOT** install dependencies or set up the environment"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [30, 30], quote: "**Do NOT** plan dependency installation or environment setup"}
+  - id: aidlc_v4_gen.global.run.prohibited_action.test_file_write
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: test_file_write, pattern: '(?:^|/)tests?/'}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:141 'DO NOT MODIFY', CG:30 'MANDATORY — do not')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [141, 142], quote: "**DO NOT MODIFY**: test files ... Existing tests are **read and executed**, never edited."}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [30, 30], quote: "do not modify test files."}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [53, 53], quote: "Correct the source code, never the tests"}
+    note: "existing tests = test files at BASE_SHA under a test/ or tests/ directory (a package's own test framework, django/test/ or sympy/testing/, is library code); a file the run adds is no edit of the tests (it is judged as part of the change, BT:104), and a repro script named test_*.py elsewhere is not one"
+  - id: aidlc_v4_gen.global.run.prohibited_action.duplicate_variant
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: repo_write, pattern: '_(?:new|modified)\.[A-Za-z]+$'}}
+    availability: [trace]
+    modality_evidence: "prohibition (CW:146 'Never create')"
+    sources:
+      - {path: docs/core-workflow.md, lines: [146, 146], quote: "Never create a duplicate variant such as `module_new.py` or `ClassName_modified.java`"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [23, 23], quote: "Never create `module_new.py`, `ClassName_modified.java`, or any similar duplicate"}
+    note: "the documents' own two suffixes only (a minimal pattern; 'any similar duplicate' is not decidable)"
+  - id: aidlc_v4_gen.global.run.prohibited_action.edit_before_generation
+    stage: global
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: source_write, window: ["start", ["write:a3", "end"]]}}
+    availability: [trace]
+    modality_evidence: "ALWAYS, in order (CW:7) applied to the stage model: modifying the source in place is Stage 4's step (CW:113), done from the written plan (CP:73), after the Stage-1 baseline that is recorded before any modification (CW:84); an edit before the plan is a Stage-4 step out of order -> must"
+    sources:
+      - {path: docs/core-workflow.md, lines: [7, 7], quote: "**The pipeline is fixed. Every stage always executes, in order.**"}
+      - {path: docs/core-workflow.md, lines: [113, 113], quote: "Execute every plan step: modify the source files in place and write the reproduction script, executing neither yet"}
+      - {path: docs/core-workflow.md, lines: [84, 84], quote: "It is recorded before any modification and consumed in Stage 5."}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [73, 73], quote: "Generation executes only what is written here"}
+    note: "no edit of a file that existed at BASE_SHA before the plan (A3) is written -- or in the whole run when no plan is; creating a new file (a scratch or reproduction script) is not modifying the source in place"
+  # ============================================================== per stage: read its rule detail file, alone, after the previous artifact
+  - id: aidlc_v4_gen.reverse_engineering.run.doc_read.re
+    stage: reverse_engineering
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: RE, single_doc: true, no_read_ahead: true, min_coverage: 0.9}}
+    availability: [trace]
+    modality_evidence: "CRITICAL (CW:11); CW:18 'Load one file at a time ... Do NOT read'; 'Load all steps' -> the whole file"
+    sources:
+      - {path: docs/core-workflow.md, lines: [11, 11], quote: "Load that file as the first step of the stage, and execute the stage from it."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Load one file at a time, immediately before its stage."}
+      - {path: docs/core-workflow.md, lines: [77, 77], quote: "Load all steps from `01-reverse-engineering.md`"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+  - id: aidlc_v4_gen.requirements_analysis.run.doc_read.ra
+    stage: requirements_analysis
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: RA, single_doc: true, no_read_ahead: true, min_coverage: 0.9}}
+    availability: [trace]
+    modality_evidence: "CRITICAL (CW:11); CW:18 'Load one file at a time ... Do NOT read'; 'Load all steps' -> the whole file"
+    sources:
+      - {path: docs/core-workflow.md, lines: [11, 11], quote: "Load that file as the first step of the stage, and execute the stage from it."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Load one file at a time, immediately before its stage."}
+      - {path: docs/core-workflow.md, lines: [90, 90], quote: "Load all steps from `02-requirements-analysis.md`"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+  - id: aidlc_v4_gen.code_generation_planning.run.doc_read.cp
+    stage: code_generation_planning
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CP, single_doc: true, no_read_ahead: true, min_coverage: 0.9}}
+    availability: [trace]
+    modality_evidence: "CRITICAL (CW:11); CW:18 'Load one file at a time ... Do NOT read'; 'Load all steps' -> the whole file"
+    sources:
+      - {path: docs/core-workflow.md, lines: [11, 11], quote: "Load that file as the first step of the stage, and execute the stage from it."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Load one file at a time, immediately before its stage."}
+      - {path: docs/core-workflow.md, lines: [101, 101], quote: "Load all steps from `03-code-generation-planning.md`"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+  - id: aidlc_v4_gen.code_generation_generation.run.doc_read.cg
+    stage: code_generation_generation
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: CG, single_doc: true, no_read_ahead: true, min_coverage: 0.9}}
+    availability: [trace]
+    modality_evidence: "CRITICAL (CW:11); CW:18 'Load one file at a time ... Do NOT read'; 'Load all steps' -> the whole file"
+    sources:
+      - {path: docs/core-workflow.md, lines: [11, 11], quote: "Load that file as the first step of the stage, and execute the stage from it."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Load one file at a time, immediately before its stage."}
+      - {path: docs/core-workflow.md, lines: [112, 112], quote: "Load all steps from `04-code-generation-generation.md`"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+  - id: aidlc_v4_gen.build_and_test.run.doc_read.bt
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check: {kind: doc_read, params: {doc: BT, single_doc: true, no_read_ahead: true, min_coverage: 0.9}}
+    availability: [trace]
+    modality_evidence: "CRITICAL (CW:11); CW:18 'Load one file at a time ... Do NOT read'; 'Load all steps' -> the whole file"
+    sources:
+      - {path: docs/core-workflow.md, lines: [11, 11], quote: "Load that file as the first step of the stage, and execute the stage from it."}
+      - {path: docs/core-workflow.md, lines: [18, 18], quote: "Load one file at a time, immediately before its stage."}
+      - {path: docs/core-workflow.md, lines: [123, 123], quote: "Load all steps from `05-build-and-test.md`"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [68, 69], quote: "Load one rule detail file at a time, immediately before its stage. Do not read ahead to a later stage's rule detail file."}
+  # ============================================================== stage 1: the baseline (CW:79, RE:36-37, RE:69-70)
+  - id: aidlc_v4_gen.reverse_engineering.run.exec_evidence.baseline
+    stage: reverse_engineering
+    class: evidence
+    requirement: must
+    check:
+      kind: exec_evidence
+      params:
+        kind: test
+        # the first source modification (CW:79): the first edit of a file that existed at BASE_SHA -- creating a file (a
+        # scratch or reproduction script) modifies no source, nor does writing the reproduction script's path; no edit at all:
+        # open to the end of the run (UNKNOWN when the diff shows a base file changed outside the trace: fail safe)
+        window:
+          - "stage_start:reverse_engineering"
+          - - &first_source_edit
+              first:
+                fact: repo_edit
+                created: false
+                paths_not_in:
+                  - {field: {artifact: a3, section: Reproduction Script, label: Path}, normalize: path}
+                  - {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}
+            - "end"
+    gate: {cap_stage: 0.57}
+    availability: [trace]
+    modality_evidence: "MANDATORY (CW:79, RE:36)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [79, 79], quote: "Record the baseline pass/fail state by executing those tests **before any source file is modified**"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [36, 36], quote: "Execute those tests once, **before any source file is modified**"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [34, 34], quote: "Locate the existing tests that cover the affected scope"}
+    note: "a valid run of tests that exist in the base repository, after reading the stage document and before the first source modification (an edit of a base file; new files and the reproduction script are none; without any, to the end); a gate (cap 0.57, the old S1 cap)"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_type.test_run
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Build & Test Commands, label: Test, type: command_run, run_kind: test, window: ["stage_start:reverse_engineering", [*first_source_edit, "end"]]}}
+    modality_evidence: "template 'verbatim targeted test command' (RE:62) for the tests RE:36 makes MANDATORY to execute before any edit"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [62, 62], quote: "- Test: [verbatim targeted test command for the covering tests]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [36, 36], quote: "Execute those tests once, **before any source file is modified**"}
+      - {path: docs/core-workflow.md, lines: [79, 79], quote: "Record the baseline pass/fail state by executing those tests **before any source file is modified**"}
+    note: "the recorded Test command is the command of a valid test run (the baseline) before the first source modification; spellings of one invocation compare equal (python -m pytest / pytest, /testbed/ paths, timeout / env wrappers), other flags do not (RE:62 'verbatim')"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_type.test_selection
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Build & Test Commands, label: Test, type: test_selection}}
+    modality_evidence: "imperative (RE:27 'Express the test command so that it can target ... not the whole suite'); template 'targeted' (RE:62)"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [27, 27], quote: "Express the test command so that it can target **the tests covering the affected scope**, not the whole suite"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [62, 62], quote: "- Test: [verbatim targeted test command for the covering tests]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [75, 75], quote: "Build/type-check command and a targeted test command known"}
+    note: "the recorded Test command selects tests (paths, node ids, labels, a -k/-m/--tag filter, or a subdirectory cwd), not the bare runner"
+  - id: aidlc_v4_gen.reverse_engineering.run.aidlc_executed.read_tests
+    stage: reverse_engineering
+    class: evidence
+    requirement: must
+    check:
+      kind: aidlc.executed
+      params:
+        window: ["start", "write:a1"]
+        steps:
+          - {read_of: {ids: {artifact: a1, section: Existing Tests, pattern: '(?m)^\s*[-*+]\s*\**Path\**:\s*\**`?([^\s`*]+)', group: 1}}, optional_if_none: true}
+    availability: [trace]
+    modality_evidence: "imperative (RE:35 'Read them to understand the contract'); RE:76 Completion Criteria 'located and read'; CW:78"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [35, 35], quote: "Read them to understand the contract the affected code must honor"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [76, 76], quote: "Existing covering tests located and read"}
+      - {path: docs/core-workflow.md, lines: [78, 78], quote: "locate and read the existing covering tests"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [65, 65], quote: "- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]"}
+    note: "every Existing Tests Path A1 lists was read (an editor view or a read verb on it, or on a file under it) before A1 was written; skipped for a none value"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_filled.passing
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Baseline, label: Passing, none_vocab: [none]}}
+    none_allowed:
+      if:
+        any:
+          # the baseline claim rests on runs observed before it was written (write:a1) and before the first source modification
+          - {counts: {fact: valid_run, kind: test, window: &baseline_claim ["stage_start:reverse_engineering", ["write:a1", *first_source_edit]], command_in: {field: {artifact: a1, section: Build & Test Commands, label: Test}}, which: last, passed: 0}}
+          - all:
+              - {absent: {fact: valid_run, kind: test, window: *baseline_claim, command_in: {field: {artifact: a1, section: Build & Test Commands, label: Test}}}}
+              - {counts: {fact: valid_run, kind: test, window: *baseline_claim, which: last, passed: 0}}
+    modality_evidence: "imperative (RE:37 'Record which of them pass'); template RE:69 offers none"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [69, 69], quote: "- Passing: [test id, one per line | none]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [37, 37], quote: "Record which of them pass and which already fail"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [68, 68], quote: "Recorded before any source file was modified."}
+    note: "'none' only when the baseline run passed 0 tests: the last valid run of A1's Test command (RE:37 'them' = the covering tests), else the last valid run, observed before A1 was written and before the first source modification (a claim needs its evidence before it is written)"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_filled.failing
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Baseline, label: Failing, none_vocab: [none]}}
+    none_allowed:
+      if:
+        any:
+          - {counts: {fact: valid_run, kind: test, window: *baseline_claim, command_in: {field: {artifact: a1, section: Build & Test Commands, label: Test}}, which: last, failed_or_errors: 0}}
+          - all:
+              - {absent: {fact: valid_run, kind: test, window: *baseline_claim, command_in: {field: {artifact: a1, section: Build & Test Commands, label: Test}}}}
+              - {counts: {fact: valid_run, kind: test, window: *baseline_claim, which: last, failed_or_errors: 0}}
+    modality_evidence: "imperative (RE:37 'Record ... which already fail'); template RE:70 offers none"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [70, 70], quote: "- Failing: [test id, one per line | none]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [37, 37], quote: "Record which of them pass and which already fail"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [68, 68], quote: "Recorded before any source file was modified."}
+    note: "'none' only when the baseline run had no failure or error: the last valid run of A1's Test command, else the last valid run, before A1 was written and before the first source modification"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_type.passing
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Baseline, label: Passing, type: test_id, run_kind: test, window: *baseline_claim}}
+    modality_evidence: "imperative (RE:37 'Record which of them pass'); RE:77 'with each test named individually'"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [69, 69], quote: "- Passing: [test id, one per line | none]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [77, 77], quote: "Baseline pass/fail state recorded **before** any modification, with each test named individually"}
+    note: "each Passing id is backed by a valid baseline run observed before A1 was written: in its output, ids or targets, a file / label it ran (paths <-> django dotted labels), or a test the source it ran defines (def test_x, observed in a base file); prose names no test"
+  - id: aidlc_v4_gen.reverse_engineering.a1.field_type.failing
+    stage: reverse_engineering
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Baseline, label: Failing, type: failed_test_id, run_kind: test, window: *baseline_claim}}
+    modality_evidence: "imperative (RE:37 'Record ... which already fail'); RE:77 'with each test named individually'"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [70, 70], quote: "- Failing: [test id, one per line | none]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [37, 37], quote: "Record which of them pass and which already fail"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [77, 77], quote: "Baseline pass/fail state recorded **before** any modification, with each test named individually"}
+    note: "each Failing id failed or errored in a valid baseline run observed before A1 was written (the run's output names it as failing)"
+  # ============================================================== stage 2: one id sequence (RA:20, RA:22)
+  - id: aidlc_v4_gen.requirements_analysis.a2.item_format.r_unique
+    stage: requirements_analysis
+    target: {type: artifact, ref: a2}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\**(R\d+)\**\s*:', unique: 1}}
+    modality_evidence: "MANDATORY (RA:20); RA:22 'so that each identifier is unique'"
+    sources:
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [22, 22], quote: "Number the requirements in one sequence across all three categories, so that each identifier is unique in the artifact"}
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [42, 42], quote: "Keep the frontmatter keys, the `##` headings, and the `- Rn:` prefix exactly as given."}
+  - id: aidlc_v4_gen.requirements_analysis.a2.item_format.r_sequence
+    stage: requirements_analysis
+    target: {type: artifact, ref: a2}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {pattern: '^\s*[-*+]\s+\**R(\d+)\**\s*:', sequence: {group: 1, start: 1}}}
+    modality_evidence: "MANDATORY (RA:20 'identified as `R1`, `R2`, `R3`, and so on'); RA:22 'in one sequence'"
+    sources:
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [20, 20], quote: "Express every requirement as a single, verifiable statement, identified as `R1`, `R2`, `R3`, and so on."}
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [22, 22], quote: "Number the requirements in one sequence across all three categories"}
+  # ============================================================== stage 3: coverage (CP:67, CP:86, CP:90), no test targets (CP:93)
+  - id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.coverage
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        left: {ids: {artifact: a3, section: Requirement Coverage, pattern: '(?m)^\s*[-*+]\s*\**(R\d+)', group: 1}}
+        right: {ids: {artifact: a2, pattern: '(?m)^\s*[-*+]\s+\**(R\d+)\**\s*:(?!\s*[*_`"''“(]*\s*(?i:none\s+stated))', group: 1}}
+        relation: superset
+        normalize: id
+    modality_evidence: "CP:67 'it must account for every identifier that artifact defines'"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [67, 67], quote: "it must account for every identifier that artifact defines."}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [90, 90], quote: "Every requirement from Requirements Analysis appears in the Requirement Coverage section, against at least one step"}
+    note: "Coverage keys include every A2 id that states a requirement; an id whose value is 'none stated' may be listed or not (RA:55 vs CP:67, both readings, conflict recorded)"
+  - id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.step_tags_cover
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        left: {ids: {artifact: a3, section: Plan, pattern: 'R\d+(?=(?:,\s*R\d+)*\])'}}
+        right: {ids: {artifact: a2, pattern: '(?m)^\s*[-*+]\s+\**(R\d+)\**\s*:(?!\s*[*_`"''“(]*\s*(?i:none\s+stated))', group: 1}}
+        relation: superset
+        normalize: id
+    modality_evidence: "MANDATORY (CP:15 'one or more explicit steps for each requirement'); CP:86"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [15, 15], quote: "Create one or more explicit steps for each requirement."}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [86, 86], quote: "Every requirement is satisfied by at least one step"}
+    note: "the requirement tags of the plan ('[satisfies R1, R4]') include every A2 id that states a requirement ('none stated' ids: both readings)"
+  - id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.coverage_ids
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: should
+    check:
+      kind: cross_ref
+      params:
+        left: {ids: {artifact: a3, section: Requirement Coverage, pattern: '(?m)^\s*[-*+]\s*\**(R\d+)', group: 1}}
+        right: {ids: {artifact: a2, pattern: '(?m)^\s*[-*+]\s+\**(R\d+)\**\s*:', group: 1}}
+        relation: subset
+        normalize: id
+    modality_evidence: "CP:67 'lists every requirement from Requirements Analysis'; CW:42 'never renumbered' (both sides agent-written: should)"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [67, 67], quote: "The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy it."}
+      - {path: docs/core-workflow.md, lines: [42, 42], quote: "Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased"}
+    note: "the other direction of the coverage item (DESIGN §8 'Coverage keys == A2 ids'): every Coverage key is an id A2 defines ('none stated' ids included)"
+  - id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.exercises_edge_cases
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: should
+    check:
+      kind: cross_ref
+      params:
+        left: {ids: {artifact: a3, section: Reproduction Script, pattern: '\bR\d+\b'}}
+        right: {ids: {artifact: a2, section: Edge Cases & Error Handling, pattern: '(?m)^\s*[-*+]\s+\**(R\d+)\**\s*:', group: 1}}
+        relation: superset
+        normalize: id
+    modality_evidence: "imperative (CP:28 'Include the conditions from the Edge Cases & Error Handling requirements'); the Exercises field lists them by identifier (CP:59) -- the mapping is inferred: should"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [28, 28], quote: "Include the conditions from the Edge Cases & Error Handling requirements"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [59, 59], quote: "- Exercises: [the requirements it covers, by identifier]"}
+    note: "the reproduction script's Exercises name every Edge Cases & Error Handling id of A2"
+  - id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.create_mode
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        left: {ids: {artifact: a3, section: Plan, pattern: '(?mi)^\s*[-*+]\s+\**Target\**:\s*\**`?([^\s`*\[\]()]+)`?[^\n]*\(\s*create\s*\)', group: 1}}
+        right: {fact: base_paths}
+        relation: disjoint
+        normalize: path
+        allow_empty: true
+    availability: [base_tree]
+    modality_evidence: "imperative (CP:81 'If the target file exists, plan to modify it in place'); the mode is the Target field's (CP:46); anchored on the base tree"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [81, 81], quote: "If the target file exists, plan to modify it **in place**"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [46, 46], quote: "- Target: [full path] (modify in place | create)"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [17, 17], quote: "whether the file is modified in place or newly created"}
+    note: "no Target marked '(create)' exists at BASE_SHA (online; offline unavailable)"
+  - id: aidlc_v4_gen.code_generation_planning.a3.item_format.no_test_target
+    stage: code_generation_planning
+    target: {type: artifact, ref: a3}
+    class: content
+    requirement: must
+    check: {kind: item_format, params: {section: Plan, pattern: '^\s*[-*+]\s+\**Target\**:[\s*`]*(?![^\s`*]*\btests?\b)', of_pattern: '^\s*[-*+]\s+\**Target\**:'}}
+    modality_evidence: "CP:93 'No step targets a test file' (Completion Criteria); CP:78 'never test files'"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [93, 93], quote: "No step targets a test file"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [78, 78], quote: "Application source code only; never test files."}
+    note: "a Target whose path names a test/ or tests/ directory or a test.py file fails; words after the path (the mode, prose) are not judged"
+  # ============================================================== stage 4: the record of what generation did (CG:34-37, CG:63-80, CG:89)
+  - id: aidlc_v4_gen.code_generation_generation.a4.field_filled.deviations
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Deviations from Plan, none_vocab: [none]}}
+    none_allowed:
+      if:
+        absent:
+          fact: repo_edit
+          window: ["write:a3", "write:a4"]
+          final: true
+          # the plan as Stage 3 wrote it (stage_end): a Target added to A3 after the edit does not make it planned
+          paths_not_in: {ids: {artifact: a3, pattern: '/?(?:[\w.-]+/)*[\w.-]+\.[A-Za-z]\w*', state: stage_end}, normalize: path}
+    modality_evidence: "CG:34 'record what changed and why in this stage's artifact'; CW:157"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [76, 76], quote: "- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and what supersedes them]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [34, 34], quote: "record what changed and why in this stage's artifact."}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [36, 36], quote: "such as a function residing in a different file than the plan states. Note the correction and proceed"}
+      - {path: docs/core-workflow.md, lines: [157, 157], quote: "Deviations from the plan, with what changed and why — Stage 4"}
+    note: "'none' only when every repository edit between the plan and this artifact that is part of the final change touched a file the plan names (a scratch file written and removed again is no deviation)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.label_present.created
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: structure
+    requirement: must
+    check: {kind: label_present, params: {section: Changed Files, label: Created}}
+    applies_when:
+      exists: {fact: repo_edit, window: ["start", "write:a4"], created: true, final: true, paths_not_in: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}}
+    modality_evidence: "template (CG:54 'exactly as given'); CG:63-65 are one example line per file (Modified twice, Created once): a Created line per created file"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [65, 65], quote: "- Created: [full path] [requirement tags]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [54, 54], quote: "Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given."}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [89, 89], quote: "listing modified and created files and any deviation from the plan"}
+    note: "only when the run created a repository file that is part of the final change (the reproduction script aside): no document says what to write when nothing was created, so a missing Created line is then accepted (conflict recorded)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.field_filled.created
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Changed Files, label: Created}}
+    none_allowed: "no"
+    applies_when:
+      exists: {fact: repo_edit, window: ["start", "write:a4"], created: true, final: true, paths_not_in: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}}
+    modality_evidence: "template (CG:54); CG:89 'listing modified and created files'; the condition is a created file, so 'none' is false"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [65, 65], quote: "- Created: [full path] [requirement tags]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [89, 89], quote: "listing modified and created files and any deviation from the plan"}
+    note: "filled (not none) when the run created a repository file of the final change; not applicable otherwise"
+  - id: aidlc_v4_gen.code_generation_generation.run.aidlc_executed.repro_written
+    stage: code_generation_generation
+    class: evidence
+    requirement: must
+    check:
+      kind: aidlc.executed
+      params:
+        window: ["write:a3", "write:a4"]
+        steps:
+          - {write_of: {field: {artifact: a3, section: Reproduction Script, label: Path}}}
+          - {write_of: {field: {artifact: a4, section: Reproduction Script, label: Path}}}
+    availability: [trace]
+    modality_evidence: "imperative (CG:28 'Write the reproduction script at the path the plan records'); CW:113 (Stage 4); CG:68 'full path as written'"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [28, 28], quote: "Write the reproduction script at the path the plan records, and **do not execute it in this stage**"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [21, 21], quote: "Use the path recorded in the plan"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [68, 68], quote: "- Path: [full path as written, matching the planned path]"}
+      - {path: docs/core-workflow.md, lines: [113, 113], quote: "Execute every plan step: modify the source files in place and write the reproduction script, executing neither yet"}
+    note: "the reproduction script exists: a successful write to the path A3 plans and to the path A4 records as written, between the plan and the Stage-4 artifact (DESIGN §8 'repro written in the A3-A4 window'; one write serves both when the paths agree)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.repro_path
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: content
+    requirement: should
+    check:
+      kind: cross_ref
+      params:
+        left: {field: {artifact: a4, section: Reproduction Script, label: Path}}
+        right: {field: {artifact: a3, section: Reproduction Script, label: Path}}
+        relation: equal
+        normalize: path
+    modality_evidence: "template '[full path as written, matching the planned path]' (CG:68); both sides agent-written: should (the trace anchor is the repro_written item)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [68, 68], quote: "- Path: [full path as written, matching the planned path]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [21, 21], quote: "Use the path recorded in the plan"}
+    note: "A4's reproduction script Path is the path A3 planned"
+  - id: aidlc_v4_gen.code_generation_generation.a4.field_literal.executed
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: structure
+    requirement: must
+    check:
+      kind: field_literal
+      params:
+        section: Reproduction Script
+        label: Executed
+        text: "no"
+        refuted_by: {exists: {fact: exec_of, selector: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}, window: ["write:a3", "write:a4"]}}
+    modality_evidence: "template literal (CG:54 'exactly as given'); CG:28 'do not execute it in this stage'"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [69, 69], quote: "- Executed: no"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [28, 28], quote: "**do not execute it in this stage**"}
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "**Every stage ends by writing its result to a file**"}
+    note: "refuted by an execution of the script between the plan (A3, which ends Stage 3, CW:22) and A4 -- what the line states when it is written (CW:22: the stage ends with its artifact); a window bounded by writes, which an early read of CG cannot shrink"
+  - id: aidlc_v4_gen.code_generation_generation.run.prohibited_action.execute
+    stage: code_generation_generation
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: execute, selector: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}, window: ["write:a3", "write:a4"]}}
+    availability: [trace]
+    modality_evidence: "prohibition (CG:28 'do not execute it in this stage'); CW:113 'executing neither yet'"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [28, 28], quote: "Write the reproduction script at the path the plan records, and **do not execute it in this stage**"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [86, 86], quote: "Source code modified and the reproduction script written, with neither executed yet"}
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "**Every stage ends by writing its result to a file**"}
+    note: "no test run and no execution of the reproduction script between writing A3 and writing A4 (each stage ends with its artifact, CW:22; bounded by writes, which an early read of CG cannot shrink)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.field_literal.test_files_modified
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: structure
+    requirement: must
+    check:
+      kind: field_literal
+      params:
+        section: Checks
+        label: Test files modified
+        text: none
+        refuted_by:
+          exists:
+            fact: repo_edit
+            test_paths: true
+            created: false
+            window: ["start", "write:a4"]
+            paths_not_in: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}
+    modality_evidence: "template literal (CG:54 'exactly as given'); MANDATORY (CG:30)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [80, 80], quote: "- Test files modified: none"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [43, 43], quote: "Confirm no test file was modified"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [30, 30], quote: "do not modify test files."}
+    note: "refuted by an edit of an existing test file before this artifact (the reproduction script itself excepted; a test file the run adds is judged by the Final Change literal, BT:104)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.changed_files
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: content
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        left: {fact: {name: repo_write_paths, window: ["start", "write:a4"], final: true}}
+        right: {ids: {artifact: a4, pattern: '(?m)^\s*[-*+]\s*\**(?:Modified|Created|Path)\**:\s*`?([^\s`\[\],;]+)', group: 1}}
+        relation: subset
+        normalize: path
+    modality_evidence: "CG:89 'listing modified and created files'; BT:103 'exactly those Code Generation listed'"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [89, 89], quote: "listing modified and created files and any deviation from the plan"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [103, 103], quote: "Confirm the files in the change are exactly those Code Generation listed as modified or created"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [55, 55], quote: "Record what was changed and why"}
+    note: "every repository file written up to this artifact that is part of the final change is listed (Modified, Created, or the reproduction script's Path); a scratch file removed again need not be (BT:102 asks for that cleanup; DESIGN §8); Stage 5 fixes are not (BT:51-55, conflict recorded)"
+  - id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.plan_execution_tags
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: content
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        # step and tags as one pair (DESIGN §8 'PE step·tag == A3 step·tag'): '- Step 2 [R2, R4]: complete' against
+        # '### Step 2 [satisfies R2, R4]' -- the same tag pool spread over other steps is a copied template, not the plan
+        left: {keyed_ids: {artifact: a4, section: Plan Execution, pattern: '(?m)^\s*[-*+]\s*\**Step\s+(\d+)\**\s*\[([^\]\n]*)\]', item: 'R\d+'}}
+        right: {keyed_ids: {artifact: a3, section: Plan, pattern: '(?m)^#{1,6}\s*\**Step\s+(\d+)\**\s*\[([^\]\n]*)\]', item: 'R\d+'}}
+        relation: equal
+    modality_evidence: "CG:41 'Note that the step is complete, and which requirement it satisfied'; CW:42 'Quote identifiers ... verbatim'"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [72, 73], quote: "- Step 1 [R1]: complete ... - Step 2 [R2, R4]: complete"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [41, 41], quote: "Note that the step is complete, and which requirement it satisfied"}
+      - {path: docs/core-workflow.md, lines: [42, 42], quote: "Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased"}
+  - id: aidlc_v4_gen.code_generation_generation.a4.write_discipline.once
+    stage: code_generation_generation
+    target: {type: artifact, ref: a4}
+    class: evidence
+    requirement: must
+    check: {kind: write_discipline, params: {mode: once, artifact: a4}}
+    availability: [trace, sandbox_file]
+    modality_evidence: "imperative (CG:52 'Write ... in a single write'); CW:28 'One write, full content, at the end of the stage' -- must, as for the other four artifacts (RE:45, RA:40, CP:33, BT:62)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [52, 52], quote: "Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below"}
+      - {path: docs/core-workflow.md, lines: [28, 28], quote: "**One write, full content, at the end of the stage**"}
+    note: "A4 written once, in full, within Stage 4 (the extracted reading came out should only because its quotes carried no imperative)"
+  # ============================================================== stage 5: build -> reproduce -> same-selection re-run (BT:15-37, CW:124)
+  - id: aidlc_v4_gen.build_and_test.run.exec_evidence.rerun
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check: {kind: exec_evidence, params: {kind: test}}
+    gate: {cap_stage: 0.57}
+    availability: [trace]
+    modality_evidence: "imperative (BT:35); MANDATORY (BT:37)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [35, 35], quote: "Re-run the existing covering tests identified in Reverse Engineering"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [37, 37], quote: "**MANDATORY**: Compare the result against the recorded baseline"}
+    note: "a valid run of base-existing tests in Stage 5; a gate (cap 0.57, the old S5 cap)"
+  - id: aidlc_v4_gen.build_and_test.run.aidlc_executed.same_selection
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check: {kind: aidlc.executed, params: {steps: [{valid_run: {kind: test, same_selection_as: {field: {artifact: a1, section: Build & Test Commands, label: Test}}}}]}}
+    availability: [trace]
+    modality_evidence: "imperative (BT:36 'Run the same selection'); BT:11 'established, not re-derived'"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [36, 36], quote: "Run the **same selection** that produced the baseline"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [11, 11], quote: "Use them as Reverse Engineering recorded them."}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [62, 62], quote: "- Test: [verbatim targeted test command for the covering tests]"}
+    note: "a valid Stage-5 run selecting the tests A1's Test command selects (same targets / node ids; output flags may differ)"
+  - id: aidlc_v4_gen.build_and_test.a1.field_type.build_run
+    stage: build_and_test
+    target: {type: artifact, ref: a1}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Build & Test Commands, label: Build, type: command_run, window: "stage:build_and_test"}}
+    modality_evidence: "imperative (BT:17 'Run the build or type-check command Reverse Engineering recorded')"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [17, 17], quote: "Run the build or type-check command Reverse Engineering recorded"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [61, 61], quote: "- Build: [verbatim build or type-check command | not applicable]"}
+    note: "only when A1 records a real command: 'not applicable' makes the item not applicable (RE:61 vs BT:17, conflict recorded)"
+  - id: aidlc_v4_gen.build_and_test.run.aidlc_executed.sequence
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check:
+      kind: aidlc.executed
+      params:
+        in_order: true
+        steps:
+          - {command_in: {field: {artifact: a1, section: Build & Test Commands, label: Build}}, optional_if_none: true}
+          - {exec_of: {field: {artifact: a4, section: Reproduction Script, label: Path}}}
+          - {valid_run: {kind: test}}
+    availability: [trace]
+    modality_evidence: "imperative (CW:124 'build, run the reproduction script, then re-run'); BT step order 1-3"
+    sources:
+      - {path: docs/core-workflow.md, lines: [124, 124], quote: "Execute them: build, run the reproduction script, then re-run the existing covering tests and compare against the Stage 1 baseline"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [17, 17], quote: "Run the build or type-check command Reverse Engineering recorded"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [26, 26], quote: "Execute the reproduction script at the path Code Generation recorded"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [35, 35], quote: "Re-run the existing covering tests identified in Reverse Engineering"}
+    note: "the recorded build (skipped when A1 says not applicable), then the reproduction script, then a valid test run, in that order within Stage 5"
+  - id: aidlc_v4_gen.build_and_test.a5.field_type.rerun_command
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Existing Tests vs Baseline, label: Command, type: command_run, run_kind: test, window: [["stage_start:build_and_test", "last_change_write"], "end"]}}
+    modality_evidence: "template '[the command run, verbatim ...]' (BT:81, BT:64 'exactly'); BT:54 'Re-run the affected verification' after a fix"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [81, 81], quote: "- Command: [the command run, verbatim — the same selection as the baseline]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [35, 35], quote: "Re-run the existing covering tests identified in Reverse Engineering"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [54, 54], quote: "Re-run the affected verification"}
+    note: "the recorded re-run command is a test-runner command run in Stage 5 and after the last edit to a non-test file of the final change (DESIGN §8): a result from before a later source edit is stale"
+  - id: aidlc_v4_gen.build_and_test.a5.field_type.build_command
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_type, params: {section: Build, label: Command, type: command_run, window: "stage:build_and_test"}}
+    applies_when: {not: {field_is_none: {artifact: a1, section: Build & Test Commands, label: Build}}}
+    modality_evidence: "template '[the command run, verbatim]' (BT:74, BT:64 'exactly')"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [74, 74], quote: "- Command: [the command run, verbatim]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [17, 17], quote: "Run the build or type-check command Reverse Engineering recorded"}
+    note: "the recorded build command was run in Stage 5 -- any build or type-check command, as A1's Build may be (BT:17; the build-runner registry is not the documents' definition)"
+  - id: aidlc_v4_gen.build_and_test.run.prohibited_action.full_suite
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check: {kind: prohibited_action, params: {action: full_suite}}
+    availability: [trace]
+    modality_evidence: "prohibition (BT:39 'Do NOT run the full repository test suite')"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [39, 39], quote: "**Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated by conditions unrelated to the change."}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [36, 36], quote: "Run the **same selection** that produced the baseline"}
+    note: "no test runner invoked at the repository root without a selection (path, node id, label or -k/-m/--tag filter) during Stage 5"
+  - id: aidlc_v4_gen.build_and_test.a5.field_enum.build_result
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_enum, params: {section: Build, label: Result, values: [success, failure]}}
+    applies_when: {not: {field_is_none: {artifact: a1, section: Build & Test Commands, label: Build}}}
+    modality_evidence: "template enum (BT:64 'exactly as given'); a build only when A1 records one (RE:61)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [73, 73], quote: "- Result: [success | failure]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [61, 61], quote: "- Build: [verbatim build or type-check command | not applicable]"}
+    note: "both readings of the gap (BT:73 has no N/A value; RE:61 allows no build): checked only when A1 records a build command"
+  - id: aidlc_v4_gen.build_and_test.a5.cross_ref.build_command
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: should
+    check:
+      kind: cross_ref
+      params:
+        left: {field: {artifact: a5, section: Build, label: Command}}
+        right: {field: {artifact: a1, section: Build & Test Commands, label: Build}}
+        relation: equal
+        normalize: command
+    applies_when: {not: {field_is_none: {artifact: a1, section: Build & Test Commands, label: Build}}}
+    modality_evidence: "BT:17 'the build or type-check command Reverse Engineering recorded' (unanchored: should)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [74, 74], quote: "- Command: [the command run, verbatim]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [17, 17], quote: "Run the build or type-check command Reverse Engineering recorded"}
+  - id: aidlc_v4_gen.build_and_test.a5.field_filled.regressions
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Existing Tests vs Baseline, label: Regressions, none_vocab: [none]}}
+    none_allowed:
+      if: {not: {field_matches: {artifact: a5, section: Existing Tests vs Baseline, label: Verdict, pattern: 'regression\s+resolved'}}}
+    modality_evidence: "template (BT:83 offers none); Verdict 'regression resolved' names a regression (one direction only)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [83, 83], quote: "- Regressions: [none | test id -> what broke it -> how it was resolved]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [82, 82], quote: "- Verdict: [unchanged | regression resolved | pre-existing failures only]"}
+  - id: aidlc_v4_gen.build_and_test.a5.field_filled.pre_existing
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Existing Tests vs Baseline, label: Pre-existing failures, none_vocab: [none]}}
+    none_allowed:
+      if:
+        all:
+          - {not: {field_matches: {artifact: a5, section: Existing Tests vs Baseline, label: Verdict, pattern: 'pre-existing\s+failures\s+only'}}}
+          - any:
+              - {field_is_none: {artifact: a1, section: Baseline, label: Failing}}
+              - {counts: {fact: valid_run, kind: test, window: "stage:build_and_test", which: last, failed_or_errors: 0}}
+    modality_evidence: "template (BT:84 offers none); BT:49 defines a pre-existing failure; CW:158"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [84, 84], quote: "- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [49, 49], quote: "A pre-existing failure."}
+      - {path: docs/core-workflow.md, lines: [158, 158], quote: "Failures judged to be pre-existing rather than caused by the patch, with the reasoning — Stage 5"}
+    note: "'none' only if the Verdict does not claim pre-existing failures and either the baseline had none or the last Stage-5 run has no failure"
+  - id: aidlc_v4_gen.build_and_test.a5.field_type.pre_existing_ids
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check:
+      kind: field_type
+      params:
+        section: Existing Tests vs Baseline
+        label: Pre-existing failures
+        type: failed_test_id
+        run_kind: test
+        window: ["stage_start:reverse_engineering", [*first_source_edit, "end"]]
+        listed_in: {field_list: {artifact: a1, section: Baseline, label: Failing}}
+    modality_evidence: "BT:49 'Existing test failure that also failed in the baseline' (anchored on the baseline run, or on A1's Failing which its own items anchor)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [49, 49], quote: "**Existing test failure that also failed in the baseline**"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [84, 84], quote: "- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [70, 70], quote: "- Failing: [test id, one per line | none]"}
+    note: "each id listed is a baseline failure: A1 Failing lists it, or a valid baseline run (before the first source modification) reports it failed or errored -- a test that passed at baseline is a regression, not pre-existing"
+  - id: aidlc_v4_gen.build_and_test.a5.field_filled.fixes
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Fixes Applied, none_vocab: [none]}}
+    none_allowed:
+      if:
+        absent:
+          fact: repo_edit
+          window: ["write:a4", "end"]
+          final: true
+          paths_not_in: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}
+    modality_evidence: "imperative (BT:55 'Record what was changed and why'); template BT:87 offers none"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [87, 87], quote: "- [none | what changed and why]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [55, 55], quote: "Record what was changed and why"}
+    note: "'none' only when no file of the final change was edited after the Stage-4 artifact (the reproduction script, and scratch files written and removed again, excepted: BT:55 records source changes, BT:102 the cleanup)"
+  - id: aidlc_v4_gen.build_and_test.a5.field_filled.outstanding
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: content
+    requirement: must
+    check: {kind: field_filled, params: {section: Outstanding Failures, none_vocab: [none]}}
+    none_allowed:
+      if:
+        not:
+          any:
+            - {field_matches: {artifact: a5, section: Build, label: Result, pattern: '^\W*fail'}}
+            - {field_matches: {artifact: a5, section: Reproduction Script, label: Result, pattern: '^\W*fail'}}
+            - all:
+                - {field_present: {artifact: a5, section: Reproduction Script, label: Unmet requirements}}
+                - {not: {field_is_none: {artifact: a5, section: Reproduction Script, label: Unmet requirements}}}
+            # any valid Stage-5 run (not only the last: a narrowed clean re-run hides nothing) with a failing test that
+            # neither the baseline (A1 Failing: pre-existing, conflict #20) nor A5's Regressions / Pre-existing failures record
+            - counts:
+                fact: valid_run
+                kind: test
+                window: "stage:build_and_test"
+                which: any
+                failures_not_in:
+                  - {field_list: {artifact: a1, section: Baseline, label: Failing}}
+                  - {field_list: {artifact: a5, section: Existing Tests vs Baseline, label: Regressions}}
+                  - {field_list: {artifact: a5, section: Existing Tests vs Baseline, label: Pre-existing failures}}
+    modality_evidence: "BT:98 'it is never left as `none` to make the run look clean'; CW:40; MANDATORY (BT:56)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [90, 90], quote: "- [none | what remains, and why it was not resolved]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [98, 98], quote: "it is never left as `none` to make the run look clean."}
+      - {path: docs/core-workflow.md, lines: [40, 40], quote: "Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else."}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [56, 56], quote: "write the artifact with the outstanding failures and stop"}
+    note: "'none' contradicts a failed build, a failed reproduction, unmet requirements, or a failure in any valid Stage-5 run that is recorded nowhere (not a baseline failure, a regression or a pre-existing failure)"
+  - id: aidlc_v4_gen.build_and_test.a5.field_literal.test_files_in_change
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: structure
+    requirement: must
+    check:
+      kind: field_literal
+      params:
+        section: Final Change
+        label: Test files in the change
+        text: none
+        refuted_by: {not: {relation: {left: {fact: diff_test_paths}, right: {literal: []}, rel: subset}}}
+    modality_evidence: "template literal (BT:64 'exactly as given'); BT:104"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [95, 95], quote: "- Test files in the change: none"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [104, 104], quote: "Confirm no test file appears in the change"}
+    note: "refuted by a test path in the final diff (online; offline the literal alone is checked)"
+  - id: aidlc_v4_gen.build_and_test.a5.field_literal.unintended_files
+    stage: build_and_test
+    target: {type: artifact, ref: a5}
+    class: structure
+    requirement: must
+    check:
+      kind: field_literal
+      params:
+        section: Final Change
+        label: Unintended files in the repository
+        text: none
+        refuted_by:
+          any:
+            - not:
+                relation:
+                  left: {fact: untracked_paths}
+                  right: {ids: {artifact: a5, section: Final Change, pattern: '/?(?:[\w.-]+/)*[\w.-]+\.[A-Za-z]\w*'}, normalize: path}
+                  rel: subset
+            # the reproduction script left inside the repository is the unintended file BT:106 names, listed or not
+            - {relation: {left: {field: {artifact: a3, section: Reproduction Script, label: Path}, normalize: path}, right: {fact: untracked_paths}, rel: intersects}}
+            - {relation: {left: {field: {artifact: a4, section: Reproduction Script, label: Path}, normalize: path}, right: {fact: untracked_paths}, rel: intersects}}
+    modality_evidence: "template literal (BT:64 'exactly as given'); MANDATORY (BT:102)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [94, 94], quote: "- Unintended files in the repository: none"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [102, 102], quote: "Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [106, 106], quote: "The reproduction script can, if it was written inside the repository — that is what this step exists to catch."}
+    note: "refuted by an untracked file left in the repository that the Final Change does not declare (new source files listed there are part of the change; build/test byproducts aside), and by the reproduction script (A3 / A4 Path) left inside the repository even when listed (BT:106); offline the untracked files are the replay's (created and not removed)"
+  - id: aidlc_v4_gen.build_and_test.run.cross_ref.repro_not_left
+    stage: build_and_test
+    class: evidence
+    requirement: must
+    check:
+      kind: cross_ref
+      params:
+        left: {field: {artifact: a4, section: Reproduction Script, label: Path}}
+        right: {fact: untracked_paths}
+        relation: disjoint
+        normalize: path
+    availability: [trace]
+    modality_evidence: "MANDATORY (BT:102 'no temporary script ... inside the repository'); BT:106 names the reproduction script; BT:113 Completion Criteria"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [102, 102], quote: "**MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [106, 106], quote: "The reproduction script can, if it was written inside the repository — that is what this step exists to catch."}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [113, 113], quote: "Repository contains no unintended file, and no test file was modified"}
+    applies_when: {field_present: {artifact: a4, section: Reproduction Script, label: Path}}
+    note: "the reproduction script A4 records is not left in the repository at the end: written outside it (/tmp, BT:106) or removed (online the untracked files, offline the replay's created-and-not-removed files)"
+
+# Contradictions and gaps the documents leave (notes/aidlc_instr.md §5), and how the rubric reads them (P3:
+# both readings where expressible; a value set the template fixes is not relaxed; the workflow over the
+# system prompt's generic sections, CW:3 / SP:61-62).
+conflicts:
+  - description: "Stage 1 allows 'Build: not applicable' (RE:61), Stage 5 always runs the recorded build and has only success|failure (BT:17, BT:73) (#3)"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [61, 61], quote: "- Build: [verbatim build or type-check command | not applicable]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [17, 17], quote: "Run the build or type-check command Reverse Engineering recorded"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [73, 73], quote: "- Result: [success | failure]"}
+    resolution: "build items apply only when A1 records a command: the Stage-5 build run and A5 Build Command are not applicable for a none value, the Build Result enum and the build step of the Stage-5 sequence are conditional on it"
+  - description: "'- R3: [... otherwise \"none stated\"]' may consume an id (RA:55) that Coverage must then account for (CP:67, CP:86); the CP example omits R3 (#2)"
+    sources:
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [55, 55], quote: "- R3: [statement, only if stated in the task description; otherwise \"none stated\"]"}
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [67, 67], quote: "it must account for every identifier that artifact defines."}
+    resolution: "Coverage and step tags must include every A2 id that states a requirement; an id whose value is 'none stated' may be listed or not"
+  - description: "Whether the reproduction script is listed under A4 Created (CG:65, BT:103) when it must not remain in the repository (BT:102, BT:106) (#8)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [65, 65], quote: "- Created: [full path] [requirement tags]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [106, 106], quote: "The reproduction script can, if it was written inside the repository — that is what this step exists to catch."}
+    resolution: "both readings: the changed-files item counts the reproduction script's recorded Path as listed; no item requires it under Created"
+  - description: "Stage-5 fixes may touch files Stage 4 did not list (BT:51-55) while the change must be exactly A4's Modified + Created (BT:103) (#9)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [53, 55], quote: "Correct the source code, never the tests ... Record what was changed and why"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [103, 103], quote: "Confirm the files in the change are exactly those Code Generation listed as modified or created"}
+    resolution: "the changed-files item checks the repository writes up to the Stage-4 artifact; Stage-5 edits are recorded under Fixes Applied (its none predicate)"
+  - description: "Step 7 (confirm the final change) comes after Step 6 writes the artifact, which may not be rewritten (BT:60-106, CW:28-29) (#1)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [100, 102], quote: "### Step 7: Confirm the Final Change ... Confirm no unintended file is part of the change"}
+      - {path: docs/core-workflow.md, lines: [28, 28], quote: "One write, full content, at the end of the stage"}
+    resolution: "the Final Change literals are judged against the repository at the end of the run (online refutation); write once still holds"
+  - description: "Verdict has no value for an unresolved regression and 'unchanged' overlaps 'pre-existing failures only' (BT:82, BT:56, BT:98) (#4)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [82, 82], quote: "- Verdict: [unchanged | regression resolved | pre-existing failures only]"}
+    resolution: "the template enum is kept (P3 does not relax it); only the implications the value names hold one way: 'regression resolved' -> Regressions not none, 'pre-existing failures only' -> Pre-existing failures not none"
+  - description: "'Unresolved work goes under Outstanding Failures ... and nowhere else' (CW:40, BT:98) while Unmet requirements and Regressions also record it (BT:78, BT:83) (#5)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [40, 40], quote: "Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else."}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [78, 78], quote: "- Unmet requirements: [none | which requirement is unmet and how it fails]"}
+    resolution: "Outstanding Failures may not be none when the build or reproduction failed, requirements are unmet, or the last Stage-5 run shows failures the baseline did not have"
+  - description: "The generic system prompt asks to keep AGENTS.md in the repository (SP:11-12) and to install missing dependencies (SP:157-162); the workflow forbids unintended files and environment setup (BT:102, CW:134)"
+    sources:
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [11, 11], quote: "Use `AGENTS.md` under the repository root as your persistent memory"}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [157, 157], quote: "please install the application and run the command again."}
+      - {path: docs/core-workflow.md, lines: [134, 134], quote: "Do not spend effort on environment setup"}
+    resolution: "the workflow wins (CW:3, SP:61-62): installs are prohibited; an AGENTS.md written in the repository counts as an unlisted repository write / unintended file"
+  - description: "The generic system prompt asks to confirm a new plan with the user (SP:171) and to combine commands (SP:18); the workflow forbids user interaction (CW:132) and loads one document at a time (CW:18)"
+    sources:
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [171, 171], quote: "propose a new plan and confirm with the user before proceeding."}
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [18, 18], quote: "combine multiple actions into a single action"}
+      - {path: docs/core-workflow.md, lines: [132, 132], quote: "Never generate a question file, never ask for approval, never wait for input."}
+    resolution: "the workflow wins: no item rewards asking; a step that reads several stage documents does not count as reading any of them"
+  - description: "The template's Build and Reproduction results allow failure|fail (BT:73, BT:77) while the Completion Criteria require 'Build succeeds' and a resolved reproduction (BT:109-110) (#6)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [73, 73], quote: "- Result: [success | failure]"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [109, 110], quote: "Build succeeds ... Reproduction script demonstrates the issue is resolved"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [56, 56], quote: "write the artifact with the outstanding failures and stop"}
+    resolution: "both readings: the enums keep failure|fail (a failed run that stops per BT:56 still writes an honest artifact), and a failure must then be named under Outstanding Failures (its none predicate)"
+  - description: "Three requirement-tag notations: '[satisfies R2, R4]' (CP:45, CP:51), '[R2, R4]' (CG:72-73) and '[requirement tags]' (CG:63-65) (#7)"
+    sources:
+      - {path: docs/rule-details/03-code-generation-planning.md, lines: [51, 51], quote: "### Step 2 [satisfies R2, R4]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [73, 73], quote: "- Step 2 [R2, R4]: complete"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [63, 63], quote: "- Modified: [full path] [requirement tags]"}
+    resolution: "each artifact's own notation; the tag cross-references read the ids inside any '[... Rn, Rm]' bracket, so plan and execution tags compare whatever notation each used"
+  - description: "'complete' is the only Plan Execution status the template shows (CG:72-73) while a structural invalidation supersedes steps (CG:37) (#10)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [72, 72], quote: "- Step 1 [R1]: complete"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [37, 37], quote: "State which steps are invalidated, why, and what supersedes them"}
+    resolution: "the template literal is kept (P3 does not relax a value the template fixes): a superseded step is recorded under Deviations from Plan ('structural invalidation: ...', CG:76), not as another status"
+  - description: "Paths 'in full, from the repository root' (RE:19, CP:77) vs 'full paths' (CW:42, CG:63): repo-relative or absolute; the reproduction script may sit outside the repository (#11)"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [19, 19], quote: "Record every path in full, from the repository root"}
+      - {path: docs/core-workflow.md, lines: [42, 42], quote: "Quote identifiers — `R1`, step numbers, full paths — verbatim"}
+    resolution: "both readings: every path comparison normalises a path to repository-relative (the workdir prefix and /testbed/ stripped), and a path outside the repository (/tmp/...) is kept absolute"
+  - description: "'one per line' under a single '- Files:' / '- Passing:' prefix (RE:56, RE:69-70): the multi-line layout is not specified (#12)"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [56, 56], quote: "- Files: [full paths from the repository root, one per line]"}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [69, 69], quote: "- Passing: [test id, one per line | none]"}
+    resolution: "every layout is read: the value on the label line, nested bullets and continuation lines under it, and comma / semicolon lists"
+  - description: "'both Step 2 and Step 3 passed' (BT:43) is undefined when the baseline already had failures that keep failing (#20)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [43, 43], quote: "If the build succeeded and both Step 2 and Step 3 passed, nothing has failed"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [49, 49], quote: "**Existing test failure that also failed in the baseline**"}
+    resolution: "a failure is judged against the baseline only one way: Outstanding Failures may not be none when the baseline had no failure and the last Stage-5 run has one; a pre-existing failure may be recorded or the run counted as passed"
+  - description: "The generic system prompt asks to 'first thoroughly understand the codebase through exploration' (SP:38); the workflow forbids surveying beyond the identified files (RE:21) (#24)"
+    sources:
+      - {path: ../aidlc_v4/system-prompt.j2, lines: [38, 38], quote: "Before implementing any changes, first thoroughly understand the codebase through exploration."}
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [21, 21], quote: "**Do NOT** enumerate packages unrelated to the issue, or survey the repository beyond the files identified above."}
+    resolution: "the workflow wins (CW:3); RE:21 is not itemized (what counts as unrelated is not decidable from the trace), so no item rewards or penalizes exploration"
+  - description: "The A4 skeleton has one example line per changed file (CG:63-65); nothing says what to write when no file was created (gap)"
+    sources:
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [65, 65], quote: "- Created: [full path] [requirement tags]"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [89, 89], quote: "listing modified and created files and any deviation from the plan"}
+    resolution: "both readings: the Created label and value are required only when the run created a repository file of the final change (the reproduction script aside); otherwise an omitted line or 'Created: none' passes"
+  - description: "Temporary files: BT:102 and BT:106 require no scratch file to remain in the repository, while A4 lists the files generation created (CG:89) and Fixes Applied records Stage-5 changes (BT:55)"
+    sources:
+      - {path: docs/rule-details/05-build-and-test.md, lines: [102, 102], quote: "Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository"}
+      - {path: docs/rule-details/05-build-and-test.md, lines: [55, 55], quote: "Record what was changed and why"}
+    resolution: "listing, fixes and deviations are judged on the final change: a file written and removed again by the run need not be listed, is no fix and no deviation; one left behind is an unintended file"
+  - description: "Where Stage 4 ends: the stage window runs to reading BT (CW:11), while 'Every stage ends by writing its result to a file' (CW:22)"
+    sources:
+      - {path: docs/core-workflow.md, lines: [22, 22], quote: "**Every stage ends by writing its result to a file**"}
+      - {path: docs/rule-details/04-code-generation-generation.md, lines: [28, 28], quote: "**do not execute it in this stage**"}
+    resolution: "the A4 'Executed: no' line and the Stage-4 no-execution rule are judged up to the A4 write (what the line states when written); an execution between the A4 write and reading BT is not Stage 4's -- the Stage-5 order items judge it"
+  - description: "No guidance when no covering tests exist (RE:65) and no none alternative for Assumptions (RA:62) (#13, #14)"
+    sources:
+      - {path: docs/rule-details/01-reverse-engineering.md, lines: [65, 65], quote: "- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]"}
+      - {path: docs/rule-details/02-requirements-analysis.md, lines: [62, 62], quote: "- [any ambiguity resolved by decision, with the reasoning]"}
+    resolution: "a none value is accepted there (unspecified); the baseline run is still required (CW:79 is MANDATORY)"

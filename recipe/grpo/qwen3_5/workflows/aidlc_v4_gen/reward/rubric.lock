@@ -1,0 +1,24 @@
+{
+ "config": {
+  "path": "generator.yaml",
+  "sha256": "43405ab46200c2e71c1ee50b041033a7b840d2dea6c634e3bb7b8caf538502e8"
+ },
+ "generator": "workflow_rubric.generator 0.1",
+ "kinds": "registry",
+ "llm": {
+  "backend": "claude-cli",
+  "cli": "2.1.283",
+  "model": "claude-opus-5-5"
+ },
+ "rubric_sha256": "e50a04e0a08b8bff0cdee4b6d9c12444aaf1706ad074f73c6931c07ca16d3990",
+ "sources": {
+  "../aidlc_v4/docs/core-workflow.md": "b1fad6c9d893fe82e55f7574a3040e9aed7c28b9c0ae53001076f72c98ec4ff4",
+  "../aidlc_v4/docs/rule-details/01-reverse-engineering.md": "f7d0b2ece59724a05f3370a213e3cae3c222966331b7a63b4ae1bb6e099e52a5",
+  "../aidlc_v4/docs/rule-details/02-requirements-analysis.md": "ff0618f121eede96341ce909f94ba2aca1c155436c6b8ad0b779f9f8c6d2bd72",
+  "../aidlc_v4/docs/rule-details/03-code-generation-planning.md": "d78e8592d0581c0e1a28265ad9d0e68e6a8462028e11089d0e78610fd5828ff0",
+  "../aidlc_v4/docs/rule-details/04-code-generation-generation.md": "33e47a130e5c3ccdecd011ed1d2aaf3590b112b8f3626bf6ed26271fa76a7347",
+  "../aidlc_v4/docs/rule-details/05-build-and-test.md": "04cfbcf5ea8ea9c3dbf79bf53e4f9e54c3f824267f266438322a5556e958fb51",
+  "../aidlc_v4/instruction.md": "d524a41fc9c9f6f3e00d78a1b7f0348178d22b41f2b636dda360b6363868cd7b",
+  "../aidlc_v4/system-prompt.j2": "871624a163bab22bd5600cd2cf1acd6b8ff0d31cb18bd955e34677dd5d91dbc0"
+ }
+}

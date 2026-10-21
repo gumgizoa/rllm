@@ -1,0 +1,796 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Every step block (not just the first) must name its target files.",
+    "params": {
+     "label": "Target",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "A numbered plan exists in which every step names target files, change, contract obligations, verification, and requirement tag"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-042",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Every step block must name its change.",
+    "params": {
+     "label": "Change",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change, contract obligations, verification, and requirement tag"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-042",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "unspecified",
+    "note": "Every step block must name its contract obligations.",
+    "params": {
+     "label": "Contract",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change, contract obligations, verification, and requirement tag"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-042",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Every step block must name its verification.",
+    "params": {
+     "label": "Verification",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change, contract obligations, verification, and requirement tag"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-042",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "The skeleton has no label for the requirement tag, and the tag format is not given, so a per-step tag presence check cannot be written without inventing a pattern.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names ... requirement tag"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-042",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Each functional requirement ID from Requirements Analysis has to appear in Requirement Coverage.",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "group": 1,
+       "pattern": "\\b([A-Z]{1,5}-\\d+)\\b",
+       "section": "Functional Requirements"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "\\b([A-Z]{1,5}-\\d+)\\b",
+       "section": "Requirement Coverage"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Every requirement from Requirements Analysis appears in the Requirement Coverage section, against at least one step"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-043",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Each non-functional requirement ID has to appear in Requirement Coverage. An empty NFR section is allowed.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "group": 1,
+       "pattern": "\\b([A-Z]{1,5}-\\d+)\\b",
+       "section": "Non-Functional Requirements"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "\\b([A-Z]{1,5}-\\d+)\\b",
+       "section": "Requirement Coverage"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Every requirement from Requirements Analysis appears in the Requirement Coverage section, against at least one step"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-043",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "No plan step Target may be a test file that ends up in the change.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       93,
+       93
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "No step targets a test file"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-048",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Plan Targets must not include the existing test files recorded in Reverse Engineering.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "field_list": {
+       "artifact": "a1",
+       "label": "Path",
+       "section": "Existing Tests"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       93,
+       93
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "No step targets a test file"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-048",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "`/tmp/swe-bench-pro/03-code-generation-planning.md` written in the prescribed skeleton"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-049",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "This is the stage's purpose line; the concrete execution steps restate it.",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "During Generation the agent writes the planned target files and the reproduction script at its planned path.",
+    "params": {
+     "steps": [
+      {
+       "write_of": {
+        "field_list": {
+         "artifact": "a3",
+         "label": "Target",
+         "section": "Plan"
+        },
+        "normalize": "path"
+       }
+      },
+      {
+       "write_of": {
+        "field": {
+         "artifact": "a3",
+         "label": "Path",
+         "section": "Reproduction Script"
+        },
+        "normalize": "path"
+       }
+      }
+     ],
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**Purpose**: Execute the plan to modify source code and write the reproduction script"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-001",
+    "target": {
+     "ref": "write_of plan targets and reproduction script",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/04-code-generation-generation.md`"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-002",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Written as a definition note, not an explicit imperative.",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Catching a new file that is a renamed copy of an existing file in general would need content-similarity detection. The named _new/_modified patterns are covered by the cg-010 item.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       7,
+       7
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "\"Generate\" means **modify the existing file** when one exists, not create a variant alongside it."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-003",
+    "target": {
+     "ref": "variant file creation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The planning artifact has to be written before the first in-place edit of an existing source file.",
+    "params": {
+     "after": {
+      "first": {
+       "created": false,
+       "fact": "repo_edit"
+      }
+     },
+     "before": "first_write:a3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       9,
+       10
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "## Prerequisites\n- Code Generation Planning is complete: the numbered plan and the reproduction script path are established, and recorded in `/tmp/swe-bench-pro/03-code-generation-planning.md`"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-004",
+    "target": {
+     "ref": "planning recorded before first source edit",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Execution order is inferred from how Plan Execution lists the steps, not observed directly.",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Plan Execution entries must be numbered in plan sequence.",
+    "params": {
+     "min": 1,
+     "pattern": "^(?:#+\\s*|-\\s*)?(?:Step\\s+)?(\\d+)[.:]",
+     "section": "Plan Execution",
+     "sequence": true
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       14,
+       17
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "### Step 1: Take the Next Step from the Plan\n\n- [ ] Work through the plan in order"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-005",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Recorded local corrections to plan paths are allowed, and that exception cannot be expressed.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Files changed during Generation that stay in the final change must be paths recorded as plan Targets.",
+    "params": {
+     "left": {
+      "fact": {
+       "final": true,
+       "name": "repo_write_paths",
+       "window": "stage:code_generation_generation"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "- [ ] Use the path recorded in the plan"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-007",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The reproduction script path in Generation has to match the path recorded in the plan.",
+    "params": {
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "field": {
+       "artifact": "a3",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Use the path recorded in the plan"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-007",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "downgrade_reason": "Implicit: inferred from how Changed Files reports in-place modification.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Files reported as Modified must have existed at BASE_SHA.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       23,
+       24
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**If it exists**: modify it in place. ... **If it does not exist**: create it"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-009",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "downgrade_reason": "Implicit: inferred from the exists → modify / not exists → create split.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "A file that existed at BASE_SHA must not be reported as Created.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       23,
+       24
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**If it exists**: modify it in place. ... **If it does not exist**: create it"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-009",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No repository file may be created or written whose name follows the _new / _modified duplicate patterns.",
+    "params": {
+     "action": "repo_write",
+     "pattern": "_(new|modified)\\.[A-Za-z]+$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Never create `module_new.py`, `ClassName_modified.java`, or any similar duplicate"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-010",
+    "target": {
+     "ref": "repo_write",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The Requirement Coverage section is already in the compiled a3 template skeleton (section_present). The statement adds nothing beyond it.",
+    "statement": "cp-044"
+   },
+   {
+    "reason": "The planned reproduction script is already covered by the compiled template labels Reproduction Script / Path and Reproduction Script / Exercises. The script is only planned at this stage, so nothing observable backs it yet. Its writing is checked under cg-001.",
+    "statement": "cp-046"
+   },
+   {
+    "reason": "Recording the path is already covered by the compiled filled check on Reproduction Script / Path. The path may not exist yet and may be outside the repo, so repo_path typing does not apply. Plan-to-generation path consistency is checked under cg-007.",
+    "statement": "cp-047"
+   },
+   {
+    "reason": "The prescribed skeleton (headings, labels, residue) is already compiled from the a3 template.",
+    "statement": "cp-050"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b29df24b93ec41b74eb1a19ead74fcf4d98f7fd80522593828467aaa329ff2f1",
+ "key": "2acfb6fd0c6e02ad70a5013067561888ae565c67b23939512d26d75444e1fe9b",
+ "meta": {
+  "at": "2026-10-12T11:55:42Z",
+  "cost_usd": 0.4497534,
+  "duration_ms": 199017,
+  "num_turns": 2,
+  "wall_s": 200.36
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "0159da9b3ac9fd3fde1b0b6a1b57f69169f0fff9d56183649a8510c38d007fa4",
+ "version": "2.1.283"
+}

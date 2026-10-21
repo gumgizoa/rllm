@@ -1,0 +1,521 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are written by the agent (a3 plan and a4 execution record), so this cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every step number planned in a3 ## Plan must show up in a4 ## Plan Execution (the Step N [Rx]: lines).",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Plan"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a4",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Plan Execution"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Every plan step executed"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-033",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are written by the agent (a2 requirements and a4 execution record), so this cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every requirement ID defined in a2 must be tagged on at least one executed step in a4 ## Plan Execution.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a4",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan Execution"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       85,
+       85
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Every requirement (`R1`, `R2`, ...) implemented"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-034",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "During the stage, at least one file that already existed at BASE_SHA must be written. New scratch or reproduction files do not count.",
+    "params": {
+     "left": {
+      "fact": {
+       "name": "repo_write_paths",
+       "window": "stage:code_generation_generation"
+      }
+     },
+     "normalize": "path",
+     "relation": "intersects",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Source code modified"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-035",
+    "target": {
+     "ref": "source code modification in code_generation_generation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The reproduction script path recorded in a4 must have been written during this stage.",
+    "params": {
+     "steps": [
+      {
+       "write_of": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        },
+        "normalize": "path"
+       }
+      }
+     ],
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "the reproduction script written"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-036",
+    "target": {
+     "ref": "reproduction script write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No test run is allowed in this stage. Running belongs to build_and_test.",
+    "params": {
+     "action": "execute",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Source code modified and the reproduction script written, with neither executed yet"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-037",
+    "target": {
+     "ref": "test runs during code_generation_generation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "The reproduction script recorded in a4 must not be run in this stage.",
+    "params": {
+     "action": "execute",
+     "selector": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      },
+      "normalize": "path"
+     },
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "the reproduction script written, with neither executed yet"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-037",
+    "target": {
+     "ref": "reproduction script execution during code_generation_generation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "To check this, each file created in the stage would have to be compared with existing BASE_SHA files (near-identical names or contents, e.g. foo_new.py next to foo.py). No kind in the vocabulary detects a duplicate copy.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       87,
+       87
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "No duplicate files created"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-038",
+    "target": {
+     "ref": "files created in code_generation_generation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       88,
+       88
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "No test file modified"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-039",
+    "target": {
+     "ref": "test file edits during code_generation_generation",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "`/tmp/swe-bench-pro/04-code-generation-generation.md` written"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-040",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "created": false,
+       "fact": "repo_edit",
+       "window": "stage:code_generation_generation"
+      }
+     }
+    },
+    "note": "'None' is allowed for Modified only if no file that existed at BASE_SHA was edited in this stage.",
+    "params": {
+     "label": "Modified",
+     "section": "Changed Files"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "listing modified and created files"
+     },
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Source code modified"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-042",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every file listed as Modified must actually have been written in the repository during this stage.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "name": "repo_write_paths",
+       "window": "stage:code_generation_generation"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "listing modified and created files"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-042",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "created": true,
+       "fact": "repo_edit",
+       "window": "stage:code_generation_generation"
+      }
+     }
+    },
+    "note": "'None' is allowed for Created only if no new file was created in the repository during this stage.",
+    "params": {
+     "label": "Created",
+     "section": "Changed Files"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "listing modified and created files"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-043",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Implicit: the rule says to list created files, and the reproduction script is a created file per line 86. Both sides are written by the agent (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The reproduction script written in this stage should appear in the Created list.",
+    "params": {
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "listing modified and created files"
+     },
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "the reproduction script written"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-043",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The frontmatter keys and values (stage, name) come from the a4 template skeleton and are already compiled into template items (rule 10).",
+    "statement": "cg-029"
+   },
+   {
+    "reason": "The ## headings (Changed Files, Reproduction Script, Plan Execution, Deviations from Plan, Checks) are already compiled from the a4 template skeleton (rule 10).",
+    "statement": "cg-030"
+   },
+   {
+    "reason": "The field prefixes (Modified, Created, Path, Executed, Step N [Rx], Duplicate files created, Test files modified) are already compiled from the a4 template labels (rule 10).",
+    "statement": "cg-031"
+   },
+   {
+    "reason": "Bracketed-placeholder residue is already covered by the compiled template residue checks (rule 10).",
+    "statement": "cg-032"
+   },
+   {
+    "reason": "'Prescribed skeleton' means the a4 template structure (frontmatter, headings, labels, fixed lines), which is already compiled into template items (rule 10).",
+    "statement": "cg-041"
+   },
+   {
+    "reason": "The Deviations from Plan section and its filled check are already compiled from the template. The document allows 'none' when the plan was followed, and no observable run fact reliably marks a deviation, so there is no extra condition to express.",
+    "statement": "cg-044"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "602d636aa73668e31f9306d39aa27d48e33ab1cae38fb9f147521fec86918963",
+ "key": "038d3e0aec955a61964610e2550118e386d717d768d834ef72ab41c2df9df31a",
+ "meta": {
+  "at": "2026-10-12T11:57:41Z",
+  "cost_usd": 0.40283800000000003,
+  "duration_ms": 140131,
+  "num_turns": 2,
+  "wall_s": 141.41
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "b140cedd22fc63b9f5c16500ca42b5caefa1242fe7f97e27f96018a6ecff5d99",
+ "version": "2.1.283"
+}

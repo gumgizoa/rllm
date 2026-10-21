@@ -1,0 +1,597 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-079",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Inferred: a 'modified' file must be one that existed at BASE_SHA.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      },
+      "normalize": "path"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modified files, created files, deviations"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-080",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Inferred: files listed as modified must actually have been written before the Stage 4 artifact was written.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      },
+      "normalize": "path"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "name": "repo_write_paths",
+       "window": [
+        "start",
+        "write:a4"
+       ]
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modified files, created files, deviations"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-080",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Inferred: a 'created' file must not have existed at BASE_SHA.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      },
+      "normalize": "path"
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       116,
+       116
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modified files, created files, deviations"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-081",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a4",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       116,
+       117
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations\n6. Proceed to Stage 5"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-083",
+    "target": {
+     "ref": "Stage transition 4 -> 5",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "min_coverage": 0.9,
+     "window": [
+      "start",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       123,
+       123
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "1. Load all steps from `05-build-and-test.md`"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-086",
+    "target": {
+     "ref": "read 05-build-and-test.md",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "note": "The recorded build command must have actually been run in Stage 5 before the artifact was written.",
+    "params": {
+     "label": "Command",
+     "section": "Build",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       124,
+       124
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "2. Execute them: build, run the reproduction script, then re-run the existing covering tests"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-087",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "params": {
+     "steps": [
+      {
+       "exec_of": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        },
+        "normalize": "path"
+       }
+      }
+     ],
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       124,
+       124
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Execute them: build, run the reproduction script"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-088",
+    "target": {
+     "ref": "run reproduction script",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       124,
+       124
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "then re-run the existing covering tests"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-089",
+    "target": {
+     "ref": "re-run existing covering tests",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "params": {
+     "label": "Command",
+     "run_kind": "test",
+     "section": "Existing Tests vs Baseline",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       124,
+       124
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "then re-run the existing covering tests and compare against the Stage 1 baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-089",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "params": {
+     "in_order": true,
+     "steps": [
+      {
+       "command_in": {
+        "field": {
+         "artifact": "a5",
+         "label": "Command",
+         "section": "Build"
+        },
+        "normalize": "command"
+       },
+       "optional_if_none": true
+      },
+      {
+       "exec_of": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        },
+        "normalize": "path"
+       }
+      },
+      {
+       "valid_run": {
+        "command_in": {
+         "field": {
+          "artifact": "a5",
+          "label": "Command",
+          "section": "Existing Tests vs Baseline"
+         },
+         "normalize": "command"
+        },
+        "kind": "test"
+       }
+      }
+     ],
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       124,
+       124
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "build, run the reproduction script, then re-run the existing covering tests"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-090",
+    "target": {
+     "ref": "Order: build, then reproduction, then existing tests",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Treating 'pre-existing' as 'failed in a valid run before any source file was edited' is inferred from 'compare against the Stage 1 baseline'.",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "params": {
+     "label": "Pre-existing failures",
+     "section": "Existing Tests vs Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "start",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       124,
+       125
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "compare against the Stage 1 baseline\n3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-091",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": {
+         "field_list": {
+          "artifact": "a5",
+          "label": "Regressions",
+          "section": "Existing Tests vs Baseline"
+         }
+        },
+        "which": "last",
+        "window": "stage:build_and_test"
+       }
+      }
+     }
+    },
+    "note": "'None' is allowed only when the last valid test run in Stage 5 has no failing test other than ones listed as regressions. The 'with the reasoning' part can't be checked deterministically.",
+    "params": {
+     "label": "Pre-existing failures",
+     "section": "Existing Tests vs Baseline"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       125,
+       125
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "record any failure judged pre-existing, with the reasoning"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-093",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-095",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The template already has the 'Deviations from Plan' section and its filled check. The statement adds no rule tied to the run, and what counts as a deviation can't be checked deterministically.",
+    "statement": "cw-082"
+   },
+   {
+    "reason": "'ALWAYS EXECUTE' is enforced by the concrete Stage 5 items: the rule-doc read (cw-086), the build, reproduction and test runs (cw-087..cw-090) and the artifact existing (cw-095). Another item would only duplicate them.",
+    "statement": "cw-084"
+   },
+   {
+    "reason": "The template already compiles 'Build / Result'. Checking that the recorded build command was actually run is covered by the cw-087 field_type item. The result text itself can't be checked against the run.",
+    "statement": "cw-096"
+   },
+   {
+    "reason": "The template already compiles 'Reproduction Script / Result'. Running the script is checked by cw-088. No deterministic kind can check whether the recorded result matches the script's outcome.",
+    "statement": "cw-097"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "00ac6f7292f7faecfc0e0518093234d84f0aa6973abaa9657ad81345bc726121",
+ "key": "aa2cc840f07ca0339f928fdc0afc038144b9d5b6b62cc5b67d04137852b5be29",
+ "meta": {
+  "at": "2026-10-12T11:47:17Z",
+  "cost_usd": 0.27664580000000005,
+  "duration_ms": 114837,
+  "num_turns": 2,
+  "wall_s": 116.14
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "f028bbac258414d9c4e516724a651c0ecc694f2787a2603f4acb522ccd44923f",
+ "version": "2.1.283"
+}

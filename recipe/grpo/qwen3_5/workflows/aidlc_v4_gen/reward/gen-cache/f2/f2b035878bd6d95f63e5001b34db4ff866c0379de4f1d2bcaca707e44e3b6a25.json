@@ -1,0 +1,82 @@
+{
+ "answer": {
+  "items": [
+   {
+    "applies_when": true,
+    "class": "evidence",
+    "downgrade_reason": "The rule appears only in the harness system prompt (system-prompt.j2), not in the workflow's own documents, so it is capped at should (rule 4).",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Each stage closes by writing its own artifact, so the first writes of the stage artifacts should happen in stage order (a1 -> a5). Later revisits of an earlier artifact are not penalised.",
+    "params": {
+     "chain": [
+      "first_write:a1",
+      "first_write:a2",
+      "first_write:a3",
+      "first_write:a4",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies, after that stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-013",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": true,
+    "class": "content",
+    "downgrade_reason": "The rule appears only in the harness system prompt (system-prompt.j2), so it is capped at should (rule 4).",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Each stage's Completion Criteria are defined in that stage's own rule detail file and differ from stage to stage. No single generic kind can check that every stage's criteria were met before its artifact write. Per-stage criteria items should come from the stage rule statements.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact ... after that stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-013",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "a75408b37b4e26c4a761ca6c2d629ce16096bfe54cdb9ad276aee977f8224b29",
+ "key": "f2b035878bd6d95f63e5001b34db4ff866c0379de4f1d2bcaca707e44e3b6a25",
+ "meta": {
+  "at": "2026-10-12T12:00:45Z",
+  "cost_usd": 0.117488,
+  "duration_ms": 24927,
+  "num_turns": 2,
+  "wall_s": 26.32
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "ad665476f95e09f7193adaac5a74de6b6d6ea4740710344af6703b173e49cba4",
+ "version": "2.1.283"
+}

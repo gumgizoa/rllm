@@ -1,0 +1,47 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "partial",
+    "kind": "execution_evidence",
+    "line_end": 73,
+    "line_start": 73,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "The heading marks Stage 1 as mandatory and never conditional. You can check this by whether the reverse engineering artifact exists or whether the trace shows the stage ran.",
+    "path": "../aidlc_v4/docs/core-workflow.md",
+    "quote": "## Stage 1: Reverse Engineering (ALWAYS EXECUTE)",
+    "stage": "reverse_engineering",
+    "target": "Reverse Engineering stage always executed (never skipped)"
+   },
+   {
+    "checkable_by_rule": "yes",
+    "kind": "artifact_exists",
+    "line_end": 5,
+    "line_start": 5,
+    "modality": "implicit",
+    "none_allowed": "-",
+    "notes": "The Reverse Engineering stage must write its output artifact to exactly this path.",
+    "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+    "quote": "**Artifact**: `/tmp/swe-bench-pro/01-reverse-engineering.md`",
+    "stage": "reverse_engineering",
+    "target": "/tmp/swe-bench-pro/01-reverse-engineering.md"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "44874db5a000e90e8dfc53c0ac7c5d4051675aab3c8d27ca949dc1fd01056a59",
+ "key": "7f3bbb08ac8775e701734cb296fea6eb5dd1b1450ecac24fed90b02df90286a0",
+ "meta": {
+  "at": "2026-10-12T08:39:49Z",
+  "cost_usd": 0.035223,
+  "duration_ms": 8238,
+  "num_turns": 2,
+  "wall_s": 9.49
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "32d3311c67989184eed2114edcb400dff0aa0321ff58520a3710d91b0bf47155",
+ "salt": "round1",
+ "schema_sha256": "e727dfb995fa2e0b796215fd62ddbdd8590967eb070f24c506de38cfff19bf03",
+ "version": "2.1.283"
+}

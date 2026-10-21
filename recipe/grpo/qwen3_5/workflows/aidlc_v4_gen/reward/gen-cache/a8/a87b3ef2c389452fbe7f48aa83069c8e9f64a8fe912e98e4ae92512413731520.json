@@ -1,0 +1,116 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cw-075.0",
+    "reason": "Step 3 says to \"Record any deviation from the plan, with what changed and why\", and allowing 'none' when every write stayed within the plan's targets fits that wording.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-079.0",
+    "reason": "The doc gives a direct instruction: \"Write `/tmp/swe-bench-pro/04-code-generation-generation.md`\".",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-080.0",
+    "reason": "The artifact must list \"modified files\", and a modified file has to exist in the base repo, so checking that it is a subset of base_paths follows from the term.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-081.0",
+    "reason": "The artifact must list \"created files\", and a newly created file can't already be in the base repo, so the disjointness check (empty allowed) follows from the term.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-083.0",
+    "reason": "The numbered steps \"5. Write `.../04-code-generation-generation.md`\" then \"6. Proceed to Stage 5\" set the order, so a4 is written before a5.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-087.0",
+    "reason": "\"Execute them: build, run the reproduction script\" requires the build to actually run, so it fits as a should-level check that the recorded Build command was executed.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-089.0",
+    "reason": "\"re-run the existing covering tests and compare against the Stage 1 baseline\" requires the test command to actually run in Stage 5.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-098.0",
+    "reason": "The cited line only lists contents (\"build result, reproduction result, regression verdict, outstanding failures\") and says nothing about an executed test command, so support is implicit; this also duplicates cw-089.0 with a conflicting none_allowed.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cw-098.1",
+    "reason": "\"Fix any regression the patch introduced; record any failure judged pre-existing ... regression verdict\" supports filling Regressions, with 'none' allowed only when no failures go beyond the pre-existing ones.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-099.0",
+    "reason": "The artifact contents explicitly include \"outstanding failures\", so the section must be filled unless the last run had no failures beyond the pre-existing ones.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-107.0",
+    "reason": "\"Each stage writes one artifact file\" covers Stage 1's artifact a1.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-107.1",
+    "reason": "\"Each stage writes one artifact file\" covers Stage 2's artifact a2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-107.2",
+    "reason": "\"Each stage writes one artifact file\" covers Stage 3's artifact a3.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-107.3",
+    "reason": "\"Each stage writes one artifact file\" covers Stage 4's artifact a4.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-107.4",
+    "reason": "\"5. Write `/tmp/swe-bench-pro/05-build-and-test.md`\" together with \"Each stage writes one artifact file\" requires a5.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-124.0",
+    "reason": "\"leave every previously passing test passing ... Stage 5 verifies the outcome against the baseline\" supports recording regressions, with 'none' allowed when no failures go beyond the baseline Failing list.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-127.0",
+    "reason": "The doc requires \"Deviations from the plan, with what changed and why — Stage 4\", and allowing 'none' when the diff stays within the planned targets fits that.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-128.0",
+    "reason": "The text only asks for \"Failures judged to be pre-existing rather than caused by the patch, with the reasoning\" and does not require them to appear in a1's Baseline Failing list, so that constraint is stricter than written.",
+    "verdict": "downgrade"
+   },
+   {
+    "id": "g5.cw-129.0",
+    "reason": "The doc requires \"Outstanding failures at the end of the run — Stage 5\", and allowing 'none' when no failures go beyond the baseline or pre-existing lists fits that.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "906e1ed34825d261f95bcba3dc3ab826809020087279470f8eaca553438b2423",
+ "key": "a87b3ef2c389452fbe7f48aa83069c8e9f64a8fe912e98e4ae92512413731520",
+ "meta": {
+  "at": "2026-10-12T12:22:06Z",
+  "cost_usd": 0.10277939999999999,
+  "duration_ms": 28522,
+  "num_turns": 2,
+  "wall_s": 29.78
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

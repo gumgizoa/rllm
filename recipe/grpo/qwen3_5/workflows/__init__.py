@@ -26,7 +26,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Sequence
 
-from . import agentos_v2, aidlc_v4, openspec_ff, speckit_bug, speckit_sdd
+from . import agentos_v2, aidlc_v4, aidlc_v4_gen, openspec_ff, speckit_bug, speckit_sdd
 from .spec import WorkflowSpec
 
 # The plain harness as a member of a mix: nothing uploaded, the task text untouched.
@@ -36,6 +36,7 @@ WORKFLOW_KEY = "recipe_workflow"
 
 WORKFLOWS: dict[str, WorkflowSpec] = {
     "aidlc_v4": aidlc_v4.SPEC,
+    "aidlc_v4_gen": aidlc_v4_gen.SPEC,
     "speckit_bug": speckit_bug.SPEC,
     "openspec_ff": openspec_ff.SPEC,
     "speckit_sdd": speckit_sdd.SPEC,

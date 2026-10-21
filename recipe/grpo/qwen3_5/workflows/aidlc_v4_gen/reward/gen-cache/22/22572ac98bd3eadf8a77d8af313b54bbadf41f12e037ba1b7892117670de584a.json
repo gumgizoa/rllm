@@ -1,0 +1,859 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Implicit: each stage's completion is evidenced only by its artifact existing (a1/a2 covered by cw-033/cw-041).",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "The artifact's existence is what states the stage finished."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-020",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "The artifact's existence is what states the stage finished."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-020",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-020",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No kind forbids reads of agent artifacts conditioned on context visibility (truncation/compaction); checkable in principle from the trace.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       43
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Do not re-read an artifact you can still see.** ... **Read an artifact only to recover**, when an earlier stage's content is no longer visible because output was truncated or history was compacted"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-021",
+    "target": {
+     "ref": "artifact reads",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Requirement IDs used in the plan must be ones defined in Stage 2, unrenumbered.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b"
+      },
+      "normalize": "id"
+     },
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-022",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6).",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "a5",
+       "pattern": "\\bR\\d+\\b"
+      },
+      "normalize": "id"
+     },
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-022",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "An earlier stage's artifact is never written again once a later stage's artifact has been started.",
+    "params": {
+     "chain": [
+      "last_write:a1",
+      "first_write:a2",
+      "last_write:a2",
+      "first_write:a3",
+      "last_write:a3",
+      "first_write:a4",
+      "last_write:a4",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       71,
+       71
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**No stage returns to an earlier stage.** When a plan proves wrong during generation, or a fix is needed during verification, it is handled inside the stage where it surfaced"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-024",
+    "target": {
+     "ref": "stage flow",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "min_coverage": 0.9,
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "1. Load all steps from `01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-027",
+    "target": {
+     "ref": "read RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The test files recorded under Existing Tests must have been read before the Stage 1 artifact was written.",
+    "params": {
+     "steps": [
+      {
+       "optional_if_none": true,
+       "read_of": {
+        "field_list": {
+         "artifact": "a1",
+         "label": "Path",
+         "section": "Existing Tests"
+        },
+        "normalize": "path"
+       }
+      }
+     ],
+     "window": [
+      "start",
+      "write:a1"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "locate and read the existing covering tests"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-030",
+    "target": {
+     "ref": "read existing covering tests",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "start",
+      [
+       "write:a1",
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**MANDATORY**: Record the baseline pass/fail state by executing those tests **before any source file is modified**"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-031",
+    "target": {
+     "ref": "baseline test run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-033",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Files",
+     "section": "Affected Scope",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Affected Scope (paths, owning module, language/framework)"
+     },
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Quote identifiers — `R1`, step numbers, full paths — verbatim"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-034",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Test",
+     "run_kind": "test",
+     "section": "Build & Test Commands",
+     "type": "command_run",
+     "window": [
+      "start",
+      "write:a1"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       79
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "determine the build and targeted test commands ... Record the baseline pass/fail state by executing those tests"
+     },
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Build & Test Commands"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-035",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "params": {
+     "label": "Path",
+     "section": "Existing Tests",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "locate and read the existing covering tests"
+     },
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Existing Tests"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-036",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "counts": {
+       "fact": "valid_run",
+       "failed_or_errors": 0,
+       "which": "all",
+       "window": [
+        "start",
+        [
+         "write:a1",
+         {
+          "first": {
+           "created": false,
+           "fact": "repo_edit"
+          }
+         },
+         "end"
+        ]
+       ]
+      }
+     }
+    },
+    "params": {
+     "label": "Failing",
+     "section": "Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "start",
+      [
+       "write:a1",
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**MANDATORY**: Record the baseline pass/fail state by executing those tests **before any source file is modified**"
+     },
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Baseline"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-037",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "params": {
+     "label": "Passing",
+     "section": "Baseline",
+     "type": "test_id",
+     "window": [
+      "start",
+      [
+       "write:a1",
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       79,
+       79
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Record the baseline pass/fail state by executing those tests **before any source file is modified**"
+     },
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Baseline"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-037",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a1",
+      "first_write:a2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       82
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "6. Proceed to Stage 2"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-038",
+    "target": {
+     "ref": "stage transition",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Stage 1 (with its baseline) is complete before any file that existed at BASE_SHA is edited.",
+    "params": {
+     "chain": [
+      "last_write:a1",
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**This stage must run first because of the baseline.** It is recorded before any modification and consumed in Stage 5."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-039",
+    "target": {
+     "ref": "Stage 1 ordering",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: failures Stage 5 calls pre-existing must be ones the Stage 1 Baseline recorded as failing.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a5",
+       "label": "Pre-existing failures",
+       "section": "Existing Tests vs Baseline"
+      },
+      "normalize": "id"
+     },
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a1",
+       "label": "Failing",
+       "section": "Baseline"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "It is recorded before any modification and consumed in Stage 5. Once source code has changed, a failing test cannot be attributed to the patch or to a pre-existing condition"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-040",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: a test already failing at baseline is not a regression.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a5",
+       "label": "Regressions",
+       "section": "Existing Tests vs Baseline"
+      },
+      "normalize": "id"
+     },
+     "relation": "disjoint",
+     "right": {
+      "field_list": {
+       "artifact": "a1",
+       "label": "Failing",
+       "section": "Baseline"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       84,
+       84
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "a failing test cannot be attributed to the patch or to a pre-existing condition"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-040",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "## Stage 2: Requirements Analysis (ALWAYS EXECUTE)"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-041",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The prohibition hinges on whether the artifact is 'still visible' in context (no truncation/compaction), which is not an observable predicate in the reference language; emitted only as an unimplemented item.",
+    "statement": "cw-021"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "01cef7ff02be09a812064fb08ed996d9af8c78aea42a26f85c95c7cee53fadb0",
+ "key": "22572ac98bd3eadf8a77d8af313b54bbadf41f12e037ba1b7892117670de584a",
+ "meta": {
+  "at": "2026-10-12T11:43:26Z",
+  "cost_usd": 0.501754,
+  "duration_ms": 173250,
+  "num_turns": 2,
+  "wall_s": 174.58
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "f991e4dca0bf1b81ba61656653c48d9ddfac0e3b6453e72c76b90e9036d80472",
+ "version": "2.1.283"
+}

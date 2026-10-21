@@ -1,0 +1,612 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "Step 1 (load the rule file) has to happen before step 5 (write the artifact), so the window ends at the first write of a2. 'all steps' means the whole file has to be read, hence the high coverage threshold.",
+    "params": {
+     "doc": "RA",
+     "min_coverage": 0.95,
+     "window": [
+      "start",
+      [
+       "first_write:a2",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       90,
+       90
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "1. Load all steps from `02-requirements-analysis.md`"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-043",
+    "target": {
+     "ref": "RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "There must be at least one numbered R<n> requirement in the Functional category.",
+    "params": {
+     "min": 1,
+     "pattern": "^\\W*R\\d+\\b",
+     "section": "Functional Requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "derive numbered requirements in all three categories — Functional, Non-Functional, Edge Cases & Error Handling"
+     },
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "requirements `R1`, `R2`, ..."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-044",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "There must be at least one numbered R<n> requirement in the Non-Functional category.",
+    "params": {
+     "min": 1,
+     "pattern": "^\\W*R\\d+\\b",
+     "section": "Non-Functional Requirements"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "derive numbered requirements in all three categories — Functional, Non-Functional, Edge Cases & Error Handling"
+     },
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "requirements `R1`, `R2`, ..."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-044",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "There must be at least one numbered R<n> requirement in the Edge Cases & Error Handling category.",
+    "params": {
+     "min": 1,
+     "pattern": "^\\W*R\\d+\\b",
+     "section": "Edge Cases & Error Handling"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "derive numbered requirements in all three categories — Functional, Non-Functional, Edge Cases & Error Handling"
+     },
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "requirements `R1`, `R2`, ..."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-044",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Requirement lines are numbered R1, R2, ... in one unique, consecutive sequence across the artifact.",
+    "params": {
+     "min": 1,
+     "pattern": "^\\W*R(\\d+)\\b",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       91,
+       91
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "derive numbered requirements"
+     },
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "requirements `R1`, `R2`, ..."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-045",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       94,
+       94
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/02-requirements-analysis.md`"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-048",
+    "target": {
+     "ref": "a2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Stage 3 (its artifact a3) starts only after the Stage 2 artifact has been written.",
+    "params": {
+     "chain": [
+      "first_write:a2",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       94,
+       95
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/02-requirements-analysis.md`: ... 6. Proceed to Stage 3"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-051",
+    "target": {
+     "ref": "stage transition 2 -> 3",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Stage 3 can never be skipped, so its artifact must exist.",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       97,
+       97
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "## Stage 3: Code Generation — Planning (ALWAYS EXECUTE)"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-052",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "The planning rule file has to be read in full before the plan artifact is first written.",
+    "params": {
+     "doc": "CP",
+     "min_coverage": 0.95,
+     "window": [
+      "start",
+      [
+       "first_write:a3",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       101,
+       101
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "1. Load all steps from `03-code-generation-planning.md`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-054",
+    "target": {
+     "ref": "CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Plan steps are numbered consecutively (1., Step 1, ### Step 1, ...).",
+    "params": {
+     "min": 1,
+     "pattern": "^\\W*(?:[Ss]tep\\s*)?(\\d+)\\b",
+     "section": "Plan",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "produce a numbered plan in which every step names its target files"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-055",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "note": "Target files must be real repository paths (present at BASE_SHA or created in the diff).",
+    "params": {
+     "label": "Target",
+     "section": "Plan",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "every step names its target files"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-056",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Each plan step, not just one of them, fills in Target.",
+    "params": {
+     "label": "Target",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "every step names its target files"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-056",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Each plan step fills in Change.",
+    "params": {
+     "label": "Change",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "every step names its target files, the change"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-057",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Each plan step fills in Contract.",
+    "params": {
+     "label": "Contract",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "every step names ... the contracts to preserve"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-058",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Each plan step fills in Verification.",
+    "params": {
+     "label": "Verification",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "every step names ... its verification"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-059",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are artifacts the agent wrote (rule 6), so the cross-reference is downgraded.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The Plan must carry requirement tags, and every tag must name a requirement defined in Stage 2.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a2",
+       "group": 1,
+       "pattern": "^\\W*(R\\d+)\\b"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "and its requirement tag"
+     },
+     {
+      "lines": [
+       99,
+       99
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "the Stage 2 requirements (`R1`, `R2`, ...)"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-060",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The Assumptions section and its filled check already come from the a2 template skeleton. Whether 'every' assumption made instead of a clarifying question was recorded cannot be checked deterministically.",
+    "statement": "cw-046"
+   },
+   {
+    "reason": "The R<n> ID format is already checked by the cw-044 items (R<n> lines in each of the three requirement sections) and the cw-045 item (unique, consecutive R1, R2, ... numbering). A separate item would only repeat them.",
+    "statement": "cw-049"
+   },
+   {
+    "reason": "The Assumptions section of a2 is already in the template skeleton (heading and filled check). The statement adds no rule that the run can back or refute.",
+    "statement": "cw-050"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "61c8b5ec887fbc578afe6c5f6d3ea58285c84bdb05289e7340b2e370268d9b46",
+ "key": "d50e545d24fa7dff4fba2465eafbb1ae8f6a79752e99db150aa7d0b7c6504608",
+ "meta": {
+  "at": "2026-10-12T11:45:36Z",
+  "cost_usd": 0.30455620000000005,
+  "duration_ms": 129235,
+  "num_turns": 2,
+  "wall_s": 130.62
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "4f77c6e45352d91aed52904b67ad013c33437c987cf2cf1e9919ef27231ef319",
+ "version": "2.1.283"
+}

@@ -1,0 +1,493 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "note": "A full root-relative path resolves to a file at BASE_SHA or in the diff; bare filenames or fragments do not.",
+    "params": {
+     "label": "Files",
+     "section": "Affected Scope",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Record every path in full, from the repository root, so that it is unambiguous in later stages"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-008",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "params": {
+     "label": "Path",
+     "section": "Existing Tests",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Record every path in full, from the repository root, so that it is unambiguous in later stages"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-008",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The statement requires working out how tests are invoked. That the recorded command was actually run as a valid test run is inferred from the Step 3 baseline execution.",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Test",
+     "run_kind": "test",
+     "section": "Build & Test Commands",
+     "type": "command_run",
+     "window": [
+      "stage_start:reverse_engineering",
+      "write:a1"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Determine how its tests are invoked"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-012",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Test",
+     "section": "Build & Test Commands",
+     "type": "test_selection"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       27,
+       27
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Express the test command so that it can target **the tests covering the affected scope**, not the whole suite"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-013",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "The statement forbids planning installation or environment setup. Treating an actual install during the stage as a violation is inferred from the stated reason (the environment can already build and test).",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install",
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       30,
+       30
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "**Do NOT** plan dependency installation or environment setup — the environment can already build and test the project."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-015",
+    "target": {
+     "ref": "install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Existing tests must already be in the repository at BASE_SHA; newly created test files do not count.",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a1",
+       "label": "Path",
+       "section": "Existing Tests"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       34,
+       34
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Locate the existing tests that cover the affected scope"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-016",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "params": {
+     "steps": [
+      {
+       "optional_if_none": true,
+       "read_of": {
+        "field_list": {
+         "artifact": "a1",
+         "label": "Path",
+         "section": "Existing Tests"
+        }
+       }
+      }
+     ],
+     "window": [
+      "stage_start:reverse_engineering",
+      "write:a1"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Read them to understand the contract the affected code must honor — expected signatures, return shapes, raised errors"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-017",
+    "target": {
+     "ref": "read existing tests",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:reverse_engineering",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "**MANDATORY**: Execute those tests once, **before any source file is modified**"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-018",
+    "target": {
+     "ref": "baseline test run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "yes",
+    "params": {
+     "label": "Passing",
+     "run_kind": "test",
+     "section": "Baseline",
+     "type": "test_id",
+     "window": [
+      "stage_start:reverse_engineering",
+      [
+       "write:a1",
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       }
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Record which of them pass and which already fail"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-019",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "yes",
+    "params": {
+     "label": "Failing",
+     "run_kind": "test",
+     "section": "Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "stage_start:reverse_engineering",
+      [
+       "write:a1",
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       }
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Record which of them pass and which already fail"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-019",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Existing tests are read and executed here. They are **never modified**"
+     }
+    ],
+    "stage": "global",
+    "statement": "re-022",
+    "target": {
+     "ref": "existing test files",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       45,
+       45
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write, with the full content below"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-023",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       45,
+       45
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-023",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "The 'Contract:' prefix is in the skeleton but missing from the compiled label list (it is probably inline with Path), so this checks it as a line pattern instead of as a label.",
+    "params": {
+     "min": 1,
+     "pattern": "Contract:",
+     "section": "Existing Tests"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       47,
+       47
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "re-027",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The build/type-check command is needed only 'if the language requires it'. That condition can't be checked from the run, and the skeleton allows 'not applicable'. The plain filled check is already compiled from the template.",
+    "statement": "re-011"
+   },
+   {
+    "reason": "This is a preference, and the flags (-q, --tb=short) are only examples that depend on the language. A regex for 'output-reducing flags' would go beyond the document's own examples (rule 9).",
+    "statement": "re-014"
+   },
+   {
+    "reason": "The full skeleton content (headings, labels, fixed lines, placeholder residue) is already compiled from the template.",
+    "statement": "re-024"
+   },
+   {
+    "reason": "The frontmatter keys and values (stage, name) are already compiled from the template skeleton.",
+    "statement": "re-025"
+   },
+   {
+    "reason": "The ## headings (Affected Scope, Build & Test Commands, Existing Tests, Baseline) are already compiled from the template skeleton.",
+    "statement": "re-026"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "a7f2a6d7c24aac996c3f56e18331c9655ae88c2fe8f729877e4fe7072ed0086d",
+ "key": "f42d77c5847273a3bde70dca25d7a7388a378587be230e9b1af3d5f365edee23",
+ "meta": {
+  "at": "2026-10-12T11:49:22Z",
+  "cost_usd": 0.305602,
+  "duration_ms": 89505,
+  "num_turns": 2,
+  "wall_s": 90.88
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "5e3101930a7d3bec42cf543c29f14652e749d8612d07d2c04800af1112fc5c08",
+ "version": "2.1.283"
+}

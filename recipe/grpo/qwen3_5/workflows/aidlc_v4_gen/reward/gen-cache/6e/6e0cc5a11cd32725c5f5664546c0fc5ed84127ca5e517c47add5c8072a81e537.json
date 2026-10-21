@@ -1,0 +1,619 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "note": "A regression verdict only means something if a valid test run backs it. The Command field must name a test run that actually happened in Stage 5 before a5 was written. This is inferred, so it is a should.",
+    "params": {
+     "label": "Command",
+     "run_kind": "test",
+     "section": "Existing Tests vs Baseline",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-098",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": [
+         {
+          "field": {
+           "artifact": "a1",
+           "label": "Failing",
+           "section": "Baseline"
+          }
+         },
+         {
+          "field": {
+           "artifact": "a5",
+           "label": "Pre-existing failures",
+           "section": "Existing Tests vs Baseline"
+          }
+         }
+        ],
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "note": "'None' regressions is only allowed if the last valid Stage 5 run has no failing test outside the baseline failures and the failures recorded as pre-existing.",
+    "params": {
+     "label": "Regressions",
+     "section": "Existing Tests vs Baseline"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       125,
+       125
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning"
+     },
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "build result, reproduction result, regression verdict, outstanding failures"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-098",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": {
+         "field": {
+          "artifact": "a5",
+          "label": "Pre-existing failures",
+          "section": "Existing Tests vs Baseline"
+         }
+        },
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "note": "Outstanding failures may only say 'none' if the last valid Stage 5 run has no failing test outside the recorded pre-existing failures.",
+    "params": {
+     "section": "Outstanding Failures"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-099",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The final diff must be non-empty and must change at least one application file that existed at BASE_SHA. Tying the diff to base files is an inference, so it is a should.",
+    "params": {
+     "left": {
+      "fact": "diff_paths"
+     },
+     "normalize": "path",
+     "relation": "intersects",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       128,
+       128
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "6. Produce the final diff"
+     },
+     {
+      "lines": [
+       140,
+       140
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "- **MODIFY**: application source code in the repository"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-100",
+    "target": {
+     "ref": "final_diff",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "The path pattern 'question' could also match real application source files, and question files written outside the repository cannot be seen.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "pattern": "question"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       132,
+       132
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Never generate a question file, never ask for approval, never wait for input."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-102",
+    "target": {
+     "ref": "question_file",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Approval requests appear in the agent's message text. No kind looks at conversational output.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       132,
+       132
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "never ask for approval"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-103",
+    "target": {
+     "ref": "approval_request",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Ending a turn to wait for user input is visible in principle in the trace, but no kind detects it.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       132,
+       132
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "never wait for input"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-104",
+    "target": {
+     "ref": "wait_for_input",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "No path or command pattern can reliably tell a design or report document from a legitimate file. It could be written inside or outside the repository.",
+    "params": {},
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "This workflow produces no design or report document for a reader."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-106",
+    "target": {
+     "ref": "design_or_report_document",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage's result"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-107",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage's result"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-107",
+    "target": {
+     "ref": "a2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage's result"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-107",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage's result"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-107",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       127,
+       127
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures"
+     },
+     {
+      "lines": [
+       133,
+       133
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage writes one artifact file"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-107",
+    "target": {
+     "ref": "a5",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "install"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       134,
+       134
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**The environment can already build and test the project.** Do not spend effort on environment setup"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-109",
+    "target": {
+     "ref": "install",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "This one item also covers the 'never edited' part of cw-113.",
+    "params": {
+     "action": "test_file_write"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       141,
+       141
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "- **DO NOT MODIFY**: test files"
+     },
+     {
+      "lines": [
+       142,
+       142
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Existing tests are **read and executed**, never edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-112",
+    "target": {
+     "ref": "test_file_write",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "note": "This sentence is descriptive ('are read and executed'), not a command, so it is a should.",
+    "params": {
+     "kind": "test",
+     "min_count": 1
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       142,
+       142
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Existing tests are **read and executed**, never edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-113",
+    "target": {
+     "ref": "test_run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The existing test files recorded in a1 must actually have been read during the run.",
+    "params": {
+     "steps": [
+      {
+       "read_of": {
+        "field_list": {
+         "artifact": "a1",
+         "label": "Path",
+         "section": "Existing Tests"
+        }
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       142,
+       142
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Existing tests are **read and executed**, never edited."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-113",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The reproduction script named in the plan must actually be run. The sentence is descriptive, so it is a should.",
+    "params": {
+     "steps": [
+      {
+       "exec_of": {
+        "field": {
+         "artifact": "a3",
+         "label": "Path",
+         "section": "Reproduction Script"
+        }
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       142,
+       142
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "New behavior is verified with a **reproduction script**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-114",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "This is the umbrella heading ('No user interaction'). Its checkable parts are already itemized under cw-102 (question file), cw-103 (approval) and cw-104 (waiting for input).",
+    "statement": "cw-101"
+   },
+   {
+    "reason": "Whether something was ambiguous cannot be observed in the run. Recording assumptions is already covered by the compiled a2 'Assumptions' section check, and no observable condition ties a 'none' value to anything.",
+    "statement": "cw-105"
+   },
+   {
+    "reason": "Every stage artifact's fixed skeleton (headings, labels, residue checks) is already compiled from the templates. This statement adds no rule beyond that.",
+    "statement": "cw-108"
+   },
+   {
+    "reason": "This is a permission (MODIFY: application source code), not an obligation. The 'do not modify' boundary is itemized under cw-112.",
+    "statement": "cw-111"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "64ee0dd183c64be6a57ac8c6a3cdee57fd47572e7d9eaae6d78db27e6b1fcbef",
+ "key": "6e0cc5a11cd32725c5f5664546c0fc5ed84127ca5e517c47add5c8072a81e537",
+ "meta": {
+  "at": "2026-10-12T11:48:23Z",
+  "cost_usd": 0.3728962,
+  "duration_ms": 160105,
+  "num_turns": 2,
+  "wall_s": 161.35
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "0964f89ee7fbd5bbbc21bc09b4fbc64af00db7174af2b8759b703a50a81a9fc7",
+ "version": "2.1.283"
+}

@@ -1,0 +1,749 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/05-build-and-test.md`"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-002",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Stated as a declarative prerequisite, not an imperative",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a4",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       8,
+       8
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Code Generation is complete: source modified and the reproduction script written but not executed, recorded in `/tmp/swe-bench-pro/04-code-generation-generation.md`"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-003",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Stated as a declarative prerequisite (script written but not executed), not an imperative",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "execute",
+     "selector": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       8,
+       8
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "the reproduction script written but not executed"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-003",
+    "target": {
+     "ref": "reproduction script not executed before Build & Test",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "downgrade_reason": "Stated as a declarative prerequisite, not an imperative",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a1",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Reverse Engineering is complete: the build and test commands and the baseline — which covering tests passed, and which already failed — recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-004",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifact fields (rule 6)",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "field": {
+       "artifact": "a5",
+       "label": "Command",
+       "section": "Existing Tests vs Baseline"
+      }
+     },
+     "normalize": "command",
+     "relation": "equal",
+     "right": {
+      "field": {
+       "artifact": "a1",
+       "label": "Test",
+       "section": "Build & Test Commands"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**The baseline and the test command are established, not re-derived.** Use them as Reverse Engineering recorded them."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-005",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "not": {
+      "field_is_none": {
+       "artifact": "a1",
+       "label": "Build",
+       "section": "Build & Test Commands"
+      }
+     }
+    },
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "field": {
+       "artifact": "a1",
+       "label": "Build",
+       "section": "Build & Test Commands"
+      }
+     },
+     "normalize": "command",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "name": "run_commands",
+       "window": "stage:build_and_test"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Run the build or type-check command Reverse Engineering recorded"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-008",
+    "target": {
+     "ref": "build command run in Build & Test",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "field_is_none": {
+       "artifact": "a1",
+       "label": "Build",
+       "section": "Build & Test Commands"
+      }
+     }
+    },
+    "params": {
+     "label": "Command",
+     "section": "Build",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Run the build or type-check command Reverse Engineering recorded"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-008",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Checking that the build actually succeeded (exit status of the recorded build command) and that Build / Result reflects it is not expressible: no kind exposes a build run's success or failure.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm it succeeds"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-009",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "params": {
+     "steps": [
+      {
+       "exec_of": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        }
+       }
+      }
+     ],
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       26,
+       26
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Execute the reproduction script at the path Code Generation recorded"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-012",
+    "target": {
+     "ref": "reproduction script execution",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Re-run the existing covering tests identified in Reverse Engineering"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-017",
+    "target": {
+     "ref": "existing covering tests re-run",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "params": {
+     "command_in": {
+      "field": {
+       "artifact": "a1",
+       "label": "Test",
+       "section": "Build & Test Commands"
+      },
+      "normalize": "command"
+     },
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Run the **same selection** that produced the baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-018",
+    "target": {
+     "ref": "same test selection as baseline",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Command",
+     "run_kind": "test",
+     "section": "Existing Tests vs Baseline",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Run the **same selection** that produced the baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-018",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": [
+         {
+          "field": {
+           "artifact": "a1",
+           "label": "Failing",
+           "section": "Baseline"
+          }
+         }
+        ],
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "first_write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "params": {
+     "label": "Regressions",
+     "section": "Existing Tests vs Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**MANDATORY**: Compare the result against the recorded baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-019",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "full_suite",
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**Do NOT** run the full repository test suite."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-020",
+    "target": {
+     "ref": "full test suite execution",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The recorded command being a selection is inferred from the prohibition, not stated for the field",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "params": {
+     "label": "Command",
+     "section": "Existing Tests vs Baseline",
+     "type": "test_selection"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       39,
+       39
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**Do NOT** run the full repository test suite."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-020",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "any": [
+       {
+        "field_is_none": {
+         "artifact": "a1",
+         "label": "Failing",
+         "section": "Baseline"
+        }
+       },
+       {
+        "not": {
+         "counts": {
+          "fact": "valid_run",
+          "failures_not_in": [
+           {
+            "field": {
+             "artifact": "a5",
+             "label": "Regressions",
+             "section": "Existing Tests vs Baseline"
+            }
+           }
+          ],
+          "which": "last",
+          "window": [
+           "stage_start:build_and_test",
+           "first_write:a5"
+          ]
+         }
+        }
+       }
+      ]
+     }
+    },
+    "params": {
+     "label": "Pre-existing failures",
+     "listed_in": {
+      "field": {
+       "artifact": "a1",
+       "label": "Failing",
+       "section": "Baseline"
+      }
+     },
+     "section": "Existing Tests vs Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       49,
+       49
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "A pre-existing failure. **Do not fix it.** Record the reasoning that identifies it as pre-existing"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-026",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Correct the source code, never the tests"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-027",
+    "target": {
+     "ref": "test file modification",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "Linking the recorded field to the actual diff is inferred, not stated",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field": {
+       "artifact": "a5",
+       "label": "Test files in the change",
+       "section": "Final Change"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       53,
+       53
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Correct the source code, never the tests"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-027",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "fact": "repo_edit",
+       "window": [
+        "stage_start:build_and_test",
+        "first_write:a5"
+       ]
+      }
+     }
+    },
+    "params": {
+     "section": "Fixes Applied"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       55,
+       55
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Record what was changed and why"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-029",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       62,
+       62
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Write `/tmp/swe-bench-pro/05-build-and-test.md` in a single write, with the full content below"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-035",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The frontmatter keys and values (stage, name) are part of the template skeleton, which is already compiled into items (rule 10). This statement adds no further rule.",
+    "statement": "bt-036"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "cadc663300f8773495fd2ae1f7165be3b08b3a00e232e6e427ffbf5242e0b7f2",
+ "key": "fea75a4933da56a68a926ffe60acb4c478ca24be49aea9f081c618db22bacabe",
+ "meta": {
+  "at": "2026-10-12T11:57:37Z",
+  "cost_usd": 0.274846,
+  "duration_ms": 107679,
+  "num_turns": 2,
+  "wall_s": 109.03
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "7b09583114f862054eaaef0ce1da6f820fba499f3084f34b1738b6eac861351c",
+ "version": "2.1.283"
+}

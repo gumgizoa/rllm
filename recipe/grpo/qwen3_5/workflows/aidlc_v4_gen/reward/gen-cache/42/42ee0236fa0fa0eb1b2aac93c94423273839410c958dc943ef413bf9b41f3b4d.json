@@ -1,0 +1,81 @@
+{
+ "answer": {
+  "statements": [
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 1,
+    "line_start": 1,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Overall directive to follow the core workflow document.",
+    "quote": "Follow the workflow defined in /ai-dlc/core-workflow.md.",
+    "stage": "global",
+    "target": "/ai-dlc/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 3,
+    "line_start": 3,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Core workflow must be read before anything else; can be checked from the read order in the tool-call trace.",
+    "quote": "Read /ai-dlc/core-workflow.md first.",
+    "stage": "global",
+    "target": "/ai-dlc/core-workflow.md"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "read_doc",
+    "line_end": 5,
+    "line_start": 3,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "For each stage, its rule-detail file must be loaded from /ai-dlc/rule-details/. Applies to every stage.",
+    "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs",
+    "stage": "global",
+    "target": "/ai-dlc/rule-details/<stage rule file>"
+   },
+   {
+    "checkable_by_rule": "partial",
+    "kind": "order",
+    "line_end": 5,
+    "line_start": 4,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Ordering rule: loading the rule-detail file must come before any other action in that stage.",
+    "quote": "load that file ... as the first step of the stage it governs",
+    "stage": "global",
+    "target": "/ai-dlc/rule-details/<stage rule file>"
+   },
+   {
+    "checkable_by_rule": "no",
+    "kind": "other",
+    "line_end": 5,
+    "line_start": 5,
+    "modality": "must",
+    "none_allowed": "-",
+    "notes": "Each stage must be carried out according to the instructions in its rule-detail file.",
+    "quote": "and execute the stage from it.",
+    "stage": "global",
+    "target": "stage execution"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "65c49324e73b188057f5db58ea503b57c8d9377f2328f090782edd716c4ea3d9",
+ "key": "42ee0236fa0fa0eb1b2aac93c94423273839410c958dc943ef413bf9b41f3b4d",
+ "meta": {
+  "at": "2026-10-12T07:55:22Z",
+  "cost_usd": 0.028095600000000005,
+  "duration_ms": 7935,
+  "num_turns": 2,
+  "wall_s": 9.38
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "f85d913d6e30ca9c24ff8a7026f339e83af42119148b7143ba7060d3bc906fd3",
+ "salt": "",
+ "schema_sha256": "e0e6793d8643eba0c88d56257e2824090415131e78c9e74928eb8385b4a1b89f",
+ "version": "2.1.283"
+}

@@ -1,0 +1,827 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree"
+    ],
+    "class": "content",
+    "downgrade_reason": "The rule says to create a missing target file. That files listed as Created were absent at BASE_SHA is inferred from the rule, not stated.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "A file recorded as Created must not have existed at BASE_SHA.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**If it does not exist**: create it"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-011",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "downgrade_reason": "The check works on the recorded Modified list. That the list must exclude test paths is inferred from 'application source code only'.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Modified files must be application source files, not test files.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       25,
+       25
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Modify **application source code only**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-012",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts, so the cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Each executed step must carry the requirement tags the plan gave it, compared as step|tags pairs.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "keyed_ids": {
+       "artifact": "a4",
+       "ids": 2,
+       "key": 1,
+       "pattern": "Step (\\d+) \\[([^\\]]+)\\]",
+       "section": "Plan Execution"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "keyed_ids": {
+       "artifact": "a3",
+       "ids": 2,
+       "key": 1,
+       "pattern": "Step (\\d+) \\[([^\\]]+)\\]",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       27,
+       27
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Satisfy the requirement (`Rx`) the step is tagged with"
+     },
+     {
+      "lines": [
+       47,
+       47
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "If steps remain, return to Step 1"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-014",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts, so the cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "field": {
+       "artifact": "a3",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Write the reproduction script at the path the plan records"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-015",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The planned script path may be outside the repository working tree, where repo_write_paths does not record it.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The script must actually be written at the path the plan records, during this stage.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "field": {
+       "artifact": "a3",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "name": "repo_write_paths",
+       "window": "stage:code_generation_generation"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Write the reproduction script at the path the plan records"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-015",
+    "target": {
+     "ref": "reproduction script write",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "execute",
+     "selector": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**do not execute it in this stage**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-016",
+    "target": {
+     "ref": "reproduction script execution",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "note": "'Executed: no' is refuted if the script was run during this stage.",
+    "params": {
+     "label": "Executed",
+     "refuted_by": {
+      "exists": {
+       "fact": "exec_of",
+       "selector": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        }
+       },
+       "window": "stage:code_generation_generation"
+      }
+     },
+     "section": "Reproduction Script",
+     "text": "no"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**do not execute it in this stage**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-016",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff",
+     "base_tree"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       30,
+       30
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**MANDATORY — do not modify test files.**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-017",
+    "target": {
+     "ref": "test file modification",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "Using an edit outside the plan's Targets as the sign of a deviation is an observable approximation inferred from the rule.",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "absent": {
+       "created": false,
+       "fact": "repo_edit",
+       "paths_not_in": {
+        "field_list": {
+         "artifact": "a3",
+         "label": "Target",
+         "section": "Plan"
+        },
+        "normalize": "path"
+       },
+       "window": "stage:code_generation_generation"
+      }
+     }
+    },
+    "note": "'none' is accepted only if no existing file outside the plan's Targets was edited during this stage.",
+    "params": {
+     "section": "Deviations from Plan"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       34,
+       34
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "When implementation reveals that the plan cannot be followed, adjust it **within this stage** and record what changed and why in this stage's artifact."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-019",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The planning artifact must not be written again once Code Generation has started.",
+    "params": {
+     "chain": [
+      "last_write:a3",
+      "stage_start:code_generation_generation"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       34,
+       34
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Do not return to Planning."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-020",
+    "target": {
+     "ref": "planning artifact rewrite",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Whether a local-correction entry correctly states what changed and why is a semantic judgment. Its presence is covered by cg-019.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       36,
+       36
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**Local correction** — the approach holds and only a detail is wrong, such as a function residing in a different file than the plan states. Note the correction and proceed"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-021",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts, so the cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Steps named as invalidated must be real plan steps.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "a4",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Deviations from Plan"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       37,
+       37
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "State which steps are invalidated, why, and what supersedes them"
+     },
+     {
+      "lines": [
+       47,
+       47
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "If steps remain, return to Step 1"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-022",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Template line format: '- Step N [Rx]: complete'.",
+    "params": {
+     "min": 1,
+     "pattern": "^- Step \\d+ \\[R\\d+[^\\]]*\\]: complete",
+     "section": "Plan Execution",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       41,
+       41
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Note that the step is complete, and which requirement it satisfied"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-023",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "repo_write",
+     "pattern": "(_new|_modified)\\.\\w+$",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "**Verify no duplicate file was created** — no `module_new.py` beside `module.py`"
+     },
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Never create `module_new.py`, `ClassName_modified.java`, or any similar duplicate"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-024",
+    "target": {
+     "ref": "duplicate file creation",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace",
+     "base_tree"
+    ],
+    "class": "structure",
+    "kind": "field_literal",
+    "none_allowed": "-",
+    "note": "'Test files modified: none' is refuted by any in-place edit of an existing test file during this stage.",
+    "params": {
+     "label": "Test files modified",
+     "refuted_by": {
+      "exists": {
+       "created": false,
+       "fact": "repo_edit",
+       "test_paths": true,
+       "window": "stage:code_generation_generation"
+      }
+     },
+     "section": "Checks",
+     "text": "none"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       43,
+       43
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Confirm no test file was modified"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-025",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts, so the cross_ref is downgraded under rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every plan step must appear in Plan Execution.",
+    "params": {
+     "allow_empty": false,
+     "left": {
+      "ids": {
+       "artifact": "a4",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Plan Execution"
+      }
+     },
+     "normalize": "id",
+     "relation": "superset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       47,
+       47
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "If steps remain, return to Step 1"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-026",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a4",
+      "stage_start:build_and_test"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       48,
+       48
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "If every step is complete, write the artifact and proceed to Build and Test"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-027",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "base_tree"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "That no source edits happen after the artifact is written and before Build and Test is inferred from 'if every step is complete, write the artifact'.",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "source_write",
+     "window": [
+      "first_write:a4",
+      "stage_start:build_and_test"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       48,
+       48
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "If every step is complete, write the artifact and proceed to Build and Test"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-027",
+    "target": {
+     "ref": "source edits after artifact write",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       52,
+       52
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-028",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       52,
+       52
+      ],
+      "path": "../aidlc_v4/docs/rule-details/04-code-generation-generation.md",
+      "quote": "in a single write, with the full content below"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cg-028",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "6786612a9e9e98415a408277ba5fd4ba176b4ca4f92fc83cb83b95b0836f38b4",
+ "key": "b99f5667d3caee733a8d19557e9853478181b40f4bedf010b18e02361937a03e",
+ "meta": {
+  "at": "2026-10-12T11:55:36Z",
+  "cost_usd": 0.472613,
+  "duration_ms": 160024,
+  "num_turns": 2,
+  "wall_s": 161.37
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "a68dcd6c899ac7d8512cbada5e953d23daa1496814017dae87e3a6d51e4dec34",
+ "version": "2.1.283"
+}

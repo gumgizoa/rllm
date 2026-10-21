@@ -1,0 +1,1344 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a1",
+      "first_write:a2",
+      "first_write:a3",
+      "first_write:a4",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       7,
+       7
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**The pipeline is fixed. Every stage always executes, in order.**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-002",
+    "target": {
+     "ref": "stages 1-5",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "window": [
+      "stage_start:reverse_engineering",
+      "first_write:a1"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "window": [
+      "stage_start:requirements_analysis",
+      "first_write:a2"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "window": [
+      "stage_start:code_generation_planning",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "window": [
+      "stage_start:code_generation_generation",
+      "first_write:a4"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "window": [
+      "stage_start:build_and_test",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       11,
+       11
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-004",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "single_doc": true,
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Load one file at a time, immediately before its stage.**"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "single_doc": true,
+     "window": "stage:requirements_analysis"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Load one file at a time, immediately before its stage.**"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "single_doc": true,
+     "window": "stage:code_generation_planning"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Load one file at a time, immediately before its stage.**"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "single_doc": true,
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Load one file at a time, immediately before its stage.**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "single_doc": true,
+     "window": "stage:build_and_test"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Load one file at a time, immediately before its stage.**"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-007",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a1",
+      "read:RA"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Do NOT read a stage's rule detail file until the previous stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a2",
+      "read:CP"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Do NOT read a stage's rule detail file until the previous stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a3",
+      "read:CG"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Do NOT read a stage's rule detail file until the previous stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "first_write:a4",
+      "read:BT"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       18,
+       18
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Do NOT read a stage's rule detail file until the previous stage's Completion Criteria are met."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-008",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output."
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-009",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-009",
+    "target": {
+     "ref": "a2",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-009",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-009",
+    "target": {
+     "ref": "a4",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       22,
+       22
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-009",
+    "target": {
+     "ref": "a5",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1",
+     "pattern": "^/tmp/swe-bench-pro/01-reverse-engineering\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename. Stage 1 writes `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-010",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-010",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-010",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-010",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5",
+     "pattern": "^/tmp/swe-bench-pro/05-build-and-test\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Artifact path**: `/tmp/swe-bench-pro/` + the stage's rule detail filename. ... Stage 5 writes `/tmp/swe-bench-pro/05-build-and-test.md`."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-010",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "mkdir -p is only a means to make the first write possible; a write tool that creates the parent directory, or a combined `mkdir -p ... && write` command, meets the intent but makes the order unclear, so a miss here is not a hard violation.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      {
+       "first": {
+        "fact": "command",
+        "pattern": "mkdir -p.*swe-bench-pro"
+       }
+      },
+      "first_write:a1"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       24,
+       24
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "`mkdir -p` the directory before the first write."
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-011",
+    "target": {
+     "ref": "/tmp/swe-bench-pro/",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-013",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-013",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-013",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-013",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-013",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:reverse_engineering",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Never rewrite an earlier stage's artifact.**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:requirements_analysis",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Never rewrite an earlier stage's artifact.**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:code_generation_planning",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Never rewrite an earlier stage's artifact.**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4",
+     "mode": "no_rewrite",
+     "window": [
+      "stage_end:code_generation_generation",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Never rewrite an earlier stage's artifact.**"
+     }
+    ],
+    "stage": "global",
+    "statement": "cw-015",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "frontmatter",
+    "none_allowed": "-",
+    "params": {
+     "exact": true,
+     "keys": [
+      "stage",
+      "name"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Frontmatter is these two keys and no others:**"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "cw-018",
+    "target": {
+     "ref": "a1",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "frontmatter",
+    "none_allowed": "-",
+    "params": {
+     "exact": true,
+     "keys": [
+      "stage",
+      "name"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Frontmatter is these two keys and no others:**"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "cw-018",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "frontmatter",
+    "none_allowed": "-",
+    "params": {
+     "exact": true,
+     "keys": [
+      "stage",
+      "name"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Frontmatter is these two keys and no others:**"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-018",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "frontmatter",
+    "none_allowed": "-",
+    "params": {
+     "exact": true,
+     "keys": [
+      "stage",
+      "name"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Frontmatter is these two keys and no others:**"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-018",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "frontmatter",
+    "none_allowed": "-",
+    "params": {
+     "exact": true,
+     "keys": [
+      "stage",
+      "name"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       31,
+       31
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Frontmatter is these two keys and no others:**"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-018",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "downgrade_reason": "The statement requires unresolved work to be recorded under Outstanding Failures; treating a failing test missing from the baseline/pre-existing lists as unresolved work is an inference, so the check is lowered to should.",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": [
+         {
+          "field": {
+           "artifact": "a5",
+           "label": "Pre-existing failures",
+           "section": "Existing Tests vs Baseline"
+          }
+         },
+         {
+          "field": {
+           "artifact": "a1",
+           "label": "Failing",
+           "section": "Baseline"
+          }
+         }
+        ],
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "first_write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "params": {
+     "section": "Outstanding Failures"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "cw-019",
+    "target": {
+     "ref": "a5",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The cw-002 order chain already checks this: all five artifacts must be written in order, so a skipped or reordered stage fails there. Choosing a depth or adapting the plan leaves no separate observable event.",
+    "statement": "cw-003"
+   },
+   {
+    "reason": "This describes how to resolve the rule-detail path. The cw-004/cw-007 doc_read items already check that the correct rule file (resolved container path) was read in each stage. The order in which candidate directories were probed is not observable with any kind.",
+    "statement": "cw-006"
+   },
+   {
+    "reason": "This follows from cw-010: path_match requires every artifact to sit under /tmp/swe-bench-pro/, outside the repository. A diff-level check would need regex/filename literals that the cited line does not give for all five artifacts.",
+    "statement": "cw-012"
+   },
+   {
+    "reason": "cw-013 (write_discipline once) already covers 'No appends'. Placeholder residue is already compiled from the template skeletons. The cited line names no extra placeholder pattern to check.",
+    "statement": "cw-014"
+   },
+   {
+    "reason": "The template skeleton items already compiled cover this: frontmatter keys, ## headings and field prefixes for a1-a5. The statement adds no rule beyond keeping the skeleton.",
+    "statement": "cw-017"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "fbef4de2d9869c09c56cc9ca80b388b90540d2a5880c6d25e216a71c49d87133",
+ "key": "ecd2379b52f31415800b9d5e90794c8a1e6ecf63ae7164c9196c68773d85564e",
+ "meta": {
+  "at": "2026-10-12T11:43:26Z",
+  "cost_usd": 0.527346,
+  "duration_ms": 172856,
+  "num_turns": 2,
+  "wall_s": 174.23
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "ccacb0586eab3f8f5980c4751c9d9fa730f4da9f95eb83c13591d956868402ff",
+ "version": "2.1.283"
+}

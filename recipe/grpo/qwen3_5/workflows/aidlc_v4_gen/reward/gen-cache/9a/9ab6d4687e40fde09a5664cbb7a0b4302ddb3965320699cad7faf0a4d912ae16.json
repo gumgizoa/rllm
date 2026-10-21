@@ -1,0 +1,602 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (Stage 2 requirement ids vs Stage 3 plan step tags); no run fact can back the coverage relation.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every requirement id in Stage 2 has to appear as a tag in the Plan section of Stage 3 (the Requirement Coverage section is excluded on purpose so it cannot satisfy the check by itself).",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "Verify the Completion Criteria in that file are met — in particular, that every requirement is covered"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-064",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Partial check: catches planned targets that are test files the change touched. No fact lists every test path at BASE_SHA.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "in particular, that every requirement is covered and no step targets a test file"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-065",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       105
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/03-code-generation-planning.md`: the numbered plan"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-066",
+    "target": {
+     "ref": "a3",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The Stage 3 plan has to be written before the first in-place source edit (Stage 4 work).",
+    "params": {
+     "chain": [
+      "first_write:a3",
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       105,
+       106
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "5. Write `/tmp/swe-bench-pro/03-code-generation-planning.md`: the numbered plan\n6. Proceed to Stage 4"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cw-067",
+    "target": {
+     "ref": "stage transition 3 -> 4",
+     "type": "action"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "An ALWAYS EXECUTE stage leaves its artifact behind.",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       108,
+       108
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "## Stage 4: Code Generation — Generation (ALWAYS EXECUTE)"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-068",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: Stage 4 uses the reproduction script path that Stage 3 recorded. Both sides are agent-written.",
+    "params": {
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "field": {
+       "artifact": "a3",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       110,
+       110
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "**Consumes**: the Stage 3 plan, with the reproduction script path"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-069",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "The rule file has to be loaded (nearly in full) before the first source edit and before the Stage 4 artifact is written.",
+    "params": {
+     "doc": "CG",
+     "min_coverage": 0.9,
+     "window": [
+      "stage_start:code_generation_generation",
+      [
+       {
+        "first": {
+         "created": false,
+         "fact": "repo_edit"
+        }
+       },
+       "write:a4",
+       "end"
+      ]
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       112,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "1. Load all steps from `04-code-generation-generation.md`\n2. Execute every plan step"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-070",
+    "target": {
+     "ref": "read 04-code-generation-generation.md",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every file a plan step targets has to be part of the final change.",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": {
+       "final": true,
+       "name": "repo_write_paths"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "2. Execute every plan step: modify the source files in place"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-071",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Files reported as modified have to be files that existed at BASE_SHA (edited in place, not recreated).",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modify the source files in place"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-072",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The final change has to modify at least one file that existed at BASE_SHA.",
+    "params": {
+     "left": {
+      "fact": "diff_paths"
+     },
+     "normalize": "path",
+     "relation": "intersects",
+     "right": {
+      "fact": "base_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modify the source files in place"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-072",
+    "target": {
+     "ref": "in-place source modification",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The reproduction script has to be written during Stage 4 at the path recorded in Stage 3.",
+    "params": {
+     "steps": [
+      {
+       "write_of": {
+        "field": {
+         "artifact": "a3",
+         "label": "Path",
+         "section": "Reproduction Script"
+        }
+       }
+      }
+     ],
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "write the reproduction script, executing neither yet"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-073",
+    "target": {
+     "ref": "write reproduction script",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No test run of the modified code during Stage 4.",
+    "params": {
+     "action": "execute",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "modify the source files in place and write the reproduction script, executing neither yet"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-074",
+    "target": {
+     "ref": "test run in Stage 4",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "The reproduction script must not be run before Stage 5.",
+    "params": {
+     "action": "execute",
+     "selector": {
+      "field": {
+       "artifact": "a3",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "write the reproduction script, executing neither yet"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-074",
+    "target": {
+     "ref": "run reproduction script in Stage 4",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "all": [
+       {
+        "relation": {
+         "left": {
+          "field_list": {
+           "artifact": "a3",
+           "label": "Target",
+           "section": "Plan"
+          }
+         },
+         "rel": "subset",
+         "right": {
+          "fact": {
+           "final": true,
+           "name": "repo_write_paths"
+          }
+         }
+        }
+       },
+       {
+        "absent": {
+         "created": false,
+         "fact": "repo_edit",
+         "final": true,
+         "paths_not_in": {
+          "field_list": {
+           "artifact": "a3",
+           "label": "Target",
+           "section": "Plan"
+          }
+         }
+        }
+       }
+      ]
+     }
+    },
+    "note": "'None' is accepted only when the run shows no deviation: every planned target is in the final change and no existing file outside the planned targets was edited.",
+    "params": {
+     "section": "Deviations from Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       114,
+       114
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "3. Record any deviation from the plan, with what changed and why"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-075",
+    "target": {
+     "ref": "a4",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Finding duplicate variants of source files (copies next to the original) would need name-pattern heuristics that neither the document nor the vocabulary provides.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       115
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "that no duplicate file was created"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-077",
+    "target": {
+     "ref": "duplicate file variants",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "params": {
+     "action": "test_file_write",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       115,
+       115
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "in particular, that no duplicate file was created and no test file was modified"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cw-078",
+    "target": {
+     "ref": "test file modification",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The template skeleton for a3 (the Reproduction Script section with its Path and Exercises labels, plus the filled checks) already covers planning the reproduction script. The run cannot back anything more at planning time; whether the script was written is checked under cw-073.",
+    "statement": "cw-061"
+   },
+   {
+    "reason": "Recording the path is already covered by the compiled a3 label 'Reproduction Script / Path' and its filled check. At Stage 3 the path cannot be backed by the run, so its later use is checked under cw-069 (equal to the a4 path) and cw-073 (written at that path).",
+    "statement": "cw-062"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "3a9e4065aaac8e6bc8ec6b0e61dd61112f0e216b5517fc4e0b5cf4ef0b840883",
+ "key": "9ab6d4687e40fde09a5664cbb7a0b4302ddb3965320699cad7faf0a4d912ae16",
+ "meta": {
+  "at": "2026-10-12T11:45:42Z",
+  "cost_usd": 0.39756,
+  "duration_ms": 134587,
+  "num_turns": 2,
+  "wall_s": 135.85
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "7fc0bb13300de639cb938000ffefa319cca0dbe67c39fb26a3704054cf2b669f",
+ "version": "2.1.283"
+}
