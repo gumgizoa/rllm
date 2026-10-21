@@ -31,6 +31,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from statistics import mean
 
+from . import evidence as EV
 from .rubric import facts as F
 from .rubric.model import Run
 
@@ -60,8 +61,9 @@ PATCH_WRITE = re.compile(r"\bgit\s+apply\b|\bpatch\s+-p\d|\bgit\s+(?:checkout|re
 NOT_A_PATH = re.compile(r"[()=,<>\"'`$]")
 DUPLICATE = re.compile(r"(?:[-_.](?:new|fixed|backup|copy|old|orig|bak|tmp|v\d+|\d+))\.\w+$|\.(?:bak|orig|rej)$|(?:^|/)[^/]*\bcopy\b[^/]*$", re.I)
 # Test runners the vendored rubric's TEST_RUN_PATTERNS do not know: Django's runtests.py / manage.py test
-# (most of SWE-bench Verified), nose, ward.
-EXTRA_TEST_RUN = re.compile(r"\bruntests\.py\b|\bmanage\.py\s+test\b|\bnosetests?\b|\bward\b")
+# (most of SWE-bench Verified), nose, ward. One list for every check, so the stage gate (compliance.py)
+# and the content checks agree on what a test run is.
+EXTRA_TEST_RUN = EV.EXTRA_RUNNERS
 NETWORK = re.compile(r"\b(?:curl|wget|pip3?\s+install|npm\s+install|apt(?:-get)?\s+install|conda\s+install|uv\s+pip\s+install)\b")
 
 
@@ -112,9 +114,21 @@ def pathlike(t: str) -> bool:
     return bool(t) and not NOT_A_PATH.search(t) and ("/" in t or SOURCE_EXT.search(t) is not None)
 
 
+# What may follow a none to explain it: ``None - all tests pass``, ``None. The fix matched the plan``,
+# ``N/A: no build step``, ``none (Python project)``. A bare continuation is not a separator, so
+# ``None input -> TypeError`` (Python's None) and ``None verified yet`` are values, not none.
+_NONE_EXPLAINED = re.compile(r"\s+[-–—]\s+|[.:;]\s+|\s*\(")
+# Phrases that say none whatever follows them: ``None stated in the task description``.
+_NONE_PHRASE = re.compile(r"^(?:none stated|not applicable|n/a)\b", re.I)
+
+
 def is_none(value: str | None) -> bool:
-    """A field that says none / n/a (its first clause, so ``none (Python project)`` counts)."""
-    return bool(value) and NONE_VALUE.fullmatch(value.split("(")[0].strip()) is not None
+    """A field that says none / n/a: the whole value, its first clause before an explanation, or a
+    phrase that cannot be anything else (see ``_NONE_EXPLAINED`` / ``_NONE_PHRASE``)."""
+    if not value:
+        return False
+    v = value.strip()
+    return NONE_VALUE.fullmatch(_NONE_EXPLAINED.split(v, maxsplit=1)[0].strip()) is not None or _NONE_PHRASE.match(v) is not None
 
 
 def is_filler(value: str | None) -> bool:
@@ -353,6 +367,7 @@ class Observed:
     removed: dict[str, int] = field(default_factory=dict)  # repository path (or directory) -> last step rm'd
     edits_unknown: bool = False  # a whole-patch write changed files it did not name
     shell: list[tuple[int, str, str]] = field(default_factory=list)  # (step, command, output)
+    shell_raw: list[str] = field(default_factory=list)  # the same commands as written (newlines kept)
     observations: list[str] = field(default_factory=list)  # every tool result, for verbatim quotes
     test_attempts: list[tuple[int, str, str]] = field(default_factory=list)  # test-runner invocations, whatever came of them
     test_runs: list[tuple[int, str, str]] = field(default_factory=list)  # the attempts that really ran tests
@@ -413,12 +428,9 @@ class Observed:
         name = norm_path(path).rsplit("/", 1)[-1]
         if not name:
             return []
-        base, module = re.escape(name), re.escape(name.rsplit(".", 1)[0])
-        pat = re.compile(
-            rf"\b{RUNNERS}\s+(?:-\S+\s+)*\S*{base}(?:\s|$|::)|(?:^|\s)\.?/\S*{base}(?:\s|$)"
-            rf"|\bpython[0-9.]*\s+-c\s+\S*(?:import\s+{module}\b|from\s+{module}\s+import)"
-        )
-        return [(n, c, o) for n, c, o in self.shell if pat.search(c) and (after is None or n > after) and (before is None or n < before)]
+        # The command as written, not flattened: a heredoc that writes the script and the line that runs it
+        # are separate segments only while the newline is there (``evidence.runs_script``).
+        return [(n, c, o) for (n, c, o), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before) and EV.runs_script(raw, name)]
 
     def tests_in(self, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
         return [(n, c, o) for n, c, o in self.test_runs if (after is None or n > after) and (before is None or n < before)]
@@ -500,7 +512,8 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
             out = a.observation or ""
             flat = re.sub(r"\s+", " ", cmd).strip()
             obs.shell.append((step.n, flat, out))
-            if F.is_test_attempt(a) or EXTRA_TEST_RUN.search(F.command_skeleton(cmd)):
+            obs.shell_raw.append(cmd)
+            if EV.is_test_attempt(cmd, agent_files=[*obs.created, *obs.writes]):
                 obs.test_attempts.append((step.n, flat, out))
                 if F.ran_something(a):
                     obs.test_runs.append((step.n, flat, out))

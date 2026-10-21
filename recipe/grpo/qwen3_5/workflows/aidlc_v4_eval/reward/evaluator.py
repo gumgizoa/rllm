@@ -19,6 +19,7 @@ import base64
 
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
+from . import evidence as EV
 from .compliance import compliance
 from .content_checks import content_checks, parsed_artifacts
 from .episode import episode_to_run
@@ -74,15 +75,20 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     discloses. ``aidlc/rubric`` is their weighted sum with order_v6 for the order item
     (``RUBRIC_WEIGHTS``, /100). Fidelity reads the run's patch (``episode.artifacts["patch"]``, the
     ``git diff`` collected before the verifier); an episode that has none recorded gets neither
-    ``aidlc/fidelity`` nor ``aidlc/rubric``, since an unknown diff is not an empty one. Nothing else
-    reads the patch, so the other signals do not depend on it.
+    ``aidlc/fidelity`` nor ``aidlc/rubric``, since an unknown diff is not an empty one.
+
+    The content checks read the same patch for what the run changed (a truncated one counts as
+    unknown), the task's ``test_patch`` files to tell test files (``evidence.task_test_files``), and
+    only the artifacts read out of the sandbox, as the compliance signals do.
     """
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
-    patch = (getattr(episode, "artifacts", None) or {}).get("patch")
+    recorded = getattr(episode, "artifacts", None) or {}
+    patch = recorded.get("patch")
     run.patch = patch or ""
     c = compliance(run)
     facts = c["facts"]
-    cc = content_checks(run, parsed_artifacts(run))
+    whole_patch = None if recorded.get("patch_truncated") else patch
+    cc = content_checks(run, parsed_artifacts(run, collected=True), patch=whole_patch, test_files=EV.task_test_files(task))
     u = S.unit_scores(facts, S.PROFILES["v4"])
     u["order"] = c["order"]["value"]
     rubric = {"aidlc/entry": u["entry"], "aidlc/reports": u["reports"]}

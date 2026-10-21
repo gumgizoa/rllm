@@ -47,9 +47,11 @@ from __future__ import annotations
 import re
 from statistics import mean
 
+from . import evidence as EV
 from ._claims import (
     CONTRADICTED,
     PARTIAL,
+    SOURCE_EXT,
     SUPPORTED,
     Observed,
     claimed_paths,
@@ -76,9 +78,6 @@ from ._claims import (
 )
 from ._claims import (
     is_none as _none,
-)
-from ._claims import (
-    last_exit as _last_exit,
 )
 from ._claims import (
     membership as _membership,
@@ -150,8 +149,25 @@ FAMILIES = {
     ],
 }
 CHECKS = [c for fam in FAMILIES.values() for c in fam]
+# The checks that place a run before the first source edit or after the last one; with a source edit
+# the trajectory never shows (the patch has it), neither boundary is known.
+TIMED_BY_EDITS = [
+    "t1_baseline_before_edit",
+    "t1_no_edit_before_write",
+    "e1_baseline_tests",
+    "e1_baseline_none",
+    "e1_baseline_failing",
+    "t5_repro_run_after_last_edit",
+    "e5_repro_result",
+    "e5_build_result",
+    "t5_regression_after_last_edit",
+    "e5_command_run",
+    "e5_regressions",
+    "e5_outstanding_none",
+]
 
 _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
+_R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
 
 
 def observe(run: Run) -> Observed:
@@ -202,18 +218,37 @@ def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
     return None
 
 
-def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | None = None) -> dict:
+def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | None = None, patch: str | None = None, test_files=()) -> dict:
     """Every check for one run.
 
     ``parsed`` is stage -> ``artifacts.parse`` of the artifact's final text, or None for a stage
-    with no artifact (``facts.trace_artifacts`` provides both). Returns ``checks`` (name -> value or
+    with no artifact (``parsed_artifacts`` provides it). Returns ``checks`` (name -> value or
     None), ``families`` (family -> mean of its applicable checks or None), ``content`` (mean of the
     applicable family means), and ``contradictions`` (how many checks came out 0).
+
+    ``patch`` is the run's final ``git diff`` (None when unknown or truncated). With it, what the run
+    changed is the patch's files, not the trajectory's writes; and when the patch changed a source
+    file the trajectory never shows being edited, when the source last changed is unknown, so the
+    checks timed against the first or last edit are left out. ``test_files`` are the task's
+    ``test_patch`` paths, test files beside the path pattern (``evidence.is_test_file``).
     """
     obs = obs or observe(run)
     w = first_write_steps(run)
     p1, p2, p3, p4, p5 = (parsed.get(st) for st in (1, 2, 3, 4, 5))
     c: dict[str, float | None] = dict.fromkeys(CHECKS)
+
+    final_files = EV.patch_files(patch)
+    if final_files is not None:
+        changed_now = list(dict.fromkeys(norm_path(p) for p in final_files[0]))
+        new_now = {norm_path(p) for p in final_files[1]}
+        edits_unknown = False
+        timing_unknown = any(p not in new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, test_files) and not any(same_file(p, q) for q in obs.edited) for p in changed_now)
+    else:
+        changed_now, new_now = list(obs.remaining), set(obs.new_files)
+        edits_unknown, timing_unknown = obs.edits_unknown, False
+
+    def changed(path: str) -> bool:
+        return any(same_file(path, q) for q in changed_now) if final_files is not None else obs.changed(path)
 
     # -- stage 1: scope, commands, baseline -------------------------------------------------
     failing1: str | None = None
@@ -259,8 +294,10 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if tags and r_ids:
             c["c23_tags_exist"] = _membership(tags, [t in r_ids for t in tags])
         if r_ids:
-            body2 = p2["body"]
-            real = [r for r in r_ids if not re.search(rf"^\s*[-*+]\s*\*{{0,2}}{r}\*{{0,2}}\s*:\s*(?:none stated|none|n/?a|not applicable)\b", body2, re.I | re.M)]
+            # A requirement line whose value says none (``R3: none stated``) is no requirement; one that
+            # merely starts with the word (``R3: None input -> TypeError``) is.
+            values = [(m.group(1), m.group(2)) for m in _R_LINE.finditer(p2["body"])]
+            real = [r for r in r_ids if not any(rid == r and _none(v) for rid, v in values)]
             covered = set(tags) | set(p3.get("coverage_ids", []))
             c["c23_requirements_covered"] = _membership(real, [r in covered for r in real])
             exercises = _ids(_field(p3, "Reproduction Script", "Exercises"))
@@ -280,18 +317,20 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         mod = [m for m in (norm_path(x) for x in p4["claims"]["modified"]) if m]
         cre = [k for k in (norm_path(x) for x in p4["claims"]["created"]) if k]
         if mod:
-            found = [obs.changed(m) for m in mod]
-            c["e4_modified"] = None if (obs.edits_unknown and not all(found)) else _membership(mod, found)
+            found = [changed(m) for m in mod]
+            c["e4_modified"] = None if (edits_unknown and not all(found)) else _membership(mod, found)
         if cre:
-            c["e4_created"] = _membership(cre, [obs.written(k) is not None for k in cre])
-        if obs.edited and not obs.edits_unknown:
-            named = [any(same_file(p, q) for q in claimed_paths(p4["body"])) or p.rsplit("/", 1)[-1] in p4["body"] for p in obs.edited]
-            c["e4_undisclosed"] = _membership(list(obs.edited), named)
+            c["e4_created"] = _membership(cre, [obs.written(k) is not None or changed(k) for k in cre])
+        edited = changed_now if final_files is not None else list(obs.edited)
+        if edited and not edits_unknown:
+            named = [any(same_file(p, q) for q in claimed_paths(p4["body"])) or p.rsplit("/", 1)[-1] in p4["body"] for p in edited]
+            c["e4_undisclosed"] = _membership(edited, named)
         if _none(_field(p4, "Checks", "Test files modified")):
-            touched = [p for p in obs.edited if F.TEST_PATH_RE.search(p) and p not in obs.new_files]
+            # The patch has the test files still changed; the trajectory also has one changed and put back.
+            touched = [p for p in [*edited, *obs.edited] if EV.is_test_file(p, test_files) and p not in new_now and p not in obs.new_files]
             c["e4_tests_untouched"] = CONTRADICTED if touched else SUPPORTED
         if _none(_field(p4, "Checks", "Duplicate files created")):
-            dupes = [p for p in obs.remaining if p in obs.new_files and (_DUPLICATE.search(p) or F.BACKUP_RE.search(p))]
+            dupes = [p for p in changed_now if p in new_now and (_DUPLICATE.search(p) or F.BACKUP_RE.search(p))]
             c["e4_duplicates_none"] = CONTRADICTED if dupes else SUPPORTED
         if repro:
             wrote = obs.written(repro)
@@ -330,7 +369,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             if runs:
                 c["t5_repro_run_after_last_edit"] = SUPPORTED
                 result = (_field(p5, "Reproduction Script", "Result") or "").lower()
-                code = _last_exit(runs[-1][2])
+                code = EV.exit_code(runs[-1][1], runs[-1][2])
                 if code is not None and result:
                     failed = code != 0
                     if result.startswith("pass"):
@@ -344,7 +383,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             builds = obs.command_runs(build_cmd, after=obs.last_edit)
             if not builds:
                 c["e5_build_result"] = CONTRADICTED
-            elif (code := _last_exit(builds[-1][2])) is not None and build_result:
+            elif (code := EV.exit_code(builds[-1][1], builds[-1][2])) is not None and build_result:
                 ok = build_result.startswith(("success", "pass", "ok"))
                 c["e5_build_result"] = SUPPORTED if ok == (code == 0) else CONTRADICTED
         command = _field(p5, "Existing Tests vs Baseline", "Command")
@@ -377,18 +416,22 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if final and p4 is not None and (p4["claims"]["modified"] or p4["claims"]["created"]):
             stage4 = p4["claims"]["modified"] + p4["claims"]["created"]
             c["c45_final_files"] = _membership(final, [any(same_file(f, q) for q in stage4) for f in final])
-        if not obs.edits_unknown:
-            remaining = list(obs.remaining)
+        if not edits_unknown:
+            remaining = changed_now
             unintended = _field(p5, "Final Change", "Unintended files in the repository")
             disclosed = claimed_paths(unintended)
             actual = [p for p in remaining if not any(same_file(p, u) for u in disclosed)]
             if final or actual:
                 c["e5_final_files_diff"] = _both_ways(final, actual)
             if _none(unintended):
-                stray = [p for p in remaining if p in obs.new_files and not any(same_file(p, f) for f in final)]
+                stray = [p for p in remaining if p in new_now and not any(same_file(p, f) for f in final)]
                 c["e5_unintended_none"] = CONTRADICTED if stray else SUPPORTED
             if _none(_field(p5, "Final Change", "Test files in the change")):
-                c["e5_test_files_none"] = CONTRADICTED if any(F.TEST_PATH_RE.search(p) and p not in obs.new_files for p in remaining) else SUPPORTED
+                c["e5_test_files_none"] = CONTRADICTED if any(EV.is_test_file(p, test_files) and p not in new_now for p in remaining) else SUPPORTED
+
+    if timing_unknown:
+        for name in TIMED_BY_EDITS:
+            c[name] = None
 
     families = {fam: (mean(v) if (v := [c[k] for k in names if c[k] is not None]) else None) for fam, names in FAMILIES.items()}
     applicable = [v for v in families.values() if v is not None]
@@ -400,8 +443,15 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
     }
 
 
-def parsed_artifacts(run: Run) -> dict[int, dict | None]:
-    """Stage -> parsed final artifact, from the collected files when the run has them, else from
-    the writes in the trajectory (``facts.trace_artifacts``)."""
+def parsed_artifacts(run: Run, collected: bool = False) -> dict[int, dict | None]:
+    """Stage -> parsed final artifact.
+
+    ``collected``: the sandbox was read at the end, so ``run.artifact_files`` is what it held and a
+    stage with no file there has no artifact -- as the compliance signals see it -- even when the
+    trajectory wrote one and removed it some way the rubric does not recognise. Otherwise (an old
+    saved episode without the files) the text is reconstructed from the trajectory's writes
+    (``facts.trace_artifacts``)."""
+    if collected:
+        return {st: (A.parse(st, run.artifact_files[p]) if (p := A.artifact_path(st)) in run.artifact_files else None) for st in A.STAGE_FILES}
     traces = F.trace_artifacts(run)
     return {st: (A.parse(st, t.content) if t.content is not None else None) for st, t in traces.items()}

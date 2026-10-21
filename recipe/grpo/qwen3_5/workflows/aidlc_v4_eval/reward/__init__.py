@@ -3,6 +3,9 @@
     rubric/             the offline adherence rubric, vendored byte-identical (see rubric/__init__.py)
     episode.py          rLLM Episode -> rubric Run
     compliance.py       facts -> six signals in [0, 1] (order_v6, s1..s5) and their mean
+    evidence.py         where this verifier reads a run differently from the vendored rubric: test runs
+                        (Django's runner in, lookups and agent-written runner scripts out), script runs,
+                        piped exit codes, final changes from the patch, test files from the task
     _claims.py          trajectory index, report readers, verdict reductions (shared machinery of the
                         content checks, kept here so this package is self-contained)
     content_checks.py   the five stage artifacts' claims against the trajectory (evidence / temporal /
@@ -13,7 +16,7 @@
                         aidlc/reports, aidlc/fidelity, aidlc/rubric with order_v6 as its order item);
                         plugged into workflow_scoring.ComplianceEvaluation
 
-``rubric/``, ``episode.py`` and ``compliance.py`` are copies of ``workflows/aidlc_v4/reward``'s (commit
-4c3ee52c), so ``aidlc/compliance`` and the signals behind it score as aidlc_v4's do, but no longer move
-with it. ``aidlc/compliance`` stays the reward signal -- the content signals are logged.
+``rubric/`` and ``episode.py`` are byte-identical copies of ``workflows/aidlc_v4/reward``'s (commit
+4c3ee52c); ``compliance.py`` is a copy whose stage gate reads test runs through ``evidence.py``. None of
+them moves with aidlc_v4. ``aidlc/compliance`` stays the reward signal -- the content signals are logged.
 """

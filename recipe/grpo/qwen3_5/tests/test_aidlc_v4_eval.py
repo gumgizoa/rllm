@@ -34,8 +34,9 @@ PKG = aidlc_v4_eval.HERE
 # SPEC.fingerprint: what the agent is given. Equal to aidlc_v4's when copied (4c3ee52c), and to the
 # one recorded by the aidlc_v4 runs it rescores (swebv100_aidlcv4_262k-150_think_t1_prefix).
 FINGERPRINT = "b9c317de1dd1b28db28d5d960763b85ef63d8d272e687fe1a6103852b0ca14b6"
-# The copied scoring code: reward/rubric/**, compliance.py, episode.py.
-SCORING_COPY = "c9766d596ba200a4785781bb37c8dc00612e9f872f90a8c8c63c27d2952b027b"
+# The vendored scoring code, byte-identical to aidlc_v4's: reward/rubric/** and episode.py. The evaluation
+# verifier's own readings are in evidence.py (and the files that call it), tested by behaviour below.
+VENDORED = "f15db1ff24a6495d55705f23af62362828b7562253cb06414977590b862d51d4"
 
 
 def _content_honest_turns() -> list[tuple[dict, str]]:
@@ -110,12 +111,12 @@ def test_workflow_given_to_the_agent_is_pinned():
     assert aidlc_v4_eval.SPEC.fingerprint("openhands-sdk") == FINGERPRINT
 
 
-def test_copied_scoring_code_is_pinned():
-    files = sorted((PKG / "reward" / "rubric").rglob("*.py")) + [PKG / "reward" / "compliance.py", PKG / "reward" / "episode.py"]
+def test_vendored_scoring_code_is_pinned():
+    files = sorted((PKG / "reward" / "rubric").rglob("*.py")) + [PKG / "reward" / "episode.py"]
     h = hashlib.sha256()
     for p in files:
         h.update(p.relative_to(PKG).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
-    assert h.hexdigest() == SCORING_COPY
+    assert h.hexdigest() == VENDORED
 
 
 # --- scoring ---------------------------------------------------------------------------------
@@ -201,10 +202,159 @@ def test_an_episode_without_a_recorded_patch_gets_no_fidelity():
     assert s["aidlc/entry"] == 1.0 and s["aidlc/reports"] == pytest.approx(1.0)
 
 
-def test_the_patch_moves_no_other_signal():
+def test_the_patch_moves_no_compliance_signal():
     without = score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
     with_patch = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH + PATCH_OTHER), FILES)
-    assert {k: v for k, v in with_patch.items() if k not in ("aidlc/fidelity", "aidlc/rubric")} == without
+    keys = ["aidlc/compliance", "aidlc/order", *(f"aidlc/s{k}" for k in range(1, 6)), "aidlc/entry", "aidlc/reports"]
+    assert {k: with_patch[k] for k in keys} == {k: without[k] for k in keys}
+
+
+def test_the_patch_matching_the_trajectory_keeps_every_check():
+    s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH), FILES)
+    checks = {k: v for k, v in s.items() if k.startswith("aidlc/check/")}
+    assert len(checks) == 35 and set(checks.values()) == {1.0}
+
+
+def test_final_changes_are_read_from_the_patch():
+    """pkg/other.py is in the patch but no trajectory write shows it (a python script, say): it is an
+    undisclosed change, and since its edit time is unknown the checks timed by edits are left out."""
+    s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH + PATCH_OTHER), FILES)
+    assert s["aidlc/check/e4_undisclosed"] == 0.5 and s["aidlc/check/e5_final_files_diff"] == 0.5
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.content_checks import TIMED_BY_EDITS
+
+    assert not any(f"aidlc/check/{k}" in s for k in TIMED_BY_EDITS)
+
+
+def test_a_change_put_back_is_not_a_final_change():
+    """Edited in the trajectory, absent from the patch: reverted (``git checkout -- f``), not changed."""
+    turns = _content_honest_turns()
+    turns.insert(-2, (_call(700, "file_editor", command="str_replace", path="/testbed/pkg/util.py", old_str="a", new_str="b"), "The file has been edited"))
+    s = score(SimpleNamespace(id="t"), _with_patch(turns, PATCH), FILES)
+    assert s["aidlc/check/e4_undisclosed"] == 1.0 and s["aidlc/check/e5_final_files_diff"] == 1.0
+
+
+# --- the evaluation verifier's own evidence readings (evidence.py) ----------------------------
+
+
+def _replace_command(turns, old, new, obs=None):
+    out = []
+    for call, o in turns:
+        a = json.loads(call["function"]["arguments"])
+        if old in a.get("command", ""):
+            a["command"] = a["command"].replace(old, new)
+            call = {**call, "function": {**call["function"], "arguments": json.dumps(a)}}
+            o = o if obs is None else obs
+        out.append((call, o))
+    return out
+
+
+@pytest.mark.parametrize(
+    ("command", "test_run"),
+    [
+        ("cd /testbed && python -m pytest tests/test_mod.py -q", True),
+        ("cd /testbed/tests && python runtests.py queries.test_qs 2>&1 | head -50", True),
+        ("cd /testbed && DJANGO_SETTINGS_MODULE=x python manage.py test app", True),
+        ("cat /testbed/tox.ini", False),
+        ("grep -n settings /testbed/tests/runtests.py | head -20", False),
+        ("head -50 /testbed/tests/runtests.py", False),
+        ("echo 'pytest tests/test_mod.py'", False),
+        ("bash /tmp/pytest.sh", False),  # the agent wrote it (agent_files below)
+    ],
+)
+def test_what_counts_as_a_test_run(command, test_run):
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+
+    assert EV.is_test_attempt(command, agent_files=["/tmp/pytest.sh"]) is test_run
+
+
+@pytest.mark.parametrize(
+    ("command", "runs"),
+    [
+        ("python /tmp/repro.py", True),
+        ("cd /testbed && timeout 60 python /tmp/repro.py 2>&1 | tail -5", True),
+        ("/tmp/repro.py", True),
+        ("cat > /tmp/repro.py <<'EOF'\nprint(1)\nEOF\npython /tmp/repro.py", True),
+        ("python -c 'import repro'", True),
+        ("ls -la /tmp/repro.py", False),
+        ("cat /tmp/repro.py", False),
+        ("ls -la /tmp/repro.py && echo found", False),
+    ],
+)
+def test_what_counts_as_running_the_script(command, runs):
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+
+    assert EV.runs_script(command, "/tmp/repro.py") is runs
+
+
+def test_django_runner_passes_the_stage_gate():
+    turns = _replace_command(_content_honest_turns(), "python -m pytest tests/test_mod.py -q", "cd tests && python runtests.py pkg.test_mod")
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/ran_real_test"] == 1.0 and s["aidlc/s1"] == 1.0 and s["aidlc/s5"] == 1.0
+
+
+def test_a_lookup_naming_a_runner_is_not_a_test_run():
+    turns = _replace_command(_content_honest_turns(), "cd /testbed && python -m pytest tests/test_mod.py -q", "cat /testbed/tox.ini", obs="[tox]\nenvlist = py3")
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/ran_real_test"] == 0.0 and s["aidlc/s1"] == pytest.approx(4 / 7)
+    assert s["aidlc/check/t1_baseline_before_write"] == 0.0
+
+
+def test_a_runner_script_the_agent_wrote_is_not_a_test_run():
+    turns = _replace_command(_content_honest_turns(), "cd /testbed && python -m pytest tests/test_mod.py -q", "bash /tmp/pytest.sh")
+    turns.insert(1, (_call(701, "file_editor", command="create", path="/tmp/pytest.sh", file_text="echo '3 passed in 0.10s'"), "File created successfully"))
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/ran_real_test"] == 0.0
+
+
+def test_listing_the_script_is_not_running_it():
+    turns = _replace_command(_content_honest_turns(), "python /tmp/repro.py", "ls -la /tmp/repro.py", obs="-rw-r--r-- 1 root root 11 /tmp/repro.py\nexit code: 0")
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/check/t5_repro_run_after_last_edit"] == 0.0
+
+
+def test_a_piped_exit_code_decides_nothing():
+    turns = _replace_command(_content_honest_turns(), "python /tmp/repro.py", "python /tmp/repro.py 2>&1 | tail -5")
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/check/t5_repro_run_after_last_edit"] == 1.0 and "aidlc/check/e5_repro_result" not in s
+
+
+def test_an_explained_none_is_held_to_the_evidence():
+    """``- None - all tests pass.`` is a none claim; with the tests failing after the change it is false."""
+    turns = _content_honest_turns()
+    last = max(i for i, t in enumerate(turns) if "pytest" in json.loads(t[0]["function"]["arguments"]).get("command", ""))
+    turns[last] = (turns[last][0], "1 failed, 2 passed in 0.10s")
+    files = {**FILES, ART[5]: FILES[ART[5]].replace("## Outstanding Failures\n- none", "## Outstanding Failures\n- None - all tests pass.")}
+    s = score(SimpleNamespace(id="t"), episode(turns), files)
+    assert s["aidlc/check/e5_outstanding_none"] == 0.0
+
+
+def test_a_requirement_about_python_none_is_a_requirement():
+    """``R3: None input -> TypeError`` is a requirement, not ``none stated``: dropping it from the plan
+    leaves it uncovered."""
+    files = dict(FILES)
+    files[ART[3]] = files[ART[3]].replace("### Step 1 [satisfies R1, R3]", "### Step 1 [satisfies R1]").replace("- R3: Step 1\n", "")
+    s = score(SimpleNamespace(id="t"), episode(_content_honest_turns()), files)
+    assert s["aidlc/check/c23_requirements_covered"] == 0.5
+
+
+def test_the_tasks_test_patch_names_test_files(tmp_path):
+    """``testing/test_x.py`` (pytest's own layout) escapes the path pattern; the task's test_patch names it."""
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "config.json").write_text(json.dumps({"test_patch": "diff --git a/testing/conftest_x.py b/testing/conftest_x.py\n"}))
+    turns = _content_honest_turns()
+    turns.insert(-2, (_call(702, "file_editor", command="str_replace", path="/testbed/testing/conftest_x.py", old_str="a", new_str="b"), "The file has been edited"))
+    patch = PATCH + "diff --git a/testing/conftest_x.py b/testing/conftest_x.py\n--- a/testing/conftest_x.py\n+++ b/testing/conftest_x.py\n@@ -1 +1 @@\n-a\n+b\n"
+    task = SimpleNamespace(id="t", metadata={"task_path": str(tmp_path)})
+    assert score(task, _with_patch(turns, patch), FILES)["aidlc/check/e5_test_files_none"] == 0.0
+    assert score(SimpleNamespace(id="t"), _with_patch(turns, patch), FILES)["aidlc/check/e5_test_files_none"] == 1.0
+
+
+def test_an_artifact_the_sandbox_did_not_hold_makes_no_claims():
+    """Written in the trajectory, gone from the sandbox with no ``rm`` the rubric reads: no claims, as
+    the compliance signals see it (s5 = 0)."""
+    files = {p: t for p, t in FILES.items() if p != ART[5]}
+    s = score(SimpleNamespace(id="t"), episode(_content_honest_turns()), files)
+    assert s["aidlc/s5"] == 0.0 and not any(k.startswith(("aidlc/check/e5_", "aidlc/check/t5_", "aidlc/check/c45_")) for k in s)
 
 
 # --- evaluator wrapper -----------------------------------------------------------------------
