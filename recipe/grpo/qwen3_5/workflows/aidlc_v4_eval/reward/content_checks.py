@@ -380,7 +380,9 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
                 c["t5_repro_run_after_last_edit"] = CONTRADICTED
         build_cmd, build_result = _field(p5, "Build", "Command"), (_field(p5, "Build", "Result") or "").lower()
         if build_cmd and not _none(build_cmd) and _command_core(build_cmd):
-            builds = obs.command_runs(build_cmd, after=obs.last_edit)
+            # The build on the final code; failing that, stage 5's own build (05 Step 1), which a fix made
+            # later in the stage re-verifies through the tests, not a rebuild (05 Step 5).
+            builds = obs.command_runs(build_cmd, after=obs.last_edit) or obs.command_runs(build_cmd, after=w[4], before=w[5])
             if not builds:
                 c["e5_build_result"] = CONTRADICTED
             elif (code := EV.exit_code(builds[-1][1], builds[-1][2])) is not None and build_result:
