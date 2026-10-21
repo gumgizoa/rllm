@@ -66,7 +66,7 @@ def test_instruction_prefix_and_suffix(harness_cls):
     assert text and "/ai-dlc/core-workflow.md" in text
     assert pre.compose_instruction(task) == f"{text}\n\nTASK TEXT"
     assert suf.compose_instruction(task) == f"TASK TEXT\n\n{text}"
-    assert harness_cls().instruction_position == "suffix"  # code default; config.yaml chooses prefix
+    assert harness_cls().instruction_position == "suffix"  # code default, as config.yaml
 
 
 def test_bad_position_rejected(harness_cls):

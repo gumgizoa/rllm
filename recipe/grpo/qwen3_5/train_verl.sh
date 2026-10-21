@@ -9,7 +9,7 @@
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
 #   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # the above on SWE-Gym (prepare_swegym.py)
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2 # prompt v2: prepare_swegym.py --instruction aidlc + AI-DLC instruction first
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2 # prompt v2: prepare_swegym.py --instruction aidlc (instruction after the task text since 2026-10-19)
 #
 # This script only sets up the environment and launches; every training knob
 # lives in config/ so that one decision is not split across two files:

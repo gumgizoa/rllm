@@ -10,7 +10,9 @@
 #      (swegym293_aidlc / swegym_val23_aidlc, built by
 #      prepare_swegym.py --instruction aidlc);
 #   2. the AI-DLC instruction placed *before* the task text
-#      (recipe.workflow.instruction_position=prefix).
+#      (recipe.workflow.instruction_position=prefix) -- until 2026-10-19; now
+#      after it (suffix): with the procedure-free prompt, prefix raised
+#      /testbed/<docs> lookups (see config.yaml).
 #
 # Measured on the base model, run 2's 32 step-1 tasks x 4, 40-turn budget:
 # core-workflow.md read 13% -> 91%, artifact 1 written 1.6% -> 45%.
@@ -29,7 +31,7 @@ recipe:
   train_dataset: swegym293_aidlc
   val_dataset: swegym_val23_aidlc
   workflow:
-    instruction_position: prefix
+    instruction_position: suffix
 
 rllm:
   trainer:

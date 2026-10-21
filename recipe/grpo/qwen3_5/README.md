@@ -334,7 +334,7 @@ the files come from the spec only:
 | layer | spec field | in the sandbox |
 | --- | --- | --- |
 | workflow documents | `docs_dir` → `container_dir` | `/ai-dlc/core-workflow.md`, `/ai-dlc/rule-details/0[1-5]-*.md`, uploaded per task and counted (6 `.md` or the rollout fails) |
-| instruction | `instruction_file` (+ `instruction_position`) | joined to the task instruction — `prefix` (before the task text; the recipe default since run 2) or `suffix` (after it, as in Harbor): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." |
+| instruction | `instruction_file` (+ `instruction_position`) | joined to the task instruction — `suffix` (after the task text; the code and recipe default, as in Harbor) or `prefix` (before it; the recipe default from run 2 to 2026-10-19): "Follow the workflow defined in /ai-dlc/core-workflow.md ..." |
 | system prompt | `system_prompt_file` | `/opt/openhands-sdk-system-prompt.j2`, handed to `Agent(system_prompt_filename=...)` via `OPENHANDS_SDK_SYSTEM_PROMPT_PATH` |
 
 **The system prompt is the layer that matters.** openhands-sdk's default prompt carries a
@@ -1586,7 +1586,7 @@ recipe/grpo/qwen3_5/
 │       ├── openhands_9b_aidlc_reward.yaml  # `variant=openhands_9b_aidlc_reward`: the above + recipe.workflow.compliance_reward.enable=true
 │       ├── openhands_9b_aidlc_swegym.yaml  # `variant=openhands_9b_aidlc_swegym`: openhands_9b_aidlc on SWE-Gym; FSDP1, 1 update/step, no-think
 │       ├── openhands_9b_aidlc_swegym_reward.yaml  # `variant=openhands_9b_aidlc_swegym_reward`: the above + compliance in the reward
-│       ├── openhands_9b_aidlc_swegym_v2.yaml      # `variant=openhands_9b_aidlc_swegym_v2`: prompt v2 (swegym293_aidlc + instruction_position=prefix)
+│       ├── openhands_9b_aidlc_swegym_v2.yaml      # `variant=openhands_9b_aidlc_swegym_v2`: prompt v2 (swegym293_aidlc; instruction_position=suffix since 2026-10-19)
 │       ├── openhands_9b_aidlc_swegym_v2_reward.yaml  # `variant=openhands_9b_aidlc_swegym_v2_reward`: v2 + compliance in the reward
 │       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, workflow.name=null
 ├── patches/

@@ -46,8 +46,11 @@ recipe:
     # Run 2 (2026-09-29, suffix) put the task prompt's six-step procedure
     # (OpenHands' SWE-bench prompt, reused by SkyRL-v0) between the
     # issue and the AI-DLC pointer and 86% of rollouts never read the workflow
-    # (reports/2026-09-30_aidlc_swegym_compliance.md), so the recipe uses prefix.
-    instruction_position: prefix
+    # (reports/2026-09-30_aidlc_swegym_compliance.md), so the recipe used prefix.
+    # With the procedure-free swegym293_aidlc prompt, prefix put the docs read later and
+    # raised /testbed/<docs> lookups (2026-10-19: speckit_bug 5 tasks x 3 x think on/off,
+    # 10/30 vs 3/30; aidlc_v4 on SWE-bench Verified 100, 7/100 vs 1/100), so suffix.
+    instruction_position: suffix
     # Compliance reward. With a workflow whose scorer covers the harness, its
     # signals are always scored and logged (aidlc: order_v6 + stage bands s1..s5,
     # each in [0, 1], as aidlc/* episode metrics). With compliance_reward.enable the

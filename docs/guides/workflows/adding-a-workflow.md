@@ -64,8 +64,9 @@ workflows/<이름>/
 - 진입 문서의 sandbox 절대 경로(`<container_dir>/<entry_doc>`, 예: `/ai-dlc/core-workflow.md`)를 **반드시 문자열로 포함**해야 함.
   포함하지 않으면 harness 생성 시 에러.
 - 위치는 실행 설정 `instruction_position`으로 정함.
-  - `prefix`: task 텍스트 앞. 레시피 기본값.
-  - `suffix`: task 텍스트 뒤. 코드 기본값이자 Harbor 실험 배치.
+  - `suffix`: task 텍스트 뒤. 코드·레시피 기본값이자 Harbor 실험 배치.
+  - `prefix`: task 텍스트 앞. 2026-10-19까지 레시피 기본값.
+  - 절차 없는 SWE-Gym 프롬프트에서 prefix는 문서를 늦게 읽고 `/testbed/<문서 폴더>`에서 찾는 경우가 더 많았음(speckit_bug 10/30 vs suffix 3/30, aidlc_v4 Verified 100개 7 vs 1).
 - 데이터셋 프롬프트와의 충돌 주의.
   - SWE-Gym 프롬프트에는 자체 6단계 절차가 들어 있음.
   - 지시를 그 뒤(`suffix`)에 붙인 학습(2026-09-29)에서 rollout의 86%가 워크플로우 문서를 한 번도 열지 않음.
