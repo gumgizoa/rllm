@@ -1,0 +1,6 @@
+# Native openhands-sdk harness kwargs -- rllm eval --agent openhands-sdk --agent-kwargs @recipe/eval/config/openhands-sdk.yaml
+#
+# Unset keys keep the SDK defaults (500 iterations; FinishTool + ThinkTool).
+# Model request params (reasoning_effort, chat_template_kwargs) go in --sampling-params.
+max_iterations: 150                  # cap on agent steps per rollout
+include_default_tools: [FinishTool]  # drop ThinkTool: models with reasoning on already think every turn

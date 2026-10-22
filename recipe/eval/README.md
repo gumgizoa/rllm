@@ -476,13 +476,16 @@ rllm eval swebench_pro_100 --split test \
 
 ## 2. Native 방식
 
-native 방식은 Harbor runtime 없이 rLLM이 직접 container를 만들고, 그 안에서 harness(예: mini-swe-agent CLI)를 실행하여 추론을 진행한 뒤, task directory의 `tests/test.sh`를 실행해 `reward.txt`를 읽는다.
+native 방식은 Harbor runtime 없이 rLLM이 직접 container를 만들고, 그 안에서 harness(예: mini-swe-agent CLI)를 실행하여 추론을 진행한 뒤, task directory의 `tests/test.sh`를 실행해 reward 파일을 읽는다. `ShellScriptEvaluator`는 `/tmp/rllm/reward.json`(rLLM 규약)을 먼저 찾고, 없으면 Harbor 규약인 `/logs/verifier/reward.json|txt`를 읽는다.
 
 ```
 SandboxTaskHooks      docker build -t rllm-task-<task_id> --rm . && docker run (+ harness CLI image mount)
 MiniSweAgentHarness   mini-swe-agent CLI를 Container 안에서 실행
   └─ litellm ───────► rLLM model gateway (host.docker.internal) ──► LiteLLM proxy
-ShellScriptEvaluator  /tests/test.sh → /logs/verifier/reward.txt → reward
+ShellScriptEvaluator  /tests/test.sh
+                        ├─ /tmp/rllm/reward.json          (rLLM builder 규약, 우선)
+                        └─ /logs/verifier/reward.json|txt (Harbor task 규약)
+                      → reward
 ```
 
 harness는 `rllm agent list`에 나오는 rLLM harness를 사용한다.
@@ -583,7 +586,7 @@ HF dataset에는 CPU·memory 정보가 없다. 4 / 16384는 업스트림 평가 
 | --- | --- | --- |
 | mini-swe-agent | O  | O  |
 | opencode | O. `--agent opencode --agent-image auto` | O. `--agent-kwargs @recipe/eval/config/harbor-opencode-vllm.yaml` **필수** (3.3) |
-| openhands-sdk | O. `--agent openhands-sdk --agent-image auto` (3.5) | O. `recipe/eval/patches` 적용 **필수** (3.4) |
+| openhands-sdk | O. `--agent openhands-sdk --agent-image auto --agent-kwargs @recipe/eval/config/openhands-sdk.yaml` (3.5) | O. `recipe/eval/patches` 적용 **필수** (3.4) |
 | openhands (openhands-ai) | 없음 (미구현: TODO) | 미확인 |
 | claude-code, codex, aider, ... | 미확인 | 미확인 |
 
@@ -592,7 +595,7 @@ HF dataset에는 CPU·memory 정보가 없다. 4 / 16384는 업스트림 평가 
 - Harbor harness 생성자에 넘길 kwargs.
 - 형식은 `--sampling-params`와 같다: `"key=value,..."` 또는 `@file.yaml` / `@file.json`. 
 - nested dictionary는 `@file`로만 주며, CLI 값이 키 단위로 우선한다. 
-- native harness에는 효과가 없고 경고만 발생한다.
+- native harness는 `openhands-sdk`만 받는다(`max_iterations`, `include_default_tools`, 3.5). 다른 native harness에는 효과가 없고 경고만 발생한다.
 
 ### 3.3 opencode
 
@@ -720,9 +723,19 @@ rllm eval swebenchpro_100 \
     --concurrency 8 --sandbox-concurrency 8 --no-ui \
     --base-url http://127.0.0.1:8000/v1 \
     --model Qwen/Qwen3.5-4B \
-    --sampling-params @recipe/eval/config/qwen3_5.yaml
+    --sampling-params @recipe/eval/config/qwen3_5.yaml \
+    --agent-kwargs @recipe/eval/config/openhands-sdk.yaml
 ```
 
+- **`--agent-kwargs`로 step cap과 SDK 기본 tool을 정한다.** `recipe/eval/config/openhands-sdk.yaml`:
+
+  | key | 의미 | 생략 시 |
+  | --- | --- | --- |
+  | `max_iterations` | rollout당 agent step 상한 (`Conversation(max_iteration_per_run=...)`) | SDK 기본 500 |
+  | `include_default_tools` | SDK 내장 tool 중 포함할 것 (`Agent(include_default_tools=...)`). `[]`이면 하나도 넣지 않는다 | `[FinishTool, ThinkTool]` |
+
+  recipe 값은 `max_iterations: 150`, `include_default_tools: [FinishTool]`이다. ThinkTool은 생각을 기록만 하는 tool이라, reasoning을 켠 model(runner가 이전 turn의 reasoning을 다시 보낸다)에게는 step만 쓴다. FinishTool은 agent가 종료를 알리는 수단이므로 남긴다. harness가 두 값을 `OPENHANDS_MAX_ITERATIONS`, `OPENHANDS_DEFAULT_TOOLS`로 runner에 넘기고, runner 첫 줄 log(`default_tools=... max_iterations=...`)에 적용된 값이 찍힌다. 모르는 key는 WARNING으로 남는다.
+- **reasoning 설정은 `--sampling-params`로 준다.** gateway가 session의 sampling params를 모든 요청 body에 덮어쓰므로(`payload.update`), `reasoning_effort`·`chat_template_kwargs`도 harness와 관계없이 model 파일 하나로 정해진다. SDK는 기본으로 `reasoning_effort: "high"`를 보내는데, Qwen3.8 서빙은 `xhigh`(기본)/`medium`/`low`만 받는다. sampling params로 덮지 않으면 첫 LLM 호출이 `BadRequestError: Unexpected reasoning effort high`로 실패하고 runner가 종료되어, rollout은 1 step·reward 0의 정상 종료처럼 보인다(오류는 container의 `/tmp/openhands-sdk.log`에만 남는다). `recipe/eval/config/qwen3_8-flash-next.yaml`이 `reasoning_effort: xhigh`와 `chat_template_kwargs.enable_thinking: true`를 고정한다. 값이 `null`인 key는 sampling params에서 버려지므로 "보내지 않음"은 표현할 수 없고, 허용되는 값을 명시해야 한다. `chat_template_kwargs`는 key 단위로 합쳐지지 않고 dict 전체가 교체된다.
 - **`--agent-image auto`가 설치 비용을 없앤다.** uv + Python 3.12 + SDK를 `/opt/rllm/agent`에 한 번 구워 task container에 read-only로 mount하므로 task당 설치가 사라진다(측정: qutebrowser task 전체 시간이 163초 → 47초, `env_install` 112초 → 0초). Harbor 경로는 task마다 510 MB를 새로 설치한다.
 - **mount가 모든 image를 덮지는 못한다.** harness는 mount된 python으로 `import openhands.sdk`를 실행해 보고 실패하면 task별 설치로 fallback하며, 그때 `openhands-sdk: agent mount cannot serve <task>; installed the SDK per task instead`를 WARNING으로 남긴다. mount가 있으면 rLLM이 설치 hook을 건너뛰므로(`hooks.py`의 `baked_install`) 이 fallback이 없으면 해당 task는 interpreter 없이 실행된다. fallback 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
   - SDK는 task 저장소에서 import하면 안 된다. harness 명령은 task workdir(`/testbed`)에서 돌기 때문에, 저장소가 SDK 의존성과 같은 이름의 package를 가지면(`/testbed/aiohttp`, `/testbed/pydantic`, `/testbed/tornado` 등) mount probe와 fallback 설치 검증이 **둘 다** 실패하고 agent가 한 번도 실행되지 않는다. 경로는 두 개다. `python -c`가 cwd를 `sys.path` 맨 앞에 넣는 것은 `-I`로 막고(image의 `PYTHONPATH`/`PYTHONHOME`도 무시), litellm이 import 시 `sys.path.append(os.getcwd())`를 하는 것은 빈 임시 directory로 chdir한 뒤 import해서 막는다(probe와 runner 모두).
@@ -730,7 +743,7 @@ rllm eval swebenchpro_100 \
   - glibc image는 bake의 glibc 세대에 달려 있다. bake를 `debian:bullseye-slim`(2.31)에서 하면 subset의 2.31~2.36 image를 모두 덮는다(11개 image에 직접 mount해 확인: 10개 import OK, teleport만 musl로 실패). `ubuntu:22.04`(2.35)에서 구우면 uv가 manylinux_2_34 wheel을 고르고 `cryptography`가 `GLIBC_2.33`을 요구해 2.31 image 5개(ansible, element-web, nodebb, protonmail, tutanota)에서 import가 깨진다.
   - bake stage에서는 apt를 쓰지 않는다. bullseye는 EOL이라 security pool의 해당 version이 404이고(`apt-get install curl`이 exit 100), uv binary는 공식 uv image에서 복사한다. uv가 TLS root를 내장하므로 ca-certificates도 필요 없다.
 - **bake image의 tag는 install script hash다**(`agent_image_tag(install_script)`). bake Dockerfile만 바꾸면 tag가 그대로여서 기존 image가 재사용되고 변경이 반영되지 않는다. Dockerfile을 고쳤으면 `docker rmi rllm-agent-<hash>`로 지워 다시 굽게 한다. 다른 harness(mini-swe-agent, opencode, claude-code)도 같다.
-- **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다. native harness에는 `--agent-kwargs`가 적용되지 않는다(3.2).
+- **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다.
 - SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 fallback한다는 경고를 남기지만 동작에는 문제가 없다.
 
 ---
@@ -760,7 +773,7 @@ docker image prune                                                              
 | derived image per task | 정상 종료 시 `compose down --rmi all`로 삭제. 비정상 종료 시 남음 | **삭제하지 않음** (재실행 cache로 남김) |
 | harness | Harbor scaffold (`harbor/agents/`). 20종, `harbor:<이름>` | rLLM harness (`rllm/harnesses/`). `rllm agent list` |
 | harness install | task마다 container 안에서 설치 | `--agent-image auto`로 한 번 구워 mount |
-| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | task의 `tests/test.sh`를 rLLM이 직접 실행 → `reward.txt` |
+| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | task의 `tests/test.sh`를 rLLM이 직접 실행 → `/tmp/rllm/reward.json`(우선) 또는 `/logs/verifier/reward.json\|txt` |
 | trajectory | Harbor ATIF trajectory를 rLLM Episode로 변환 | gateway가 모든 LLM 호출을 capture해 Step/Episode 구성 (학습과 동일 경로) |
 | timeout | `task.toml` 값 + `RLLM_HARBOR_SESSION_TIMEOUT_S` 상한 | `task.toml` 값만 |
 | log | `$RLLM_HOME/harbor_trials/<trial>/` (Harbor 형식) | `$RLLM_HOME/eval_results/<run>/episodes/` |

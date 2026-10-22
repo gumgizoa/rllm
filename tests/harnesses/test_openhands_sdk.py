@@ -93,3 +93,69 @@ def test_harbor_patch_replays_reasoning_like_the_native_runner():
     added = "\n".join(line[1:] for line in _HARBOR_PATCH.read_text().splitlines() if line.startswith("+") and not line.startswith("+++"))
     assert "llm = ReasoningReplayLLM(**llm_kwargs)" in added
     assert _replay_methods(added) == _replay_methods(Path(runner.__file__).read_text())
+
+
+def test_agent_kwargs_reach_the_runner_environment():
+    h = OpenHandsSdkHarness()
+    leftovers = h.configure({"agent_kwargs": {"max_iterations": 150, "include_default_tools": ["FinishTool"]}, "sandbox_backend": "docker"})
+    assert leftovers == {}
+    env = h.build_env(_task(), _config())
+    assert env["OPENHANDS_MAX_ITERATIONS"] == "150"
+    assert env["OPENHANDS_DEFAULT_TOOLS"] == "FinishTool"
+    assert runner.agent_kwargs_from_env(env) == {"include_default_tools": ["FinishTool"]}
+
+
+def test_agent_kwargs_unset_keep_the_sdk_defaults():
+    h = OpenHandsSdkHarness()
+    h.configure({})
+    env = h.build_env(_task(), _config())
+    assert "OPENHANDS_MAX_ITERATIONS" not in env and "OPENHANDS_DEFAULT_TOOLS" not in env
+    assert runner.agent_kwargs_from_env(env) == {}
+
+
+def test_empty_default_tools_include_none():
+    h = OpenHandsSdkHarness()
+    h.configure({"agent_kwargs": {"include_default_tools": []}})
+    env = h.build_env(_task(), _config())
+    assert env["OPENHANDS_DEFAULT_TOOLS"] == ""
+    assert runner.agent_kwargs_from_env(env) == {"include_default_tools": []}
+
+
+def test_key_value_form_and_unknown_keys(caplog):
+    h = OpenHandsSdkHarness()
+    with caplog.at_level("WARNING"):
+        h.configure({"agent_kwargs": {"include_default_tools": "FinishTool;ThinkTool", "max_iteration": 5}})
+    assert h.include_default_tools == ["FinishTool", "ThinkTool"]
+    assert h.max_iterations is None
+    assert "max_iteration" in caplog.text  # a typo is reported, not silently dropped
+
+
+def test_recipe_config_matches_the_harness_keys():
+    from rllm.cli._sampling import parse_mapping_spec
+
+    cfg = Path(__file__).parents[2] / "recipe/eval/config/openhands-sdk.yaml"
+    h = OpenHandsSdkHarness()
+    assert h.configure({"agent_kwargs": parse_mapping_spec(f"@{cfg}", flag="--agent-kwargs")}) == {}
+    assert h.max_iterations == 150
+    assert h.include_default_tools == ["FinishTool"]
+
+
+def test_sdk_agent_accepts_the_default_tools_kwarg():
+    pytest.importorskip("openhands.sdk")
+    from openhands.sdk import LLM, Agent
+
+    llm = LLM(model="openai/m", api_key="k", base_url="http://gw/v1")
+    agent = Agent(llm=llm, tools=[], **runner.agent_kwargs_from_env({"OPENHANDS_DEFAULT_TOOLS": "FinishTool"}))
+    assert agent.include_default_tools == ["FinishTool"]
+
+
+def test_qwen3_8_sampling_params_keep_the_server_accepted_reasoning_effort():
+    # The gateway writes these over every request, so the SDK's default
+    # reasoning_effort "high" (rejected by the Qwen3.8 server) never reaches it.
+    from rllm.cli._sampling import SamplingConfig, parse_mapping_spec
+
+    cfg = Path(__file__).parents[2] / "recipe/eval/config/qwen3_8-flash-next.yaml"
+    sp = SamplingConfig.from_obj(parse_mapping_spec(f"@{cfg}")).as_dict()
+    assert sp["reasoning_effort"] in ("xhigh", "medium", "low")
+    assert sp["chat_template_kwargs"] == {"enable_thinking": True}
+    assert sp["temperature"] == 1.0
