@@ -638,7 +638,11 @@ ATOM_CASES = {
     "H15a": lambda r: r.edit(5, "- Result: success", "- Result: ok"),
     "H15b": lambda r: r.edit(5, "- Regressions: none", "- Regressions: test_parse -> broke on None -> fixed the guard"),
     "H1a": lambda r: (r.edit(1, "- Build: not applicable", '- Build: python -c "import pkg"'), r.edit(5, '- Command: python -c "import pkg"', '- Command: python -c "import os"')),
-    "H4a": lambda r: r.edit(5, "- Command: python -m pytest tests/test_mod.py -q", "- Command: python -m pytest tests/test_mod.py::test_parse -q"),
+    # stage 5 reran a narrower selection than stage 1's, and recorded it
+    "H4a": lambda r: (
+        r.edit(5, "- Command: python -m pytest tests/test_mod.py -q", "- Command: python -m pytest tests/test_mod.py::test_parse -q"),
+        r.set_command(r.runs("pytest")[1], "cd /testbed && python -m pytest tests/test_mod.py::test_parse -q"),
+    ),
     "B10": lambda r: r.insert(r.write_of(5), write("/tmp/design_notes.md", "# Design")),
     "E10a": lambda r: r.insert(r.write_of(2), write("/tmp/questions.md", "Which behaviour is expected?")),
     "F7": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: tests/test_mod.py (modify in place)"),
@@ -711,6 +715,68 @@ def test_no_artifact_at_all_keeps_only_the_whole_run_prohibitions():
     s = r.score()
     assert [k for k in s if k.startswith("aidlc/cat/R")] == ["aidlc/cat/R0"]
     assert s["aidlc/score"] < 0.3
+
+
+# --- the step24 audit's cases (AUDIT.md, section 4) --------------------------------------------------
+
+
+def test_a_find_for_one_named_file_is_no_survey():
+    r = Run()
+    r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py"), sh('find /testbed -name "py.py"', "/testbed/src/py.py"))
+    assert r.score()["aidlc/atom/D4b"] == 1.0
+
+
+def test_several_test_ids_on_one_line_break_one_per_line():
+    r = Run()
+    r.edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing: test_parse, test_parse_empty")
+    assert r.score()["aidlc/atom/D12b"] == 0.0
+
+
+def test_a_test_function_called_from_python_c_is_a_test_run():
+    """sympy's environment has no pytest: runs call the covering test function directly."""
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+
+    assert EV.is_test_attempt('python3 -c "from sympy.core.tests.test_evalf import test_evalf_bugs; test_evalf_bugs()"')
+    assert not EV.is_test_attempt('python -c "import sympy; print(sympy.sqrt(4))"')
+    assert not EV.is_test_attempt('python -c "from test_repro import test_fix; test_fix()"', agent_files={"/testbed/test_repro.py"})
+
+
+def test_a_quoted_k_expression_keeps_its_value():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+
+    assert EV.test_targets('pytest tests/test_domain_py.py -xvs -k "index" --tb=short') == ["tests/test_domain_py.py", "-k index"]
+
+
+def test_the_stage_1_command_rerun_keeps_the_baseline_selection():
+    """H4a: the run reran stage 1's command; a different -k in 05 is not comparable, the rerun decides."""
+    r = Run()
+    r.edit(5, "- Command: python -m pytest tests/test_mod.py -q", '- Command: python -m pytest tests/test_mod.py -k "not slow" -q')
+    r.edit(1, "- Test: python -m pytest tests/test_mod.py -q", '- Test: python -m pytest tests/test_mod.py -q -k "parse"')
+    for i in r.runs("pytest"):
+        r.set_command(i, 'cd /testbed && python -m pytest tests/test_mod.py -q -k "parse"')
+    assert r.score()["aidlc/atom/H4a"] == 1.0
+
+
+def test_a_test_file_the_issue_quotes_is_no_scope_to_start_from():
+    """D1b: the issue's test diff names tests/test_mod.py; the scope starts from the source (step24 000201)."""
+    task = SimpleNamespace(id="t", metadata={"instruction": "parse() raises in pkg/mod.py; see tests/test_mod.py for the failing case."})
+    assert Run().score(task)["aidlc/atom/D1b"] == 1.0
+
+
+def test_the_real_name_beside_an_issue_typo_is_no_rename():
+    """F3: the issue writes `parse_valu` once by mistake; the plan uses the real parse_value (step24 000371)."""
+    task = SimpleNamespace(id="t", metadata={"instruction": "`parse_valu` raises on an empty string; parse_value should return {}."})
+    r = Run()
+    r.edit(3, '- Change: return {} for ""', '- Change: make parse_value return {} for ""')
+    assert r.score(task).get("aidlc/atom/F3") != 0.0  # no verdict: the issue's own name is not used as written
+
+
+def test_the_reproduction_script_in_the_build_field_is_no_build():
+    """H1c: 05 recorded the reproduction script as the build; its failures are no failing build (step24 000200)."""
+    r = Run()
+    r.edit(5, '- Command: python -c "import pkg"', "- Command: python /tmp/repro.py")
+    r.set_obs(r.runs("python /tmp/repro.py")[0], "Traceback ...\nexit code: 1")
+    assert r.score().get("aidlc/atom/H1c") is None
 
 
 def test_one_listing_to_get_bearings_is_no_survey():

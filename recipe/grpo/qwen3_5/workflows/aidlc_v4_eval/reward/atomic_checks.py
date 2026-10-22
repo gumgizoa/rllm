@@ -55,7 +55,8 @@ _STASH = re.compile(r"^\s*git\s+stash(?:\s+(?:push|save)\b.*)?\s*$|^\s*(?:git\s+
 _UNSTASH = re.compile(r"^\s*git\s+stash\s+(?:pop|apply)\b")
 _CODE_LIKE = re.compile(r"_|\.|[a-z][A-Z]")
 _GREP_FED = re.compile(r"\|\s*(?:xargs\s+)?grep|-exec\s+grep")
-_NAME_FILTER = re.compile(r"-(?:i?name|i?path|regex)\s+['\"]?[^'\"\s]*[A-Za-z_]{3,}")
+# a find that names what it looks for: anything but a bare "*" or "*.ext" (``-name "py.py"`` is a lookup)
+_NAME_FILTER = re.compile(r"-(?:i?name|i?path|regex)\s+(?!['\"]?\*(?:\.\w+)?['\"]?(?:\s|$))\S")
 _IDENT = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
 _SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 _ABBREV = re.compile(r"\b(?:e\.g|i\.e|etc|vs|cf)\.", re.I)
@@ -128,7 +129,9 @@ def atomic_checks(
     if p1:
         c["D5"] = full_paths(claimed_paths(_field(p1, "Affected Scope", "Files")) + claimed_paths(_field(p1, "Existing Tests", "Path")))
         ids = [x for k in ("Passing", "Failing") if (v := _field(p1, "Baseline", k)) and not is_none(v) for x in _lines(v)]
-        c["D12b"] = float(all(_TEST_LIKE.search(x) for x in ids)) if ids else None
+        # one id per line: a line listing several ("test_a, test_b"; brackets masked for parametrized ids) breaks it
+        several = [x for x in ids if sum(bool(_TEST_LIKE.search(p)) for p in re.sub(r"\[[^\]]*\]", "[]", x).split(",")) > 1]
+        c["D12b"] = float(all(_TEST_LIKE.search(x) for x in ids) and not several) if ids else None
     if p2:
         seq = list(dict.fromkeys(p2.get("r_ids", [])))
         c["E4a"] = float(seq == [f"R{i}" for i in range(1, len(seq) + 1)]) if seq else None
@@ -173,7 +176,12 @@ def atomic_checks(
             def covered(t: str) -> bool:
                 return any(t == u or t.startswith(u.rstrip("/") + sep) for u in t5 for sep in ("::", ".", "/"))
 
-            c["H4a"] = float(all(covered(t) for t in t1))
+            # Or a test run after stage 4 that covers the stage-1 selection, whatever 05 records (a -k selection
+            # cannot be compared as a set, so a differing -k in 05 alone decides nothing).
+            after4 = write_step.get(4)
+            runs5 = [EV.test_targets(cmd) for _, cmd, _ in obs.tests_in(after=after4)] if after4 is not None else []
+            rerun = any(tt and all(any(t == u or t.startswith(u.rstrip("/") + sep) for u in tt for sep in ("::", ".", "/")) for t in t1) for tt in runs5)
+            c["H4a"] = float(rerun or all(covered(t) for t in t1))
     if p5:
         verdict = (_field(p5, "Existing Tests vs Baseline", "Verdict") or "").lower()
         reg, pre = _field(p5, "Existing Tests vs Baseline", "Regressions"), _field(p5, "Existing Tests vs Baseline", "Pre-existing failures")
@@ -240,7 +248,8 @@ def atomic_checks(
     issue = task_text(task) if task is not None else ""
     if p1:
         files = claimed_paths(_field(p1, "Affected Scope", "Files"))
-        named = [p for p in dict.fromkeys(_ISSUE_PATH.findall(issue)) if norm_path(p) in known]
+        # (a test file the issue quotes, e.g. in a test diff, is not the source scope to start from)
+        named = [p for p in dict.fromkeys(_ISSUE_PATH.findall(issue)) if norm_path(p) in known and not EV.is_test_file(norm_path(p), test_files)]
         c["D1b"] = _frac([any(same_file(p, f) for f in files) for p in named])
         # D3 (the owning module matches the files) is left to the judge: a name match is either too loose
         # (`django` passes any file) or too strict ("Django ORM", "matplotlib.widgets" for
@@ -282,7 +291,10 @@ def atomic_checks(
             return re.search(rf"(?<!\w){re.escape(t)}(?!\w)", used_text) is not None
 
         kept = [t for t in said if as_written(t)]
-        renamed = [t for t in said if not as_written(t) and any(_near(t, u) for u in used)]
+        # A near name the issue also writes, or the code the run read defines, is the real name (an issue's
+        # typo, swebv500 step24 000371: `strip_accent_unicode` for strip_accents_unicode), not a rename.
+        read = issue + "\n" + "\n".join(obs.observations)
+        renamed = [t for t in said if not as_written(t) and any(_near(t, u) and not re.search(rf"(?<!\w){re.escape(u)}(?!\w)", read) for u in used)]
         if kept or renamed:
             c["F3"] = 0.0 if renamed else 1.0
     if steps:
@@ -348,7 +360,7 @@ def atomic_checks(
         # (the build stage 1 recorded, or stage 5's own when stage 1 had none to record; a test runner written
         # in the build field is no build -- swebv100 000034 recorded `runtests.py messages_tests` there)
         named = (_field(p1, "Build & Test Commands", "Build"), _field(p5, "Build", "Command"))
-        build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None), None)
+        build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
         builds = obs.command_runs(build, after=w4, before=w5) if build else []
         failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
         if failed_at is not None:

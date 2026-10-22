@@ -105,11 +105,32 @@ def started(a) -> bool:
     return F.ran_something(a) and not _NOT_STARTED.search(a.observation or "") and not any(_NO_RUN_FLAGS.search(s) for s in segments(a.command or ""))
 
 
+# ``python -c "from sympy.core.tests.test_evalf import test_x; test_x()"``: a repository test function called
+# directly, the way runs test where no runner is installed (sympy's environment has no pytest).
+_PY_C = re.compile(r"\bpython[0-9.]*\s+-c\s")
+_TEST_IMPORT = re.compile(r"\bfrom\s+((?:[\w]+\.)*tests?(?:\.[\w]+)*)\s+import\s+([\w, ()]+)|\bimport\s+((?:[\w]+\.)*tests?\.[\w.]+)")
+
+
+def _calls_repo_test(command: str, agent_files) -> bool:
+    if not _PY_C.search(command or ""):
+        return False
+    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
+    for m in _TEST_IMPORT.finditer(command):
+        module = m.group(1) or m.group(3)
+        if f"{module.rsplit('.', 1)[-1]}.py" in names:  # a test module the agent wrote itself
+            continue
+        called = re.findall(r"\b(test_\w+)\s*\(", command)
+        if called and (m.group(3) or any(c in m.group(2) for c in called)):
+            return True
+    return False
+
+
 def is_test_attempt(command: str, agent_files=()) -> bool:
     """A shell command that invokes a test runner on the repository's tests: some segment runs one, is not
     a lookup, is not a runner script the agent wrote, and is not pointed only at test files the agent wrote
-    (``agent_files``: paths the run created before this command)."""
-    return any(_runner_in(s) and not is_lookup(s) and not _agent_script(s, agent_files) and not _only_agent_tests(s, agent_files) for s in segments(command))
+    (``agent_files``: paths the run created before this command). A ``python -c`` that imports a test function
+    from the repository's test modules and calls it is one too."""
+    return any(_runner_in(s) and not is_lookup(s) and not _agent_script(s, agent_files) and not _only_agent_tests(s, agent_files) for s in segments(command)) or _calls_repo_test(command, agent_files)
 
 
 def command_has_tokens(command: str, tokens) -> bool:
@@ -232,6 +253,10 @@ _FLAGS_WITH_VALUE = {"-k", "-m", "--settings", "--parallel", "-p", "--tb", "--ve
 def test_targets(command: str) -> list[str] | None:
     """The targets a test command names -- paths, node ids, dotted module or label names, a ``-k``
     expression -- or None when it runs no test runner. ``[]``: a runner with no target (the full suite)."""
+    # Quoted values (``-k "index"``) would be blanked with the other quoted strings: keep them as one token.
+    quoted = re.findall(r"\s-k\s+(?:'([^']*)'|\"([^\"]*)\")", command or "")
+    count = iter(range(len(quoted)))
+    command = re.sub(r"(\s-k\s+)(?:'[^']*'|\"[^\"]*\")", lambda m: f"{m.group(1)}__K{next(count)}__", command or "")
     for seg in segments(command or ""):
         head = _PIPE.split(seg, maxsplit=1)[0].strip()
         if not _runner_in(head) or is_lookup(head):
@@ -245,7 +270,8 @@ def test_targets(command: str) -> list[str] | None:
             if skip:
                 skip = False
                 if toks[i - 1] == "-k":
-                    out.append(f"-k {t}")
+                    k = re.fullmatch(r"__K(\d+)__", t)
+                    out.append(f"-k {''.join(quoted[int(k.group(1))]) if k else t}")
                 continue
             if t in _FLAGS_WITH_VALUE:
                 skip = True
