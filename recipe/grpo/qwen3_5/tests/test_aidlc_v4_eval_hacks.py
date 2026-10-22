@@ -539,7 +539,7 @@ def _stopped_after(k: int) -> Run:
     return r
 
 
-@pytest.mark.parametrize("signal", ["aidlc/compliance", "aidlc/rubric", "aidlc/reports"])
+@pytest.mark.parametrize("signal", ["aidlc/score", "aidlc/compliance", "aidlc/rubric", "aidlc/reports"])
 def test_each_stage_followed_raises_the_score(signal):
     """Stopping after stage 0, 1, ..., 5: strictly increasing. (The content and rule checks judge what was
     done, not how far the run got: a stage never written makes no claims and breaks no rule.)"""
@@ -551,6 +551,8 @@ CHAINS = {
     "aidlc/content": ["fabricated_commands", "passing_none_fabricated", "hidden_failure", "phantom_modified", "repro_never_run", "early_edit"],
     "aidlc/rules": ["environment_setup", "repro_run_in_stage4", "earlier_artifact_rewritten", "test_file_modified_disclosed", "full_suite_rerun", "repro_left_in_repo"],
     "aidlc/compliance": ["read_ahead", "batch_writes", "write_then_delete", "template_copy"],
+    # the total, across kinds: procedure, accuracy, forbidden action, execution, form
+    "aidlc/score": ["read_ahead", "fabricated_commands", "environment_setup", "repro_never_run", "hidden_failure", "repro_left_in_repo", "template_copy"],
 }
 
 
