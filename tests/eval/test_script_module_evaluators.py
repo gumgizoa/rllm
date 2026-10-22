@@ -15,8 +15,9 @@ from pathlib import Path
 import pytest
 
 from rllm.eval.module_evaluator import PythonModuleEvaluator, _coerce_eval_result
-from rllm.eval.script_evaluator import ShellScriptEvaluator
+from rllm.eval.script_evaluator import _REWARD_PATHS, ShellScriptEvaluator, clear_reward_files_cmd
 from rllm.eval.types import EvalOutput, Signal
+from rllm.sandbox.backends.local import LocalSandbox
 from rllm.types import Episode, Step, Task, Trajectory
 
 # ---------------------------------------------------------------------------
@@ -27,12 +28,16 @@ from rllm.types import Episode, Step, Task, Trajectory
 class _FakeSandbox:
     """Pretends to be a Sandbox by routing reads/writes through a dict.
 
-    Files written via ``write_file()`` are visible to the
+    ``files`` are what the verifier script writes when it runs; ``planted``
+    are there before it (left by the agent) and are dropped by the
+    reward-file cleanup unless ``clear_fails``. Both are visible to the
     ``test -f``/``cat`` shell commands the evaluator runs.
     """
 
-    def __init__(self, files: dict[str, str] | None = None):
-        self.files: dict[str, str] = dict(files or {})
+    def __init__(self, files: dict[str, str] | None = None, planted: dict[str, str] | None = None, clear_fails: bool = False):
+        self.verifier_writes: dict[str, str] = dict(files or {})
+        self.files: dict[str, str] = dict(planted or {})
+        self.clear_fails = clear_fails
         self.execs: list[tuple[str, str | None]] = []
         self.uploads: list[tuple[str, str]] = []
 
@@ -45,7 +50,16 @@ class _FakeSandbox:
         # ``cat X``
         if cmd.startswith("cat "):
             return self.files[cmd.split()[1]]
-        # mkdir / chmod / runner script — no-op
+        # reward-file cleanup before the verifier
+        if cmd == clear_reward_files_cmd():
+            if self.clear_fails:
+                return ""
+            self.files = {p: v for p, v in self.files.items() if p not in _REWARD_PATHS}
+            return "clean"
+        # the verifier script
+        if cmd.startswith("chmod +x /tests/"):
+            self.files.update(self.verifier_writes)
+        # mkdir — no-op
         return ""
 
     def upload_dir(self, src: str, dst: str) -> None:
@@ -143,6 +157,43 @@ class TestShellScriptEvaluator:
         assert out.reward == 0.0
         assert out.is_correct is False
         assert "no reward file" in out.metadata.get("error", "")
+
+    def test_planted_reward_is_cleared_before_the_verifier(self, tmp_path):
+        """An agent-planted ``/tmp/rllm/reward.json`` would win over the verifier's ``reward.txt``."""
+        bench = _bench(tmp_path)
+        sb = _FakeSandbox(files={"/logs/verifier/reward.txt": "0.0"}, planted={"/tmp/rllm/reward.json": '{"reward": 1.0}'})
+        task = Task(id="0", instruction="", metadata={}, dataset_dir=bench)
+
+        out = ShellScriptEvaluator(sandbox=sb).evaluate(task, _episode())
+        assert out.reward == 0.0
+        cmds = [cmd for cmd, _ in sb.execs]
+        clear = cmds.index(clear_reward_files_cmd())
+        assert sb.execs[clear][1] == "root"
+        assert clear < next(i for i, cmd in enumerate(cmds) if cmd.startswith("chmod +x /tests/"))
+
+    def test_reward_is_not_graded_when_cleanup_fails(self, tmp_path):
+        bench = _bench(tmp_path)
+        sb = _FakeSandbox(files={"/logs/verifier/reward.txt": "1.0"}, planted={"/tmp/rllm/reward.json": '{"reward": 1.0}'}, clear_fails=True)
+        task = Task(id="0", instruction="", metadata={}, dataset_dir=bench)
+
+        out = ShellScriptEvaluator(sandbox=sb).evaluate(task, _episode())
+        assert out.reward == 0.0
+        assert out.metadata["termination_reason"] == "error"  # dropped, not trained on as 0
+        assert not any(cmd.startswith("chmod +x /tests/") for cmd, _ in sb.execs)
+
+    def test_local_backend_skips_the_cleanup(self, tmp_path):
+        """The local backend runs on the host; the cleanup must not touch the host's /tests or /logs."""
+
+        class _FakeLocalSandbox(_FakeSandbox, LocalSandbox):
+            pass
+
+        bench = _bench(tmp_path)
+        sb = _FakeLocalSandbox(files={"/logs/verifier/reward.txt": "1.0"})
+        task = Task(id="0", instruction="", metadata={}, dataset_dir=bench)
+
+        out = ShellScriptEvaluator(sandbox=sb).evaluate(task, _episode())
+        assert out.reward == 1.0
+        assert clear_reward_files_cmd() not in [cmd for cmd, _ in sb.execs]
 
     def test_missing_tests_dir_short_circuits(self, tmp_path):
         bench = tmp_path / "bench-no-tests"
