@@ -54,7 +54,11 @@ def _stand_in_cmd(workdir: str) -> str:
     # agent's; without it every git call the agent makes fails.
     return (
         f"set -e; cd {shlex.quote(workdir)}; rm -rf .git; "
-        "git config --global --add safe.directory '*' ; "
+        # Some images have HOME pointing at a non-directory, so the global
+        # config cannot be written ("could not write config file: Not a
+        # directory"). The stand-in commit below does not need it (same uid),
+        # so a failure here must not abort the rollout.
+        "git config --global --add safe.directory '*' 2>/dev/null || true; "
         "git init -q; git add -A; "
         f"env {_COMMIT_ENV} git commit -q --no-verify --allow-empty -m 'Initial commit'; "
         "echo commits=$(git rev-list --all | wc -l) refs=$(git for-each-ref | wc -l)"

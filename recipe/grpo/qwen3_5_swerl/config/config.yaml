@@ -1,0 +1,61 @@
+# Hydra entry point for the SWE-RL v2 RLOO run (Qwen3.5-9B + OpenHands), copied from recipe/grpo/qwen3_5.
+#
+# `hydra.searchpath` is what lets a config living outside the rllm package
+# reference rLLM's and verl's config groups. It also has to live here, in the
+# *primary* config, which is why `unified.yaml` is not pulled in as a default:
+# it declares a searchpath of its own and Hydra rejects that from a non-primary
+# config. So this file inlines what `unified` composes -- rllm/base plus the
+# verl backend (which itself pulls in verl's ppo_trainer) -- and then layers
+# this recipe's overrides from `rllm_grpo.yaml`.
+defaults:
+  - rllm: base
+  - rllm/backend: verl
+  - rllm_grpo      # the `rllm.*` tree: data, rollout sampling, gateway, GRPO, filtering
+  - verl_trainer   # verl-native: model, FSDP2 actor/ref, vLLM rollout engine
+  - _self_
+
+# Recipe-level knobs read by train.py (not part of rLLM's schema).
+recipe:
+  # SWE-RL v2: the registered selection datasets, filtered to the 1-7/8 ids of the final
+  # dataset (lists/<dataset>_train_1-7of8.txt). Same task dirs and prompt pins as the rollouts.
+  train_sources: [swe_rl_v1_2_ok, swe_rl_v2_diff_ok]
+  train_split: test        # the selection datasets register a single `test` split
+  train_ids_dir: /opt/dlami/nvme/rllm-work/train_lists_v2   # final_dataset_v2 1-7/8 minus 4 tasks with first prompt > 12288
+  # Val is a fixed slice of the training tasks (no held-out split, by decision); see val_ids.txt.
+  val_ids_file: ${oc.env:RLLM_RECIPE_DIR}/val_ids.txt
+  sandbox_backend: docker  # SANDBOX_BACKEND env var wins
+  sandbox_concurrency: 96     # caps live sandboxes AND the warm-queue prefetch depth; CPU-bound
+  # Turn budget per rollout, exported to OpenHands as OPENHANDS_MAX_ITERATIONS (same as selection).
+  # Not cross-checked against the context window: nothing bounds tokens-per-turn
+  # tightly enough for the arithmetic to mean much (measured median 542, worst
+  # 1151), so a turn that overruns max_model_len is handled at rollout time
+  # rather than predicted here.
+  agent_step_limit: 150
+  agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
+  # Keep each task workdir's .git out of the sandbox while the agent runs and
+  # put it back for the verifier (rllm/sandbox/git_history.py). SWE task images
+  # ship commits past the base commit, fix included (SWE-smith: `git show HEAD`
+  # prints the answer), so a policy can learn to copy the fix from history.
+  # Docker backend only. On, as in the selection rollouts (--hide-git-history).
+  hide_git_history: true
+  # SWE-Master reward shaping (arXiv 2602.03411, sec. 3.4.2, eq. 4): a rollout
+  # that ran out of budget -- turns, context window, or agent wall clock -- is
+  # still graded, and its reward is multiplied by this. The paper's code uses
+  # 0.5. 1.0 disables the shaping; 0.0 is the DeepSWE "zero it" variant that
+  # sec. 6.3 reports collapsed training. Which reasons count is
+  # BUDGET_EXHAUSTED in train.py; which reasons are dropped outright is
+  # rllm.compact_filtering in rllm_grpo.yaml.
+  budget_reward_scale: 0.5
+  # Grading-time cap for training only (task.toml: 5400 s). Gold grading over 3,172 oracle runs:
+  # median 24 s, p99.9 1244 s; the slowest training task's gold takes ~1245 s. Longer runs were
+  # agent code that hung the tests -- verifier_timeout, which compact_filtering drops anyway.
+  verifier_timeout_s: 1800
+  # Refuse to train unless rewards come from the fresh-sandbox grader (RLLM_FRESH_SANDBOX_VERIFY on).
+  require_fresh_verify: true
+
+hydra:
+  run:
+    dir: ${oc.env:RLLM_RUN_DIR,outputs}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  searchpath:
+    - pkg://rllm.trainer.config
+    - pkg://verl.trainer.config

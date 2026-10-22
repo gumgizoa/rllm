@@ -57,6 +57,7 @@ class DockerSandbox:
         mounts: list[dict] | None = None,
         mem_limit: str | int | None = None,
         nano_cpus: int | None = None,
+        environment: dict[str, str] | None = None,
         **kwargs,
     ):
         import docker
@@ -64,7 +65,11 @@ class DockerSandbox:
         self.name = name
         self.image = image
         self._timeout_fmt: str | None = None  # probed once per container, see _timeout_wrapper
-        self._client = docker.from_env()
+        # docker-py's default 60s read timeout is too short for a loaded shared
+        # daemon: creating a 5 GB-image container while other builds and an
+        # image prune run stalled the API for over a minute and failed 10
+        # sandboxes in one batch. Raise it per run without changing the default.
+        self._client = docker.from_env(timeout=int(os.environ.get("RLLM_DOCKER_CLIENT_TIMEOUT", "60")))
         run_kwargs: dict = {
             "command": "sleep infinity",
             "name": f"rllm-sandbox-{name}",
@@ -83,6 +88,10 @@ class DockerSandbox:
             run_kwargs["mem_limit"] = mem_limit
         if nano_cpus:
             run_kwargs["nano_cpus"] = int(nano_cpus)
+        # Container-level env: inherited by every later exec_run (agent tools and
+        # the verifier alike). An ``export`` in a one-off exec does not persist.
+        if environment:
+            run_kwargs["environment"] = dict(environment)
         self._container = self._client.containers.run(image, **run_kwargs)
         agent_mounts = [m.get("source") for m in mounts or [] if m.get("type") == "image"]
         if agent_mounts:
