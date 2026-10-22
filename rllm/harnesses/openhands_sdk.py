@@ -19,6 +19,7 @@ builds the trajectory.
 from __future__ import annotations
 
 import logging
+import os
 import shlex
 from pathlib import Path
 
@@ -130,6 +131,10 @@ class OpenHandsSdkHarness(BaseCliHarness):
             # The SDK prints a release banner on import; stderr is teed into
             # the same log as the run, so keep it out.
             "OPENHANDS_SUPPRESS_BANNER": "1",
+            # The SDK defaults to reasoning_effort="high"; some vLLM servers only
+            # accept their own set (e.g. only xhigh/medium/low) and
+            # answer 400 to every call, so let the operator pick the value.
+            **({"RLLM_OPENHANDS_REASONING_EFFORT": os.environ["RLLM_OPENHANDS_REASONING_EFFORT"]} if os.environ.get("RLLM_OPENHANDS_REASONING_EFFORT") else {}),
         }
 
     def write_configs(

@@ -84,11 +84,16 @@ def main() -> int:
 
     # Sampling params are the gateway's job -- it rewrites them on the way
     # through -- so the LLM is configured with routing only.
-    llm = reasoning_replay_llm(LLM)(
-        model=model,
-        api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
-        base_url=os.environ.get("LLM_BASE_URL"),
-    )
+    llm_kwargs: dict[str, object] = {
+        "model": model,
+        "api_key": os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
+        "base_url": os.environ.get("LLM_BASE_URL"),
+    }
+    # Forwarded by the harness; the SDK default "high" is rejected by servers
+    # that only accept their own effort levels (see OpenHandsSdkHarness.build_env).
+    if os.environ.get("RLLM_OPENHANDS_REASONING_EFFORT"):
+        llm_kwargs["reasoning_effort"] = os.environ["RLLM_OPENHANDS_REASONING_EFFORT"]
+    llm = reasoning_replay_llm(LLM)(**llm_kwargs)
 
     tools = [
         Tool(name=TerminalTool.name),
