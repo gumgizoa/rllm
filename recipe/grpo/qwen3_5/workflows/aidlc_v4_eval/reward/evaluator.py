@@ -19,16 +19,17 @@ import base64
 
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
-from . import evidence as EV
+from ..legacy.compliance import artifact_write_steps, compliance
+from ..legacy.rubric import score as S
+from . import read as EV
+from . import skeleton as A
 from .atomic_checks import atomic_checks
 from .categories import category_scores
-from .compliance import artifact_write_steps, compliance
-from .content_checks import content_checks, first_write_steps, observe, parsed_artifacts
-from .episode import episode_to_run
+from .claims import content_checks
 from .judge import judge_checks
-from .rubric import artifacts as A
-from .rubric import score as S
+from .read import first_write_steps, observe, parsed_artifacts
 from .rule_checks import rule_checks
+from .trace import episode_to_run
 
 NAME = "AI-DLC"
 

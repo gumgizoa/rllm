@@ -572,7 +572,7 @@ def test_each_violation_added_lowers_the_score(signal):
 
 def test_every_check_is_placed_in_one_category():
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.categories import SIGNAL_RULES
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.content_checks import CHECKS
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import CHECKS
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rule_checks import CHECKS as RULES
 
     placed = {k.rsplit("/", 1)[-1] for k in SIGNAL_RULES}
@@ -734,7 +734,7 @@ def test_several_test_ids_on_one_line_break_one_per_line():
 
 def test_a_test_function_called_from_python_c_is_a_test_run():
     """sympy's environment has no pytest: runs call the covering test function directly."""
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
     assert EV.is_test_attempt('python3 -c "from sympy.core.tests.test_evalf import test_evalf_bugs; test_evalf_bugs()"')
     assert not EV.is_test_attempt('python -c "import sympy; print(sympy.sqrt(4))"')
@@ -742,7 +742,7 @@ def test_a_test_function_called_from_python_c_is_a_test_run():
 
 
 def test_a_quoted_k_expression_keeps_its_value():
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
     assert EV.test_targets('pytest tests/test_domain_py.py -xvs -k "index" --tb=short') == ["tests/test_domain_py.py", "-k index"]
 
@@ -849,14 +849,14 @@ def test_a_reproduction_that_never_started_is_no_failure():
 
 
 def test_expected_failures_are_not_failures():
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward._claims import failures
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import failures
 
     assert failures("Ran 162 tests in 0.1s\n\nOK (skipped=1, expected failures=1)") == 0
     assert failures("FAILED (failures=2, errors=1)") == 3
 
 
 def test_na_is_no_path():
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward._claims import claimed_paths
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import claimed_paths
 
     assert claimed_paths("N/A (will use existing pytest command)") == []
 

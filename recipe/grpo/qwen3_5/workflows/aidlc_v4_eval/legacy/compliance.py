@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from . import evidence as EV
+from ..reward import read as EV
 from .rubric import artifacts as A
 from .rubric import facts as F
 from .rubric import score as S

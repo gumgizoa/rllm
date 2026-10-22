@@ -35,8 +35,8 @@ import re
 from collections import defaultdict
 from statistics import mean
 
-from ._claims import field_value as claims_field_value
-from .rubric import artifacts as A
+from . import skeleton as A
+from .read import field_value as claims_field_value
 
 # signal -> (rule, kind, stage). The "A" kind is the accuracy part of the named rule.
 SIGNAL_RULES = {

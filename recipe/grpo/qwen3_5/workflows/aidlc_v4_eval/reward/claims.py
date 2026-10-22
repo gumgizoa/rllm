@@ -47,63 +47,60 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-from . import evidence as EV
-from ._claims import (
+from . import read as EV
+from . import skeleton as A
+from . import trace as F
+from .read import (
     CONTRADICTED,
     PARTIAL,
     SOURCE_EXT,
     SUPPORTED,
     Observed,
+    _field,
+    _section_none,
     claimed_paths,
+    first_write_steps,
     norm_path,
+    observe,
     same_file,
 )
-from ._claims import (
+from .read import (
     DUPLICATE as _DUPLICATE,
 )
-from ._claims import (
+from .read import (
     NO_TESTS as _NO_TESTS,
 )
-from ._claims import (
+from .read import (
     TEST_ID as _TEST_ID,
 )
-from ._claims import (
+from .read import (
     both_ways as _both_ways,
 )
-from ._claims import (
+from .read import (
     command_core as _command_core,
 )
-from ._claims import (
+from .read import (
     failures as _failures,
 )
-from ._claims import (
-    field_value as claims_field_value,
-)
-from ._claims import (
+from .read import (
     is_none as _none,
 )
-from ._claims import (
+from .read import (
     membership as _membership,
 )
-from ._claims import (
+from .read import (
     names_test_ids as _names_test_ids,
 )
-from ._claims import observe as _observe
-from ._claims import (
+from .read import (
     passes as _passes,
 )
-from ._claims import (
+from .read import (
     r_ids as _ids,
 )
-from ._claims import (
-    section_none as _body_none,
-)
-from ._claims import (
+from .read import (
     test_command_tokens as _command_tokens,
 )
-from .rubric import artifacts as A
-from .rubric import facts as F
-from .rubric.model import Run
+from .trace import Run
 
 FAMILIES = {
     "evidence": [
@@ -151,7 +148,9 @@ FAMILIES = {
         "c45_final_files",
     ],
 }
+
 CHECKS = [c for fam in FAMILIES.values() for c in fam]
+
 # The checks that place a run before the first source edit or after the last one; with a source edit
 # the trajectory never shows (the patch has it), neither boundary is known.
 TIMED_BY_EDITS = [
@@ -170,50 +169,8 @@ TIMED_BY_EDITS = [
 ]
 
 _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
+
 _R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
-
-
-def observe(run: Run) -> Observed:
-    """The shared trajectory index, with the five artifact paths watched (their writes are the
-    stage write steps, not repository edits)."""
-    return _observe(run, watch=A.ARTIFACT_PATHS)
-
-
-def _section_none(parsed: dict | None, section: str) -> bool | None:
-    """A bare-list section (``## Deviations from Plan``, ``## Outstanding Failures``): True when every
-    line says none, False when it has content, None when the section is absent."""
-    return None if parsed is None else _body_none(parsed["section_bodies"].get(section))
-
-
-def _field(parsed: dict | None, section: str, label: str) -> str | None:
-    """A field value, or None when the stage, the section or the field is missing or empty."""
-    if parsed is None:
-        return None
-    body = parsed["section_bodies"].get(section)
-    if body is None:
-        return None
-    # _claims.field_value: labels up to 40 characters, so "Unintended files in the repository" (34) ends
-    # the field before it instead of running into its value (the vendored reader stops at 30).
-    return claims_field_value(body, label) or None
-
-
-def first_write_steps(run: Run) -> dict[int, int | None]:
-    """Stage -> the first step that successfully wrote its artifact's path, whether or not the
-    text could be recovered and whether or not the file survived. ``None`` when never written."""
-    first: dict[int, int] = {}
-    for step in run.steps:
-        for a in step.actions:
-            if a.status == "fail":
-                continue
-            targets = F.write_targets(a) if a.kind == "shell" else ([a.path] if F.is_write(a) else [])
-            for t in targets:
-                st = A.ARTIFACT_PATHS.get(t)
-                if st is not None and not (a.kind == "shell" and F._rm_matches(a.command or "", t)):
-                    first.setdefault(st, step.n)
-    return {st: first.get(st) for st in A.STAGE_FILES}
-
-
-# --- the checks ---------------------------------------------------------------------------
 
 
 def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
@@ -461,17 +418,3 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         "content": mean(applicable) if applicable else None,
         "contradictions": sum(1 for v in c.values() if v == CONTRADICTED),
     }
-
-
-def parsed_artifacts(run: Run, collected: bool = False) -> dict[int, dict | None]:
-    """Stage -> parsed final artifact.
-
-    ``collected``: the sandbox was read at the end, so ``run.artifact_files`` is what it held and a
-    stage with no file there has no artifact -- as the compliance signals see it -- even when the
-    trajectory wrote one and removed it some way the rubric does not recognise. Otherwise (an old
-    saved episode without the files) the text is reconstructed from the trajectory's writes
-    (``facts.trace_artifacts``)."""
-    if collected:
-        return {st: (A.parse(st, run.artifact_files[p]) if (p := A.artifact_path(st)) in run.artifact_files else None) for st in A.STAGE_FILES}
-    traces = F.trace_artifacts(run)
-    return {st: (A.parse(st, t.content) if t.content is not None else None) for st, t in traces.items()}

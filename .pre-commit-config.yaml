@@ -5,6 +5,6 @@ repos:
       - id: ruff
         args: ["--fix", "--show-fixes", "--output-format=full"]
         # workflows/aidlc_v4{,_eval}/reward/rubric is vendored byte-identical from the offline scorer; see its __init__.py.
-        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/workflows/aidlc_v4(_eval)?/reward/rubric/.*$
+        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/workflows/(aidlc_v4/reward|aidlc_v4_eval/legacy)/rubric/.*$
       - id: ruff-format
-        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/workflows/aidlc_v4(_eval)?/reward/rubric/.*$
+        exclude: ^.*\.(ipynb)$|^verl/.*$|^recipe/grpo/qwen3_5/workflows/(aidlc_v4/reward|aidlc_v4_eval/legacy)/rubric/.*$

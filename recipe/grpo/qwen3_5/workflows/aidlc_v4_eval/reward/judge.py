@@ -37,11 +37,10 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from ._claims import Observed, claimed_paths, is_none, norm_path, same_file, task_text
-from ._claims import field_value as claims_field_value
-from .content_checks import _section_none
-from .rubric import artifacts as A
-from .rubric import facts as F
+from . import skeleton as A
+from . import trace as F
+from .read import Observed, _section_none, claimed_paths, is_none, norm_path, same_file, task_text
+from .read import field_value as claims_field_value
 
 log = logging.getLogger(__name__)
 

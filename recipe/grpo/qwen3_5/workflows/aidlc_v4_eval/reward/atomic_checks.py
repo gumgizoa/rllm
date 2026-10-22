@@ -32,12 +32,11 @@ from __future__ import annotations
 
 import re
 
-from . import evidence as EV
-from ._claims import DUPLICATE, Observed, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
-from ._claims import field_value as claims_field_value
-from .content_checks import _section_none
-from .rubric import artifacts as A
-from .rubric import facts as F
+from . import read as EV
+from . import skeleton as A
+from . import trace as F
+from .read import DUPLICATE, Observed, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
+from .read import field_value as claims_field_value
 
 _LITERALS = {1: ["Recorded before any source file was modified."], 4: ["- Executed: no"]}
 _TEST_LIKE = re.compile(r"::|\btest_\w+|\w+ \([\w.]+\)|\.[Tt]est\w*\b")

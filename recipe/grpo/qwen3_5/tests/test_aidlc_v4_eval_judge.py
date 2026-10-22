@@ -20,8 +20,8 @@ from test_aidlc_reward import episode  # noqa: E402
 from test_aidlc_v4_eval_hacks import Run, sh  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import judge as J  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.content_checks import parsed_artifacts  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.episode import episode_to_run  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import parsed_artifacts  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.trace import episode_to_run  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.evaluator import score  # noqa: E402
 
 # a line of each stage's artifact, to quote

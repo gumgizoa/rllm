@@ -34,8 +34,9 @@ PKG = aidlc_v4_eval.HERE
 # SPEC.fingerprint: what the agent is given. Equal to aidlc_v4's when copied (4c3ee52c), and to the
 # one recorded by the aidlc_v4 runs it rescores (swebv100_aidlcv4_262k-150_think_t1_prefix).
 FINGERPRINT = "b9c317de1dd1b28db28d5d960763b85ef63d8d272e687fe1a6103852b0ca14b6"
-# The vendored scoring code, byte-identical to aidlc_v4's: reward/rubric/** and episode.py. The evaluation
-# verifier's own readings are in evidence.py (and the files that call it), tested by behaviour below.
+# The vendored scoring code, byte-identical to aidlc_v4's: legacy/rubric/** and legacy/episode.py (hashed under
+# their original reward/ names, so the pin is the one taken when they were copied). This verifier's own
+# readings are in reward/ (read.py, trace.py, skeleton.py), tested by behaviour below.
 VENDORED = "f15db1ff24a6495d55705f23af62362828b7562253cb06414977590b862d51d4"
 
 
@@ -112,10 +113,11 @@ def test_workflow_given_to_the_agent_is_pinned():
 
 
 def test_vendored_scoring_code_is_pinned():
-    files = sorted((PKG / "reward" / "rubric").rglob("*.py")) + [PKG / "reward" / "episode.py"]
+    files = sorted((PKG / "legacy" / "rubric").rglob("*.py")) + [PKG / "legacy" / "episode.py"]
     h = hashlib.sha256()
     for p in files:
-        h.update(p.relative_to(PKG).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
+        name = "reward/" + p.relative_to(PKG / "legacy").as_posix()
+        h.update(name.encode() + b"\0" + p.read_bytes() + b"\0")
     assert h.hexdigest() == VENDORED
 
 
@@ -220,7 +222,7 @@ def test_final_changes_are_read_from_the_patch():
     undisclosed change, and since its edit time is unknown the checks timed by edits are left out."""
     s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH + PATCH_OTHER), FILES)
     assert s["aidlc/check/e4_undisclosed"] == 0.5 and s["aidlc/check/e5_final_files_diff"] == 0.5
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.content_checks import TIMED_BY_EDITS
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import TIMED_BY_EDITS
 
     assert not any(f"aidlc/check/{k}" in s for k in TIMED_BY_EDITS)
 
@@ -262,7 +264,7 @@ def _replace_command(turns, old, new, obs=None):
     ],
 )
 def test_what_counts_as_a_test_run(command, test_run):
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
     assert EV.is_test_attempt(command, agent_files=["/tmp/pytest.sh"]) is test_run
 
@@ -281,7 +283,7 @@ def test_what_counts_as_a_test_run(command, test_run):
     ],
 )
 def test_what_counts_as_running_the_script(command, runs):
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import evidence as EV
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
     assert EV.runs_script(command, "/tmp/repro.py") is runs
 

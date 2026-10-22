@@ -25,10 +25,10 @@ from __future__ import annotations
 
 import re
 
-from . import evidence as EV
-from ._claims import DUPLICATE, Observed, claimed_paths
-from .rubric import artifacts as A
-from .rubric import facts as F
+from . import read as EV
+from . import skeleton as A
+from . import trace as F
+from .read import DUPLICATE, Observed, claimed_paths
 
 CHECKS = ["r_tests_untouched", "r_targeted_tests", "r_no_env_setup", "r_repro_not_in_stage4", "r_artifacts_written_once", "r_repo_clean"]
 

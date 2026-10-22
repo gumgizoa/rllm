@@ -1,74 +1,74 @@
-"""Shared machinery for a workflow's content checks: what the run did, and how to read a report.
+"""How this verifier reads a run: its artifacts' fields and claims, and what the trajectory shows.
 
-A workflow's ``reward/content_checks.py`` grades the CLAIMS its reports make against the trajectory.
-The claims differ per workflow (AI-DLC's ``- Passing:`` baseline, Spec Kit's ``Checks Performed`` table,
-OpenSpec's ``X/Y tasks`` scorecard) but the evidence and the ways of comparing do not, so they live
-here:
+    paths / report readers   ``##`` sections, ``- Label:`` fields, bullets, tables, R ids, ``none``
+    commands / evidence      test-runner invocations (Django's runner, ``python -c`` test calls; lookups,
+                             agent-written runner scripts and tests out), exit codes, failures, test
+                             targets, test files (the task's ``test_patch``), environment setup
+    Observed / observe       the trajectory indexed: files read / created / edited / removed, shell
+                             commands with output, test attempts and runs, artifact writes
+    run readings             artifact write steps, parsed artifacts, stage bands, the final words
 
-    Observed / observe   the trajectory indexed by what matters to a claim: files read, created, edited
-                         and removed in the repository, shell commands with their output, test-runner
-                         invocations, the first write of each report
-    report readers       ``##`` sections, ``- Label:`` / ``- **Label**:`` fields, markdown tables,
-                         ``- [ ]`` checkboxes, ``path:line`` references, requirement ids
-    evidence readers     pytest / unittest summaries, exit codes, "no tests ran"
-    verdicts             SUPPORTED / PARTIAL / CONTRADICTED / None (not applicable) and the
-                         ``membership`` / ``both_ways`` reductions every check is built from
-
-Verdict policy, shared by every workflow: a claim nothing bears on is not applicable, never
-contradicted, so a run cannot lose for a measurement gap; and a report that was never written makes
-no claims. ``none`` is a claim like any other and is held to the evidence that would make it true.
-
-The tool-call parsing (``Run``, ``Action``) is the vendored rubric's, under ``reward/rubric`` (copied from aidlc_v4);
-it is harness-specific (openhands-sdk), not workflow-specific, which is why every workflow reads
-through it.
+Merged from ``_claims.py`` (the content checks' shared machinery, 김규민 연구원 1b68a8e7) and
+``evidence.py`` (where this verifier reads a run differently from the vendored rubric).
 """
 
 from __future__ import annotations
 
 import base64
+import json
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from pathlib import Path
 from statistics import mean
 
-from . import evidence as EV
-from .rubric import facts as F
-from .rubric.model import Run
+from . import skeleton as A
+from . import trace as F
+from .trace import Run, _args, _text
 
 SUPPORTED, PARTIAL, CONTRADICTED = 1.0, 0.5, 0.0
-
-# --- regexes ------------------------------------------------------------------------------
 
 SOURCE_EXT = re.compile(
     r"\.(py|pyi|pyx|js|jsx|mjs|cjs|ts|tsx|go|rs|java|kt|rb|php|c|h|cc|cpp|hpp|cs|swift|sh|"
     r"yaml|yml|toml|json|cfg|ini|txt|md|rst|html|css|sql)$",
     re.I,
 )
+
 PATH_RE = re.compile(r"[\w./-]*[\w-]/[\w./-]+|[\w-]+\.[A-Za-z]{1,5}\b")
+
 PATH_LINE_RE = re.compile(r"((?:[\w./-]*/)?[\w-]+\.[A-Za-z]{1,5}):(\d+)")
+
 TEST_ID = re.compile(r"\b(test_\w+)")
+
 R_ID = re.compile(r"\bR\d+\b")
+
 NONE_VALUE = re.compile(r"^(?:none|none stated|not applicable|n/?a|empty)\b[.,]?$", re.I)
+
 PLACEHOLDER = re.compile(r"^(?:tbd|todo|-+|\.{2,}|\?+|\[.*\]|<.*>)?$", re.I)
+
 CHECKBOX = re.compile(r"^\s*[-*+]\s*\[([ xX]?)\]\s*(.*)$", re.M)
+
 READ_VERB = re.compile(r"\b(?:cat|sed|head|tail|grep|rg|less|more|awk|nl|wc|bat|view|open)\b")
+
 RUNNERS = rf"(?:{F.RUNNER}|pytest|py\.test|python[0-9.]*\s+-m\s+pytest)"
+
 EXIT_CODE = re.compile(r"exit code[:\s]+(\d+)")
+
 # unittest / Django's `OK (skipped=1, expected failures=1)` reports an expected failure, not a failure.
 FAILURES = re.compile(r"\b(\d+) (?:failed|errors?)\b|(?<!expected )\bfailures=(\d+)|\berrors=(\d+)", re.I)
+
 PASSES = re.compile(r"\b(\d+) passed\b")
+
 NO_TESTS = re.compile(r"collected 0 items|no tests? (?:ran|found|to run|were run)", re.I)
+
 PATCH_WRITE = re.compile(r"\bgit\s+apply\b|\bpatch\s+-p\d|\bgit\s+(?:checkout|restore)\s+\S+\s+--\s+\S")
+
 NOT_A_PATH = re.compile(r"[()=,<>\"'`$]")
+
 DUPLICATE = re.compile(r"(?:[-_.](?:new|fixed|backup|copy|old|orig|bak|tmp|v\d+|\d+))\.\w+$|\.(?:bak|orig|rej)$|(?:^|/)[^/]*\bcopy\b[^/]*$", re.I)
-# Test runners the vendored rubric's TEST_RUN_PATTERNS do not know: Django's runtests.py / manage.py test
-# (most of SWE-bench Verified), nose, ward. One list for every check, so the stage gate (compliance.py)
-# and the content checks agree on what a test run is.
-EXTRA_TEST_RUN = EV.EXTRA_RUNNERS
+
+
 NETWORK = re.compile(r"\b(?:curl|wget|pip3?\s+install|npm\s+install|apt(?:-get)?\s+install|conda\s+install|uv\s+pip\s+install)\b")
-
-
-# --- paths --------------------------------------------------------------------------------
 
 
 def norm_path(p: str) -> str:
@@ -119,6 +119,7 @@ def pathlike(t: str) -> bool:
 # ``N/A: no build step``, ``none (Python project)``. A bare continuation is not a separator, so
 # ``None input -> TypeError`` (Python's None) and ``None verified yet`` are values, not none.
 _NONE_EXPLAINED = re.compile(r"\s+[-–—]\s+|[.:;]\s+|\s*\(")
+
 # Phrases that say none whatever follows them: ``None stated in the task description``.
 _NONE_PHRASE = re.compile(r"^(?:none stated|not applicable|n/a)\b", re.I)
 
@@ -138,9 +139,6 @@ def is_filler(value: str | None) -> bool:
 
 def r_ids(text: str | None) -> list[str]:
     return list(dict.fromkeys(R_ID.findall(text or "")))
-
-
-# --- commands -----------------------------------------------------------------------------
 
 
 def command_core(command: str) -> list[str]:
@@ -186,9 +184,6 @@ def last_exit(out: str) -> int | None:
     return int(codes[-1]) if codes else None
 
 
-# --- verdicts -----------------------------------------------------------------------------
-
-
 def membership(claims: list, found: Iterable[bool]) -> float | None:
     if not claims:
         return None
@@ -218,8 +213,6 @@ def summarise(checks: dict[str, float | None], families: dict[str, list[str]]) -
         "contradictions": sum(1 for v in checks.values() if v == CONTRADICTED),
     }
 
-
-# --- reading a report ---------------------------------------------------------------------
 
 _FRONTMATTER = re.compile(r"\A\s*---\s*\n.*?\n\s*---\s*(?:\n|\Z)", re.DOTALL)
 
@@ -354,9 +347,6 @@ def found_verbatim(needles: list[str], haystacks: Iterable[str]) -> list[bool]:
     return [any(norm(n) in h for h in hs) for n in needles]
 
 
-# --- what the run did ---------------------------------------------------------------------
-
-
 @dataclass
 class Observed:
     """The trajectory, indexed for the checks. Steps are the rubric's 1-based turn numbers."""
@@ -431,7 +421,7 @@ class Observed:
             return []
         # The command as written, not flattened: a heredoc that writes the script and the line that runs it
         # are separate segments only while the newline is there (``evidence.runs_script``).
-        return [(n, c, o) for (n, c, o), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before) and EV.runs_script(raw, name)]
+        return [(n, c, o) for (n, c, o), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before) and runs_script(raw, name)]
 
     def tests_in(self, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
         return [(n, c, o) for n, c, o in self.test_runs if (after is None or n > after) and (before is None or n < before)]
@@ -446,7 +436,7 @@ class Observed:
         """Some shell step within (after, before) ran a command holding every token, read against the
         directory it ``cd``'d into (``evidence.command_has_tokens``)."""
         return bool(tokens) and any(
-            EV.command_has_tokens(raw, tokens) for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before)
+            command_has_tokens(raw, tokens) for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before)
         )
 
     def command_runs(self, command: str, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
@@ -479,7 +469,7 @@ class Observed:
         return n is not None and not any(same_file(r, path) and m > n for r, m in self.removed.items())
 
 
-def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
+def _observe(run: Run, watch: Iterable[str] = ()) -> Observed:
     """Index ``run``. ``watch`` are report paths whose successful writes are recorded in ``writes``
     (and kept out of ``created``), matched exactly or, for a directory ending in ``/``, by prefix."""
     watch = list(watch)
@@ -497,7 +487,7 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
     for step in run.steps:
         obs.last_step = step.n
         for a in step.actions:
-            agent_made.extend(EV.agent_written(a))
+            agent_made.extend(agent_written(a))
             if a.observation:
                 obs.observations.append(a.observation)
             if a.kind == "view":
@@ -522,9 +512,9 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
             flat = re.sub(r"\s+", " ", cmd).strip()
             obs.shell.append((step.n, flat, out))
             obs.shell_raw.append(cmd)
-            if EV.is_test_attempt(cmd, agent_files=agent_made):
+            if is_test_attempt(cmd, agent_files=agent_made):
                 obs.test_attempts.append((step.n, flat, out))
-                if EV.started(a):
+                if started(a):
                     obs.test_runs.append((step.n, flat, out))
             skeleton = F.command_skeleton(cmd)
             if READ_VERB.search(skeleton):
@@ -559,7 +549,6 @@ def written_texts(run: Run, watch: Iterable[str]) -> dict[str, str]:
     edits, shell heredocs), for a saved episode with no collected files. A write whose text cannot be
     recovered drops the report (a measurement gap, not a verdict). The collected files, when the
     sandbox was read, are the truth and should be preferred."""
-    from .rubric import artifacts as A  # the rubric's shell-write recovery
 
     watch = list(watch)
     texts: dict[str, str] = {}
@@ -591,9 +580,8 @@ def written_texts(run: Run, watch: Iterable[str]) -> dict[str, str]:
     return texts
 
 
-# --- collecting a workflow's output directory from the sandbox -------------------------------
-
 MARK = "@@CLAIMS "
+
 MAX_FILE_BYTES = 200_000
 
 
@@ -633,3 +621,377 @@ def task_text(task) -> str:
     if isinstance(text, list):
         text = "\n".join(str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in text)
     return text or ""
+
+
+# Django's runner and nose / ward, which the rubric's TEST_RUN_PATTERNS do not know.
+EXTRA_RUNNERS = re.compile(r"\bruntests\.py\b|\bmanage\.py\s+test\b|\bnosetests?\b|\bward\b")
+
+# A command segment led by a verb that reads or lists a file, not one that runs it.
+LOOKUP = re.compile(
+    r"^\s*(?:sudo\s+)?(?:grep|egrep|fgrep|rg|cat|head|tail|sed|awk|less|more|ls|find|wc|echo|printf|test|\[|stat|file|which|type|whereis|nl|diff|cmp|realpath|readlink|du|tree|pip3?\s+show|git\s+(?:log|show|diff|status|grep|blame))\b"
+)
+
+_SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\n)\s*")
+
+_PIPE = re.compile(r"(?<!\|)\|(?!\|)")
+
+_EXIT = re.compile(r"exit code[:\s]+(\d+)")
+
+_CD = re.compile(r"^\s*cd\s+\S+\s*$")
+
+_ENV = re.compile(r"^(?:\w+=\S*\s+)+")
+
+_SCRIPT_ARG = re.compile(r"^(?:bash|sh|zsh|python[0-9.]*|\./|/)\s*(\S+)")
+
+
+def segments(command: str) -> list[str]:
+    """The command's executable parts: heredoc bodies and quoted strings blanked (``F.command_skeleton``),
+    split on ``&&`` / ``||`` / ``;`` / newlines, with leading ``cd dir`` segments and ``VAR=value``
+    prefixes dropped. A pipe stays inside its segment: ``a | b`` runs ``a``."""
+    out = []
+    for seg in _SEGMENT.split(F.command_skeleton(command or "")):
+        seg = _ENV.sub("", seg.strip())
+        if seg and not _CD.match(seg):
+            out.append(seg)
+    return out
+
+
+def is_lookup(segment: str) -> bool:
+    """A segment that reads or lists rather than runs: its first command (before any pipe) is a lookup verb."""
+    return bool(LOOKUP.match(_PIPE.split(segment, maxsplit=1)[0]))
+
+
+def _runner_in(segment: str) -> bool:
+    head = _PIPE.split(segment, maxsplit=1)[0]
+    return F.matches_any(head, F.TEST_RUN_PATTERNS) or EXTRA_RUNNERS.search(head) is not None
+
+
+def _agent_script(segment: str, agent_files) -> bool:
+    """The segment's program is a file the agent wrote itself (``bash /tmp/pytest.sh``)."""
+    m = _SCRIPT_ARG.match(_PIPE.split(segment, maxsplit=1)[0].strip())
+    if not m:
+        return False
+    target = m.group(1) if not m.group(0).startswith(("./", "/")) else m.group(0).split()[0]
+    name = target.rsplit("/", 1)[-1]
+    return bool(name) and any(str(p).rsplit("/", 1)[-1] == name for p in agent_files)
+
+
+_TEST_TARGET = re.compile(r"(\S+\.py)(?:::\S*)?$")
+
+_RUNNER_PROGRAMS = {"runtests.py", "manage.py", "setup.py"}
+
+
+def _only_agent_tests(segment: str, agent_files) -> bool:
+    """Every test file the runner is pointed at is one the agent wrote (``pytest /tmp/dummy_tests/test_x.py``):
+    its own tests, not the repository's covering ones."""
+    head = _PIPE.split(segment, maxsplit=1)[0]
+    targets = [m.group(1) for t in head.split() if (m := _TEST_TARGET.match(t)) and m.group(1).rsplit("/", 1)[-1] not in _RUNNER_PROGRAMS]
+    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
+    return bool(targets) and all(t.rsplit("/", 1)[-1] in names for t in targets)
+
+
+# Asking a runner about itself runs no test.
+_NO_RUN_FLAGS = re.compile(r"\s(?:--help|-h|--collect-only|--co|--version|--fixtures|--markers)(?:\s|$)")
+
+# The runner script or a test module could not be found: nothing ran (beyond the rubric's TOOL_MISSING_RE).
+_NOT_STARTED = re.compile(r"can't open file|No such file or directory: '[^']*(?:runtests|manage)\.py'|ERROR: file or directory not found|ERROR: not found:", re.I)
+
+
+def started(a) -> bool:
+    """A test attempt that ran tests: not one the rubric sees failing to start (``ran_something``), not one
+    whose runner or target was missing, and not a ``--help`` / ``--collect-only`` query."""
+    return F.ran_something(a) and not _NOT_STARTED.search(a.observation or "") and not any(_NO_RUN_FLAGS.search(s) for s in segments(a.command or ""))
+
+
+# ``python -c "from sympy.core.tests.test_evalf import test_x; test_x()"``: a repository test function called
+# directly, the way runs test where no runner is installed (sympy's environment has no pytest).
+_PY_C = re.compile(r"\bpython[0-9.]*\s+-c\s")
+
+_TEST_IMPORT = re.compile(r"\bfrom\s+((?:[\w]+\.)*tests?(?:\.[\w]+)*)\s+import\s+([\w, ()]+)|\bimport\s+((?:[\w]+\.)*tests?\.[\w.]+)")
+
+
+def _calls_repo_test(command: str, agent_files) -> bool:
+    if not _PY_C.search(command or ""):
+        return False
+    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
+    for m in _TEST_IMPORT.finditer(command):
+        module = m.group(1) or m.group(3)
+        if f"{module.rsplit('.', 1)[-1]}.py" in names:  # a test module the agent wrote itself
+            continue
+        called = re.findall(r"\b(test_\w+)\s*\(", command)
+        if called and (m.group(3) or any(c in m.group(2) for c in called)):
+            return True
+    return False
+
+
+def is_test_attempt(command: str, agent_files=()) -> bool:
+    """A shell command that invokes a test runner on the repository's tests: some segment runs one, is not
+    a lookup, is not a runner script the agent wrote, and is not pointed only at test files the agent wrote
+    (``agent_files``: paths the run created before this command). A ``python -c`` that imports a test function
+    from the repository's test modules and calls it is one too."""
+    return any(_runner_in(s) and not is_lookup(s) and not _agent_script(s, agent_files) and not _only_agent_tests(s, agent_files) for s in segments(command)) or _calls_repo_test(command, agent_files)
+
+
+def command_has_tokens(command: str, tokens) -> bool:
+    """Every token of a recorded command (test paths, node ids, labels) appears in ``command``, reading a
+    path written from the repository root against the directory the command ``cd``'d into first:
+    ``tests/runtests.py`` is in ``cd tests && python runtests.py``."""
+    if not tokens:
+        return False
+    cwd = ""
+    for seg in _SEGMENT.split(command or ""):
+        m = re.match(r"^\s*cd\s+(\S+)\s*$", seg)
+        if m:
+            cwd = m.group(1).rstrip("/").removeprefix("/testbed").lstrip("/")
+
+    def found(t: str) -> bool:
+        t = t.removeprefix("/testbed/")
+        return t in command or bool(cwd) and t.startswith(cwd + "/") and t[len(cwd) + 1 :] in command
+
+    return all(found(t) for t in tokens)
+
+
+INSTALL = re.compile(
+    r"^(?:sudo\s+)?(?:(?:pip3?|python[0-9.]*\s+-m\s+pip|uv\s+pip|conda|mamba|micromamba|gem|cargo)\s+install|(?:apt|apt-get|yum|dnf|apk)\s+(?:install|add)|(?:npm|pnpm)\s+(?:install|i|add)|yarn\s+add|python[0-9.]*\s+setup\.py\s+(?:install|develop))\b"
+)
+
+
+def is_env_setup(command: str) -> bool:
+    """The command installs a dependency or sets up the environment (01 / 05: the environment can already
+    build and test the project)."""
+    return any(INSTALL.match(s) for s in segments(command))
+
+
+def runs_script(command: str, path: str) -> bool:
+    """``command`` executes the script at ``path``: an interpreter or test runner with it as an argument,
+    ``./path`` / ``/abs/path`` as the program, or ``python -c`` importing it as a module."""
+    name = (path or "").strip().rsplit("/", 1)[-1]
+    if not name:
+        return False
+    base, module = re.escape(name), re.escape(name.rsplit(".", 1)[0])
+    interp = re.compile(rf"^(?:{F.RUNNER}|pytest|py\.test|python[0-9.]*\s+-m\s+pytest|timeout\s+\d+\s+{F.RUNNER})\s+(?:-\S+\s+)*\S*{base}(?:\s|$|::)")
+    direct = re.compile(rf"^\.?/\S*{base}(?:\s|$)")
+    for seg in (s for s in segments(command) if not is_lookup(s)):
+        head = _PIPE.split(seg, maxsplit=1)[0].strip()
+        if interp.search(head) or direct.search(head):
+            return True
+    return bool(re.search(rf"\bpython[0-9.]*\s+-c\s+\S*(?:import\s+{module}\b|from\s+{module}\s+import)", command or ""))
+
+
+def exit_code(command: str, output: str) -> int | None:
+    """The command's exit code as the terminal reported it, or None when a pipe without ``pipefail``
+    makes the reported code the pipe's last command's, or none was reported."""
+    if any(_PIPE.search(s) for s in segments(command)) and "pipefail" not in (command or ""):
+        return None
+    codes = _EXIT.findall(output or "")
+    return int(codes[-1]) if codes else None
+
+
+def agent_written(a) -> list[str]:
+    """Files this action brought into being: an editor ``create`` that succeeded (the editor refuses an
+    existing file), or a shell write outside the repository. A shell write inside it may be an existing
+    file rewritten (``cat > tests/test_x.py``), so it is not counted as the agent's own."""
+    if a.kind == "create":
+        return [a.path] if a.path and a.status != "fail" else []
+    if a.kind == "shell" and a.status != "fail":
+        return [t for t in F.write_targets(a) if F.OUTSIDE_REPO_RE.match(t) and not t.startswith("/dev/")]
+    return []
+
+
+def ran_real_test(run) -> bool:
+    """Any test-runner invocation in the run that did not fail to start (the rubric's ``ran_something``)."""
+    agent_files: set[str] = set()
+    for step in run.steps:
+        for a in step.actions:
+            agent_files.update(agent_written(a))
+            if a.kind == "shell" and is_test_attempt(a.command or "", agent_files) and started(a):
+                return True
+    return False
+
+
+def patch_files(patch: str | None) -> tuple[list[str], list[str]] | None:
+    """(changed, added) repository paths of the run's patch, or None when the patch is unknown."""
+    if patch is None:
+        return None
+    return F.diff_files(patch)
+
+
+def task_test_files(task) -> set[str]:
+    """Paths the task's ``test_patch`` touches (``<task dir>/tests/config.json``), empty when unknown."""
+    task_dir = getattr(task, "task_dir", None)
+    if task_dir is None:
+        meta = getattr(task, "metadata", None) or {}
+        task_dir = meta.get("task_path") if isinstance(meta, dict) else None
+    if not task_dir:
+        return set()
+    try:
+        cfg = json.loads((Path(task_dir) / "tests" / "config.json").read_text())
+    except (OSError, ValueError, TypeError):
+        return set()
+    return set(re.findall(r"^diff --git a/(\S+)", cfg.get("test_patch") or "", re.M))
+
+
+_TEST_NAME = re.compile(r"(?:^|/)(?:test_[^/]*|[^/]*_test\.\w+|tests?\.py|conftest\.py)$")
+
+_TESTS_DIR = re.compile(r"(?:^|/)(?:tests|__tests__|testing)/")
+
+
+def is_test_file(path: str, test_files=()) -> bool:
+    """A test file: one the task's test_patch touches, a test-named file (``test_x.py``, ``x_test.py``,
+    ``tests.py``, ``conftest.py``), or a file under a ``tests/`` / ``testing/`` directory. Not the
+    rubric's pattern, which also takes a library's own ``test`` package (``django/test/utils.py``) for
+    tests (TRACE X14)."""
+    return path in test_files or bool(_TEST_NAME.search(path)) or bool(_TESTS_DIR.search(path))
+
+
+_FLAGS_WITH_VALUE = {"-k", "-m", "--settings", "--parallel", "-p", "--tb", "--verbosity", "-v", "--timeout", "-n", "-c", "--rootdir", "-o"}
+
+
+def test_targets(command: str) -> list[str] | None:
+    """The targets a test command names -- paths, node ids, dotted module or label names, a ``-k``
+    expression -- or None when it runs no test runner. ``[]``: a runner with no target (the full suite)."""
+    # Quoted values (``-k "index"``) would be blanked with the other quoted strings: keep them as one token.
+    quoted = re.findall(r"\s-k\s+(?:'([^']*)'|\"([^\"]*)\")", command or "")
+    count = iter(range(len(quoted)))
+    command = re.sub(r"(\s-k\s+)(?:'[^']*'|\"[^\"]*\")", lambda m: f"{m.group(1)}__K{next(count)}__", command or "")
+    for seg in segments(command or ""):
+        head = _PIPE.split(seg, maxsplit=1)[0].strip()
+        if not _runner_in(head) or is_lookup(head):
+            continue
+        toks = head.split()
+        # Django's runner, unittest and nose take bare labels (``runtests.py middleware_exceptions``); pytest's
+        # bare word may be a whole-suite directory, so only paths and node ids count there.
+        labels = re.search(r"runtests\.py|manage\.py\s+test|-m\s+django\s+test|\bunittest\b|\bnosetests?\b", head) is not None
+        out, skip = [], False
+        for i, t in enumerate(toks):
+            if skip:
+                skip = False
+                if toks[i - 1] == "-k":
+                    k = re.fullmatch(r"__K(\d+)__", t)
+                    out.append(f"-k {''.join(quoted[int(k.group(1))]) if k else t}")
+                continue
+            if t in _FLAGS_WITH_VALUE:
+                skip = True
+                continue
+            if t.startswith("-") or "=" in t:
+                continue
+            name = t.rsplit("/", 1)[-1]
+            if name in _RUNNER_PROGRAMS or re.fullmatch(r"python[0-9.]*|pytest|py\.test|unittest|django|test|manage\.py|nosetests?|tox|timeout|\d+", name):
+                continue
+            if "/" in t or "." in t or "::" in t or (labels and re.fullmatch(r"[\w.]+", t)):
+                out.append(t.removeprefix("/testbed/"))
+        return out
+    return None
+
+
+_DOCS = Path(__file__).resolve().parents[1] / "docs" / "rule-details"
+
+
+def _content_lines(text: str) -> list[str]:
+    body, _ = A.strip_fence(text or "")
+    body = A.FRONTMATTER.sub("", body, count=1)
+    return [ln.strip() for ln in body.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+
+
+def skeleton(stage: int) -> str:
+    """The artifact skeleton stage ``stage``'s rule document prescribes (its fenced markdown block)."""
+    text = next(_DOCS.glob(f"0{stage}-*.md")).read_text()
+    return text.split("```markdown\n", 1)[1].split("```", 1)[0]
+
+
+def is_template_copy(stage: int, text: str) -> bool:
+    """Every line under the headings is a line of the skeleton: nothing was filled in."""
+    lines = _content_lines(text)
+    return bool(lines) and set(lines) <= set(_content_lines(skeleton(stage)))
+
+
+def stage_band(stage: int, text: str) -> int:
+    """The rubric's 8/5/2 band for one artifact (all graded fields / one missing / more), except that an
+    artifact with nothing of its own -- the skeleton verbatim, or nothing under its frontmatter but
+    headings -- earns 0, and ``Assumptions: none`` counts as filled. An artifact with real content under
+    renamed headings keeps the rubric's 2 (the skeleton was not kept, but the stage was worked)."""
+    parsed = A.parse(stage, text)
+    missing = list(A.grade(stage, parsed)["missing"])
+    if stage == 2 and "assumptions" in missing:
+        body = parsed["section_bodies"].get("Assumptions")
+        if body is not None and A._section_has_content(body, True):
+            missing.remove("assumptions")
+    if not _content_lines(text) or is_template_copy(stage, text):
+        return 0
+    return 8 if not missing else 5 if len(missing) == 1 else 2
+
+
+def final_words(episode) -> str:
+    """What the run said last: the final response's text and the ``message`` of its ``finish`` call. The
+    vendored front end keeps a finish call's name only, and its message is where a run that ends by asking
+    for input would ask."""
+    steps = [s for traj in getattr(episode, "trajectories", None) or [] for s in traj.steps]
+    if not steps:
+        return ""
+    response = (steps[-1].chat_completions or [{}])[-1] or {}
+    said = [_text(response.get("content"))]
+    for tc in response.get("tool_calls") or []:
+        fn = tc.get("function") or {}
+        if fn.get("name") == "finish":
+            said.append(str(_args(fn.get("arguments")).get("message") or ""))
+    return " ".join(x for x in said if x).strip()
+
+
+def observe(run: Run) -> Observed:
+    """The shared trajectory index, with the five artifact paths watched (their writes are the
+    stage write steps, not repository edits)."""
+    return _observe(run, watch=A.ARTIFACT_PATHS)
+
+
+def _section_none(parsed: dict | None, section: str) -> bool | None:
+    """A bare-list section (``## Deviations from Plan``, ``## Outstanding Failures``): True when every
+    line says none, False when it has content, None when the section is absent."""
+    return None if parsed is None else section_none(parsed["section_bodies"].get(section))
+
+
+def _field(parsed: dict | None, section: str, label: str) -> str | None:
+    """A field value, or None when the stage, the section or the field is missing or empty."""
+    if parsed is None:
+        return None
+    body = parsed["section_bodies"].get(section)
+    if body is None:
+        return None
+    # _claims.field_value: labels up to 40 characters, so "Unintended files in the repository" (34) ends
+    # the field before it instead of running into its value (the vendored reader stops at 30).
+    return field_value(body, label) or None
+
+
+def first_write_steps(run: Run) -> dict[int, int | None]:
+    """Stage -> the first step that successfully wrote its artifact's path, whether or not the
+    text could be recovered and whether or not the file survived. ``None`` when never written."""
+    first: dict[int, int] = {}
+    for step in run.steps:
+        for a in step.actions:
+            if a.status == "fail":
+                continue
+            targets = F.write_targets(a) if a.kind == "shell" else ([a.path] if F.is_write(a) else [])
+            for t in targets:
+                st = A.ARTIFACT_PATHS.get(t)
+                if st is not None and not (a.kind == "shell" and F._rm_matches(a.command or "", t)):
+                    first.setdefault(st, step.n)
+    return {st: first.get(st) for st in A.STAGE_FILES}
+
+
+def parsed_artifacts(run: Run, collected: bool = False) -> dict[int, dict | None]:
+    """Stage -> parsed final artifact.
+
+    ``collected``: the sandbox was read at the end, so ``run.artifact_files`` is what it held and a
+    stage with no file there has no artifact -- as the compliance signals see it -- even when the
+    trajectory wrote one and removed it some way the rubric does not recognise. Otherwise (an old
+    saved episode without the files) the text is reconstructed from the trajectory's writes
+    (``facts.trace_artifacts``)."""
+    if collected:
+        return {st: (A.parse(st, run.artifact_files[p]) if (p := A.artifact_path(st)) in run.artifact_files else None) for st in A.STAGE_FILES}
+    traces = F.trace_artifacts(run)
+    return {st: (A.parse(st, t.content) if t.content is not None else None) for st, t in traces.items()}
+
+
+# Test runners the vendored rubric's TEST_RUN_PATTERNS do not know: Django's runtests.py / manage.py test
+# (most of SWE-bench Verified), nose, ward. One list for every check, so the stage gate (compliance.py)
+# and the content checks agree on what a test run is.
+EXTRA_TEST_RUN = EXTRA_RUNNERS

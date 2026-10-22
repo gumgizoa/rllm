@@ -29,7 +29,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..spec import WorkflowSpec
-from .reward.rubric.artifacts import ARTIFACT_DIR
+from .reward.skeleton import ARTIFACT_DIR
 
 HERE = Path(__file__).resolve().parent
 
