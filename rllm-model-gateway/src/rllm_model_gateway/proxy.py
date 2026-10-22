@@ -200,6 +200,7 @@ class ReverseProxy:
         local_handler: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         cumulative_token_mode: bool = False,
         renderer: Any = None,
+        chat_parser: Any = None,
     ) -> None:
         self.router = router
         self.store = store
@@ -209,6 +210,9 @@ class ReverseProxy:
         self.local_handler = local_handler
         self.cumulative_token_mode = cumulative_token_mode
         self.renderer = renderer
+        # Optional ``chat_parse.VllmChatParser``: when set, cumulative turns are
+        # shaped by vLLM's own parsers (same as eval) instead of the renderer.
+        self.chat_parser = chat_parser
         self.weight_version: int | None = None
         self._http: httpx.AsyncClient | None = None
         self._pending_traces: set[asyncio.Task[None]] = set()
@@ -448,6 +452,8 @@ class ReverseProxy:
         text: str,
         completion_token_ids: list[int] | None,
         tools: list[dict[str, Any]] | None,
+        prompt_token_ids: list[int] | None = None,
+        request_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Structure a ``/v1/completions`` result as an OpenAI chat message.
 
@@ -458,13 +464,30 @@ class ReverseProxy:
         turn past the first and stalls. The renderer that builds the cumulative
         prompt also knows how to parse that model family's completion, so use
         it here to recover ``content`` / ``reasoning_content`` / ``tool_calls``.
+
+        With ``chat_parser`` set, vLLM's own parsers do this instead, so the
+        agent gets exactly what eval's chat endpoint would return; the renderer
+        stays as the fallback. ``prompt_token_ids`` lets the renderer see a
+        prompt that ends inside ``<think>`` (Qwen3.5 prefills it), without
+        which the reasoning is returned as content.
         """
         fallback = {"role": "assistant", "content": text}
+        if self.chat_parser is not None and text:
+            body = dict(request_body or {})
+            body["tools"] = tools
+            try:
+                return self.chat_parser.parse(text, body)
+            except Exception:
+                logger.warning("vLLM chat parser failed on a cumulative-turn completion; falling back to the renderer", exc_info=True)
+
         if self.renderer is None or not completion_token_ids:
             return fallback
 
         try:
-            parsed = self.renderer.parse_response(list(completion_token_ids), tools=_tool_specs(tools))
+            kwargs: dict[str, Any] = {"tools": _tool_specs(tools)}
+            if prompt_token_ids:
+                kwargs["prompt_ids"] = list(prompt_token_ids)
+            parsed = self.renderer.parse_response(list(completion_token_ids), **kwargs)
         except Exception:
             logger.warning("Renderer could not parse a cumulative-turn completion; forwarding raw text", exc_info=True)
             return fallback
@@ -552,6 +575,8 @@ class ReverseProxy:
                 first_choice.pop("text", ""),
                 completion_token_ids,
                 request_body.get("tools"),
+                prompt_token_ids=prompt_token_ids,
+                request_body=request_body,
             )
             if first_choice["message"].get("tool_calls") and first_choice.get("finish_reason") in (None, "stop"):
                 first_choice["finish_reason"] = "tool_calls"

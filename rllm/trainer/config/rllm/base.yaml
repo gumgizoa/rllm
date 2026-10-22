@@ -171,6 +171,9 @@ gateway:
                        # historical <think> blocks (otherwise every new user message forces a
                        # full re-render and the prefix-extension chain breaks). Requires an
                        # explicit renderer_family.
+  reasoning_parser: null  # vLLM parser names (as for `vllm serve`). When set, cumulative turns are
+  tool_call_parser: null  # parsed by vLLM's own parsers -- what eval's chat endpoint returns --
+                          # instead of the renderer. Match the rollout engine's parsers.
 
 # Async Training Configuration
 async_training:

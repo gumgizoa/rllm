@@ -81,6 +81,11 @@ rllm:
     # A new *user* message mid-episode still breaks the bridge (full re-render, one
     # batch row per segment). That was every turn with mini-swe-agent, hence the
     # upstream qwen3.6+preserve_thinking; with OpenHands it was 0 of 8 sampled episodes.
+    # Parse turn 2+ with the same vLLM parsers as turn 1 and eval (verl_trainer.yaml
+    # engine_kwargs). The renderer put the reasoning into content (Qwen3.5 prefills
+    # <think>) and dropped calls after an unclosed <tool_call> (9 of 400 Run-3 turns).
+    reasoning_parser: qwen3
+    tool_call_parser: qwen3_xml
 
   # Despite the `mask_*` names these DROP the episode (transform.py:120 does a
   # `continue`), before TrajectoryGroups are built -- so a filtered rollout also

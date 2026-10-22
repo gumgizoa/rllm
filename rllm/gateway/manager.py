@@ -175,6 +175,10 @@ class GatewayManager:
         # <think> blocks instead of forcing a full re-render every user turn.
         renderer_kwargs = gw_cfg.get("renderer_kwargs", None)
         self.renderer_kwargs: dict = dict(OmegaConf.to_container(renderer_kwargs, resolve=True) if OmegaConf.is_config(renderer_kwargs) else (renderer_kwargs or {}))
+        # vLLM parser names; when set, cumulative turns are parsed by vLLM's own
+        # parsers so the agent sees what eval's chat endpoint returns.
+        self.reasoning_parser: str | None = gw_cfg.get("reasoning_parser", None)
+        self.tool_call_parser: str | None = gw_cfg.get("tool_call_parser", None)
 
         self.mode = mode
 
@@ -370,6 +374,10 @@ class GatewayManager:
                 cmd.extend(["--renderer-family", self.renderer_family])
             if self.renderer_kwargs:
                 cmd.extend(["--renderer-kwargs", json.dumps(self.renderer_kwargs)])
+            if self.reasoning_parser:
+                cmd.extend(["--reasoning-parser", self.reasoning_parser])
+            if self.tool_call_parser:
+                cmd.extend(["--tool-call-parser", self.tool_call_parser])
 
         logger.info("Starting gateway subprocess: %s", " ".join(cmd))
         # Inherit parent's stdout/stderr so gateway logs are visible for debugging.
@@ -410,6 +418,8 @@ class GatewayManager:
             cumulative_token_mode=self.cumulative_token_mode,
             renderer_family=self.renderer_family,
             renderer_kwargs=self.renderer_kwargs,
+            reasoning_parser=self.reasoning_parser,
+            tool_call_parser=self.tool_call_parser,
         )
         app = create_app(config=gw_config, local_handler=local_handler)
 

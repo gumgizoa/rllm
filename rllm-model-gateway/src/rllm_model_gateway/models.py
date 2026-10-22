@@ -130,3 +130,8 @@ class GatewayConfig(BaseModel):
     # {"preserve_thinking": true} for qwen3.6. Keys must be fields of that
     # family's config class; unknown keys are rejected at startup.
     renderer_kwargs: dict[str, Any] = Field(default_factory=dict)
+    # vLLM parser names (as for ``vllm serve --reasoning-parser / --tool-call-parser``).
+    # When either is set, cumulative turns are shaped by vLLM's own parsers -- the
+    # same output the chat endpoint gives at eval -- instead of the renderer.
+    reasoning_parser: str | None = None
+    tool_call_parser: str | None = None

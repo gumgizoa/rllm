@@ -525,3 +525,103 @@ class TestCumulativeToolCallForwarding:
         message = self._message([tc])
         assert "tool_calls" not in message
         assert message["content"] == "RAW"
+
+
+class TestCumulativeChatShaping:
+    """Turn 2+ shaping: prompt ids reach the renderer, and the optional vLLM
+    chat parser takes precedence (falling back to the renderer if it raises)."""
+
+    TOOLS = TestCumulativeToolCallForwarding.TOOLS
+
+    @staticmethod
+    def _proxy():
+        app = create_app(GatewayConfig(store_worker="memory", health_check_interval=999))
+        return app.state.proxy
+
+    def test_prompt_ids_are_passed_to_the_renderer(self):
+        base = pytest.importorskip("renderers.base")
+        seen = {}
+
+        class _Renderer:
+            def parse_response(self, token_ids, *, tools=None, prompt_ids=None):
+                seen["prompt_ids"] = prompt_ids
+                return base.ParsedResponse(content="done", tool_calls=[])
+
+        proxy = self._proxy()
+        proxy.renderer = _Renderer()
+        proxy._completion_to_chat_message("RAW", [1, 2, 3], self.TOOLS, prompt_token_ids=[7, 8, 9])
+        assert seen["prompt_ids"] == [7, 8, 9]
+
+    def test_chat_parser_wins_and_falls_back_on_error(self):
+        base = pytest.importorskip("renderers.base")
+
+        class _Renderer:
+            def parse_response(self, token_ids, *, tools=None, prompt_ids=None):
+                return base.ParsedResponse(content="from renderer", tool_calls=[])
+
+        class _ChatParser:
+            def __init__(self, fail):
+                self.fail = fail
+
+            def parse(self, text, request_body):
+                if self.fail:
+                    raise ValueError("boom")
+                assert request_body["tools"] == TestCumulativeChatShaping.TOOLS
+                return {"role": "assistant", "content": "from vllm", "reasoning": "r"}
+
+        proxy = self._proxy()
+        proxy.renderer = _Renderer()
+        proxy.chat_parser = _ChatParser(fail=False)
+        assert proxy._completion_to_chat_message("RAW", [1], self.TOOLS, request_body={})["content"] == "from vllm"
+        proxy.chat_parser = _ChatParser(fail=True)
+        assert proxy._completion_to_chat_message("RAW", [1], self.TOOLS, request_body={})["content"] == "from renderer"
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("RLLM_TEST_QWEN35_TOKENIZER"),
+    reason="set RLLM_TEST_QWEN35_TOKENIZER to a Qwen3.5 checkpoint dir (needs vllm + transformers)",
+)
+class TestVllmChatParserQwen35:
+    """The real vLLM parsers on Qwen3.5 completions (prompt prefilled with ``<think>``)."""
+
+    TOOLS = [
+        {
+            "type": "function",
+            "function": {
+                "name": "terminal",
+                "parameters": {"type": "object", "properties": {"command": {"type": "string"}}},
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "think",
+                "parameters": {"type": "object", "properties": {"thought": {"type": "string"}}},
+            },
+        },
+    ]
+
+    @staticmethod
+    def _parser():
+        import os
+
+        from rllm_model_gateway.chat_parse import VllmChatParser
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(os.environ["RLLM_TEST_QWEN35_TOKENIZER"])
+        return VllmChatParser(tokenizer, "qwen3", "qwen3_xml")
+
+    def test_reasoning_is_split_from_content(self):
+        text = "plan the fix\n</think>\n\nLooking.\n\n<tool_call>\n<function=terminal>\n<parameter=command>\nls\n</parameter>\n</function>\n</tool_call>"
+        message = self._parser().parse(text, {"tools": self.TOOLS})
+        assert message["reasoning"].strip() == "plan the fix"
+        assert "</think>" not in (message["content"] or "")
+        assert [tc["function"]["name"] for tc in message["tool_calls"]] == ["terminal"]
+
+    def test_unclosed_call_does_not_swallow_the_next(self):
+        text = (
+            "r\n</think>\n\n<tool_call>\n<function=think>\n<parameter=thought>\nnote\n"
+            "<tool_call>\n<function=terminal>\n<parameter=command>\nls\n</parameter>\n</function>\n</tool_call>"
+        )
+        message = self._parser().parse(text, {"tools": self.TOOLS})
+        assert [tc["function"]["name"] for tc in message["tool_calls"]] == ["think", "terminal"]

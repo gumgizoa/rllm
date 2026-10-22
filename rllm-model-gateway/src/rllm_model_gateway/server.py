@@ -214,6 +214,12 @@ def create_app(
                 "main/renderers/base.py"
             )
 
+    chat_parser = None
+    if config.cumulative_token_mode and (config.reasoning_parser or config.tool_call_parser):
+        from rllm_model_gateway.chat_parse import VllmChatParser
+
+        chat_parser = VllmChatParser(tokenizer, config.reasoning_parser, config.tool_call_parser)
+
     proxy = ReverseProxy(
         router=router,
         store=store,
@@ -222,6 +228,7 @@ def create_app(
         local_handler=local_handler,
         cumulative_token_mode=config.cumulative_token_mode,
         renderer=renderer,
+        chat_parser=chat_parser,
     )
     sessions = SessionManager(store)
 
@@ -525,6 +532,10 @@ def _load_config(args: argparse.Namespace) -> GatewayConfig:
         data["renderer_family"] = args.renderer_family
     if getattr(args, "renderer_kwargs", None):
         data["renderer_kwargs"] = json.loads(args.renderer_kwargs)
+    if getattr(args, "reasoning_parser", None):
+        data["reasoning_parser"] = args.reasoning_parser
+    if getattr(args, "tool_call_parser", None):
+        data["tool_call_parser"] = args.tool_call_parser
 
     # Workers from CLI --worker flags (WorkerConfig validator auto-splits URLs)
     worker_urls = getattr(args, "worker", None) or []
@@ -584,6 +595,19 @@ def main() -> None:
         "is a huggingface model id, but if --model is a local path, you must explicitly set it. "
         "Check the supported model families in MODEL_RENDERER_MAP of "
         "https://github.com/PrimeIntellect-ai/renderers/blob/main/renderers/base.py",
+    )
+    parser.add_argument(
+        "--reasoning-parser",
+        type=str,
+        default=None,
+        help="vLLM reasoning parser for cumulative turns (as `vllm serve --reasoning-parser`, e.g. 'qwen3'). "
+        "With this or --tool-call-parser, turn 2+ is shaped by vLLM's parsers, matching the chat endpoint.",
+    )
+    parser.add_argument(
+        "--tool-call-parser",
+        type=str,
+        default=None,
+        help="vLLM tool-call parser for cumulative turns (as `vllm serve --tool-call-parser`, e.g. 'qwen3_xml').",
     )
 
     args = parser.parse_args()
