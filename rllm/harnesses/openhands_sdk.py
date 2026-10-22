@@ -118,15 +118,13 @@ class OpenHandsSdkHarness(BaseCliHarness):
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/openhands-sdk.log"
     # ``--agent-kwargs`` (recipe/eval/config/openhands-sdk.yaml). Unset keeps the
-    # SDK default: 500 iterations, FinishTool + ThinkTool, reasoning_effort "high".
+    # SDK default: 500 iterations, FinishTool + ThinkTool. Model request params
+    # (reasoning_effort, chat_template_kwargs) belong in --sampling-params.
     max_iterations: int | None = None
     include_default_tools: list[str] | None = None
-    _UNSET = object()
-    # None (YAML null) sends no reasoning_effort, leaving the server's default.
-    reasoning_effort: object = _UNSET
 
     def configure(self, overrides: dict) -> dict:
-        """Take ``max_iterations`` / ``include_default_tools`` / ``reasoning_effort`` from ``--agent-kwargs``."""
+        """Take ``max_iterations`` / ``include_default_tools`` from ``--agent-kwargs``."""
         leftovers = super().configure(overrides)
         kwargs = dict(leftovers.pop("agent_kwargs", None) or {})
         if "max_iterations" in kwargs:
@@ -135,9 +133,6 @@ class OpenHandsSdkHarness(BaseCliHarness):
             tools = kwargs.pop("include_default_tools") or []
             # key=value form gives a string; "FinishTool" or "FinishTool;ThinkTool"
             self.include_default_tools = [t for t in re.split(r"[,;\s]+", tools) if t] if isinstance(tools, str) else [str(t) for t in tools]
-        if "reasoning_effort" in kwargs:
-            effort = kwargs.pop("reasoning_effort")
-            self.reasoning_effort = None if effort is None else str(effort)
         if kwargs:
             logger.warning("%s: --agent-kwargs keys %s have no effect", self.name, sorted(kwargs))
         return leftovers
@@ -161,9 +156,6 @@ class OpenHandsSdkHarness(BaseCliHarness):
         if self.include_default_tools is not None:
             # Set but empty means no default tools at all.
             env["OPENHANDS_DEFAULT_TOOLS"] = ",".join(self.include_default_tools)
-        if self.reasoning_effort is not self._UNSET:
-            # Set but empty means send none.
-            env["OPENHANDS_REASONING_EFFORT"] = self.reasoning_effort or ""
         return env
 
     def write_configs(

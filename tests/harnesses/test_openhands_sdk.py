@@ -109,9 +109,8 @@ def test_agent_kwargs_unset_keep_the_sdk_defaults():
     h = OpenHandsSdkHarness()
     h.configure({})
     env = h.build_env(_task(), _config())
-    assert not {"OPENHANDS_MAX_ITERATIONS", "OPENHANDS_DEFAULT_TOOLS", "OPENHANDS_REASONING_EFFORT"} & set(env)
+    assert "OPENHANDS_MAX_ITERATIONS" not in env and "OPENHANDS_DEFAULT_TOOLS" not in env
     assert runner.agent_kwargs_from_env(env) == {}
-    assert runner.llm_kwargs_from_env(env) == {}
 
 
 def test_empty_default_tools_include_none():
@@ -139,7 +138,6 @@ def test_recipe_config_matches_the_harness_keys():
     assert h.configure({"agent_kwargs": parse_mapping_spec(f"@{cfg}", flag="--agent-kwargs")}) == {}
     assert h.max_iterations == 150
     assert h.include_default_tools == ["FinishTool"]
-    assert h.reasoning_effort is None
 
 
 def test_sdk_agent_accepts_the_default_tools_kwarg():
@@ -151,14 +149,13 @@ def test_sdk_agent_accepts_the_default_tools_kwarg():
     assert agent.include_default_tools == ["FinishTool"]
 
 
-def test_reasoning_effort_null_sends_none_and_a_value_is_passed_through():
-    # Some servers reject the SDK's default "high" (Qwen3.8: only xhigh / medium / low).
-    h = OpenHandsSdkHarness()
-    h.configure({"agent_kwargs": {"reasoning_effort": None}})
-    env = h.build_env(_task(), _config())
-    assert env["OPENHANDS_REASONING_EFFORT"] == ""
-    assert runner.llm_kwargs_from_env(env) == {"reasoning_effort": None}
+def test_qwen3_8_sampling_params_keep_the_server_accepted_reasoning_effort():
+    # The gateway writes these over every request, so the SDK's default
+    # reasoning_effort "high" (rejected by the Qwen3.8 server) never reaches it.
+    from rllm.cli._sampling import SamplingConfig, parse_mapping_spec
 
-    h = OpenHandsSdkHarness()
-    h.configure({"agent_kwargs": {"reasoning_effort": "low"}})
-    assert runner.llm_kwargs_from_env(h.build_env(_task(), _config())) == {"reasoning_effort": "low"}
+    cfg = Path(__file__).parents[2] / "recipe/eval/config/qwen3_8-flash-next.yaml"
+    sp = SamplingConfig.from_obj(parse_mapping_spec(f"@{cfg}")).as_dict()
+    assert sp["reasoning_effort"] in ("xhigh", "medium", "low")
+    assert sp["chat_template_kwargs"] == {"enable_thinking": True}
+    assert sp["temperature"] == 1.0

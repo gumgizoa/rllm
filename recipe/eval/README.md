@@ -595,7 +595,7 @@ HF dataset에는 CPU·memory 정보가 없다. 4 / 16384는 업스트림 평가 
 - Harbor harness 생성자에 넘길 kwargs.
 - 형식은 `--sampling-params`와 같다: `"key=value,..."` 또는 `@file.yaml` / `@file.json`. 
 - nested dictionary는 `@file`로만 주며, CLI 값이 키 단위로 우선한다. 
-- native harness는 `openhands-sdk`만 받는다(`max_iterations`, `include_default_tools`, `reasoning_effort`, 3.5). 다른 native harness에는 효과가 없고 경고만 발생한다.
+- native harness는 `openhands-sdk`만 받는다(`max_iterations`, `include_default_tools`, 3.5). 다른 native harness에는 효과가 없고 경고만 발생한다.
 
 ### 3.3 opencode
 
@@ -733,9 +733,9 @@ rllm eval swebenchpro_100 \
   | --- | --- | --- |
   | `max_iterations` | rollout당 agent step 상한 (`Conversation(max_iteration_per_run=...)`) | SDK 기본 500 |
   | `include_default_tools` | SDK 내장 tool 중 포함할 것 (`Agent(include_default_tools=...)`). `[]`이면 하나도 넣지 않는다 | `[FinishTool, ThinkTool]` |
-  | `reasoning_effort` | `LLM(reasoning_effort=...)`. `null`이면 요청에 넣지 않아 server 기본값이 적용된다 | SDK 기본 `"high"` |
 
-  recipe 값은 `max_iterations: 150`, `include_default_tools: [FinishTool]`, `reasoning_effort: null`이다. SDK는 기본으로 `reasoning_effort: "high"`를 보내는데, 이를 받지 않는 server가 있다(Qwen3.8 서빙은 `xhigh`/`medium`/`low`만 허용). 그러면 첫 LLM 호출이 `BadRequestError: Unexpected reasoning effort high`로 실패하고 runner가 종료되어, rollout은 1 step·reward 0의 정상 종료처럼 보인다. 오류는 container의 `/tmp/openhands-sdk.log`에만 남는다. ThinkTool은 생각을 기록만 하는 tool이라, reasoning을 켠 model(runner가 이전 turn의 reasoning을 다시 보낸다)에게는 step만 쓴다. FinishTool은 agent가 종료를 알리는 수단이므로 남긴다. harness가 값을 `OPENHANDS_MAX_ITERATIONS`, `OPENHANDS_DEFAULT_TOOLS`, `OPENHANDS_REASONING_EFFORT`로 runner에 넘기고, runner 첫 줄 log(`default_tools=... max_iterations=... reasoning_effort=...`)에 적용된 값이 찍힌다. 모르는 key는 WARNING으로 남는다.
+  recipe 값은 `max_iterations: 150`, `include_default_tools: [FinishTool]`이다. ThinkTool은 생각을 기록만 하는 tool이라, reasoning을 켠 model(runner가 이전 turn의 reasoning을 다시 보낸다)에게는 step만 쓴다. FinishTool은 agent가 종료를 알리는 수단이므로 남긴다. harness가 두 값을 `OPENHANDS_MAX_ITERATIONS`, `OPENHANDS_DEFAULT_TOOLS`로 runner에 넘기고, runner 첫 줄 log(`default_tools=... max_iterations=...`)에 적용된 값이 찍힌다. 모르는 key는 WARNING으로 남는다.
+- **reasoning 설정은 `--sampling-params`로 준다.** gateway가 session의 sampling params를 모든 요청 body에 덮어쓰므로(`payload.update`), `reasoning_effort`·`chat_template_kwargs`도 harness와 관계없이 model 파일 하나로 정해진다. SDK는 기본으로 `reasoning_effort: "high"`를 보내는데, Qwen3.8 서빙은 `xhigh`(기본)/`medium`/`low`만 받는다. sampling params로 덮지 않으면 첫 LLM 호출이 `BadRequestError: Unexpected reasoning effort high`로 실패하고 runner가 종료되어, rollout은 1 step·reward 0의 정상 종료처럼 보인다(오류는 container의 `/tmp/openhands-sdk.log`에만 남는다). `recipe/eval/config/qwen3_8-flash-next.yaml`이 `reasoning_effort: xhigh`와 `chat_template_kwargs.enable_thinking: true`를 고정한다. 값이 `null`인 key는 sampling params에서 버려지므로 "보내지 않음"은 표현할 수 없고, 허용되는 값을 명시해야 한다. `chat_template_kwargs`는 key 단위로 합쳐지지 않고 dict 전체가 교체된다.
 - **`--agent-image auto`가 설치 비용을 없앤다.** uv + Python 3.12 + SDK를 `/opt/rllm/agent`에 한 번 구워 task container에 read-only로 mount하므로 task당 설치가 사라진다(측정: qutebrowser task 전체 시간이 163초 → 47초, `env_install` 112초 → 0초). Harbor 경로는 task마다 510 MB를 새로 설치한다.
 - **mount가 모든 image를 덮지는 못한다.** harness는 mount된 python으로 `import openhands.sdk`를 실행해 보고 실패하면 task별 설치로 fallback하며, 그때 `openhands-sdk: agent mount cannot serve <task>; installed the SDK per task instead`를 WARNING으로 남긴다. mount가 있으면 rLLM이 설치 hook을 건너뛰므로(`hooks.py`의 `baked_install`) 이 fallback이 없으면 해당 task는 interpreter 없이 실행된다. fallback 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
   - SDK는 task 저장소에서 import하면 안 된다. harness 명령은 task workdir(`/testbed`)에서 돌기 때문에, 저장소가 SDK 의존성과 같은 이름의 package를 가지면(`/testbed/aiohttp`, `/testbed/pydantic`, `/testbed/tornado` 등) mount probe와 fallback 설치 검증이 **둘 다** 실패하고 agent가 한 번도 실행되지 않는다. 경로는 두 개다. `python -c`가 cwd를 `sys.path` 맨 앞에 넣는 것은 `-I`로 막고(image의 `PYTHONPATH`/`PYTHONHOME`도 무시), litellm이 import 시 `sys.path.append(os.getcwd())`를 하는 것은 빈 임시 directory로 chdir한 뒤 import해서 막는다(probe와 runner 모두).

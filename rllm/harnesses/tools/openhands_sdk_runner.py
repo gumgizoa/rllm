@@ -18,9 +18,6 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 ``OPENHANDS_DEFAULT_TOOLS``   optional comma-separated SDK built-in tools to
                              include (default FinishTool and ThinkTool); set
                              but empty includes none
-``OPENHANDS_REASONING_EFFORT``  optional ``LLM.reasoning_effort`` (SDK default
-                             "high"); set but empty sends none, so the
-                             server's default applies
 """
 
 from __future__ import annotations
@@ -72,14 +69,6 @@ def agent_kwargs_from_env(environ) -> dict:
     return {"include_default_tools": [t for t in tools.split(",") if t]}
 
 
-def llm_kwargs_from_env(environ) -> dict:
-    """Extra ``LLM`` kwargs from the environment (``reasoning_effort``)."""
-    effort = environ.get("OPENHANDS_REASONING_EFFORT")
-    if effort is None:
-        return {}
-    return {"reasoning_effort": effort or None}
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run an openhands-sdk agent on one task")
     parser.add_argument("--instruction", required=True, help="Task instruction")
@@ -110,7 +99,6 @@ def main() -> int:
         model=model,
         api_key=os.environ.get("LLM_API_KEY", "sk-rllm-gateway"),
         base_url=os.environ.get("LLM_BASE_URL"),
-        **llm_kwargs_from_env(os.environ),
     )
 
     tools = [
@@ -130,8 +118,7 @@ def main() -> int:
     print(
         f"openhands-sdk runner: model={model} workspace={workspace} "
         f"default_tools={extra.get('include_default_tools', 'sdk default')} "
-        f"max_iterations={conversation_kwargs.get('max_iteration_per_run', 'sdk default')} "
-        f"reasoning_effort={llm.reasoning_effort}",
+        f"max_iterations={conversation_kwargs.get('max_iteration_per_run', 'sdk default')}",
         flush=True,
     )
     conversation.send_message(args.instruction)
