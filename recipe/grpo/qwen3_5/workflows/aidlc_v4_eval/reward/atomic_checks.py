@@ -18,6 +18,8 @@ Each check is named after the atomic rule it judges (``categories.ATOM_KINDS`` p
     content      D1b files the issue names are in scope, D4a language
                  matches the files, D7b the test command names targets, E7b no non-functional requirement
                  the task does not state, F4b the reproduction exercises the edge-case requirements
+    writing      B3a an artifact written once, whole, in its stage; B4a an earlier stage's artifact never
+                 rewritten once the next stage began
     procedure    B8 no artifact re-read (with no history condensing, a written artifact stays visible),
                  E10b the run does not end asking for input, G3a a stage-4 file is looked for before it is
                  written, G1a steps are carried out in plan order, H1c a failing build is fixed before
@@ -311,6 +313,21 @@ def atomic_checks(
         failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and EV.exit_code(last_runs[-1][1], last_runs[-1][2]) not in (None, 0))
         if failed and (outstanding := _section_none(p5, "Outstanding Failures")) is not None:
             c["H11"] = 0.0 if outstanding else 1.0
+
+    # -- writing the artifacts ----------------------------------------------------------------
+    # B3a: an artifact written once, whole (no append, no blank filled in later in its own stage); B4a: an
+    # earlier stage's artifact never rewritten once the next stage began (its document read or artifact written)
+    art_writes = {A.ARTIFACT_PATHS[p]: steps for p, steps in obs.writes.items() if p in A.ARTIFACT_PATHS and steps}
+    if art_writes:
+
+        def next_began(k: int) -> int | None:
+            began = [n for n in (read_step.get(f"0{k + 1}"), write_step.get(k + 1)) if n is not None]
+            return min(began) if began else None
+
+        rewrites = [(k, n) for k, steps in art_writes.items() for n in steps[1:]]
+        later = [(k, n) for k, n in rewrites if (b := next_began(k)) is not None and n > b]
+        c["B4a"] = 0.0 if later else 1.0
+        c["B3a"] = 0.0 if len(rewrites) > len(later) else 1.0
 
     # -- procedure and loops ----------------------------------------------------------------
     w1, w3 = write_step.get(1), write_step.get(3)

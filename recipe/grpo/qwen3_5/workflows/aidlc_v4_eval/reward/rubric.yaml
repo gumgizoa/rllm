@@ -418,7 +418,7 @@ items:
   scope: specific
   class: structure
   stage: global
-  target:
+  target: &id001
     type: action
     ref: run
     state: final
@@ -429,7 +429,7 @@ items:
   requirement: must
   category: F
   rule: B3a
-  availability:
+  availability: &id002
   - trace
   derived_by: manual
   sources:
@@ -439,6 +439,52 @@ items:
     - 28
     quote: '- **One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends, no
       placeholder to fill in later'
+  log_only: true
+  note: diagnostic (aidlc/rules); scored as atom/B3a (within its stage) and atom/B4a (after the next stage began)
+- id: atom/B3a
+  scope: specific
+  class: structure
+  stage: global
+  target: *id001
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: B3a
+  requirement: must
+  category: F
+  rule: B3a
+  availability: *id002
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 28
+    - 28
+    quote: '- **One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends, no
+      placeholder to fill in later'
+  log_only: false
+- id: atom/B4a
+  scope: specific
+  class: structure
+  stage: global
+  target: *id001
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: B4a
+  requirement: must
+  category: F
+  rule: B4a
+  availability: *id002
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 29
+    - 29
+    quote: '- **Never rewrite an earlier stage''s artifact.** A later stage that contradicts an earlier one records that in
+      its own artifact — as a deviation, a correction, or a pre-existing failure'
+  log_only: false
 - id: rule/r_no_env_setup
   scope: specific
   class: evidence
@@ -1365,17 +1411,16 @@ items:
       stage: 1
   requirement: must
   category: F
-  rule: B5d
+  rule: S1.recorded
   availability:
   - trace
   derived_by: manual
   sources:
   - doc: S1
     lines:
-    - 47
-    - 47
-    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
-      text.
+    - 68
+    - 68
+    quote: Recorded before any source file was modified.
 - id: atom/B5d@4
   scope: specific
   class: structure
@@ -1391,17 +1436,16 @@ items:
       stage: 4
   requirement: must
   category: F
-  rule: B5d
+  rule: S4.executed
   availability:
   - trace
   derived_by: manual
   sources:
-  - doc: S1
+  - doc: S4
     lines:
-    - 47
-    - 47
-    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
-      text.
+    - 69
+    - 69
+    quote: '- Executed: no'
 - id: atom/B6b@1
   scope: specific
   class: structure
@@ -3972,7 +4016,7 @@ items:
       stage: 4
   requirement: must
   category: F
-  rule: S4.dupcheck
+  rule: S4.checks
   availability:
   - trace
   derived_by: manual
@@ -4082,7 +4126,7 @@ items:
       stage: 4
   requirement: must
   category: F
-  rule: S4.testcheck
+  rule: S4.checks
   availability:
   - trace
   derived_by: manual
@@ -4269,7 +4313,7 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final_files
+  rule: S5.final
   availability:
   - trace
   derived_by: manual
@@ -4304,7 +4348,7 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final_tests
+  rule: S5.final
   availability:
   - trace
   derived_by: manual
@@ -4339,7 +4383,7 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final_unintended
+  rule: S5.final
   availability:
   - trace
   derived_by: manual
@@ -6013,10 +6057,7 @@ appendix:
       G4a: D13
       H16: run/fidelity
       I2: D11a's reading of a test run (agent-written runner scripts are no run)
-      S1.recorded: atom/B5d@1 (the fixed sentence)
-      S4.checks: S4.dupcheck, S4.testcheck
-      S5.final: S5.final_files, S5.final_unintended, S5.final_tests
-      B4a: B3a (one write check for both)
+      B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
     a flag, in no score:
       I1: leak_history
     not applicable:
