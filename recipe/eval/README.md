@@ -476,13 +476,16 @@ rllm eval swebench_pro_100 --split test \
 
 ## 2. Native 방식
 
-native 방식은 Harbor runtime 없이 rLLM이 직접 container를 만들고, 그 안에서 harness(예: mini-swe-agent CLI)를 실행하여 추론을 진행한 뒤, task directory의 `tests/test.sh`를 실행해 `reward.txt`를 읽는다.
+native 방식은 Harbor runtime 없이 rLLM이 직접 container를 만들고, 그 안에서 harness(예: mini-swe-agent CLI)를 실행하여 추론을 진행한 뒤, task directory의 `tests/test.sh`를 실행해 reward 파일을 읽는다. `ShellScriptEvaluator`는 `/tmp/rllm/reward.json`(rLLM 규약)을 먼저 찾고, 없으면 Harbor 규약인 `/logs/verifier/reward.json|txt`를 읽는다.
 
 ```
 SandboxTaskHooks      docker build -t rllm-task-<task_id> --rm . && docker run (+ harness CLI image mount)
 MiniSweAgentHarness   mini-swe-agent CLI를 Container 안에서 실행
   └─ litellm ───────► rLLM model gateway (host.docker.internal) ──► LiteLLM proxy
-ShellScriptEvaluator  /tests/test.sh → /logs/verifier/reward.txt → reward
+ShellScriptEvaluator  /tests/test.sh
+                        ├─ /tmp/rllm/reward.json          (rLLM builder 규약, 우선)
+                        └─ /logs/verifier/reward.json|txt (Harbor task 규약)
+                      → reward
 ```
 
 harness는 `rllm agent list`에 나오는 rLLM harness를 사용한다.
@@ -760,7 +763,7 @@ docker image prune                                                              
 | derived image per task | 정상 종료 시 `compose down --rmi all`로 삭제. 비정상 종료 시 남음 | **삭제하지 않음** (재실행 cache로 남김) |
 | harness | Harbor scaffold (`harbor/agents/`). 20종, `harbor:<이름>` | rLLM harness (`rllm/harnesses/`). `rllm agent list` |
 | harness install | task마다 container 안에서 설치 | `--agent-image auto`로 한 번 구워 mount |
-| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | task의 `tests/test.sh`를 rLLM이 직접 실행 → `reward.txt` |
+| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | task의 `tests/test.sh`를 rLLM이 직접 실행 → `/tmp/rllm/reward.json`(우선) 또는 `/logs/verifier/reward.json\|txt` |
 | trajectory | Harbor ATIF trajectory를 rLLM Episode로 변환 | gateway가 모든 LLM 호출을 capture해 Step/Episode 구성 (학습과 동일 경로) |
 | timeout | `task.toml` 값 + `RLLM_HARBOR_SESSION_TIMEOUT_S` 상한 | `task.toml` 값만 |
 | log | `$RLLM_HOME/harbor_trials/<trial>/` (Harbor 형식) | `$RLLM_HOME/eval_results/<run>/episodes/` |
