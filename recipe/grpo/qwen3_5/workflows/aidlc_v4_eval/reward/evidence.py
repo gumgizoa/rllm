@@ -30,6 +30,7 @@ import json
 import re
 from pathlib import Path
 
+from .episode import _args, _text
 from .rubric import artifacts as A
 from .rubric import facts as F
 
@@ -297,3 +298,19 @@ def stage_band(stage: int, text: str) -> int:
     if not _content_lines(text) or is_template_copy(stage, text):
         return 0
     return 8 if not missing else 5 if len(missing) == 1 else 2
+
+
+def final_words(episode) -> str:
+    """What the run said last: the final response's text and the ``message`` of its ``finish`` call. The
+    vendored front end keeps a finish call's name only, and its message is where a run that ends by asking
+    for input would ask."""
+    steps = [s for traj in getattr(episode, "trajectories", None) or [] for s in traj.steps]
+    if not steps:
+        return ""
+    response = (steps[-1].chat_completions or [{}])[-1] or {}
+    said = [_text(response.get("content"))]
+    for tc in response.get("tool_calls") or []:
+        fn = tc.get("function") or {}
+        if fn.get("name") == "finish":
+            said.append(str(_args(fn.get("arguments")).get("message") or ""))
+    return " ".join(x for x in said if x).strip()

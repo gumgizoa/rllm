@@ -119,6 +119,19 @@ ATOM_KINDS = {
     "D7b": ("Q", 1),
     "E7b": ("Q", 2),
     "F4b": ("Q", 3),
+    "B8": ("P", 0),
+    "E10b": ("P", 0),
+    "G3a": ("P", 4),
+    "H1c": ("P", 5),
+    "H10": ("P", 5),
+    "D8": ("E", 1),
+    "G1a": ("C", 4),
+    "D4b": ("R", 1),
+    "H7": ("R", 5),
+    "E3a": ("Q", 2),
+    "F3": ("Q", 3),
+    "F9b": ("Q", 3),
+    "H11": ("Q", 5),
 }
 
 # Skeleton fields, one rule each: rule -> (stage, section, label or None for the section's own content, none allowed)

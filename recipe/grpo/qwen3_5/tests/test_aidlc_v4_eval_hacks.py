@@ -373,10 +373,6 @@ def _rule_doc_reread(r):
     r.insert(r.write_of(1), sh(f"cat {DOC['01']}", "# RE"))
 
 
-def _recover_artifact(r):
-    r.insert(r.write_of(5), sh(f"cat {ART[1]}", ARTIFACTS[1]))
-
-
 def _build_not_applicable(r):
     r.edit(1, "- Build: not applicable", "- Build: not applicable (pure-Python package)")
 
@@ -409,7 +405,6 @@ HONEST_VARIANTS = {
     "django_runner": (_django_runner, None),
     "heredoc_artifacts": (_heredoc_artifacts, None),
     "rule_doc_reread": (_rule_doc_reread, None),
-    "recover_artifact": (_recover_artifact, None),
     "build_not_applicable": (_build_not_applicable, None),
     "explained_none": (_explained_none, None),
     "piped_runs": (_piped_runs, None),
@@ -627,6 +622,8 @@ def _atom_task(r):
     return SimpleNamespace(id="t", metadata={"instruction": "parse() raises on an empty string in pkg/mod.py; it should return {}."})
 
 
+STEP_2 = "### Step 2 [satisfies R1]\n- Target: pkg/util.py (modify in place)\n- Change: add a helper\n- Contract: none\n- Verification: repro"
+
 ATOM_CASES = {
     "B6b@1": lambda r: r.edit(1, "stage: 1", "stage: 3"),
     "B5d@1": lambda r: r.edit(1, "Recorded before any source file was modified.", ""),
@@ -651,6 +648,23 @@ ATOM_CASES = {
     "D1b": lambda r: r.edit(1, "- Files: pkg/mod.py", "- Files: pkg/other.py"),
     "G4b": lambda r: setattr(r, "patch", r.patch + new_file("tests/test_new_case.py")),
     "H9a": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
+    # (re-reading artifact 1 in stage 5 was an honest "recovery" variant once; the recipe runs without history
+    # condensing -- swebv100: no prompt ever shrinks -- so what was written is still visible)
+    "B8": lambda r: r.insert(r.write_of(5), sh(f"cat {ART[1]}", ARTIFACTS[1])),
+    "E10b": lambda r: r.drop(lambda a: a.get("message") == "done").insert(len(r.turns), T("finish", "", message="Should I also update the docs?")),
+    "G3a": lambda r: r.insert(r.write_of(4), write("/testbed/pkg/helpers.py", "def helper(): ...\n")),
+    "H1c": lambda r: r.set_obs(r.runs('python -c "import pkg"')[1], "ImportError: cannot import name 'parse'\nexit code: 1"),
+    "H10": lambda r: r.insert(r.write_of(5), *[sh("grep -n parse /testbed/pkg/mod.py", "1:def parse(s): ...") for _ in range(4)]),
+    "D8": lambda r: r.edit(1, "- Test: python -m pytest tests/test_mod.py -q", "- Test: python -m pytest tests/test_mod.py -v"),
+    "G1a": lambda r: (
+        r.edit(3, '- Verification: repro calls parse("")', '- Verification: repro calls parse("")\n\n' + STEP_2),
+        r.insert(r.edit_at(), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/util.py", old_str="a", new_str="b")),
+    ),
+    "D4b": lambda r: r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py\n/testbed/setup.py")),
+    "H7": lambda r: r.insert(r.write_of(5), sh("cd /testbed && git stash && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s"), sh("cd /testbed && git stash pop", "")),
+    "E3a": lambda r: r.edit(2, "- R1: parse() accepts an empty string", "- R1: parse() accepts an empty string. It returns an empty dict for it."),
+    "F9b": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: pkg/compat/empty.py (create)"),
+    "H11": lambda r: r.edit(5, "- Result: pass", "- Result: fail"),
 }
 
 
@@ -666,6 +680,56 @@ def test_an_atomic_check_catches_its_rule(atom):
     ATOM_CASES[atom](r)
     value = r.score(_atom_task(r)).get(f"aidlc/atom/{atom}")
     assert value is not None and value < 1.0, value  # 0, or a share for the checks scored item by item
+
+
+def test_a_renamed_issue_identifier_is_caught():
+    """F3: the issue names `parse_value`; the plan calls it parse_values."""
+    task = SimpleNamespace(id="t", metadata={"instruction": "`parse_value` raises on an empty string in pkg/mod.py; it should return {}."})
+    r = Run()
+    assert r.score(task).get("aidlc/atom/F3") is None  # the plan uses none of the issue's code names
+    r.edit(3, '- Change: return {} for ""', '- Change: make parse_value return {} for ""')
+    assert r.score(task)["aidlc/atom/F3"] == 1.0
+    r.edit(3, '- Change: make parse_value return {} for ""', '- Change: make parse_values return {} for ""')
+    assert r.score(task)["aidlc/atom/F3"] == 0.0
+
+
+def test_prose_in_inline_fences_is_no_identifier():
+    """```fit``` fences made the prose around them read as code (swebv100 000072: parameters / parameter)."""
+    task = SimpleNamespace(id="t", metadata={"instruction": "remove `copy_X` as an argument in ```fit```. Duplicated class parameters and fit arguments"})
+    r = Run()
+    r.edit(3, '- Change: return {} for ""', "- Change: drop the copy_X argument; keep each parameter")
+    assert r.score(task).get("aidlc/atom/F3") == 1.0
+
+
+def test_a_run_cut_off_in_stage_5_retried_without_end():
+    """H10: the run ran out mid stage 5 (last turn a tool call, no finish, no artifact 5)."""
+    r = Run()
+    r.drop(lambda a: a.get("path") == ART[5] or a.get("message") == "done")
+    del r.files[ART[5]]
+    r.insert(len(r.turns), sh("cd /testbed && python -m pytest tests/test_mod.py -q", "1 failed in 0.10s"))
+    assert r.score()["aidlc/atom/H10"] == 0.0
+
+
+def test_a_stash_before_stage_1_closed_is_no_stage_5_baseline_rebuild():
+    """H7 is a stage-5 rule: a stash before stage 4 closed measures stage 1's baseline (swebv100 000082)."""
+    r = Run()
+    r.insert(r.write_of(4), sh("cd /testbed && git stash && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s"), sh("cd /testbed && git stash pop", ""))
+    assert r.score()["aidlc/atom/H7"] == 1.0
+
+
+def test_a_test_command_in_the_build_field_is_no_build():
+    """H1c: a failing test run recorded as the build is no failing build (swebv100 000034)."""
+    r = Run()
+    r.edit(5, '- Command: python -c "import pkg"', "- Command: python -m pytest tests/test_mod.py -q")
+    r.set_obs(r.runs("python -m pytest tests/test_mod.py -q")[1], "1 failed in 0.10s\nexit code: 1")
+    assert r.score().get("aidlc/atom/H1c") is None
+
+
+def test_a_reproduction_that_never_started_is_no_failure():
+    """H11: "can't open file" is no reproduction result (swebv100 000012)."""
+    r = Run()
+    r.set_obs(r.runs("python /tmp/repro.py")[0], "python: can't open file '/tmp/repro.py': [Errno 2] No such file or directory\nexit code: 2")
+    assert r.score().get("aidlc/atom/H11") is None
 
 
 # --- the real-data audit's cases (AUDIT.md in the task record) -------------------------------------

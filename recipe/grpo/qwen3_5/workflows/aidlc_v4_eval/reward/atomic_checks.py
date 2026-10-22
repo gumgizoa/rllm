@@ -18,6 +18,14 @@ Each check is named after the atomic rule it judges (``categories.ATOM_KINDS`` p
     content      D1b files the issue names are in scope, D4a language
                  matches the files, D7b the test command names targets, E7b no non-functional requirement
                  the task does not state, F4b the reproduction exercises the edge-case requirements
+    procedure    B8 no artifact re-read (with no history condensing, a written artifact stays visible),
+                 E10b the run does not end asking for input, G3a a stage-4 file is looked for before it is
+                 written, G1a steps are carried out in plan order, H1c a failing build is fixed before
+                 anything else is verified, H10 no endless retry
+    more         D8 the test command reduces output, D4b no unfiltered survey of the repository in stage 1,
+                 H7 no baseline rebuilt from stashed source, E3a one sentence per requirement, F9b new
+                 files go under existing directories, F3 the issue's names are not altered, H11 a failed
+                 or unmet reproduction is left outstanding
 """
 
 from __future__ import annotations
@@ -27,6 +35,7 @@ import re
 from . import evidence as EV
 from ._claims import DUPLICATE, Observed, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
 from ._claims import field_value as claims_field_value
+from .content_checks import _section_none
 from .rubric import artifacts as A
 from .rubric import facts as F
 
@@ -38,6 +47,34 @@ _ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|
 _PERF = re.compile(r"\b(?:performance|slow(?:er|ly)?|fast(?:er)?|speed|memory|complexity|efficien\w*|latency|O\(|quadratic|linear time|time-?out)\b", re.I)
 _LANG = {"py": "python", "pyi": "python", "js": "javascript", "ts": "typescript", "go": "go", "rs": "rust", "java": "java", "rb": "ruby", "c": "c", "h": "c", "cpp": "c++"}
 _DOC = re.compile(r"\.(?:md|rst)$|(?:^|/)[^/]*(?:plan|summary|report|notes|design)[^/]*\.(?:md|txt|rst)$", re.I)
+_ARTIFACT = re.compile(r"/tmp/swe-bench-pro/(0[1-5])-[\w-]+\.md")
+_READ_VERB = re.compile(r"^\s*(?:sudo\s+)?(?:cat|head|tail|less|more|grep|egrep|sed\s+-n|awk|nl)\b")
+_ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
+_REDUCE = re.compile(r"(?<!\S)-[a-zA-Z]*q[a-zA-Z]*\b|--quiet\b|--tb=(?:short|line|no)\b|--no-header\b")
+_STASH = re.compile(r"^\s*git\s+stash(?:\s+(?:push|save)\b.*)?\s*$|^\s*(?:git\s+apply|patch)\b.*\s-R\b")
+_UNSTASH = re.compile(r"^\s*git\s+stash\s+(?:pop|apply)\b")
+_CODE_LIKE = re.compile(r"_|\.|[a-z][A-Z]")
+_GREP_FED = re.compile(r"\|\s*(?:xargs\s+)?grep|-exec\s+grep")
+_NAME_FILTER = re.compile(r"-(?:i?name|i?path|regex)\s+['\"]?[^'\"\s]*[A-Za-z_]{3,}")
+_IDENT = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
+_SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+_ABBREV = re.compile(r"\b(?:e\.g|i\.e|etc|vs|cf)\.", re.I)
+
+
+def _plain_segments(command: str) -> list[str]:
+    """The command split at ``&&`` / ``||`` / ``;`` / newlines, quoted strings kept (``evidence.segments``
+    blanks them, and a ``find -name "*foo*"`` filter is in the quotes)."""
+    return [s.strip() for s in re.split(r"&&|\|\||;|\n", F.drop_heredoc_bodies(command or "")) if s.strip()]
+
+
+def _near(a: str, b: str) -> bool:
+    """One edit apart (insert, delete or substitute), not a case-only difference."""
+    if a == b or a.lower() == b.lower() or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(x != y for x, y in zip(a, b, strict=True)) == 1
+    s, t = (a, b) if len(a) < len(b) else (b, a)
+    return any(t[:i] + t[i + 1 :] == s for i in range(len(t)))
 
 
 def _field(p, section, label):
@@ -54,7 +91,9 @@ def _frac(flags: list[bool]) -> float | None:
     return sum(flags) / len(flags) if flags else None
 
 
-def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step: dict, facts: dict, patch: str | None, task=None, test_files=()) -> dict[str, float | None]:
+def atomic_checks(
+    run, obs: Observed, parsed: dict, read_step: dict, write_step: dict, facts: dict, patch: str | None, task=None, test_files=(), final_words: str | None = None
+) -> dict[str, float | None]:
     c: dict[str, float | None] = {}
     final = EV.patch_files(patch)
     known = {norm_path(p) for p in [*obs.viewed, *obs.edited, *obs.created, *(final[0] if final else [])]}
@@ -225,4 +264,143 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
         exercises = r_ids(_field(p3, "Reproduction Script", "Exercises")) if p3 else []
         if real and p3:
             c["F4b"] = _frac([r in exercises for r in real])
+        # E3a: one sentence per requirement, read with quotes, code spans and abbreviations masked
+        reqs = [v for _, v in _R_LINE.findall(p2["body"]) if not is_none(v)]
+        masked = [_ABBREV.sub("x", re.sub(r"`[^`]*`|\"[^\"]*\"|'[^']*'", "x", v.strip())) for v in reqs]
+        c["E3a"] = _frac([len([s for s in _SENTENCE.split(v) if s.strip()]) == 1 for v in masked])
+    if steps and issue:
+        # F3: an identifier the issue names in code that the plan and the patch never use as written but
+        # use one edit apart (`refit_time` for `refit_time_`) -- a renamed name, not a different one.
+        # (```fit``` inline fences read as one span; only code-like names: an underscore, a dot or camelCase)
+        spans = re.findall(r"`([^`\n]+)`", re.sub(r"`{3,}", "`", issue))
+        said = {t for span in spans for t in _IDENT.findall(span) if len(t) >= 6 and _CODE_LIKE.search(t)}
+        added = "\n".join(line[1:] for line in (patch or "").splitlines() if line.startswith("+") and not line.startswith("+++"))
+        used_text = p3["body"] + "\n" + added
+        used = {part for t in _IDENT.findall(used_text) for part in (t, *t.split("."))}
+
+        def as_written(t: str) -> bool:
+            return re.search(rf"(?<!\w){re.escape(t)}(?!\w)", used_text) is not None
+
+        kept = [t for t in said if as_written(t)]
+        renamed = [t for t in said if not as_written(t) and any(_near(t, u) for u in used)]
+        if kept or renamed:
+            c["F3"] = 0.0 if renamed else 1.0
+    if steps:
+        # F9b: a planned new file goes under a directory the repository has (one the run read a file in or
+        # named in a command), not a structure of its own
+        planned = [norm_path(t) for s in steps if re.search(r"\(\s*create\s*\)", s["fields"].get("Target") or "", re.I) for t in claimed_paths(s["fields"].get("Target"))]
+        dirs = [t.rsplit("/", 1)[0] for t in planned if "/" in t]
+        read = {norm_path(p) for p in obs.viewed} | {norm_path(p) for p in obs.edited if p not in obs.new_files}
+        c["F9b"] = _frac([any(k.startswith(d + "/") for k in read) or any(d in cmd for _, cmd, _ in obs.shell) for d in dirs])
+    if p5:
+        # H11: a reproduction that failed, or requirements left unmet, are outstanding failures
+        result, unmet = (_field(p5, "Reproduction Script", "Result") or "").lower(), _field(p5, "Reproduction Script", "Unmet requirements")
+        # (a run that never started -- "can't open file" -- is no result)
+        last_runs = [r for r in (obs.ran(repro, after=obs.last_edit, before=w5) if repro and obs.last_edit is not None else []) if not EV._NOT_STARTED.search(r[2])]
+        failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and EV.exit_code(last_runs[-1][1], last_runs[-1][2]) not in (None, 0))
+        if failed and (outstanding := _section_none(p5, "Outstanding Failures")) is not None:
+            c["H11"] = 0.0 if outstanding else 1.0
+
+    # -- procedure and loops ----------------------------------------------------------------
+    w1, w3 = write_step.get(1), write_step.get(3)
+    if any(write_step.values()):
+        # B8: an artifact read back after it was written (the same command's read-back too). The recipe runs
+        # without history condensing, so what the run wrote is still in its context: no read recovers it.
+        reread = False
+        for step in run.steps:
+            for a in step.actions:
+                texts = [a.path or ""] if a.kind == "view" else [re.sub(r"\d?>>?\s*\S+", "", s) for s in _plain_segments(a.command or "") if _READ_VERB.match(s)] if a.kind == "shell" else []
+                reread |= any(write_step.get(int(m.group(1))) is not None and step.n >= write_step[int(m.group(1))] for t in texts for m in _ARTIFACT.finditer(t))
+        c["B8"] = 0.0 if reread else 1.0
+    if run.steps:
+        # (``final_words``: the run's last response and its finish message, ``evidence.final_words``)
+        said_last = final_words if final_words is not None else run.steps[-1].message.strip()
+        c["E10b"] = 0.0 if _ASK.search(said_last) or said_last.endswith("?") else 1.0
+    if w3 is not None:
+        # G3a: each file written whole in stage 4 inside the repository was looked for first: read, named
+        # in a command, or its directory listed
+        end4 = w4 if w4 is not None else w5
+        made4 = [(p, n) for p, n in obs.created.items() if n > w3 and (end4 is None or n < end4) and not F.OUTSIDE_REPO_RE.match(p if p.startswith("/") else "/" + p) and not p.startswith("tmp/")]
+
+        def looked(path: str, n: int) -> bool:
+            base, parent = path.rsplit("/", 1)[-1], (path.rsplit("/", 1)[0] if "/" in path else "")
+            if obs.seen(path, before=n - 1):
+                return True
+            for m, cmd, _ in obs.shell:
+                if m >= n:
+                    break
+                if base in cmd or any(re.match(r"(?:ls|find|test|stat|\[)\b", s) and (parent in s if parent else not re.search(r"\s/testbed/\S", s)) for s in _plain_segments(cmd)):
+                    return True
+            return False
+
+        c["G3a"] = _frac([looked(p, n) for p, n in made4])
+        # G1a: the plan's steps carried out in order (each step's first edit in stage 4, ties allowed)
+        firsts = []
+        for s in steps:
+            hits = [m for t in claimed_paths(s["fields"].get("Target")) for q, ns in obs.edit_steps.items() if same_file(q, t) for m in ns if m > w3 and (end4 is None or m < end4)]
+            if hits:
+                firsts.append(min(hits))
+        if len(firsts) >= 2:
+            c["G1a"] = float(firsts == sorted(firsts))
+    if w4 is not None and p1:
+        # H1c: a stage-5 build that failed is followed by a source fix (or a passing build) before any
+        # other verification runs
+        # (the build stage 1 recorded, or stage 5's own when stage 1 had none to record; a test runner written
+        # in the build field is no build -- swebv100 000034 recorded `runtests.py messages_tests` there)
+        named = (_field(p1, "Build & Test Commands", "Build"), _field(p5, "Build", "Command"))
+        build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None), None)
+        builds = obs.command_runs(build, after=w4, before=w5) if build else []
+        failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
+        if failed_at is not None:
+            fixes = [m for p in obs.source_edits for m in obs.edit_steps.get(p, []) if m > failed_at]
+            fixed = min(fixes + [n for n, cmd, out in builds if n > failed_at and EV.exit_code(cmd, out) == 0], default=None)
+            checks = [n for n, _, _ in obs.tests_in(after=failed_at, before=w5)] + ([n for n, _, _ in obs.ran(repro, after=failed_at, before=w5)] if repro else [])
+            c["H1c"] = float(not checks or (fixed is not None and fixed < min(checks)))
+    if run.steps:
+        # H10: no endless retry -- the same command with the same output three more times with nothing
+        # written in between, or a run cut off (its last turn a tool call, no finish) after the plan with
+        # stage 5 never closed
+        written = sorted({m for ns in obs.edit_steps.values() for m in ns} | set(obs.created.values()) | {m for ns in obs.writes.values() for m in ns})
+        seen_at: dict[tuple[str, str], int] = {}
+        idle: dict[str, int] = {}
+        for n, cmd, out in obs.shell:
+            if (cmd, out) in seen_at and not any(seen_at[(cmd, out)] < m < n for m in written):
+                idle[cmd] = idle.get(cmd, 0) + 1
+            seen_at[(cmd, out)] = n
+        last = run.steps[-1]
+        cut = bool(last.actions) and not any(a.name == "finish" for a in last.actions)
+        c["H10"] = 0.0 if max(idle.values(), default=0) >= 3 or (cut and w3 is not None and w5 is None) else 1.0
+    before1 = w1 if w1 is not None else obs.first_edit
+    if before1 is not None:
+        # D4b: stage 1 does not survey the repository: no tree / ls -R, no find from the root that names
+        # nothing and feeds no grep
+        survey = any(
+            re.match(r"(?:tree\b|ls\s+-[a-zA-Z]*R)", s) or (re.match(r"find\s+(?:\.|/testbed)/?(?:\s|$)", s) and not _NAME_FILTER.search(s) and not _GREP_FED.search(s))
+            for _, cmd, _ in obs.shell_in(before=before1)
+            for s in _plain_segments(cmd)
+        )
+        c["D4b"] = 0.0 if survey else 1.0
+    if p1:
+        # D8: a pytest command reduces its output (-q, --tb=short ...); other runners have no common flag
+        test = _field(p1, "Build & Test Commands", "Test") or ""
+        if re.search(r"\bpytest\b", test):
+            c["D8"] = 1.0 if _REDUCE.search(test) else 0.0
+    if w4 is not None:
+        # H7: from stage 5 on, no test run on stashed (or reverse-applied) source: that rebuilds the baseline
+        # stage 1 established, which stage 5 must use as recorded. (Before stage 1 closed, a stash to measure
+        # the baseline after an early edit is stage 1's own baseline; the early edit is D11's concern.)
+        hidden, rebuilt, ran = False, False, False
+        for n, cmd, _ in obs.shell:
+            if n <= w4:
+                continue
+            for s in _plain_segments(cmd):
+                if _UNSTASH.match(s):
+                    hidden = False
+                elif _STASH.match(s):
+                    hidden = True
+                elif EV.is_test_attempt(s):
+                    ran = True
+                    rebuilt |= hidden
+        if ran:
+            c["H7"] = 0.0 if rebuilt else 1.0
     return c

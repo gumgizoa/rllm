@@ -131,7 +131,7 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
         "aidlc/leak_history": float(bool(facts["git_history_probe_steps"])),
         "aidlc/leak_apply": float(bool(facts["git_apply_steps"])),
     }
-    ac = atomic_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), facts, whole_patch, task, tests)
+    ac = atomic_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), facts, whole_patch, task, tests, final_words=EV.final_words(episode))
     out.update({f"aidlc/atom/{k}": float(v) for k, v in ac.items() if v is not None})
     out.update(category_scores(out, parsed, facts["aidlc_read_step"], artifact_write_steps(run), c["order"]["invalid_multi_read"]))
     return out
