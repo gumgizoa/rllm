@@ -18,8 +18,10 @@ reads a run differently from the vendored rubric, the change is in ``reward/evid
 
 Use it where aidlc_v4 would be used (``recipe.workflow.name=aidlc_v4_eval``, ``--agent-kwargs
 workflow=aidlc_v4_eval``, ``rescore_compliance.py --workflow aidlc_v4_eval``) to get the
-``aidlc/content*`` / ``aidlc/check/*`` signals next to ``aidlc/*``. The reward signal is unchanged
-(``aidlc/compliance``).
+``aidlc/content*`` / ``aidlc/check/*`` signals next to ``aidlc/*``. Its headline (the reward signal, and
+``workflow/compliance`` in a mixed evaluation) is ``aidlc/score``: the kind x stage matrix's total
+(``reward/categories.py``). ``aidlc/compliance`` and the milestone-1 ``aidlc/rubric`` stay, to compare with
+earlier evaluations.
 """
 
 from __future__ import annotations
@@ -46,6 +48,6 @@ SPEC = WorkflowSpec(
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
     scorers={"openhands-sdk": _scorer},
-    reward_signal="aidlc/compliance",
+    reward_signal="aidlc/score",
     output_dirs=(ARTIFACT_DIR,),
 )

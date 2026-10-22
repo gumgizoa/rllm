@@ -40,7 +40,7 @@ from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.evaluator import score  
 
 MIN_DROP = 0.005
 HONEST_TOLERANCE = 0.02
-HEADLINE = ("aidlc/compliance", "aidlc/rubric", "aidlc/content", "aidlc/rules")
+HEADLINE = ("aidlc/score", "aidlc/compliance", "aidlc/rubric", "aidlc/content", "aidlc/rules")
 CORE = "/ai-dlc/core-workflow.md"
 _ids = count(1000)
 
@@ -680,6 +680,35 @@ def test_an_atomic_check_catches_its_rule(atom):
     ATOM_CASES[atom](r)
     value = r.score(_atom_task(r)).get(f"aidlc/atom/{atom}")
     assert value is not None and value < 1.0, value  # 0, or a share for the checks scored item by item
+
+
+@pytest.mark.parametrize("name", [n for n in HACKS if n != "git_history"])  # the leak flags are their own ledger
+def test_every_hack_lowers_the_total(name):
+    r = Run()
+    HACKS[name][1](r)
+    assert r.score()["aidlc/score"] < HONEST["aidlc/score"] == 1.0
+
+
+def test_a_stage_not_carried_out_scores_zero_and_its_prohibitions_no_credit():
+    r = Run()
+    r.drop(lambda a: a.get("path") in (ART[4], ART[5]))
+    for k in (4, 5):
+        del r.files[ART[k]]
+    s = r.score()
+    assert s["aidlc/done_stages"] == 3.0
+    assert all(s[f"aidlc/cat/{k}5"] == 0.0 for k in "PFEACQ" if f"aidlc/cat/{k}5" in s) and s["aidlc/cat/F5"] == 0.0
+    assert "aidlc/cat/R4" not in s and "aidlc/cat/R5" not in s
+    kinds = [s[k] for k in s if k.startswith("aidlc/kind/")]
+    assert s["aidlc/score"] == pytest.approx(sum(kinds) / len(kinds)) and s["aidlc/score"] < 0.8
+
+
+def test_no_artifact_at_all_keeps_only_the_whole_run_prohibitions():
+    r = Run()
+    r.drop(lambda a: a.get("path") in ART.values())
+    r.files = {}
+    s = r.score()
+    assert [k for k in s if k.startswith("aidlc/cat/R")] == ["aidlc/cat/R0"]
+    assert s["aidlc/score"] < 0.3
 
 
 def test_one_listing_to_get_bearings_is_no_survey():

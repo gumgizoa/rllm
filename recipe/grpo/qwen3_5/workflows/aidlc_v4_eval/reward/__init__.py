@@ -16,7 +16,8 @@
     atomic_checks.py    the atomic rules the other checks leave unscored, where code can judge them: aidlc/atom/*
     judge.py            an LLM's yes / no on the content rules code cannot decide, one call per stage
                         artifact, each answer kept only if its quote is in the material: aidlc/judge/*
-    categories.py       every measured rule placed by kind x stage: aidlc/cat/<kind><stage>, aidlc/kind/<kind>
+    categories.py       every measured rule placed by kind x stage: aidlc/cat/<kind><stage>, aidlc/kind/<kind>,
+                        and their total aidlc/score (each kind alike; a stage not carried out scores 0)
     evaluator.py        collect_artifacts + score = the compliance signals plus aidlc/content*,
                         aidlc/content_{evidence,temporal,consistency}, aidlc/content_contradictions,
                         aidlc/check/<name> and the milestone-1 evaluation rubric's items (aidlc/entry,
@@ -26,5 +27,6 @@
 
 ``rubric/`` and ``episode.py`` are byte-identical copies of ``workflows/aidlc_v4/reward``'s (commit
 4c3ee52c); ``compliance.py`` is a copy whose stage gate reads test runs through ``evidence.py``. None of
-them moves with aidlc_v4. ``aidlc/compliance`` stays the reward signal -- the content signals are logged.
+them moves with aidlc_v4. The headline is ``aidlc/score``, the kind x stage matrix's total; ``aidlc/compliance``
+and ``aidlc/rubric`` are kept for comparison with earlier evaluations.
 """

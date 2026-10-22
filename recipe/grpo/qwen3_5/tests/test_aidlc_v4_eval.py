@@ -100,7 +100,7 @@ def test_spec_reads_only_its_own_files():
 
 def test_registered_and_scored_by_its_own_evaluation():
     spec = get_workflow("aidlc_v4_eval")
-    assert spec is aidlc_v4_eval.SPEC and spec.reward_signal == "aidlc/compliance"
+    assert spec is aidlc_v4_eval.SPEC and spec.reward_signal == "aidlc/score"
     assert isinstance(spec.scorers["openhands-sdk"](), AidlcEvalEvaluation)
 
 

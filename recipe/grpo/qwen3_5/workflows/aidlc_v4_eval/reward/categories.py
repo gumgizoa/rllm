@@ -3,8 +3,15 @@ fails, and in which stage.
 
 The rule ids are the workflow's atomic rules (one requirement each, every line of the documents
 accounted for; the local task record's ``ATOMIC.md``). A rule's score is the mean of the signals measuring
-it; a cell's is the mean of its rules'; a kind's is the mean of all its rules'. Each signal measures one
-rule, so nothing is counted twice.
+it; a cell's is the mean of its rules'; a kind's is the mean of its cells' (each stage alike); and
+``aidlc/score``, the evaluation's total, is the mean of the kinds' (each kind alike, however many rules it
+has). Each signal measures one rule, so nothing is counted twice.
+
+A stage the run did not carry out (stages 1..5: its artifact was not collected; the artifact is what
+states a stage finished) scores 0 in every cell of it a carried-out stage can have, whatever its rules
+measured, except the forbidden-action cell: a prohibition kept by not doing the stage is no credit, so
+that cell is left out. A cell no rule measures in a carried-out stage (no regression to report, ...) is
+left out too. Stage 0 cells are never filled in.
 
     kinds   P procedure (when and how documents are read, stages taken in order)
             F artifact form (the file, its skeleton, each field filled)
@@ -18,8 +25,8 @@ rule, so nothing is counted twice.
 
 Rules that repeat per stage (read the stage's document first, the artifact exists, each skeleton field)
 are scored per stage, in that stage's cell. ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` are
-emitted for every cell and kind with at least one measured rule. The solution-leak flags are a separate
-ledger and enter no category.
+emitted for every cell and kind with a score. The solution-leak flags and ``aidlc/patch_empty`` are a
+separate ledger and enter no category.
 """
 
 from __future__ import annotations
@@ -271,13 +278,27 @@ def category_scores(signals: dict[str, float], parsed: dict, read_step: dict, wr
             per_rule[(rule, kind, stage)].append(value)
     for rule, kind, stage, value in _artifact_rules(parsed) + _procedure_rules(read_step, write_step, set(invalid_reads)):
         per_rule[(rule, kind, stage)].append(value)
-    cells: dict[str, list[float]] = defaultdict(list)
-    kinds: dict[str, list[float]] = defaultdict(list)
+    done = {st for st in range(1, 6) if parsed.get(st) is not None}
+    rules: dict[tuple[str, int], list[float]] = defaultdict(list)
     for (_, kind, stage), values in per_rule.items():
-        score = mean(values)
-        cells[f"{kind}{stage}"].append(score)
-        kinds[kind].append(score)
+        if stage == 0 or stage in done or kind != "R":
+            rules[(kind, stage)].append(mean(values))
+    cells = {(kind, stage): mean(v) for (kind, stage), v in rules.items()}
+    for kind, stage in expected_cells(judged="aidlc/judge_calls" in signals):
+        if stage not in done and kind != "R":
+            cells[(kind, stage)] = 0.0
+    kinds = {kind: mean(v for (k, _), v in cells.items() if k == kind) for kind in sorted({k for k, _ in cells})}
     return {
-        **{f"aidlc/cat/{cell}": mean(v) for cell, v in sorted(cells.items())},
-        **{f"aidlc/kind/{kind}": mean(v) for kind, v in sorted(kinds.items())},
+        **{f"aidlc/cat/{kind}{stage}": v for (kind, stage), v in sorted(cells.items())},
+        **{f"aidlc/kind/{kind}": v for kind, v in kinds.items()},
+        **({"aidlc/score": mean(kinds.values())} if kinds else {}),
+        "aidlc/done_stages": float(len(done)),
     }
+
+
+def expected_cells(judged: bool = False) -> set[tuple[str, int]]:
+    """The (kind, stage) cells of stages 1..5 some rule can score in a carried-out stage: what a stage not
+    carried out is missing. The judge's cells count only when the judge ran."""
+    placed = [(k, s) for _, k, s in SIGNAL_RULES.values()] + list(ATOM_KINDS.values()) + (list(JUDGE_KINDS.values()) if judged else [])
+    placed += [(k, s) for k in ("F", "P") for s in range(1, 6)]  # the artifact, its fields, its document
+    return {(k, s) for k, s in placed if s >= 1}
