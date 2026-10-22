@@ -472,7 +472,7 @@ class TestCumulativeToolCallForwarding:
     ]
 
     @staticmethod
-    def _message(parsed_tool_calls):
+    def _message(parsed_tool_calls, tools=None):
         base = pytest.importorskip("renderers.base")
 
         class _ParsingRenderer:
@@ -482,7 +482,9 @@ class TestCumulativeToolCallForwarding:
         app = create_app(GatewayConfig(store_worker="memory", health_check_interval=999))
         proxy = app.state.proxy
         proxy.renderer = _ParsingRenderer()
-        return proxy._completion_to_chat_message("RAW", [1, 2, 3], TestCumulativeToolCallForwarding.TOOLS)
+        if tools is None:
+            tools = TestCumulativeToolCallForwarding.TOOLS
+        return proxy._completion_to_chat_message("RAW", [1, 2, 3], tools)
 
     def test_ok_call_is_forwarded(self):
         base = pytest.importorskip("renderers.base")
@@ -525,3 +527,39 @@ class TestCumulativeToolCallForwarding:
         message = self._message([tc])
         assert "tool_calls" not in message
         assert message["content"] == "RAW"
+
+    @pytest.mark.parametrize(
+        ("name", "arguments", "status"),
+        [
+            # Anthropic-style name the XML parser accepts as OK: openhands-sdk would
+            # alias it to file_editor and run it, hiding the format from the reward.
+            ("str_replace", {"path": "/a.py", "old_str": "x", "new_str": "y"}, "OK"),
+            # Same name, one argument kept raw by the parser's coercion fallback.
+            ("str_replace", {"path": "/a.py", "old_str": "def f():", "new_str": "def g():"}, "INVALID_JSON"),
+            # <function=terminal> and <parameter=command> spliced into one tag.
+            ("terminal=command", {}, "OK"),
+            ("terminal=terminal", {}, "OK"),
+        ],
+    )
+    def test_names_outside_the_request_tools_are_dropped(self, name, arguments, status):
+        base = pytest.importorskip("renderers.base")
+        tc = base.ParsedToolCall(raw="", name=name, arguments=arguments, status=base.ToolCallParseStatus[status])
+        message = self._message([tc])
+        assert "tool_calls" not in message
+        assert message["content"] == "RAW"
+
+    def test_only_valid_calls_survive_a_mixed_turn(self):
+        base = pytest.importorskip("renderers.base")
+        good = base.ParsedToolCall(raw="", name="terminal", arguments={"command": "ls"})
+        bad = base.ParsedToolCall(raw="", name="terminal=command", arguments={})
+        message = self._message([bad, good])
+        assert [tc["function"]["name"] for tc in message["tool_calls"]] == ["terminal"]
+
+    def test_without_a_tools_list_only_spliced_names_are_dropped(self):
+        """No ``tools`` on the request means names cannot be validated; the
+        ``=`` rule still applies because no tool is ever named that way."""
+        base = pytest.importorskip("renderers.base")
+        plain = base.ParsedToolCall(raw="", name="str_replace", arguments={"path": "/a.py"})
+        spliced = base.ParsedToolCall(raw="", name="terminal=command", arguments={})
+        message = self._message([plain, spliced], tools=[])
+        assert [tc["function"]["name"] for tc in message["tool_calls"]] == ["str_replace"]

@@ -143,7 +143,15 @@ def _tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | No
     return specs or None
 
 
-def _forwardable(tc: Any) -> bool:
+def _tool_names(tools: list[dict[str, Any]] | None) -> frozenset[str] | None:
+    """Function names declared in an OpenAI ``tools`` list, or None if there is none."""
+    specs = _tool_specs(tools)
+    if not specs:
+        return None
+    return frozenset(spec["name"] for spec in specs)
+
+
+def _forwardable(tc: Any, tool_names: frozenset[str] | None = None) -> bool:
     """Whether a renderer-parsed tool call should reach the agent as ``tool_calls``.
 
     Mirrors what vLLM's chat path returns for the same completion, so a
@@ -156,10 +164,23 @@ def _forwardable(tc: Any) -> bool:
     reports the error and the model can correct itself. Calls whose whole
     argument body failed to parse (``arguments`` is a raw string or missing)
     are still dropped, as vLLM drops them too.
+
+    The name is validated as well. A call whose name is not one of the
+    request's ``tools`` is dropped, and so is any name containing ``=``
+    (``terminal=command``: the model spliced ``<function=terminal>`` and
+    ``<parameter=command>`` into one tag). The XML parsers do not flag these
+    themselves, and the agent would otherwise either alias the name
+    (openhands-sdk maps ``str_replace`` to ``file_editor`` and runs it) or
+    echo it back in a validation error, so the format costs nothing in
+    training while eval-time parsers yield no tool call for it and end the
+    episode. Dropping here puts both paths on the same footing. Without a
+    ``tools`` list only the ``=`` rule applies.
     """
     from renderers.base import ToolCallParseStatus
 
-    if not tc.name:
+    if not tc.name or "=" in tc.name:
+        return False
+    if tool_names is not None and tc.name not in tool_names:
         return False
     if tc.status == ToolCallParseStatus.OK:
         return True
@@ -464,6 +485,7 @@ class ReverseProxy:
             logger.warning("Renderer could not parse a cumulative-turn completion; forwarding raw text", exc_info=True)
             return fallback
 
+        tool_names = _tool_names(tools)
         tool_calls = [
             {
                 "id": tc.id or f"call_{uuid.uuid4().hex[:16]}",
@@ -474,8 +496,11 @@ class ReverseProxy:
                 },
             }
             for tc in parsed.tool_calls
-            if _forwardable(tc)
+            if _forwardable(tc, tool_names)
         ]
+        dropped = [(tc.name, getattr(tc.status, "name", str(tc.status))) for tc in parsed.tool_calls if not _forwardable(tc, tool_names)]
+        if dropped:
+            logger.info("Not forwarding %d renderer-parsed tool call(s) (name, parse status): %s", len(dropped), dropped)
 
         message: dict[str, Any] = {"role": "assistant", "content": parsed.content or None}
         if parsed.reasoning_content:
