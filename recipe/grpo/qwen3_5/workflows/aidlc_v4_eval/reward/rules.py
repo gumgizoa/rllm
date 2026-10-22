@@ -406,13 +406,23 @@ def atomic_checks(
 
     # -- writing the artifacts ----------------------------------------------------------------
     # B3a: an artifact written once, whole (no append, no blank filled in later in its own stage); B4a: an
-    # earlier stage's artifact never rewritten once the next stage began (its document read or artifact written)
+    # earlier stage's artifact never rewritten once a later stage began. A later stage begins with its first
+    # sign after artifact k's first write: a later stage's document read, a later artifact written, a source
+    # edit (after stages 1-3) or a test or reproduction run (after stage 4) -- not a document read ahead before
+    # artifact k was written (that is A3b's concern).
     art_writes = {A.ARTIFACT_PATHS[p]: steps for p, steps in obs.writes.items() if p in A.ARTIFACT_PATHS and steps}
     if art_writes:
+        doc_steps = [(s.n, int(d)) for s in run.steps for a in s.actions if a.acts for d in F.doc_reads(a) if d != "core"]
+        edits = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []))
 
         def next_began(k: int) -> int | None:
-            began = [n for n in (read_step.get(f"0{k + 1}"), write_step.get(k + 1)) if n is not None]
-            return min(began) if began else None
+            first = art_writes[k][0]
+            signs = [n for n, d in doc_steps if d > k and n > first]
+            signs += [w for j, w in write_step.items() if j > k and w is not None]
+            signs += [n for n in edits if n > first] if k <= 3 else []
+            if k == 4:
+                signs += [n for n, _, _ in obs.tests_in(after=first)] + ([n for n, _, _ in obs.ran(repro, after=first)] if repro else [])
+            return min(signs) if signs else None
 
         rewrites = [(k, n) for k, steps in art_writes.items() for n in steps[1:]]
         later = [(k, n) for k, n in rewrites if (b := next_began(k)) is not None and n > b]

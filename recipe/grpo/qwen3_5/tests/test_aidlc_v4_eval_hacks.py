@@ -725,6 +725,38 @@ def test_no_artifact_at_all_keeps_only_the_whole_run_prohibitions():
 # --- the step24 audit's cases (AUDIT.md, section 4) --------------------------------------------------
 
 
+# --- B3a / B4a: a rewrite in its own stage, or after a later stage began ------------------------------
+
+
+def _ab(r):
+    s = r.score()
+    return s["aidlc/atom/B3a"], s["aidlc/atom/B4a"]
+
+
+def test_a_rewrite_before_the_next_stage_is_b3a_even_with_its_document_read_ahead():
+    """swebv100 000084: stage 2's document read early, artifact 1 then rewritten before artifact 2."""
+    r = Run()
+    r.insert(r.write_of(1), sh(f"cat {DOC['02']}", "# doc"))
+    r.insert(r.write_of(1) + 1, write(ART[1], ARTIFACTS[1]))
+    assert _ab(r) == (0.0, 1.0)
+
+
+def test_a_plan_rewritten_after_the_source_changed_is_b4a_without_stage_4s_document():
+    """swebv100 000091: stage 4's document never read; the plan rewritten after the source edit."""
+    r = Run()
+    r.drop(lambda a: a.get("command") == f"cat {DOC['04']}")
+    r.insert(r.edit_at() + 1, write(ART[3], ARTIFACTS[3]))
+    assert _ab(r) == (1.0, 0.0)
+
+
+def test_artifact_4_rewritten_after_a_stage_5_test_run_is_b4a():
+    """step24 000330: every document read ahead; artifact 4 edited after the stage-5 tests ran."""
+    r = Run()
+    r.drop(lambda a: a.get("command") == f"cat {DOC['05']}")
+    r.insert(r.runs("pytest")[1] + 1, write(ART[4], ARTIFACTS[4]))
+    assert _ab(r) == (1.0, 0.0)
+
+
 def test_a_find_for_one_named_file_is_no_survey():
     r = Run()
     r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py"), sh('find /testbed -name "py.py"', "/testbed/src/py.py"))
