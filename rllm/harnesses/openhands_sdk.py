@@ -19,6 +19,7 @@ builds the trajectory.
 from __future__ import annotations
 
 import logging
+import re
 import shlex
 from pathlib import Path
 
@@ -116,6 +117,30 @@ class OpenHandsSdkHarness(BaseCliHarness):
     use_agent_mount = True
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/openhands-sdk.log"
+    # ``--agent-kwargs`` (recipe/eval/config/openhands-sdk.yaml). Unset keeps the
+    # SDK default: 500 iterations, FinishTool + ThinkTool, reasoning_effort "high".
+    max_iterations: int | None = None
+    include_default_tools: list[str] | None = None
+    _UNSET = object()
+    # None (YAML null) sends no reasoning_effort, leaving the server's default.
+    reasoning_effort: object = _UNSET
+
+    def configure(self, overrides: dict) -> dict:
+        """Take ``max_iterations`` / ``include_default_tools`` / ``reasoning_effort`` from ``--agent-kwargs``."""
+        leftovers = super().configure(overrides)
+        kwargs = dict(leftovers.pop("agent_kwargs", None) or {})
+        if "max_iterations" in kwargs:
+            self.max_iterations = int(kwargs.pop("max_iterations"))
+        if "include_default_tools" in kwargs:
+            tools = kwargs.pop("include_default_tools") or []
+            # key=value form gives a string; "FinishTool" or "FinishTool;ThinkTool"
+            self.include_default_tools = [t for t in re.split(r"[,;\s]+", tools) if t] if isinstance(tools, str) else [str(t) for t in tools]
+        if "reasoning_effort" in kwargs:
+            effort = kwargs.pop("reasoning_effort")
+            self.reasoning_effort = None if effort is None else str(effort)
+        if kwargs:
+            logger.warning("%s: --agent-kwargs keys %s have no effect", self.name, sorted(kwargs))
+        return leftovers
 
     def install_script(self) -> str:
         return _install_script(f"{agent_mount_target()}/openhands-sdk-venv")
@@ -123,7 +148,7 @@ class OpenHandsSdkHarness(BaseCliHarness):
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
         # litellm needs ``provider/model``; rllm setup hands out bare names.
         _, _, qualified = self.ensure_provider_prefix(config.model)
-        return {
+        env = {
             "LLM_MODEL": qualified,
             "LLM_BASE_URL": config.base_url,
             "LLM_API_KEY": self.gateway_api_key(config, "OPENAI_API_KEY"),
@@ -131,6 +156,15 @@ class OpenHandsSdkHarness(BaseCliHarness):
             # the same log as the run, so keep it out.
             "OPENHANDS_SUPPRESS_BANNER": "1",
         }
+        if self.max_iterations is not None:
+            env["OPENHANDS_MAX_ITERATIONS"] = str(self.max_iterations)
+        if self.include_default_tools is not None:
+            # Set but empty means no default tools at all.
+            env["OPENHANDS_DEFAULT_TOOLS"] = ",".join(self.include_default_tools)
+        if self.reasoning_effort is not self._UNSET:
+            # Set but empty means send none.
+            env["OPENHANDS_REASONING_EFFORT"] = self.reasoning_effort or ""
+        return env
 
     def write_configs(
         self,
