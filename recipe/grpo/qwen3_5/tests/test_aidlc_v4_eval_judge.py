@@ -17,12 +17,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_aidlc_reward import episode  # noqa: E402
+from test_aidlc_v4_eval import score  # noqa: E402
 from test_aidlc_v4_eval_hacks import Run, sh  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import judge as J  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import parsed_artifacts  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.trace import episode_to_run  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.evaluator import score  # noqa: E402
 
 # a line of each stage's artifact, to quote
 QUOTE = {1: "Files: pkg/mod.py", 2: "R1: parse() accepts an empty string", 3: "Target: pkg/mod.py (modify in place)", 4: "Modified: pkg/mod.py [R1, R3]", 5: "Result: pass"}
@@ -143,9 +143,10 @@ def test_the_cache_asks_once(judge_on, monkeypatch, tmp_path):
 
 
 def test_every_question_has_a_category():
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.categories import JUDGE_KINDS
+    from test_aidlc_v4_eval import _EVAL
 
-    assert {r for qs in J.QUESTIONS.values() for r, _ in qs} == set(JUDGE_KINDS)
+    judged = {i.check.params["question"] for i in _EVAL.rubric.items if i.check.kind == "aidlc_v4_eval.judge"}
+    assert {r for qs in J.QUESTIONS.values() for r, _ in qs} == judged
 
 
 def test_the_issue_is_material_for_stages_1_to_3(judge_on, monkeypatch):

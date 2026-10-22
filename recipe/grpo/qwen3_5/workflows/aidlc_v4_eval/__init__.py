@@ -35,10 +35,12 @@ HERE = Path(__file__).resolve().parent
 
 
 def _scorer():
-    # Imported on use: a run without the workflow never loads the rubric or the checks.
-    from .reward.evaluator import AidlcEvalEvaluation
+    # Imported on use: a run without the workflow never loads the rubric or the checks. The milestone-1
+    # signals (legacy/) ride along as an extra scorer, for comparison with earlier evaluations.
+    from .legacy.score import SCORER as MILESTONE1
+    from .reward.eval import Evaluation
 
-    return AidlcEvalEvaluation()
+    return Evaluation(extra=[MILESTONE1])
 
 
 SPEC = WorkflowSpec(

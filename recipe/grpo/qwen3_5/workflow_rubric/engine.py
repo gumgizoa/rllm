@@ -34,6 +34,7 @@ class Report:
     facts: Facts
     engine_errors: int = 0
     errors: list[str] = field(default_factory=list)
+    cache: dict = field(default_factory=dict)  # the checks' shared state (``EvalContext.cache``)
 
 
 def _offline_missing(item: Item, ctx: EvalContext) -> str | None:
@@ -106,12 +107,14 @@ def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
         if it.check.kind in SECOND_PASS:
             results[it.id] = evaluate_item(it, ctx, errors)
     scores = aggregate.score(rubric, results, engine_errors=len(errors))
-    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors)
+    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache)
 
 
 def signals(report: Report, prefix: str) -> dict[str, float]:
-    """``{prefix}/compliance`` (the reward signal), one per signal, and diagnostics."""
-    out = {f"{prefix}/compliance": float(report.scores.compliance)}
+    """``{prefix}/compliance`` (the reward signal; ``{prefix}/<scoring.total>`` under ``kind_matrix``), one
+    per signal, diagnostics, and with ``item_signals`` every scored item under its id."""
+    out = {f"{prefix}/{report.scores.total_name}": float(report.scores.compliance)}
     out.update({f"{prefix}/{k}": float(v) for k, v in report.scores.signals.items()})
     out.update({f"{prefix}/{k}": float(v) for k, v in report.scores.diagnostics.items()})
+    out.update({f"{prefix}/{k}": float(v) for k, v in report.scores.items.items()})
     return out

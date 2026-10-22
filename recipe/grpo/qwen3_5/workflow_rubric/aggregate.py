@@ -20,6 +20,10 @@ and denominator.
 Global items (``stage: global``) feed two signals: ``order`` (kind ``order``) and ``process``
 (everything else global). A signal with no applicable items is left out of the mean.
 
+``aggregate: kind_matrix`` scores by what kind of rule fails in which stage instead (see
+:func:`kind_matrix`); ``total`` names its total signal and ``item_signals: true`` also reports every
+scored item under its id.
+
 ``process_scale: stage_mean`` makes ``process`` the global items' pass rate times the mean stage
 score. Most global items are prohibitions and write rules that a run doing nothing satisfies; scaled,
 they act like the structure items -- a multiplier on the work they govern, never credit by
@@ -118,10 +122,64 @@ class Scores:
     compliance: float
     stages: dict[str, StageScore]
     diagnostics: dict[str, float] = field(default_factory=dict)
+    total_name: str = "compliance"  # the name the total (the reward signal) is reported under
+    items: dict[str, float] = field(default_factory=dict)  # item id -> score, with ``item_signals``
+
+
+def kind_matrix(rubric: Rubric, results: dict[str, Result], scoring: dict) -> tuple[dict[str, float], float]:
+    """Rule -> cell (category x stage) -> category -> total, every level an unweighted mean.
+
+    A rule's score is the mean of its scored items (``Item.rule``; an item without one is its own rule);
+    a cell's the mean of its rules'; a category's the mean of its cells' (each stage alike); the total
+    the mean of the categories' (each category alike, however many rules it has). Stages are numbered
+    in rubric order from 1; ``global`` items are stage 0.
+
+    A stage not carried out -- its ``done_rule`` item (``scoring.matrix.done_rule``) did not pass --
+    scores 0 in every cell a carried-out stage can have (the cells of its items that are not
+    ``unavailable``), whatever its items measured, except the ``R`` (forbidden action) cell: a
+    prohibition kept by not doing the stage earns nothing, so that cell is left out. A cell no item
+    measures in a carried-out stage is left out. Stage 0 cells are never filled in.
+
+    Signals: ``score`` (or ``scoring.total``), ``kind/<C>``, ``cat/<C><n>``, ``done_stages``.
+    """
+    number = {st.id: k for k, st in enumerate(rubric.stages, start=1)} | {"global": 0}
+    done_rule = (scoring.get("matrix") or {}).get("done_rule")
+    items = [i for i in rubric.items if not i.log_only]
+    done = {number[i.stage] for i in items if i.rule == done_rule and results.get(i.id) and results[i.id].status == "pass"}
+    per_rule: dict[tuple[str, str, int], list[float]] = {}
+    expected: set[tuple[str, int]] = set()
+    for i in items:
+        r = results.get(i.id)
+        n = number[i.stage]
+        if r is None or r.status == "unavailable":
+            continue
+        if n > 0:
+            expected.add((i.category, n))
+        if r.status in SCORED:
+            per_rule.setdefault((i.rule or i.id, i.category, n), []).append(r.score)
+    rules: dict[tuple[str, int], list[float]] = {}
+    for (_, cat, n), values in per_rule.items():
+        if n == 0 or n in done or cat != "R":
+            rules.setdefault((cat, n), []).append(sum(values) / len(values))
+    cells = {c: sum(v) / len(v) for c, v in rules.items()}
+    for cat, n in expected:
+        if n not in done and cat != "R":
+            cells[(cat, n)] = 0.0
+    cats = {c: [v for (k, _), v in cells.items() if k == c] for c in sorted({k for k, _ in cells})}
+    kinds = {c: sum(v) / len(v) for c, v in cats.items()}
+    total = sum(kinds.values()) / len(kinds) if kinds else 0.0
+    signals = {f"cat/{c}{n}": v for (c, n), v in sorted(cells.items())} | {f"kind/{c}": v for c, v in kinds.items()}
+    signals[scoring.get("total") or "score"] = total
+    signals["done_stages"] = float(len(done))
+    return signals, total
 
 
 def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) -> Scores:
     scoring = scoring_of(rubric)
+    if scoring.get("aggregate") == "kind_matrix":
+        signals, total = kind_matrix(rubric, results, scoring)
+        items = {i.id: results[i.id].score for i in rubric.items if scoring.get("item_signals") and results.get(i.id) and results[i.id].status in SCORED}
+        return Scores(signals, total, {}, _diagnostics(rubric, results, engine_errors), total_name=scoring.get("total") or "score", items=items)
     stages = {st.id: group_score(rubric.items_for(st.id), results, scoring) for st in rubric.stages}
     glob = [i for i in rubric.items_for("global") if not i.log_only]
     signals: dict[str, float] = {}
@@ -146,13 +204,19 @@ def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) ->
             if sid in stages and stages[sid].n_items:
                 signals[f"stage.{sid}"] = stages[sid].score
     compliance = sum(signals.values()) / len(signals) if signals else 0.0
+    diag = _diagnostics(rubric, results, engine_errors)
+    if process_rate is not None:
+        diag["process_rate"] = process_rate
+    return Scores(signals, compliance, stages, diag)
 
+
+def _diagnostics(rubric: Rubric, results: dict[str, Result], engine_errors: int) -> dict[str, float]:
     def rate(req: str | None = None, pick=None) -> float:
         its = [i for i in rubric.items if (req is None or i.requirement == req) and (pick is None or pick(i))]
         rs = [results[i.id] for i in its if results.get(i.id) and results[i.id].status in SCORED]
         return sum(r.score for r in rs) / len(rs) if rs else 0.0
 
-    diag = {
+    return {
         "must_rate": rate("must"),
         "should_rate": rate("should"),
         "adapter_rate": rate(pick=lambda i: i.derived_by == "adapter"),
@@ -162,9 +226,6 @@ def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) ->
         "engine_errors": float(engine_errors),
         "items_scored": float(sum(1 for r in results.values() if r.status in SCORED)),
     }
-    if process_rate is not None:
-        diag["process_rate"] = process_rate
-    return Scores(signals, compliance, stages, diag)
 
 
 def _process_scale(scoring: dict, stages: dict[str, StageScore]) -> float:

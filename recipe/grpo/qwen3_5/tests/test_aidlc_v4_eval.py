@@ -27,7 +27,15 @@ sys.path.insert(0, str(REPO))
 from test_aidlc_reward import ART, ARTIFACTS, DOC, _call, _collected, _Sandbox, _Verifier, episode  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflows import aidlc_v4_eval, get_workflow  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.evaluator import AidlcEvalComplianceEvaluator, AidlcEvalEvaluation, score  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.eval import Evaluation  # noqa: E402
+
+_EVAL = aidlc_v4_eval.SPEC.scorers["openhands-sdk"]()
+
+
+def score(task, ep, files: dict[str, str]) -> dict[str, float]:
+    """One saved episode's signals through the workflow's own evaluation (rubric engine + milestone-1 extra)."""
+    return _EVAL.score(task, ep, _EVAL.from_outputs(files))
+
 
 PKG = aidlc_v4_eval.HERE
 
@@ -102,7 +110,7 @@ def test_spec_reads_only_its_own_files():
 def test_registered_and_scored_by_its_own_evaluation():
     spec = get_workflow("aidlc_v4_eval")
     assert spec is aidlc_v4_eval.SPEC and spec.reward_signal == "aidlc/score"
-    assert isinstance(spec.scorers["openhands-sdk"](), AidlcEvalEvaluation)
+    assert isinstance(spec.scorers["openhands-sdk"](), Evaluation)
 
 
 # --- fixed -----------------------------------------------------------------------------------
@@ -363,25 +371,47 @@ def test_an_artifact_the_sandbox_did_not_hold_makes_no_claims():
 # --- evaluator wrapper -----------------------------------------------------------------------
 
 
-def test_evaluator_adds_signals_and_leaves_the_verifier_output_alone():
+def _live(sb, monkeypatch, files=None):
+    """The per-rollout evaluator the policy's resolve() builds, with the engine's sandbox collection replaced
+    by the files a sandbox would hold (``files``) or left to the real one (``None``)."""
+    from recipe.grpo.qwen3_5.workflow_rubric import evaluation as EVL
+    from recipe.grpo.qwen3_5.workflow_rubric.collect import TaskInfo
+    from recipe.grpo.qwen3_5.workflow_rubric.context import Collected
+
+    if files is not None:
+        monkeypatch.setattr(EVL.C, "collect", lambda *a, **k: Collected(files=dict(files)))
+    return EVL.RubricEvaluator(_Verifier(sb), sb, _EVAL.rubric, _EVAL.prefix, TaskInfo(), _EVAL.extra, _EVAL.inputs, _EVAL.post)
+
+
+def test_evaluator_adds_signals_and_leaves_the_verifier_output_alone(monkeypatch):
     sb = _Sandbox(_collected(FILES))
-    inner = _Verifier(sb)
-    out = AidlcEvalComplianceEvaluator(inner, sb).evaluate(SimpleNamespace(id="t"), episode(_content_honest_turns()))
-    assert inner.collected_before == 1  # artifacts read before the verifier ran
+    ev = _live(sb, monkeypatch, FILES)
+    out = ev.evaluate(SimpleNamespace(id="t"), episode(_content_honest_turns()))
+    assert ev.inner.collected_before == 1  # the milestone-1 artifacts read before the verifier ran
     assert (out.reward, out.is_correct, out.metadata) == (1.0, True, {"termination_reason": "verifier_timeout"})
     sig = {s.name: s.value for s in out.signals}
-    assert sig["accuracy"] == 1.0 and sig["aidlc/compliance"] == pytest.approx(1.0) and sig["aidlc/content"] == pytest.approx(1.0)
+    assert sig["accuracy"] == 1.0 and sig["aidlc/score"] == pytest.approx(1.0) and sig["aidlc/content"] == pytest.approx(1.0)
+    assert sig["aidlc/compliance"] == pytest.approx(1.0) and sig["aidlc/engine_errors"] == 0.0
 
 
-def test_evaluator_falls_back_to_the_verifier_when_collection_fails():
+def test_evaluator_scores_a_run_whose_sandbox_is_gone_and_keeps_the_verifier_output(monkeypatch):
+    """The engine never drops the signal (a scorer that fails would be an escape from it): no artifact
+    collected scores what no artifact earns, the collection failure counted; the milestone-1 extra is left out."""
     sb = _Sandbox(fail=True)
-    out = AidlcEvalComplianceEvaluator(_Verifier(sb), sb).evaluate(SimpleNamespace(id="t"), episode(_content_honest_turns()))
-    assert [s.name for s in out.signals] == ["accuracy"]
+    out = _live(sb, monkeypatch).evaluate(SimpleNamespace(id="t"), episode(_content_honest_turns()))
+    sig = {s.name: s.value for s in out.signals}
+    assert sig["accuracy"] == 1.0 and sig["aidlc/collect_errors"] >= 1.0 and sig["aidlc/score"] < 0.5
+    assert "aidlc/compliance" not in sig
 
 
 def test_evaluation_survives_pickling():
     """Training pickles the policy into the Ray actor; the unpickled one scores the same."""
-    ev = pickle.loads(pickle.dumps(AidlcEvalEvaluation()))
+    ev = pickle.loads(pickle.dumps(_EVAL))
     data = ev.from_outputs({**FILES, "/tmp/swe-bench-pro/notes.md": "x"})
-    assert data == FILES
     assert ev.score(SimpleNamespace(id="t"), episode(_content_honest_turns()), data) == score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
+
+
+def test_the_verifier_does_not_lean_on_the_legacy_scoring():
+    """reward/ never imports legacy/ (the milestone-1 scoring rides along from the spec, and can go)."""
+    for path in (PKG / "reward").rglob("*.py"):
+        assert not any("legacy" in m for m in _imported_modules(path)), path

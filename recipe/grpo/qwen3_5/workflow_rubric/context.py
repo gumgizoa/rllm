@@ -56,6 +56,8 @@ class Collected:
     errors        collection problems; in online mode they make dependent checks *fail*, never skip
     mode          ``online`` (training / rllm eval, live sandbox) or ``offline`` (harbor replay):
                   only offline may mark checks ``unavailable``
+    inputs        what the task and the recorded episode give besides the sandbox, for a workflow's own
+                  checks (the evaluation policy's ``inputs`` hook fills it; the common kinds never read it)
     snapshot      offline roots whose ``files`` are the real end-of-run tree (harbor ``artifacts:``),
                   not a replay: an artifact missing there is missing, whatever the trace wrote
     """
@@ -71,6 +73,7 @@ class Collected:
     errors: list[str] = field(default_factory=list)
     mode: Mode = "online"
     snapshot: frozenset[str] = frozenset()
+    inputs: dict[str, Any] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------------------------

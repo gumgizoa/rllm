@@ -33,10 +33,13 @@ RECIPE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RECIPE.parents[2]))
 
 from test_aidlc_reward import ART, ARTIFACTS, DOC, _call, episode  # noqa: E402
-from test_aidlc_v4_eval import PATCH, _content_honest_turns  # noqa: E402
+from test_aidlc_v4_eval import (  # noqa: E402
+    PATCH,
+    _content_honest_turns,
+    score,  # noqa: E402
+)
 
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval import HERE as PKG  # noqa: E402
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.evaluator import score  # noqa: E402
 
 MIN_DROP = 0.005
 HONEST_TOLERANCE = 0.02
@@ -570,13 +573,15 @@ def test_each_violation_added_lowers_the_score(signal):
 # --- categories -----------------------------------------------------------------------------------
 
 
-def test_every_check_is_placed_in_one_category():
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.categories import SIGNAL_RULES
+def test_every_check_is_a_rubric_item():
+    from test_aidlc_v4_eval import _EVAL
+
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import CHECKS
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rule_checks import CHECKS as RULES
 
-    placed = {k.rsplit("/", 1)[-1] for k in SIGNAL_RULES}
-    assert set(CHECKS) <= placed and set(RULES) <= placed
+    ids = {i.id for i in _EVAL.rubric.items}
+    assert {f"check/{c}" for c in CHECKS} <= ids and {f"rule/{c}" for c in RULES} <= ids
+    assert all(i.category and i.rule and i.sources for i in _EVAL.rubric.items)
 
 
 def test_the_honest_run_scores_one_in_every_category():

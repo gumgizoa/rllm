@@ -30,6 +30,7 @@ def _forget_plugin_kinds(prefixes: tuple[str, ...]) -> dict:
         ("openspec_ff", ("openspec_ff.", "openspec."), "openspec_ff.cli"),
         ("speckit_sdd", ("speckit_sdd.", "speckit."), "speckit_sdd.script"),
         ("agentos_v2", ("agentos_v2.",), "agentos_v2.read"),
+        ("aidlc_v4_eval", ("aidlc_v4_eval.",), "aidlc_v4_eval.claim"),
     ],
 )
 def test_unpickled_evaluation_reregisters_plugin_kinds(workflow, prefixes, probe):

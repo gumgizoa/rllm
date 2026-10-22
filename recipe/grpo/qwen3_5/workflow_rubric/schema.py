@@ -28,6 +28,10 @@ Item fields (the ones every workflow shares):
     derived_by        ``template_compiler`` | ``llm_extract`` | ``adapter`` | ``manual``
     template          the common-rubric template it instantiates (``C-A1`` .. ``C-F11``), empty for specific
     log_only          evaluated and reported, never scored (adapter-derived items by default)
+    category          optional, for the ``kind_matrix`` aggregate: ``P`` procedure, ``F`` artifact form,
+                      ``E`` execution, ``C`` consistency across stages, ``R`` forbidden action, ``Q``
+                      content adequacy, ``A`` report accuracy
+    rule              optional, the atomic rule the item measures; items of one rule average into it
 """
 
 from __future__ import annotations
@@ -52,6 +56,8 @@ DERIVED_BY = ("template_compiler", "llm_extract", "adapter", "manual")
 SOURCE_ROLES = ("adapter", "instruction", "core", "stage_rule", "command", "skill", "template", "schema", "script", "system_prompt", "reference")
 WRITE_EVENTS = ("first", "last", "last_in_window")
 PROCESS_SCALES = (None, "stage_mean")  # scoring.process_scale (see aggregate)
+CATEGORIES = ("", "P", "F", "E", "C", "R", "Q", "A")  # Item.category (see aggregate.kind_matrix)
+AGGREGATES = (None, "stages", "kind_matrix")  # scoring.aggregate
 
 
 class RubricError(ValueError):
@@ -165,6 +171,8 @@ class Item:
     template: str = ""
     log_only: bool = False
     note: str = ""
+    category: str = ""
+    rule: str = ""
 
     def to_dict(self) -> dict:
         d = {
@@ -188,6 +196,10 @@ class Item:
             "log_only": self.log_only,
             "note": self.note,
         }
+        if self.category:
+            d["category"] = self.category
+        if self.rule:
+            d["rule"] = self.rule
         return d
 
     @classmethod
@@ -215,6 +227,8 @@ class Item:
                 template=str(d.get("template") or ""),
                 log_only=bool(d.get("log_only", False)),
                 note=str(d.get("note", "")),
+                category=str(d.get("category") or ""),
+                rule=str(d.get("rule") or ""),
             )
         except (KeyError, TypeError) as e:
             raise RubricError(f"item {d.get('id', '?')}: {e!r}") from None
@@ -373,6 +387,12 @@ def validate(r: Rubric) -> None:
             errors.append(f"{where}: template {i.template!r}")
         if i.gate and not set(i.gate) <= {"zero_stage", "cap_stage"}:
             errors.append(f"{where}: gate {i.gate}")
+        if i.category not in CATEGORIES:
+            errors.append(f"{where}: category {i.category!r}")
+    if (r.scoring or {}).get("aggregate") not in AGGREGATES:
+        errors.append(f"scoring.aggregate {(r.scoring or {}).get('aggregate')!r} (one of {AGGREGATES[1:]})")
+    if (r.scoring or {}).get("aggregate") == "kind_matrix" and any(not i.category for i in r.items if not i.log_only):
+        errors.append("scoring.aggregate kind_matrix: every scored item needs a category")
     scale = (r.scoring or {}).get("process_scale")
     if scale not in PROCESS_SCALES:
         errors.append(f"scoring.process_scale {scale!r} (one of {PROCESS_SCALES[1:]})")

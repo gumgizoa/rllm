@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -995,3 +996,73 @@ def parsed_artifacts(run: Run, collected: bool = False) -> dict[int, dict | None
 # (most of SWE-bench Verified), nose, ward. One list for every check, so the stage gate (compliance.py)
 # and the content checks agree on what a test run is.
 EXTRA_TEST_RUN = EXTRA_RUNNERS
+
+
+# --- run readings the categories use (the milestone-1 rubric's definitions, read here) ----------
+
+STAGE_DOCS = ["01", "02", "03", "04", "05"]
+
+
+def doc_reads(run: Run) -> tuple[list[str], dict[str, int]]:
+    """The workflow documents in the order the run opened them, and each one's first-read step."""
+    reads = [(s.n, d) for s in run.steps for a in s.actions if a.acts for d in F.doc_reads(a)]
+    first: dict[str, int] = {}
+    for n, d in reads:
+        first.setdefault(d, n)
+    return [d for _, d in reads], first
+
+
+def multi_read(read_step: dict[str, int]) -> list[str]:
+    """Stage documents whose first read shares a step with another's: read by one command (order_v6)."""
+    counts = Counter(read_step[d] for d in STAGE_DOCS if d in read_step)
+    return sorted({d for d in STAGE_DOCS if d in read_step and counts[read_step[d]] > 1})
+
+
+def entry(run: Run) -> float:
+    """core-workflow.md read before any other document: 1 by step 3, 1/3 later, 0 otherwise."""
+    reads, first = doc_reads(run)
+    core = first.get("core")
+    return 0.0 if core is None or (reads and reads[0] != "core") else (1.0 if core <= 3 else 1 / 3)
+
+
+def leaks(run: Run) -> tuple[list[int], list[int]]:
+    """Steps that browsed git history, and steps that applied a whole patch."""
+    shell = [(s.n, a) for s in run.steps for a in s.actions if a.acts and a.kind == "shell"]
+    history = sorted({n for n, a in shell if F.probes_git_history(a)})
+    applied = sorted({n for n, a in shell if re.search(r"\bgit\s+apply\b|\bpatch\s+-p\d", F.command_skeleton(a.command or ""))})
+    return history, applied
+
+
+def artifact_write_steps(run: Run) -> dict[int, int | None]:
+    """Stage -> the first step that wrote its artifact's path, counted only when the file was collected."""
+    first: dict[int, int] = {}
+    for step in run.steps:
+        for a in step.actions:
+            if a.status == "fail":
+                continue
+            targets = F.write_targets(a) if a.kind == "shell" else ([a.path] if F.is_write(a) else [])
+            for t in targets:
+                st = A.ARTIFACT_PATHS.get(t)
+                if st is not None and not (a.kind == "shell" and F._rm_matches(a.command or "", t)):
+                    first.setdefault(st, step.n)
+    return {st: (first.get(st) if path in run.artifact_files else None) for path, st in A.ARTIFACT_PATHS.items()}
+
+
+def fidelity(run: Run) -> float:
+    """The share of the final diff artifact 04 discloses, capped at half by a file it claims and the diff
+    lacks; 0 without a usable 04 (collected, frontmatter valid, not a skeleton copy) or with an empty diff."""
+    text = run.artifact_files.get(A.artifact_path(4))
+    if text is None or not run.patch.strip():
+        return 0.0
+    parsed = A.parse(4, text)
+    if not A.grade(4, parsed)["frontmatter_valid"] or stage_band(4, text) == 0:
+        return 0.0
+    touched, _ = F.diff_files(run.patch)
+    if not touched:
+        return 0.0
+    claimed = sorted(set(parsed["claims"]["modified"] + parsed["claims"]["created"]))
+    names = {p.rsplit("/", 1)[-1] for p in touched}
+    phantom = [p for p in claimed if p.rsplit("/", 1)[-1] not in names and not p.startswith("/tmp")]
+    undisclosed = [p for p in touched if p.rsplit("/", 1)[-1] not in parsed["body"]]
+    ratio = 1 - len(undisclosed) / len(touched)
+    return min(0.5, ratio) if phantom else ratio
