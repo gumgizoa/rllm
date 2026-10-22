@@ -99,12 +99,19 @@ rllm:
   #     nothing about the policy, so it is removed.
   # So only the infrastructure reasons are masked here; the 0.5 scaling for
   # the budget reasons lives in train.py.
+  # Group filters (training batches only; validation skips rejection sampling).
+  rejection_sample:
+    min_trajs_per_group: 4         # fewer than 4 of 8 left -> the RLOO baseline is too noisy; drop the group
+    filter_uniform_groups: true    # all rewards equal -> zero advantage; drop the group
   compact_filtering:
     enable: true
     mask_max_prompt_length_exceeded: false   # budget: context window (paper's MAX_TOKENS)
     mask_max_response_length_exceeded: false # no producer on the native path; see README
     mask_max_turns_exceeded: false           # budget: turn limit (paper's MAX_STEPS)
-    mask_timeout: true                       # infrastructure: verifier ran out of clock
+    # Verifier timeout is agent-side here: gold grading of every training task finishes in
+    # <= ~21 min (3,172 oracle runs), so a 1,800 s timeout means the agent's code hung the tests.
+    # Count it as 0 instead of dropping it. (Explicit key; the legacy ``mask_timeout`` set both.)
+    mask_verifier_timeout: false
     # rllm/base defaults this to true, which would drop the agent wall-clock case that the
     # comment above (and BUDGET_EXHAUSTED in train.py) treats as budget: keep it, scaled 0.5.
     mask_agent_timeout: false                # budget: agent wall clock (task.toml [agent] 1800 s)

@@ -52,6 +52,10 @@ recipe:
   verifier_timeout_s: 1800
   # Refuse to train unless rewards come from the fresh-sandbox grader (RLLM_FRESH_SANDBOX_VERIFY on).
   require_fresh_verify: true
+  # A rollout whose conversation breaks prefix-extension is trained as several rows, the later
+  # ones clipped at max_prompt_length (Run 3 steps 6, 7, 18). Drop it whole as an environment
+  # fault and log it to $RLLM_RUN_DIR/split_rollouts_<run id>.jsonl.
+  drop_split_rollouts: true
 
 hydra:
   run:

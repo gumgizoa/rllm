@@ -24,6 +24,7 @@ class RejectionSamplingMetrics:
     groups_before_filter: int = 0
     groups_after_filter: int = 0
     groups_dropped_insufficient_trajs: int = 0
+    groups_dropped_uniform_reward: int = 0
 
     def reset(self):
         """Reset all metrics to zero."""
@@ -33,6 +34,7 @@ class RejectionSamplingMetrics:
         self.groups_before_filter = 0
         self.groups_after_filter = 0
         self.groups_dropped_insufficient_trajs = 0
+        self.groups_dropped_uniform_reward = 0
 
     def to_dict(self, prefix: str = "batch/") -> dict:
         """Convert metrics to a dictionary for logging."""
@@ -46,6 +48,7 @@ class RejectionSamplingMetrics:
             f"{prefix}groups_before_filter": self.groups_before_filter,
             f"{prefix}groups_after_filter": self.groups_after_filter,
             f"{prefix}groups_dropped_insufficient_trajs": self.groups_dropped_insufficient_trajs,
+            f"{prefix}groups_dropped_uniform_reward": self.groups_dropped_uniform_reward,
         }
 
 
@@ -126,6 +129,14 @@ def filter_groups(
         # Check minimum trajectories
         if len(group.trajectories) < config.min_trajs_per_group:
             metrics.groups_dropped_insufficient_trajs += 1
+            dropped.append(group)
+            continue
+
+        # Every trajectory scored the same: RLOO/GRPO advantages are all zero, so the group adds
+        # rows (and loss-normalisation weight) without any gradient. The async buffer already
+        # honours this flag (buffer.py); the synchronous path did not.
+        if config.filter_uniform_groups and len({t.reward for t in group.trajectories}) <= 1:
+            metrics.groups_dropped_uniform_reward += 1
             dropped.append(group)
             continue
 
