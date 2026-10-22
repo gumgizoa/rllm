@@ -91,6 +91,29 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 
+@pytest.mark.parametrize(
+    ("quote", "found"),
+    [
+        ("Deviations from Plan: none", True),  # a heading joined to its item
+        ("R6: Q objects keep kwargs R7: other objects use args", True),  # two list items in one quote
+        ("R6: Q objects ... use args", True),  # an ellipsis
+        ("Step 1 Verification: repro calls parse", True),  # where it quotes from, then the field
+        ("assert parse('') == {}\\nassert parse(None)", True),  # code lines, one skipped, newline written out
+        ("Owning module: the whole repository", False),  # words the material does not have
+        ("none", False),  # too short to rest on
+    ],
+)
+def test_a_quote_is_the_materials_words_in_order(quote, found):
+    material = [
+        "## Deviations from Plan\n- none",
+        "- R6: Q objects keep kwargs\n- R7: other objects use args",
+        "### Step 1 [satisfies R1]\n- Verification: repro calls parse",
+        "assert parse('') == {}\nx = 1\nassert parse(None)",
+    ]
+    shown = J._norm("\n".join(material))
+    assert J.quote_found(quote, shown) is found
+
+
 @pytest.mark.parametrize("reply", ["no JSON here", '{"answers": "yes"}', '{"answers": [{"id": "D1a", "answer": "maybe", "quote": "Files: pkg/mod.py"}]}'])
 def test_a_malformed_reply_judges_nothing(judge_on, monkeypatch, reply):
     monkeypatch.setattr(J, "ask", lambda text, seed=None: reply)

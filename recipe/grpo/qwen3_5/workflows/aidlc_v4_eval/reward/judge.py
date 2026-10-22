@@ -223,7 +223,20 @@ def prompt(stage: int, questions: list[tuple[str, str]], material: dict[str, str
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", (text or "").replace("`", "").replace("*", "")).strip().lower()
+    """Text as compared for a quote: lower case, the words only. Markdown and list marks, punctuation and a
+    written-out ``\\n`` are dropped, so a quote that joins a heading to its item or two list items still
+    matches; the words themselves must be the material's, in its order."""
+    text = (text or "").replace("\\n", " ").lower()
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]+", " ", text)).strip()
+
+
+def quote_found(quote: str, shown: str) -> bool:
+    """Every piece of the quote is in the material, the pieces together long enough. Pieces: the quote split at
+    an ellipsis and at line breaks (a quote of code may skip lines), each without a leading ``Step N`` the
+    judge writes to say where it quotes from."""
+    parts = re.split(r"\.\.\.+|…|\n|\\n", quote or "")
+    pieces = [p for p in (_norm(re.sub(r"(?i)^\s*step\s+\d+\b\s*[:.-]?", "", x)) for x in parts) if p]
+    return sum(len(p) for p in pieces) >= MIN_QUOTE and all(f" {p} " in f" {shown} " for p in pieces)
 
 
 _TRIPLE = re.compile(r'"id"\s*:\s*"(\w+)"\s*,\s*"answer"\s*:\s*"(yes|no|n/a)"\s*,\s*"quote"\s*:\s*"((?:[^"\\]|\\.)*)"', re.I)
@@ -247,8 +260,7 @@ def verdicts(reply: str, questions: list[tuple[str, str]], material: dict[str, s
             out[rule] = None
             continue
         decided += 1
-        quote = _norm(str(a.get("quote", "")))
-        if len(quote) < MIN_QUOTE or quote not in shown:
+        if not quote_found(str(a.get("quote", "")), shown):
             out[rule] = None
             void += 1
         else:
