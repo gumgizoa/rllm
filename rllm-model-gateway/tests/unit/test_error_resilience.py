@@ -36,11 +36,16 @@ def gateway_app(request, controllable_vllm: ControllableMockVLLMServer, tmp_path
 
 @pytest_asyncio.fixture
 async def client(gateway_app):
+    # ASGITransport never runs the app's lifespan, so nothing closes the store;
+    # with the sqlite worker that leaves an aiosqlite connection thread behind
+    # (not a daemon thread) and the interpreter hangs after the last
+    # test instead of exiting.
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=gateway_app),
         base_url="http://testserver",
     ) as c:
         yield c
+    await gateway_app.state.store.close()
 
 
 class TestWorkerFailure:
