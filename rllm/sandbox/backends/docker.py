@@ -57,6 +57,7 @@ class DockerSandbox:
         mounts: list[dict] | None = None,
         mem_limit: str | int | None = None,
         nano_cpus: int | None = None,
+        environment: dict[str, str] | None = None,
         **kwargs,
     ):
         import docker
@@ -87,6 +88,10 @@ class DockerSandbox:
             run_kwargs["mem_limit"] = mem_limit
         if nano_cpus:
             run_kwargs["nano_cpus"] = int(nano_cpus)
+        # Container-level env: inherited by every later exec_run (agent tools and
+        # the verifier alike). An ``export`` in a one-off exec does not persist.
+        if environment:
+            run_kwargs["environment"] = dict(environment)
         self._container = self._client.containers.run(image, **run_kwargs)
         agent_mounts = [m.get("source") for m in mounts or [] if m.get("type") == "image"]
         if agent_mounts:

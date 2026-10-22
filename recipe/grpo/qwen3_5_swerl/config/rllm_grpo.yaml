@@ -1,0 +1,143 @@
+# @package _global_
+#
+# Everything under the `rllm.*` config tree: the data budget, rollout
+# sampling, the model gateway, GRPO, and episode filtering/logging.
+#
+# The verl-native half of the run -- model, actor/ref FSDP, the vLLM rollout
+# engine -- is the sibling file `verl_trainer.yaml`. The split is by config
+# tree, not by topic, so any key here starts with `rllm.` and no key there
+# does.
+
+rllm:
+  data:
+    # In AgentFlow training a batch row is one *merged trajectory*: the
+    # prompt is the first turn's prompt and the response accumulates every
+    # later turn's observation + action deltas. Response length therefore
+    # has to cover a whole multi-turn episode, not a single completion.
+    # 8 tasks x rollout.n=8 = 64 trajectories per step. verl requires
+    # train_batch_size * rollout.n to divide n_gpus (64 % 8 = 0).
+    # SWE-RL v2 run 2: 32 tasks x n 8 = 256 trajectories per step (256 % 8 GPUs = 0).
+    train_batch_size: 32
+    val_batch_size: 64
+    # Only max_prompt_length is a real choice here: it is the padded width of
+    # the initial prompt (system + tool spec + issue statement; observed 1.1-1.3K,
+    # so 8K is roomy). max_response_length is whatever is left of the context
+    # window, and is derived rather than restated -- transform.py:38 truncates a
+    # merged row that overruns it without raising, so a stale hand-set value
+    # silently drops the tail of every long episode.
+    # OpenHands' first prompt is 7,362 fixed tokens (system + tool specs) + the issue: median 7.8K,
+    # p99 11.1K over the training tasks (the upstream 8192 clipped 124 of 606). 12288 fits all but 4,
+    # which are left out of the training list (train_lists_v2/excluded_long_prompt.csv).
+    max_prompt_length: 12288
+    max_response_length: 118784   # 131072 - 12288
+
+  algorithm:
+    # SWE-Master leave-one-out estimator: rllm/trainer/algorithms/rl_algo.py:26
+    adv_estimator: rloo
+    # Inert while adv_estimator=rloo -- calculate_rloo_advantages_per_group
+    # takes no such argument -- but it is also the value the paper argues for:
+    # dividing by the group std biases the update by task-difficulty variance.
+    # Stated explicitly so a revert to `grpo` does not silently bring it back.
+    norm_adv_by_std_in_grpo: false
+    eps_clip_high: 0.28
+    # kl_beta=0 is the real switch, and it does more than zero a loss term:
+    # verl's need_reference_policy() is (use_kl_in_reward or use_kl_loss), and
+    # use_kl_loss is *derived* from kl_beta by sync_config. At 0 the reference
+    # policy worker is never created, so each batch skips a full 4B forward
+    # pass and its memory. Do not set actor.use_kl_loss directly -- that
+    # suppresses the derivation and hides where the knob lives.
+    kl_beta: 0.0
+    loss_agg_mode: seq-mean-token-sum
+
+  rollout:
+    n: 8        # group size (RLOO leave-one-out over 8)
+    n_val: 1
+    # Same as the selection rollouts. top_k/min_p explicit so vLLM never picks up a
+    # model generation_config default. Val samples like train: the val set is a slice
+    # of the training tasks, so val accuracy is comparable to the selection labels.
+    train:
+      temperature: 1.0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+      max_tokens: 8192   # per OpenHands turn, not per episode
+    val:
+      temperature: 1.0
+      top_p: 1.0
+      top_k: -1
+      min_p: 0.0
+      max_tokens: 8192
+
+  gateway:
+    # Drift-free multi-turn: turn N+1's prompt is built by extending the raw
+    # token IDs of turn N (prompt + sampled completion) instead of
+    # re-tokenizing the chat history, so what the policy sampled is exactly
+    # what training sees.
+    cumulative_token_mode: true
+    # qwen3.5 is token-identical to Qwen3.5's own chat template on OpenHands episodes
+    # (320/320 turns; qwen3.6+preserve_thinking 297/320). OpenHands returns tool results
+    # as `tool` messages, so the bridge holds without preserve_thinking (312/312).
+    renderer_family: qwen3.5
+    # A new *user* message mid-episode still breaks the bridge (full re-render, one
+    # batch row per segment). That was every turn with mini-swe-agent, hence the
+    # upstream qwen3.6+preserve_thinking; with OpenHands it was 0 of 8 sampled episodes.
+
+  # Despite the `mask_*` names these DROP the episode (transform.py:120 does a
+  # `continue`), before TrajectoryGroups are built -- so a filtered rollout also
+  # stops contributing to its GRPO group's mean/std, not just to the loss.
+  # Token-level masking of observation tokens is a separate, always-on thing.
+  #
+  # Which reasons to drop follows SWE-Master (arXiv 2602.03411, sec. 3.4.2 and
+  # 6.3). The paper splits terminations into two kinds and treats them
+  # differently:
+  #   * budget exhaustion (turns, tokens, agent wall clock): the rollout is
+  #     *kept*, graded on whatever the repo looks like, and its reward is
+  #     scaled by 0.5. Dropping these -- the DeepSWE recipe -- collapsed
+  #     their training (sec. 6.3), and it also removes the hardest tasks
+  #     from the curriculum, since those are the ones that run out of budget.
+  #   * infrastructure failure (container, verifier): the rollout says
+  #     nothing about the policy, so it is removed.
+  # So only the infrastructure reasons are masked here; the 0.5 scaling for
+  # the budget reasons lives in train.py.
+  compact_filtering:
+    enable: true
+    mask_max_prompt_length_exceeded: false   # budget: context window (paper's MAX_TOKENS)
+    mask_max_response_length_exceeded: false # no producer on the native path; see README
+    mask_max_turns_exceeded: false           # budget: turn limit (paper's MAX_STEPS)
+    mask_timeout: true                       # infrastructure: verifier ran out of clock
+    # rllm/base defaults this to true, which would drop the agent wall-clock case that the
+    # comment above (and BUDGET_EXHAUSTED in train.py) treats as budget: keep it, scaled 0.5.
+    mask_agent_timeout: false                # budget: agent wall clock (task.toml [agent] 1800 s)
+    mask_error: true                         # infrastructure: no reward file, upstream 5xx, sandbox
+
+  workflow:
+    # One Docker sandbox per in-flight rollout. Each SWE image is 1-15 GB and
+    # the verifier is CPU-heavy, so this is a host-resource knob, not a GPU one.
+    n_parallel_tasks: 96   # CPU-bound: ~2 vCPU per live sandbox on 192 vCPU
+    retry_limit: 3
+    raise_on_error: false
+
+  remote_runtime:
+    enabled: false   # explicitly not Harbor
+
+  trainer:
+    project_name: swe-rl-v2
+    experiment_name: qwen3_5-9b-rloo-n8-ep2-b32-vt1800
+    logger: ['console', 'wandb']
+    val_before_train: true
+    test_freq: 5
+    save_freq: 1   # every step: a stop/crash resumes from the last step
+    total_epochs: 2
+
+  episode_logging:
+    log_episodes: true
+    # Default is `logs/<project>/<experiment>` relative to cwd, i.e. inside the
+    # repo. Episodes carry the full chat history, so they run ~2.5 MB each --
+    # 32 per step adds up to gigabytes on whatever filesystem the repo lives on,
+    # which in a container is usually the small one. Put them under RLLM_HOME
+    # instead, next to the datasets they came from. The fallback is rLLM's own
+    # (rllm/paths.py:23), so an unset RLLM_HOME lands them beside the datasets
+    # either way; train_verl.sh is what refuses to launch without one.
+    # RLLM_RUN_ID is stamped by train.py (and pinned by train_verl.sh) so two
+    # runs of the same experiment cannot merge or overwrite each other's episodes.
+    episode_log_dir: ${oc.env:RLLM_HOME,${oc.env:HOME}/.rllm}/episodes/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}/${oc.env:RLLM_RUN_ID}

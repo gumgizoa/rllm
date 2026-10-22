@@ -1,0 +1,10 @@
+# Sampling params for Qwen/Qwen3.8-Flash-Next-FP8 rollouts (openhands-sdk, swe_rl_v1_ok).
+# Same decoding knobs as qwen3_5.yaml; max_tokens raised because Flash-Next is a
+# thinking model and 8192 truncates long reasoning_content before the tool call.
+temperature: 0.6
+top_p: 0.95
+top_k: 20
+min_p: 0.0
+presence_penalty: 0.0
+repetition_penalty: 1.0
+max_tokens: 16384

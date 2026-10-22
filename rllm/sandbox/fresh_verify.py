@@ -169,8 +169,13 @@ class FreshSandboxEvaluator:
         fd, tar_path = tempfile.mkstemp(prefix="rllm-agent-patch-", suffix=".tar")
         os.close(fd)
         fresh = None
+        shadow: dict = {}
         try:
             self.agent_sandbox.download_archive(_STAGE, tar_path)
+            saved = self._save_patch(task, tar_path)
+            shadow = self._shadow_grade(task, workdir, tar_path)
+            if saved:
+                shadow = {**shadow, "agent_patch_file": saved}
             fresh = _create_sandbox_for_task(task, self.sandbox_backend)
             _setup_task_environment(task, fresh)
             fresh.exec(f"rm -rf {_STAGE}", timeout=30, user="root")
@@ -183,7 +188,7 @@ class FreshSandboxEvaluator:
                 return self._fail("agent_patch_apply_failed", f"{out}\n{e}")
             self.inner.sandbox = fresh
             result = self.inner.evaluate(task, episode)
-            result.metadata = {**(result.metadata or {}), "graded_in": "fresh_sandbox", "agent_patch": (out or "").strip()[-1000:]}
+            result.metadata = {**(result.metadata or {}), "graded_in": "fresh_sandbox", "agent_patch": (out or "").strip()[-1000:], **shadow}
             return result
         except Exception as e:  # noqa: BLE001
             return self._fail("fresh_verify_failed", f"{type(e).__name__}: {e}")
@@ -197,6 +202,53 @@ class FreshSandboxEvaluator:
                 os.unlink(tar_path)
             except FileNotFoundError:
                 pass
+
+    @staticmethod
+    def _save_patch(task, tar_path: str) -> str | None:
+        """Keep every moved patch under RLLM_FRESH_VERIFY_PATCH_DIR (post-hoc audits of successes)."""
+        d = os.environ.get("RLLM_FRESH_VERIFY_PATCH_DIR")
+        if not d:
+            return None
+        import shutil
+        import uuid
+
+        os.makedirs(d, exist_ok=True)
+        dst = os.path.join(d, f"{Path(task.task_dir).name}_{uuid.uuid4().hex[:8]}.tar")
+        shutil.copy(tar_path, dst)
+        os.chmod(dst, 0o644)
+        return dst
+
+    def _shadow_grade(self, task, workdir: str, tar_path: str) -> dict:
+        """Validation only (RLLM_FRESH_VERIFY_SHADOW_ROOT): also grade in the agent's own
+        sandbox with another task tree's tests/ (e.g. the pre-hardening grader), after the
+        patch is taken, and keep the patch under RLLM_FRESH_VERIFY_SHADOW_SAVE."""
+        root = os.environ.get("RLLM_FRESH_VERIFY_SHADOW_ROOT")
+        if not root:
+            return {}
+        import shutil
+        import uuid
+
+        save = os.environ.get("RLLM_FRESH_VERIFY_SHADOW_SAVE")
+        tag = f"{Path(task.task_dir).name}_{uuid.uuid4().hex[:8]}"
+        if save:
+            os.makedirs(save, exist_ok=True)
+            shutil.copy(tar_path, os.path.join(save, tag + ".tar"))
+        tests = Path(root) / Path(task.task_dir).name / "tests"
+        if not tests.is_dir():
+            return {"shadow_reason": "no_shadow_tests", "shadow_tag": tag}
+        sb = self.agent_sandbox
+        try:
+            sb.exec("rm -rf /tests /tmp/rllm /logs/verifier; mkdir -p /tmp/rllm /logs/verifier", timeout=60, user="root")
+            sb.upload_dir(str(tests), "/tests")
+            try:
+                sb.exec(f"cd {shlex.quote(workdir)} && bash /tests/test.sh", timeout=float(task.metadata.get("verifier_timeout", 5400)), user="root")
+            except Exception:  # noqa: BLE001 - reward file carries the outcome
+                pass
+            raw = sb.exec("cat /tmp/rllm/reward.json 2>/dev/null || true", timeout=30, user="root").strip()
+            j = json.loads(raw) if raw else {}
+            return {"shadow_reward": float(j.get("reward", 0.0)), "shadow_reason": (j.get("metadata") or {}).get("reason"), "shadow_tag": tag}
+        except Exception as e:  # noqa: BLE001
+            return {"shadow_reason": f"shadow_error: {type(e).__name__}", "shadow_tag": tag}
 
     def __getattr__(self, name):
         return getattr(self.inner, name)

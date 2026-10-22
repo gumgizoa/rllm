@@ -203,7 +203,32 @@ def _create_base_sandbox(
     if name is None:
         safe_id = re.sub(r"[^a-zA-Z0-9_.-]", "-", task.id)
         name = f"rllm-{safe_id}-{uuid.uuid4().hex[:6]}"
+    if backend == "docker" and "environment" not in backend_kwargs:
+        env = _sandbox_env(task)
+        if env:
+            backend_kwargs["environment"] = env
     return create_sandbox(backend, name=name, image=image, mounts=mounts, **_sandbox_resource_kwargs(task, backend), **backend_kwargs)
+
+
+def _sandbox_env(task: Task) -> dict[str, str]:
+    """Env baked into the container: ``RLLM_SANDBOX_ENV`` ("K=V,K=V") overlaid by the task's env_vars.
+
+    The agent sandbox and the fresh grading sandbox are both created here, so they get the same env.
+    ``RLLM_SANDBOX_ENV_LANGUAGES`` ("javascript,typescript") limits ``RLLM_SANDBOX_ENV`` to tasks whose
+    ``metadata.language`` is listed; a task without a language then gets none of it. Unset = all tasks.
+    """
+    env: dict[str, str] = {}
+    langs = {s.strip().lower() for s in os.environ.get("RLLM_SANDBOX_ENV_LANGUAGES", "").split(",") if s.strip()}
+    # Registry rows carry ``language`` at the top; task.toml's ``[metadata]`` table (both loaders) nests it.
+    language = str(task.metadata.get("language") or (task.metadata.get("metadata") or {}).get("language") or "").strip().lower()
+    if not langs or language in langs:
+        for token in os.environ.get("RLLM_SANDBOX_ENV", "").split(","):
+            key, sep, value = token.strip().partition("=")
+            if sep and key:
+                env[key] = value
+    task_env = task.metadata.get("env_vars", {}) or task.metadata.get("environment", {}).get("env", {}) or {}
+    env.update({str(k): str(v) for k, v in task_env.items()})
+    return env
 
 
 def _replay_dockerfile(task: Task, sandbox: Sandbox, backend: str) -> None:
