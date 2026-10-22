@@ -98,6 +98,18 @@ def test_a_malformed_reply_judges_nothing(judge_on, monkeypatch, reply):
     assert not [k for k in s if k.startswith("aidlc/judge/")] and "aidlc/judge_void" not in s
 
 
+def test_a_reply_broken_after_its_answers_keeps_them(judge_on, monkeypatch):
+    """Nemotron once left a reason unquoted: the id / answer / quote triples before it still count."""
+
+    def ask(text, seed=None):
+        good = json.loads(_reply(text))["answers"]
+        return '{"answers": [' + ", ".join(f'{{"id": "{a["id"]}", "answer": "{a["answer"]}", "quote": {json.dumps(a["quote"])}, "reason": unquoted text}}' for a in good) + "]}"
+
+    monkeypatch.setattr(J, "ask", ask)
+    s = Run().score()
+    assert s["aidlc/judge/D1a"] == 1.0 and s["aidlc/judge/H3a"] == 1.0
+
+
 def test_a_failed_call_leaves_its_stage_unjudged(judge_on, monkeypatch):
     def ask(text, seed=None):
         if "stage 2 artifact" in text:
@@ -125,6 +137,7 @@ def test_the_cache_asks_once(judge_on, monkeypatch, tmp_path):
     monkeypatch.setattr(httpx, "post", lambda *a, **k: calls.append(k["json"]) or Response())
     assert J.ask("q") == J.ask("q") == '{"answers": []}'
     assert len(calls) == 1 and calls[0]["model"] == "fake" and calls[0]["messages"][0]["content"] == J.SYSTEM
+    assert calls[0]["response_format"] == {"type": "json_object"}
     J.ask("q", seed=1)  # another sample is another request
     assert len(calls) == 2
 

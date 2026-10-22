@@ -24,6 +24,7 @@ there are no judge signals:
     AIDLC_JUDGE_CACHE        a directory: responses cached by request, so a rescoring asks once
     AIDLC_JUDGE_TIMEOUT      seconds, default 300
     AIDLC_JUDGE_SEED         a sampling seed (with a temperature above 0, a second sample for the flip rate)
+    AIDLC_JUDGE_JSON         "0" to not ask for JSON mode (``response_format``), for a server without it
 """
 
 from __future__ import annotations
@@ -226,13 +227,17 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").replace("`", "").replace("*", "")).strip().lower()
 
 
+_TRIPLE = re.compile(r'"id"\s*:\s*"(\w+)"\s*,\s*"answer"\s*:\s*"(yes|no|n/a)"\s*,\s*"quote"\s*:\s*"((?:[^"\\]|\\.)*)"', re.I)
+
+
 def verdicts(reply: str, questions: list[tuple[str, str]], material: dict[str, str]) -> tuple[dict[str, float | None], int, int]:
     """rule -> 1 / 0 / None from a reply, and (yes/no answers, those dropped for their quote)."""
     m = re.search(r"\{.*\}", reply or "", re.S)
     try:
         answers = json.loads(m.group(0)).get("answers", []) if m else []
     except (json.JSONDecodeError, AttributeError):
-        answers = []
+        # A reply broken further on (an unquoted reason) still holds well-formed id / answer / quote triples.
+        answers = [{"id": i, "answer": a, "quote": json.loads(f'"{q}"')} for i, a, q in _TRIPLE.findall(reply or "")]
     shown = _norm("\n".join(material.values()))
     by_id = {str(a.get("id", "")).strip(): a for a in answers if isinstance(a, dict)}
     out, decided, void = {}, 0, 0
@@ -259,6 +264,7 @@ def ask(text: str, seed: int | None = None) -> str:
         "model": os.environ["AIDLC_JUDGE_MODEL"],
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": text}],
         "temperature": float(os.environ.get("AIDLC_JUDGE_TEMPERATURE", "0")),
+        **({"response_format": {"type": "json_object"}} if os.environ.get("AIDLC_JUDGE_JSON", "1") != "0" else {}),
         **json.loads(os.environ.get("AIDLC_JUDGE_EXTRA_BODY") or "{}"),
     }
     if seed is not None:
