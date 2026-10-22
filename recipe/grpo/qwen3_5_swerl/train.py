@@ -24,7 +24,6 @@ Normally launched via ``train_verl.sh`` / ``smoke_test.sh``.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
@@ -57,37 +56,13 @@ BUDGET_EXHAUSTED = frozenset(
 )
 
 
-def count_splits(trajectory) -> int:
-    """Points where a step's prompt does not extend the running prompt+completion.
-
-    Same test as ``rllm/trainer/verl/transform.py`` uses to start a new batch row, so a
-    non-zero count means the trajectory would be trained as several rows -- the later
-    ones carrying the whole history as "prompt" and clipped at max_prompt_length.
-    """
-    full = None
-    splits = 0
-    for step in trajectory.steps:
-        out = step.model_output
-        if out is None or out.prompt_ids is None:
-            continue
-        prompt, completion = list(out.prompt_ids), list(out.completion_ids or [])
-        if full is not None and not (len(prompt) >= len(full) and prompt[: len(full)] == full):
-            splits += 1
-        full = prompt + completion
-    return splits
-
-
-def make_budget_scaled_grouping_hook(scale: float, drop_split: bool = True, split_log: str | None = None):
+def make_budget_scaled_grouping_hook(scale: float):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
     The hook runs before trajectory groups are built, so the scaled reward is
     what RLOO sees. ``is_correct`` is deliberately left alone: rejection
     sampling and the solve_all/solve_none metrics read it, and "solved but
     slowly" is still solved for those purposes.
-
-    With ``drop_split`` a rollout whose conversation breaks prefix-extension (see
-    ``count_splits``) is re-labelled ``ERROR`` -- an environment fault, dropped whole by
-    ``compact_filtering.mask_error`` -- and logged (one JSON line per rollout in ``split_log``).
 
     One caveat: the trainer runs the same hook over validation episodes, so
     ``val/reward_*`` is scaled too. ``val/accuracy`` is built from
@@ -97,19 +72,6 @@ def make_budget_scaled_grouping_hook(scale: float, drop_split: bool = True, spli
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
-        if drop_split:
-            split = []
-            for episode in episodes:
-                n = sum(count_splits(t) for t in episode.trajectories)
-                if n:
-                    split.append((episode, n))
-                    episode.termination_reason = TerminationReason.ERROR
-            if split:
-                logger.warning("dropping %d/%d rollouts whose conversation split into several rows", len(split), len(episodes))
-                if split_log:
-                    with open(split_log, "a") as f:
-                        for episode, n in split:
-                            f.write(json.dumps({"time": time.strftime("%F %T"), "task_id": episode.task_id, "rollout_idx": episode.rollout_idx, "splits": n}) + "\n")
         if scale != 1.0:
             for episode in episodes:
                 if episode.termination_reason not in BUDGET_EXHAUSTED:
@@ -246,11 +208,7 @@ def main(config: DictConfig) -> None:
         # Same mechanism as `rllm eval --hide-git-history`.
         hide_git_history=bool(recipe.hide_git_history),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(
-            float(recipe.budget_reward_scale),
-            drop_split=bool(recipe.get("drop_split_rollouts", True)),
-            split_log=os.path.join(os.environ.get("RLLM_RUN_DIR", "."), f"split_rollouts_{os.environ['RLLM_RUN_ID']}.jsonl"),
-        ),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale)),
     )
     trainer.train()
 
