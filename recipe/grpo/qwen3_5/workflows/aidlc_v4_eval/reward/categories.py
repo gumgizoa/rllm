@@ -262,22 +262,8 @@ def _procedure_rules(read_step: dict, write_step: dict, invalid: set) -> list[tu
 
 
 def category_scores(signals: dict[str, float], parsed: dict, read_step: dict, write_step: dict, invalid_reads) -> dict[str, float]:
-    """``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` from the episode's signals and its artifacts."""
-    per_rule: dict[tuple[str, str, int], list[float]] = defaultdict(list)
-    for key, value in signals.items():
-        if key in SIGNAL_RULES:
-            rule, kind, stage = SIGNAL_RULES[key]
-            per_rule[(rule, kind, stage)].append(value)
-        elif key.startswith("aidlc/atom/"):
-            rule, _, at = key.removeprefix("aidlc/atom/").partition("@")
-            kind, stage = ATOM_KINDS[rule]
-            per_rule[(rule, kind, int(at) if at else stage)].append(value)
-        elif key.startswith("aidlc/judge/"):
-            rule = key.removeprefix("aidlc/judge/")
-            kind, stage = JUDGE_KINDS[rule]
-            per_rule[(rule, kind, stage)].append(value)
-    for rule, kind, stage, value in _artifact_rules(parsed) + _procedure_rules(read_step, write_step, set(invalid_reads)):
-        per_rule[(rule, kind, stage)].append(value)
+    """``aidlc/cat/<kind><stage>``, ``aidlc/kind/<kind>`` and ``aidlc/score`` from the episode's signals and its artifacts."""
+    per_rule = rule_scores(signals, parsed, read_step, write_step, invalid_reads)
     done = {st for st in range(1, 6) if parsed.get(st) is not None}
     rules: dict[tuple[str, int], list[float]] = defaultdict(list)
     for (_, kind, stage), values in per_rule.items():
@@ -294,6 +280,26 @@ def category_scores(signals: dict[str, float], parsed: dict, read_step: dict, wr
         **({"aidlc/score": mean(kinds.values())} if kinds else {}),
         "aidlc/done_stages": float(len(done)),
     }
+
+
+def rule_scores(signals: dict[str, float], parsed: dict, read_step: dict, write_step: dict, invalid_reads) -> dict[tuple[str, str, int], list[float]]:
+    """(rule, kind, stage) -> the values measuring it in this episode: the rules the matrix scores."""
+    per_rule: dict[tuple[str, str, int], list[float]] = defaultdict(list)
+    for key, value in signals.items():
+        if key in SIGNAL_RULES:
+            rule, kind, stage = SIGNAL_RULES[key]
+            per_rule[(rule, kind, stage)].append(value)
+        elif key.startswith("aidlc/atom/"):
+            rule, _, at = key.removeprefix("aidlc/atom/").partition("@")
+            kind, stage = ATOM_KINDS[rule]
+            per_rule[(rule, kind, int(at) if at else stage)].append(value)
+        elif key.startswith("aidlc/judge/"):
+            rule = key.removeprefix("aidlc/judge/")
+            kind, stage = JUDGE_KINDS[rule]
+            per_rule[(rule, kind, stage)].append(value)
+    for rule, kind, stage, value in _artifact_rules(parsed) + _procedure_rules(read_step, write_step, set(invalid_reads)):
+        per_rule[(rule, kind, stage)].append(value)
+    return per_rule
 
 
 def expected_cells(judged: bool = False) -> set[tuple[str, int]]:
