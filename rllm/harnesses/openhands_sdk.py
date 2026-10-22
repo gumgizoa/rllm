@@ -41,6 +41,8 @@ _UV_DIR = "/opt/openhands-sdk-uv"
 _RUNNER_PATH = "/opt/openhands-sdk-runner.py"
 
 _RUNNER_SOURCE = Path(__file__).parent / "tools" / "openhands_sdk_runner.py"
+# SDK dependencies installed from wheels only (see the install script).
+_WHEEL_ONLY = ("tiktoken", "pillow")
 # Printed by the install guard so the log says which path a task took.
 _FALLBACK_MARKER = "rllm-openhands-sdk-per-task-install"
 # The SDK must never import from the task repo. Commands run from the task
@@ -104,7 +106,12 @@ export PATH={shlex.quote(_UV_DIR)}:"$PATH"
 
 retry uv python install {PYTHON_VERSION}
 uv venv {shlex.quote(_VENV)} --python {PYTHON_VERSION}
+# Wheels only for the compiled dependencies: their newest releases ship wheels
+# for recent glibc alone, so on an old image (Ubuntu 16.04, glibc 2.23) uv would
+# build them from source and fail (no Rust for tiktoken). This makes uv pick the
+# newest release with a usable wheel; on current images that is the same version.
 retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
+    {" ".join("--only-binary " + p for p in _WHEEL_ONLY)} \
     openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION}
 {shlex.quote(_VENV)}/bin/python {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE + "; print(openhands.sdk.__version__)")}
 """

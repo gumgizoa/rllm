@@ -159,3 +159,11 @@ def test_qwen3_8_sampling_params_keep_the_server_accepted_reasoning_effort():
     assert sp["reasoning_effort"] in ("xhigh", "medium", "low")
     assert sp["chat_template_kwargs"] == {"enable_thinking": True}
     assert sp["temperature"] == 1.0
+
+
+def test_compiled_dependencies_install_from_wheels():
+    # On glibc 2.23 images (Ubuntu 16.04) the newest tiktoken / pillow have no
+    # usable wheel; building them from source fails (no Rust compiler).
+    script = OpenHandsSdkHarness().install_script()
+    assert "--only-binary tiktoken" in script
+    assert "--only-binary pillow" in script
