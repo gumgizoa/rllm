@@ -134,6 +134,19 @@ ATOM_KINDS = {
     "H11": ("Q", 5),
 }
 
+# judge.QUESTIONS' rules -> (kind, stage); a rule code also judges (D1b, E7b) averages both verdicts
+JUDGE_KINDS = {
+    **{r: ("Q", 1) for r in ("D1a", "D1b", "D3", "D6")},
+    "D10b": ("E", 1),
+    **{r: ("Q", 2) for r in ("E1a", "E1b", "E3b", "E6a", "E6b", "E7a", "E7b", "E8a", "E8b", "E9")},
+    **{r: ("Q", 3) for r in ("F2d", "F2e", "F4a", "F9a")},
+    "G5": ("C", 4),
+    "G8a": ("Q", 4),
+    "G8c": ("Q", 4),
+    "B4b": ("Q", 0),
+    **{r: ("Q", 5) for r in ("H3a", "H3b", "H3c", "H8d", "H9b")},
+}
+
 # Skeleton fields, one rule each: rule -> (stage, section, label or None for the section's own content, none allowed)
 FIELDS = {
     "S1.files": (1, "Affected Scope", "Files", False),
@@ -252,6 +265,10 @@ def category_scores(signals: dict[str, float], parsed: dict, read_step: dict, wr
             rule, _, at = key.removeprefix("aidlc/atom/").partition("@")
             kind, stage = ATOM_KINDS[rule]
             per_rule[(rule, kind, int(at) if at else stage)].append(value)
+        elif key.startswith("aidlc/judge/"):
+            rule = key.removeprefix("aidlc/judge/")
+            kind, stage = JUDGE_KINDS[rule]
+            per_rule[(rule, kind, stage)].append(value)
     for rule, kind, stage, value in _artifact_rules(parsed) + _procedure_rules(read_step, write_step, set(invalid_reads)):
         per_rule[(rule, kind, stage)].append(value)
     cells: dict[str, list[float]] = defaultdict(list)

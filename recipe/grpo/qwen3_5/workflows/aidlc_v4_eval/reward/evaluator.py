@@ -25,6 +25,7 @@ from .categories import category_scores
 from .compliance import artifact_write_steps, compliance
 from .content_checks import content_checks, first_write_steps, observe, parsed_artifacts
 from .episode import episode_to_run
+from .judge import judge_checks
 from .rubric import artifacts as A
 from .rubric import score as S
 from .rule_checks import rule_checks
@@ -90,7 +91,8 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     separate ledger, in no score.
 
     ``aidlc/atom/<rule>[@<stage>]`` are the atomic rules the other checks leave unscored, where code can
-    judge them (``atomic_checks.py``). ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of
+    judge them (``atomic_checks.py``); ``aidlc/judge/<rule>`` the content rules an LLM judges from the
+    artifacts (``judge.py``, only when ``AIDLC_JUDGE_MODEL`` / ``AIDLC_JUDGE_BASE_URL`` are set). ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of
     it by kind x stage
     (``categories.py``): what kind of compliance fails, and in which stage.
     """
@@ -133,6 +135,7 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     }
     ac = atomic_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), facts, whole_patch, task, tests, final_words=EV.final_words(episode))
     out.update({f"aidlc/atom/{k}": float(v) for k, v in ac.items() if v is not None})
+    out.update(judge_checks(run, obs, parsed, whole_patch, task))
     out.update(category_scores(out, parsed, facts["aidlc_read_step"], artifact_write_steps(run), c["order"]["invalid_multi_read"]))
     return out
 

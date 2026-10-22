@@ -14,6 +14,8 @@
                         (test files untouched, targeted stage-5 tests, no environment setup, no stage-4
                         reproduction run, artifacts written once, a clean repository): aidlc/rule*
     atomic_checks.py    the atomic rules the other checks leave unscored, where code can judge them: aidlc/atom/*
+    judge.py            an LLM's yes / no on the content rules code cannot decide, one call per stage
+                        artifact, each answer kept only if its quote is in the material: aidlc/judge/*
     categories.py       every measured rule placed by kind x stage: aidlc/cat/<kind><stage>, aidlc/kind/<kind>
     evaluator.py        collect_artifacts + score = the compliance signals plus aidlc/content*,
                         aidlc/content_{evidence,temporal,consistency}, aidlc/content_contradictions,
