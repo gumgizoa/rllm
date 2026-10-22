@@ -201,8 +201,51 @@ def task_test_files(task) -> set[str]:
     return set(re.findall(r"^diff --git a/(\S+)", cfg.get("test_patch") or "", re.M))
 
 
+_TEST_NAME = re.compile(r"(?:^|/)(?:test_[^/]*|[^/]*_test\.\w+|tests?\.py|conftest\.py)$")
+_TESTS_DIR = re.compile(r"(?:^|/)(?:tests|__tests__|testing)/")
+
+
 def is_test_file(path: str, test_files=()) -> bool:
-    return F.TEST_PATH_RE.search(path) is not None or path in test_files
+    """A test file: one the task's test_patch touches, a test-named file (``test_x.py``, ``x_test.py``,
+    ``tests.py``, ``conftest.py``), or a file under a ``tests/`` / ``testing/`` directory. Not the
+    rubric's pattern, which also takes a library's own ``test`` package (``django/test/utils.py``) for
+    tests (TRACE X14)."""
+    return path in test_files or bool(_TEST_NAME.search(path)) or bool(_TESTS_DIR.search(path))
+
+
+_FLAGS_WITH_VALUE = {"-k", "-m", "--settings", "--parallel", "-p", "--tb", "--verbosity", "-v", "--timeout", "-n", "-c", "--rootdir", "-o"}
+
+
+def test_targets(command: str) -> list[str] | None:
+    """The targets a test command names -- paths, node ids, dotted module or label names, a ``-k``
+    expression -- or None when it runs no test runner. ``[]``: a runner with no target (the full suite)."""
+    for seg in segments(command or ""):
+        head = _PIPE.split(seg, maxsplit=1)[0].strip()
+        if not _runner_in(head) or is_lookup(head):
+            continue
+        toks = head.split()
+        # Django's runner, unittest and nose take bare labels (``runtests.py middleware_exceptions``); pytest's
+        # bare word may be a whole-suite directory, so only paths and node ids count there.
+        labels = re.search(r"runtests\.py|manage\.py\s+test|-m\s+django\s+test|\bunittest\b|\bnosetests?\b", head) is not None
+        out, skip = [], False
+        for i, t in enumerate(toks):
+            if skip:
+                skip = False
+                if toks[i - 1] == "-k":
+                    out.append(f"-k {t}")
+                continue
+            if t in _FLAGS_WITH_VALUE:
+                skip = True
+                continue
+            if t.startswith("-") or "=" in t:
+                continue
+            name = t.rsplit("/", 1)[-1]
+            if name in _RUNNER_PROGRAMS or re.fullmatch(r"python[0-9.]*|pytest|py\.test|unittest|django|test|manage\.py|nosetests?|tox|timeout|\d+", name):
+                continue
+            if "/" in t or "." in t or "::" in t or (labels and re.fullmatch(r"[\w.]+", t)):
+                out.append(t.removeprefix("/testbed/"))
+        return out
+    return None
 
 
 # --- stage bands ------------------------------------------------------------------------------

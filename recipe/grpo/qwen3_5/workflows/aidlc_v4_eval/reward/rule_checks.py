@@ -26,7 +26,7 @@ from __future__ import annotations
 import re
 
 from . import evidence as EV
-from ._claims import DUPLICATE, Observed, claimed_paths, test_command_tokens
+from ._claims import DUPLICATE, Observed, claimed_paths
 from .rubric import artifacts as A
 from .rubric import facts as F
 
@@ -61,7 +61,7 @@ def rule_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step: d
     if start5 is not None:
         runs = obs.tests_in(after=start5, before=write_step.get(5))
         if runs:
-            untargeted = [cmd for _, cmd, _ in runs if not test_command_tokens(cmd) and not re.search(r"\s-k\s", cmd)]
+            untargeted = [cmd for _, cmd, _ in runs if EV.test_targets(cmd) == []]
             c["r_targeted_tests"] = 0.0 if untargeted else 1.0
 
     c["r_no_env_setup"] = 0.0 if any(EV.is_env_setup(raw) for raw in obs.shell_raw) else 1.0

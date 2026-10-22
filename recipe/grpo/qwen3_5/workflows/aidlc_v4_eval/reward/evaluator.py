@@ -20,6 +20,7 @@ import base64
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
 from . import evidence as EV
+from .atomic_checks import atomic_checks
 from .categories import category_scores
 from .compliance import artifact_write_steps, compliance
 from .content_checks import content_checks, first_write_steps, observe, parsed_artifacts
@@ -88,7 +89,9 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     ``aidlc/leak_apply`` flag a run that browsed git history or applied a whole patch; they are a
     separate ledger, in no score.
 
-    ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of it by kind x stage
+    ``aidlc/atom/<rule>[@<stage>]`` are the atomic rules the other checks leave unscored, where code can
+    judge them (``atomic_checks.py``). ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of
+    it by kind x stage
     (``categories.py``): what kind of compliance fails, and in which stage.
     """
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
@@ -128,6 +131,8 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
         "aidlc/leak_history": float(bool(facts["git_history_probe_steps"])),
         "aidlc/leak_apply": float(bool(facts["git_apply_steps"])),
     }
+    ac = atomic_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), facts, whole_patch, task, tests)
+    out.update({f"aidlc/atom/{k}": float(v) for k, v in ac.items() if v is not None})
     out.update(category_scores(out, parsed, facts["aidlc_read_step"], artifact_write_steps(run), c["order"]["invalid_multi_read"]))
     return out
 

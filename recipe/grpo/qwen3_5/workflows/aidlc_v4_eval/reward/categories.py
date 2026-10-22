@@ -82,6 +82,45 @@ SIGNAL_RULES = {
     "aidlc/check/c25_unmet_exist": ("H15c", "A", 5),
 }
 
+# Atomic checks (atomic_checks.py): rule -> (kind, stage); a check named <rule>@<k> lands in stage k.
+ATOM_KINDS = {
+    "B5d": ("F", 0),
+    "B6b": ("F", 0),
+    "B6c": ("F", 0),
+    "D5": ("F", 1),
+    "D12b": ("F", 1),
+    "E4a": ("F", 2),
+    "E8c": ("F", 2),
+    "F1b": ("F", 3),
+    "F2a": ("F", 3),
+    "F2b": ("F", 3),
+    "G8b": ("F", 4),
+    "S4.tags": ("F", 4),
+    "H15a": ("F", 5),
+    "H15d": ("F", 5),
+    "G3c": ("C", 4),
+    "H1a": ("C", 5),
+    "H4a": ("C", 5),
+    "H15b": ("C", 5),
+    "H15c": ("C", 5),
+    "H8a": ("E", 5),
+    "H8e": ("E", 5),
+    "H9a": ("E", 5),
+    "B10": ("R", 0),
+    "E10a": ("R", 0),
+    "C2": ("P", 0),
+    "F7": ("R", 3),
+    "F8a": ("R", 3),
+    "F8b": ("R", 3),
+    "G4b": ("R", 4),
+    "D1b": ("Q", 1),
+    "D3": ("Q", 1),
+    "D4a": ("Q", 1),
+    "D7b": ("Q", 1),
+    "E7b": ("Q", 2),
+    "F4b": ("Q", 3),
+}
+
 # Skeleton fields, one rule each: rule -> (stage, section, label or None for the section's own content, none allowed)
 FIELDS = {
     "S1.files": (1, "Affected Scope", "Files", False),
@@ -194,6 +233,10 @@ def category_scores(signals: dict[str, float], parsed: dict, read_step: dict, wr
         if key in SIGNAL_RULES:
             rule, kind, stage = SIGNAL_RULES[key]
             per_rule[(rule, kind, stage)].append(value)
+        elif key.startswith("aidlc/atom/"):
+            rule, _, at = key.removeprefix("aidlc/atom/").partition("@")
+            kind, stage = ATOM_KINDS[rule]
+            per_rule[(rule, kind, int(at) if at else stage)].append(value)
     for rule, kind, stage, value in _artifact_rules(parsed) + _procedure_rules(read_step, write_step, set(invalid_reads)):
         per_rule[(rule, kind, stage)].append(value)
     cells: dict[str, list[float]] = defaultdict(list)

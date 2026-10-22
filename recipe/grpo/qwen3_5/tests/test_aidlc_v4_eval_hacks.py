@@ -618,3 +618,52 @@ def test_a_hack_shows_in_its_cell(hack, cell):
     r = Run()
     HACKS[hack][1](r)
     assert r.score()[f"aidlc/cat/{cell}"] < 1.0 - MIN_DROP
+
+
+# --- atomic checks: each rule's own violation -----------------------------------------------------
+
+
+def _atom_task(r):
+    return SimpleNamespace(id="t", metadata={"instruction": "parse() raises on an empty string in pkg/mod.py; it should return {}."})
+
+
+ATOM_CASES = {
+    "B6b@1": lambda r: r.edit(1, "stage: 1", "stage: 3"),
+    "B5d@1": lambda r: r.edit(1, "Recorded before any source file was modified.", ""),
+    "D12b": lambda r: r.edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing: all tests pass"),
+    "E4a": lambda r: r.edit(2, "- R2: none stated", "- R5: none stated"),
+    "E8c": lambda r: r.edit(2, "- R3: None input -> TypeError", "- R3: None input raises TypeError"),
+    "F2b": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: pkg/mod.py"),
+    "S4.tags": lambda r: r.edit(4, "- Modified: pkg/mod.py [R1, R3]", "- Modified: pkg/mod.py"),
+    "G8b": lambda r: r.edit(4, "## Deviations from Plan\n- none", "## Deviations from Plan\n- moved the helper into a new function"),
+    "H15a": lambda r: r.edit(5, "- Result: success", "- Result: ok"),
+    "H15b": lambda r: r.edit(5, "- Regressions: none", "- Regressions: test_parse -> broke on None -> fixed the guard"),
+    "H1a": lambda r: (r.edit(1, "- Build: not applicable", '- Build: python -c "import pkg"'), r.edit(5, '- Command: python -c "import pkg"', '- Command: python -c "import os"')),
+    "H4a": lambda r: r.edit(5, "- Command: python -m pytest tests/test_mod.py -q", "- Command: python -m pytest tests/test_mod.py::test_parse -q"),
+    "B10": lambda r: r.insert(r.write_of(5), write("/tmp/design_notes.md", "# Design")),
+    "E10a": lambda r: r.insert(r.write_of(2), write("/tmp/questions.md", "Which behaviour is expected?")),
+    "F7": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: tests/test_mod.py (modify in place)"),
+    "C2": lambda r: r.insert(r.write_of(3), sh(f"cat {DOC['01']}", "# RE")),
+    "D3": lambda r: r.edit(1, "- Owning module: pkg", "- Owning module: docs"),
+    "D4a": lambda r: r.edit(1, "- Language/framework: Python", "- Language/framework: Go"),
+    "D7b": lambda r: r.edit(1, "- Test: python -m pytest tests/test_mod.py -q", "- Test: python -m pytest -q"),
+    "F4b": lambda r: r.edit(3, "- Exercises: R1, R3", "- Exercises: R1"),
+    "E7b": lambda r: r.edit(2, "- R2: none stated", "- R2: parse() must stay fast"),
+    "D1b": lambda r: r.edit(1, "- Files: pkg/mod.py", "- Files: pkg/other.py"),
+    "G4b": lambda r: setattr(r, "patch", r.patch + new_file("tests/test_new_case.py")),
+    "H9a": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
+}
+
+
+def test_the_honest_run_keeps_every_atomic_check():
+    s = Run().score(_atom_task(None))
+    atoms = {k: v for k, v in s.items() if k.startswith("aidlc/atom/")}
+    assert len(atoms) >= 30 and set(atoms.values()) == {1.0}, {k: v for k, v in atoms.items() if v != 1.0}
+
+
+@pytest.mark.parametrize("atom", list(ATOM_CASES))
+def test_an_atomic_check_catches_its_rule(atom):
+    r = Run()
+    ATOM_CASES[atom](r)
+    value = r.score(_atom_task(r)).get(f"aidlc/atom/{atom}")
+    assert value is not None and value < 1.0, value  # 0, or a share for the checks scored item by item

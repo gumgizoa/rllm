@@ -338,12 +338,13 @@ def test_a_requirement_about_python_none_is_a_requirement():
 
 
 def test_the_tasks_test_patch_names_test_files(tmp_path):
-    """``testing/test_x.py`` (pytest's own layout) escapes the path pattern; the task's test_patch names it."""
+    """A test module the path pattern cannot tell from source (``pkg/regress_cases.py``) is a test file
+    when the task's test_patch names it."""
     (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "config.json").write_text(json.dumps({"test_patch": "diff --git a/testing/conftest_x.py b/testing/conftest_x.py\n"}))
+    (tmp_path / "tests" / "config.json").write_text(json.dumps({"test_patch": "diff --git a/pkg/regress_cases.py b/pkg/regress_cases.py\n"}))
     turns = _content_honest_turns()
-    turns.insert(-2, (_call(702, "file_editor", command="str_replace", path="/testbed/testing/conftest_x.py", old_str="a", new_str="b"), "The file has been edited"))
-    patch = PATCH + "diff --git a/testing/conftest_x.py b/testing/conftest_x.py\n--- a/testing/conftest_x.py\n+++ b/testing/conftest_x.py\n@@ -1 +1 @@\n-a\n+b\n"
+    turns.insert(-2, (_call(702, "file_editor", command="str_replace", path="/testbed/pkg/regress_cases.py", old_str="a", new_str="b"), "The file has been edited"))
+    patch = PATCH + "diff --git a/pkg/regress_cases.py b/pkg/regress_cases.py\n--- a/pkg/regress_cases.py\n+++ b/pkg/regress_cases.py\n@@ -1 +1 @@\n-a\n+b\n"
     task = SimpleNamespace(id="t", metadata={"task_path": str(tmp_path)})
     assert score(task, _with_patch(turns, patch), FILES)["aidlc/check/e5_test_files_none"] == 0.0
     assert score(SimpleNamespace(id="t"), _with_patch(turns, patch), FILES)["aidlc/check/e5_test_files_none"] == 1.0
