@@ -54,7 +54,10 @@ def _stand_in_cmd(workdir: str) -> str:
     # agent's; without it every git call the agent makes fails.
     return (
         f"set -e; cd {shlex.quote(workdir)}; rm -rf .git; "
-        "git config --global --add safe.directory '*' ; "
+        # Tolerate images that point GIT_CONFIG_GLOBAL at '' (GitGuardian's do, to keep
+        # tests hermetic): git then has no file to write and exits 4, which under set -e
+        # took the whole hide step -- and all 8 attempts of those tasks -- down with it.
+        "git config --global --add safe.directory '*' 2>/dev/null || true; "
         "git init -q; git add -A; "
         f"env {_COMMIT_ENV} git commit -q --no-verify --allow-empty -m 'Initial commit'; "
         "echo commits=$(git rev-list --all | wc -l) refs=$(git for-each-ref | wc -l)"
