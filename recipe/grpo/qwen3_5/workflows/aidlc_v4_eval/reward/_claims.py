@@ -54,7 +54,8 @@ CHECKBOX = re.compile(r"^\s*[-*+]\s*\[([ xX]?)\]\s*(.*)$", re.M)
 READ_VERB = re.compile(r"\b(?:cat|sed|head|tail|grep|rg|less|more|awk|nl|wc|bat|view|open)\b")
 RUNNERS = rf"(?:{F.RUNNER}|pytest|py\.test|python[0-9.]*\s+-m\s+pytest)"
 EXIT_CODE = re.compile(r"exit code[:\s]+(\d+)")
-FAILURES = re.compile(r"\b(\d+) (?:failed|errors?)\b|\bfailures=(\d+)|\berrors=(\d+)", re.I)
+# unittest / Django's `OK (skipped=1, expected failures=1)` reports an expected failure, not a failure.
+FAILURES = re.compile(r"\b(\d+) (?:failed|errors?)\b|(?<!expected )\bfailures=(\d+)|\berrors=(\d+)", re.I)
 PASSES = re.compile(r"\b(\d+) passed\b")
 NO_TESTS = re.compile(r"collected 0 items|no tests? (?:ran|found|to run|were run)", re.I)
 PATCH_WRITE = re.compile(r"\bgit\s+apply\b|\bpatch\s+-p\d|\bgit\s+(?:checkout|restore)\s+\S+\s+--\s+\S")
@@ -98,7 +99,7 @@ def claimed_paths(text: str | None) -> list[str]:
     out: list[str] = []
     for tok in PATH_RE.findall(text or ""):
         tok = norm_path(tok.split(":")[0] if PATH_LINE_RE.fullmatch(tok) else tok)
-        if tok and ("/" in tok or SOURCE_EXT.search(tok)) and tok not in out:
+        if tok and ("/" in tok or SOURCE_EXT.search(tok)) and tok not in out and not NONE_VALUE.fullmatch(tok):  # "N/A" is no path
             out.append(tok)
     return out
 
@@ -523,7 +524,7 @@ def observe(run: Run, watch: Iterable[str] = ()) -> Observed:
             obs.shell_raw.append(cmd)
             if EV.is_test_attempt(cmd, agent_files=agent_made):
                 obs.test_attempts.append((step.n, flat, out))
-                if F.ran_something(a):
+                if EV.started(a):
                     obs.test_runs.append((step.n, flat, out))
             skeleton = F.command_skeleton(cmd)
             if READ_VERB.search(skeleton):

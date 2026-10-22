@@ -15,7 +15,7 @@ Each check is named after the atomic rule it judges (``categories.ATOM_KINDS`` p
     forbidden    B10 no design/report document, E10a no question file, F7 no step on a test file, F8a/F8b
                  no create over an existing file or duplicate variant, G4b no new test file in the
                  repository, C2 no stage document re-read after its stage closed
-    content      D1b files the issue names are in scope, D3 owning module matches the files, D4a language
+    content      D1b files the issue names are in scope, D4a language
                  matches the files, D7b the test command names targets, E7b no non-functional requirement
                  the task does not state, F4b the reproduction exercises the edge-case requirements
 """
@@ -26,6 +26,7 @@ import re
 
 from . import evidence as EV
 from ._claims import DUPLICATE, Observed, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
+from ._claims import field_value as claims_field_value
 from .rubric import artifacts as A
 from .rubric import facts as F
 
@@ -40,7 +41,7 @@ _DOC = re.compile(r"\.(?:md|rst)$|(?:^|/)[^/]*(?:plan|summary|report|notes|desig
 
 
 def _field(p, section, label):
-    return A.field_value((p or {}).get("section_bodies", {}).get(section) or "", label) or None
+    return claims_field_value((p or {}).get("section_bodies", {}).get(section) or "", label) or None
 
 
 def _lines(value: str) -> list[str]:
@@ -68,6 +69,12 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
             elif "/" not in q and any(k.rsplit("/", 1)[-1] == q and "/" in k for k in known):
                 verdicts.append(False)
         return _frac(verdicts)
+
+    repro = next((p for st in (4, 3) if parsed.get(st) for p in claimed_paths(_field(parsed[st], "Reproduction Script", "Path"))), None)
+    repro_paths = [p for st in (3, 4) if parsed.get(st) for p in claimed_paths(_field(parsed[st], "Reproduction Script", "Path"))]
+
+    def is_repro(path: str) -> bool:
+        return any(same_file(path, q) for q in repro_paths)
 
     # -- form, per artifact ---------------------------------------------------------------
     for st, p in parsed.items():
@@ -145,7 +152,6 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
 
     # -- execution in stage 5 -------------------------------------------------------------
     w4, w5 = write_step.get(4), write_step.get(5)
-    repro = next((p for st in (4, 3) if parsed.get(st) for p in claimed_paths(_field(parsed[st], "Reproduction Script", "Path"))), None)
     edits_unseen = final is not None and any(
         q not in set(final[1]) and not EV.is_test_file(q, test_files) and re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) and not any(same_file(q, e) for e in obs.edited) for q in final[0]
     )
@@ -174,7 +180,9 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
     c["B10"] = 0.0 if any(_DOC.search(p) and not p.startswith(A.ARTIFACT_DIR) for p in obs.created) else 1.0
     c["E10a"] = 0.0 if any(re.search(r"question", p.rsplit("/", 1)[-1], re.I) for p in obs.created) else 1.0
     if steps:
-        targets = [t for s in steps for t in claimed_paths(s["fields"].get("Target"))]
+        # The plan's own reproduction script is no test file even when named test_*.py (left in the
+        # repository, r_repo_clean catches it).
+        targets = [t for s in steps for t in claimed_paths(s["fields"].get("Target")) if not is_repro(t)]
         if targets:
             c["F7"] = 0.0 if any(EV.is_test_file(norm_path(t), test_files) for t in targets) else 1.0
             c["F8b"] = 0.0 if any(DUPLICATE.search(t) or F.BACKUP_RE.search(t) for t in targets) else 1.0
@@ -183,7 +191,7 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
         if creates:
             c["F8a"] = 0.0 if any(obs.seen(t, before=w3) for t in creates) else 1.0
     if final is not None:
-        c["G4b"] = 0.0 if any(EV.is_test_file(norm_path(p), test_files) for p in final[1]) else 1.0
+        c["G4b"] = 0.0 if any(EV.is_test_file(norm_path(p), test_files) and not is_repro(p) for p in final[1]) else 1.0
     if any(write_step.values()):
         # A stage's rule document read again after the stage's artifact was written: the run went back.
         reread = [step.n for step in run.steps for a in step.actions for d in F.doc_reads(a) if d != "core" and write_step.get(int(d)) is not None and step.n > write_step[int(d)]]
@@ -195,10 +203,9 @@ def atomic_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step:
         files = claimed_paths(_field(p1, "Affected Scope", "Files"))
         named = [p for p in dict.fromkeys(_ISSUE_PATH.findall(issue)) if norm_path(p) in known]
         c["D1b"] = _frac([any(same_file(p, f) for f in files) for p in named])
-        module = (_field(p1, "Affected Scope", "Owning module") or "").lower().replace(".", "/")
-        dirs = {d.lower() for f in files for d in norm_path(f).split("/")[:-1] if d}
-        if module and dirs:
-            c["D3"] = float(any(d in module for d in dirs))
+        # D3 (the owning module matches the files) is left to the judge: a name match is either too loose
+        # (`django` passes any file) or too strict ("Django ORM", "matplotlib.widgets" for
+        # lib/matplotlib/widgets.py fail), both seen on swebv100.
         exts = [f.rsplit(".", 1)[-1].lower() for f in files if "." in f.rsplit("/", 1)[-1]]
         langs = {_LANG[e] for e in exts if e in _LANG}
         lang = (_field(p1, "Affected Scope", "Language/framework") or "").lower()

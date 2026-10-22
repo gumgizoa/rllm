@@ -92,6 +92,18 @@ def _only_agent_tests(segment: str, agent_files) -> bool:
     return bool(targets) and all(t.rsplit("/", 1)[-1] in names for t in targets)
 
 
+# Asking a runner about itself runs no test.
+_NO_RUN_FLAGS = re.compile(r"\s(?:--help|-h|--collect-only|--co|--version|--fixtures|--markers)(?:\s|$)")
+# The runner script or a test module could not be found: nothing ran (beyond the rubric's TOOL_MISSING_RE).
+_NOT_STARTED = re.compile(r"can't open file|No such file or directory: '[^']*(?:runtests|manage)\.py'|ERROR: file or directory not found|ERROR: not found:", re.I)
+
+
+def started(a) -> bool:
+    """A test attempt that ran tests: not one the rubric sees failing to start (``ran_something``), not one
+    whose runner or target was missing, and not a ``--help`` / ``--collect-only`` query."""
+    return F.ran_something(a) and not _NOT_STARTED.search(a.observation or "") and not any(_NO_RUN_FLAGS.search(s) for s in segments(a.command or ""))
+
+
 def is_test_attempt(command: str, agent_files=()) -> bool:
     """A shell command that invokes a test runner on the repository's tests: some segment runs one, is not
     a lookup, is not a runner script the agent wrote, and is not pointed only at test files the agent wrote
@@ -171,7 +183,7 @@ def ran_real_test(run) -> bool:
     for step in run.steps:
         for a in step.actions:
             agent_files.update(agent_written(a))
-            if a.kind == "shell" and is_test_attempt(a.command or "", agent_files) and F.ran_something(a):
+            if a.kind == "shell" and is_test_attempt(a.command or "", agent_files) and started(a):
                 return True
     return False
 

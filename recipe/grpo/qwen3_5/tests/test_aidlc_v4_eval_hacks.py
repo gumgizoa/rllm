@@ -644,7 +644,6 @@ ATOM_CASES = {
     "E10a": lambda r: r.insert(r.write_of(2), write("/tmp/questions.md", "Which behaviour is expected?")),
     "F7": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: tests/test_mod.py (modify in place)"),
     "C2": lambda r: r.insert(r.write_of(3), sh(f"cat {DOC['01']}", "# RE")),
-    "D3": lambda r: r.edit(1, "- Owning module: pkg", "- Owning module: docs"),
     "D4a": lambda r: r.edit(1, "- Language/framework: Python", "- Language/framework: Go"),
     "D7b": lambda r: r.edit(1, "- Test: python -m pytest tests/test_mod.py -q", "- Test: python -m pytest -q"),
     "F4b": lambda r: r.edit(3, "- Exercises: R1, R3", "- Exercises: R1"),
@@ -667,3 +666,75 @@ def test_an_atomic_check_catches_its_rule(atom):
     ATOM_CASES[atom](r)
     value = r.score(_atom_task(r)).get(f"aidlc/atom/{atom}")
     assert value is not None and value < 1.0, value  # 0, or a share for the checks scored item by item
+
+
+# --- the real-data audit's cases (AUDIT.md in the task record) -------------------------------------
+
+
+def test_expected_failures_are_not_failures():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward._claims import failures
+
+    assert failures("Ran 162 tests in 0.1s\n\nOK (skipped=1, expected failures=1)") == 0
+    assert failures("FAILED (failures=2, errors=1)") == 3
+
+
+def test_na_is_no_path():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward._claims import claimed_paths
+
+    assert claimed_paths("N/A (will use existing pytest command)") == []
+
+
+@pytest.mark.parametrize(
+    ("command", "output"),
+    [
+        ("cd /testbed && python runtests.py queries --help", "usage: runtests.py [-h]"),
+        ("python -m pytest --collect-only -q", "3 tests collected"),
+        ("cd /testbed && python runtests.py queries | head", "python: can't open file '/testbed/runtests.py': [Errno 2] No such file or directory"),
+    ],
+)
+def test_a_runner_that_ran_no_test_is_no_baseline(command, output):
+    r = Run()
+    i = r.runs("pytest")[0]
+    r.set_command(i, command, obs=output)
+    assert r.score()["aidlc/check/t1_baseline_before_edit"] == 0.0
+
+
+def test_no_final_change_section_makes_no_final_files_claim():
+    r = Run()
+    r.edit(5, "## Final Change", "## Notes")
+    assert "aidlc/check/e5_final_files_diff" not in r.score()
+
+
+def test_a_baseline_run_outside_the_recorded_selection_is_not_the_baseline():
+    """A mistyped module run before the recorded selection: its import error is not a baseline failure."""
+    r = Run()
+    r.insert(r.runs("pytest")[0], sh("cd /testbed && python -m pytest tests/test_typo.py -q", "ERROR: not found: tests/test_typo.py\n1 error in 0.01s"))
+    assert r.score()["aidlc/check/e1_baseline_failing"] == 1.0
+
+
+def test_an_unreadable_plan_gives_no_coverage_verdict():
+    r = Run()
+    r.edit(3, "### Step 1 [satisfies R1, R3]", "**P1: change parse**")
+    r.edit(3, "## Requirement Coverage", "## Coverage")
+    assert "aidlc/check/c23_requirements_covered" not in r.score()
+
+
+def test_a_stage_whose_document_was_never_read_was_not_carried_out():
+    r = Run()
+    r.drop(lambda a: a.get("command", "") == f"cat {DOC['04']}")
+    assert r.score()["aidlc/cat/P4"] < 1.0
+
+
+def test_the_plans_reproduction_script_named_test_x_is_no_test_file():
+    r = Run()
+    r.edit(3, "- Path: /tmp/repro.py", "- Path: test_repro_parse.py")
+    r.edit(3, "## Reproduction Script", "### Step 2 [satisfies R1]\n- Target: test_repro_parse.py (create)\n- Change: reproduce\n- Contract: none\n- Verification: run it\n\n## Reproduction Script")
+    s = r.score()
+    assert s.get("aidlc/atom/F7") == 1.0
+
+
+def test_no_reproduction_script_recorded_is_no_reproduction_run():
+    r = Run()
+    for k in (3, 4):
+        r.edit(k, "- Path: /tmp/repro.py", "- Path: N/A (existing tests suffice)")
+    assert r.score()["aidlc/check/t5_repro_run_after_last_edit"] == 0.0

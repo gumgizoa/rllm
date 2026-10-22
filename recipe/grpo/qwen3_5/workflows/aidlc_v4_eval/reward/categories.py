@@ -28,6 +28,7 @@ import re
 from collections import defaultdict
 from statistics import mean
 
+from ._claims import field_value as claims_field_value
 from .rubric import artifacts as A
 
 # signal -> (rule, kind, stage). The "A" kind is the accuracy part of the named rule.
@@ -39,7 +40,7 @@ SIGNAL_RULES = {
     "aidlc/check/t1_baseline_before_edit": ("D11a", "E", 1),
     "aidlc/check/t5_repro_run_after_last_edit": ("H2", "E", 5),
     "aidlc/check/t5_regression_after_last_edit": ("H4b", "E", 5),
-    "aidlc/check/c14_scope_changed": ("D1a", "Q", 1),
+    "aidlc/check/c14_scope_changed": ("G2", "C", 4),  # stage 4 changed files inside stage 1's scope
     "aidlc/check/c23_requirements_covered": ("F1a", "C", 3),
     "aidlc/check/c34_targets_changed": ("G2", "C", 4),
     "aidlc/check/c34_repro_path": ("G7a", "C", 4),
@@ -114,7 +115,6 @@ ATOM_KINDS = {
     "F8b": ("R", 3),
     "G4b": ("R", 4),
     "D1b": ("Q", 1),
-    "D3": ("Q", 1),
     "D4a": ("Q", 1),
     "D7b": ("Q", 1),
     "E7b": ("Q", 2),
@@ -168,7 +168,7 @@ def _label_filled(body: str | None, label: str, allow_none: bool) -> bool:
     """One ``- Label: value`` field filled in, as the rubric's ``field_present`` reads a single label."""
     if body is None:
         return False
-    val = A.field_value(body, label)
+    val = claims_field_value(body, label)
     if val is None:  # `- Path: x — Contract: y` puts two labels on one line
         hit = re.search(rf"{re.escape(label)}\s*:\s*([^\n]*)", body, re.I)
         val = hit.group(1).strip(" *`") if hit else None
@@ -216,7 +216,9 @@ def _procedure_rules(read_step: dict, write_step: dict, invalid: set) -> list[tu
         out.append(("A3a", "P", 0, 1 - len(invalid) / 5))
     for k in range(1, 6):
         w, r, wprev = write_step.get(k), read[k], write_step.get(k - 1)
-        out.append(("C1", "P", k, 1.0 if w is not None and (k == 1 or (wprev is not None and wprev < w)) else 0.0))
+        # The stage was carried out: its document read (however) before its artifact, the artifacts in order.
+        doc_read = read_step.get(f"0{k}") is not None and w is not None and read_step[f"0{k}"] < w
+        out.append(("C1", "P", k, 1.0 if doc_read and (k == 1 or (wprev is not None and wprev < w)) else 0.0))
         if w is not None:  # the stage was done: was its document its first step?
             out.append(("A2", "P", k, 1.0 if r is not None and r < w and (wprev is None or r > wprev) else 0.0))
         if k > 1 and r is not None:  # no reading ahead of the previous stage's artifact

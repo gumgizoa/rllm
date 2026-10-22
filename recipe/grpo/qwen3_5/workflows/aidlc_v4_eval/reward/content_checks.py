@@ -77,6 +77,9 @@ from ._claims import (
     failures as _failures,
 )
 from ._claims import (
+    field_value as claims_field_value,
+)
+from ._claims import (
     is_none as _none,
 )
 from ._claims import (
@@ -189,7 +192,9 @@ def _field(parsed: dict | None, section: str, label: str) -> str | None:
     body = parsed["section_bodies"].get(section)
     if body is None:
         return None
-    return A.field_value(body, label) or None
+    # _claims.field_value: labels up to 40 characters, so "Unintended files in the repository" (34) ends
+    # the field before it instead of running into its value (the vendored reader stops at 30).
+    return claims_field_value(body, label) or None
 
 
 def first_write_steps(run: Run) -> dict[int, int | None]:
@@ -273,8 +278,15 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             c["t1_baseline_before_edit"] = SUPPORTED if baseline_runs else CONTRADICTED
             if w[1] is not None:
                 c["t1_no_edit_before_write"] = SUPPORTED if obs.first_edit > w[1] else CONTRADICTED
-        if baseline_runs:
-            out = "\n".join(o for _, _, o in baseline_runs)
+        # The baseline the artifact reports is the recorded test selection's run; other runs before the first
+        # edit (a mistyped module, an unrelated suite) are not what it claims to describe.
+        # A run belongs to the recorded selection when every target it names is one of the recorded ones (the
+        # selection may be run in parts).
+        recorded_targets = set(EV.test_targets(_field(p1, "Build & Test Commands", "Test") or "") or [])
+        recorded = [r for r in baseline_runs if recorded_targets and (t := EV.test_targets(r[1])) and set(t) <= recorded_targets]
+        evidence_runs = recorded or baseline_runs
+        if evidence_runs:
+            out = "\n".join(o for _, _, o in evidence_runs)
             names = sorted({*_TEST_ID.findall(passing or ""), *_TEST_ID.findall(failing1 or "")})
             if names and _names_test_ids(out):
                 c["e1_baseline_tests"] = _membership(names, [n in out for n in names])
@@ -299,7 +311,10 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             values = [(m.group(1), m.group(2)) for m in _R_LINE.finditer(p2["body"])]
             real = [r for r in r_ids if not any(rid == r and _none(v) for rid, v in values)]
             covered = set(tags) | set(p3.get("coverage_ids", []))
-            c["c23_requirements_covered"] = _membership(real, [r in covered for r in real])
+            # A plan whose steps and coverage cannot be read at all (form broken, scored under F) says
+            # nothing either way about which requirement each step serves.
+            if p3["steps"] or p3.get("coverage_ids"):
+                c["c23_requirements_covered"] = _membership(real, [r in covered for r in real])
             exercises = _ids(_field(p3, "Reproduction Script", "Exercises"))
             c["c23_exercises_exist"] = _membership(exercises, [r in r_ids for r in exercises])
             coverage = p3["section_bodies"].get("Requirement Coverage")
@@ -363,6 +378,9 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
 
     # -- stage 5: what was run after the change ---------------------------------------------
     if p5 is not None:
+        if repro is None and (p3 is not None or p4 is not None):
+            # No stage recorded a reproduction script (``Path: N/A``): stage 5 cannot have run one.
+            c["t5_repro_run_after_last_edit"] = CONTRADICTED
         if repro:
             # The run the report rests on: after the last change to the source, before the report.
             runs = obs.ran(repro, after=obs.last_edit if obs.last_edit is not None else w[4], before=w[5])
@@ -423,7 +441,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             unintended = _field(p5, "Final Change", "Unintended files in the repository")
             disclosed = claimed_paths(unintended)
             actual = [p for p in remaining if not any(same_file(p, u) for u in disclosed)]
-            if final or actual:
+            if _field(p5, "Final Change", "Files in the change") is not None and (final or actual):
                 c["e5_final_files_diff"] = _both_ways(final, actual)
             if _none(unintended):
                 stray = [p for p in remaining if p in new_now and not any(same_file(p, f) for f in final)]
