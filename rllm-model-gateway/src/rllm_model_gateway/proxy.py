@@ -34,6 +34,51 @@ from rllm_model_gateway.token_accumulator import (
 
 logger = logging.getLogger(__name__)
 
+# Status returned when the client closed its connection before the upstream
+# answered (nginx's "client closed request"); nobody reads it.
+CLIENT_CLOSED_REQUEST = 499
+
+
+async def _wait_for_disconnect(request: Request) -> None:
+    """Return once the client has closed its connection.
+
+    Only called after the body has been read, so ``receive`` has nothing left
+    to deliver but ``http.disconnect`` (the session middleware replays the body
+    once, then delegates to the server's receive, which blocks until then).
+    """
+    while True:
+        message = await request.receive()
+        if message.get("type") == "http.disconnect":
+            return
+
+
+async def _unless_client_disconnects(request: Request, work: Awaitable[Response]) -> Response | None:
+    """Await ``work``, or cancel it and return ``None`` if the client goes away first.
+
+    The pattern of vLLM's ``with_cancellation``. Left running, a call whose
+    client gave up keeps generating on the inference server for nobody, and a
+    client that times out and resends piles such calls up. Cancelling closes the
+    upstream connection, which vLLM treats as an abort. The turn leaves no
+    trace, since nobody received it; a cancellation that lands while its trace
+    is being stored may drop that trace for the same reason.
+    """
+    task = asyncio.ensure_future(work)
+    watcher = asyncio.ensure_future(_wait_for_disconnect(request))
+    try:
+        done, _ = await asyncio.wait({task, watcher}, return_when=asyncio.FIRST_COMPLETED)
+    except BaseException:
+        task.cancel()
+        watcher.cancel()
+        raise
+    if task in done:
+        watcher.cancel()
+        return task.result()
+    task.cancel()
+    # Let the call's own cleanup (``router.release`` ...) run before returning.
+    await asyncio.gather(task, return_exceptions=True)
+    return None
+
+
 # Headers that should not be forwarded verbatim
 _HOP_BY_HOP = frozenset(
     {
@@ -194,12 +239,28 @@ class ReverseProxy:
             await self.start()
 
     async def handle(self, request: Request) -> Response:
-        """Proxy *request* to an inference worker, capture trace, return response."""
+        """Proxy *request* to an inference worker, capture trace, return response.
+
+        Everything after the body is read runs under :func:`_unless_client_disconnects`,
+        so the upstream call is cancelled if the client leaves before the
+        response is returned. A streaming response, once returned, is
+        Starlette's to cancel on disconnect.
+        """
         request.state.weight_version = self.weight_version
         await self._ensure_started()
+        body = await request.body()
+        response = await _unless_client_disconnects(request, self._dispatch(request, body))
+        if response is None:
+            logger.info(
+                "session %s: client closed the connection before the upstream answered; upstream call cancelled",
+                request.state.session_id,
+            )
+            return Response(status_code=CLIENT_CLOSED_REQUEST)
+        return response
+
+    async def _dispatch(self, request: Request, body: bytes) -> Response:
         session_id: str | None = request.state.session_id
         originally_requested_logprobs: bool = getattr(request.state, "originally_requested_logprobs", False)
-        body = await request.body()
 
         try:
             request_body = json.loads(body) if body else {}
@@ -642,10 +703,15 @@ class ReverseProxy:
             try:
                 resp = await retry_upstream.__aenter__()
                 upstream = retry_upstream
-            except Exception:
+            except BaseException:  # incl. cancellation while still waiting for headers
                 await retry_client.aclose()
                 self.router.release(worker.url)
                 raise
+        except asyncio.CancelledError:
+            # The client left before the headers (see _unless_client_disconnects);
+            # event_generator's finally, which releases the worker, never runs.
+            self.router.release(worker.url)
+            raise
 
         t0 = time.perf_counter()
         chunks: list[dict[str, Any]] = []
@@ -803,10 +869,15 @@ class ReverseProxy:
             try:
                 resp = await retry_upstream.__aenter__()
                 upstream = retry_upstream
-            except Exception:
+            except BaseException:  # incl. cancellation while still waiting for headers
                 await retry_client.aclose()
                 self.router.release(worker.url)
                 raise
+        except asyncio.CancelledError:
+            # The client left before the headers (see _unless_client_disconnects);
+            # event_generator's finally, which releases the worker, never runs.
+            self.router.release(worker.url)
+            raise
 
         t0 = time.perf_counter()
         chunks: list[dict[str, Any]] = []
