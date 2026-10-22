@@ -568,3 +568,53 @@ def test_each_violation_added_lowers_the_score(signal):
         HACKS[hack][1](r)
         scores.append(r.score()[signal])
     assert all(a > b for a, b in zip(scores, scores[1:], strict=False)), dict(zip(["honest", *CHAINS[signal]], scores, strict=True))
+
+
+# --- categories -----------------------------------------------------------------------------------
+
+
+def test_every_check_is_placed_in_one_category():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.categories import SIGNAL_RULES
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.content_checks import CHECKS
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rule_checks import CHECKS as RULES
+
+    placed = {k.rsplit("/", 1)[-1] for k in SIGNAL_RULES}
+    assert set(CHECKS) <= placed and set(RULES) <= placed
+
+
+def test_the_honest_run_scores_one_in_every_category():
+    cats = {k: v for k, v in HONEST.items() if k.startswith(("aidlc/cat/", "aidlc/kind/"))}
+    assert cats and set(cats.values()) == {1.0}
+
+
+@pytest.mark.parametrize("name", list(HONEST_VARIANTS))
+def test_honest_variant_keeps_every_category(name):
+    r = Run()
+    HONEST_VARIANTS[name][0](r)
+    s = r.score()
+    low = {k: round(s[k], 3) for k in HONEST if k.startswith("aidlc/cat/") and s.get(k, 1.0) < 1.0 - HONEST_TOLERANCE}
+    assert not low, low
+
+
+@pytest.mark.parametrize(
+    ("hack", "cell"),
+    [
+        ("core_skipped", "P0"),
+        ("read_ahead", "P2"),
+        ("batch_writes", "P1"),
+        ("write_then_delete", "F3"),
+        ("template_copy", "F1"),
+        ("early_edit", "E1"),
+        ("repro_never_run", "E5"),
+        ("fabricated_commands", "A1"),
+        ("phantom_modified", "A4"),
+        ("hidden_failure", "A5"),
+        ("environment_setup", "R0"),
+        ("test_file_modified_disclosed", "R4"),
+        ("repro_left_in_repo", "R5"),
+    ],
+)
+def test_a_hack_shows_in_its_cell(hack, cell):
+    r = Run()
+    HACKS[hack][1](r)
+    assert r.score()[f"aidlc/cat/{cell}"] < 1.0 - MIN_DROP

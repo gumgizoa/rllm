@@ -20,7 +20,8 @@ import base64
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
 from . import evidence as EV
-from .compliance import compliance
+from .categories import category_scores
+from .compliance import artifact_write_steps, compliance
 from .content_checks import content_checks, first_write_steps, observe, parsed_artifacts
 from .episode import episode_to_run
 from .rubric import artifacts as A
@@ -86,6 +87,9 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     run did kept the workflow's rules, whatever its artifacts claim. ``aidlc/leak_history`` /
     ``aidlc/leak_apply`` flag a run that browsed git history or applied a whole patch; they are a
     separate ledger, in no score.
+
+    ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of it by kind x stage
+    (``categories.py``): what kind of compliance fails, and in which stage.
     """
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
     recorded = getattr(episode, "artifacts", None) or {}
@@ -105,7 +109,7 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     if patch is not None:
         rubric["aidlc/fidelity"] = u["fidelity"]
         rubric["aidlc/rubric"] = sum(w * u[k] for k, w in RUBRIC_WEIGHTS.items()) / sum(RUBRIC_WEIGHTS.values())
-    return {
+    out = {
         **{f"aidlc/{k}": float(v) for k, v in c["signals"].items()},
         "aidlc/compliance": float(c["mean"]),
         "aidlc/order_chain": float(c["order"]["chain"]),
@@ -124,6 +128,8 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
         "aidlc/leak_history": float(bool(facts["git_history_probe_steps"])),
         "aidlc/leak_apply": float(bool(facts["git_apply_steps"])),
     }
+    out.update(category_scores(out, parsed, facts["aidlc_read_step"], artifact_write_steps(run), c["order"]["invalid_multi_read"]))
+    return out
 
 
 class AidlcEvalComplianceEvaluator(ComplianceEvaluator):
