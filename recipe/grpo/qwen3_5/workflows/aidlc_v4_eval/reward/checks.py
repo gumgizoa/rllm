@@ -2,11 +2,11 @@
 
 Every item reads one measurement of the run; the run is measured once (:func:`measure`, cached on the
 evaluation context) from the task, the recorded episode and the collected artifacts, by the readings in
-``read.py`` and the checks in ``claims.py`` / ``atomic_checks.py`` / ``rule_checks.py`` / ``judge.py``:
+``read.py`` and the checks in ``claims.py`` / ``rules.py`` / ``judge.py``:
 
     aidlc_v4_eval.claim      a content check: an artifact's claim against the trajectory (claims.py)
-    aidlc_v4_eval.rule       a rule check: what the run did, whatever its artifacts claim (rule_checks.py)
-    aidlc_v4_eval.atom       an atomic rule the other checks leave unscored (atomic_checks.py)
+    aidlc_v4_eval.rule       a rule check: what the run did, whatever its artifacts claim (rules.py)
+    aidlc_v4_eval.atom       an atomic rule the other checks leave unscored (rules.py)
     aidlc_v4_eval.form       an artifact's form: present, frontmatter, headings, each skeleton field
     aidlc_v4_eval.procedure  a stage's procedure: its document read first, alone, before its artifact
     aidlc_v4_eval.run        a whole-run reading: entry, a real test run, the diff's disclosure (fidelity)
@@ -26,12 +26,11 @@ from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 
 from . import read as EV
 from . import skeleton as A
-from .atomic_checks import atomic_checks
 from .claims import content_checks
 from .judge import judge_checks
 from .read import artifact_write_steps, first_write_steps, observe, parsed_artifacts
 from .read import field_value as claims_field_value
-from .rule_checks import rule_checks
+from .rules import atomic_checks, rule_checks
 from .trace import episode_to_run
 
 # Skeleton fields, one rule each: rule -> (stage, section, label or None for the section's own content, none allowed)

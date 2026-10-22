@@ -1,27 +1,24 @@
-"""AI-DLC for evaluation: ``aidlc_v4``'s documents, instruction and system prompt, scored by its rubric
-bands plus the artifacts' claims against the trajectory (``reward/content_checks.py``).
+"""AI-DLC for evaluation: ``aidlc_v4``'s documents, instruction and system prompt, scored by the workflow's
+atomic rules (``reward/rubric.yaml``) on the common rubric engine.
 
-    docs/, instruction.md, system-prompt.j2, reward/{rubric/, episode.py}
-        copied byte-identical from ``workflows/aidlc_v4`` at commit 4c3ee52c, so the agent sees the
-        same workflow (``SPEC.fingerprint`` equals aidlc_v4's) and the rubric parses runs the same way
-    reward/compliance.py
-        copied from aidlc_v4, with the stage gate's "a real test suite ran" read by ``evidence.py``
-    reward/{evidence.py, content_checks.py, _claims.py, rule_checks.py, evaluator.py}
-        the evaluation verifier's own evidence readings, the content checks (commit 1b68a8e7), the rule
-        checks, and the scorer that adds them, the milestone-1 evaluation rubric's items and the
-        solution-leak flags
+    docs/, instruction.md, system-prompt.j2
+        copied byte-identical from ``workflows/aidlc_v4`` at commit 4c3ee52c, so the agent sees the same
+        workflow (``SPEC.fingerprint`` equals aidlc_v4's) and aidlc_v4 runs can be rescored with this
+    reward/
+        the verifier: ``rubric.yaml`` (the rules, each with its category, stage and document lines),
+        ``checks.py`` (their check kinds), ``eval.py``, and the readings they use (see reward/__init__.py).
+        Its headline is ``aidlc/score``, the kind x stage matrix's total (``aidlc/cat/*``, ``aidlc/kind/*``)
+    legacy/
+        the milestone-1 scoring (aidlc_v4's vendored rubric and compliance signals, ``aidlc/compliance``,
+        ``aidlc/rubric``), run beside it for comparison with earlier evaluations; reward/ never imports it
 
 The copy is the point: this is the evaluation verifier, fixed apart from the training one, so a change
 to ``aidlc_v4`` (its documents, its reward) does not move the numbers measured with this package. Do
-not import from ``aidlc_v4`` here, and do not edit the copied files to follow it. Where this verifier
-reads a run differently from the vendored rubric, the change is in ``reward/evidence.py``.
+not import from ``aidlc_v4`` here.
 
 Use it where aidlc_v4 would be used (``recipe.workflow.name=aidlc_v4_eval``, ``--agent-kwargs
-workflow=aidlc_v4_eval``, ``rescore_compliance.py --workflow aidlc_v4_eval``) to get the
-``aidlc/content*`` / ``aidlc/check/*`` signals next to ``aidlc/*``. Its headline (the reward signal, and
-``workflow/compliance`` in a mixed evaluation) is ``aidlc/score``: the kind x stage matrix's total
-(``reward/categories.py``). ``aidlc/compliance`` and the milestone-1 ``aidlc/rubric`` stay, to compare with
-earlier evaluations.
+workflow=aidlc_v4_eval``, ``rescore_compliance.py --workflow aidlc_v4_eval``). The reward signal (and
+``workflow/compliance`` in a mixed evaluation) is ``aidlc/score``.
 """
 
 from __future__ import annotations

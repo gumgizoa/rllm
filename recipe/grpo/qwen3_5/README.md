@@ -296,7 +296,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_rewa
 | `mini-swe-agent` | `null` | `StepLimitedMiniSweAgent` | `train.py` |
 | `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
 | `openhands-sdk` | `aidlc_v4` | `OpenHandsSdkWorkflow` with `workflows/aidlc_v4/` | `workflow_harness.py` |
-| `openhands-sdk` | `aidlc_v4_eval` | `OpenHandsSdkWorkflow` with `workflows/aidlc_v4_eval/` (the evaluation verifier: aidlc_v4's workflow and compliance signals copied and fixed, its evidence readings corrected in `reward/evidence.py` (Django test runner, lookups, piped exit codes, final changes from the patch), plus content checks `aidlc/content*` / `aidlc/check/*`, rule checks `aidlc/rules` / `aidlc/rule/*`, leak flags `aidlc/leak_history` / `aidlc/leak_apply` and the milestone-1 evaluation rubric's `aidlc/entry` / `aidlc/reports` / `aidlc/fidelity` / `aidlc/rubric` (order item = order_v6; fidelity reads the collected patch); same fingerprint as aidlc_v4, so `rescore_compliance.py --workflow aidlc_v4_eval` rescores aidlc_v4 runs) | `workflow_harness.py` |
+| `openhands-sdk` | `aidlc_v4_eval` | `OpenHandsSdkWorkflow` with `workflows/aidlc_v4_eval/` (the evaluation verifier: aidlc_v4's documents copied and fixed; `reward/rubric.yaml` holds the workflow's atomic rules, each with its category, stage and document lines, scored on the common rubric engine (`workflow_rubric`, `kind_matrix` aggregate) into `aidlc/cat/<kind><stage>`, `aidlc/kind/<kind>` and the headline `aidlc/score`; every item is also reported (`aidlc/check/*`, `aidlc/rule/*`, `aidlc/atom/*`, `aidlc/form/*`, `aidlc/proc/*`, `aidlc/run/*`, `aidlc/judge/*` when an LLM judge is configured); the milestone-1 signals `aidlc/compliance` / `aidlc/rubric` come from `legacy/` beside it; same fingerprint as aidlc_v4, so `rescore_compliance.py --workflow aidlc_v4_eval` rescores aidlc_v4 runs) | `workflow_harness.py` |
 | `openhands-sdk` | `speckit_bug` | `OpenHandsSdkWorkflow` with `workflows/speckit_bug/` (Spec Kit assess → fix → test; no scorer yet) | `workflow_harness.py` |
 | `openhands-sdk` | `openspec_ff` | `OpenHandsSdkWorkflow` with `workflows/openspec_ff/` (OpenSpec explore → ff → apply → verify → archive, real `openspec` CLI in its own agent image; no scorer yet) | `workflow_harness.py` |
 | `openhands-sdk` | `speckit_sdd` | `OpenHandsSdkWorkflow` with `workflows/speckit_sdd/` (Spec Kit specify → plan → tasks → implement ⇄ converge, upstream `.specify/` scripts run from `/tmp/speckit-sdd`; feature tasks; no scorer yet) | `workflow_harness.py` |
@@ -1574,9 +1574,9 @@ recipe/grpo/qwen3_5/
 │           ├── episode.py        #       rLLM Episode -> rubric Run (front end chosen by harness)
 │           ├── compliance.py     #       six signals (order_v6, s1..s5) and their mean
 │           └── evaluator.py      #       collect_artifacts + score -> AidlcEvaluation
-│   └── aidlc_v4_eval/            #   evaluation verifier: aidlc_v4's docs/instruction/prompt/reward copied (fixed) + content checks
+│   └── aidlc_v4_eval/            #   evaluation verifier: aidlc_v4's docs copied; reward/rubric.yaml (atomic rules) on workflow_rubric; legacy/ milestone-1
 ├── tests/test_aidlc_reward.py    # unit tests for workflows/aidlc_v4/reward and the reward term in train.py
-├── tests/test_aidlc_v4_eval.py   # workflows/aidlc_v4_eval: no aidlc_v4 imports, pinned copies, content checks
+├── tests/test_aidlc_v4_eval.py   # workflows/aidlc_v4_eval: no aidlc_v4 / legacy imports, pinned copies, scoring
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/

@@ -6,7 +6,7 @@ description: qwen3_5 레시피에 새 워크플로우(문서·지시·system pro
 # 워크플로우 추가하기
 
 `recipe/grpo/qwen3_5` 레시피에서 에이전트에게 특정 작업 절차를 따르게 하는 단위를 **워크플로우**라 부름.
-현재 등록된 워크플로우는 AI-DLC(`aidlc_v4`), AI-DLC 평가용(`aidlc_v4_eval`, aidlc_v4의 문서·채점기를 복사해 고정하고 산출물 content checks와 milestone1 평가 rubric 항목을 더한 평가 verifier), Spec Kit bug 절차(`speckit_bug`, 채점기 없음), OpenSpec OPSX 절차(`openspec_ff`, sandbox에서 `openspec` CLI 실행, 채점기 없음), Spec Kit SDD 핵심 절차(`speckit_sdd`, sandbox의 `/tmp/speckit-sdd/.specify`에 upstream 스크립트 탑재, 채점기 없음), Agent OS v2.1.1 spec 파이프라인(`agentos_v2`, upstream 설치 스크립트로 렌더한 명령 문서 4개, 채점기 없음) 여섯 개임.
+현재 등록된 워크플로우는 AI-DLC(`aidlc_v4`), AI-DLC 평가용(`aidlc_v4_eval`, aidlc_v4의 문서를 복사해 고정하고 단위 규칙을 `reward/rubric.yaml`로 옮겨 공통 rubric 엔진에서 종류 × 단계 행렬로 채점하는 평가 verifier, milestone1 채점은 `legacy/`), Spec Kit bug 절차(`speckit_bug`, 채점기 없음), OpenSpec OPSX 절차(`openspec_ff`, sandbox에서 `openspec` CLI 실행, 채점기 없음), Spec Kit SDD 핵심 절차(`speckit_sdd`, sandbox의 `/tmp/speckit-sdd/.specify`에 upstream 스크립트 탑재, 채점기 없음), Agent OS v2.1.1 spec 파이프라인(`agentos_v2`, upstream 설치 스크립트로 렌더한 명령 문서 4개, 채점기 없음) 여섯 개임.
 이 문서는 새 워크플로우를 추가해 학습과 `rllm eval` 양쪽에서 쓰는 방법을 정리함.
 
 - 워크플로우 추가에 harness 클래스, `train.py`, 평가 코드 수정은 필요 없음.

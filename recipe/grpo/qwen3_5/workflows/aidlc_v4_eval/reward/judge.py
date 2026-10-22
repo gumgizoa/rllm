@@ -7,7 +7,7 @@ code checks the quote:
     yes -> 1, no -> 0, n/a -> None
     a quote the material does not contain, a missing or malformed answer -> None (``aidlc/judge_void``)
 
-Emitted as ``aidlc/judge/<rule>`` (``categories.JUDGE_KINDS`` places them by kind x stage), with
+Emitted as ``aidlc/judge/<rule>`` (their ``rubric.yaml`` items place them by category and stage), with
 ``aidlc/judge_void`` (the share of yes/no answers dropped for their quote) and ``aidlc/judge_calls``.
 A question whose subject the artifact lacks (no deviations, no pre-existing failures, no test file the run
 read) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the

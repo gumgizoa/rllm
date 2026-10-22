@@ -1,8 +1,26 @@
-"""Atomic checks: the workflow's atomic rules the other checks left unscored, where code can judge them.
+"""What the run did against the workflow's rules, whatever its artifacts claim: the rule checks and the
+atomic checks (``rubric.yaml`` items ``rule/*`` and ``atom/*``).
 
-Each check is named after the atomic rule it judges (``categories.ATOM_KINDS`` places it) and is 1 (kept)
-/ 0 (broken) / None (nothing bears on it). Rules that hold per artifact are scored per stage, as
-``<rule>@<stage>``. Emitted as ``aidlc/atom/<rule>[@<stage>]``; logged only, like the content checks.
+Rule checks (:func:`rule_checks`, 1 / 0 / None each, ``aidlc/rules`` their mean). The content checks hold each artifact claim to the trajectory, so a violation reported honestly -- a test
+file edited and listed as modified, a reproduction script left in the repository and listed as created --
+passes them. These checks look at what the run did, against the rules the documents state:
+
+    r_tests_untouched       no existing test file changed: the patch, plus a test edited and put back
+                            (01 Step 3, 04, 05 Step 5, core "DO NOT MODIFY: test files")
+    r_targeted_tests        every test run of stage 5 names its targets (05 Step 3: "Do NOT run the full
+                            repository test suite"); ``-k`` selects too
+    r_no_env_setup          nothing installed (01 Step 2, 05 Step 1, core "Do not spend effort on
+                            environment setup")
+    r_repro_not_in_stage4   the reproduction script not run in stage 4 (04 Step 2: "do not execute it in
+                            this stage")
+    r_artifacts_written_once  each artifact written once, never rewritten later (core "One write, full
+                            content", "Never rewrite an earlier stage's artifact")
+    r_repo_clean            no scratch, backup, duplicate or generated file added to the repository (05
+                            Step 7); the reproduction script belongs outside it
+
+Atomic checks (:func:`atomic_checks`): each is named after the atomic rule it judges (its rubric item
+places it by category and stage) and is 1 (kept) / 0 (broken) / None (nothing bears on it). Rules that
+hold per artifact are scored per stage, as ``<rule>@<stage>`` (``aidlc/atom/<rule>[@<stage>]``).
 
     form         B5d skeleton sentences kept, B6b/B6c frontmatter values, D5/F2a full paths, D12b one test id
                  per line, E4a one sequence R1..Rn, E8c edge items "condition -> behaviour", F1b steps 1..n,
@@ -40,26 +58,98 @@ from . import trace as F
 from .read import DUPLICATE, Observed, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
 from .read import field_value as claims_field_value
 
+RULE_CHECKS = ["r_tests_untouched", "r_targeted_tests", "r_no_env_setup", "r_repro_not_in_stage4", "r_artifacts_written_once", "r_repo_clean"]
+
+_MEDIA = re.compile(r"\.(?:png|jpe?g|gif|bmp|pdf|svg|eps)$", re.I)
+
+_ROOT_SCRATCH = re.compile(r"^[^/]+\.(?:py|sh|txt|md|log|json|out|diff|patch)$")
+
+
+def _scratch(path: str, test_files) -> bool:
+    """An added repository file that is no part of a fix: scratch-named, a backup or duplicate, build
+    output, a generated image outside the tests, or a loose script or note at the repository root."""
+    if EV.is_test_file(path, test_files) and not _MEDIA.search(path):
+        return False
+    return bool(F.SCRATCH_HINT_RE.search(path) or F.BACKUP_RE.search(path) or F.ARTIFACT_RE.search(path) or DUPLICATE.search(path) or _MEDIA.search(path) or _ROOT_SCRATCH.match(path))
+
+
+def rule_checks(run, obs: Observed, parsed: dict, read_step: dict, write_step: dict, patch: str | None, test_files=()) -> dict:
+    """``read_step``: rule document ("01".."05") -> first read; ``write_step``: stage -> first artifact write."""
+    c: dict[str, float | None] = dict.fromkeys(RULE_CHECKS)
+    final = EV.patch_files(patch)
+
+    # Existing test files changed: still changed in the patch, or edited and put back.
+    changed_tests = [p for p in obs.edited if EV.is_test_file(p, test_files) and p not in obs.new_files]
+    if final is not None:
+        added = set(final[1])
+        changed_tests += [p for p in final[0] if p not in added and EV.is_test_file(p, test_files)]
+    c["r_tests_untouched"] = 0.0 if changed_tests else 1.0
+
+    # Stage 5's test runs name their targets.
+    start5 = write_step.get(4) or read_step.get("05")
+    if start5 is not None:
+        runs = obs.tests_in(after=start5, before=write_step.get(5))
+        if runs:
+            untargeted = [cmd for _, cmd, _ in runs if EV.test_targets(cmd) == []]
+            c["r_targeted_tests"] = 0.0 if untargeted else 1.0
+
+    c["r_no_env_setup"] = 0.0 if any(EV.is_env_setup(raw) for raw in obs.shell_raw) else 1.0
+
+    repro = next((p for st in (4, 3) if parsed.get(st) for p in claimed_paths(A.field_value(parsed[st]["section_bodies"].get("Reproduction Script") or "", "Path"))), None)
+    r4, w4 = read_step.get("04"), write_step.get(4)
+    if repro and r4 is not None and w4 is not None:
+        c["r_repro_not_in_stage4"] = 0.0 if obs.ran(repro, after=r4, before=w4) else 1.0
+
+    writes = {path: steps for path, steps in obs.writes.items() if path in A.ARTIFACT_PATHS}
+    if writes:
+        c["r_artifacts_written_once"] = 0.0 if any(len(steps) > 1 for steps in writes.values()) else 1.0
+
+    if final is not None:
+        c["r_repo_clean"] = 0.0 if any(_scratch(p, test_files) for p in final[1]) else 1.0
+
+    applicable = [v for v in c.values() if v is not None]
+    return {"checks": c, "rules": sum(applicable) / len(applicable) if applicable else None}
+
+
 _LITERALS = {1: ["Recorded before any source file was modified."], 4: ["- Executed: no"]}
+
 _TEST_LIKE = re.compile(r"::|\btest_\w+|\w+ \([\w.]+\)|\.[Tt]est\w*\b")
+
 _ARROW = re.compile(r"->|→")
+
 _R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
+
 _ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|rs|java|rb|c|h|cpp|cfg|toml|ini))\b")
+
 _PERF = re.compile(r"\b(?:performance|slow(?:er|ly)?|fast(?:er)?|speed|memory|complexity|efficien\w*|latency|O\(|quadratic|linear time|time-?out)\b", re.I)
+
 _LANG = {"py": "python", "pyi": "python", "js": "javascript", "ts": "typescript", "go": "go", "rs": "rust", "java": "java", "rb": "ruby", "c": "c", "h": "c", "cpp": "c++"}
+
 _DOC = re.compile(r"\.(?:md|rst)$|(?:^|/)[^/]*(?:plan|summary|report|notes|design)[^/]*\.(?:md|txt|rst)$", re.I)
+
 _ARTIFACT = re.compile(r"/tmp/swe-bench-pro/(0[1-5])-[\w-]+\.md")
+
 _READ_VERB = re.compile(r"^\s*(?:sudo\s+)?(?:cat|head|tail|less|more|grep|egrep|sed\s+-n|awk|nl)\b")
+
 _ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
+
 _REDUCE = re.compile(r"(?<!\S)-[a-zA-Z]*q[a-zA-Z]*\b|--quiet\b|--tb=(?:short|line|no)\b|--no-header\b")
+
 _STASH = re.compile(r"^\s*git\s+stash(?:\s+(?:push|save)\b.*)?\s*$|^\s*(?:git\s+apply|patch)\b.*\s-R\b")
+
 _UNSTASH = re.compile(r"^\s*git\s+stash\s+(?:pop|apply)\b")
+
 _CODE_LIKE = re.compile(r"_|\.|[a-z][A-Z]")
+
 _GREP_FED = re.compile(r"\|\s*(?:xargs\s+)?grep|-exec\s+grep")
+
 # a find that names what it looks for: anything but a bare "*" or "*.ext" (``-name "py.py"`` is a lookup)
 _NAME_FILTER = re.compile(r"-(?:i?name|i?path|regex)\s+(?!['\"]?\*(?:\.\w+)?['\"]?(?:\s|$))\S")
+
 _IDENT = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
+
 _SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+
 _ABBREV = re.compile(r"\b(?:e\.g|i\.e|etc|vs|cf)\.", re.I)
 
 

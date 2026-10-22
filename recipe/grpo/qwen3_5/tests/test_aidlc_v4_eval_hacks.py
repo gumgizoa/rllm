@@ -577,7 +577,7 @@ def test_every_check_is_a_rubric_item():
     from test_aidlc_v4_eval import _EVAL
 
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import CHECKS
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rule_checks import CHECKS as RULES
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rules import RULE_CHECKS as RULES
 
     ids = {i.id for i in _EVAL.rubric.items}
     assert {f"check/{c}" for c in CHECKS} <= ids and {f"rule/{c}" for c in RULES} <= ids

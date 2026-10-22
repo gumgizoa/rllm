@@ -998,7 +998,7 @@ def parsed_artifacts(run: Run, collected: bool = False) -> dict[int, dict | None
 EXTRA_TEST_RUN = EXTRA_RUNNERS
 
 
-# --- run readings the categories use (the milestone-1 rubric's definitions, read here) ----------
+# --- whole-run readings for the rubric (the milestone-1 rubric's definitions, read here) ---------
 
 STAGE_DOCS = ["01", "02", "03", "04", "05"]
 
