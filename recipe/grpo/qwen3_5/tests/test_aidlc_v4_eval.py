@@ -411,6 +411,16 @@ def test_evaluation_survives_pickling():
     assert ev.score(SimpleNamespace(id="t"), episode(_content_honest_turns()), data) == score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
 
 
+def test_the_review_surface_matches_the_rubric():
+    """reward/rubric.md is rendered from rubric.yaml (scripts/render_rubric_md.py): edit the yaml, re-render."""
+    sys.path.insert(0, str(RECIPE / "scripts"))
+    from render_rubric_md import render
+
+    from recipe.grpo.qwen3_5.workflow_rubric import schema
+
+    assert (PKG / "reward" / "rubric.md").read_text() == render(schema.load(PKG / "reward" / "rubric.yaml"))
+
+
 def test_the_verifier_does_not_lean_on_the_legacy_scoring():
     """reward/ never imports legacy/ (the milestone-1 scoring rides along from the spec, and can go)."""
     for path in (PKG / "reward").rglob("*.py"):
