@@ -88,12 +88,14 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     ``aidlc/rules`` and ``aidlc/rule/<name>`` are the rule checks (``rule_checks.py``): whether what the
     run did kept the workflow's rules, whatever its artifacts claim. ``aidlc/leak_history`` /
     ``aidlc/leak_apply`` flag a run that browsed git history or applied a whole patch; they are a
-    separate ledger, in no score.
+    separate ledger, in no score. So is ``aidlc/patch_empty``: the run changed no file (its compliance is
+    kept as scored; a run that writes all five artifacts and fixes nothing is counted, not zeroed). It is
+    left out when no patch was recorded.
 
     ``aidlc/atom/<rule>[@<stage>]`` are the atomic rules the other checks leave unscored, where code can
     judge them (``atomic_checks.py``); ``aidlc/judge/<rule>`` the content rules an LLM judges from the
-    artifacts (``judge.py``, only when ``AIDLC_JUDGE_MODEL`` / ``AIDLC_JUDGE_BASE_URL`` are set). ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of
-    it by kind x stage
+    artifacts (``judge.py``, only when ``AIDLC_JUDGE_MODEL`` / ``AIDLC_JUDGE_BASE_URL`` are set).
+    ``aidlc/cat/<kind><stage>`` and ``aidlc/kind/<kind>`` place all of it by kind x stage
     (``categories.py``): what kind of compliance fails, and in which stage.
     """
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
@@ -132,6 +134,7 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
         # Solution-leak flags, a separate ledger: not part of any score (rubric/score.py LEAK_FLAGS).
         "aidlc/leak_history": float(bool(facts["git_history_probe_steps"])),
         "aidlc/leak_apply": float(bool(facts["git_apply_steps"])),
+        **({"aidlc/patch_empty": float(not patch.strip())} if patch is not None else {}),
     }
     ac = atomic_checks(run, obs, parsed, facts["aidlc_read_step"], first_write_steps(run), facts, whole_patch, task, tests, final_words=EV.final_words(episode))
     out.update({f"aidlc/atom/{k}": float(v) for k, v in ac.items() if v is not None})

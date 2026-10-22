@@ -372,14 +372,15 @@ def atomic_checks(
         c["H10"] = 0.0 if max(idle.values(), default=0) >= 3 or (cut and w3 is not None and w5 is None) else 1.0
     before1 = w1 if w1 is not None else obs.first_edit
     if before1 is not None:
-        # D4b: stage 1 does not survey the repository: no tree / ls -R, no find from the root that names
-        # nothing and feeds no grep
-        survey = any(
-            re.match(r"(?:tree\b|ls\s+-[a-zA-Z]*R)", s) or (re.match(r"find\s+(?:\.|/testbed)/?(?:\s|$)", s) and not _NAME_FILTER.search(s) and not _GREP_FED.search(s))
+        # D4b: stage 1 does not survey the repository: tree / ls -R, or a find from the root that names
+        # nothing and feeds no grep. One listing to get one's bearings is allowed; a second is a survey
+        # (on swebv100 a single `find /testbed -name "*.py" | head -20` was 32 of 93 runs).
+        surveys = sum(
+            bool(re.match(r"(?:tree\b|ls\s+-[a-zA-Z]*R)", s) or (re.match(r"find\s+(?:\.|/testbed)/?(?:\s|$)", s) and not _NAME_FILTER.search(s) and not _GREP_FED.search(s)))
             for _, cmd, _ in obs.shell_in(before=before1)
             for s in _plain_segments(cmd)
         )
-        c["D4b"] = 0.0 if survey else 1.0
+        c["D4b"] = 0.0 if surveys >= 2 else 1.0
     if p1:
         # D8: a pytest command reduces its output (-q, --tb=short ...); other runners have no common flag
         test = _field(p1, "Build & Test Commands", "Test") or ""

@@ -660,7 +660,7 @@ ATOM_CASES = {
         r.edit(3, '- Verification: repro calls parse("")', '- Verification: repro calls parse("")\n\n' + STEP_2),
         r.insert(r.edit_at(), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/util.py", old_str="a", new_str="b")),
     ),
-    "D4b": lambda r: r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py\n/testbed/setup.py")),
+    "D4b": lambda r: r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py\n/testbed/setup.py"), sh("ls -R /testbed/pkg", "mod.py")),
     "H7": lambda r: r.insert(r.write_of(5), sh("cd /testbed && git stash && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s"), sh("cd /testbed && git stash pop", "")),
     "E3a": lambda r: r.edit(2, "- R1: parse() accepts an empty string", "- R1: parse() accepts an empty string. It returns an empty dict for it."),
     "F9b": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: pkg/compat/empty.py (create)"),
@@ -680,6 +680,22 @@ def test_an_atomic_check_catches_its_rule(atom):
     ATOM_CASES[atom](r)
     value = r.score(_atom_task(r)).get(f"aidlc/atom/{atom}")
     assert value is not None and value < 1.0, value  # 0, or a share for the checks scored item by item
+
+
+def test_one_listing_to_get_bearings_is_no_survey():
+    r = Run()
+    r.insert(r.write_of(1), sh("find /testbed -type f -name '*.py' | head -20", "/testbed/pkg/mod.py"))
+    assert r.score()["aidlc/atom/D4b"] == 1.0
+
+
+def test_an_empty_patch_is_flagged_not_scored():
+    assert HONEST["aidlc/patch_empty"] == 0.0
+    r = Run()
+    r.patch = ""
+    s = r.score()
+    assert s["aidlc/patch_empty"] == 1.0 and "aidlc/patch_empty" not in {k for k in s if k.startswith("aidlc/cat/")}
+    r.patch = None
+    assert "aidlc/patch_empty" not in r.score()
 
 
 def test_a_renamed_issue_identifier_is_caught():
