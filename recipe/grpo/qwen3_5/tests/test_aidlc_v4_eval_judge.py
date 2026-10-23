@@ -299,6 +299,30 @@ def test_an_empty_reply_is_a_failed_call_never_cached(judge_on, monkeypatch, tmp
     assert J.ask("q") == '{"answers": [{"id": "D3"}]}'
 
 
+def test_a_reply_out_of_tokens_is_asked_once_more_with_twice_the_room(judge_on, monkeypatch, tmp_path):
+    import httpx
+
+    sent = []
+
+    class Response:
+        def __init__(self, body):
+            self.body = body
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            room = self.body["max_tokens"] >= 32000
+            return {"choices": [{"message": {"content": '{"answers": []}' if room else None}, "finish_reason": "stop" if room else "length"}]}
+
+    monkeypatch.setenv("AIDLC_JUDGE_CACHE", str(tmp_path))
+    monkeypatch.setenv("AIDLC_JUDGE_EXTRA_BODY", '{"max_tokens": 16000}')
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: sent.append(k["json"]) or Response(k["json"]))
+    assert J.ask("q") == '{"answers": []}'
+    assert [b["max_tokens"] for b in sent] == [16000, 32000]
+    assert J.ask("q") == '{"answers": []}' and len(sent) == 2  # cached under the configured request
+
+
 def test_every_question_has_a_category():
     from test_aidlc_v4_eval import _EVAL
 

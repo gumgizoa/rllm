@@ -464,11 +464,19 @@ def ask(text: str, seed: int | None = None) -> str:
         return content  # an empty reply cached before it counted as a failure is asked again
     url = os.environ["AIDLC_JUDGE_BASE_URL"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": f"Bearer {os.environ.get('AIDLC_JUDGE_API_KEY', 'EMPTY')}"}
-    r = httpx.post(url, json=body, headers=headers, timeout=float(os.environ.get("AIDLC_JUDGE_TIMEOUT", "300")))
+    timeout = float(os.environ.get("AIDLC_JUDGE_TIMEOUT", "300"))
+    r = httpx.post(url, json=body, headers=headers, timeout=timeout)
     r.raise_for_status()
     choice = r.json()["choices"][0]
     content = choice["message"].get("content") or ""
-    if not content:  # e.g. the reasoning ran out of tokens: a failed call, not cached
+    if not content and choice.get("finish_reason") == "length" and body.get("max_tokens"):
+        # The reasoning ran out of tokens (10 of ~800 calls at 16000): once more with twice the room,
+        # cached under the request as configured so a rescoring finds it.
+        r = httpx.post(url, json={**body, "max_tokens": 2 * int(body["max_tokens"])}, headers=headers, timeout=timeout)
+        r.raise_for_status()
+        choice = r.json()["choices"][0]
+        content = choice["message"].get("content") or ""
+    if not content:  # a failed call, not cached
         raise ValueError(f"empty judge reply (finish_reason {choice.get('finish_reason')})")
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
