@@ -1,5 +1,0 @@
-{
- "backend": "claude-cli",
- "model": "claude-opus-5-5",
- "version": "2.1.283"
-}
