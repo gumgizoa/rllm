@@ -38,6 +38,12 @@ class _ExecFailed(RuntimeError):
 # after ``container_reachable_url`` rewrites loopback addresses.
 _DOCKER_EXTRA_HOSTS = {"host.docker.internal": "host-gateway"}
 
+# Cap on processes + threads per sandbox. A fork bomb in agent-written code (a
+# daemon that respawns itself on every command) otherwise grows until the cgroup
+# OOMs and docker exec into it hangs. Normal SWE tasks peak around 900, so 4096
+# leaves headroom without letting one rollout exhaust the host's pid space.
+_DOCKER_PIDS_LIMIT = 4096
+
 
 class DockerSandbox:
     """Sandbox implementation using Docker containers.
@@ -71,6 +77,7 @@ class DockerSandbox:
             "detach": True,
             "remove": False,
             "extra_hosts": _DOCKER_EXTRA_HOSTS,
+            "pids_limit": _DOCKER_PIDS_LIMIT,
         }
         if mounts:
             run_kwargs["mounts"] = mounts
