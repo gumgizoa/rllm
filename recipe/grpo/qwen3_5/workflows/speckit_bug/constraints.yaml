@@ -1,0 +1,3473 @@
+# Constraints of speckit_bug: one per rubric item (same id), with the template that judges it.
+# Maintained by hand; the rubric implements them, workflow_rubric checks the two stay in step
+# (sdlc_if/constraints.py, which also documents the fields).
+schema: sdlc_if.constraints/1
+workflow: speckit_bug
+role: train
+templates: ../../sdlc_if/templates.yaml
+rubric: reward/rubric.yaml
+constraints:
+- id: speckit_bug.assess.assessment.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: assess writes BUG_DIR/assessment.md (AS:3, AS:50; CW:11)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: '| 1. Assess | `/speckit/stages/01-assess.md` | `assessment.md` |'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.proposed_remediation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Proposed Remediation' heading (AS:86; CW:50-51)
+  source:
+    doc: AS
+    lines: [86, 86]
+    quote: '## Proposed Remediation'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.report_verbatim_or_summarized
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Report (verbatim or summarized)' heading (AS:61; CW:50-51)
+  source:
+    doc: AS
+    lines: [61, 61]
+    quote: '## Report (verbatim or summarized)'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.reproduction
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Reproduction' heading (AS:69; CW:50-51)
+  source:
+    doc: AS
+    lines: [69, 69]
+    quote: '## Reproduction'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.risks_considerations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Risks & Considerations' heading (AS:99; CW:50-51)
+  source:
+    doc: AS
+    lines: [99, 99]
+    quote: '## Risks & Considerations'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.root_cause_hypothesis
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Root Cause Hypothesis' heading (AS:82; CW:50-51)
+  source:
+    doc: AS
+    lines: [82, 82]
+    quote: '## Root Cause Hypothesis'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.suspected_code_paths
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Suspected Code Paths' heading (AS:77; CW:50-51)
+  source:
+    doc: AS
+    lines: [77, 77]
+    quote: '## Suspected Code Paths'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.symptom
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Symptom' heading (AS:65; CW:50-51)
+  source:
+    doc: AS
+    lines: [65, 65]
+    quote: '## Symptom'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.section_present.open_questions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the assessment skeleton's '## Open Questions' heading (AS:104; CW:50-51)
+  source:
+    doc: AS
+    lines: [104, 104]
+    quote: '## Open Questions'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.label_present.checks_to_run
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '''**Checks to run**:'' label under Proposed Remediation (AS:96; CW:50-51)'
+  source:
+    doc: AS
+    lines: [96, 96]
+    quote: '**Checks to run**:'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.label_present.files_likely_to_change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '''**Files likely to change**:'' label under Proposed Remediation (AS:93; CW:50-51)'
+  source:
+    doc: AS
+    lines: [93, 93]
+    quote: '**Files likely to change**:'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.label_present.preferred
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '''**Preferred**:'' label under Proposed Remediation (AS:88; CW:50-51)'
+  source:
+    doc: AS
+    lines: [88, 88]
+    quote: '**Preferred**: <one or two paragraphs describing the change.>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.field_enum.verdict
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Verdict is one of valid | likely valid, needs reproduction (AS:58, AS:37-39)
+  source:
+    doc: AS
+    lines: [58, 58]
+    quote: '- **Verdict**: valid | likely valid, needs reproduction'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.field_enum.severity
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Severity is one of critical | high | medium | low (AS:59, AS:40)
+  source:
+    doc: AS
+    lines: [59, 59]
+    quote: '- **Severity**: critical | high | medium | low'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.field_filled.preferred
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Preferred states one preferred fix (AS:43, AS:88)
+  source:
+    doc: AS
+    lines: [88, 88]
+    quote: '**Preferred**: <one or two paragraphs describing the change.>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.field_filled.reproduction
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Reproduction lists concrete steps if discoverable, unknowns marked [NEEDS CLARIFICATION] (AS:30, AS:71-75)
+  source:
+    doc: AS
+    lines: [71, 71]
+    quote: 1. <step>
+  fidelity: broader
+  fidelity_note: 'a Reproduction made only of ''[NEEDS CLARIFICATION: ...]'' marks is read as placeholder (markdown.is_placeholder
+    takes a line of [..] groups for a stand-in) and fails, although AS:30/AS:75 allow marking unknowns when no step is discoverable;
+    conflict #5''s ''a mark with a question is content'' was applied to Open Questions only'
+- id: speckit_bug.assess.assessment.field_filled.risks_considerations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Risks & Considerations lists risks (AS:46, AS:101-102)
+  source:
+    doc: AS
+    lines: [101, 101]
+    quote: '- <risk>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.field_filled.root_cause_hypothesis
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Root Cause Hypothesis is one paragraph stating confidence high/medium/low (AS:84)
+  source:
+    doc: AS
+    lines: [84, 84]
+    quote: '<One paragraph. State confidence: high / medium / low.>'
+  fidelity: narrower
+  fidelity_note: non-empty only; the confidence statement is not checked
+- id: speckit_bug.assess.assessment.field_filled.symptom
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Symptom describes observed vs expected behaviour (AS:67, AS:29)
+  source:
+    doc: AS
+    lines: [67, 67]
+    quote: <One or two sentences describing the observed behavior and the expected behavior.>
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.open_questions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Open Questions holds its [NEEDS CLARIFICATION: ...] entries or a none, not left empty (AS:104-106, AS:30)'
+  source:
+    doc: AS
+    lines: [106, 106]
+    quote: '- [NEEDS CLARIFICATION: …]'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.remediation_lists
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: Proposed Remediation identifies the files to change and the checks to run (AS:44-45, AS:93-97)
+  source:
+    doc: AS
+    lines: [93, 97]
+    quote: '**Files likely to change**: - `path/to/file.py` **Checks to run**: - <reproduction script under BUG_DIR/checks/,
+      or an existing repository test to run>'
+  fidelity: narrower
+  fidelity_note: '>=2 list items naming a path or code span anywhere in the section: two files and no check (or Alternatives
+    entries) pass; the two lists are not checked separately'
+- id: speckit_bug.assess.assessment.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Assessment: <short title>'' (AS:53; CW:50-51)'
+  source:
+    doc: AS
+    lines: [53, 53]
+    quote: '# Bug Assessment: <short title>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.created
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Created holds an ISO 8601 date (AS:56)
+  source:
+    doc: AS
+    lines: [56, 56]
+    quote: '- **Created**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.suspected_code_paths
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: Suspected Code Paths lists '`path` — why' entries (AS:79-80, AS:34)
+  source:
+    doc: AS
+    lines: [79, 79]
+    quote: '- `path/to/file.py:42` — <why>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Created**:' kept (AS:56; CW:50-51)
+  source:
+    doc: AS
+    lines: [56, 56]
+    quote: '- **Created**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Severity**:' kept (AS:59; CW:50-51)
+  source:
+    doc: AS
+    lines: [59, 59]
+    quote: '- **Severity**: critical | high | medium | low'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (AS:55; CW:50-51)
+  source:
+    doc: AS
+    lines: [55, 55]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Source**:' kept (AS:57; CW:50-51)
+  source:
+    doc: AS
+    lines: [57, 57]
+    quote: '- **Source**: task issue description'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Verdict**:' kept (AS:58; CW:50-51)
+  source:
+    doc: AS
+    lines: [58, 58]
+    quote: '- **Verdict**: valid | likely valid, needs reproduction'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, AS:53 skeleton)
+  source:
+    doc: AS
+    lines: [53, 53]
+    quote: '# Bug Assessment: <short title>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the assessment (AS:53-106; CW:50-51)
+  source:
+    doc: AS
+    lines: [53, 53]
+    quote: '# Bug Assessment: <short title>'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: assessment.md written once, never rewritten or edited later (CW:47, AS:14, AS:118, FX:105)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.speckit_bug_links.report
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: issue links recorded under Report, each marked [UNVERIFIED — not fetched] (AS:19-20, AS:63)
+  source:
+    doc: AS
+    lines: [19, 20]
+    quote: Record each link verbatim in `assessment.md` under **Report**, marked `[UNVERIFIED — not fetched]`.
+  fidelity: faithful
+- id: speckit_bug.assess.assessment.unimplemented
+  template: T-RF1
+  status: unimplemented
+  requirement: must
+  rule: capture the issue text verbatim so it can be quoted (AS:26)
+  source:
+    doc: AS
+    lines: [26, 26]
+    quote: Capture the verbatim issue text so it can be quoted in the report.
+  class: candidate
+  class_note: 'compare the Report section with the task''s <issue_description> text (quote overlap); needs the issue text
+    passed to the engine, which the Run lacks (conflict #3)'
+- id: speckit_bug.assess.assessment.unimplemented.2
+  template: T-FM3
+  status: unimplemented
+  requirement: must
+  rule: 'Symptom in one or two sentences: what happens, what was expected, under which conditions (AS:29)'
+  source:
+    doc: AS
+    lines: [29, 29]
+    quote: 'Reproduce the bug in one or two sentences: what happens, what was expected, under which conditions.'
+  class: candidate
+  class_note: count sentences of the Symptom section (<=2); coverage of what/expected/conditions stays vague
+- id: speckit_bug.assess.run.doc_read.as
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 01-assess.md as the first step of the assess stage (CW:15, INS:5-6, SP:67-68)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the assess window counts; 'as the first step' is not
+    checked. single_doc adds the one-at-a-time part (T-RD3)
+- id: speckit_bug.assess.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: no repository write during assessment (AS:116, CW:54)
+  source:
+    doc: AS
+    lines: [116, 116]
+    quote: '- Never modify source files during assessment — this stage only reads and writes inside `/tmp/speckit/bugs/issue/`.'
+  fidelity: narrower
+  fidelity_note: repository writes only; AS:116's 'only ... writes inside /tmp/speckit/bugs/issue/' (writes elsewhere outside
+    the repo) is not checked
+- id: speckit_bug.assess.unimplemented.unimplemented
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: ensure BUG_DIR /tmp/speckit/bugs/issue/ exists (AS:13)
+  source:
+    doc: AS
+    lines: [13, 13]
+    quote: Ensure the directory `/tmp/speckit/bugs/issue/` (i.e., `BUG_DIR`) exists, creating it (including any missing parents)
+      if necessary.
+  class: duplicate
+  class_note: assessment.md existing at its fixed location implies the directory
+- id: speckit_bug.assess.unimplemented.unimplemented.2
+  template: T-RD5
+  status: unimplemented
+  requirement: should
+  rule: search the codebase for the symbols, paths, messages the report mentions (AS:33)
+  source:
+    doc: AS
+    lines: [33, 33]
+    quote: Search the codebase for the relevant symbols, file paths, error messages, log strings, route names, or component
+      identifiers mentioned in the report.
+  class: candidate
+  class_note: a search/read of base-repository files (grep/rg/find or an editor view) in the assess window before the assessment
+    write
+- id: speckit_bug.assess.unimplemented.unimplemented.3
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: list candidate files / functions / lines with brief justifications (AS:34)
+  source:
+    doc: AS
+    lines: [34, 34]
+    quote: List the candidate files / functions / lines with brief justifications.
+  class: duplicate
+- id: speckit_bug.assess.unimplemented.unimplemented.4
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: create BUG_DIR with `mkdir -p` before the first write (CW:44)
+  source:
+    doc: CW
+    lines: [44, 44]
+    quote: Create it with `mkdir -p` before the first write.
+  class: duplicate
+  class_note: the directory's existence is implied by the assessment's existence; the mechanism itself is contradicted by
+    AS:13
+- id: speckit_bug.assess.unimplemented.unimplemented.5
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: do not stop after the assessment (AS:111)
+  source:
+    doc: AS
+    lines: [111, 111]
+    quote: Do not stop here
+  class: duplicate
+  class_note: 'a run that stops fails the next report''s existence gate (conflict #8 resolution)'
+- id: speckit_bug.assess.unimplemented.unimplemented.6
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: do not report to the user after the assessment (AS:111)
+  source:
+    doc: AS
+    lines: [111, 111]
+    quote: 'do not report to the user: nobody is waiting for a report'
+  class: duplicate
+  class_note: in a headless run a reply ends the episode, failing the next report's existence gate
+- id: speckit_bug.assess.unimplemented.unimplemented.7
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: once assessment.md is written, read 02-fix.md (AS:111-112)
+  source:
+    doc: AS
+    lines: [111, 112]
+    quote: Once `assessment.md` is written, read `/speckit/stages/02-fix.md`
+  class: duplicate
+  class_note: chain pair write:assessment -> read:FX
+- id: speckit_bug.assess.unimplemented.unimplemented.8
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: begin the fix stage (round 1) after the assessment (AS:112)
+  source:
+    doc: AS
+    lines: [112, 112]
+    quote: begin the fix stage (round 1)
+  class: duplicate
+- id: speckit_bug.fix.fix.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its fix report: fix.md, then fix-2.md / fix-3.md when the previous verification Result is partial
+    or failed (CW:21-23, CW:26-27, FX:46)'
+  source:
+    doc: CW
+    lines: [21, 21]
+    quote: 'Round 1: `fix.md`, then `test.md`.'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Follow-ups' heading (FX:92; CW:50-51)
+  source:
+    doc: FX
+    lines: [92, 92]
+    quote: '## Follow-ups'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
+  source:
+    doc: FX
+    lines: [83, 83]
+    quote: '## Local Verification'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Summary' heading (FX:58; CW:50-51)
+  source:
+    doc: FX
+    lines: [58, 58]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'keep the fix report''s ''## Baseline: Existing Tests'' heading (FX:78; CW:50-51)'
+  source:
+    doc: FX
+    lines: [78, 78]
+    quote: '## Baseline: Existing Tests'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.changes
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Changes' heading (FX:62; CW:50-51)
+  source:
+    doc: FX
+    lines: [62, 62]
+    quote: '## Changes'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Checks Added' heading (FX:72; CW:50-51)
+  source:
+    doc: FX
+    lines: [72, 72]
+    quote: '## Checks Added'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.section_present.deviations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Deviations from Assessment' heading; its body may be empty (FX:88-90; CW:50-51)
+  source:
+    doc: FX
+    lines: [88, 88]
+    quote: '## Deviations from Assessment'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.label_present.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Test files:' line of the fix template (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.label_present.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Commands run:' line of the fix template (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.label_present.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Manual checks:' line of the fix template (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_literal.changes
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Changes table header '| File | Change | Notes |' (FX:64)
+  source:
+    doc: FX
+    lines: [64, 64]
+    quote: '| File | Change | Notes |'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_literal.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Added table header (FX:74)
+  source:
+    doc: FX
+    lines: [74, 74]
+    quote: '| Check | What it pins down | Before the change | After the change |'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (FX:54, FX:8-14)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_enum.previous_verification
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Previous verification names the report this round answers: none | ./test.md | ./test-2.md (FX:55, FX:10-14)'
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_enum.status
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Status is one of applied | partial | not-applied (FX:56)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_filled.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test files line filled (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_filled.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Follow-ups filled (FX:94)
+  source:
+    doc: FX
+    lines: [94, 94]
+    quote: '- <suggested cleanup, monitoring, doc update, etc.>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_filled.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Commands run line filled (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_filled.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Manual checks line filled, 'if anything' (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (FX:60)
+  source:
+    doc: FX
+    lines: [60, 60]
+    quote: <One or two sentences describing what was changed and why.>
+  fidelity: faithful
+- id: speckit_bug.fix.fix.field_type.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Local Verification records the commands run and their result (FX:85, FX:41)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: narrower
+  fidelity_note: only that some recorded command (the value, a line or a code span of it) was run in this round's fix window;
+    the recorded result is not checked and further recorded commands need not have run
+- id: speckit_bug.fix.fix.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Fix: <short title>'' (FX:49; CW:50-51)'
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.fixed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fixed holds an ISO 8601 date (FX:52)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.baseline_existing_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'baseline line records ''`<command>` before the change: <N passed, M failed>; after the change: <same, ...>'' (FX:81)'
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.changes
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: Changes table has rows '| file | change | note |' (FX:66)
+  source:
+    doc: FX
+    lines: [66, 66]
+    quote: '| `path/to/file.py` | <added / modified / removed> | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.checks_added
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: 'Checks Added has rows whose Before column reads ''fail: <output>'' (FX:76, FX:32)'
+  source:
+    doc: FX
+    lines: [76, 76]
+    quote: '| `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''- Commands run: `<command>` → <result>'' line format (FX:85)'
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (FX:53; CW:50-51)
+  source:
+    doc: FX
+    lines: [53, 53]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fixed**:' kept (FX:52; CW:50-51)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Previous verification**:' kept (FX:55; CW:50-51)
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (FX:54; CW:50-51)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (FX:51; CW:50-51)
+  source:
+    doc: FX
+    lines: [51, 51]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Status**:' kept (FX:56; CW:50-51)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, FX:49 skeleton)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the fix report (FX:49-94; CW:50-51)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each fix report written once; never rewrite an earlier round's fix report (CW:47, FX:19, FX:107)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.fix.fix.speckit_bug_checks_added.before_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each check written before the change is run on the unchanged code and must fail; Checks Added records 'fail' before
+    the change (FX:32, FX:74-76)
+  source:
+    doc: FX
+    lines: [74, 76]
+    quote: '| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example
+      / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: narrower
+  fidelity_note: a 'fail' claim is credited when the trace ran that script after its last write and before the round's first
+    repository edit; whether it actually failed is not judged
+- id: speckit_bug.fix.fix.speckit_bug_checks_added.baseline_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: run the existing tests of the files to change before the edit and record the result as the baseline (FX:33, FX:81)
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: narrower
+  fidelity_note: one recorded code-span command must be a valid test run before the round's first edit; the counts (N passed,
+    M failed), the scope (tests of the files to change) and the 'after the change' half are not checked
+- id: speckit_bug.fix.run.doc_read.fx
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 02-fix.md as the first step of each fix round (CW:15, INS:5-6, SP:67-68; TS:97 'read ... again')
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's fix window counts; position 'first step'
+    is only partly covered by [87]
+- id: speckit_bug.fix.run.exec_evidence.baseline
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: find and run the existing tests for the files to change before editing any code, keep the result as the baseline (FX:33,
+    FX:30)
+  source:
+    doc: FX
+    lines: [33, 33]
+    quote: Find the existing repository tests for each file you will change (test files named after it, or test files that
+      import it), run them, and keep the result as the baseline.
+  fidelity: narrower
+  fidelity_note: any valid base-repo test run from step 1 up to round 1's first repository edit counts (an assess-stage run
+    included); the selection 'tests for each file you will change' is not checked
+- id: speckit_bug.fix.run.exec_evidence.local_tests
+  template: T-AW3
+  status: implemented
+  requirement: should
+  rule: run the tests that exercise the changed paths after the change (FX:41)
+  source:
+    doc: FX
+    lines: [41, 41]
+    quote: '- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise
+      the changed paths.'
+  fidelity: narrower
+  fidelity_note: window is the whole fix stage, so the pre-edit baseline run of [85] already satisfies it; neither 'after
+    the change' nor 'exercise the changed paths' is checked
+- id: speckit_bug.fix.run.prohibited_action.edit_before_doc
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: no repository edit in a fix round before its stage document is read (CW:15, INS:5-6)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: when 02-fix.md is never read in the round the window is empty and the item passes (the doc_read item [84]
+    fails instead)
+- id: speckit_bug.fix.unimplemented.unimplemented
+  template: T-RD2
+  status: unimplemented
+  requirement: should
+  rule: the fix stage reads 02-fix.md and writes fix.md / fix-2.md / fix-3.md (CW:12)
+  source:
+    doc: CW
+    lines: [12, 12]
+    quote: '| 2. Fix | `/speckit/stages/02-fix.md` | `fix.md`, then `fix-2.md`, `fix-3.md` |'
+  class: duplicate
+- id: speckit_bug.fix.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: if assessment.md does not exist, carry out the assessment first (FX:18)
+  source:
+    doc: FX
+    lines: [18, 18]
+    quote: 'If it does not, the assessment stage has not run: carry it out first (`/speckit/stages/01-assess.md`).'
+  class: duplicate
+  class_note: write:assessment precedes read:FX / write:fix in the chain
+- id: speckit_bug.fix.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md in full; in rounds 2-3 also the previous fix and verification reports (FX:20-21)
+  source:
+    doc: FX
+    lines: [20, 20]
+    quote: '- Read `BUG_DIR/assessment.md` in full.'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path in the window counts (grep,
+    head, tail included)'
+- id: speckit_bug.fix.run.speckit_bug_check_scripts.before_change
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: before editing any code, run each check on the code as it is; it must fail (FX:30-32; FX:34 for later rounds)
+  source:
+    doc: FX
+    lines: [30, 30]
+    quote: '**Before editing any code**, set up what will judge the fix and run it on the code as it is:'
+  fidelity: narrower
+  fidelity_note: 'only that each check script was executed after its last write and before the round''s first repository edit;
+    the failure is not judged. Edge (broader): in round 1 a script first written under checks/ after the edit, still in the
+    fix stage, also fails'
+- id: speckit_bug.fix.run.speckit_bug_check_scripts.written
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: copy every issue example verbatim into a check script under BUG_DIR/checks/ and script the reproduction (FX:31, CW:52)
+  source:
+    doc: FX
+    lines: [31, 31]
+    quote: Copy every example the issue gives (a code snippet, a command, an input with its expected output) verbatim into
+      a check script under `BUG_DIR/checks/`, and script the assessment's reproduction too.
+  fidelity: narrower
+  fidelity_note: any file written under checks/ in the round-1 fix window passes (a data file too); 'every example', 'verbatim'
+    and the scripted reproduction are not checked
+- id: speckit_bug.fix.checks_run_after_change.speckit_bug_check_scripts
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: the checks written before the change have to pass after it (FX:36)
+  source:
+    doc: FX
+    lines: [36, 36]
+    quote: the change has to make them pass.
+  fidelity: narrower
+  fidelity_note: one check script written in the fix window executed after the first base-file edit (not the last) and before
+    the end of the fix stage; whether it passes is not checked
+- id: speckit_bug.fix.run.speckit_bug_check_scripts.unchanged
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: the checks written before the change stay as they are (FX:36)
+  source:
+    doc: FX
+    lines: [36, 36]
+    quote: The checks written before the change stay as they are; the change has to make them pass.
+  fidelity: faithful
+- id: speckit_bug.fix.unimplemented.unimplemented.3
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: do not edit assessment.md (FX:38)
+  source:
+    doc: FX
+    lines: [38, 38]
+    quote: Do not edit `assessment.md`.
+  class: duplicate
+- id: speckit_bug.fix.test_suites.unimplemented
+  template: T-PR6
+  status: unimplemented
+  requirement: must
+  rule: do not run destructive or network-dependent suites (FX:42)
+  source:
+    doc: FX
+    lines: [42, 42]
+    quote: Do not run destructive or network-dependent suites.
+  class: vague
+  class_note: whether a suite is destructive or network-dependent is not decidable from the trace
+- id: speckit_bug.fix.unimplemented.unimplemented.4
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: a later stage that corrects an earlier one records it in its own report (Deviations from Assessment) instead of rewriting
+    it (CW:47-49)
+  source:
+    doc: CW
+    lines: [47, 49]
+    quote: a later stage that corrects an earlier one records it in its own report (the fix report's **Deviations from Assessment**).
+  class: candidate
+  class_note: 'proxy: when the fix report''s Changes names a file outside the assessment''s ''Files likely to change'', require
+    a non-empty Deviations from Assessment (also FX:35 ''log the expansion explicitly''); the no-rewrite half is the once
+    items'
+- id: speckit_bug.fix.writes_outside_repository.unimplemented
+  template: T-WD3
+  status: unimplemented
+  requirement: must
+  rule: never modify files outside the repository except the workflow's reports and checks in BUG_DIR (FX:104)
+  source:
+    doc: FX
+    lines: [104, 104]
+    quote: Never modify files outside the repository, except this workflow's reports and checks in `BUG_DIR`.
+  class: candidate
+  class_note: no successful write (facts.writes) in the fix window to a path outside the workdir and outside BUG_DIR
+- id: speckit_bug.fix.file_deletion.unimplemented
+  template: T-TR2
+  status: unimplemented
+  requirement: must
+  rule: never delete files unless the assessment explicitly required it (FX:106)
+  source:
+    doc: FX
+    lines: [106, 106]
+    quote: Never delete files unless the assessment explicitly required it.
+  class: candidate
+  class_note: no delete of a base-repo file in the fix window unless its path appears in the assessment's Files likely to
+    change / Proposed Remediation
+- id: speckit_bug.test.test.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its verification report: test.md, test-2.md / test-3.md when that round is due (CW:21-23, TS:50,
+    FX:100)'
+  source:
+    doc: CW
+    lines: [21, 21]
+    quote: 'Round 1: `fix.md`, then `test.md`.'
+  fidelity: faithful
+- id: speckit_bug.test.test.section_present.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Output Excerpts' heading (TS:75; CW:50-51)
+  source:
+    doc: TS
+    lines: [75, 75]
+    quote: '## Output Excerpts'
+  fidelity: faithful
+- id: speckit_bug.test.test.section_present.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Recommendation' heading (TS:83; CW:50-51)
+  source:
+    doc: TS
+    lines: [83, 83]
+    quote: '## Recommendation'
+  fidelity: faithful
+- id: speckit_bug.test.test.section_present.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Residual Risks' heading (TS:79; CW:50-51)
+  source:
+    doc: TS
+    lines: [79, 79]
+    quote: '## Residual Risks'
+  fidelity: faithful
+- id: speckit_bug.test.test.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Summary' heading (TS:62; CW:50-51)
+  source:
+    doc: TS
+    lines: [62, 62]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.test.test.section_present.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Checks Performed' heading (TS:66; CW:50-51)
+  source:
+    doc: TS
+    lines: [66, 66]
+    quote: '## Checks Performed'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_literal.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed table header (TS:68)
+  source:
+    doc: TS
+    lines: [68, 68]
+    quote: '| Check | Command / Action | Result | Notes |'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (TS:59, TS:8-14)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_enum.fix
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fix names this round's fix report (TS:58, TS:10-14)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_enum.result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Result is one of verified | partial | failed (TS:60, TS:42-45)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_filled.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Output Excerpts filled (TS:77)
+  source:
+    doc: TS
+    lines: [77, 77]
+    quote: <Short snippets of relevant output (e.g., final summary line of a test run, the failing assertion). Keep it tight
+      — no full logs.>
+  fidelity: faithful
+- id: speckit_bug.test.test.field_filled.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Recommendation filled (TS:85)
+  source:
+    doc: TS
+    lines: [85, 85]
+    quote: <One paragraph. Examples:>
+  fidelity: faithful
+- id: speckit_bug.test.test.field_filled.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Residual Risks filled (TS:81)
+  source:
+    doc: TS
+    lines: [81, 81]
+    quote: '- <known limitation, environment not covered, etc.>'
+  fidelity: faithful
+- id: speckit_bug.test.test.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (TS:64)
+  source:
+    doc: TS
+    lines: [64, 64]
+    quote: '<One or two sentences: does the bug reproduce, did the fix hold, were any regressions found.>'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Verification: <short title>'' (TS:53; CW:50-51)'
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.tested
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Tested holds an ISO 8601 date (TS:56)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Reproduction (post-fix)' row (TS:70)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.checks_performed.2
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Checks from the fix' row (TS:71)
+  source:
+    doc: TS
+    lines: [71, 71]
+    quote: '| Checks from the fix | `<command>` | pass / fail | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.checks_performed.3
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Regression suite' row (TS:72)
+  source:
+    doc: TS
+    lines: [72, 72]
+    quote: '| Regression suite | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.checks_performed.4
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Lint / type-check' row (TS:73)
+  source:
+    doc: TS
+    lines: [73, 73]
+    quote: '| Lint / type-check | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (TS:57; CW:50-51)
+  source:
+    doc: TS
+    lines: [57, 57]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fix**:' kept (TS:58; CW:50-51)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Result**:' kept (TS:60; CW:50-51)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (TS:59; CW:50-51)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (TS:55; CW:50-51)
+  source:
+    doc: TS
+    lines: [55, 55]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.test.test.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Tested**:' kept (TS:56; CW:50-51)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test.test.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, TS:53 skeleton)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test.test.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the verification report (TS:53-88; CW:50-51)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test.test.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each verification report written once; never rewrite an earlier round's (CW:47, TS:20, TS:105)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.test.test.speckit_bug_checks_table.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Checks Performed records the command actually executed for each check; no fabricated result (TS:37, TS:39)
+  source:
+    doc: TS
+    lines: [37, 37]
+    quote: Execute each planned check. Capture command, exit status, and a short excerpt of relevant output
+  fidelity: faithful
+- id: speckit_bug.test.test.speckit_bug_checks_table.results
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every Checks Performed row has one result value pass / fail / skipped / not-run (TS:70-73, TS:38-39)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test.test.speckit_bug_checks_table.test_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: the recorded checks include a real run of the repository's tests for the changed modules (TS:38, TS:72, TS:46)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: some pass/fail row's code-span command is a valid test run after the round's last repository edit; 'for the
+    changed modules' is not checked
+- id: speckit_bug.test.test.speckit_bug_checks_table.consistent
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when no check fails (TS:43, TS:45)
+  source:
+    doc: TS
+    lines: [43, 43]
+    quote: '- **verified** — only when all three hold: every check in the fix report passes now after failing before the change;
+      every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
+      new failure.'
+  fidelity: broader
+  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
+    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
+    this rule does not)
+- id: speckit_bug.test.test.speckit_bug_checks_table.unrun
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when the reproduction, the issue's examples and the fix's checks were all run; otherwise partial (TS:44,
+    TS:106)
+  source:
+    doc: TS
+    lines: [44, 44]
+    quote: '- **partial** — none of those fails, but one of them was not run or is inconclusive.'
+  fidelity: narrower
+  fidelity_note: a skipped / not-run 'Regression suite' row under verified is not penalized (the row filter matches reproduction
+    / checks / example / symptom / issue only), although TS:43-44 make the baseline tests one of the three verified conditions
+- id: speckit_bug.test.run.doc_read.ts
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 03-test.md as the first step of each test round (CW:15, INS:5-6, SP:67-68, FX:99-100)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's test window counts; 'first step' is not checked
+- id: speckit_bug.test.run.exec_evidence.tests
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the existing test suites for the changed modules in the test stage (TS:33, TS:37-38)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: any valid base-repo test run in the test window counts; the scope (changed modules) is not checked
+- id: speckit_bug.test.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: the test stage must not modify source code (TS:104, CW:54)
+  source:
+    doc: TS
+    lines: [104, 104]
+    quote: '- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`.'
+  fidelity: narrower
+  fidelity_note: repository writes only; TS:104's 'only ... writes inside /tmp/speckit/bugs/issue/' (writes elsewhere outside
+    the repo) is not checked
+- id: speckit_bug.test.unimplemented.unimplemented
+  template: T-RD2
+  status: unimplemented
+  requirement: should
+  rule: test stage reads 03-test.md and writes test.md / test-2.md / test-3.md (CW:13)
+  source:
+    doc: CW
+    lines: [13, 13]
+    quote: '| 3. Test | `/speckit/stages/03-test.md` | `test.md`, then `test-2.md`, `test-3.md` |'
+  class: duplicate
+- id: speckit_bug.test.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: the test stage runs only after this round's fix report exists (TS:19)
+  source:
+    doc: TS
+    lines: [19, 19]
+    quote: This round's fix report MUST exist. If not, carry out this round's fix stage first
+  class: duplicate
+- id: speckit_bug.test.unimplemented.unimplemented.3
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: read assessment.md and this round's fix report in full (TS:21-23)
+  source:
+    doc: TS
+    lines: [21, 23]
+    quote: 'Read both `assessment.md` and this round''s fix report in full so you know: ... The original symptom and reproduction
+      steps ... The actual code changes and checks added'
+  class: duplicate
+- id: speckit_bug.test.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md and this round's fix report in full (TS:21)
+  source:
+    doc: TS
+    lines: [21, 21]
+    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path counts (grep, head, tail included)'
+- id: speckit_bug.test.run.speckit_bug_check_scripts.run
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the checks added in the fix (TS:30, TS:37)
+  source:
+    doc: TS
+    lines: [30, 30]
+    quote: '- Run the checks added in the fix.'
+  fidelity: narrower
+  fidelity_note: one check script under BUG_DIR/checks/ (written up to this round's fix report) executed in the test window
+    suffices; the checks are selected by directory, not by the fix report's Checks Added list
+- id: speckit_bug.test.unimplemented.unimplemented.4
+  template: T-AW3
+  status: unimplemented
+  requirement: should
+  rule: run any broader regression suite that touches the changed files (TS:31)
+  source:
+    doc: TS
+    lines: [31, 31]
+    quote: Run any broader regression suite that touches the changed files.
+  class: duplicate
+  class_note: 'partial duplicate: any valid repo test run in the test window; ''broader'' is not distinguished'
+- id: speckit_bug.test.unimplemented.unimplemented.5
+  template: T-AW3
+  status: unimplemented
+  requirement: should
+  rule: existing test suites for the changed modules prove nothing was broken (TS:32-33)
+  source:
+    doc: TS
+    lines: [32, 33]
+    quote: 'Decide which checks prove nothing was broken: - Existing test suites for the changed modules.'
+  class: duplicate
+- id: speckit_bug.test.unimplemented.unimplemented.6
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: never rewrite an earlier round's verification report (TS:105)
+  source:
+    doc: TS
+    lines: [105, 105]
+    quote: Never rewrite an earlier round's verification report.
+  class: duplicate
+- id: speckit_bug.fix_2.fix_2.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its fix report: fix.md, then fix-2.md / fix-3.md when the previous verification Result is partial
+    or failed (CW:21-23, CW:26-27, FX:46)'
+  source:
+    doc: CW
+    lines: [26, 27]
+    quote: '`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence.'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Follow-ups' heading (FX:92; CW:50-51)
+  source:
+    doc: FX
+    lines: [92, 92]
+    quote: '## Follow-ups'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
+  source:
+    doc: FX
+    lines: [83, 83]
+    quote: '## Local Verification'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Summary' heading (FX:58; CW:50-51)
+  source:
+    doc: FX
+    lines: [58, 58]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'keep the fix report''s ''## Baseline: Existing Tests'' heading (FX:78; CW:50-51)'
+  source:
+    doc: FX
+    lines: [78, 78]
+    quote: '## Baseline: Existing Tests'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.changes
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Changes' heading (FX:62; CW:50-51)
+  source:
+    doc: FX
+    lines: [62, 62]
+    quote: '## Changes'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Checks Added' heading (FX:72; CW:50-51)
+  source:
+    doc: FX
+    lines: [72, 72]
+    quote: '## Checks Added'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.section_present.deviations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Deviations from Assessment' heading; its body may be empty (FX:88-90; CW:50-51)
+  source:
+    doc: FX
+    lines: [88, 88]
+    quote: '## Deviations from Assessment'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.label_present.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Test files:' line of the fix template (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.label_present.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Commands run:' line of the fix template (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.label_present.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Manual checks:' line of the fix template (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_literal.changes
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Changes table header '| File | Change | Notes |' (FX:64)
+  source:
+    doc: FX
+    lines: [64, 64]
+    quote: '| File | Change | Notes |'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_literal.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Added table header (FX:74)
+  source:
+    doc: FX
+    lines: [74, 74]
+    quote: '| Check | What it pins down | Before the change | After the change |'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (FX:54, FX:8-14)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_enum.previous_verification
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Previous verification names the report this round answers: none | ./test.md | ./test-2.md (FX:55, FX:10-14)'
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_enum.status
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Status is one of applied | partial | not-applied (FX:56)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_filled.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test files line filled (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_filled.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Follow-ups filled (FX:94)
+  source:
+    doc: FX
+    lines: [94, 94]
+    quote: '- <suggested cleanup, monitoring, doc update, etc.>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_filled.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Commands run line filled (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_filled.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Manual checks line filled, 'if anything' (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (FX:60)
+  source:
+    doc: FX
+    lines: [60, 60]
+    quote: <One or two sentences describing what was changed and why.>
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.field_type.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Local Verification records the commands run and their result (FX:85, FX:41)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: narrower
+  fidelity_note: only that some recorded command (the value, a line or a code span of it) was run in this round's fix window;
+    the recorded result is not checked and further recorded commands need not have run
+- id: speckit_bug.fix_2.fix_2.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Fix: <short title>'' (FX:49; CW:50-51)'
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.fixed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fixed holds an ISO 8601 date (FX:52)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.baseline_existing_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'baseline line records ''`<command>` before the change: <N passed, M failed>; after the change: <same, ...>'' (FX:81)'
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.changes
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: Changes table has rows '| file | change | note |' (FX:66)
+  source:
+    doc: FX
+    lines: [66, 66]
+    quote: '| `path/to/file.py` | <added / modified / removed> | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.checks_added
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: 'Checks Added has rows whose Before column reads ''fail: <output>'' (FX:76, FX:32)'
+  source:
+    doc: FX
+    lines: [76, 76]
+    quote: '| `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''- Commands run: `<command>` → <result>'' line format (FX:85)'
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (FX:53; CW:50-51)
+  source:
+    doc: FX
+    lines: [53, 53]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fixed**:' kept (FX:52; CW:50-51)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Previous verification**:' kept (FX:55; CW:50-51)
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (FX:54; CW:50-51)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (FX:51; CW:50-51)
+  source:
+    doc: FX
+    lines: [51, 51]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Status**:' kept (FX:56; CW:50-51)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, FX:49 skeleton)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the fix report (FX:49-94; CW:50-51)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each fix report written once; never rewrite an earlier round's fix report (CW:47, FX:19, FX:107)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.fix_2.fix_2.speckit_bug_checks_added.before_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each check written before the change is run on the unchanged code and must fail; Checks Added records 'fail' before
+    the change (FX:32, FX:74-76)
+  source:
+    doc: FX
+    lines: [74, 76]
+    quote: '| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example
+      / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: narrower
+  fidelity_note: a 'fail' claim is credited when the trace ran that script after its last write and before the round's first
+    repository edit; whether it actually failed is not judged
+- id: speckit_bug.fix_2.fix_2.speckit_bug_checks_added.baseline_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: run the existing tests of the files to change before the edit and record the result as the baseline (FX:33, FX:81)
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: narrower
+  fidelity_note: one recorded code-span command must be a valid test run before the round's first edit; the counts (N passed,
+    M failed), the scope (tests of the files to change) and the 'after the change' half are not checked
+- id: speckit_bug.fix_2.run.doc_read.fx
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 02-fix.md as the first step of each fix round (CW:15, INS:5-6, SP:67-68; TS:97 'read ... again')
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's fix window counts; position 'first step'
+    is only partly covered by [87]
+- id: speckit_bug.fix_2.run.exec_evidence.local_tests
+  template: T-AW3
+  status: implemented
+  requirement: should
+  rule: run the tests that exercise the changed paths after the change (FX:41)
+  source:
+    doc: FX
+    lines: [41, 41]
+    quote: '- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise
+      the changed paths.'
+  fidelity: narrower
+  fidelity_note: window is the whole fix stage, so the pre-edit baseline run of [85] already satisfies it; neither 'after
+    the change' nor 'exercise the changed paths' is checked
+- id: speckit_bug.fix_2.run.prohibited_action.edit_before_doc
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: no repository edit in a fix round before its stage document is read (CW:15, INS:5-6)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: when 02-fix.md is never read in the round the window is empty and the item passes (the doc_read item [84]
+    fails instead)
+- id: speckit_bug.fix_2.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md in full; in rounds 2-3 also the previous fix and verification reports (FX:20-21)
+  source:
+    doc: FX
+    lines: [20, 20]
+    quote: '- Read `BUG_DIR/assessment.md` in full.'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path in the window counts (grep,
+    head, tail included)'
+- id: speckit_bug.fix_2.run.speckit_bug_check_scripts.before_change
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: before editing any code, run each check on the code as it is; it must fail (FX:30-32; FX:34 for later rounds)
+  source:
+    doc: FX
+    lines: [34, 34]
+    quote: In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before
+      this round's change.
+  fidelity: narrower
+  fidelity_note: 'only that each check script was executed after its last write and before the round''s first repository edit;
+    the failure is not judged. Edge (broader): in round 1 a script first written under checks/ after the edit, still in the
+    fix stage, also fails'
+- id: speckit_bug.fix_2.run.speckit_bug_check_scripts.unchanged
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: the checks written before the change stay as they are (FX:36)
+  source:
+    doc: FX
+    lines: [36, 36]
+    quote: The checks written before the change stay as they are; the change has to make them pass.
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its verification report: test.md, test-2.md / test-3.md when that round is due (CW:21-23, TS:50,
+    FX:100)'
+  source:
+    doc: CW
+    lines: [22, 22]
+    quote: 'Round 2: `fix-2.md`, then `test-2.md`.'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.section_present.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Output Excerpts' heading (TS:75; CW:50-51)
+  source:
+    doc: TS
+    lines: [75, 75]
+    quote: '## Output Excerpts'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.section_present.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Recommendation' heading (TS:83; CW:50-51)
+  source:
+    doc: TS
+    lines: [83, 83]
+    quote: '## Recommendation'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.section_present.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Residual Risks' heading (TS:79; CW:50-51)
+  source:
+    doc: TS
+    lines: [79, 79]
+    quote: '## Residual Risks'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Summary' heading (TS:62; CW:50-51)
+  source:
+    doc: TS
+    lines: [62, 62]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.section_present.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Checks Performed' heading (TS:66; CW:50-51)
+  source:
+    doc: TS
+    lines: [66, 66]
+    quote: '## Checks Performed'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_literal.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed table header (TS:68)
+  source:
+    doc: TS
+    lines: [68, 68]
+    quote: '| Check | Command / Action | Result | Notes |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (TS:59, TS:8-14)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_enum.fix
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fix names this round's fix report (TS:58, TS:10-14)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_enum.result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Result is one of verified | partial | failed (TS:60, TS:42-45)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_filled.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Output Excerpts filled (TS:77)
+  source:
+    doc: TS
+    lines: [77, 77]
+    quote: <Short snippets of relevant output (e.g., final summary line of a test run, the failing assertion). Keep it tight
+      — no full logs.>
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_filled.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Recommendation filled (TS:85)
+  source:
+    doc: TS
+    lines: [85, 85]
+    quote: <One paragraph. Examples:>
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_filled.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Residual Risks filled (TS:81)
+  source:
+    doc: TS
+    lines: [81, 81]
+    quote: '- <known limitation, environment not covered, etc.>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (TS:64)
+  source:
+    doc: TS
+    lines: [64, 64]
+    quote: '<One or two sentences: does the bug reproduce, did the fix hold, were any regressions found.>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Verification: <short title>'' (TS:53; CW:50-51)'
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.tested
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Tested holds an ISO 8601 date (TS:56)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Reproduction (post-fix)' row (TS:70)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.checks_performed.2
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Checks from the fix' row (TS:71)
+  source:
+    doc: TS
+    lines: [71, 71]
+    quote: '| Checks from the fix | `<command>` | pass / fail | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.checks_performed.3
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Regression suite' row (TS:72)
+  source:
+    doc: TS
+    lines: [72, 72]
+    quote: '| Regression suite | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.checks_performed.4
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Lint / type-check' row (TS:73)
+  source:
+    doc: TS
+    lines: [73, 73]
+    quote: '| Lint / type-check | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (TS:57; CW:50-51)
+  source:
+    doc: TS
+    lines: [57, 57]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fix**:' kept (TS:58; CW:50-51)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Result**:' kept (TS:60; CW:50-51)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (TS:59; CW:50-51)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (TS:55; CW:50-51)
+  source:
+    doc: TS
+    lines: [55, 55]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Tested**:' kept (TS:56; CW:50-51)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, TS:53 skeleton)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the verification report (TS:53-88; CW:50-51)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each verification report written once; never rewrite an earlier round's (CW:47, TS:20, TS:105)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.speckit_bug_checks_table.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Checks Performed records the command actually executed for each check; no fabricated result (TS:37, TS:39)
+  source:
+    doc: TS
+    lines: [37, 37]
+    quote: Execute each planned check. Capture command, exit status, and a short excerpt of relevant output
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.speckit_bug_checks_table.results
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every Checks Performed row has one result value pass / fail / skipped / not-run (TS:70-73, TS:38-39)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_2.test_2.speckit_bug_checks_table.test_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: the recorded checks include a real run of the repository's tests for the changed modules (TS:38, TS:72, TS:46)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: some pass/fail row's code-span command is a valid test run after the round's last repository edit; 'for the
+    changed modules' is not checked
+- id: speckit_bug.test_2.test_2.speckit_bug_checks_table.consistent
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when no check fails (TS:43, TS:45)
+  source:
+    doc: TS
+    lines: [43, 43]
+    quote: '- **verified** — only when all three hold: every check in the fix report passes now after failing before the change;
+      every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
+      new failure.'
+  fidelity: broader
+  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
+    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
+    this rule does not)
+- id: speckit_bug.test_2.test_2.speckit_bug_checks_table.unrun
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when the reproduction, the issue's examples and the fix's checks were all run; otherwise partial (TS:44,
+    TS:106)
+  source:
+    doc: TS
+    lines: [44, 44]
+    quote: '- **partial** — none of those fails, but one of them was not run or is inconclusive.'
+  fidelity: narrower
+  fidelity_note: a skipped / not-run 'Regression suite' row under verified is not penalized (the row filter matches reproduction
+    / checks / example / symptom / issue only), although TS:43-44 make the baseline tests one of the three verified conditions
+- id: speckit_bug.test_2.run.doc_read.ts
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 03-test.md as the first step of each test round (CW:15, INS:5-6, SP:67-68, FX:99-100)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's test window counts; 'first step' is not checked
+- id: speckit_bug.test_2.run.exec_evidence.tests
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the existing test suites for the changed modules in the test stage (TS:33, TS:37-38)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: any valid base-repo test run in the test window counts; the scope (changed modules) is not checked
+- id: speckit_bug.test_2.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: the test stage must not modify source code (TS:104, CW:54)
+  source:
+    doc: TS
+    lines: [104, 104]
+    quote: '- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`.'
+  fidelity: narrower
+  fidelity_note: repository writes only; TS:104's 'only ... writes inside /tmp/speckit/bugs/issue/' (writes elsewhere outside
+    the repo) is not checked
+- id: speckit_bug.test_2.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md and this round's fix report in full (TS:21)
+  source:
+    doc: TS
+    lines: [21, 21]
+    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path counts (grep, head, tail included)'
+- id: speckit_bug.test_2.run.speckit_bug_check_scripts.run
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the checks added in the fix (TS:30, TS:37)
+  source:
+    doc: TS
+    lines: [30, 30]
+    quote: '- Run the checks added in the fix.'
+  fidelity: narrower
+  fidelity_note: one check script under BUG_DIR/checks/ (written up to this round's fix report) executed in the test window
+    suffices; the checks are selected by directory, not by the fix report's Checks Added list
+- id: speckit_bug.fix_3.fix_3.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its fix report: fix.md, then fix-2.md / fix-3.md when the previous verification Result is partial
+    or failed (CW:21-23, CW:26-27, FX:46)'
+  source:
+    doc: CW
+    lines: [26, 27]
+    quote: '`partial` or `failed`, in round 1 or 2 — start the next round with the fix stage, using that report as new evidence.'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Follow-ups' heading (FX:92; CW:50-51)
+  source:
+    doc: FX
+    lines: [92, 92]
+    quote: '## Follow-ups'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
+  source:
+    doc: FX
+    lines: [83, 83]
+    quote: '## Local Verification'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Summary' heading (FX:58; CW:50-51)
+  source:
+    doc: FX
+    lines: [58, 58]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'keep the fix report''s ''## Baseline: Existing Tests'' heading (FX:78; CW:50-51)'
+  source:
+    doc: FX
+    lines: [78, 78]
+    quote: '## Baseline: Existing Tests'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.changes
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Changes' heading (FX:62; CW:50-51)
+  source:
+    doc: FX
+    lines: [62, 62]
+    quote: '## Changes'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the fix report's '## Checks Added' heading (FX:72; CW:50-51)
+  source:
+    doc: FX
+    lines: [72, 72]
+    quote: '## Checks Added'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.section_present.deviations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Deviations from Assessment' heading; its body may be empty (FX:88-90; CW:50-51)
+  source:
+    doc: FX
+    lines: [88, 88]
+    quote: '## Deviations from Assessment'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.label_present.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Test files:' line of the fix template (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.label_present.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Commands run:' line of the fix template (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.label_present.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: plain '- Manual checks:' line of the fix template (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_literal.changes
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Changes table header '| File | Change | Notes |' (FX:64)
+  source:
+    doc: FX
+    lines: [64, 64]
+    quote: '| File | Change | Notes |'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_literal.checks_added
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Added table header (FX:74)
+  source:
+    doc: FX
+    lines: [74, 74]
+    quote: '| Check | What it pins down | Before the change | After the change |'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (FX:54, FX:8-14)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_enum.previous_verification
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Previous verification names the report this round answers: none | ./test.md | ./test-2.md (FX:55, FX:10-14)'
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_enum.status
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Status is one of applied | partial | not-applied (FX:56)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_filled.test_files
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test files line filled (FX:80)
+  source:
+    doc: FX
+    lines: [80, 80]
+    quote: '- Test files: <the existing tests for the changed files>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_filled.follow_ups
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Follow-ups filled (FX:94)
+  source:
+    doc: FX
+    lines: [94, 94]
+    quote: '- <suggested cleanup, monitoring, doc update, etc.>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_filled.commands_run
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Commands run line filled (FX:85)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_filled.manual_checks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Manual checks line filled, 'if anything' (FX:86)
+  source:
+    doc: FX
+    lines: [86, 86]
+    quote: '- Manual checks: <what was verified by hand, if anything>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (FX:60)
+  source:
+    doc: FX
+    lines: [60, 60]
+    quote: <One or two sentences describing what was changed and why.>
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.field_type.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Local Verification records the commands run and their result (FX:85, FX:41)
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: narrower
+  fidelity_note: only that some recorded command (the value, a line or a code span of it) was run in this round's fix window;
+    the recorded result is not checked and further recorded commands need not have run
+- id: speckit_bug.fix_3.fix_3.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Fix: <short title>'' (FX:49; CW:50-51)'
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.fixed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fixed holds an ISO 8601 date (FX:52)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.baseline_existing_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'baseline line records ''`<command>` before the change: <N passed, M failed>; after the change: <same, ...>'' (FX:81)'
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.changes
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: Changes table has rows '| file | change | note |' (FX:66)
+  source:
+    doc: FX
+    lines: [66, 66]
+    quote: '| `path/to/file.py` | <added / modified / removed> | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.checks_added
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: 'Checks Added has rows whose Before column reads ''fail: <output>'' (FX:76, FX:32)'
+  source:
+    doc: FX
+    lines: [76, 76]
+    quote: '| `checks/<name>.py` | <issue example / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.local_verification
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''- Commands run: `<command>` → <result>'' line format (FX:85)'
+  source:
+    doc: FX
+    lines: [85, 85]
+    quote: '- Commands run: `<command>` → <result, brief>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (FX:53; CW:50-51)
+  source:
+    doc: FX
+    lines: [53, 53]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fixed**:' kept (FX:52; CW:50-51)
+  source:
+    doc: FX
+    lines: [52, 52]
+    quote: '- **Fixed**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Previous verification**:' kept (FX:55; CW:50-51)
+  source:
+    doc: FX
+    lines: [55, 55]
+    quote: '- **Previous verification**: none | ./test.md | ./test-2.md'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (FX:54; CW:50-51)
+  source:
+    doc: FX
+    lines: [54, 54]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (FX:51; CW:50-51)
+  source:
+    doc: FX
+    lines: [51, 51]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Status**:' kept (FX:56; CW:50-51)
+  source:
+    doc: FX
+    lines: [56, 56]
+    quote: '- **Status**: applied | partial | not-applied'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, FX:49 skeleton)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the fix report (FX:49-94; CW:50-51)
+  source:
+    doc: FX
+    lines: [49, 49]
+    quote: '# Bug Fix: <short title>'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each fix report written once; never rewrite an earlier round's fix report (CW:47, FX:19, FX:107)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.fix_3.fix_3.speckit_bug_checks_added.before_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each check written before the change is run on the unchanged code and must fail; Checks Added records 'fail' before
+    the change (FX:32, FX:74-76)
+  source:
+    doc: FX
+    lines: [74, 76]
+    quote: '| Check | What it pins down | Before the change | After the change | ... | `checks/<name>.py` | <issue example
+      / reproduction> | fail: <one line of output> | pass / fail |'
+  fidelity: narrower
+  fidelity_note: a 'fail' claim is credited when the trace ran that script after its last write and before the round's first
+    repository edit; whether it actually failed is not judged
+- id: speckit_bug.fix_3.fix_3.speckit_bug_checks_added.baseline_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: run the existing tests of the files to change before the edit and record the result as the baseline (FX:33, FX:81)
+  source:
+    doc: FX
+    lines: [81, 81]
+    quote: '- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>'
+  fidelity: narrower
+  fidelity_note: one recorded code-span command must be a valid test run before the round's first edit; the counts (N passed,
+    M failed), the scope (tests of the files to change) and the 'after the change' half are not checked
+- id: speckit_bug.fix_3.run.doc_read.fx
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 02-fix.md as the first step of each fix round (CW:15, INS:5-6, SP:67-68; TS:97 'read ... again')
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's fix window counts; position 'first step'
+    is only partly covered by [87]
+- id: speckit_bug.fix_3.run.exec_evidence.local_tests
+  template: T-AW3
+  status: implemented
+  requirement: should
+  rule: run the tests that exercise the changed paths after the change (FX:41)
+  source:
+    doc: FX
+    lines: [41, 41]
+    quote: '- If the project has obvious test commands (e.g., `pytest`, `npm test`, `cargo test`), run the tests that exercise
+      the changed paths.'
+  fidelity: narrower
+  fidelity_note: window is the whole fix stage, so the pre-edit baseline run of [85] already satisfies it; neither 'after
+    the change' nor 'exercise the changed paths' is checked
+- id: speckit_bug.fix_3.run.prohibited_action.edit_before_doc
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: no repository edit in a fix round before its stage document is read (CW:15, INS:5-6)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: when 02-fix.md is never read in the round the window is empty and the item passes (the doc_read item [84]
+    fails instead)
+- id: speckit_bug.fix_3.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md in full; in rounds 2-3 also the previous fix and verification reports (FX:20-21)
+  source:
+    doc: FX
+    lines: [20, 20]
+    quote: '- Read `BUG_DIR/assessment.md` in full.'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path in the window counts (grep,
+    head, tail included)'
+- id: speckit_bug.fix_3.run.speckit_bug_check_scripts.before_change
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: before editing any code, run each check on the code as it is; it must fail (FX:30-32; FX:34 for later rounds)
+  source:
+    doc: FX
+    lines: [34, 34]
+    quote: In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before
+      this round's change.
+  fidelity: narrower
+  fidelity_note: 'only that each check script was executed after its last write and before the round''s first repository edit;
+    the failure is not judged. Edge (broader): in round 1 a script first written under checks/ after the edit, still in the
+    fix stage, also fails'
+- id: speckit_bug.fix_3.run.speckit_bug_check_scripts.unchanged
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: the checks written before the change stay as they are (FX:36)
+  source:
+    doc: FX
+    lines: [36, 36]
+    quote: The checks written before the change stay as they are; the change has to make them pass.
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: 'each round writes its verification report: test.md, test-2.md / test-3.md when that round is due (CW:21-23, TS:50,
+    FX:100)'
+  source:
+    doc: CW
+    lines: [23, 23]
+    quote: 'Round 3: `fix-3.md`, then `test-3.md`.'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.section_present.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Output Excerpts' heading (TS:75; CW:50-51)
+  source:
+    doc: TS
+    lines: [75, 75]
+    quote: '## Output Excerpts'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.section_present.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Recommendation' heading (TS:83; CW:50-51)
+  source:
+    doc: TS
+    lines: [83, 83]
+    quote: '## Recommendation'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.section_present.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Residual Risks' heading (TS:79; CW:50-51)
+  source:
+    doc: TS
+    lines: [79, 79]
+    quote: '## Residual Risks'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Summary' heading (TS:62; CW:50-51)
+  source:
+    doc: TS
+    lines: [62, 62]
+    quote: '## Summary'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.section_present.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the verification report's '## Checks Performed' heading (TS:66; CW:50-51)
+  source:
+    doc: TS
+    lines: [66, 66]
+    quote: '## Checks Performed'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_literal.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed table header (TS:68)
+  source:
+    doc: TS
+    lines: [68, 68]
+    quote: '| Check | Command / Action | Result | Notes |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_enum.round
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Round is this report's round number (TS:59, TS:8-14)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_enum.fix
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Fix names this round's fix report (TS:58, TS:10-14)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_enum.result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Result is one of verified | partial | failed (TS:60, TS:42-45)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_filled.output_excerpts
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Output Excerpts filled (TS:77)
+  source:
+    doc: TS
+    lines: [77, 77]
+    quote: <Short snippets of relevant output (e.g., final summary line of a test run, the failing assertion). Keep it tight
+      — no full logs.>
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_filled.recommendation
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Recommendation filled (TS:85)
+  source:
+    doc: TS
+    lines: [85, 85]
+    quote: <One paragraph. Examples:>
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_filled.residual_risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Residual Risks filled (TS:81)
+  source:
+    doc: TS
+    lines: [81, 81]
+    quote: '- <known limitation, environment not covered, etc.>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.field_filled.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Summary filled (TS:64)
+  source:
+    doc: TS
+    lines: [64, 64]
+    quote: '<One or two sentences: does the bug reproduce, did the fix hold, were any regressions found.>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title line ''# Bug Verification: <short title>'' (TS:53; CW:50-51)'
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.tested
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Tested holds an ISO 8601 date (TS:56)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.checks_performed
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Reproduction (post-fix)' row (TS:70)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.checks_performed.2
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Checks from the fix' row (TS:71)
+  source:
+    doc: TS
+    lines: [71, 71]
+    quote: '| Checks from the fix | `<command>` | pass / fail | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.checks_performed.3
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Regression suite' row (TS:72)
+  source:
+    doc: TS
+    lines: [72, 72]
+    quote: '| Regression suite | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.checks_performed.4
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Checks Performed has the template's 'Lint / type-check' row (TS:73)
+  source:
+    doc: TS
+    lines: [73, 73]
+    quote: '| Lint / type-check | `<command>` | pass / fail / skipped | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Assessment**:' kept (TS:57; CW:50-51)
+  source:
+    doc: TS
+    lines: [57, 57]
+    quote: '- **Assessment**: ./assessment.md'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Fix**:' kept (TS:58; CW:50-51)
+  source:
+    doc: TS
+    lines: [58, 58]
+    quote: '- **Fix**: ./fix.md | ./fix-2.md | ./fix-3.md'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Result**:' kept (TS:60; CW:50-51)
+  source:
+    doc: TS
+    lines: [60, 60]
+    quote: '- **Result**: verified | partial | failed'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Round**:' kept (TS:59; CW:50-51)
+  source:
+    doc: TS
+    lines: [59, 59]
+    quote: '- **Round**: 1 | 2 | 3'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Slug**:' kept (TS:55; CW:50-51)
+  source:
+    doc: TS
+    lines: [55, 55]
+    quote: '- **Slug**: issue'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.item_format.line.7
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: header line '- **Tested**:' kept (TS:56; CW:50-51)
+  source:
+    doc: TS
+    lines: [56, 56]
+    quote: '- **Tested**: <ISO 8601 date>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no field, list item or table cell left holding only a fill-in mark (CW:50-51, TS:53 skeleton)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the verification report (TS:53-88; CW:50-51)
+  source:
+    doc: TS
+    lines: [53, 53]
+    quote: '# Bug Verification: <short title>'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: each verification report written once; never rewrite an earlier round's (CW:47, TS:20, TS:105)
+  source:
+    doc: CW
+    lines: [47, 47]
+    quote: '- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.speckit_bug_checks_table.commands_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Checks Performed records the command actually executed for each check; no fabricated result (TS:37, TS:39)
+  source:
+    doc: TS
+    lines: [37, 37]
+    quote: Execute each planned check. Capture command, exit status, and a short excerpt of relevant output
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.speckit_bug_checks_table.results
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every Checks Performed row has one result value pass / fail / skipped / not-run (TS:70-73, TS:38-39)
+  source:
+    doc: TS
+    lines: [70, 70]
+    quote: '| Reproduction (post-fix) | <command or manual steps> | pass / fail / skipped / not-run | <short note> |'
+  fidelity: faithful
+- id: speckit_bug.test_3.test_3.speckit_bug_checks_table.test_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: the recorded checks include a real run of the repository's tests for the changed modules (TS:38, TS:72, TS:46)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: some pass/fail row's code-span command is a valid test run after the round's last repository edit; 'for the
+    changed modules' is not checked
+- id: speckit_bug.test_3.test_3.speckit_bug_checks_table.consistent
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when no check fails (TS:43, TS:45)
+  source:
+    doc: TS
+    lines: [43, 43]
+    quote: '- **verified** — only when all three hold: every check in the fix report passes now after failing before the change;
+      every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
+      new failure.'
+  fidelity: broader
+  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
+    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
+    this rule does not)
+- id: speckit_bug.test_3.test_3.speckit_bug_checks_table.unrun
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: verified only when the reproduction, the issue's examples and the fix's checks were all run; otherwise partial (TS:44,
+    TS:106)
+  source:
+    doc: TS
+    lines: [44, 44]
+    quote: '- **partial** — none of those fails, but one of them was not run or is inconclusive.'
+  fidelity: narrower
+  fidelity_note: a skipped / not-run 'Regression suite' row under verified is not penalized (the row filter matches reproduction
+    / checks / example / symptom / issue only), although TS:43-44 make the baseline tests one of the three verified conditions
+- id: speckit_bug.test_3.run.doc_read.ts
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: read 03-test.md as the first step of each test round (CW:15, INS:5-6, SP:67-68, FX:99-100)
+  source:
+    doc: CW
+    lines: [15, 15]
+    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
+  fidelity: narrower
+  fidelity_note: any read (alone in its step, coverage >=0.5) inside the round's test window counts; 'first step' is not checked
+- id: speckit_bug.test_3.run.exec_evidence.tests
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the existing test suites for the changed modules in the test stage (TS:33, TS:37-38)
+  source:
+    doc: TS
+    lines: [38, 38]
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  fidelity: narrower
+  fidelity_note: any valid base-repo test run in the test window counts; the scope (changed modules) is not checked
+- id: speckit_bug.test_3.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: the test stage must not modify source code (TS:104, CW:54)
+  source:
+    doc: TS
+    lines: [104, 104]
+    quote: '- This stage MUST NOT modify source code. It only runs checks and writes inside `/tmp/speckit/bugs/issue/`.'
+  fidelity: narrower
+  fidelity_note: repository writes only; TS:104's 'only ... writes inside /tmp/speckit/bugs/issue/' (writes elsewhere outside
+    the repo) is not checked
+- id: speckit_bug.test_3.run.speckit_bug_read.reports
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read assessment.md and this round's fix report in full (TS:21)
+  source:
+    doc: TS
+    lines: [21, 21]
+    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
+  fidelity: narrower
+  fidelity_note: '''in full'' is not enforced: any editor view or reading verb naming the path counts (grep, head, tail included)'
+- id: speckit_bug.test_3.unimplemented.unimplemented
+  template: T-RD2
+  status: unimplemented
+  requirement: should
+  rule: test stage reads 03-test.md and writes test.md / test-2.md / test-3.md (CW:13)
+  source:
+    doc: CW
+    lines: [28, 28]
+    quote: Round 3, any result — the workflow is complete. Finish the task.
+  class: duplicate
+- id: speckit_bug.test_3.run.speckit_bug_check_scripts.run
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the checks added in the fix (TS:30, TS:37)
+  source:
+    doc: TS
+    lines: [30, 30]
+    quote: '- Run the checks added in the fix.'
+  fidelity: narrower
+  fidelity_note: one check script under BUG_DIR/checks/ (written up to this round's fix report) executed in the test window
+    suffices; the checks are selected by directory, not by the fix report's Checks Added list
+- id: speckit_bug.test_3.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: the test stage runs only after this round's fix report exists (TS:19)
+  source:
+    doc: TS
+    lines: [99, 99]
+    quote: Round 3, any result — the workflow is complete; finish the task.
+  class: duplicate
+- id: speckit_bug.global.run.doc_read_first.cw
+  template: T-RD1
+  status: implemented
+  requirement: must
+  rule: open core-workflow.md before acting on the task (INS:3, SP:65)
+  source:
+    doc: INS
+    lines: [3, 3]
+    quote: Begin by opening /speckit/core-workflow.md
+  fidelity: faithful
+- id: speckit_bug.global.run.order.round_1
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: assess -> fix -> test in round 1, each stage document read when its stage begins, each report written once (CW:9,
+    CW:15, CW:19-21, CW:47)
+  source:
+    doc: CW
+    lines: [9, 9]
+    quote: '| Stage | Read when the stage begins | Writes |'
+  fidelity: faithful
+- id: speckit_bug.global.run.order.round_2
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: 'round 2 after a partial/failed Result: test.md, then fix-2.md, then test-2.md (CW:22, CW:26-27)'
+  source:
+    doc: CW
+    lines: [22, 22]
+    quote: 'Round 2: `fix-2.md`, then `test-2.md`.'
+  fidelity: faithful
+- id: speckit_bug.global.run.order.round_3
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: 'round 3 after a partial/failed Result: test-2.md, then fix-3.md, then test-3.md (CW:23, CW:26-27)'
+  source:
+    doc: CW
+    lines: [23, 23]
+    quote: 'Round 3: `fix-3.md`, then `test-3.md`.'
+  fidelity: faithful
+- id: speckit_bug.global.run.prohibited_action.test_file_write
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: do not edit test files in the repository (CW:53, FX:36)
+  source:
+    doc: CW
+    lines: [53, 53]
+    quote: Do not add or edit test files in the repository.
+  fidelity: faithful
+- id: speckit_bug.global.unimplemented.unimplemented
+  template: T-OR2
+  status: unimplemented
+  requirement: should
+  rule: fix and test alternate in rounds, at most three (FX:7)
+  source:
+    doc: FX
+    lines: [7, 7]
+    quote: The fix and test stages alternate in rounds, at most three
+  class: candidate
+  class_note: no 4th-round report (fix-4.md / test-4.md) and no repository write after test-3.md is written
+- id: speckit_bug.global.run.speckit_bug_no_fetch.issue_links
+  template: T-PR4
+  status: implemented
+  requirement: must
+  rule: do not fetch links in the issue and do not look it up online (CW:33-34, AS:18)
+  source:
+    doc: CW
+    lines: [33, 34]
+    quote: Do not fetch links in it and do not look it up online.
+  fidelity: faithful
+- id: speckit_bug.global.run.speckit_bug_holds.no_round_after_verified
+  template: T-OR2
+  status: implemented
+  requirement: must
+  rule: 'a verified Result completes the workflow: no next round after it (CW:25, TS:96)'
+  source:
+    doc: CW
+    lines: [25, 25]
+    quote: '`verified` — the workflow is complete. Finish the task.'
+  fidelity: faithful
+- id: speckit_bug.global.unimplemented.unimplemented.2
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: never stop to ask or to report; take the most plausible reading, record it and continue (CW:38-40)
+  source:
+    doc: CW
+    lines: [38, 39]
+    quote: Never stop to ask or to report
+  class: duplicate
+  class_note: 'a run that stops fails the next report''s existence gate (conflict #8 resolution); ''record it'' is not checked'
+- id: speckit_bug.global.unimplemented.unimplemented.3
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: a stage ends by moving on to the next stage, not by replying (CW:40)
+  source:
+    doc: CW
+    lines: [40, 40]
+    quote: A stage ends by moving on to the next stage, not by replying.
+  class: duplicate
+  class_note: a reply ends a headless run, failing the next report's existence gate
+- id: speckit_bug.global.unimplemented.unimplemented.4
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: the report directory is /tmp/speckit/bugs/issue/ (CW:44)
+  source:
+    doc: CW
+    lines: [44, 44]
+    quote: '**Directory**: `/tmp/speckit/bugs/issue/`.'
+  class: duplicate
+  class_note: artifact locations are fixed under that directory
+- id: speckit_bug.global.run.speckit_bug_created_files.scratch
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: never write reports, checks or scratch files into the repository (CW:45-46, CW:52)
+  source:
+    doc: CW
+    lines: [45, 46]
+    quote: Never write reports, checks, or scratch files into the repository.
+  fidelity: narrower
+  fidelity_note: only new repo files whose names match the pattern (repro/debug/scratch/tmp scripts, report names, SUMMARY/NOTES)
+    are caught
+- id: speckit_bug.global.run.speckit_bug_created_files.tests
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: do not add test files in the repository (CW:53, AS:45)
+  source:
+    doc: CW
+    lines: [53, 53]
+    quote: Do not add or edit test files in the repository.
+  fidelity: faithful
+- id: speckit_bug.global.unimplemented.unimplemented.5
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: no one will reply, so do not pause to ask; note assumptions in the current report and keep going (SP:69-71)
+  source:
+    doc: SP
+    lines: [70, 70]
+    quote: No one will reply during the task, so do not pause to ask
+  class: duplicate
+  class_note: 'a run that pauses fails the next report''s existence gate (conflict #8)'

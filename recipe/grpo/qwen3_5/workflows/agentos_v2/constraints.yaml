@@ -1,0 +1,2205 @@
+# Constraints of agentos_v2: one per rubric item (same id), with the template that judges it.
+# Maintained by hand; the rubric implements them, workflow_rubric checks the two stay in step
+# (sdlc_if/constraints.py, which also documents the fields).
+schema: sdlc_if.constraints/1
+workflow: agentos_v2
+role: train
+templates: ../../sdlc_if/templates.yaml
+rubric: reward/rubric.yaml
+constraints:
+- id: agentos_v2.shape_spec.spec_dir.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: should
+  rule: shape-spec creates the spec folder /tmp/agent-os/specs/<YYYY-MM-DD>-<name>/ (CW:43-44; SS:29 'then create the spec
+    folder')
+  source:
+    doc: CW
+    lines: [43, 44]
+    quote: 'shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short
+      kebab-case name you choose for the change.'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.spec_dir.path_match.dated
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: dated kebab-case folder name YYYY-MM-DD-spec-name (SS:65, SS:29, CW:43-44)
+  source:
+    doc: SS
+    lines: [65, 65]
+    quote: '- Always use dated folder names (YYYY-MM-DD-spec-name)'
+  fidelity: narrower
+  fidelity_note: '''today''s date'' (CW:44) not checked: any date passes'
+- id: agentos_v2.shape_spec.initialization.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: write the issue to $SPEC_PATH/planning/initialization.md (SS:61)
+  source:
+    doc: SS
+    lines: [61, 61]
+    quote: Write the issue text from `<issue_description>` to `$SPEC_PATH/planning/initialization.md` exactly as given, without
+      modification.
+  fidelity: faithful
+- id: agentos_v2.shape_spec.initialization.item_format.text
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: write the issue text exactly as given, without modification (SS:61; CW:51)
+  source:
+    doc: SS
+    lines: [61, 61]
+    quote: Write the issue text from `<issue_description>` to `$SPEC_PATH/planning/initialization.md` exactly as given, without
+      modification.
+  fidelity: narrower
+  fidelity_note: only checks that the file holds a word of 3+ letters; verbatim copy unchecked (engine has no issue text)
+- id: agentos_v2.shape_spec.initialization.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no fill-in mark (x, ..., ?) left in initialization.md (SS:61, implicit)
+  source:
+    doc: SS
+    lines: [61, 61]
+    quote: Write the issue text from `<issue_description>` to `$SPEC_PATH/planning/initialization.md` exactly as given, without
+      modification.
+  fidelity: faithful
+- id: agentos_v2.shape_spec.visuals_dir.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: mkdir -p $SPEC_PATH/planning/visuals; follow folder structure exactly (SS:46, SS:66)
+  source:
+    doc: SS
+    lines: [44, 46]
+    quote: '# Create folder structure following architecture mkdir -p $SPEC_PATH/planning mkdir -p $SPEC_PATH/planning/visuals'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.implementation_dir.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create $SPEC_PATH/implementation/ (SS:53-54)
+  source:
+    doc: SS
+    lines: [53, 55]
+    quote: 'Create 2 folders: - `$SPEC_PATH/implementation/` - `$SPEC_PATH/verifications/`'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.verifications_dir.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create $SPEC_PATH/verifications/ (SS:53-55)
+  source:
+    doc: SS
+    lines: [53, 55]
+    quote: 'Create 2 folders: - `$SPEC_PATH/implementation/` - `$SPEC_PATH/verifications/`'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.verifications_dir.agentos_v2_paths_written
+  template: T-WD3
+  status: implemented
+  requirement: should
+  rule: leave implementation/ and verifications/ empty for now (SS:57)
+  source:
+    doc: SS
+    lines: [55, 57]
+    quote: '- `$SPEC_PATH/verifications/` ... Leave these folders empty, for now.'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: should
+  rule: record all gathered information to ONE FILE [spec-path]/planning/requirements.md (SS:208)
+  source:
+    doc: SS
+    lines: [208, 208]
+    quote: 'After all questions are answered, record ALL gathered information to ONE FILE at this location with this name:
+      `[spec-path]/planning/requirements.md`'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.functional_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:265); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [265, 265]
+    quote: '### Functional Requirements'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.initial_description
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:215); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [215, 215]
+    quote: '## Initial Description'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.requirements_discussion
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:218); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [218, 218]
+    quote: '## Requirements Discussion'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.requirements_summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:263); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [263, 263]
+    quote: '## Requirements Summary'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.reusability_opportunities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:270); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [270, 270]
+    quote: '### Reusability Opportunities'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.scope_boundaries
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:275); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [275, 275]
+    quote: '### Scope Boundaries'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.technical_considerations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: requirements.md heading of the template (SS:283); do not deviate (SS:210)
+  source:
+    doc: SS
+    lines: [283, 283]
+    quote: '### Technical Considerations'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.existing_code
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '### Existing Code to Reference (SS:230); do not deviate (SS:210)'
+  source:
+    doc: SS
+    lines: [230, 230]
+    quote: '### Existing Code to Reference'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.section_present.visual_assets
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '## Visual Assets (SS:247); do not deviate (SS:210)'
+  source:
+    doc: SS
+    lines: [247, 247]
+    quote: '## Visual Assets'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.label_present.in_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '**In Scope:** label under Scope Boundaries (SS:276)'
+  source:
+    doc: SS
+    lines: [276, 276]
+    quote: '**In Scope:**'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.label_present.out_of_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: '**Out of Scope:** label under Scope Boundaries (SS:279)'
+  source:
+    doc: SS
+    lines: [279, 279]
+    quote: '**Out of Scope:**'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.functional_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:266-268; SS:210)
+  source:
+    doc: SS
+    lines: [266, 266]
+    quote: '- [Core functionality based on answers]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.initial_description
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:216; SS:210)
+  source:
+    doc: SS
+    lines: [216, 216]
+    quote: '[User''s original spec description from initialization.md]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.reusability_opportunities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:271-273; SS:210)
+  source:
+    doc: SS
+    lines: [272, 272]
+    quote: '- [Backend patterns to investigate]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.scope_boundaries
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:277-281; SS:210)
+  source:
+    doc: SS
+    lines: [277, 277]
+    quote: '- [What will be built]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.in_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:277; SS:210)
+  source:
+    doc: SS
+    lines: [276, 276]
+    quote: '**In Scope:**'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.out_of_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:280-281; SS:210)
+  source:
+    doc: SS
+    lines: [279, 279]
+    quote: '**Out of Scope:**'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.field_filled.technical_considerations
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section/label filled, not a placeholder (SS:284-287; SS:210)
+  source:
+    doc: SS
+    lines: [284, 284]
+    quote: '- [Integration points mentioned]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.item_format.no_visuals
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: with no files found by the bash check, Visual Assets says 'No visual assets provided.' (SS:260-261; CW:53)
+  source:
+    doc: SS
+    lines: [260, 261]
+    quote: '[If bash check found no files] No visual assets provided.'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.item_format.questions
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 4-8 numbered questions, reusability question at the end (SS:121, SS:123, SS:126)
+  source:
+    doc: SS
+    lines: [121, 121]
+    quote: Based on the initial idea, generate 4-8 targeted, NUMBERED questions that explore requirements while suggesting
+      reasonable defaults.
+  fidelity: narrower
+  fidelity_note: count 4..9 and numbering checked; the reusability question being last (SS:123) and the closing exclusions
+    question (SS:131) unchecked
+- id: agentos_v2.shape_spec.requirements.item_format.existing_code
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: record each reuse finding as '(assumed) <path> — <basis>', or the no-similar-features line (SS:177, SS:234)
+  source:
+    doc: SS
+    lines: [177, 177]
+    quote: '- Record each as `(assumed) <path> — <basis>`; if you find none, record "No similar existing features identified
+      for reference."'
+  fidelity: narrower
+  fidelity_note: one matching line suffices; other entries of the section may break the format
+- id: agentos_v2.shape_spec.requirements.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title ''# Spec Requirements: [Spec Name]'' (SS:213)'
+  source:
+    doc: SS
+    lines: [213, 213]
+    quote: '# Spec Requirements: [Spec Name]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.item_format.reusability_opportunities
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: Reusability Opportunities bullets '(assumed) `[path]` — ...' (SS:271)
+  source:
+    doc: SS
+    lines: [271, 271]
+    quote: '- (assumed) `[path]` — [Components that might exist already, based on your repository search]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.item_format.followups
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: keep follow-ups minimal, 1-3 max (SS:297)
+  source:
+    doc: SS
+    lines: [297, 297]
+    quote: '- Keep follow-ups minimal (1-3 questions max)'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no fill-in marks in requirements.md (SS:210, implicit)
+  source:
+    doc: SS
+    lines: [210, 210]
+    quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no bracketed template placeholder left (SS:213-287; SS:210)
+  source:
+    doc: SS
+    lines: [213, 213]
+    quote: '# Spec Requirements: [Spec Name]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.cross_ref.existing_code_paths
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: paths of similar features found by looking in the repository (SS:175-177)
+  source:
+    doc: SS
+    lines: [175, 176]
+    quote: '4. Answer the reusability question by looking in the repository for similar features, components and backend logic:
+      - Make note of these paths/names for the write-spec stage to reference'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.cross_ref
+  template: T-RF4
+  status: implemented
+  requirement: should
+  rule: Reusability Opportunities '(assumed) `[path]`' are components that might exist already, from the repository search
+    (SS:271, SS:175-177)
+  source:
+    doc: SS
+    lines: [175, 177]
+    quote: 'Answer the reusability question by looking in the repository for similar features, components and backend logic:
+      - Make note of these paths/names for the write-spec stage to reference - Record each as `(assumed) <path> — <basis>`'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.cross_ref.2
+  template: T-FM7
+  status: implemented
+  requirement: must
+  rule: 'include ONLY the items of the structure: ## headings within the template''s four (SS:210)'
+  source:
+    doc: SS
+    lines: [210, 210]
+    quote: 'Include ONLY the items specified in the following structure:'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.agentos_v2_requirements.answers
+  template: T-SR1
+  status: implemented
+  requirement: must
+  rule: answer each question yourself and record '**Answer:** (assumed) <answer> — <basis>' (CW:70-72, SS:223, SS:298)
+  source:
+    doc: CW
+    lines: [70, 72]
+    quote: Where a document has you ask questions, write them as it describes, then answer each one yourself from the issue
+      and the repository, and record the answer with its basis where the document says (`**Answer:** (assumed) <answer> —
+      <basis>` in `requirements.md`).
+  fidelity: faithful
+- id: agentos_v2.shape_spec.requirements.agentos_v2_requirements.initial_description
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: Initial Description holds the user's original description from initialization.md (SS:215-216)
+  source:
+    doc: SS
+    lines: [215, 216]
+    quote: '## Initial Description [User''s original spec description from initialization.md]'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.spec.agentos_v2_holds
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: DO NOT write technical specifications; record findings only to requirements.md (SS:293)
+  source:
+    doc: SS
+    lines: [293, 293]
+    quote: DO NOT write technical specifications for development.
+  fidelity: narrower
+  fidelity_note: checks only that spec.md is not written in the shape-spec window; tech-spec content inside requirements.md
+    unchecked; largely duplicates the order pair read:WS -> write:spec
+- id: agentos_v2.shape_spec.run.doc_read.ss
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open each command document when you reach it (CW:14-16)
+  source:
+    doc: CW
+    lines: [14, 16]
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory: 1. **shape-spec**:
+      `/agent-os/commands/shape-spec/shape-spec.md`'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: shape-spec ... change nothing in the repository (CW:81-82)
+  source:
+    doc: CW
+    lines: [81, 82]
+    quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
+  fidelity: faithful
+- id: agentos_v2.shape_spec.run.agentos_v2_read.initialization
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: PHASE 2 reads the raw idea from initialization.md (SS:90, SS:61)
+  source:
+    doc: SS
+    lines: [90, 90]
+    quote: Read the raw idea from `[spec-path]/planning/initialization.md` to understand what the user wants to build.
+  fidelity: faithful
+- id: agentos_v2.shape_spec.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: proceed with the research phase after initializing the folder (SS:71)
+  source:
+    doc: SS
+    lines: [71, 71]
+    quote: Now that you've initialized the folder for this new spec, proceed with the research phase.
+  class: duplicate
+  class_note: PHASE 1 -> PHASE 2 order = chain write:initialization -> write:requirements
+- id: agentos_v2.shape_spec.run.agentos_v2_repo_read.readme
+  template: T-RD5
+  status: implemented
+  requirement: must
+  rule: read the repository's README for product context (SS:94, SS:96)
+  source:
+    doc: SS
+    lines: [94, 94]
+    quote: 'Before generating questions, understand the broader product context. This project has no product documents (mission,
+      roadmap, tech stack), so take that context from the repository itself:'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.run.agentos_v2_repo_read.docs_index
+  template: T-RD5
+  status: implemented
+  requirement: should
+  rule: read the repository's documentation index (SS:102)
+  source:
+    doc: SS
+    lines: [102, 102]
+    quote: '2. **Read Product Roadmap**: Read the repository''s documentation index (e.g. the table of contents of its `docs/`)
+      to understand:'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.run.agentos_v2_repo_read.packaging
+  template: T-RD5
+  status: implemented
+  requirement: must
+  rule: read packaging/build metadata (SS:108)
+  source:
+    doc: SS
+    lines: [108, 108]
+    quote: '3. **Read Product Tech Stack**: Read the repository''s packaging and build metadata (e.g. `pyproject.toml`, `setup.py`,
+      `setup.cfg`, `package.json`) to understand:'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.unimplemented.unimplemented.2
+  template: T-RD5
+  status: unimplemented
+  requirement: should
+  rule: the product context helps identify existing features to reuse (SS:113, SS:115)
+  source:
+    doc: SS
+    lines: [115, 115]
+    quote: '- Identify existing features that might be reused or referenced'
+  class: duplicate
+  class_note: a purpose bullet under 'This context will help you:'; the operative rule (SS:175) is rewarded
+- id: agentos_v2.shape_spec.run.agentos_v2_holds.reuse_search
+  template: T-RD5
+  status: implemented
+  requirement: must
+  rule: answer the reusability question by looking in the repository yourself (SS:152, SS:175)
+  source:
+    doc: SS
+    lines: [152, 152]
+    quote: Answer the reusability question by looking in the repository yourself (Step 4).
+  fidelity: narrower
+  fidelity_note: any grep/rg/find command in the window counts; what it searched (similar features) is unchecked
+- id: agentos_v2.shape_spec.unimplemented.unimplemented.3
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: 'Step 4: MANDATORY visual check (SS:154)'
+  source:
+    doc: SS
+    lines: [154, 154]
+    quote: '### Step 4: Process Answers and MANDATORY Visual Check'
+  class: duplicate
+- id: agentos_v2.shape_spec.unimplemented.unimplemented.4
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: You MUST run the visuals bash command even if the user says 'no visuals' (SS:160-162)
+  source:
+    doc: SS
+    lines: [160, 162]
+    quote: '**CRITICAL**: You MUST run the following bash command even if the user says "no visuals" or doesn''t mention visuals'
+  class: duplicate
+- id: agentos_v2.shape_spec.run.agentos_v2_holds.visuals_checked
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: MUST run the ls of planning/visuals (SS:162, SS:166, SS:292)
+  source:
+    doc: SS
+    lines: [162, 162]
+    quote: '**CRITICAL**: You MUST run the following bash command even if the user says "no visuals" or doesn''t mention visuals
+      (Users often add files without mentioning them):'
+  fidelity: faithful
+- id: agentos_v2.shape_spec.unimplemented.unimplemented.5
+  template: T-RF2
+  status: unimplemented
+  requirement: should
+  rule: visual check is based on actual files found via bash, NOT user statements (SS:294)
+  source:
+    doc: SS
+    lines: [294, 294]
+    quote: Visual check is based on actual file(s) found via bash, NOT user statements
+  class: duplicate
+  class_note: the recorded visual result must match the ls output; the folder always stays empty (CW:53), so no_visuals +
+    visuals_checked cover it
+- id: agentos_v2.shape_spec.unimplemented.unimplemented.6
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: document all visual findings including fidelity level (SS:299)
+  source:
+    doc: SS
+    lines: [299, 299]
+    quote: Document all visual findings including fidelity level
+  class: domain_specific
+  class_note: 'UI mockup rule; never fires: visuals folder stays empty (CW:53)'
+- id: agentos_v2.write_spec.spec.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: write the main specification to /tmp/agent-os/specs/[current-spec]/spec.md (WS:51)
+  source:
+    doc: WS
+    lines: [51, 51]
+    quote: Write the main specification to `/tmp/agent-os/specs/[current-spec]/spec.md`.
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.section_present.goal
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: spec.md heading of the template (WS:62); follow this structure exactly (WS:57)
+  source:
+    doc: WS
+    lines: [62, 62]
+    quote: '## Goal'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.section_present.out_of_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: spec.md heading of the template (WS:91); follow this structure exactly (WS:57)
+  source:
+    doc: WS
+    lines: [91, 91]
+    quote: '## Out of Scope'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.section_present.user_stories
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: spec.md heading of the template (WS:65); follow this structure exactly (WS:57)
+  source:
+    doc: WS
+    lines: [65, 65]
+    quote: '## User Stories'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.section_present.existing_code
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: spec.md heading of the template (WS:84); follow this structure exactly (WS:57)
+  source:
+    doc: WS
+    lines: [84, 84]
+    quote: '## Existing Code to Leverage'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.section_present.specific_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: spec.md heading of the template (WS:69); follow this structure exactly (WS:57)
+  source:
+    doc: WS
+    lines: [69, 69]
+    quote: '## Specific Requirements'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.field_filled.existing_code_to_leverage
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: document your findings (WS:47) in Existing Code to Leverage (WS:84-89)
+  source:
+    doc: WS
+    lines: [47, 47]
+    quote: Document your findings for use in the specification.
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.field_filled.goal
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Goal filled (WS:63; WS:57)
+  source:
+    doc: WS
+    lines: [63, 63]
+    quote: '[1-2 sentences describing the core objective]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.field_filled.out_of_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Out of Scope filled (WS:92; WS:57)
+  source:
+    doc: WS
+    lines: [92, 92]
+    quote: '- [up to 10 concise descriptions of specific features that are out of scope and MUST NOT be built in this spec]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.field_filled.user_stories
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: User Stories filled (WS:66-67; WS:57)
+  source:
+    doc: WS
+    lines: [67, 67]
+    quote: '- [repeat for up to 2 max additional user stories]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'title ''# Specification: [Feature Name]'' (WS:60)'
+  source:
+    doc: WS
+    lines: [60, 60]
+    quote: '# Specification: [Feature Name]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.item_format.user_stories
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: user stories 'As a [user type], I want to [action] so that [benefit]' (WS:66)
+  source:
+    doc: WS
+    lines: [66, 66]
+    quote: '- As a [user type], I want to [action] so that [benefit]'
+  fidelity: narrower
+  fidelity_note: one matching story suffices; other bullets unconstrained
+- id: agentos_v2.write_spec.spec.item_format.user_stories_max
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: up to 2 additional user stories, 3 max (WS:66-67)
+  source:
+    doc: WS
+    lines: [66, 67]
+    quote: '- As a [user type], I want to [action] so that [benefit] - [repeat for up to 2 max additional user stories]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.item_format.out_of_scope_max
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: up to 10 out-of-scope bullets (WS:92)
+  source:
+    doc: WS
+    lines: [92, 92]
+    quote: '- [up to 10 concise descriptions of specific features that are out of scope and MUST NOT be built in this spec]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.code_free
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: DO NOT write actual code in spec.md (WS:53, WS:99)
+  source:
+    doc: WS
+    lines: [53, 53]
+    quote: DO NOT write actual code in the spec.md document. Just describe the requirements clearly and concisely.
+  fidelity: narrower
+  fidelity_note: only fenced code blocks; inline or indented code unchecked
+- id: agentos_v2.write_spec.spec.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no fill-in marks in spec.md (WS:53, implicit)
+  source:
+    doc: WS
+    lines: [53, 53]
+    quote: Just describe the requirements clearly and concisely.
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no bracketed template placeholder left (WS:60-92; WS:57)
+  source:
+    doc: WS
+    lines: [60, 60]
+    quote: '# Specification: [Feature Name]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.cross_ref.no_extra_sections
+  template: T-FM7
+  status: implemented
+  requirement: must
+  rule: do not deviate from the template and do not add sections (WS:101)
+  source:
+    doc: WS
+    lines: [101, 101]
+    quote: 5. **Do NOT deviate from the template above** and do not add additional sections
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.agentos_v2_blocks.specific_requirements
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: 'Specific Requirements: 1-10 bold-named requirement blocks, each with up to 8 sub-bullets (WS:71-74)'
+  source:
+    doc: WS
+    lines: [71, 74]
+    quote: '**Specific requirement name** - [Up to 8 CONCISE sub-bullet points to clarify specific sub-requirements, design
+      or architectual decisions that go into this requirement, or the technical approach to take when implementing this requirement]
+      [repeat for up to a max of 10 specific requirements]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.spec.agentos_v2_blocks.existing_code
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: 'Existing Code to Leverage: up to 5 bold-named code areas, each with up to 5 bullets (WS:86-89)'
+  source:
+    doc: WS
+    lines: [86, 89]
+    quote: '**Code, component, or existing logic found** - [up to 5 bullets that describe what this existing code does and
+      how it should be re-used or replicated when building this spec] [repeat for up to 5 existing code areas]'
+  fidelity: faithful
+- id: agentos_v2.write_spec.run.doc_read.ws
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open write-spec.md when the command begins (CW:19; SS:304)
+  source:
+    doc: CW
+    lines: [19, 19]
+    quote: '2. **write-spec**: `/agent-os/commands/write-spec/write-spec.md`'
+  fidelity: faithful
+- id: agentos_v2.write_spec.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: write-spec ... change nothing (CW:81-82)
+  source:
+    doc: CW
+    lines: [81, 82]
+    quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
+  fidelity: faithful
+- id: agentos_v2.write_spec.unimplemented.unimplemented
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: load and analyze requirements and visual assets (WS:7)
+  source:
+    doc: WS
+    lines: [7, 7]
+    quote: '**Analyze Requirements**: Load and analyze requirements and visual assets thoroughly'
+  class: duplicate
+- id: agentos_v2.write_spec.run.agentos_v2_read.requirements
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read requirements.md first (WS:15-18)
+  source:
+    doc: WS
+    lines: [15, 18]
+    quote: 'Read and understand all inputs and THINK HARD: ```bash # Read the requirements document cat /tmp/agent-os/specs/[current-spec]/planning/requirements.md'
+  fidelity: faithful
+- id: agentos_v2.write_spec.run.agentos_v2_holds.visuals_checked
+  template: T-AW5
+  status: implemented
+  requirement: should
+  rule: run the ls of planning/visuals as part of reading the inputs (WS:20-21)
+  source:
+    doc: WS
+    lines: [20, 21]
+    quote: '# Check for visual assets ls -la /tmp/agent-os/specs/[current-spec]/planning/visuals/ 2>/dev/null | grep -v "^total"
+      | grep -v "^d"'
+  fidelity: faithful
+- id: agentos_v2.write_spec.unimplemented.unimplemented.2
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: parse and analyze the inputs, incl. visual mockups if present (WS:24-27)
+  source:
+    doc: WS
+    lines: [24, 27]
+    quote: 'Parse and analyze: ... - Visual mockups or screenshots (if present)'
+  class: duplicate
+  class_note: analysis is unobservable; the read is rewarded; the visuals part never fires
+- id: agentos_v2.write_spec.run.agentos_v2_holds.reuse_search
+  template: T-RD5
+  status: implemented
+  requirement: must
+  rule: before creating specifications, search the codebase for reusable code (WS:32, WS:97)
+  source:
+    doc: WS
+    lines: [32, 32]
+    quote: Before creating specifications, search the codebase for existing patterns and components that can be reused.
+  fidelity: narrower
+  fidelity_note: any grep/rg/find in the window counts
+- id: agentos_v2.create_tasks.tasks.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: generate /tmp/agent-os/specs/[current-spec]/tasks.md (CT:40)
+  source:
+    doc: CT
+    lines: [40, 40]
+    quote: Generate `/tmp/agent-os/specs/[current-spec]/tasks.md`.
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.section_present.execution_order
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '## Execution Order of the example format (CT:191; CT:42)'
+  source:
+    doc: CT
+    lines: [191, 191]
+    quote: '## Execution Order'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.section_present.task_list
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '## Task List of the example format (CT:50; CT:42)'
+  source:
+    doc: CT
+    lines: [50, 50]
+    quote: '## Task List'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.groups
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: task list broken into groups (CT:26), '#### Task Group N:' headings numbered from 1 (CT:54)
+  source:
+    doc: CT
+    lines: [26, 26]
+    quote: '4. **Create Tasks list**: Create the markdown tasks list broken into groups with sub-tasks.'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.subtasks
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: groups with checkbox sub-tasks '- [ ] N.M' (CT:26, CT:57-58)
+  source:
+    doc: CT
+    lines: [26, 26]
+    quote: '4. **Create Tasks list**: Create the markdown tasks list broken into groups with sub-tasks.'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.unchecked
+  template: T-PG1
+  status: implemented
+  requirement: should
+  rule: boxes are open when tasks.md is created; implement-tasks ticks them (CT:57; IT:32)
+  source:
+    doc: CT
+    lines: [57, 57]
+    quote: '- [ ] 1.0 Complete database layer'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.title
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'title ''# Task Breakdown: [Feature Name]'' (CT:45; example format CT:42)'
+  source:
+    doc: CT
+    lines: [45, 45]
+    quote: '# Task Breakdown: [Feature Name]'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.checkbox_lines
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: every checkbox line is '- [ ] N.M <task>' (CT:57-58)
+  source:
+    doc: CT
+    lines: [57, 58]
+    quote: '- [ ] 1.0 Complete database layer - [ ] 1.1 Write 2-8 focused tests for [Model] functionality'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.item_format.acceptance_criteria
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: include acceptance criteria for each task group (CT:216)
+  source:
+    doc: CT
+    lines: [216, 216]
+    quote: '- **Include acceptance criteria** for each task group'
+  fidelity: narrower
+  fidelity_note: one 'Acceptance Criteria' line anywhere in tasks.md passes; per-group coverage is only in group_parts (should)
+- id: agentos_v2.create_tasks.tasks.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: 'adapt the example: none of its bracketed fill-ins left (CT:42, CT:62-65)'
+  source:
+    doc: CT
+    lines: [42, 42]
+    quote: The following is an example format - adapt the content of the tasks list to match what THIS feature actually needs.
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no fill-in marks in tasks.md (CT:207, implicit)
+  source:
+    doc: CT
+    lines: [207, 207]
+    quote: '- **Create tasks that are specific and verifiable**'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.agentos_v2_tasks.total
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: 'Overview ''Total Tasks: [count]'' (CT:47-48)'
+  source:
+    doc: CT
+    lines: [47, 48]
+    quote: '## Overview Total Tasks: [count]'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.agentos_v2_tasks.group_parts
+  template: T-FM6
+  status: implemented
+  requirement: should
+  rule: each task group has **Dependencies:** (CT:55) and acceptance criteria (CT:216 'for each task group')
+  source:
+    doc: CT
+    lines: [216, 216]
+    quote: '- **Include acceptance criteria** for each task group'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.tasks.unimplemented
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: each task group (1-3) should write 2-8 focused tests maximum (CT:210)
+  source:
+    doc: CT
+    lines: [210, 210]
+    quote: Each task group (1-3) should write 2-8 focused tests maximum
+  class: candidate
+  class_note: count test functions / assertions per check script written for each group's x.1 sub-task (2..8); noisy for one-file
+    scripts (U6)
+- id: agentos_v2.create_tasks.tasks.agentos_v2_tasks.test_first
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: each task group starts with writing 2-8 tests (x.1) and ends with running ONLY those tests (CT:214)
+  source:
+    doc: CT
+    lines: [214, 214]
+    quote: '- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and
+      ends with running ONLY those tests (final sub-task)'
+  fidelity: narrower
+  fidelity_note: keywords in first/last sub-task of each non-review group; the 2-8 count unchecked
+- id: agentos_v2.create_tasks.run.doc_read.ct
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open create-tasks.md when the command begins (CW:21; WS:105)
+  source:
+    doc: CW
+    lines: [21, 21]
+    quote: '3. **create-tasks**: `/agent-os/commands/create-tasks/create-tasks.md`'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: create-tasks ... change nothing (CW:81-82)
+  source:
+    doc: CW
+    lines: [81, 82]
+    quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
+  fidelity: faithful
+- id: agentos_v2.create_tasks.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: carry out the PHASE sections in order (CT:3)
+  source:
+    doc: CT
+    lines: [3, 3]
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  class: duplicate
+  class_note: PHASE 1 (get spec/requirements) before PHASE 2 (tasks.md) = the read window ending at tasks.md's first write
+- id: agentos_v2.create_tasks.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: if spec/requirements do not exist yet, carry out shape-spec and write-spec first (CT:13)
+  source:
+    doc: CT
+    lines: [13, 13]
+    quote: If they do not exist yet, carry out the shape-spec document (`/agent-os/commands/shape-spec/shape-spec.md`) and
+      the write-spec document (`/agent-os/commands/write-spec/write-spec.md`) first.
+  class: duplicate
+- id: agentos_v2.create_tasks.unimplemented.unimplemented.3
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: break spec/requirements into an actionable tasks list with strategic grouping and ordering (CT:17)
+  source:
+    doc: CT
+    lines: [17, 17]
+    quote: please break those down into an actionable tasks list with strategic grouping and ordering
+  class: duplicate
+  class_note: '''strategic'' is vague; the grouping itself is rewarded'
+- id: agentos_v2.create_tasks.run.agentos_v2_read.spec_inputs
+  template: T-RD4
+  status: implemented
+  requirement: should
+  rule: read spec.md and requirements.md (CT:32-34)
+  source:
+    doc: CT
+    lines: [32, 34]
+    quote: 'Read each of these files (whichever are available) and analyze them to understand the requirements for this feature
+      implementation: - `/tmp/agent-os/specs/[this-spec]/spec.md` - `/tmp/agent-os/specs/[this-spec]/planning/requirements.md`'
+  fidelity: faithful
+- id: agentos_v2.create_tasks.unimplemented.unimplemented.4
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: a test-coverage group adds at most 10 additional tests if necessary (CT:213)
+  source:
+    doc: CT
+    lines: [213, 213]
+    quote: If there is a dedicated test coverage group ... this group should add only a maximum of 10 additional tests IF
+      NECESSARY to fill critical gaps
+  class: candidate
+  class_note: count tests in the scripts written for a test-review group (title matching review/gap/coverage) <= 10
+- id: agentos_v2.create_tasks.unimplemented.unimplemented.5
+  template: T-TR1
+  status: unimplemented
+  requirement: should
+  rule: reference visual assets if visuals are available (CT:217)
+  source:
+    doc: CT
+    lines: [217, 217]
+    quote: '**Reference visual assets** if visuals are available'
+  class: domain_specific
+  class_note: conditional on visuals; never fires (CW:53)
+- id: agentos_v2.implement_tasks.tasks.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: implement-tasks reads tasks.md to review the task groups (IT:19)
+  source:
+    doc: IT
+    lines: [19, 19]
+    quote: 'Read `/tmp/agent-os/specs/[this-spec]/tasks.md` to review the available task groups, then proceed with implementation
+      of all task groups in tasks.md, in order: carry out PHASE 2 yourself, starting with the first task group.'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.tasks.agentos_v2_tasks.groups_in_order
+  template: NEW-PG-unit
+  status: implemented
+  requirement: must
+  rule: implement all task groups in order, one group per pass of PHASE 2, repeat for the next group (IT:19, IT:25, IT:45)
+  source:
+    doc: IT
+    lines: [19, 19]
+    quote: 'proceed with implementation of all task groups in tasks.md, in order: carry out PHASE 2 yourself, starting with
+      the first task group.'
+  fidelity: narrower
+  fidelity_note: observes only the order of tick writes (group k's last tick not after group k+1's first), not the order of
+    code edits
+- id: agentos_v2.implement_tasks.tasks.agentos_v2_tasks.ticked
+  template: T-PG1
+  status: implemented
+  requirement: must
+  rule: mark implemented tasks done with - [x] (IT:32); all tasks ticked or marked ⚠️ (IT:222-229; CW:75-77)
+  source:
+    doc: IT
+    lines: [32, 32]
+    quote: '4. Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you''ve implemented to mark that as done
+      by updating their checkbox to checked state: `- [x]`'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.tasks.agentos_v2_tasks.ticked_after_work
+  template: T-PG1
+  status: implemented
+  requirement: must
+  rule: update the tasks you've implemented to - [x] (IT:32)
+  source:
+    doc: IT
+    lines: [32, 32]
+    quote: '4. Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you''ve implemented to mark that as done
+      by updating their checkbox to checked state: `- [x]`'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create the final verification report at verifications/final-verification.md (IT:247; CW:91-92)
+  source:
+    doc: IT
+    lines: [247, 247]
+    quote: Create your final verification report in `/tmp/agent-os/specs/[this-spec]/verifications/final-verification.md`.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.section_present.executive_summary
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report heading (IT:261); the report should follow this structure (IT:249)
+  source:
+    doc: IT
+    lines: [261, 261]
+    quote: '## Executive Summary'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.section_present.failed_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report heading (IT:305); the report should follow this structure (IT:249)
+  source:
+    doc: IT
+    lines: [305, 305]
+    quote: '### Failed Tests'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.section_present.incomplete_or_issues
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report heading (IT:278); the report should follow this structure (IT:249)
+  source:
+    doc: IT
+    lines: [278, 278]
+    quote: '### Incomplete or Issues'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.section_present.notes
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report heading (IT:290); the report should follow this structure (IT:249)
+  source:
+    doc: IT
+    lines: [290, 290]
+    quote: '### Notes'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.section_present.test_summary
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report heading (IT:299); the report should follow this structure (IT:249)
+  source:
+    doc: IT
+    lines: [299, 299]
+    quote: '### Test Summary'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.label_present.errors
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test Summary label (IT:303); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [303, 303]
+    quote: '- **Errors:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.label_present.failing
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test Summary label (IT:302); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [302, 302]
+    quote: '- **Failing:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.label_present.passing
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test Summary label (IT:301); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [301, 301]
+    quote: '- **Passing:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.label_present.total_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: Test Summary label (IT:300); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [300, 300]
+    quote: '- **Total Tests:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_enum.status
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'header Status: ✅ Passed | ⚠️ Passed with Issues | ❌ Failed (IT:257)'
+  source:
+    doc: IT
+    lines: [257, 257]
+    quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_enum.tasks_status
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'Tasks Verification Status: ✅ All Complete | ⚠️ Issues Found (IT:269)'
+  source:
+    doc: IT
+    lines: [269, 269]
+    quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_enum.suite_status
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'Test Suite Results Status: ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures (IT:297)'
+  source:
+    doc: IT
+    lines: [297, 297]
+    quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.executive_summary
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:263); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [263, 263]
+    quote: '[Brief 2-3 sentence overview of the verification results and overall implementation quality]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.failed_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:306); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [306, 306]
+    quote: '[List any failing tests with their descriptions, or note "None - all tests passing"]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.incomplete_or_issues
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:279); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [279, 279]
+    quote: '[List any tasks that were found incomplete or have issues, or note "None" if all complete]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.notes
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:291, IT:309); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [291, 291]
+    quote: '[Any relevant notes about roadmap updates, or note if no updates were needed]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.errors
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:303); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [303, 303]
+    quote: '- **Errors:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.failing
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:302); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [302, 302]
+    quote: '- **Failing:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.passing
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:301); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [301, 301]
+    quote: '- **Passing:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.field_filled.total_tests
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: report field filled (IT:300); structure should (IT:249)
+  source:
+    doc: IT
+    lines: [300, 300]
+    quote: '- **Total Tests:** [count]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.roadmap_reason
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record ⚠️ No Updates Needed 'with that reason in its Notes' (IT:235)
+  source:
+    doc: IT
+    lines: [235, 235]
+    quote: 'This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it.
+      In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.'
+  fidelity: narrower
+  fidelity_note: reason accepted anywhere in section 2, not only under its Notes
+- id: agentos_v2.implement_tasks.final_verification.item_format.roadmap_status
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: section 2 Status `⚠️ No Updates Needed` (IT:235)
+  source:
+    doc: IT
+    lines: [235, 235]
+    quote: In section 2 of the report (Roadmap Updates), record Status `⚠️ No Updates Needed` with that reason in its Notes.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.line
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: numbered section headings '## 1. Tasks Verification' etc. (IT:267, IT:283, IT:295)
+  source:
+    doc: IT
+    lines: [267, 267]
+    quote: '## 1. Tasks Verification'
+  fidelity: narrower
+  fidelity_note: one numbered '## N.' heading suffices
+- id: agentos_v2.implement_tasks.final_verification.item_format.line.2
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: 'title ''# Verification Report: [Spec Title]'' (IT:252)'
+  source:
+    doc: IT
+    lines: [252, 252]
+    quote: '# Verification Report: [Spec Title]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.line.3
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''**Date:** [Current Date]'' (IT:255)'
+  source:
+    doc: IT
+    lines: [255, 255]
+    quote: '**Date:** [Current Date]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.line.4
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''**Spec:** `[spec-name]`'' (IT:254)'
+  source:
+    doc: IT
+    lines: [254, 254]
+    quote: '**Spec:** `[spec-name]`'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.line.5
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''**Status:** ...'' lines (IT:257, IT:269, IT:285, IT:297)'
+  source:
+    doc: IT
+    lines: [257, 257]
+    quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.item_format.line.6
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: '''**Verifier:** implementation-verifier'' fixed text (IT:256)'
+  source:
+    doc: IT
+    lines: [256, 256]
+    quote: '**Verifier:** implementation-verifier'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no fill-in marks in the report; include the counts (IT:241)
+  source:
+    doc: IT
+    lines: [241, 241]
+    quote: Include these counts and the list of failed tests in your final verification report.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder or unchosen status choice left in the report (IT:252-309)
+  source:
+    doc: IT
+    lines: [252, 252]
+    quote: '# Verification Report: [Spec Title]'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed
+  template: T-RF2
+  status: implemented
+  requirement: should
+  rule: a task found incomplete is marked ⚠️ and its incompleteness noted in the report (IT:229, IT:278-279)
+  source:
+    doc: IT
+    lines: [229, 229]
+    quote: IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness
+      in your verification report.
+  fidelity: narrower
+  fidelity_note: only requires Incomplete or Issues to list something (not 'None') when tasks.md has a ⚠️ task; which tasks
+    are listed is unchecked
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.test_counts
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: include the passing/failing/error counts of the entire-suite run (IT:239-241, IT:299-303)
+  source:
+    doc: IT
+    lines: [239, 241]
+    quote: Verify how many tests are passing and how many have failed or produced errors. Include these counts and the list
+      of failed tests in your final verification report.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.failed_listed
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: include the list of failed tests (IT:241, IT:243)
+  source:
+    doc: IT
+    lines: [241, 241]
+    quote: Include these counts and the list of failed tests in your final verification report.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.spec_name
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: '''**Spec:** `[spec-name]`'' names this spec (IT:254)'
+  source:
+    doc: IT
+    lines: [254, 254]
+    quote: '**Spec:** `[spec-name]`'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.tasks_status
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: Tasks Verification Status agrees with tasks.md (IT:267-269, IT:222-229)
+  source:
+    doc: IT
+    lines: [267, 269]
+    quote: '## 1. Tasks Verification **Status:** ✅ All Complete | ⚠️ Issues Found'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.suite_status
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: Test Suite Results Status agrees with the run (IT:295-297, IT:239)
+  source:
+    doc: IT
+    lines: [295, 297]
+    quote: '## 3. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.run.doc_read.it
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open implement-tasks.md when the command begins (CW:23; CT:221)
+  source:
+    doc: CW
+    lines: [23, 23]
+    quote: '4. **implement-tasks**: `/agent-os/commands/implement-tasks/implement-tasks.md`'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.run.prohibited_action.full_suite_phase2
+  template: T-PR5
+  status: implemented
+  requirement: should
+  rule: self-verify by running ONLY the tests you've written, not the entire suite (IT:39; CT:212; CT:75)
+  source:
+    doc: IT
+    lines: [39, 39]
+    quote: '- Running ONLY the tests you''ve written'
+  fidelity: narrower
+  fidelity_note: only whole-suite runs (runner at the root selecting nothing) are penalized; running other existing repository
+    tests in PHASE 2 passes; window implement start -> last code change
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: PHASE 3 only after ALL task groups are implemented (IT:3-5)
+  source:
+    doc: IT
+    lines: [3, 5]
+    quote: 'PHASE 1: Determine which task group(s) from tasks.md should be implemented PHASE 2: Implement the given task(s)
+      PHASE 3: After ALL task groups have been implemented, produce the final verification report.'
+  class: duplicate
+  class_note: also the order chain (first_repo_write -> write:final_verification) and the PHASE 3 window of suite_run
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: carry out the PHASE sections in order (IT:7)
+  source:
+    doc: IT
+    lines: [7, 7]
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  class: duplicate
+- id: agentos_v2.implement_tasks.run.agentos_v2_read.tasks
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read tasks.md to review the task groups before implementing (IT:19)
+  source:
+    doc: IT
+    lines: [19, 19]
+    quote: Read `/tmp/agent-os/specs/[this-spec]/tasks.md` to review the available task groups
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.run.agentos_v2_read.spec_inputs
+  template: T-RD4
+  status: implemented
+  requirement: should
+  rule: analyze the provided spec.md, requirements.md (IT:29)
+  source:
+    doc: IT
+    lines: [29, 29]
+    quote: 1. Analyze the provided spec.md, requirements.md, and visuals (if any)
+  fidelity: broader
+  fidelity_note: IT:29 says 'Analyze the provided' files (already in context) and does not ask for a read; the item fails
+    a run that analyzes them from context
+- id: agentos_v2.implement_tasks.run.code_change
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: 'implement the assigned task group: only implement-tasks PHASE 2 changes /testbed (IT:31; CW:81)'
+  source:
+    doc: IT
+    lines: [31, 31]
+    quote: 3. Implement the assigned task group according to requirements and standards
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.run.agentos_v2_checks.pass_last
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run ONLY the tests you've written (check scripts) and ensure they pass (IT:38-39)
+  source:
+    doc: IT
+    lines: [38, 39]
+    quote: '## Self-verify and test your work by: - Running ONLY the tests you''ve written (if any; they are check scripts
+      under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass.'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.run.agentos_v2_verify.code_frozen
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: PHASE 3 runs tests and writes the report without changing code (CW:82-83; IT:43; IT:243)
+  source:
+    doc: CW
+    lines: [82, 83]
+    quote: implement-tasks PHASE 3 runs tests and writes its report without changing code, so the code change is complete
+      before PHASE 3 begins.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.3
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'API standard: consistent lowercase endpoint naming (IT:56)'
+  source:
+    doc: IT
+    lines: [56, 56]
+    quote: '**Consistent Naming**: Use consistent, lowercase, hyphenated or underscored naming conventions for endpoints across
+      the API'
+  class: domain_specific
+  class_note: backend API coding standard; task repositories are libraries without endpoints
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.4
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'API standard: API versioning strategy (IT:57)'
+  source:
+    doc: IT
+    lines: [57, 57]
+    quote: '**Versioning**: Implement API versioning strategy (URL path or headers) to manage breaking changes'
+  class: domain_specific
+  class_note: backend API coding standard; task repositories are libraries without endpoints
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.5
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'API standard: plural nouns for resource endpoints (IT:58)'
+  source:
+    doc: IT
+    lines: [58, 58]
+    quote: '**Plural Nouns**: Use plural nouns for resource endpoints (e.g., `/users`, `/products`) for consistency'
+  class: domain_specific
+  class_note: backend API coding standard; task repositories are libraries without endpoints
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.6
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'API standard: limit nested resource depth (IT:59)'
+  source:
+    doc: IT
+    lines: [59, 59]
+    quote: '**Nested Resources**: Limit nesting depth to 2-3 levels maximum'
+  class: domain_specific
+  class_note: backend API coding standard; task repositories are libraries without endpoints
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.7
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'API standard: rate limit headers (IT:62)'
+  source:
+    doc: IT
+    lines: [62, 62]
+    quote: '**Rate Limiting Headers**: Include rate limit information in response headers'
+  class: domain_specific
+  class_note: backend API coding standard; task repositories are libraries without endpoints
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.8
+  template: T-AW3
+  status: unimplemented
+  requirement: should
+  rule: implement-tasks builds the task groups and verifies the result (SP:64-65)
+  source:
+    doc: SP
+    lines: [64, 65]
+    quote: implement-tasks builds them and verifies the result
+  class: duplicate
+  class_note: PROBLEM_SOLVING_WORKFLOW description; code_change + suite_run reward it
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.9
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'database standard: reversible migrations (IT:68)'
+  source:
+    doc: IT
+    lines: [68, 68]
+    quote: '**Reversible Migrations**: Always implement rollback/down methods to enable safe migration reversals'
+  class: domain_specific
+  class_note: DB migration/model standard; rarely applicable
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.10
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'database standard: singular model / plural table names (IT:79)'
+  source:
+    doc: IT
+    lines: [79, 79]
+    quote: '**Clear Naming**: Use singular names for models and plural for tables following your framework''s conventions'
+  class: domain_specific
+  class_note: DB migration/model standard; rarely applicable
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.11
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'database standard: created/updated timestamps on tables (IT:80)'
+  source:
+    doc: IT
+    lines: [80, 80]
+    quote: '**Timestamps**: Include created and updated timestamps on all tables'
+  class: domain_specific
+  class_note: DB migration/model standard; rarely applicable
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.12
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'database standard: index foreign keys (IT:83)'
+  source:
+    doc: IT
+    lines: [83, 83]
+    quote: '**Indexes on Foreign Keys**: Index foreign key columns and other frequently queried fields'
+  class: domain_specific
+  class_note: DB migration/model standard; rarely applicable
+- id: agentos_v2.implement_tasks.run.agentos_v2_checks.written
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: every test a task group writes is a script under checks/ (CT:215; CW:84)
+  source:
+    doc: CT
+    lines: [215, 215]
+    quote: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script
+      under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.13
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: 'accessibility: meaningful labels for all form inputs (IT:107)'
+  source:
+    doc: IT
+    lines: [107, 107]
+    quote: meaningful labels for all form inputs
+  class: domain_specific
+  class_note: frontend standard
+- id: agentos_v2.implement_tasks.run.agentos_v2_checks.before_code
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: each task group starts with writing tests (x.1) before implementing (CT:214)
+  source:
+    doc: CT
+    lines: [214, 214]
+    quote: where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running ONLY those tests (final
+      sub-task)
+  fidelity: narrower
+  fidelity_note: one check script written before the first code change suffices; per-group test-first unchecked
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.14
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: maintain consistent code style (indenting, line breaks) (WS:216)
+  source:
+    doc: WS
+    lines: [216, 216]
+    quote: Maintain consistent code style (indenting, line breaks, etc.)
+  class: candidate
+  class_note: 'diff: indentation unit and line endings of added lines match the file (or a formatter --check on changed files);
+    U13 code hygiene'
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.15
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: use consistent indentation (WS:219)
+  source:
+    doc: WS
+    lines: [219, 219]
+    quote: Use consistent indentation (spaces or tabs)
+  class: candidate
+  class_note: 'diff: added lines use the file''s indentation unit (tabs vs spaces, width)'
+- id: agentos_v2.implement_tasks.run.agentos_v2_read.tasks_phase3
+  template: T-RD4
+  status: implemented
+  requirement: should
+  rule: 'PHASE 3 Step 1: check tasks.md that all tasks are marked (IT:220-222)'
+  source:
+    doc: IT
+    lines: [220, 222]
+    quote: '### Step 1: Ensure tasks.md has been updated Check `/tmp/agent-os/specs/[this-spec]/tasks.md` and ensure that
+      all tasks and their sub-tasks are marked as completed with `- [x]`.'
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.16
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: do not leave code comments about recent or temporary changes or fixes (WS:227)
+  source:
+    doc: WS
+    lines: [227, 227]
+    quote: Do not leave code comments that speak to recent or temporary changes or fixes.
+  class: candidate
+  class_note: 'diff: added comment lines matching fix/fixed/changed/now/previously/temporary/workaround/issue #; same rule
+    in SP:36 (common exposure)'
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.17
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: never commit secrets or API keys (WS:234)
+  source:
+    doc: WS
+    lines: [234, 234]
+    quote: never commit secrets or API keys to version control
+  class: candidate
+  class_note: diff scan for credential patterns; almost never fires in these tasks
+- id: agentos_v2.implement_tasks.run.agentos_v2_verify.suite_run
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: run the tests in PHASE 3 and verify how many pass/fail (IT:239)
+  source:
+    doc: IT
+    lines: [239, 239]
+    quote: Run the entire tests suite for the application so that ALL tests run.  Verify how many tests are passing and how
+      many have failed or produced errors.
+  fidelity: narrower
+  fidelity_note: any valid test run between the last tick and the report; whole-suite selection is the separate whole_suite
+    item
+- id: agentos_v2.implement_tasks.run.agentos_v2_verify.whole_suite
+  template: T-AW7
+  status: implemented
+  requirement: must
+  rule: run the entire tests suite so that ALL tests run (IT:237-239)
+  source:
+    doc: IT
+    lines: [239, 239]
+    quote: Run the entire tests suite for the application so that ALL tests run.
+  fidelity: faithful
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.18
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: keep unit tests fast (milliseconds) (WS:272)
+  source:
+    doc: WS
+    lines: [272, 272]
+    quote: Keep unit tests fast (milliseconds) so developers run them frequently during development
+  class: vague
+  class_note: runtime of check scripts is not reliably measurable from the trace; 'milliseconds' is advice
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.19
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: do not leave code comments about recent or temporary changes or fixes (CT:343)
+  source:
+    doc: CT
+    lines: [343, 343]
+    quote: Do not leave code comments that speak to recent or temporary changes or fixes.
+  class: candidate
+  class_note: same rule as implement_tasks.unimplemented.unimplemented.16 (create-tasks copy of the standard); diff comment
+    heuristic
+- id: agentos_v2.implement_tasks.unimplemented.unimplemented.20
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: never commit secrets or API keys (CT:350)
+  source:
+    doc: CT
+    lines: [350, 350]
+    quote: never commit secrets or API keys to version control
+  class: candidate
+  class_note: same as .17
+- id: agentos_v2.global.tasks.agentos_v2_tasks.later_edits
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: leave a file alone once its command is over, except the checkboxes of tasks.md (CW:62-63; IT:229)
+  source:
+    doc: CW
+    lines: [62, 63]
+    quote: leave a file alone once its command is over, except for the checkboxes in `tasks.md`.
+  fidelity: faithful
+- id: agentos_v2.global.run.doc_read_first.cw
+  template: T-RD1
+  status: implemented
+  requirement: must
+  rule: open /agent-os/core-workflow.md as the first action (INS:4; SP:68)
+  source:
+    doc: INS
+    lines: [4, 4]
+    quote: Before you look at the repository, open /agent-os/core-workflow.md; that is your first action.
+  fidelity: faithful
+- id: agentos_v2.global.run.order.commands
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: the four commands once each, in order, each document opened when reached (CW:14, CW:27-28; SP:70-71; CW:81)
+  source:
+    doc: CW
+    lines: [14, 14]
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  fidelity: faithful
+- id: agentos_v2.global.run.prohibited_action.test_file_write
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: no test file in the repository is edited (CW:84-85; CT:215)
+  source:
+    doc: CW
+    lines: [84, 85]
+    quote: No test file in the repository is added or edited.
+  fidelity: faithful
+- id: agentos_v2.global.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: work the task through the four command documents yourself (INS:1-2)
+  source:
+    doc: INS
+    lines: [1, 2]
+    quote: 'Work this task through Agent OS''s spec pipeline: four command documents (shape-spec, write-spec, create-tasks,
+      implement-tasks) that you carry out yourself'
+  class: duplicate
+- id: agentos_v2.global.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: the four command documents in that order (INS:1-2)
+  source:
+    doc: INS
+    lines: [1, 2]
+    quote: four command documents (shape-spec, write-spec, create-tasks, implement-tasks) ... in that order
+  class: duplicate
+- id: agentos_v2.global.unimplemented.unimplemented.3
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: /agent-os hangs off /, not inside /testbed (INS:4-6)
+  source:
+    doc: INS
+    lines: [4, 6]
+    quote: /agent-os hangs directly off the root directory /, apart from the repository at /testbed, so it is not to be found
+      inside /testbed.
+  class: vague
+  class_note: location information, not a constraint
+- id: agentos_v2.global.unimplemented.unimplemented.4
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: carry out all four command documents yourself, one after another, in this single session (CW:6-7)
+  source:
+    doc: CW
+    lines: [6, 7]
+    quote: Here you carry out all four command documents yourself, one after another, in this single session.
+  class: duplicate
+- id: agentos_v2.global.unimplemented.unimplemented.5
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: core-workflow.md gives the command paths, the spec folder and the finish point (INS:6-7)
+  source:
+    doc: INS
+    lines: [6, 7]
+    quote: core-workflow.md gives the path of each command document, the spec folder the commands write to
+  class: vague
+  class_note: information
+- id: agentos_v2.global.unimplemented.unimplemented.6
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: the standards are written out in each command document; there are no separate standards files to open (CW:30-32)
+  source:
+    doc: CW
+    lines: [30, 32]
+    quote: The bold `agent-os/standards/...` lines there only name each standard; there are no separate standards files to
+      open.
+  class: vague
+  class_note: information; if wanted, a prohibited_action(command) on reads of agent-os/standards/ could check it (T-PR6)
+- id: agentos_v2.global.run.agentos_v2_spec_folder.single
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: the spec folder is created once; every later command works in that one folder (CW:43-45)
+  source:
+    doc: CW
+    lines: [43, 45]
+    quote: 'shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short
+      kebab-case name you choose for the change. The documents call it `[this-spec]`, `[current-spec]`, `[spec-path]` or `$SPEC_PATH`;
+      each of these means that one folder, and every later command works in it.'
+  fidelity: faithful
+- id: agentos_v2.global.run.agentos_v2_paths_written.empty_folders
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: planning/visuals/ and implementation/ stay empty (CW:53, CW:57; SS:67)
+  source:
+    doc: CW
+    lines: [53, 53]
+    quote: made by shape-spec PHASE 1; stays empty, nobody adds mockups
+  fidelity: faithful
+- id: agentos_v2.global.run.agentos_v2_paths_written.scratch_outside_checks
+  template: T-WD3
+  status: implemented
+  requirement: should
+  rule: scratch files go to S/checks/ (CW:86-87, CW:56)
+  source:
+    doc: CW
+    lines: [86, 87]
+    quote: They go to `S/`, scratch files to `S/checks/`.
+  fidelity: faithful
+- id: agentos_v2.global.run.agentos_v2_holds.shape_files_left_alone
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: leave initialization.md / requirements.md alone once shape-spec is over (CW:62-63)
+  source:
+    doc: CW
+    lines: [62, 63]
+    quote: Write each file in the structure its document gives, and leave a file alone once its command is over, except for
+      the checkboxes in `tasks.md`.
+  fidelity: faithful
+- id: agentos_v2.global.run.agentos_v2_holds.spec_left_alone
+  template: T-WD4
+  status: implemented
+  requirement: must
+  rule: leave spec.md alone once write-spec is over (CW:62-63)
+  source:
+    doc: CW
+    lines: [62, 63]
+    quote: leave a file alone once its command is over, except for the checkboxes in `tasks.md`.
+  fidelity: faithful
+- id: agentos_v2.global.unimplemented.unimplemented.7
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: the issue is turned into a spec before any code changes (SP:62)
+  source:
+    doc: SP
+    lines: [62, 62]
+    quote: The issue is turned into a spec before any code changes
+  class: duplicate
+  class_note: also the per-stage repo_write prohibitions
+- id: agentos_v2.global.unimplemented.unimplemented.8
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: shape-spec -> write-spec -> create-tasks -> implement-tasks (SP:62-64)
+  source:
+    doc: SP
+    lines: [62, 64]
+    quote: shape-spec gathers the requirements, write-spec writes the specification, create-tasks splits it into task groups,
+      and implement-tasks builds them
+  class: duplicate
+- id: agentos_v2.global.unimplemented.unimplemented.9
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: no person answers; a reply that calls no tool ends the session (CW:67-68)
+  source:
+    doc: CW
+    lines: [67, 68]
+    quote: No person reads your messages, answers a question, reviews a result or starts the next command, and a reply that
+      calls no tool ends the session at once, with the work unfinished.
+  class: candidate
+  class_note: 'trace: no assistant turn without a tool call before finish (CW:74 ''Send no plain-text message at all before
+    finish''); largely self-enforcing because such a reply ends the run'
+- id: agentos_v2.global.unimplemented.unimplemented.10
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: /agent-os sits directly under /, not inside /testbed (SP:68-69)
+  source:
+    doc: SP
+    lines: [68, 69]
+    quote: The /agent-os directory sits directly under /, not inside the repository at /testbed.
+  class: vague
+  class_note: location information
+- id: agentos_v2.global.unimplemented.unimplemented.11
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: questions a document raises are answered by you and written down as assumptions (SP:72-73)
+  source:
+    doc: SP
+    lines: [72, 73]
+    quote: Questions a document raises are answered by you and written down as assumptions
+  class: duplicate
+- id: agentos_v2.global.unimplemented.unimplemented.12
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: when a command is done, open the next command document right away instead of summing up (CW:73-74)
+  source:
+    doc: CW
+    lines: [73, 74]
+    quote: When a command is done, open the next command document right away instead of summing up.
+  class: candidate
+  class_note: 'trace: after each closing artifact write, the next acting call reads the next command document and no message-only
+    turn intervenes; immediacy (W18-like)'
+- id: agentos_v2.global.unimplemented.unimplemented.13
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: every turn includes a tool call (SP:73-74)
+  source:
+    doc: SP
+    lines: [73, 74]
+    quote: every turn includes a tool call
+  class: candidate
+  class_note: 'same as global.unimplemented.unimplemented.9 (trace: no tool-less turn before finish)'
+- id: agentos_v2.global.run.agentos_v2_created_files.tests
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: no test file in the repository is added (CW:84-85; CT:215)
+  source:
+    doc: CW
+    lines: [84, 85]
+    quote: The tests the task groups call for are scripts in `S/checks/`. No test file in the repository is added or edited.
+  fidelity: faithful
+- id: agentos_v2.global.run.agentos_v2_created_files.workflow_files
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: 'nothing of the workflow goes into /testbed: no spec files, notes, summaries or temporary scripts (CW:86-87)'
+  source:
+    doc: CW
+    lines: [86, 87]
+    quote: 'Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary scripts.
+      They go to `S/`, scratch files to `S/checks/`.'
+  fidelity: narrower
+  fidelity_note: name-pattern based (repro/debug/scratch/tmp/check/verify*, spec docs, *SUMMARY*/*NOTES*); a scratch script
+    with another name escapes
+- id: agentos_v2.global.run.agentos_v2_paths_written.no_roadmap
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: 'this project has no agent-os/product/roadmap.md: do not create it (IT:235)'
+  source:
+    doc: IT
+    lines: [235, 235]
+    quote: 'This project has no `agent-os/product/roadmap.md` (plan-product is not part of this workflow): do not create it.'
+  fidelity: faithful
+- id: agentos_v2.global.unimplemented.unimplemented.14
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: maintain consistent code style (SS:315)
+  source:
+    doc: SS
+    lines: [315, 315]
+    quote: Maintain consistent code style (indenting, line breaks, etc.)
+  class: candidate
+  class_note: same as implement_tasks.unimplemented.unimplemented.14 (shape-spec copy; there it governs research questions,
+    SS:308)
+- id: agentos_v2.global.unimplemented.unimplemented.15
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: avoid abbreviations and single-letter variables except in narrow contexts (SS:316)
+  source:
+    doc: SS
+    lines: [316, 316]
+    quote: avoid abbreviations and single-letter variables except in narrow contexts
+  class: candidate
+  class_note: 'diff: new identifiers of length 1 outside loop/comprehension variables; noisy'
+- id: agentos_v2.global.unimplemented.unimplemented.16
+  template: NEW-CQ
+  status: unimplemented
+  requirement: should
+  rule: never commit secrets or API keys (SS:333)
+  source:
+    doc: SS
+    lines: [333, 333]
+    quote: never commit secrets or API keys to version control
+  class: candidate
+  class_note: same as implement_tasks.unimplemented.unimplemented.17

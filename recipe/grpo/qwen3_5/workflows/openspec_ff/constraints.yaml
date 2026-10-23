@@ -1,0 +1,2766 @@
+# Constraints of openspec_ff: one per rubric item (same id), with the template that judges it.
+# Maintained by hand; the rubric implements them, workflow_rubric checks the two stay in step
+# (sdlc_if/constraints.py, which also documents the fields).
+schema: sdlc_if.constraints/1
+workflow: openspec_ff
+role: train
+templates: ../../sdlc_if/templates.yaml
+rubric: reward/rubric.yaml
+constraints:
+- id: openspec_ff.explore.proposal.field_filled.why
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: ff writes the proposal's Why from explore's summary (CW:63-65; EX:209)
+  source:
+    doc: CW
+    lines: [63, 65]
+    quote: 'ff then writes the proposal and the design from that summary: the proposal''s Why and the design''s Context and
+      **Decisions** (choice, rationale, alternatives) rest on it, and its assumptions go into the proposal.'
+  fidelity: narrower
+  fidelity_note: checks only that the proposal's Why section is filled at the end (the same check as openspec_ff.ff.proposal.field_filled.why);
+    that the Why rests on the explore summary is unchecked
+- id: openspec_ff.explore.run.doc_read.ex
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open 00-explore.md first for the explore action (CW:20; SP:69-70)
+  source:
+    doc: CW
+    lines: [20, 20]
+    quote: '| explore | `/opsx/stages/00-explore.md` | `openspec list --json` |'
+  fidelity: broader
+  fidelity_note: single_doc voids a read of this document made in the same step as another stage document; the docs have no
+    explicit one-at-a-time rule (CW:18 'Open this first', SP:69-70 'On entering one'). Mild; consistent with the documented
+    'not before' reading (rubric conflict on read-ahead). Carries a T-RD3 element
+- id: openspec_ff.explore.run.doc_read.config
+  template: T-RD5
+  status: implemented
+  requirement: should
+  rule: read the project's /openspec/config.yaml (context, rules) while exploring (EX:131-133)
+  source:
+    doc: EX
+    lines: [131, 133]
+    quote: 'Then read the project''s own context from the resolved root - `<root.path>/openspec/config.yaml` (or `config.yml`).
+      Use the `root.path` returned above, and skip this if neither file exists: - `context`: project background - tech stack,
+      conventions, constraints'
+  fidelity: faithful
+- id: openspec_ff.explore.run.prohibited_action.composed_code
+  template: T-PR6
+  status: implemented
+  requirement: should
+  rule: 'explore composes no code of its own: no `python -c`, no heredoc or snippet piped to python (CW:75-77; EX:5; EX:215)'
+  source:
+    doc: CW
+    lines: [75, 77]
+    quote: 'Explore reads it too, but runs only what is already there: existing code, existing tests, and the issue''s own
+      example exactly as given. It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`,
+      not a script in `/tmp`.'
+  fidelity: narrower
+  fidelity_note: python only (node -e, perl -e, bash -c with composed code not caught); a script in /tmp is left to the no-file
+    item; conversely the issue's own example run as `python -c` fails (documented)
+- id: openspec_ff.explore.run.openspec_ff_cli.no_new_change
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: 'explore does not create the change: `openspec new change` is ff''s first command (EX:219; EX:5; CW:21)'
+  source:
+    doc: EX
+    lines: [219, 219]
+    quote: nothing is captured during explore, and `openspec new change` is ff's first command.
+  fidelity: faithful
+- id: openspec_ff.explore.run.openspec_ff_paths_written.any
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: explore writes no file anywhere, inside the repository or outside it (CW:77-78; EX:5; EX:219)
+  source:
+    doc: CW
+    lines: [77, 78]
+    quote: It writes no file anywhere, inside the repository or outside it.
+  fidelity: faithful
+- id: openspec_ff.explore.ending_discovery_summary.unimplemented
+  template: T-SR1
+  status: unimplemented
+  requirement: must
+  rule: the one required output of explore is the Ending Discovery summary (EX:7)
+  source:
+    doc: EX
+    lines: [7, 7]
+    quote: The one required output is the summary under **Ending Discovery**, written when exploration is done.
+  class: duplicate
+- id: openspec_ff.explore.run.openspec_ff_cli.list
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: explore starts from `openspec list --json` (CW:20; EX:113-116)
+  source:
+    doc: CW
+    lines: [20, 20]
+    quote: '| explore | `/opsx/stages/00-explore.md` | `openspec list --json` |'
+  fidelity: faithful
+- id: openspec_ff.explore.codebase_investigation.unimplemented
+  template: T-RD5
+  status: unimplemented
+  requirement: must
+  rule: explore the actual codebase when relevant, don't just theorize (EX:29)
+  source:
+    doc: EX
+    lines: [29, 29]
+    quote: Explore the actual codebase when relevant, don't just theorize
+  class: vague
+  class_note: '''when relevant''; a proxy (''some /testbed read in explore'') is trivial since every run reads code (earlier
+    steps: vague)'
+- id: openspec_ff.explore.unimplemented.unimplemented
+  template: T-RD5
+  status: unimplemented
+  requirement: should
+  rule: before asking a factual question, inspect the relevant artifacts, source, tests, docs and configuration (EX:37)
+  source:
+    doc: EX
+    lines: [37, 37]
+    quote: Before asking a factual question, follow the context discovery below and inspect relevant OpenSpec artifacts, source,
+      tests, docs, and configuration.
+  class: vague
+  class_note: conditional on asking a question, which CW:51 forbids here
+- id: openspec_ff.explore.unimplemented.unimplemented.2
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: separate what the issue and code confirm from assumptions, defaults and open questions; the summary carries them to
+    ff (EX:42)
+  source:
+    doc: EX
+    lines: [42, 42]
+    quote: Separate what the issue and the code confirm from assumptions, proposed defaults and unresolved questions; the
+      summary under **Ending Discovery** carries them to ff.
+  class: candidate
+  class_note: extend the summary note item's patterns with an 'Assumptions' (and 'Open questions') label in the same tool
+    call; documented resolution left these entries out as prose, so low value
+- id: openspec_ff.explore.unimplemented.unimplemented.3
+  template: T-AW1
+  status: unimplemented
+  requirement: should
+  rule: the issue is explored first, with nothing written (SP:62)
+  source:
+    doc: SP
+    lines: [61, 62]
+    quote: the issue is explored first, with nothing written
+  class: duplicate
+- id: openspec_ff.explore.run.openspec_ff_note.summary
+  template: T-SR1
+  status: implemented
+  requirement: must
+  rule: explore leaves the 'What We Figured Out' summary, stating The problem and Where the change goes, inside a tool call
+    before opening 01-ff.md (CW:61-63; EX:189-191)
+  source:
+    doc: CW
+    lines: [61, 63]
+    quote: It leaves no file. What it leaves is the "What We Figured Out" summary, written inside a tool call (the `think`
+      tool, for example) before you open `/opsx/stages/01-ff.md`.
+  fidelity: narrower
+  fidelity_note: 'heading + two entry labels in one tool call; the evidence behind each entry (EX:191 ''Back every entry with
+    its evidence'') and the Assumptions entry are unchecked (documented: prose)'
+- id: openspec_ff.explore.diagram_characters.unimplemented
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: draw diagrams with plain ASCII only (EX:97-98)
+  source:
+    doc: EX
+    lines: [97, 98]
+    quote: '**Draw with plain ASCII only** — borders `+` `-` `|`, arrows `-->` `<--` `^` `v`, markers `*` `x`. ... Keep every
+      diagram character ASCII.'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.explore.unimplemented.unimplemented.4
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: look at a capability with `openspec show <spec-id> --type spec --json --no-scenarios` (EX:127)
+  source:
+    doc: EX
+    lines: [127, 127]
+    quote: To look at one, run `openspec show "<spec-id>" --type spec --json --no-scenarios` (same `--store` rule)
+  class: domain_specific
+  class_note: 'N/A in this sandbox: /openspec/specs/ starts empty (CW:69; CONFIG:15); documented conflict gives the research
+    calls no item'
+- id: openspec_ff.explore.unimplemented.unimplemented.5
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: before deciding what is covered, read each relevant spec in full with `openspec show` (EX:129)
+  source:
+    doc: EX
+    lines: [129, 129]
+    quote: Before deciding what is already covered or what should change, read each relevant spec in full, including scenarios,
+      with `openspec show "<spec-id>" --type spec`
+  class: domain_specific
+  class_note: 'N/A in this sandbox: /openspec/specs/ starts empty (CW:69; CONFIG:15); documented conflict gives the research
+    calls no item'
+- id: openspec_ff.explore.unimplemented.unimplemented.6
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: before deciding what is covered, read each relevant spec in full (EX:129)
+  source:
+    doc: EX
+    lines: [129, 129]
+    quote: Before deciding what is already covered or what should change, read each relevant spec in full
+  class: domain_specific
+  class_note: 'N/A in this sandbox: /openspec/specs/ starts empty (CW:69; CONFIG:15); documented conflict gives the research
+    calls no item'
+- id: openspec_ff.explore.codebase_reads.unimplemented
+  template: T-RD5
+  status: unimplemented
+  requirement: should
+  rule: do explore the codebase, ground discussions in reality (EX:221)
+  source:
+    doc: EX
+    lines: [221, 221]
+    quote: '**Do explore the codebase** - Ground discussions in reality'
+  class: vague
+  class_note: 'same as the ''Explore the actual codebase'' bullet: no decidable threshold'
+- id: openspec_ff.ff.change.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create the change `issue` at /openspec/changes/issue/ (FF:22-26; CW:35)
+  source:
+    doc: FF
+    lines: [22, 26]
+    quote: 2. **Create the change directory** ```bash openspec new change "issue" ```
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create every artifact of the required set; the proposal is the foundation (FF:37; SCHEMA:47)
+  source:
+    doc: FF
+    lines: [37, 37]
+    quote: 4. **Create every artifact in the required set**
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.proposal
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'Proposal' (TPL_PROPOSAL:1; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [1, 1]
+    quote: '# Proposal'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.why
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'Why' (TPL_PROPOSAL:3; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [3, 3]
+    quote: '## Why'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.what_changes
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'What Changes' (TPL_PROPOSAL:7; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [7, 7]
+    quote: '## What Changes'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.capabilities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'Capabilities' (TPL_PROPOSAL:11; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [11, 11]
+    quote: '## Capabilities'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.new_capabilities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'New Capabilities' (TPL_PROPOSAL:13; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [13, 13]
+    quote: '### New Capabilities'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.modified_capabilities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'Modified Capabilities', its list left empty (TPL_PROPOSAL:22; FF:100; CONFIG:19)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [22, 22]
+    quote: '### Modified Capabilities'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.section_present.impact
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: proposal keeps the template heading 'Impact' (TPL_PROPOSAL:32; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [32, 32]
+    quote: '## Impact'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.field_filled.why
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill the proposal's Why section (SCHEMA:13; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [13, 13]
+    quote: '- **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.field_filled.what_changes
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill the proposal's What Changes section (SCHEMA:14; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [14, 14]
+    quote: '- **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals.'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.field_filled.impact
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill the proposal's Impact section (SCHEMA:18; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [18, 18]
+    quote: '- **Impact**: Affected code, APIs, dependencies, or systems.'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.field_filled.new_capabilities
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill the proposal's New Capabilities section (TPL_PROPOSAL:20; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [20, 20]
+    quote: '- `<capability-path>`: <brief description of what this capability covers>'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.item_format.what_changes
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: What Changes is a bullet list (SCHEMA:14)
+  source:
+    doc: SCHEMA
+    lines: [14, 14]
+    quote: '- **What Changes**: Bullet list of changes.'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.item_format.new_capabilities
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: capability path segments introduced in the proposal are kebab-case (SCHEMA:16; SCHEMA:77; TPL_PROPOSAL:16-18)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [16, 20]
+    quote: 'Use kebab-case for path segments you introduce (e.g., user-auth or identity/user-auth) ... - `<capability-path>`:
+      <brief description of what this capability covers>'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.item_format.modified_capabilities_empty
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 'no capability exists yet: leave Modified Capabilities empty (CONFIG:19; CW:69-70)'
+  source:
+    doc: CONFIG
+    lines: [19, 19]
+    quote: No capability exists yet in this project, so list every capability under New Capabilities, including behavior a
+      fix corrects, and leave Modified Capabilities empty.
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: 'fill in the template''s sections: no list item or cell holding only a fill-in mark (FF:100)'
+  source:
+    doc: TPL_PROPOSAL
+    lines: [3, 5]
+    quote: '## Why <!-- Explain the motivation for this change. What problem does this solve? Why now? -->'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.no_template_residue.context
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: apply the CLI's context and rules as constraints but do not copy them into the proposal (FF:63; FF:101-103)
+  source:
+    doc: FF
+    lines: [63, 63]
+    quote: '- Apply `context` and `rules` as constraints - but do NOT copy them into the file'
+  fidelity: narrower
+  fidelity_note: pattern set = the three tag names plus four CONFIG sentences; a paraphrased or partial copy of context/rules
+    is not caught
+- id: openspec_ff.ff.proposal.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no template placeholder left in the proposal (TPL_PROPOSAL:20, 30; FF:100)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [20, 20]
+    quote: '- `<capability-path>`: <brief description of what this capability covers>'
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.unimplemented
+  template: T-FM3
+  status: unimplemented
+  requirement: must
+  rule: Modified Capabilities use the exact existing path under openspec/specs/ (SCHEMA:17)
+  source:
+    doc: SCHEMA
+    lines: [17, 17]
+    quote: Use the exact existing path under `openspec/specs/`.
+  class: duplicate
+  class_note: no capability exists (CW:69); any Modified entry already fails the empty-list item
+- id: openspec_ff.ff.proposal.capabilities.declared
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: every change declares at least one capability (SCHEMA:36-37; CONFIG:19)
+  source:
+    doc: SCHEMA
+    lines: [36, 37]
+    quote: Every change must either declare at least one capability (new or modified) or explicitly opt out of specs
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.capabilities.listed_have_specs
+  template: T-TR1
+  status: implemented
+  requirement: must
+  rule: each capability the proposal lists gets its delta spec at specs/<capability-path>/spec.md, using the exact path from
+    the proposal (SCHEMA:34; SCHEMA:74; SCHEMA:77)
+  source:
+    doc: SCHEMA
+    lines: [34, 34]
+    quote: Each capability listed here will need a corresponding spec file.
+  fidelity: faithful
+- id: openspec_ff.ff.proposal.unimplemented.2
+  template: T-TR1
+  status: unimplemented
+  requirement: should
+  rule: ff writes explore's assumptions into the proposal (EX:35; CW:65)
+  source:
+    doc: EX
+    lines: [35, 35]
+    quote: ff writes it into the proposal.
+  class: candidate
+  class_note: when the explore summary note holds an Assumptions entry, require assumption wording in the proposal (tool-call
+    text -> artifact cross-reference; proxy)
+- id: openspec_ff.ff.proposal.unimplemented.3
+  template: T-FM4
+  status: unimplemented
+  requirement: should
+  rule: 'the CLI''s context is for the agent: do NOT include it in the output (FF:49)'
+  source:
+    doc: FF
+    lines: [49, 50]
+    quote: '`context`: Project background (constraints for you - do NOT include in output)'
+  class: duplicate
+- id: openspec_ff.ff.spec.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: write at least one delta spec specs/<capability>/spec.md by the end of ff (FF:37; FF:72; SCHEMA:91-92)
+  source:
+    doc: FF
+    lines: [37, 37]
+    quote: 4. **Create every artifact in the required set**
+  fidelity: faithful
+- id: openspec_ff.ff.spec.no_template_residue.template
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no spec-template placeholder left (TPL_SPEC:8-13; FF:100)
+  source:
+    doc: TPL_SPEC
+    lines: [8, 13]
+    quote: '### Requirement: <!-- requirement name --> <!-- requirement text --> #### Scenario: <!-- scenario name --> - **WHEN**
+      <!-- condition --> - **THEN** <!-- expected outcome -->'
+  fidelity: different
+  fidelity_note: 'VACUOUS: every pattern contains an HTML comment (''<!-- requirement name -->'', ''<!-- condition -->'' ...),
+    and no_template_residue strips HTML comments before matching (checks/artifacts.py no_template_residue -> M.strip_comments).
+    Tested on the unfilled TPL_SPEC: 5/5 raw hits, 0 after stripping, so the item passes whenever the file exists. Effective
+    coverage comes from openspec.delta requirement_blocks / requirement_text / when_then'
+- id: openspec_ff.ff.spec.no_template_residue.context
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: do not copy the CLI's context/rules into a delta spec (FF:63; FF:101-103)
+  source:
+    doc: FF
+    lines: [63, 63]
+    quote: '- Apply `context` and `rules` as constraints - but do NOT copy them into the file'
+  fidelity: narrower
+  fidelity_note: 'pattern set = the three tag names plus four CONFIG sentences; a paraphrased or partial copy of context/rules
+    is not caught; the spec artifact binds one {CAP} (bind: single); with several delta specs only the top-ranked one is read
+    here (openspec.delta kinds read all)'
+- id: openspec_ff.ff.spec.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: 'fill in the spec template: no item holding only a fill-in mark (FF:100)'
+  source:
+    doc: TPL_SPEC
+    lines: [11, 13]
+    quote: '#### Scenario: <!-- scenario name --> - **WHEN** <!-- condition --> - **THEN** <!-- expected outcome -->'
+  fidelity: narrower
+  fidelity_note: 'the spec artifact binds one {CAP} (bind: single); with several delta specs only the top-ranked one is read
+    here (openspec.delta kinds read all)'
+- id: openspec_ff.ff.spec.delta.purpose_new
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: 'a new capability''s delta opens with ## Purpose of 50+ characters (SCHEMA:110-112; CW:69-70)'
+  source:
+    doc: SCHEMA
+    lines: [110, 112]
+    quote: 'New capabilities only: the delta spec''s first section is `## Purpose` - one or two sentences (50+ characters,
+      or `openspec validate --strict` reports it as too brief) describing what the capability is for.'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.when_then
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: each scenario uses the WHEN/THEN format (SCHEMA:105)
+  source:
+    doc: SCHEMA
+    lines: [105, 105]
+    quote: '- Each scenario: `#### Scenario: <name>` with WHEN/THEN format'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.openspec_ff_delta.added_only
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: every delta is `## ADDED Requirements` of a new capability (CW:69-70; CONFIG:21)
+  source:
+    doc: CW
+    lines: [69, 70]
+    quote: Any delta spec you write is therefore an `## ADDED Requirements` delta for a new capability.
+  fidelity: faithful
+- id: openspec_ff.ff.spec.read_files.dependencies
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: before creating an artifact, re-read its completed dependency files from disk even if seen earlier (FF:56; FF:107)
+  source:
+    doc: FF
+    lines: [56, 56]
+    quote: Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in
+      the conversation
+  fidelity: faithful
+- id: openspec_ff.ff.spec.capabilities.specs_listed
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: 'one spec file per listed capability; converse: no delta spec for a capability the proposal does not list (SCHEMA:74)'
+  source:
+    doc: SCHEMA
+    lines: [74, 74]
+    quote: Create one spec file per capability listed in the proposal's Capabilities section.
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.kebab
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: newly introduced capability path segments are kebab-case (SCHEMA:77)
+  source:
+    doc: SCHEMA
+    lines: [77, 77]
+    quote: Any path segment newly introduced in the proposal must be kebab-case.
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.layout
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: each delta spec sits at specs/<capability-path>/spec.md (SCHEMA:77)
+  source:
+    doc: SCHEMA
+    lines: [77, 77]
+    quote: '- New capabilities: use the exact path from the proposal at `specs/<capability-path>/spec.md`.'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.unimplemented
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: a modified capability's delta uses the exact existing path (SCHEMA:78)
+  source:
+    doc: SCHEMA
+    lines: [78, 78]
+    quote: 'Modified capabilities: use the exact existing path from `openspec/specs/<capability-path>/` when creating the
+      delta at `specs/<capability-path>/spec.md`.'
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.spec.unimplemented.2
+  template: T-WD1
+  status: unimplemented
+  requirement: must
+  rule: write the spec files one at a time, each as soon as it is drafted; do not plan every file before writing the first
+    (SCHEMA:80-88)
+  source:
+    doc: SCHEMA
+    lines: [80, 81]
+    quote: 'Write the spec files one at a time, so the user sees progress and an interrupted run keeps the files it already
+      wrote:'
+  class: candidate
+  class_note: each delta spec in its own write action (no single command / heredoc / script that writes several spec.md);
+    rarely bites (usually one capability)
+- id: openspec_ff.ff.spec.unimplemented.3
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: compare listed capabilities with existing spec files, start with the first missing one, do not rewrite an existing
+    file (SCHEMA:82-85)
+  source:
+    doc: SCHEMA
+    lines: [82, 84]
+    quote: Before writing anything, compare the capabilities the proposal lists with the `specs/<capability-path>/spec.md`
+      files that already exist, and start with the first capability that has no file.
+  class: domain_specific
+  class_note: 'resume case (an interrupted run): a fresh change has no spec file yet'
+- id: openspec_ff.ff.spec.delta.delta_sections
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: 'delta operations use ## headers (SCHEMA:96-97)'
+  source:
+    doc: SCHEMA
+    lines: [96, 97]
+    quote: 'Delta operations (use ## headers): - **ADDED Requirements**: New capabilities'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.unimplemented.4
+  template: T-FM8
+  status: unimplemented
+  requirement: must
+  rule: MODIFIED requirements include the full updated content (SCHEMA:98)
+  source:
+    doc: SCHEMA
+    lines: [98, 98]
+    quote: '**MODIFIED Requirements**: Changed behavior - MUST include full updated content'
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.spec.unimplemented.5
+  template: T-FM8
+  status: unimplemented
+  requirement: must
+  rule: REMOVED requirements include Reason and Migration (SCHEMA:99)
+  source:
+    doc: SCHEMA
+    lines: [99, 99]
+    quote: '**REMOVED Requirements**: Deprecated features - MUST include **Reason** and **Migration**'
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed; openspec.delta removed_reason_migration exists but is moot'
+- id: openspec_ff.ff.spec.unimplemented.6
+  template: T-FM8
+  status: unimplemented
+  requirement: must
+  rule: 'RENAMED requirements use the FROM:/TO: format (SCHEMA:100)'
+  source:
+    doc: SCHEMA
+    lines: [100, 100]
+    quote: '**RENAMED Requirements**: Name changes only - use FROM:/TO: format'
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.spec.delta.requirement_blocks
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: 'each requirement is a `### Requirement: <name>` block (SCHEMA:103)'
+  source:
+    doc: SCHEMA
+    lines: [102, 103]
+    quote: 'Format requirements: - Each requirement: `### Requirement: <name>` followed by description'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.requirement_text
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: a requirement header is followed by its description (SCHEMA:103)
+  source:
+    doc: SCHEMA
+    lines: [103, 103]
+    quote: '- Each requirement: `### Requirement: <name>` followed by description'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.shall_must
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: normative requirements use SHALL/MUST (SCHEMA:104)
+  source:
+    doc: SCHEMA
+    lines: [104, 104]
+    quote: '- Use SHALL/MUST for normative requirements (avoid should/may)'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.scenario
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: every requirement has at least one scenario (SCHEMA:107)
+  source:
+    doc: SCHEMA
+    lines: [105, 105]
+    quote: '- Each scenario: `#### Scenario: <name>` with WHEN/THEN format'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.delta.scenario_heading
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: scenarios use exactly four hashtags (SCHEMA:106)
+  source:
+    doc: SCHEMA
+    lines: [106, 106]
+    quote: '- **CRITICAL**: Scenarios MUST use exactly 4 hashtags (`####`). Using 3 hashtags or bullets will fail silently.'
+  fidelity: faithful
+- id: openspec_ff.ff.spec.unimplemented.7
+  template: T-FM3
+  status: unimplemented
+  requirement: must
+  rule: keep each requirement's description to 500 characters or fewer (SCHEMA:108)
+  source:
+    doc: SCHEMA
+    lines: [108, 108]
+    quote: Keep each requirement's description (the text between `### Requirement:` and its first scenario) to 500 characters
+      or fewer.
+  class: candidate
+  class_note: 'openspec_kinds.parse_spec already extracts Requirement.description: ratio of ADDED requirements with len(description)
+    <= 500'
+- id: openspec_ff.ff.spec.unimplemented.8
+  template: T-FM8
+  status: unimplemented
+  requirement: must
+  rule: under MODIFIED keep the existing requirement block whole (SCHEMA:108)
+  source:
+    doc: SCHEMA
+    lines: [108, 108]
+    quote: Under MODIFIED, keep the existing requirement block whole; never split, trim or rewrite existing text just to meet
+      the length.
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.spec.unimplemented.9
+  template: T-FM8
+  status: unimplemented
+  requirement: must
+  rule: 'do not add ## Purpose to a delta for an existing capability (SCHEMA:115-116)'
+  source:
+    doc: SCHEMA
+    lines: [115, 116]
+    quote: Do NOT add `## Purpose` to a delta for an existing capability - that spec already has one and the delta's is ignored.
+  class: domain_specific
+  class_note: 'N/A: no existing capability (CW:69); openspec.delta no_purpose_existing would be not_applicable'
+- id: openspec_ff.ff.design.section_present.design
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md (when written) keeps the template heading 'Design' (TPL_DESIGN:1; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [1, 1]
+    quote: '# Design'
+  fidelity: faithful
+- id: openspec_ff.ff.design.section_present.context
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md (when written) keeps the template heading 'Context' (TPL_DESIGN:3; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [3, 3]
+    quote: '## Context'
+  fidelity: faithful
+- id: openspec_ff.ff.design.section_present.goals_non_goals
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md (when written) keeps the template heading 'Goals / Non-Goals' (TPL_DESIGN:7; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [7, 7]
+    quote: '## Goals / Non-Goals'
+  fidelity: faithful
+- id: openspec_ff.ff.design.section_present.decisions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md (when written) keeps the template heading 'Decisions' (TPL_DESIGN:15; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [15, 15]
+    quote: '## Decisions'
+  fidelity: faithful
+- id: openspec_ff.ff.design.section_present.risks_trade_offs
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md (when written) keeps the template heading 'Risks / Trade-offs' (TPL_DESIGN:19; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [19, 19]
+    quote: '## Risks / Trade-offs'
+  fidelity: faithful
+- id: openspec_ff.ff.design.field_literal.goals_non_goals
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: design.md keeps the template's **Goals:** label (TPL_DESIGN:9; FF:100)
+  source:
+    doc: TPL_DESIGN
+    lines: [9, 9]
+    quote: '**Goals:**'
+  fidelity: narrower
+  fidelity_note: the **Non-Goals:** label (TPL_DESIGN:12) is not required (resolved rubric conflict kept only the Goals literal)
+- id: openspec_ff.ff.design.field_filled.context
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill design.md's Context section (SCHEMA:177; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [177, 177]
+    quote: '- **Context**: Only the current state and constraints needed to explain the approach.'
+  fidelity: faithful
+- id: openspec_ff.ff.design.field_filled.decisions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill design.md's Decisions section (SCHEMA:179; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [179, 179]
+    quote: '- **Decisions**: Key technical choices with rationale (why X over Y?). Include alternatives considered for each
+      decision.'
+  fidelity: faithful
+- id: openspec_ff.ff.design.field_filled.goals
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill design.md's Goals / Non-Goals section (SCHEMA:178; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [178, 178]
+    quote: '- **Goals / Non-Goals**: What this design achieves and explicitly excludes.'
+  fidelity: faithful
+- id: openspec_ff.ff.design.field_filled.risks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fill design.md's Risks / Trade-offs section (SCHEMA:180; FF:100)
+  source:
+    doc: SCHEMA
+    lines: [180, 180]
+    quote: '- **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation'
+  fidelity: faithful
+- id: openspec_ff.ff.design.item_format.decisions
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: Decisions include the alternatives considered for each decision (SCHEMA:179; CW:64-65)
+  source:
+    doc: SCHEMA
+    lines: [179, 179]
+    quote: Include alternatives considered for each decision.
+  fidelity: narrower
+  fidelity_note: one mention of 'alternative(s)' in the section, not one per decision
+- id: openspec_ff.ff.design.item_format.risks_trade_offs
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: Risks / Trade-offs entries use the format [Risk] -> Mitigation (SCHEMA:180)
+  source:
+    doc: SCHEMA
+    lines: [180, 180]
+    quote: 'Format: [Risk] → Mitigation'
+  fidelity: narrower
+  fidelity_note: one line with the unicode arrow in the section, not every risk; an ASCII '->' fails
+- id: openspec_ff.ff.design.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: 'fill in design.md: no item holding only a fill-in mark (FF:100)'
+  source:
+    doc: TPL_DESIGN
+    lines: [3, 5]
+    quote: '## Context <!-- Current state and constraints that shape the approach. See proposal.md for motivation - don''t
+      restate it -->'
+  fidelity: faithful
+- id: openspec_ff.ff.design.no_template_residue.context
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: do not copy the CLI's context/rules into design.md (FF:63; FF:101-103)
+  source:
+    doc: FF
+    lines: [63, 63]
+    quote: '- Apply `context` and `rules` as constraints - but do NOT copy them into the file'
+  fidelity: narrower
+  fidelity_note: pattern set = the three tag names plus four CONFIG sentences; a paraphrased or partial copy of context/rules
+    is not caught
+- id: openspec_ff.ff.design.read_files.dependencies
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: re-read the proposal from disk after writing it and before design.md (FF:56; FF:107; SCHEMA:196-197)
+  source:
+    doc: FF
+    lines: [56, 56]
+    quote: Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in
+      the conversation
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: create every artifact apply transitively depends on; tasks is apply.requires (FF:106; SCHEMA:271-272)
+  source:
+    doc: FF
+    lines: [106, 106]
+    quote: '- Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.section_present.tasks
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: tasks.md keeps the template heading '# Tasks' (TPL_TASKS:1; FF:100)
+  source:
+    doc: TPL_TASKS
+    lines: [1, 1]
+    quote: '# Tasks'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.item_format.tasks
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: 'tracked tasks are grouped under ## numbered headings (TPL_TASKS:3, 8; SCHEMA:218)'
+  source:
+    doc: TPL_TASKS
+    lines: [3, 3]
+    quote: '## 1. <!-- Task Group Name -->'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.item_format.line
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: a tracked task is `- [ ] X.Y description` (TPL_TASKS:5-11; SCHEMA:219)
+  source:
+    doc: TPL_TASKS
+    lines: [5, 5]
+    quote: '- [ ] 1.1 <!-- Task description -->'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.item_format.task_lines
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every checkbox line is `- [ ] X.Y Task description` (SCHEMA:219)
+  source:
+    doc: SCHEMA
+    lines: [219, 219]
+    quote: '- Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.item_format.groups
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 'group tracked tasks under ## numbered headings; the optional `## Workflow follow-up` is the one unnumbered heading
+    (SCHEMA:218; SCHEMA:224-225)'
+  source:
+    doc: SCHEMA
+    lines: [218, 218]
+    quote: '- Group related tracked tasks under ## numbered headings'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no tasks-template placeholder left (TPL_TASKS:3-6; FF:100)
+  source:
+    doc: TPL_TASKS
+    lines: [3, 6]
+    quote: '## 1. <!-- Task Group Name --> - [ ] 1.1 <!-- Task description -->'
+  fidelity: different
+  fidelity_note: 'VACUOUS: both patterns are HTML comments (''<!-- Task Group Name -->'', ''<!-- Task description -->'') and
+    no_template_residue strips comments before matching; tested on the unfilled TPL_TASKS: 2/2 raw hits, 0 after stripping.
+    Effective coverage: openspec.tasks described / has_tasks (placeholder-only descriptions parse as empty)'
+- id: openspec_ff.ff.tasks.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: 'fill in tasks.md: no task holding only a fill-in mark (FF:100)'
+  source:
+    doc: TPL_TASKS
+    lines: [5, 5]
+    quote: '- [ ] 1.1 <!-- Task description -->'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.no_template_residue.context
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: do not copy the CLI's context/rules into tasks.md (FF:63; FF:101-103)
+  source:
+    doc: FF
+    lines: [63, 63]
+    quote: '- Apply `context` and `rules` as constraints - but do NOT copy them into the file'
+  fidelity: narrower
+  fidelity_note: pattern set = the three tag names plus four CONFIG sentences; a paraphrased or partial copy of context/rules
+    is not caught
+- id: openspec_ff.ff.tasks.read_files.dependencies
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: re-read every delta spec and design.md from disk after the last of them was written and before tasks.md (FF:56; FF:107;
+    SCHEMA:267-269)
+  source:
+    doc: FF
+    lines: [56, 56]
+    quote: Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in
+      the conversation
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.tasks.unchecked_at_plan
+  template: T-PG1
+  status: implemented
+  requirement: must
+  rule: a task is ticked only when its behaviour is implemented, so the task list ff leaves is all '- [ ]' (SCHEMA:219; AP:156)
+  source:
+    doc: SCHEMA
+    lines: [219, 219]
+    quote: '- Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.tasks.described
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: each tracked task is a checkbox with a description (SCHEMA:219)
+  source:
+    doc: SCHEMA
+    lines: [219, 219]
+    quote: '- Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`'
+  fidelity: faithful
+- id: openspec_ff.ff.tasks.tasks.verification
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: each task states how its completion is verified, inside its checkbox description (SCHEMA:227-229)
+  source:
+    doc: SCHEMA
+    lines: [227, 229]
+    quote: '- Each task MUST state how to verify completion (a test, command, observable behavior, or delivered artifact).
+      Put the verification in that task''s checkbox description.'
+  fidelity: narrower
+  fidelity_note: a verification keyword (verify/test/check/run/pass/confirm/assert) per task line; whether it names a real
+    test or command is unchecked
+- id: openspec_ff.ff.tasks.unimplemented
+  template: T-FM6
+  status: unimplemented
+  requirement: must
+  rule: each task group verifies its own work; do not collect verification into a final group, which is for integration checks
+    only (SCHEMA:232; SCHEMA:237-240)
+  source:
+    doc: SCHEMA
+    lines: [237, 240]
+    quote: Do NOT collect verification into a final group ... A final group is for integration checks only.
+  class: candidate
+  class_note: 'per ## N. group: at least one task naming a test/check run, scaffolding-only groups exempt; fail when only
+    the last group carries runs (per-block, W2-like)'
+- id: openspec_ff.ff.run.doc_read.ff
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open 01-ff.md when entering ff (CW:21; EX:189; SP:69-70)
+  source:
+    doc: CW
+    lines: [21, 21]
+    quote: '| ff | `/opsx/stages/01-ff.md` | `openspec new change "issue"` | the change and every planning artifact |'
+  fidelity: broader
+  fidelity_note: single_doc voids a read of this document made in the same step as another stage document; the docs have no
+    explicit one-at-a-time rule (CW:18 'Open this first', SP:69-70 'On entering one'). Mild; consistent with the documented
+    'not before' reading (rubric conflict on read-ahead). Carries a T-RD3 element
+- id: openspec_ff.ff.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: only apply edits /testbed; ff reads it and runs commands (CW:74; FF:57)
+  source:
+    doc: CW
+    lines: [74, 74]
+    quote: '- Only the apply action edits `/testbed`. ff and verify read it and run commands in it.'
+  fidelity: faithful
+- id: openspec_ff.ff.unimplemented.unimplemented
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: 'the change name is fixed: issue (FF:14)'
+  source:
+    doc: FF
+    lines: [14, 14]
+    quote: 'The change name is fixed: `issue`.'
+  class: duplicate
+- id: openspec_ff.ff.unimplemented.unimplemented.2
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: capability names are not implementation tasks or proposal sections (TPL_PROPOSAL:15-16)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [15, 16]
+    quote: Do not name implementation tasks or proposal sections.
+  class: vague
+  class_note: semantic naming judgment
+- id: openspec_ff.ff.unimplemented.unimplemented.3
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: the Capabilities section identifies which specs will be created or modified (SCHEMA:15)
+  source:
+    doc: SCHEMA
+    lines: [15, 15]
+    quote: '- **Capabilities**: Identify which specs will be created or modified:'
+  class: duplicate
+- id: openspec_ff.ff.unimplemented.unimplemented.4
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: follow the project's existing spec organization (SCHEMA:16)
+  source:
+    doc: SCHEMA
+    lines: [16, 16]
+    quote: follow the project's existing spec organization.
+  class: domain_specific
+  class_note: 'N/A: specs/ starts empty, there is no organization to follow (CW:69)'
+- id: openspec_ff.ff.run.openspec_ff_cli.new_change
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: ff starts from `openspec new change "issue"`, which scaffolds the change, before any artifact (CW:21; FF:22-26)
+  source:
+    doc: CW
+    lines: [21, 21]
+    quote: '| ff | `/opsx/stages/01-ff.md` | `openspec new change "issue"` | the change and every planning artifact |'
+  fidelity: faithful
+- id: openspec_ff.ff.unimplemented.unimplemented.5
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: Modified Capabilities use the exact existing path under openspec/specs/ (TPL_PROPOSAL:25)
+  source:
+    doc: TPL_PROPOSAL
+    lines: [25, 25]
+    quote: Use the exact existing path under openspec/specs/.
+  class: duplicate
+  class_note: any Modified entry already fails the empty-list item
+- id: openspec_ff.ff.unimplemented.unimplemented.6
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: 'a change with no capability at all must set skip_specs: true (TPL_PROPOSAL:26-27)'
+  source:
+    doc: TPL_PROPOSAL
+    lines: [26, 28]
+    quote: 'A change with no capabilities at all (pure refactor, tooling, docs) must set `skip_specs: true` in its .openspec.yaml
+      - openspec validate rejects a zero-delta change without that marker.'
+  class: duplicate
+  class_note: the declared item requires at least one capability; the documented skip_specs resolution keeps the delta items
+    in the denominator
+- id: openspec_ff.ff.run.openspec_ff_cli.instructions_design
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: get `openspec instructions design` before writing that artifact; its instruction field is authoritative (FF:44-46;
+    FF:96)
+  source:
+    doc: FF
+    lines: [44, 46]
+    quote: '- Get instructions: ```bash openspec instructions <artifact-id> --change "issue" --json'
+  fidelity: faithful
+- id: openspec_ff.ff.run.openspec_ff_cli.instructions_proposal
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: get `openspec instructions proposal` before writing that artifact; its instruction field is authoritative (FF:44-46;
+    FF:96)
+  source:
+    doc: FF
+    lines: [44, 46]
+    quote: '- Get instructions: ```bash openspec instructions <artifact-id> --change "issue" --json'
+  fidelity: faithful
+- id: openspec_ff.ff.run.openspec_ff_cli.instructions_specs
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: get `openspec instructions specs` before writing that artifact; its instruction field is authoritative (FF:44-46;
+    FF:96)
+  source:
+    doc: FF
+    lines: [44, 46]
+    quote: '- Get instructions: ```bash openspec instructions <artifact-id> --change "issue" --json'
+  fidelity: faithful
+- id: openspec_ff.ff.run.openspec_ff_cli.instructions_tasks
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: get `openspec instructions tasks` before writing that artifact; its instruction field is authoritative (FF:44-46;
+    FF:96)
+  source:
+    doc: FF
+    lines: [44, 46]
+    quote: '- Get instructions: ```bash openspec instructions <artifact-id> --change "issue" --json'
+  fidelity: faithful
+- id: openspec_ff.ff.unimplemented.unimplemented.7
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: '`openspec list` without --specs lists changes, never specs (SCHEMA:28-29)'
+  source:
+    doc: SCHEMA
+    lines: [28, 29]
+    quote: '`openspec list` without `--specs` lists in-flight changes, not specs - it never shows what the project already
+      covers.'
+  class: vague
+  class_note: descriptive statement about the CLI; documented conflict gives the research calls no item
+- id: openspec_ff.ff.run.openspec_ff_cli.status
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: get the artifact build order with `openspec status --change issue --json` before the first artifact (FF:28-31)
+  source:
+    doc: FF
+    lines: [28, 31]
+    quote: 3. **Get the artifact build order** ```bash openspec status --change "issue" --json ```
+  fidelity: faithful
+- id: openspec_ff.ff.unimplemented.unimplemented.8
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: reuse an existing capability's exact path instead of a near-duplicate name (SCHEMA:29-30)
+  source:
+    doc: SCHEMA
+    lines: [29, 30]
+    quote: Reuse an existing capability's exact path instead of introducing a near-duplicate name.
+  class: domain_specific
+  class_note: 'N/A: no existing capability (CW:69)'
+- id: openspec_ff.ff.planninghome_changeroot_artifactpaths_us.openspec_ff_paths_written
+  template: T-WD3
+  status: implemented
+  requirement: should
+  rule: use the CLI's planningHome/changeRoot/artifactPaths instead of assuming repo-local paths (FF:35; FF:58)
+  source:
+    doc: FF
+    lines: [35, 35]
+    quote: Use these instead of assuming repo-local paths.
+  fidelity: narrower
+  fidelity_note: only catches a write under /testbed/openspec/ in the ff window; other wrong paths (e.g. ./changes/...) are
+    left to the location-based artifact items
+- id: openspec_ff.ff.todo_list.unimplemented
+  template: NEW-PG-tracker
+  status: unimplemented
+  requirement: must
+  rule: use a todo list to track progress through the artifacts (FF:39)
+  source:
+    doc: FF
+    lines: [39, 39]
+    quote: Use a todo list to track progress through the artifacts.
+  class: candidate
+  class_note: a task_tracker tool call (plan / update) in the ff window
+- id: openspec_ff.ff.unimplemented.unimplemented.9
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: keep the proposal concise, 1-2 pages (SCHEMA:44)
+  source:
+    doc: SCHEMA
+    lines: [44, 44]
+    quote: Keep it concise (1-2 pages).
+  class: vague
+  class_note: 'a length cap is feasible but ''1-2 pages'' is soft guidance (earlier steps: vague)'
+- id: openspec_ff.ff.unimplemented.unimplemented.10
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: 'good spec content: observable behaviour, inputs/outputs/errors, constraints, testable scenarios (SCHEMA:59-63)'
+  source:
+    doc: SCHEMA
+    lines: [59, 63]
+    quote: 'Good spec content: - Observable behavior ... - Inputs, outputs, and error conditions - External constraints ...
+      - Scenarios that can be tested or explicitly validated'
+  class: vague
+  class_note: content-quality guidance
+- id: openspec_ff.ff.unimplemented.unimplemented.11
+  template: T-FM4
+  status: unimplemented
+  requirement: should
+  rule: do discovery now; no generic 'explore the codebase' or 'make a plan' tasks left for implementation (FF:60)
+  source:
+    doc: FF
+    lines: [60, 60]
+    quote: Do this discovery now, rather than leaving generic "explore the codebase" or "make a plan" tasks for implementation.
+  class: candidate
+  class_note: no task line matching generic discovery wording (explore the codebase / make a plan / investigate ...) in tasks.md;
+    narrow phrase ban
+- id: openspec_ff.ff.unimplemented.unimplemented.12
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: show brief progress '✓ Created <artifact-id>' (FF:64)
+  source:
+    doc: FF
+    lines: [64, 64]
+    quote: 'Show brief progress: "✓ Created <artifact-id>"'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.ff.run.openspec_ff_cli.status_rerun
+  template: T-AW5
+  status: implemented
+  requirement: should
+  rule: after creating each artifact, re-run `openspec status --change issue --json` (FF:67)
+  source:
+    doc: FF
+    lines: [67, 67]
+    quote: '- After creating each artifact, re-run `openspec status --change "issue" --json`'
+  fidelity: narrower
+  fidelity_note: one re-run anywhere between the proposal and tasks.md, not one after each artifact (per-event repetition
+    collapsed to a window)
+- id: openspec_ff.ff.unimplemented.unimplemented.13
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: an artifact reading status skipped must not be created (FF:70)
+  source:
+    doc: FF
+    lines: [70, 70]
+    quote: 'An artifact already reading `status: "skipped"` is satisfied: the change declares `skip_specs` in `.openspec.yaml`,
+      so its files must NOT exist. Never try to create one'
+  class: domain_specific
+  class_note: 'N/A: the change declares no skip_specs (documented skip_specs resolution)'
+- id: openspec_ff.ff.unimplemented.unimplemented.14
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: create every missing artifact of the required set, then re-check (FF:71)
+  source:
+    doc: FF
+    lines: [71, 71]
+    quote: Create every artifact in the required set that is missing, then re-check
+  class: duplicate
+  class_note: also the proposal and spec existence items
+- id: openspec_ff.ff.unimplemented.unimplemented.15
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: a required artifact blocked only by a skipped conditional dependency is written anyway (FF:73)
+  source:
+    doc: FF
+    lines: [73, 73]
+    quote: if a required artifact is still `blocked` only because you skipped a conditional dependency, write it anyway
+  class: duplicate
+  class_note: tasks.md is required even when design.md was skipped
+- id: openspec_ff.ff.unimplemented.unimplemented.16
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: do not move or rename the (modified) capability (SCHEMA:78)
+  source:
+    doc: SCHEMA
+    lines: [78, 78]
+    quote: Do not move or rename the capability.
+  class: domain_specific
+  class_note: 'N/A: applies to modified capabilities, none exists (CW:69)'
+- id: openspec_ff.ff.run.openspec_ff_cli.final_status
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: show the final status with `openspec status --change issue` after the last artifact, before implementation (FF:80-83)
+  source:
+    doc: FF
+    lines: [80, 83]
+    quote: 5. **Show final status** ```bash openspec status --change "issue" ```
+  fidelity: faithful
+- id: openspec_ff.ff.unimplemented.unimplemented.17
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: do not rewrite an existing spec file unless the user asks (SCHEMA:84-85)
+  source:
+    doc: SCHEMA
+    lines: [84, 85]
+    quote: Do not rewrite an existing file unless the user asks you to.
+  class: candidate
+  class_note: write_discipline(no_rewrite) per delta spec inside the ff window
+- id: openspec_ff.ff.unimplemented.unimplemented.18
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: after the artifacts, summarize the change name and location (FF:87-88)
+  source:
+    doc: FF
+    lines: [87, 88]
+    quote: 'After completing all artifacts, summarize: - Change name and location'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.ff.unimplemented.unimplemented.19
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: list the artifacts created, plus any conditional artifact skipped and why (FF:89)
+  source:
+    doc: FF
+    lines: [89, 89]
+    quote: List of artifacts created with brief descriptions, plus any conditional artifact you skipped and why
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.ff.unimplemented.unimplemented.20
+  template: T-TR1
+  status: unimplemented
+  requirement: should
+  rule: stop when every capability the proposal lists has its file (SCHEMA:89)
+  source:
+    doc: SCHEMA
+    lines: [89, 89]
+    quote: Stop when every capability the proposal lists has its file.
+  class: duplicate
+- id: openspec_ff.ff.unimplemented.unimplemented.21
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: 'say what''s ready: ''All artifacts needed for implementation are ready.'' (FF:90)'
+  source:
+    doc: FF
+    lines: [90, 90]
+    quote: 'What''s ready: "All artifacts needed for implementation are ready."'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.ff.unimplemented.unimplemented.22
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: read dependency artifacts before creating new ones (FF:99)
+  source:
+    doc: FF
+    lines: [99, 99]
+    quote: Read dependency artifacts for context before creating new ones
+  class: duplicate
+  class_note: also the design and tasks dependency-read items
+- id: openspec_ff.ff.artifact_existence_check_after_each_writ.unimplemented
+  template: NEW-WD-exists-after
+  status: unimplemented
+  requirement: must
+  rule: verify each artifact file exists after writing it, before the next (FF:109)
+  source:
+    doc: FF
+    lines: [109, 109]
+    quote: Verify each artifact file exists after writing before proceeding to next
+  class: candidate
+  class_note: after each artifact write, an ls/stat/view/cat of that path or an `openspec status` (file-existence based, FF:69)
+    before the next artifact's first write
+- id: openspec_ff.ff.unimplemented.unimplemented.23
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: 'MODIFIED workflow: locate the existing requirement in the main spec (SCHEMA:127)'
+  source:
+    doc: SCHEMA
+    lines: [127, 127]
+    quote: Locate the existing requirement in `<planningHome.root>/openspec/specs/<capability-path>/spec.md`
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.unimplemented.unimplemented.24
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: 'MODIFIED workflow: copy the entire requirement block and edit it (SCHEMA:128-129)'
+  source:
+    doc: SCHEMA
+    lines: [128, 129]
+    quote: Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios) ... Paste under `## MODIFIED
+      Requirements` and edit to reflect new behavior
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.unimplemented.unimplemented.25
+  template: T-FM8
+  status: unimplemented
+  requirement: should
+  rule: MODIFIED header text matches exactly (SCHEMA:130)
+  source:
+    doc: SCHEMA
+    lines: [130, 130]
+    quote: Ensure header text matches exactly (whitespace-insensitive)
+  class: duplicate
+  class_note: 'subsumed: a MODIFIED / REMOVED / RENAMED section already fails added_only (CW:69-70), so this format rule can
+    only bite on a run that already failed'
+- id: openspec_ff.ff.unimplemented.unimplemented.26
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: design requires the proposal (SCHEMA:196-197)
+  source:
+    doc: SCHEMA
+    lines: [196, 197]
+    quote: 'requires: - proposal'
+  class: duplicate
+  class_note: its window (proposal's write -> design's first write) implies the order
+- id: openspec_ff.ff.unimplemented.unimplemented.27
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: before writing tasks, check design.md's Open Questions (SCHEMA:206)
+  source:
+    doc: SCHEMA
+    lines: [206, 206]
+    quote: Before writing tasks, check design.md for Open Questions.
+  class: duplicate
+  class_note: design.md must be read before tasks.md; the Open-Questions resolution itself is prose
+- id: openspec_ff.apply.tasks.tasks.has_tasks
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: apply tracks tasks.md and is blocked without a checkbox task (SCHEMA:272-273; AP:51)
+  source:
+    doc: SCHEMA
+    lines: [272, 273]
+    quote: 'requires: [ tasks ] tracks: tasks.md'
+  fidelity: faithful
+- id: openspec_ff.apply.tasks.openspec_ff_tasks.done_or_reasoned
+  template: T-PG1
+  status: implemented
+  requirement: must
+  rule: mark each task complete; a task that stays impossible is left unchecked with a one-line reason under it (AP:97; AP:105;
+    AP:109)
+  source:
+    doc: AP
+    lines: [97, 97]
+    quote: '- Mark the task complete at its returned `sourcePath` and `line`: `- [ ]` → `- [x]`'
+  fidelity: faithful
+- id: openspec_ff.apply.tasks.openspec_ff_tasks.rerun_after_tick
+  template: T-PG2
+  status: implemented
+  requirement: must
+  rule: after ticking, rerun the apply instructions and confirm the progress changed (AP:97-98)
+  source:
+    doc: AP
+    lines: [97, 98]
+    quote: '- Mark the task complete at its returned `sourcePath` and `line`: `- [ ]` → `- [x]` - Rerun the apply instructions
+      and confirm that task is now done and progress changed'
+  fidelity: faithful
+- id: openspec_ff.apply.tasks.unimplemented
+  template: NEW-PG-immediate
+  status: unimplemented
+  requirement: must
+  rule: update the task checkbox immediately after completing each task (AP:153)
+  source:
+    doc: AP
+    lines: [153, 153]
+    quote: '- Update task checkbox immediately after completing each task'
+  class: candidate
+  class_note: each ticking write of tasks.md comes before the first code edit of the next task (ticks interleaved with edits;
+    one batch of ticks after all edits fails); 04 doc U2
+- id: openspec_ff.apply.tasks.tasks.verified
+  template: T-PG1
+  status: implemented
+  requirement: should
+  rule: tick a task only when its specified behaviour is implemented; each task states its verification (AP:156; SCHEMA:227-229)
+  source:
+    doc: SCHEMA
+    lines: [227, 229]
+    quote: '- Each task MUST state how to verify completion (a test, command, observable behavior, or delivered artifact).
+      Put the verification in that task''s checkbox description.'
+  fidelity: narrower
+  fidelity_note: only ticked tasks whose description names a test-runner command in a code span; checks that this command
+    (or the same runner and targets) ran validly between the task's last code edit and its tick
+- id: openspec_ff.apply.tasks.unimplemented.2
+  template: T-TR2
+  status: unimplemented
+  requirement: must
+  rule: use each task's sourcePath and line to update its exact checkbox (AP:158; AP:96-97)
+  source:
+    doc: AP
+    lines: [158, 158]
+    quote: '- Use each task''s sourcePath and line to update its exact checkbox'
+  class: candidate
+  class_note: each ticking write changes only the checkbox at the sourcePath:line returned by the latest `openspec instructions
+    apply` before it
+- id: openspec_ff.apply.run.doc_read.ap
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open 02-apply.md when entering apply (CW:22; FF:92; SP:69-70)
+  source:
+    doc: CW
+    lines: [22, 22]
+    quote: '| apply | `/opsx/stages/02-apply.md` | `openspec instructions apply --change "issue" --json` | the code change,
+      tasks checked |'
+  fidelity: broader
+  fidelity_note: single_doc voids a read of this document made in the same step as another stage document; the docs have no
+    explicit one-at-a-time rule (CW:18 'Open this first', SP:69-70 'On entering one'). Mild; consistent with the documented
+    'not before' reading (rubric conflict on read-ahead). Carries a T-RD3 element
+- id: openspec_ff.apply.unimplemented.unimplemented
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: 'Project check: run `openspec list --json` before the first write (AP:3)'
+  source:
+    doc: AP
+    lines: [3, 3]
+    quote: 'Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file),
+      confirm the project has a root: run `openspec list --json` (with `--store <id>` when a store is selected, since the
+      store is then the root) and read `root`.'
+  class: duplicate
+- id: openspec_ff.apply.unimplemented.unimplemented.2
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: on a non-zero `openspec list` exit, read the JSON instead of retrying (AP:3)
+  source:
+    doc: AP
+    lines: [3, 3]
+    quote: The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying
+      or working around it.
+  class: domain_specific
+  class_note: 'N/A: the root exists, the call succeeds (documented Project-check resolution)'
+- id: openspec_ff.apply.unimplemented.unimplemented.3
+  template: T-PR6
+  status: unimplemented
+  requirement: should
+  rule: do not run `openspec init` (AP:12)
+  source:
+    doc: AP
+    lines: [12, 12]
+    quote: do not run `openspec init` until the user asks for it
+  class: duplicate
+- id: openspec_ff.apply.run.openspec_ff_evidence.test_or_check
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: 'each task group verifies its own work as it lands: run the covering repository tests or a check script under checks/
+    (SCHEMA:232-234)'
+  source:
+    doc: SCHEMA
+    lines: [232, 234]
+    quote: '- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write
+      a check script under /openspec/changes/issue/checks/ and run it.'
+  fidelity: narrower
+  fidelity_note: one valid repository test run or one execution of a script the run wrote under checks/, anywhere in the apply
+    window; per-group repetition ('as it lands') and 'after the edit' are unchecked
+- id: openspec_ff.apply.run.openspec_ff_cli.instructions_apply
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: apply starts from `openspec instructions apply --change issue --json`, before implementing (CW:22; AP:35-39)
+  source:
+    doc: CW
+    lines: [22, 22]
+    quote: '| apply | `/opsx/stages/02-apply.md` | `openspec instructions apply --change "issue" --json` | the code change,
+      tasks checked |'
+  fidelity: faithful
+- id: openspec_ff.apply.run.openspec_ff_holds.code_change
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: apply makes the code changes; it leaves the code change (AP:94; CW:22)
+  source:
+    doc: AP
+    lines: [94, 94]
+    quote: '- Make the code changes required'
+  fidelity: faithful
+- id: openspec_ff.apply.run.openspec_ff_cli.status
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: check `openspec status --change issue --json` in apply before implementing (AP:26-29)
+  source:
+    doc: AP
+    lines: [26, 29]
+    quote: 2. **Check status to understand the schema** ```bash openspec status --change "issue" --json ```
+  fidelity: narrower
+  fidelity_note: ff's final status call (after tasks.md) falls inside the apply window, so one call satisfies both this item
+    and openspec_ff.ff.run.openspec_ff_cli.final_status
+- id: openspec_ff.apply.run.read_files.context
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read every contextFiles path (proposal, specs, design, tasks) before starting implementation (AP:74-76; AP:149)
+  source:
+    doc: AP
+    lines: [74, 76]
+    quote: 'Read every file path listed under `contextFiles` from the apply instructions output. The files depend on the schema
+      being used: - **spec-driven**: proposal, specs, design, tasks'
+  fidelity: faithful
+- id: openspec_ff.apply.unimplemented.unimplemented.4
+  template: T-FM4
+  status: unimplemented
+  requirement: should
+  rule: do not copy context or operationGuidance verbatim into implementation files or planning artifacts (AP:79-80)
+  source:
+    doc: AP
+    lines: [79, 80]
+    quote: Do not copy `context` or `operationGuidance` verbatim into implementation files or planning artifacts unless the
+      user separately asks for that content.
+  class: duplicate
+  class_note: planning artifacts are covered at their final state by the four context items; code files are not (the same
+    CONFIG patterns over the diff would do)
+- id: openspec_ff.apply.unimplemented.unimplemented.5
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: display the dynamic instruction from the CLI (AP:88)
+  source:
+    doc: AP
+    lines: [88, 88]
+    quote: '- Dynamic instruction from CLI'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.apply.unimplemented.unimplemented.6
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: show which task is being worked on (AP:93)
+  source:
+    doc: AP
+    lines: [93, 93]
+    quote: '- Show which task is being worked on'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.apply.unimplemented.unimplemented.7
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: display the tasks completed this session (AP:111-112)
+  source:
+    doc: AP
+    lines: [111, 112]
+    quote: 'Display: - Tasks completed this session'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.apply.unimplemented.unimplemented.8
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: display overall progress 'N/M tasks complete' (AP:113)
+  source:
+    doc: AP
+    lines: [113, 113]
+    quote: '- Overall progress: "N/M tasks complete"'
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.apply.unimplemented.unimplemented.9
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: use contextFiles from the CLI output, do not assume file names (AP:157)
+  source:
+    doc: AP
+    lines: [157, 157]
+    quote: '- Use contextFiles from CLI output'
+  class: duplicate
+- id: openspec_ff.apply.unimplemented.unimplemented.10
+  template: T-FM4
+  status: unimplemented
+  requirement: should
+  rule: do not copy runtime context or operation guidance into implementation files or planning artifacts (AP:162)
+  source:
+    doc: AP
+    lines: [162, 162]
+    quote: '- Do not copy runtime context or operation guidance into implementation files or planning artifacts'
+  class: duplicate
+  class_note: same as the AP:79-80 rule
+- id: openspec_ff.apply.unimplemented.unimplemented.11
+  template: NEW-PG-immediate
+  status: unimplemented
+  requirement: should
+  rule: work through pending tasks and mark them complete as you go (SCHEMA:275)
+  source:
+    doc: SCHEMA
+    lines: [275, 275]
+    quote: work through pending tasks, mark complete as you go.
+  class: candidate
+  class_note: same verifier as the AP:153 'immediately' rule (openspec_ff.apply.tasks.unimplemented)
+- id: openspec_ff.apply.unimplemented.unimplemented.12
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: 'an unclear task: implement the most plausible reading and note it under the task as a plain line (SCHEMA:276-278)'
+  source:
+    doc: SCHEMA
+    lines: [276, 278]
+    quote: When a task is unclear, implement the most plausible reading against the specs and design and note it under the
+      task in tasks.md (a plain line, not a checkbox).
+  class: vague
+  class_note: the condition (task unclear) is unobservable; the plain-line format is checkable only once a note exists
+- id: openspec_ff.verify.verify.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: verify writes /openspec/changes/issue/verify.md (VF:145; CW:86)
+  source:
+    doc: VF
+    lines: [145, 145]
+    quote: 'Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`.'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.section_present.title
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'the report carries the scorecard title ''Verification Report: issue'' (VF:149)'
+  source:
+    doc: VF
+    lines: [149, 149]
+    quote: '## Verification Report: issue'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.section_present.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the report has the Summary scorecard heading (VF:151)
+  source:
+    doc: VF
+    lines: [151, 151]
+    quote: '### Summary'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.field_literal.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the Summary scorecard is a Dimension/Status table (VF:152; VF:200-201)
+  source:
+    doc: VF
+    lines: [152, 152]
+    quote: '| Dimension    | Status           |'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.line
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: if design.md is absent or empty, mark Design Adherence as not verified (VF:133)
+  source:
+    doc: VF
+    lines: [133, 133]
+    quote: 'Otherwise, if the design artifact''s `contextFiles.<id>` file is absent or empty: mark **Design Adherence** as
+      not verified.'
+  fidelity: narrower
+  fidelity_note: only the 'absent' case (an empty design.md is not covered); 'Design Adherence' and 'not verified' must share
+    a line
+- id: openspec_ff.verify.verify.item_format.line.2
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: if the implementation changes cannot be identified, mark Code Pattern Consistency as not verified (VF:136)
+  source:
+    doc: VF
+    lines: [136, 136]
+    quote: If implementation changes cannot be identified, mark **Code Pattern Consistency** as not verified and explain the
+      missing evidence.
+  fidelity: narrower
+  fidelity_note: '''cannot be identified'' approximated as no repository edit in the final change'
+- id: openspec_ff.verify.verify.item_format.summary
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the scorecard has a filled 'Completeness' row (VF:154; VF:200-201)
+  source:
+    doc: VF
+    lines: [154, 154]
+    quote: '| Completeness | X/Y tasks, N reqs|'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.summary.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the scorecard has a filled 'Correctness' row (VF:155; VF:200-201)
+  source:
+    doc: VF
+    lines: [155, 155]
+    quote: '| Correctness  | M/N reqs covered |'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.summary.3
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the scorecard has a filled 'Coherence' row (VF:156; VF:200-201)
+  source:
+    doc: VF
+    lines: [156, 156]
+    quote: '| Coherence    | Followed/Issues  |'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.summary.4
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: each Status cell reports `Not verified (<reason>)` for every skipped check (VF:159)
+  source:
+    doc: VF
+    lines: [159, 159]
+    quote: In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check.
+  fidelity: narrower
+  fidelity_note: fires only when a skip is observable (no design.md, or no code change); one 'Not verified (' anywhere in
+    the Summary section suffices
+- id: openspec_ff.verify.verify.item_format.summary.5
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: a change that only removes or renames requirements has the Correctness cell `Not applicable (no ADDED or MODIFIED
+    requirements)` (VF:159)
+  source:
+    doc: VF
+    lines: [159, 159]
+    quote: For a change that only removes or renames requirements, the Correctness cell reads `Not applicable (no ADDED or
+      MODIFIED requirements)`.
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.priorities
+  template: T-FM2
+  status: implemented
+  requirement: should
+  rule: issues are grouped by priority CRITICAL / WARNING / SUGGESTION (VF:161-178; VF:202)
+  source:
+    doc: VF
+    lines: [202, 202]
+    quote: '- Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)'
+  fidelity: broader
+  fidelity_note: 'needs at least one CRITICAL/WARNING/SUGGESTION word: a clean report with no issue (''All checks passed'',
+    VF:184) has nothing to group and fails'
+- id: openspec_ff.verify.verify.item_format.final_assessment
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: the report ends with a Final Assessment in one of the prescribed phrasings (VF:180-186)
+  source:
+    doc: VF
+    lines: [180, 185]
+    quote: '**Final Assessment**: - If CRITICAL issues: "X critical issue(s) found. Fix before archiving." ... "All checks
+      passed. Ready for archive."'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.item_format.line.3
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: code references use the `file.ts:123` format (VF:203)
+  source:
+    doc: VF
+    lines: [203, 203]
+    quote: 'Code references in format: `file.ts:123`'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: the scorecard's placeholder cells are filled (VF:154-156)
+  source:
+    doc: VF
+    lines: [154, 154]
+    quote: '| Completeness | X/Y tasks, N reqs|'
+  fidelity: faithful
+- id: openspec_ff.verify.verify.no_template_residue.fill_marks
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: status cells report results, and the Final Assessment's X / Y / Z counts are filled (VF:159; VF:181-183)
+  source:
+    doc: VF
+    lines: [159, 159]
+    quote: In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check.
+  fidelity: faithful
+- id: openspec_ff.verify.verify.no_template_residue.2
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: no vague suggestions like 'consider reviewing' (VF:205)
+  source:
+    doc: VF
+    lines: [205, 205]
+    quote: No vague suggestions like "consider reviewing"
+  fidelity: narrower
+  fidelity_note: only the example phrase itself is banned
+- id: openspec_ff.verify.verify.unimplemented
+  template: T-RF1
+  status: unimplemented
+  requirement: must
+  rule: report complete vs total tasks from progress (VF:69)
+  source:
+    doc: VF
+    lines: [69, 69]
+    quote: Report complete vs total tasks from `progress`.
+  class: candidate
+  class_note: 'the Completeness cell''s X/Y equals the ticked/total checkbox counts of tasks.md at verify.md''s write (both
+    sides agent-written: should under P6)'
+- id: openspec_ff.verify.verify.openspec_ff_verify.open_tasks_critical
+  template: T-RF1
+  status: implemented
+  requirement: should
+  rule: with progress.remaining > 0, add a CRITICAL issue for each incomplete task (VF:70-71)
+  source:
+    doc: VF
+    lines: [70, 71]
+    quote: '- If `progress.remaining` is greater than 0: - Add CRITICAL issue for each listed incomplete task.'
+  fidelity: narrower
+  fidelity_note: one CRITICAL mention suffices, not one per open task
+- id: openspec_ff.verify.run.doc_read.vf
+  template: T-RD2
+  status: implemented
+  requirement: must
+  rule: open 03-verify.md when entering verify (CW:23; AP:114; SP:69-70)
+  source:
+    doc: CW
+    lines: [23, 23]
+    quote: '| verify | `/opsx/stages/03-verify.md` |'
+  fidelity: broader
+  fidelity_note: single_doc voids a read of this document made in the same step as another stage document; the docs have no
+    explicit one-at-a-time rule (CW:18 'Open this first', SP:69-70 'On entering one'). Mild; consistent with the documented
+    'not before' reading (rubric conflict on read-ahead). Carries a T-RD3 element
+- id: openspec_ff.verify.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: verify implements nothing; only apply edits /testbed (VF:43; CW:74)
+  source:
+    doc: VF
+    lines: [43, 43]
+    quote: Do not implement tasks or archive the change during verification.
+  fidelity: faithful
+- id: openspec_ff.verify.openspec_list_json.unimplemented
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: on a non-zero `openspec list` exit, read the JSON instead of retrying (VF:3)
+  source:
+    doc: VF
+    lines: [3, 3]
+    quote: The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying
+      or working around it.
+  class: domain_specific
+  class_note: 'N/A: the root exists (documented Project-check resolution)'
+- id: openspec_ff.verify.unimplemented.unimplemented
+  template: T-PR6
+  status: unimplemented
+  requirement: should
+  rule: do not run `openspec init` (VF:12)
+  source:
+    doc: VF
+    lines: [12, 12]
+    quote: do not run `openspec init` until the user asks for it
+  class: duplicate
+- id: openspec_ff.verify.run.openspec_ff_cli.status
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: verify starts from `openspec status --change issue --json` (CW:23; VF:26-29)
+  source:
+    doc: CW
+    lines: [23, 23]
+    quote: '`openspec status --change "issue" --json`, then your own review: no `openspec` command performs verify or writes
+      its report'
+  fidelity: faithful
+- id: openspec_ff.verify.run.openspec_ff_cli.instructions_apply
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: verify loads planning context with `openspec instructions apply --change issue --json` (VF:35-38)
+  source:
+    doc: VF
+    lines: [35, 38]
+    quote: 3. **Get planning context and load artifacts** ```bash openspec instructions apply --change "issue" --json
+  fidelity: faithful
+- id: openspec_ff.verify.run.read_files.artifacts
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read all available artifacts from contextFiles in verify (VF:41)
+  source:
+    doc: VF
+    lines: [41, 41]
+    quote: Read all available artifacts from `contextFiles`.
+  fidelity: faithful
+- id: openspec_ff.verify.run.openspec_ff_cli.no_archive
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: do not archive the change during verification (VF:43)
+  source:
+    doc: VF
+    lines: [43, 43]
+    quote: Do not implement tasks or archive the change during verification.
+  fidelity: faithful
+- id: openspec_ff.verify.unimplemented.unimplemented.2
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: 'the report tracks Completeness: tasks and spec coverage (VF:48)'
+  source:
+    doc: VF
+    lines: [48, 48]
+    quote: '**Completeness**: Track tasks and spec coverage'
+  class: duplicate
+- id: openspec_ff.verify.unimplemented.unimplemented.3
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: 'the report tracks Correctness: requirement implementation and scenario coverage (VF:49)'
+  source:
+    doc: VF
+    lines: [49, 49]
+    quote: '**Correctness**: Track requirement implementation and scenario coverage'
+  class: duplicate
+- id: openspec_ff.verify.unimplemented.unimplemented.4
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: 'the report tracks Coherence: design adherence and pattern consistency (VF:50)'
+  source:
+    doc: VF
+    lines: [50, 50]
+    quote: '**Coherence**: Track design adherence and pattern consistency'
+  class: duplicate
+- id: openspec_ff.verify.unimplemented.unimplemented.5
+  template: T-WD2
+  status: unimplemented
+  requirement: should
+  rule: do not require or invent optional or intentionally omitted artifacts to obtain a clean report (VF:54)
+  source:
+    doc: VF
+    lines: [54, 54]
+    quote: Do not require or invent optional or intentionally omitted artifacts to obtain a clean report.
+  class: candidate
+  class_note: no planning-artifact write other than verify.md inside the verify window (a design.md created during verify
+    fails)
+- id: openspec_ff.verify.unimplemented.unimplemented.6
+  template: T-RD4
+  status: unimplemented
+  requirement: should
+  rule: read the spec files from contextFiles.<id> (VF:76)
+  source:
+    doc: VF
+    lines: [76, 76]
+    quote: The spec artifacts are those whose `artifactPaths.<id>.outputPath` is under `specs/`; read their files from `contextFiles.<id>`.
+  class: duplicate
+- id: openspec_ff.verify.unimplemented.unimplemented.7
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: if the spec files are absent or empty, mark Spec Coverage, Requirement Implementation Mapping and Scenario Coverage
+    as not verified (VF:76)
+  source:
+    doc: VF
+    lines: [76, 76]
+    quote: If those spec files are absent or empty, mark **Spec Coverage**, **Requirement Implementation Mapping**, and **Scenario
+      Coverage** as not verified
+  class: candidate
+  class_note: 'applies_when no delta spec exists: the report holds ''not verified'' for those checks (same shape as the Design
+    Adherence item)'
+- id: openspec_ff.verify.unimplemented.unimplemented.8
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: never report a REMOVED requirement as not found (VF:87)
+  source:
+    doc: VF
+    lines: [87, 87]
+    quote: Never report a REMOVED requirement as "Requirement not found" or recommend implementing it.
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.9
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: a removed behaviour still present is a CRITICAL issue (VF:88-89)
+  source:
+    doc: VF
+    lines: [88, 89]
+    quote: "If the behavior is still present:\n          - Add CRITICAL issue: \"Removed requirement still implemented: <requirement\
+      \ name>\""
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.10
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: recommend removing the remaining implementation (VF:90)
+  source:
+    doc: VF
+    lines: [90, 90]
+    quote: 'Recommendation: "Remove the remaining implementation at <file>:<lines>, following the requirement''s Migration
+      note if it has one"'
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.11
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: do not report a RENAMED FROM name as missing (VF:92)
+  source:
+    doc: VF
+    lines: [92, 92]
+    quote: Do not report the FROM name as missing
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.12
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: a renamed requirement whose behaviour is gone is a CRITICAL issue (VF:96-97)
+  source:
+    doc: VF
+    lines: [96, 97]
+    quote: "If it appears unimplemented:\n          - Add CRITICAL issue: \"Renamed requirement not found: <TO name>\""
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.13
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: recommend restoring the renamed behaviour (VF:98)
+  source:
+    doc: VF
+    lines: [98, 98]
+    quote: 'Recommendation: "Restore the behavior of <TO name> (renamed from <FROM name>); a rename must not change behavior"'
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.14
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: an unreadable baseline requirement marks Spec Coverage not verified for that entry (VF:99)
+  source:
+    doc: VF
+    lines: [99, 99]
+    quote: If the baseline requirement cannot be found or read, mark **Spec Coverage** as not verified for that entry with
+      the reason.
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.15
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: a removal/rename-only change reports RIM and Scenario Coverage as Not applicable (VF:103)
+  source:
+    doc: VF
+    lines: [103, 103]
+    quote: If the delta specs are readable and contain at least one REMOVED or RENAMED requirement but no ADDED or MODIFIED
+      requirements ..., report **Requirement Implementation Mapping** and **Scenario Coverage** as **Not applicable**.
+  class: domain_specific
+  class_note: 'N/A: every delta is ADDED-only (CW:69-70; CONFIG:21), so no REMOVED / RENAMED / MODIFIED requirement exists
+    in a compliant run'
+- id: openspec_ff.verify.unimplemented.unimplemented.16
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: 'a delta spec with no parseable requirement is unusable evidence: mark RIM and Scenario Coverage not verified (VF:103)'
+  source:
+    doc: VF
+    lines: [103, 103]
+    quote: 'A delta spec with no parseable requirements at all is unusable evidence, not a removal-only change: mark these
+      checks as not verified.'
+  class: candidate
+  class_note: 'applies_when a delta parses to zero requirements: the report says not verified for those checks'
+- id: openspec_ff.verify.unimplemented.unimplemented.17
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: note file paths and line ranges of the implementation evidence (VF:108)
+  source:
+    doc: VF
+    lines: [108, 108]
+    quote: If found, note file paths and line ranges
+  class: duplicate
+  class_note: the code-reference item requires at least one `file:line`; per-requirement coverage is not checked
+- id: openspec_ff.verify.unimplemented.unimplemented.18
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: on divergence, recommend 'Review <file>:<lines> against requirement X' (VF:112)
+  source:
+    doc: VF
+    lines: [112, 112]
+    quote: 'Recommendation: "Review <file>:<lines> against requirement X"'
+  class: vague
+  class_note: conditional on a judged divergence (the WARNING itself is a may item in the appendix)
+- id: openspec_ff.verify.unimplemented.unimplemented.19
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: an uncovered scenario gets a WARNING 'Scenario not covered' (VF:118-119)
+  source:
+    doc: VF
+    lines: [118, 119]
+    quote: "If scenario appears uncovered:\n        - Add WARNING: \"Scenario not covered: <scenario name>\""
+  class: vague
+  class_note: coverage is a judgment; a mechanical proxy (scenario names vs test names) would be noisy
+- id: openspec_ff.verify.unimplemented.unimplemented.20
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: recommend adding a check under checks/ or fixing the code for an uncovered scenario (VF:120)
+  source:
+    doc: VF
+    lines: [120, 120]
+    quote: 'Recommendation: "Add a check under `checks/` or fix the code for scenario: <description>"'
+  class: vague
+  class_note: conditional on the judged coverage gap
+- id: openspec_ff.verify.unimplemented.unimplemented.21
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: a design decision not followed gets a WARNING (VF:130-131)
+  source:
+    doc: VF
+    lines: [130, 131]
+    quote: "If contradiction detected:\n        - Add WARNING: \"Design decision not followed: <decision>\""
+  class: vague
+  class_note: requires judging design adherence
+- id: openspec_ff.verify.unimplemented.unimplemented.22
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: the report opens with the Summary Scorecard (VF:147)
+  source:
+    doc: VF
+    lines: [147, 147]
+    quote: '**Summary Scorecard**:'
+  class: duplicate
+- id: openspec_ff.verify.unimplemented.unimplemented.23
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: include the suggestion count when nonzero in every final assessment (VF:186)
+  source:
+    doc: VF
+    lines: [186, 186]
+    quote: Include the suggestion count when nonzero in every final assessment.
+  class: candidate
+  class_note: if the report lists a SUGGESTION, the Final Assessment line carries 'N suggestion(s)' (internal consistency
+    of one artifact)
+- id: openspec_ff.verify.unimplemented.unimplemented.24
+  template: T-FM6
+  status: unimplemented
+  requirement: should
+  rule: every issue has a specific recommendation with file/line references where applicable (VF:196)
+  source:
+    doc: VF
+    lines: [196, 196]
+    quote: '**Actionability**: Every issue must have a specific recommendation with file/line references where applicable'
+  class: candidate
+  class_note: 'per CRITICAL/WARNING/SUGGESTION entry: a ''Recommendation'' line follows (per-block field, W2-like)'
+- id: openspec_ff.archive.change.path_match.archived
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: the archive moves the change to /openspec/changes/archive/<date>-issue/ (CW:99-100; CW:24)
+  source:
+    doc: CW
+    lines: [99, 100]
+    quote: moves the change to `/openspec/changes/archive/<date>-issue/`.
+  fidelity: faithful
+- id: openspec_ff.archive.main_spec.main_spec.exists
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: the archive merges the delta specs into /openspec/specs/ (CW:99)
+  source:
+    doc: CW
+    lines: [99, 99]
+    quote: It validates the change, merges its delta specs into `/openspec/specs/`
+  fidelity: faithful
+- id: openspec_ff.archive.main_spec.main_spec.synced
+  template: T-FM8
+  status: implemented
+  requirement: must
+  rule: the archive merges the delta specs into /openspec/specs/ (CW:99)
+  source:
+    doc: CW
+    lines: [99, 99]
+    quote: It validates the change, merges its delta specs into `/openspec/specs/`
+  fidelity: faithful
+- id: openspec_ff.archive.run.prohibited_action.repo_write
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: 'once verify.md is written, no return to apply: whatever verify finds, move on to archive; do not reopen tasks or
+    apply (CW:86-87; CW:105-106; CW:74)'
+  source:
+    doc: CW
+    lines: [86, 87]
+    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report
+      records what is still open.
+  fidelity: faithful
+- id: openspec_ff.archive.run.openspec_ff_archive.succeeded
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: run `openspec archive issue --yes` (CW:93-96; CW:24)
+  source:
+    doc: CW
+    lines: [93, 96]
+    quote: 'Then run once: ```bash openspec archive issue --yes'
+  fidelity: faithful
+- id: openspec_ff.archive.run.openspec_ff_archive.by_cli
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: the `openspec archive` command validates, merges the deltas and moves the change; the CLI does the bookkeeping (CW:99-100;
+    CW:27-28)
+  source:
+    doc: CW
+    lines: [99, 100]
+    quote: It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`.
+  fidelity: faithful
+- id: openspec_ff.archive.run.openspec_ff_paths_written.tasks_after_verify
+  template: T-WD2
+  status: implemented
+  requirement: must
+  rule: 'once verify.md is written, do not reopen tasks: an open task stays open in tasks.md and recorded in verify.md (CW:86-87;
+    CW:105-106)'
+  source:
+    doc: CW
+    lines: [86, 87]
+    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report
+      records what is still open.
+  fidelity: faithful
+- id: openspec_ff.archive.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: call finish only once the archive step is done (SP:75-76)
+  source:
+    doc: SP
+    lines: [75, 76]
+    quote: call finish only once the archive step is done.
+  class: duplicate
+  class_note: a finish before the archive leaves the archive gates failing
+- id: openspec_ff.archive.run.openspec_ff_archive.after_verify
+  template: T-AW5
+  status: implemented
+  requirement: must
+  rule: archive only once verify.md exists (CW:91-93)
+  source:
+    doc: CW
+    lines: [91, 93]
+    quote: archive only once `/openspec/changes/issue/verify.md` exists. If it does not, open `/opsx/stages/03-verify.md`
+      and write it first.
+  fidelity: faithful
+- id: openspec_ff.archive.run.openspec_ff_archive.specs_only
+  template: T-WD3
+  status: implemented
+  requirement: must
+  rule: after a failed archive, correct only what the error names in the delta spec; do not reopen tasks or apply (CW:103-106;
+    CW:91)
+  source:
+    doc: CW
+    lines: [103, 106]
+    quote: 'correct only what the error message names in the delta spec (its format, or a spec file that is missing) ... Never
+      add `--no-validate`, and do not reopen tasks or apply: the code is done, and judging it was verify''s job.'
+  fidelity: faithful
+- id: openspec_ff.archive.run.openspec_ff_archive.retries
+  template: T-OR2
+  status: implemented
+  requirement: must
+  rule: run the archive once; on failure correct and run it one more time, then finish (CW:93; CW:102-105)
+  source:
+    doc: CW
+    lines: [102, 105]
+    quote: '- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec (its
+      format, or a spec file that is missing), then run the same command one more time. If it fails again, call `finish` without
+      archiving.'
+  fidelity: faithful
+- id: openspec_ff.global.proposal.unimplemented
+  template: T-FM4
+  status: unimplemented
+  requirement: should
+  rule: do not copy config context/rules into the conversation or any artifact (EX:135)
+  source:
+    doc: EX
+    lines: [135, 135]
+    quote: do NOT copy them into the conversation or into any artifact you create
+  class: duplicate
+  class_note: artifact part covered by the four context items; the conversation part is display
+- id: openspec_ff.global.run.doc_read_first.cw
+  template: T-RD1
+  status: implemented
+  requirement: must
+  rule: the first action opens /opsx/core-workflow.md, before looking at the repository (INS:5; SP:66)
+  source:
+    doc: INS
+    lines: [5, 5]
+    quote: Your first action is to open /opsx/core-workflow.md, before you look at the repository.
+  fidelity: faithful
+- id: openspec_ff.global.run.order.actions
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: take the actions in order explore -> ff -> apply -> verify -> archive, opening each stage document on entering (CW:10-12;
+    CW:18-23; SP:69-70)
+  source:
+    doc: CW
+    lines: [10, 12]
+    quote: you take every action yourself, in this order, within this one session, and explore always comes first.
+  fidelity: broader
+  fidelity_note: invalidate read_ahead / multi_read void a pair when a later stage document is first seen early or only in
+    a multi-document read; the docs do not forbid that explicitly. Documented resolution reads 'Open this first' / 'On entering
+    one' as 'not before' -- agree
+- id: openspec_ff.global.run.prohibited_action.test_file_write
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: do not edit test files; the tests already exist (CW:79; SCHEMA:234; CONFIG:12)
+  source:
+    doc: CW
+    lines: [79, 79]
+    quote: '- Do not add or edit test files there; the tests for this task already exist.'
+  fidelity: faithful
+- id: openspec_ff.global.run.prohibited_action.install
+  template: T-PR3
+  status: implemented
+  requirement: must
+  rule: do not install packages; the environment is set up (CW:44; CONFIG:13)
+  source:
+    doc: CW
+    lines: [42, 44]
+    quote: do not open links found in the issue, do not search for anything online, and do not install packages.
+  fidelity: faithful
+- id: openspec_ff.global.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: take the change through ff, apply, verify and archive (INS:2)
+  source:
+    doc: INS
+    lines: [2, 3]
+    quote: then take the change through ff, apply, verify and archive
+  class: duplicate
+- id: openspec_ff.global.unimplemented.unimplemented.2
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: drive the change with the installed `openspec` CLI (INS:2-3)
+  source:
+    doc: INS
+    lines: [2, 3]
+    quote: with the `openspec` command-line tool that is installed here.
+  class: duplicate
+  class_note: also every stage's starting CLI call item (new change, instructions apply, archive)
+- id: openspec_ff.global.run.openspec_ff_cli.project_check
+  template: T-AW5
+  status: implemented
+  requirement: should
+  rule: 'Project check: run `openspec list --json` before the first write (FF:3; EX:9)'
+  source:
+    doc: FF
+    lines: [3, 3]
+    quote: 'Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file),
+      confirm the project has a root: run `openspec list --json`'
+  fidelity: faithful
+- id: openspec_ff.global.unimplemented.unimplemented.3
+  template: T-RD2
+  status: unimplemented
+  requirement: should
+  rule: core-workflow.md names the stage document to read for each action (INS:6-7)
+  source:
+    doc: INS
+    lines: [6, 7]
+    quote: That file names the stage document to read for each action
+  class: duplicate
+  class_note: the four stage-document read items
+- id: openspec_ff.global.run.openspec_ff_cli.no_init
+  template: T-PR6
+  status: implemented
+  requirement: must
+  rule: never run `openspec init` again (CW:33-34; FF:12)
+  source:
+    doc: CW
+    lines: [33, 34]
+    quote: Never run `openspec init` again and never pass `--schema`.
+  fidelity: faithful
+- id: openspec_ff.global.run.openspec_ff_created_files.tests
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: do not add test files to the repository (CW:79; CONFIG:12)
+  source:
+    doc: CW
+    lines: [79, 79]
+    quote: '- Do not add or edit test files there; the tests for this task already exist.'
+  fidelity: faithful
+- id: openspec_ff.global.run.openspec_ff_no_fetch.issue_links
+  template: T-PR4
+  status: implemented
+  requirement: must
+  rule: do not open links from the issue or search online (CW:42-44; CONFIG:13)
+  source:
+    doc: CW
+    lines: [42, 44]
+    quote: do not open links found in the issue, do not search for anything online, and do not install packages.
+  fidelity: faithful
+- id: openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts
+  template: T-WD3
+  status: implemented
+  requirement: should
+  rule: from ff on, scripts that reproduce or check behaviour go in /openspec/changes/issue/checks/ (CW:36-37; CONFIG:14)
+  source:
+    doc: CW
+    lines: [36, 37]
+    quote: '- From the ff action on, scripts you write to reproduce or check behavior go in `/openspec/changes/issue/checks/`.'
+  fidelity: faithful
+- id: openspec_ff.global.unimplemented.unimplemented.4
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: never create the OpenSpec root as a side effect (EX:18)
+  source:
+    doc: EX
+    lines: [18, 18]
+    quote: never create the root as a side effect
+  class: domain_specific
+  class_note: 'N/A: the root exists (CW:33); documented Project-check resolution'
+- id: openspec_ff.global.unimplemented.unimplemented.5
+  template: T-PR6
+  status: unimplemented
+  requirement: should
+  rule: do not run `openspec init` (EX:18)
+  source:
+    doc: EX
+    lines: [18, 18]
+    quote: do not run `openspec init` until the user asks for it
+  class: duplicate
+- id: openspec_ff.global.run.openspec_ff_cli.no_schema_flag
+  template: T-PR6
+  status: implemented
+  requirement: must
+  rule: never pass `--schema` (CW:34)
+  source:
+    doc: CW
+    lines: [33, 34]
+    quote: Never run `openspec init` again and never pass `--schema`.
+  fidelity: faithful
+- id: openspec_ff.global.run.openspec_ff_created_files.scratch
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: 'leave nothing else behind in /testbed: no notes, summaries or scratch scripts; they belong under /openspec/changes/issue/
+    (CW:81-82)'
+  source:
+    doc: CW
+    lines: [81, 82]
+    quote: '- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`.'
+  fidelity: broader
+  fidelity_note: (edge) the name pattern also hits a legitimately new source file named check*/verify*/debug*/tmp*/temp* that
+    the fix needs
+- id: openspec_ff.global.unimplemented.unimplemented.6
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: a reply without a tool call ends the session on the spot (CW:48-49)
+  source:
+    doc: CW
+    lines: [48, 49]
+    quote: a reply without a tool call ends the session on the spot
+  class: duplicate
+  class_note: 'a consequence, not a separate rule: a premature text-only turn shows as the later stages'' gates failing (04
+    doc dropped U1 for this reason)'
+- id: openspec_ff.global.questions_to_user.unimplemented
+  template: T-SR1
+  status: unimplemented
+  requirement: must
+  rule: never ask a question and never stop to report (CW:51)
+  source:
+    doc: CW
+    lines: [51, 51]
+    quote: never ask a question and never stop to report;
+  class: candidate
+  class_note: assistant text addressed to the user ending in a question (heuristic, noisy); the 'stop' half is already enforced
+    by the later gates
+- id: openspec_ff.global.unimplemented.unimplemented.7
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: never stop to report (CW:51)
+  source:
+    doc: CW
+    lines: [51, 51]
+    quote: never stop to report
+  class: duplicate
+  class_note: a stop shows as the later gates failing
+- id: openspec_ff.global.announcements.unimplemented
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: a show/display/announce note goes in a turn that also makes a tool call, or into an artifact (CW:52-53)
+  source:
+    doc: CW
+    lines: [52, 53]
+    quote: whenever a stage document says to show, display, announce or tell something, put that note in a turn that also
+      makes a tool call, or write it into an artifact;
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.global.unimplemented.unimplemented.8
+  template: T-RD1
+  status: unimplemented
+  requirement: should
+  rule: /opsx is a top-level directory, not under /testbed (SP:66-68)
+  source:
+    doc: SP
+    lines: [66, 68]
+    quote: /opsx is a top-level directory of the filesystem, apart from the repository; it is not under /testbed.
+  class: duplicate
+  class_note: reading /opsx/core-workflow.md first shows the agent found it
+- id: openspec_ff.global.unimplemented.unimplemented.9
+  template: T-AW5
+  status: unimplemented
+  requirement: should
+  rule: on entering an action, begin from the `openspec` command its document names (SP:70-71)
+  source:
+    doc: SP
+    lines: [70, 71]
+    quote: and begin from the `openspec` command it names
+  class: duplicate
+  class_note: every stage's starting call is itemized (explore list --json, ff new change, apply instructions apply, verify
+    status, archive)
+- id: openspec_ff.global.unimplemented.unimplemented.10
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: write assumptions into explore's summary or the change's artifacts rather than asking (SP:73-74)
+  source:
+    doc: SP
+    lines: [73, 74]
+    quote: Nobody replies before the task ends. Write assumptions into explore's summary or the change's artifacts rather
+      than asking
+  class: vague
+  class_note: an assumption is written only when something was unclear (unobservable condition; generator.yaml note)
+- id: openspec_ff.global.unimplemented.unimplemented.11
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: keep every progress note in a turn that also calls a tool (SP:74-75)
+  source:
+    doc: SP
+    lines: [74, 75]
+    quote: keep every progress note in a turn that also calls a tool
+  class: display
+  class_note: what to show a human; CW:52-53 lets it go in any tool-call turn or artifact
+- id: openspec_ff.global.run.openspec_ff_cli.no_skip_validation
+  template: T-PR6
+  status: implemented
+  requirement: must
+  rule: never add `--no-validate` to the archive (CW:105)
+  source:
+    doc: CW
+    lines: [105, 105]
+    quote: Never add `--no-validate`
+  fidelity: faithful

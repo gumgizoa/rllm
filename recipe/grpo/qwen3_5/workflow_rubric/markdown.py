@@ -420,7 +420,7 @@ def _continuation(lines: list[str], kinds: list[str], i: int, attach_code: bool)
 
 
 def field_value(section_text: str | None, label: str | None, multiline: bool = False) -> str | None:
-    """Value of a labelled field: ``- Label: v``, ``* **Label**: v``, ``**Label:** v``, ``Label: v``,
+    """The first of :func:`field_values`: the value of a labelled field: ``- Label: v``, ``* **Label**: v``, ``**Label:** v``, ``Label: v``,
     or a label after a separator on the same line (``- Path: x — Contract: y``, ``a | **Date**: d``).
 
     Case-insensitive, word-bounded (``Classpath:`` never answers ``Path``); the value stops at the
@@ -428,8 +428,17 @@ def field_value(section_text: str | None, label: str | None, multiline: bool = F
     indented lines, same-level non-label list items, a fenced block -- up to a blank line, another
     label line, or a heading. None when the label is absent; "" when present but empty.
     """
+    vals = field_values(section_text, label, multiline)
+    return vals[0] if vals else None
+
+
+def field_values(section_text: str | None, label: str | None, multiline: bool = False) -> list[str]:
+    """Every occurrence of a labelled field, in order -- a label a template repeats once per entry
+    (``- Modified: <path>`` per file, ``- Target:`` per plan step). Each value is read as
+    :func:`field_value` reads its first one; [] when the label is absent."""
     if section_text is None or label is None or not str(label).strip():
-        return None
+        return []
+    out = []
     lines, kinds, _ = _view(section_text, unwrap=False)
     start_rx, inline_rx = _label_res(str(label).strip())
     for i, line in enumerate(lines):
@@ -443,8 +452,8 @@ def field_value(section_text: str | None, label: str | None, multiline: bool = F
         parts = [(v[: nxt.start()] if nxt else v).strip()]
         if multiline and not nxt:
             parts += _continuation(lines, kinds, i, attach_code=not parts[0])
-        return clean_value("\n".join(p for p in parts if p))
-    return None
+        out.append(clean_value("\n".join(p for p in parts if p)))
+    return out
 
 
 def _split_top(s: str) -> list[str]:

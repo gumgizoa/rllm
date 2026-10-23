@@ -747,7 +747,7 @@ def _subjects(value: str) -> str:
 
 @register(
     "field_type",
-    params={"section": True, "label": True, "type": True, "window": False, "run_kind": False, "listed_in": False},
+    params={"section": True, "label": True, "type": True, "window": False, "run_kind": False, "listed_in": False, "all": False},
     availability=("sandbox_file", "trace"),
     choices={"type": FIELD_TYPES, "run_kind": RUN_KINDS},
 )
@@ -759,18 +759,22 @@ def field_type(item: Item, ctx: EvalContext) -> Result:
     ``failed_test_id``: every id failed or errored in a valid run of the window, or is listed in ``listed_in``
     (a selector) (ratio); ``test_selection``: the value is a test command that selects tests, not the whole
     suite (its shape only, no window). None values are skipped (``not_applicable``): the none policy is
-    ``field_filled``'s."""
+    ``field_filled``'s. ``all``: the entries of every occurrence of a repeated label, not only the first."""
     p = _params(item)
     body, err = _body(item, ctx, p["section"])
     if err:
         return err
-    v = M.field_value(body, str(p["label"]), multiline=True)
-    if v is None:
+    vs = M.field_values(body, str(p["label"]), multiline=True)
+    if not p.get("all"):
+        vs = vs[:1]
+    if not vs:
         return Result.no(item, f"no label {p['label']!r}")
-    if M.is_placeholder(v):
+    if any(M.is_placeholder(x) for x in vs):
         return Result.no(item, "placeholder")
-    if M.is_none(v):
+    vs = [x for x in vs if not M.is_none(x)]
+    if not vs:
         return Result.not_applicable(item, "none value")
+    v = "\n".join(vs)
     kind, w = p["type"], _window(item, ctx)
     if kind == "command_run":
         return _command_run(item, ctx, v, w, p.get("run_kind"))

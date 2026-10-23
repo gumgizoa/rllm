@@ -1,0 +1,96 @@
+# Template catalogue of the SDLC instruction-following study (constraints.yaml of each workflow points here).
+#
+# skill     S1..S10: the behaviour a template exercises
+# template  the judging logic: kind + logic-selecting params (mode, rule, invalidate, predicate, set relation,
+#           a window anchored on the constrained action). Polarity, target scope, record location/format and
+#           count values are instance-level; per-event repetition and keyed per-element mapping are template-level.
+# kinds     typical rubric kinds implementing it (a kind may implement several templates through its params)
+# eval      the default evaluation layer of the template's items in the held-out workflow (aidlc_v4_ifeval);
+#           an item whose layer differs carries ``layer_reason`` in that workflow's constraints.yaml
+#             L1   the training workflows reward the template (seen template, new workflow)
+#             L1C  the training workflows reward or instruct the opposite (conflict)
+#             L2M  not rewarded in training, but a training document shows it or it extends a trained template
+#             L2F  neither rewarded nor shown in training (unseen template)
+# status    candidate: no implemented item yet (an unimplemented constraint names it)
+schema: sdlc_if.templates/1
+skills:
+  S1: document following
+  S2: stage order
+  S3: action windows
+  S4: prohibited objects
+  S5: artifact write discipline
+  S6: record fidelity
+  S7: progress tracking
+  S8: traceability between artifacts
+  S9: self-resolution instead of asking
+  S10: artifact format
+templates:
+  T-RD1: {skill: S1, name: read the core document first, kinds: [doc_read_first], eval: {layer: L1}}
+  T-RD2: {skill: S1, name: read a stage's document when the stage starts, kinds: [doc_read], eval: {layer: L1}}
+  T-RD3: {skill: S1, name: do not read a later stage's document early, kinds: ["doc_read(no_read_ahead)", "order(invalidate=read_ahead)"], eval: {layer: L1}}
+  T-RD4: {skill: S1, name: read an earlier artifact or a recorded input inside a window, kinds: ["<wf>.read", read_files, "aidlc.executed(read_of)"], eval: {layer: L1}}
+  T-RD5: {skill: S1, name: read specific repository files, kinds: [repo_read, "<wf>.holds"]}
+  T-RD6:
+    skill: S1
+    name: do not re-read an own artifact that is still visible
+    kinds: [aidlc_ifeval.no_reread]
+    eval: {layer: L1C, reason: "training rewards reading the own artifacts (AOS read must x3, SKB 'in full', OSF 're-read from disk' must x5)"}
+  T-OR1: {skill: S2, name: chain of stage-document reads and artifact writes in order, kinds: [order], eval: {layer: L1}}
+  T-OR2: {skill: S2, name: branch on a result, retry cap, rounds, kinds: ["<wf>.holds", "openspec_ff.archive(retries)"]}
+  T-AW1: {skill: S3, name: no repository edit outside the allowed stage, kinds: ["prohibited_action(repo_write|source_write)"], eval: {layer: L1}}
+  T-AW2: {skill: S3, name: run (or write) tests/checks before the first source edit, kinds: ["exec_evidence(window to first edit)", "check_scripts(before_change)"], eval: {layer: L1}}
+  T-AW3: {skill: S3, name: run tests/checks after the last source edit, kinds: ["exec_evidence(after last change)", "checks(pass_last)"], eval: {layer: L1}}
+  T-AW4:
+    skill: S3
+    name: do not execute a given file inside a window (deferred execution)
+    kinds: ["prohibited_action(execute)"]
+    eval: {layer: L1C, reason: "SKB rewards running each check at once before the edit; AOS and OSF write a check and run it"}
+  T-AW5: {skill: S3, name: run (or not) a CLI command inside a window, kinds: [openspec_ff.cli, "openspec_ff.archive(by_cli)"]}
+  T-AW6: {skill: S3, name: re-run with the same test selection as the baseline, kinds: ["aidlc.executed(same_selection_as)"], eval: {layer: L2M, reason: "no training item; SKB fix report form shows 'after the change: <same ...>'"}}
+  T-AW7: {skill: S3, name: "AOS verify stage: the whole suite once", kinds: ["agentos_v2.verify(whole_suite)"]}
+  T-PR1: {skill: S4, name: no test file added or modified, kinds: ["prohibited_action(test_file_write)", "<wf>.created_files(tests)"], eval: {layer: L1}}
+  T-PR2: {skill: S4, name: no working file left in the repository, kinds: ["<wf>.created_files(pattern)"], eval: {layer: L1}}
+  T-PR3: {skill: S4, name: no dependency install or environment setup, kinds: ["prohibited_action(install)"], eval: {layer: L1}}
+  T-PR4: {skill: S4, name: no URL access, kinds: ["<wf>.no_fetch"]}
+  T-PR5:
+    skill: S4
+    name: no full test suite run
+    kinds: ["prohibited_action(full_suite)", "field_type(test_selection)"]
+    eval: {layer: L1C, reason: "AOS verify stage requires the whole suite (must)"}
+  T-PR6: {skill: S4, name: a specific command is prohibited, kinds: ["prohibited_action(command)", "openspec_ff.cli(no_*)"]}
+  T-WD1: {skill: S5, name: write an artifact in one write, kinds: ["write_discipline(once)"], eval: {layer: L1}}
+  T-WD2: {skill: S5, name: do not rewrite an earlier stage's artifact, kinds: ["write_discipline(no_rewrite)", "order(invalidate=rewrite)"], eval: {layer: L1}}
+  T-WD3: {skill: S5, name: write artifacts and scripts only at designated locations, kinds: ["<wf>.paths_written", "checks(written)"]}
+  T-WD4: {skill: S5, name: do not edit a finished file (checkbox exception), kinds: ["tasks(later_edits)", "check_scripts(unchanged)"]}
+  T-RF1: {skill: S6, name: a recorded command/result/test equals what was run or read, kinds: ["field_type(command_run|test_id)", checks_table, report], eval: {layer: L1}}
+  T-RF2: {skill: S6, name: "a recorded 'none/no' claim is not refuted by the run", kinds: ["field_literal(refuted_by)", "field_filled(none_allowed if <run fact>)"], eval: {layer: L1}}
+  T-RF3:
+    skill: S6
+    name: the recorded list of changed files against the files actually changed
+    kinds: ["cross_ref(record vs diff/repo writes)"]
+    eval: {layer: L2M, reason: "the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side"}
+  T-RF4: {skill: S6, name: recorded paths exist in the base repository, kinds: ["cross_ref(record vs base_paths)", "field_type(repo_path)"], eval: {layer: L1}}
+  T-PG1: {skill: S7, name: tick task checkboxes after the work, kinds: ["tasks(ticked|ticked_after_work|done_or_reasoned)"]}
+  T-PG2: {skill: S7, name: re-run the tool after ticking, kinds: ["tasks(rerun_after_tick)"]}
+  T-TR1: {skill: S8, name: ID coverage between artifacts (set relation), kinds: ["cross_ref(artifact vs artifact)", openspec.capabilities], eval: {layer: L1}}
+  T-TR1b: {skill: S8, name: keyed per-element mapping between artifacts, kinds: ["cross_ref(keyed_ids)"], eval: {layer: L2F, reason: "every training cross_ref is a set relation; no keyed mapping is rewarded or shown"}}
+  T-TR2:
+    skill: S8
+    name: the planned or recorded target is what was executed (plan adherence)
+    kinds: ["cross_ref(plan field vs writes/runs)", "aidlc.executed(write_of)", "field_type(command_run) on an earlier artifact"]
+    eval: {layer: L2M, reason: "AOS ticked_after_work and OSF tasks.verified reward the element per tick only; SKB fix shows 'stay within the files listed by the assessment'"}
+  T-SR1: {skill: S9, name: record assumed answers instead of asking, kinds: ["<wf>.requirements(answers)", "<wf>.note"]}
+  T-FM1: {skill: S10, name: artifact exists at its path, kinds: [artifact_exists, path_match], eval: {layer: L1}}
+  T-FM2: {skill: S10, name: "skeleton: headings, labels, fields present and filled, allowed values", kinds: [section_present, label_present, field_filled, field_enum, field_literal, "item_format(single line)"], eval: {layer: L1}}
+  T-FM3: {skill: S10, name: "repeated-item format (numbering, count, uniqueness)", kinds: [item_format, "<wf>.blocks"], eval: {layer: L1}}
+  T-FM4: {skill: S10, name: no template placeholder residue, kinds: [no_template_residue], eval: {layer: L1}}
+  T-FM5: {skill: S10, name: frontmatter keys fixed, kinds: [frontmatter], eval: {layer: L2F, reason: "no training artifact has frontmatter"}}
+  T-FM6: {skill: S10, name: every block of a repeated structure has its fields, kinds: ["field_filled(per_block)", "openspec.delta(requirement_text|scenario|when_then)", "tasks(group_parts|test_first)"], eval: {layer: L1}}
+  T-FM7: {skill: S10, name: heading set within an allowed list, kinds: ["cross_ref(literal)"]}
+  T-FM8: {skill: S10, name: domain format rules (OpenSpec delta and spec grammar, links), kinds: [openspec.delta, openspec.main_spec, "<wf>.links"]}
+  NEW-PG-unit: {skill: S7, name: work units ticked in order, one unit at a time, kinds: ["agentos_v2.tasks(groups_in_order)"]}
+  NEW-PG-immediate: {skill: S7, name: tick each task right after finishing it, status: candidate}
+  NEW-CQ: {skill: S10, name: code hygiene judged on the final diff (comments, secrets, style), status: candidate}
+  NEW-WD-exists-after: {skill: S5, name: check an artifact exists after writing it, status: candidate}
+  NEW-WD-exists-before: {skill: S5, name: check whether a file exists before writing it, status: candidate}
+  NEW-PG-tracker: {skill: S7, name: use the task-tracker tool, status: candidate}

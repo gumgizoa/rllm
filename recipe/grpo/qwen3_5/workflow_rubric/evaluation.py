@@ -108,9 +108,10 @@ def parse_run(episode: Any, instance_id: str = "") -> Run:
         raise UnknownHarness(str(e)) from None
 
 
-def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, post: Post | None = None) -> dict[str, float]:
-    """The engine's signals for one run, the reward signal clamped to [0, 1], plus collection diagnostics
-    and what ``post`` derives from the report (never overriding the engine's)."""
+def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, post: Post | None = None, layers: dict[str, dict] | None = None) -> dict[str, float]:
+    """The engine's signals for one run, the reward signal clamped to [0, 1], plus collection diagnostics,
+    what ``post`` derives from the report (never overriding the engine's), and the ``{prefix}/layer*/<L>``
+    pass rates when a layers file is given (:mod:`.layers`)."""
     eng = _engine()
     report = eng.evaluate(rubric, run, collected)
     out = {str(k): _finite(v) for k, v in eng.signals(report, prefix).items()}
@@ -120,13 +121,17 @@ def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, 
         for k, v in post(report).items():
             out.setdefault(f"{prefix}/{k}", _finite(v))
     out[f"{prefix}/collect_errors"] = float(len(collected.errors))
+    if layers:
+        from . import layers as LY
+
+        out.update({k: _finite(v) for k, v in LY.signals(rubric, run, collected, report, layers, prefix).items()})
     return out
 
 
 class RubricEvaluator(ComplianceEvaluator):
     """One rollout's verifier with the rubric's ``{prefix}/*`` signals appended; holds that rollout's task info."""
 
-    def __init__(self, inner, sandbox, rubric: Rubric, prefix: str, info: TaskInfo, extra: Iterable[Extra] = (), inputs: Inputs | None = None, post: Post | None = None):
+    def __init__(self, inner, sandbox, rubric: Rubric, prefix: str, info: TaskInfo, extra: Iterable[Extra] = (), inputs: Inputs | None = None, post: Post | None = None, layers: dict[str, dict] | None = None):
         super().__init__(inner, sandbox, self._collect, self._score, prefix)
         self.rubric = rubric
         self.prefix = prefix
@@ -134,6 +139,7 @@ class RubricEvaluator(ComplianceEvaluator):
         self.extra = list(extra)
         self.inputs = inputs
         self.post = post
+        self.layers = layers
 
     # The (collect, score) pair ComplianceEvaluator expects, for callers that use it directly;
     # evaluate() below runs the same steps with the parsed run available to collect.
@@ -143,7 +149,7 @@ class RubricEvaluator(ComplianceEvaluator):
     def _score(self, task, episode, collected: Collected) -> dict[str, float]:
         if self.inputs is not None:
             collected.inputs = self.inputs(task, episode)
-        return rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post)
+        return rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post, self.layers)
 
     def evaluate(self, task, episode) -> EvalOutput:
         tid = str(getattr(task, "id", "") or "")
@@ -168,7 +174,7 @@ class RubricEvaluator(ComplianceEvaluator):
             try:
                 if self.inputs is not None:
                     collected.inputs = self.inputs(task, episode)
-                signals = rubric_signals(self.rubric, run, collected, self.prefix, self.post)
+                signals = rubric_signals(self.rubric, run, collected, self.prefix, self.post, self.layers)
             except Exception:
                 logger.warning("%s compliance: scoring failed for %s; compliance 0", self.name, tid, exc_info=True)
         for name, value in self._score_extra(task, episode, extra_data).items():
@@ -217,13 +223,15 @@ class RubricEvaluation(ComplianceEvaluation):
     inputs       ``(task, episode) -> dict`` put in ``Collected.inputs`` before scoring, for the workflow's
                  own checks (the issue text, the recorded patch, ...)
     post         ``report -> {name: value}``: signals the workflow derives from the finished report
+    layers_path  optional ``layers.yaml`` (:mod:`.layers`): adds per-layer pass rates to the signals,
+                 checked against the rubric here
 
     A saved episode is scored offline (``scripts/rescore_compliance.py``) through ``from_outputs`` and
     ``score``: the collected ``workflow_outputs`` stand for the sandbox's files (online semantics: a
     file missing there is missing), and each extra scorer with a ``from_outputs`` gets its own data.
     """
 
-    def __init__(self, rubric_path: str | Path, prefix: str, plugins: Iterable[Any] = (), extra: Iterable[Extra] = (), inputs: Inputs | None = None, post: Post | None = None):
+    def __init__(self, rubric_path: str | Path, prefix: str, plugins: Iterable[Any] = (), extra: Iterable[Extra] = (), inputs: Inputs | None = None, post: Post | None = None, layers_path: str | Path | None = None):
         super().__init__(_per_rollout, _per_rollout, prefix)
         self.rubric_path = Path(rubric_path)
         self.prefix = prefix
@@ -238,6 +246,11 @@ class RubricEvaluation(ComplianceEvaluation):
         self._load_plugins()
         self.rubric = schema.load(self.rubric_path)
         checks.validate_params(self.rubric)
+        self.layers = None
+        if layers_path is not None:
+            from . import layers as LY
+
+            self.layers = LY.load(layers_path, self.rubric, self.rubric_path)
         _engine()  # a missing module is an error now, not a 0 on every rollout
         _episode()
 
@@ -256,7 +269,7 @@ class RubricEvaluation(ComplianceEvaluation):
         collected, extra = data
         if self.inputs is not None:
             collected.inputs = self.inputs(task, episode)
-        out = rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post)
+        out = rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post, getattr(self, "layers", None))
         for e, (ok, d) in zip(self.extra, extra, strict=True):
             if ok:
                 for k, v in e[1](task, episode, d).items():
@@ -286,7 +299,7 @@ class RubricEvaluation(ComplianceEvaluation):
         inner = FromTaskEvaluation.resolve(self, task, sandbox, kind, config)
         if sandbox is None:
             return inner
-        return RubricEvaluator(inner, sandbox, self.rubric, self.prefix, C.task_info(sandbox, task), self.extra, self.inputs, self.post)
+        return RubricEvaluator(inner, sandbox, self.rubric, self.prefix, C.task_info(sandbox, task), self.extra, self.inputs, self.post, getattr(self, "layers", None))
 
 
 __all__ = ["RubricEvaluation", "RubricEvaluator", "UnknownHarness", "failure_signals", "parse_run", "rubric_signals", "total_name"]
