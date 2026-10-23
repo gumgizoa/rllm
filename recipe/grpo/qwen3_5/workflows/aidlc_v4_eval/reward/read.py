@@ -625,7 +625,7 @@ def task_text(task) -> str:
 
 
 # Django's runner and nose / ward, which the rubric's TEST_RUN_PATTERNS do not know.
-EXTRA_RUNNERS = re.compile(r"\bruntests\.py\b|\bmanage\.py\s+test\b|\bnosetests?\b|\bward\b")
+EXTRA_RUNNERS = re.compile(r"\bruntests\.py\b|\bmanage\.py\s+test\b|-m\s+django\s+test\b|\bnosetests?\b|\bward\b")
 
 # A command segment led by a verb that reads or lists a file, not one that runs it.
 LOOKUP = re.compile(
@@ -711,14 +711,26 @@ _PY_C = re.compile(r"\bpython[0-9.]*\s+-c\s")
 _TEST_IMPORT = re.compile(r"\bfrom\s+((?:[\w]+\.)*tests?(?:\.[\w]+)*)\s+import\s+([\w, ()]+)|\bimport\s+((?:[\w]+\.)*tests?\.[\w.]+)")
 
 
+# ``sympy.test('sympy.core.tests.test_x')``: the package's own test runner, called from Python.
+_PKG_TEST = re.compile(r"\bsympy\.(?:test|doctest)\s*\(")
+
+# ``unittest.TextTestRunner().run(loader.loadTestsFromTestCase(UtilsTests))``: test classes run through unittest.
+_UNITTEST_RUN = re.compile(r"\bunittest\.(?:TextTestRunner|main)\b|\bloadTestsFrom\w+\s*\(")
+
+
 def _calls_repo_test(command: str, agent_files) -> bool:
-    if not _PY_C.search(command or ""):
+    command = F.drop_heredoc_bodies(command or "")  # a heredoc writing an artifact may quote such a command
+    if not _PY_C.search(command):
         return False
+    if _PKG_TEST.search(command):
+        return True
     names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
     for m in _TEST_IMPORT.finditer(command):
         module = m.group(1) or m.group(3)
         if f"{module.rsplit('.', 1)[-1]}.py" in names:  # a test module the agent wrote itself
             continue
+        if _UNITTEST_RUN.search(command):
+            return True
         called = re.findall(r"\b(test_\w+)\s*\(", command)
         if called and (m.group(3) or any(c in m.group(2) for c in called)):
             return True

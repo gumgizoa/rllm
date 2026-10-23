@@ -776,6 +776,17 @@ def test_a_test_function_called_from_python_c_is_a_test_run():
     assert EV.is_test_attempt('python3 -c "from sympy.core.tests.test_evalf import test_evalf_bugs; test_evalf_bugs()"')
     assert not EV.is_test_attempt('python -c "import sympy; print(sympy.sqrt(4))"')
     assert not EV.is_test_attempt('python -c "from test_repro import test_fix; test_fix()"', agent_files={"/testbed/test_repro.py"})
+    # the package's own runner, and test classes run through unittest (swebv100 000097, 000014)
+    assert EV.is_test_attempt("python -c \"import sympy; sympy.test('sympy.physics.hep.tests.test_gamma_matrices')\"")
+    assert EV.is_test_attempt('python -c "import unittest\nfrom tests.admin_utils.tests import UtilsTests\nunittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(UtilsTests))"')
+    # an artifact written through a heredoc that quotes such a command runs nothing (swebv100 000090)
+    assert not EV.is_test_attempt("cat > /tmp/swe-bench-pro/01-reverse-engineering.md << 'EOF'\n- Command: python -c \"from sympy.core.tests.test_evalf import test_x; test_x()\"\nEOF")
+
+
+def test_django_as_a_module_is_a_test_runner():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
+
+    assert EV.is_test_attempt("cd /testbed && DJANGO_SETTINGS_MODULE=s python -m django test tests.expressions_case 2>&1")
 
 
 def test_a_quoted_k_expression_keeps_its_value():
