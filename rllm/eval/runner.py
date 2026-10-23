@@ -36,6 +36,8 @@ async def run_dataset(
     sandbox_backend: str | None = None,
     use_snapshot: bool = True,
     hide_git_history: bool = False,
+    agent_network: bool = False,
+    verify_network: bool = False,
     warm_queue_size: int = 0,
     agent_name: str = "",
     dataset_name: str = "unknown",
@@ -104,6 +106,8 @@ async def run_dataset(
         sandbox_backend=sandbox_backend,
         use_snapshot=use_snapshot,
         hide_git_history=hide_git_history,
+        agent_network=agent_network,
+        verify_network=verify_network,
     )
 
     engine = AgentFlowEngine(

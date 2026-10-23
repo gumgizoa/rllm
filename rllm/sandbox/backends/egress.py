@@ -10,6 +10,10 @@ other services on the host.
 
 Sandboxes resolve ``host.docker.internal`` to the relay, so gateway URLs keep
 working unchanged.
+
+Grading can opt back into the internet (:class:`NetworkOpeningEvaluator`):
+once the agent is done, the sandbox also joins ``VERIFY_NETWORK``, an ordinary
+bridge, for tests that download datasets, models or build backends.
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ logger = logging.getLogger(__name__)
 NETWORK = "rllm-sandbox-isolated"
 RELAY = "rllm-egress-relay"
 RELAY_IMAGE = "rllm-egress-relay:1"
+VERIFY_NETWORK = "rllm-sandbox-verify"
 _RELAY_DOCKERFILE = b'FROM alpine:3.20\nRUN apk add --no-cache iptables\nENTRYPOINT ["sleep", "infinity"]\n'
 
 # Several eval/train processes can start at once; the docker objects are shared.
@@ -148,3 +153,32 @@ def allow_host_port(port: int, client=None) -> None:
             f" || iptables -A FORWARD -s {subnet} -d $H -p tcp --dport {port} -j ACCEPT; }}",
         )
     logger.info("Sandbox egress: host port %d open through %s", port, RELAY)
+
+
+def ensure_verify_network(client=None):
+    """The bridge a sandbox joins for grading; created on first use."""
+    client = _client(client)
+    with _ProcessLock():
+        nets = client.networks.list(names=[VERIFY_NETWORK])
+        return nets[0] if nets else client.networks.create(VERIFY_NETWORK, driver="bridge")
+
+
+class NetworkOpeningEvaluator:
+    """Evaluator wrapper: give the sandbox the internet, then grade as usual.
+
+    The agent has finished by the time ``evaluate`` runs, so what it could
+    have fetched no longer matters; the tests get the network they need.
+    """
+
+    def __init__(self, inner, sandbox):
+        self.inner = inner
+        self.sandbox = sandbox
+
+    def evaluate(self, task, episode):
+        self.sandbox.open_network()
+        return self.inner.evaluate(task, episode)
+
+    def __getattr__(self, name):
+        # Callers read evaluator attributes (e.g. sandbox, script_path); keep
+        # the wrapper transparent to them.
+        return getattr(self.inner, name)

@@ -105,6 +105,13 @@ class DockerSandbox:
         else:
             logger.info("DockerSandbox %s created (container: %s, image: %s)", name, self._container.short_id, image)
 
+    def open_network(self) -> None:
+        """Join the internet-facing verify network (see ``egress.NetworkOpeningEvaluator``)."""
+        network = egress.ensure_verify_network(self._client)
+        self._container.reload()
+        if egress.VERIFY_NETWORK not in self._container.attrs["NetworkSettings"]["Networks"]:
+            network.connect(self._container)
+
     def exec(self, command: str, timeout: float | None = None, user: str | None = None) -> str:
         """Execute a command inside the container.
 

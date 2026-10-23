@@ -25,3 +25,24 @@ def test_container_is_isolated_behind_the_relay(monkeypatch):
     kwargs = _sandbox(monkeypatch)
     assert kwargs["network"] == egress.NETWORK
     assert kwargs["extra_hosts"] == {"host.docker.internal": "172.19.0.2"}
+
+
+def test_network_opens_right_before_grading():
+    calls = []
+
+    class Sandbox:
+        def open_network(self):
+            calls.append("open")
+
+    class Inner:
+        script_path = "/tests/test.sh"
+
+        def evaluate(self, task, episode):
+            calls.append("grade")
+            return "result"
+
+    wrapped = egress.NetworkOpeningEvaluator(Inner(), Sandbox())
+    assert calls == []
+    assert wrapped.evaluate("task", "episode") == "result"
+    assert calls == ["open", "grade"]
+    assert wrapped.script_path == "/tests/test.sh"
