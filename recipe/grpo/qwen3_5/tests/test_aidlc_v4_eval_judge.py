@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_aidlc_reward import episode  # noqa: E402
 from test_aidlc_v4_eval import score  # noqa: E402
-from test_aidlc_v4_eval_hacks import Run, sh  # noqa: E402
+from test_aidlc_v4_eval_hacks import Run, sh, write  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import judge as J  # noqa: E402
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import parsed_artifacts  # noqa: E402
@@ -58,7 +58,7 @@ def test_the_questions_follow_what_the_artifacts_hold():
     # no test file read (D10b), non-functional none (E7a, E7b, H3c), no deviations (G8a, G8c), no
     # pre-existing failures (H8d), no fixes (H9b): not asked
     assert asked == {
-        1: ["D1a", "D1b", "D3", "D6"],
+        1: ["D3", "D6"],
         2: ["E1a", "E1b", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
         3: ["F2d", "F2e", "F4a", "F9a"],
         4: ["G5", "B4b"],
@@ -76,6 +76,42 @@ def test_material_holds_the_script_and_the_test_code_the_run_read():
     assert set(req[4][1]) == {"ARTIFACT 03", "ARTIFACT 04", "FINAL PATCH"}  # the plan, its execution and the patch
 
 
+def test_the_baseline_tests_code_is_gathered_from_every_read():
+    """swebv100-step24 000362: the run grepped the baseline tests and sed-read another; the judge got the sed
+    excerpt only. Every read counts now, and only the baseline tests' code is shown."""
+    r = Run()
+    grep = "12:def test_parse():\n13:    assert parse('a=1') == {'a': '1'}\n19:    assert parse('') == {}\n[The command completed with exit code 0.]"
+    sed = "def test_other():\n    assert other() is None\n"
+    r.insert(r.write_of(1), sh("grep -n parse /testbed/tests/test_mod.py", grep), sh("sed -n '40,41p' /testbed/tests/test_mod.py", sed))
+    text = _requests(r)[1][1]["EXISTING TEST CODE THE AGENT READ"]
+    assert text == "def test_parse():\n    assert parse('a=1') == {'a': '1'}\n    ...\n    assert parse('') == {}"
+
+
+def test_a_baseline_test_never_read_is_named_and_none_read_is_not_asked():
+    r = Run()
+    r.edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing: tests/test_mod.py::test_parse\n  tests/test_mod.py::test_empty")
+    r.insert(r.write_of(1), sh("cat -n /testbed/tests/test_mod.py", "     1\tdef test_parse():\n     2\t    assert parse('') == {}"))
+    assert _requests(r)[1][1]["EXISTING TEST CODE THE AGENT READ"].endswith("(not read by the run: test_empty)")
+    r = Run()
+    r.insert(r.write_of(1), sh("cat /testbed/tests/test_mod.py", "def test_unrelated():\n    pass"))
+    assert "D10b" not in [q for q, _ in _requests(r)[1][0]]
+
+
+def test_the_reproduction_script_shown_is_the_one_that_ran():
+    r = Run()
+    r.insert(r.write_of(5), write("/tmp/repro.py", "import pkg  # rewritten after the run\n"))
+    assert _requests(r)[5][1]["REPRODUCTION SCRIPT"] == "import pkg\n"
+
+
+def test_a_pre_existing_failure_comes_with_the_last_stage_5_test_output():
+    r = Run()
+    r.edit(5, "- Pre-existing failures: none", "- Pre-existing failures: test_old -> fails at baseline -> unrelated")
+    r.set_obs(r.runs("pytest")[1], "\x1b[31m1 failed\x1b[0m, 2 passed in 0.10s\n[Command finished with exit code 1]")
+    qs, mat = _requests(r)[5]
+    assert "H8d" in [q for q, _ in qs]
+    assert mat["STAGE 5 TEST RUN (the last one, output tail)"] == "$ cd /testbed && python -m pytest tests/test_mod.py -q\n1 failed, 2 passed in 0.10s"
+
+
 def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatch):
     special = {
         "E6b": ("no", "## Functional Requirements"),
@@ -84,10 +120,10 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     }
     monkeypatch.setattr(J, "ask", lambda text, seed=None: _reply(text, special))
     s = Run().score()
-    assert s["aidlc/judge/D1a"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
+    assert s["aidlc/judge/D6"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
     assert "aidlc/judge/D3" not in s and "aidlc/judge/E8b" not in s
     assert s["aidlc/judge_calls"] == 5.0
-    assert s["aidlc/judge_void"] == pytest.approx(1 / 19)  # 20 asked, one n/a, one quote not found
+    assert s["aidlc/judge_void"] == pytest.approx(1 / 17)  # 18 asked, one n/a, one quote not found
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 
@@ -114,7 +150,7 @@ def test_a_quote_is_the_materials_words_in_order(quote, found):
     assert J.quote_found(quote, shown) is found
 
 
-@pytest.mark.parametrize("reply", ["no JSON here", '{"answers": "yes"}', '{"answers": [{"id": "D1a", "answer": "maybe", "quote": "Files: pkg/mod.py"}]}'])
+@pytest.mark.parametrize("reply", ["no JSON here", '{"answers": "yes"}', '{"answers": [{"id": "D3", "answer": "maybe", "quote": "Files: pkg/mod.py"}]}'])
 def test_a_malformed_reply_judges_nothing(judge_on, monkeypatch, reply):
     monkeypatch.setattr(J, "ask", lambda text, seed=None: reply)
     s = Run().score()
@@ -130,7 +166,7 @@ def test_a_reply_broken_after_its_answers_keeps_them(judge_on, monkeypatch):
 
     monkeypatch.setattr(J, "ask", ask)
     s = Run().score()
-    assert s["aidlc/judge/D1a"] == 1.0 and s["aidlc/judge/H3a"] == 1.0
+    assert s["aidlc/judge/D3"] == 1.0 and s["aidlc/judge/H3a"] == 1.0
 
 
 def test_a_failed_call_leaves_its_stage_unjudged(judge_on, monkeypatch):
@@ -141,7 +177,7 @@ def test_a_failed_call_leaves_its_stage_unjudged(judge_on, monkeypatch):
 
     monkeypatch.setattr(J, "ask", ask)
     s = Run().score()
-    assert "aidlc/judge/E1a" not in s and s["aidlc/judge/D1a"] == 1.0
+    assert "aidlc/judge/E1a" not in s and s["aidlc/judge/D3"] == 1.0
 
 
 def test_the_cache_asks_once(judge_on, monkeypatch, tmp_path):

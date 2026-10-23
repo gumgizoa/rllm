@@ -5276,60 +5276,6 @@ items:
     - 69
     - 69
     quote: ahead to a later stage's rule detail file.
-- id: judge/D1a
-  scope: specific
-  class: content
-  stage: '1'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: D1a
-  requirement: must
-  category: Q
-  rule: D1a
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S1
-    lines:
-    - 15
-    - 15
-    quote: '- [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces
-      from the task description. If the task description names files or symbols directly, start from those'
-  note: Does Affected Scope `Files` list the source file(s) that implement the behaviour the issue describes (not only tests
-    or unrelated files)?
-- id: judge/D1b
-  scope: specific
-  class: content
-  stage: '1'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: D1b
-  requirement: must
-  category: Q
-  rule: D1b
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S1
-    lines:
-    - 15
-    - 15
-    quote: '- [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces
-      from the task description. If the task description names files or symbols directly, start from those'
-  note: 'If the issue names a file or a symbol directly, does `Files` start from it: the named file, or the file that defines
-    the named symbol? Answer n/a if the issue names neither.'
 - id: judge/D3
   scope: specific
   class: content
@@ -6072,3 +6018,6 @@ appendix:
       F6: the steps in an order that can be carried out
       H8b: a regression suspects the contract first
       H8c: pre-existing failures left unfixed
+    not a judge question:
+      D1a: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed)
+      D1b: same; code checks the issue's paths are in scope (atom/D1b)

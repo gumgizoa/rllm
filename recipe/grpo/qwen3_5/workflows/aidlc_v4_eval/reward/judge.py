@@ -9,9 +9,18 @@ code checks the quote:
 
 Emitted as ``aidlc/judge/<rule>`` (their ``rubric.yaml`` items place them by category and stage), with
 ``aidlc/judge_void`` (the share of yes/no answers dropped for their quote) and ``aidlc/judge_calls``.
-A question whose subject the artifact lacks (no deviations, no pre-existing failures, no test file the run
-read) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the
-trajectory: it judges what the run wrote, and code judges what the run did.
+A question whose subject the artifact lacks (no deviations, no pre-existing failures, no baseline test the
+run read) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the
+trajectory: it judges what the run wrote, and code judges what the run did. The extracts:
+
+    stage 1   the code of each baseline test, from every read of the Existing Tests files (view, cat, sed,
+              head, tail, grep, ...), lines the run skipped shown as ``...``
+    stage 4   the final patch
+    stage 5   the reproduction script as it last ran; for a pre-existing-failure question, the last stage-5
+              test run's output tail
+
+Whether Files names the right source (D1a, D1b) is no judge question: without the repository the judge has
+only the issue's words, and code already checks the files were opened and the issue's paths are in scope.
 
 Configured by environment, for an OpenAI-compatible endpoint (a vLLM server); with no model configured
 there are no judge signals:
@@ -39,19 +48,19 @@ from pathlib import Path
 
 from . import skeleton as A
 from . import trace as F
-from .read import Observed, _section_none, claimed_paths, is_none, norm_path, same_file, task_text
+from .read import Observed, _section_none, claimed_paths, is_none, norm_path, runs_script, same_file, task_text
 from .read import field_value as claims_field_value
 
 log = logging.getLogger(__name__)
 
 MAX_CHARS = 12_000  # per piece of material; what is cut is not shown, so a quote from it cannot verify
+# a baseline that names no test leaves whole test files as the material: room for most of them
+LIMITS = {"EXISTING TEST CODE THE AGENT READ": 40_000}
 MIN_QUOTE = 8
 
 # stage -> [(rule, question)]; "yes" keeps the rule
 QUESTIONS: dict[int, list[tuple[str, str]]] = {
     1: [
-        ("D1a", "Does Affected Scope `Files` list the source file(s) that implement the behaviour the issue describes (not only tests or unrelated files)?"),
-        ("D1b", "If the issue names a file or a symbol directly, does `Files` start from it: the named file, or the file that defines the named symbol? Answer n/a if the issue names neither."),
         ("D3", "Is `Owning module` the module or package the listed Files belong to, and does any boundary it states agree with those Files?"),
         (
             "D6",
@@ -116,21 +125,97 @@ def _cut(text: str, limit: int = MAX_CHARS) -> str:
     return text if len(text) <= limit else text[:limit] + "\n[... cut ...]"
 
 
+_TERMINAL = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\[\?2004[hl]")
+_TRAILER = re.compile(r"^\[(?:The command completed with exit code|Current working directory|Python interpreter|Command finished with exit code)[^\]]*\]\s*$", re.M)
+
+
+def _clean(text: str) -> str:
+    """A tool observation without terminal control sequences and the harness's trailer lines."""
+    return _TRAILER.sub("", _TERMINAL.sub("", text or "")).strip("\n")
+
+
+_NUMBERED = re.compile(r"^\s*(\d+)[\t:-](.*)$")
+_GREP_R = re.compile(r"^(\S+?\.\w+)[:-](\d+)[:-](.*)$")
+_SED_RANGE = re.compile(r"\bsed\s+-n\s+['\"]?(\d+)\s*,\s*(\d+)\s*p")
+_READ_VERB = re.compile(r"(?:^|[;&|]\s*|&&\s*)(?:cat|sed|head|tail|nl|grep|rg|awk|less|more)\b")
+
+
+def _file_lines(run, paths: list[str]) -> tuple[dict[int, str], list[str]]:
+    """What the run saw of the files in ``paths``: line number -> text where the read says which line it is
+    (``view``, ``cat -n``, ``grep -n``, ``sed -n 'a,bp'``, ``cat`` / ``head`` from line 1), and the reads that
+    do not (``tail``, ``grep`` without ``-n``) as blocks."""
+    names = {norm_path(t).rsplit("/", 1)[-1] for t in paths}
+    numbered: dict[int, str] = {}
+    blocks: list[str] = []
+    for step in run.steps:
+        for a in step.actions:
+            if a.kind == "view" and any(same_file(norm_path(a.path or ""), t) for t in paths):
+                out = _clean(a.observation)
+                command = ""
+            elif a.kind == "shell" and any(n and n in (a.command or "") for n in names) and _READ_VERB.search(a.command or ""):
+                out, command = _clean(a.observation), a.command or ""
+            else:
+                continue
+            lines = [ln for ln in out.splitlines() if not ln.startswith("Here's the result of running")]
+            if not lines:
+                continue
+            got = {}
+            for ln in lines:
+                m = _GREP_R.match(ln)
+                if m and m.group(1).rsplit("/", 1)[-1] in names:
+                    got[int(m.group(2))] = m.group(3)
+                elif m := _NUMBERED.match(ln):
+                    got[int(m.group(1))] = m.group(2)
+            nonblank = [ln for ln in lines if ln.strip()]
+            if nonblank and len(got) >= 0.6 * len(nonblank):
+                numbered.update(got)
+            elif (m := _SED_RANGE.search(command)) or re.match(r"\s*(?:cd\s+\S+\s*&&\s*)?(?:cat|head)\s", command):
+                start = int(m.group(1)) if m else 1
+                numbered.update({start + k: ln for k, ln in enumerate(lines)})
+            else:
+                blocks.append("\n".join(lines))
+    return numbered, blocks
+
+
+def _function(lines: list[tuple[int | None, str]], name: str) -> str | None:
+    """The ``def name(`` block in ``lines`` ((line number or None, text) in order), with a ``...`` where the
+    run skipped lines; it ends at the next line indented no deeper than the ``def``."""
+    for i, (_, text) in enumerate(lines):
+        m = re.match(rf"(\s*)(?:async\s+)?def {re.escape(name)}\s*\(", text)
+        if not m:
+            continue
+        indent = len(m.group(1))
+        out = [text]
+        prev = lines[i][0]
+        for n, t in lines[i + 1 :]:
+            if t.strip() and len(t) - len(t.lstrip()) <= indent:
+                break
+            if prev is not None and n is not None and n > prev + 1:
+                out.append(" " * (indent + 4) + "...")
+            out.append(t)
+            prev = n
+        return "\n".join(out).rstrip()
+    return None
+
+
 def _field(p, section, label):
     return claims_field_value((p or {}).get("section_bodies", {}).get(section) or "", label) or None
 
 
 def _repro_text(run, parsed: dict, patch: str | None) -> str | None:
-    """The reproduction script's final text: rebuilt from the run's writes, or its added lines in the patch."""
+    """The reproduction script as it last ran (its final text if it never ran): rebuilt from the run's writes,
+    or its added lines in the patch."""
     paths = [p for st in (4, 3) if parsed.get(st) for p in claimed_paths(_field(parsed[st], "Reproduction Script", "Path"))]
     for p in paths:
         # Its last text written, by any path naming it (the artifacts may give it relative, or by name only).
         # A later rm is the cleanup the workflow asks for, so the text before it is the script that ran.
-        text = None
+        text, ran = None, None
         for step in run.steps:
             for a in step.actions:
                 if a.status == "fail":
                     continue
+                if a.kind == "shell" and text and runs_script(a.command or "", p):
+                    ran = text  # the text this run of it executed
                 if a.kind == "create" and a.path and same_file(norm_path(a.path), p):
                     text = a.text or ""
                 elif a.kind in ("replace", "insert") and a.path and same_file(norm_path(a.path), p) and text is not None:
@@ -139,8 +224,8 @@ def _repro_text(run, parsed: dict, patch: str | None) -> str | None:
                     for t in F.write_targets(a):
                         if same_file(norm_path(t), p) and (body := A.shell_written_body(a.command or "", t)) is not None:
                             text = body
-        if text:
-            return text
+        if ran or text:
+            return ran or text
         for block in re.split(r"(?m)^diff --git ", patch or ""):
             head = block.split("\n", 1)[0]
             if same_file(head.split(" b/")[-1], p) and "new file mode" in block:
@@ -149,18 +234,39 @@ def _repro_text(run, parsed: dict, patch: str | None) -> str | None:
 
 
 def _test_text(run, parsed: dict) -> str | None:
-    """What the run saw of the existing tests artifact 01 names: its views and cat / sed reads of them."""
+    """The covering tests as the run saw them: for each test artifact 01 names in its baseline, that test's
+    code from the run's reads of the Existing Tests files (``_file_lines``), and the names it never read.
+    None when the run read none of them. Without test names in the baseline, everything it read of the files."""
     p1 = parsed.get(1)
     paths = claimed_paths(_field(p1, "Existing Tests", "Path")) if p1 else []
-    seen = []
-    for step in run.steps:
-        for a in step.actions:
-            if a.kind == "view" and any(same_file(norm_path(a.path or ""), t) for t in paths):
-                seen.append(a.observation)
-            elif a.kind == "shell" and re.match(r"\s*(?:cd\s+\S+\s*&&\s*)?(?:cat|sed\s+-n|head|nl)\b", a.command or "") and any(norm_path(t).rsplit("/", 1)[-1] in (a.command or "") for t in paths):
-                seen.append(a.observation)
-    text = "\n".join(s for s in seen if s)
-    return text or None
+    if not paths:
+        return None
+    numbered, blocks = _file_lines(run, paths)
+    if not numbered and not blocks:
+        return None
+    lines: list[tuple[int | None, str]] = sorted(numbered.items()) + [(None, t) for b in blocks for t in b.splitlines()]
+    baseline = " ".join(v for k in ("Passing", "Failing") if (v := _field(p1, "Baseline", k)))
+    names = list(dict.fromkeys(re.findall(r"\b(test_\w+)\b(?!\.py)", baseline)))  # a test, not a test module
+    if not names:
+        return "\n".join(t for _, t in lines)
+    found = {n: f for n in names if (f := _function(lines, n))}
+    if not found:
+        return None
+    missing = [n for n in names if n not in found]
+    return "\n\n".join(found.values()) + (f"\n\n(not read by the run: {', '.join(missing)})" if missing else "")
+
+
+def _stage5_tests(run, parsed: dict) -> str | None:
+    """The last test run of stage 5 (after the last source edit, before artifact 05): command and output tail."""
+    from .read import first_write_steps, observe
+
+    obs = observe(run)
+    w = first_write_steps(run)
+    runs = obs.tests_in(after=obs.last_edit if obs.last_edit is not None else w.get(4), before=w.get(5))
+    if not runs:
+        return None
+    _, command, out = runs[-1]
+    return f"$ {command}\n" + _clean(out)[-4000:]
 
 
 def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tuple[list[tuple[str, str]], dict[str, str]]]:
@@ -205,11 +311,13 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
             pre = _field(parsed.get(5), "Existing Tests vs Baseline", "Pre-existing failures")
             if not pre or is_none(pre):
                 skip.add("H8d")
+            elif tests := _stage5_tests(run, parsed):
+                material["STAGE 5 TEST RUN (the last one, output tail)"] = tests
             if _section_none(parsed.get(5), "Fixes Applied") in (None, True):
                 skip.add("H9b")
         asked = [(r, q) for r, q in questions if r not in skip]
         if asked:
-            out[st] = (asked, {k: _cut(v) for k, v in material.items()})
+            out[st] = (asked, {k: _cut(v, LIMITS.get(k, MAX_CHARS)) for k, v in material.items()})
     return out
 
 

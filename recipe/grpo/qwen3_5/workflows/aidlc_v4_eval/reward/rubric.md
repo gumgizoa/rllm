@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 manual (ported from the hand-written aidlc_v4_eval verifier, 2026-10-22). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-211 items | check kinds {'aidlc_v4_eval.atom': 58, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 28, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+209 items | check kinds {'aidlc_v4_eval.atom': 58, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 26, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells, and the total (`score`) the mean of the categories.
@@ -16,7 +16,7 @@ Items per cell (scored / diagnostic):
 | E execution | — | 5 | — | — | — | 5 |
 | C consistency across stages | — | — | — | 1 | 6 | 5 |
 | R forbidden action | 3 | 1 | — | 3 | 3 | 3 |
-| Q content adequacy | 1 | 7 | 12 | 7 | 2 | 6 |
+| Q content adequacy | 1 | 5 | 12 | 7 | 2 | 6 |
 | A report accuracy | — | 7 | — | 3 | 9 | 10 |
 
 ## global — the whole run
@@ -63,9 +63,7 @@ Items per cell (scored / diagnostic):
 - [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.run` {"measure": "ran_real_test"} (`run/ran_real_test`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
 - [E] **D8** - [ ] Prefer output-reducing flags (for example `-q`, `--tb=short`) so that results remain readable — `aidlc_v4_eval.atom` {"rule": "D8"} (`atom/D8`) — /ai-dlc/rule-details/01-reverse-engineering.md:28
 - [R] **D4b** - [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it — `aidlc_v4_eval.atom` {"rule": "D4b"} (`atom/D4b`) — /ai-dlc/rule-details/01-reverse-engineering.md:18; /ai-dlc/rule-details/01-reverse-engineering.md:21
-- [Q] **D1a** Does Affected Scope `Files` list the source file(s) that implement the behaviour the issue describes (not only tests or unrelated files)? — `aidlc_v4_eval.judge` {"question": "D1a"} (`judge/D1a`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [Q] **D1b** - [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or s… — `aidlc_v4_eval.atom` {"rule": "D1b"} (`atom/D1b`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
-- [Q] **D1b** If the issue names a file or a symbol directly, does `Files` start from it: the named file, or the file that defines the named symbol? Answer n/a if the issue names neither. — `aidlc_v4_eval.judge` {"question": "D1b"} (`judge/D1b`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [Q] **D3** Is `Owning module` the module or package the listed Files belong to, and does any boundary it states agree with those Files? — `aidlc_v4_eval.judge` {"question": "D3"} (`judge/D3`) — /ai-dlc/rule-details/01-reverse-engineering.md:17
 - [Q] **D4a** - [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it — `aidlc_v4_eval.atom` {"rule": "D4a"} (`atom/D4a`) — /ai-dlc/rule-details/01-reverse-engineering.md:18
 - [Q] **D6** Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one, or 'not applicable' (or an import / compile check) for an interpreted package? — `aidlc_v4_eval.judge` {"question": "D6"} (`judge/D6`) — /ai-dlc/rule-details/01-reverse-engineering.md:25
@@ -254,3 +252,4 @@ Items per cell (scored / diagnostic):
 - a flag, in no score: **I1** leak_history
 - not applicable: **A4** document lookup order; **A5** an overall instruction; **G6a** resolve, the task verifier's; **G6b** the task verifier's tests
 - judge, low priority, not asked: **B7** unresolved work only under Outstanding Failures; **D2** the scope extends to direct callers and callees; **E2** stage 1's result used as context; **F6** the steps in an order that can be carried out; **H8b** a regression suspects the contract first; **H8c** pre-existing failures left unfixed
+- not a judge question: **D1a** whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed); **D1b** same; code checks the issue's paths are in scope (atom/D1b)
