@@ -233,3 +233,54 @@ def test_env_flow_receives_sandbox_and_container_url():
 
     assert seen["env"] is sandbox
     assert seen["base_url"].startswith("http://host.docker.internal:9131/")
+
+
+def _token_trace(session_id: str, i: int):
+    from rllm_model_gateway.models import TraceRecord
+
+    return TraceRecord(
+        trace_id=f"t-{session_id}-{i}",
+        session_id=session_id,
+        model="m",
+        messages=[{"role": "user", "content": f"Q{i}"}],
+        response_message={"role": "assistant", "content": f"A{i}"},
+        prompt_token_ids=[1, 2, 3 + i],
+        completion_token_ids=[10 + i, 11 + i],
+        logprobs=[-0.1, -0.2],
+        finish_reason="stop",
+        metadata={},
+    )
+
+
+def test_trailing_malformed_trace_is_dropped_without_agent_steps():
+    """openhands-sdk and the CLI harnesses never populate agent steps. When the
+    last LLM call is rejected by vLLM (prompt over max_model_len), the gateway
+    records an empty-token trace with an ``upstream_error`` marker and the
+    agent stops. The rollout up to that call is valid training data: keep it,
+    stamp the termination reason, do not raise (a raise re-ran a 60-turn
+    rollout three times in production)."""
+
+    @__import__("rllm").rollout(name="noop")
+    def noop_flow(task, config):
+        return None
+
+    bad = _empty_token_trace("task:0")
+    bad.metadata = {"upstream_error": {"kind": "context_length_exceeded", "status_code": 400}}
+    gateway = _Gateway(traces=[_token_trace("task:0", 0), _token_trace("task:0", 1), bad])
+    engine = AgentFlowEngine(
+        agent_flow=noop_flow,
+        evaluator=_Evaluator(),
+        gateway=gateway,
+        model="test-model",
+        n_parallel_tasks=1,
+        retry_limit=1,
+    )
+    task = task_from_row({"question": "q"}, "task")
+    try:
+        episode = asyncio.run(engine._run_single(task, "task:0", is_validation=False))
+    finally:
+        engine.shutdown()
+
+    assert episode is not None
+    assert sum(len(t.steps) for t in episode.trajectories) == 2
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
