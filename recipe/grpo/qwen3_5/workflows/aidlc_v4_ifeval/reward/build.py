@@ -12,8 +12,9 @@
   numbering;
 * ``PATCHES`` fixes judging defects found in the item audit (study doc ``06_item_template_audit.md``
   section 5.1): repeated labels read in full (``all``), a no-test-target regex that matched anything;
-* one ``log_only`` item for the no-re-read rule (``aidlc_ifeval.no_reread``) is added, so
-  ``aidlc_ifeval/compliance`` is aidlc_v4_gen's scoring of the copy and the new item only feeds a layer.
+* the study's own ``log_only`` items are added (``EXTRA_ITEMS``: no re-read of an own artifact, no return
+  to an earlier stage, no question file, no request for input), so ``aidlc_ifeval/compliance`` is the
+  generated rubric's scoring of the copy and the new items only feed their layers.
 
 ``layers.yaml`` comes from ``../constraints.yaml`` (layer, evaluation requirement and gate per item,
 reasoned against the training workflows in the study docs) for every implemented item;
@@ -146,29 +147,58 @@ def _patch(it: dict) -> None:
         p["pattern"] = NO_TEST_TARGET
 
 
-def no_reread_item(texts: dict[str, list[str]]) -> dict:
-    quote = "**Do not re-read an artifact you can still see.** ... **Read an artifact only to recover**, when an earlier stage's content is no longer visible because output was truncated or history was compacted"
-    lines = anchor(texts["CW"], quote, (42, 43))
+# The study's own items (study doc 07): log_only, so ``compliance`` stays the generated rubric's scoring of
+# the copy and these only feed their layers. id -> (kind, params, modality, note, [(doc, hint lines, quote)]).
+EXTRA_ITEMS = {
+    NO_REREAD: (
+        "aidlc_ifeval.no_reread", {}, "CW 'Do not re-read an artifact you can still see' (bold rule in Artifact Rules)", "T-RD6",
+        [("CW", (42, 43), "**Do not re-read an artifact you can still see.** ... **Read an artifact only to recover**, when an earlier stage's content is no longer visible because output was truncated or history was compacted")],
+    ),
+    "aidlc_v4_ifeval.global.run.no_return": (
+        "aidlc_ifeval.no_return", {}, "CW:71 'No stage returns to an earlier stage' (bold); BT:58 'do not return to Planning or Generation'", "T-OR3",
+        [("CW", (71, 71), "**No stage returns to an earlier stage.**"),
+         ("BT", (58, 58), "Fix within this stage; do not return to Planning or Generation."),
+         ("CG", (34, 34), "Do not return to Planning.")],
+    ),
+    "aidlc_v4_ifeval.global.run.no_question_file": (
+        "aidlc_ifeval.no_asking", {"rule": "file"}, "CW:132 'Never generate a question file' (bold rule 'No user interaction')", "T-SR2",
+        [("CW", (132, 132), "**No user interaction.** Never generate a question file")],
+    ),
+    "aidlc_v4_ifeval.global.run.no_request_for_input": (
+        "aidlc_ifeval.no_asking", {"rule": "message"}, "CW:132 'never ask for approval, never wait for input'", "T-SR2",
+        [("CW", (132, 132), "never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption")],
+    ),
+}
+
+
+def extra_item(iid: str, texts: dict[str, list[str]]) -> dict:
+    kind, params, modality, template, srcs = EXTRA_ITEMS[iid]
+    sources = []
+    for doc, hint, quote in srcs:
+        got = anchor(texts[doc], quote, hint)
+        if got is None:
+            raise SystemExit(f"{iid}: {doc} quote not found: {quote[:60]!r}")
+        sources.append({"doc": doc, "lines": list(got), "quote": quote})
     return {
-        "id": NO_REREAD,
+        "id": iid,
         "scope": "specific",
         "class": "evidence",
         "stage": "global",
         "target": {"type": "action", "ref": "run", "state": "final"},
-        "check": {"kind": "aidlc_ifeval.no_reread", "params": {}},
+        "check": {"kind": kind, "params": dict(params)},
         "requirement": "must",
-        "modality_evidence": "CW 'Do not re-read an artifact you can still see' (bold rule in Artifact Rules)",
+        "modality_evidence": modality,
         "none_allowed": "-",
         "applies_when": None,
         "weight": 1.0,
         "gate": None,
         "availability": ["trace"],
-        "sources": [{"doc": "CW", "lines": list(lines), "quote": quote}],
+        "sources": sources,
         "impl_refs": [],
         "derived_by": "manual",
         "template": "",
         "log_only": True,
-        "note": "SDLC IF study (T-RD6): log_only so that compliance stays aidlc_v4_gen's scoring; feeds layer L1C",
+        "note": f"SDLC IF study ({template}): log_only, feeds its evaluation layer",
     }
 
 
@@ -211,7 +241,7 @@ def build_rubric() -> dict:
                 src["lines"] = list(got)
             elif sid:
                 src["removed_in_copy"] = True
-    rubric["items"].append(no_reread_item(texts))
+    rubric["items"] += [extra_item(i, texts) for i in EXTRA_ITEMS]
     return rubric
 
 

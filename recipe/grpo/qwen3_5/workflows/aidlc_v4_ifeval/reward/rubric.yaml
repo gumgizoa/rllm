@@ -11050,7 +11050,109 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: 'SDLC IF study (T-RD6): log_only so that compliance stays aidlc_v4_gen''s scoring; feeds layer L1C'
+  note: 'SDLC IF study (T-RD6): log_only, feeds its evaluation layer'
+- id: aidlc_v4_ifeval.global.run.no_return
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_ifeval.no_return
+    params: {}
+  requirement: must
+  modality_evidence: CW:71 'No stage returns to an earlier stage' (bold); BT:58 'do not return to Planning or Generation'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 71
+    - 71
+    quote: '**No stage returns to an earlier stage.**'
+  - doc: BT
+    lines:
+    - 58
+    - 58
+    quote: Fix within this stage; do not return to Planning or Generation.
+  - doc: CG
+    lines:
+    - 34
+    - 34
+    quote: Do not return to Planning.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'SDLC IF study (T-OR3): log_only, feeds its evaluation layer'
+- id: aidlc_v4_ifeval.global.run.no_question_file
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_ifeval.no_asking
+    params:
+      rule: file
+  requirement: must
+  modality_evidence: CW:132 'Never generate a question file' (bold rule 'No user interaction')
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 132
+    - 132
+    quote: '**No user interaction.** Never generate a question file'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'SDLC IF study (T-SR2): log_only, feeds its evaluation layer'
+- id: aidlc_v4_ifeval.global.run.no_request_for_input
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_ifeval.no_asking
+    params:
+      rule: message
+  requirement: must
+  modality_evidence: CW:132 'never ask for approval, never wait for input'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 132
+    - 132
+    quote: never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'SDLC IF study (T-SR2): log_only, feeds its evaluation layer'
 scoring:
   item_weight:
     must: 1.0

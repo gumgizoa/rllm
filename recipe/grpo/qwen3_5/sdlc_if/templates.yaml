@@ -37,6 +37,11 @@ templates:
     eval: {layer: L1C, reason: "training rewards reading the own artifacts (AOS read must x3, SKB 'in full', OSF 're-read from disk' must x5)"}
   T-OR1: {skill: S2, name: chain of stage-document reads and artifact writes in order, kinds: [order], eval: {layer: L1}}
   T-OR2: {skill: S2, name: branch on a result, retry cap, rounds, kinds: ["<wf>.holds", "openspec_ff.archive(retries)"]}
+  T-OR3:
+    skill: S2
+    name: never return to an earlier stage (no earlier stage document read again once a later one was)
+    kinds: [aidlc_ifeval.no_return]
+    eval: {layer: L1C, reason: "SKB rewards reading 02-fix.md again for each new round (order rounds 2-3); OSF lets apply send the run back to ff (CW:26)"}
   T-AW1: {skill: S3, name: no repository edit outside the allowed stage, kinds: ["prohibited_action(repo_write|source_write)"], eval: {layer: L1}}
   T-AW2: {skill: S3, name: run (or write) tests/checks before the first source edit, kinds: ["exec_evidence(window to first edit)", "check_scripts(before_change)"], eval: {layer: L1}}
   T-AW3: {skill: S3, name: run tests/checks after the last source edit, kinds: ["exec_evidence(after last change)", "checks(pass_last)"], eval: {layer: L1}}
@@ -80,6 +85,11 @@ templates:
     kinds: ["cross_ref(plan field vs writes/runs)", "aidlc.executed(write_of)", "field_type(command_run) on an earlier artifact"]
     eval: {layer: L2M, reason: "AOS ticked_after_work and OSF tasks.verified reward the element per tick only; SKB fix shows 'stay within the files listed by the assessment'"}
   T-SR1: {skill: S9, name: record assumed answers instead of asking, kinds: ["<wf>.requirements(answers)", "<wf>.note"]}
+  T-SR2:
+    skill: S9
+    name: "do not ask the user: no question file, no request for input"
+    kinds: [aidlc_ifeval.no_asking]
+    eval: {layer: L2M, reason: "all three training documents say no one answers a question (AOS CW:66-67, OSF CW:51, SKB CW:38-39); no training item checks it"}
   T-FM1: {skill: S10, name: artifact exists at its path, kinds: [artifact_exists, path_match], eval: {layer: L1}}
   T-FM2: {skill: S10, name: "skeleton: headings, labels, fields present and filled, allowed values", kinds: [section_present, label_present, field_filled, field_enum, field_literal, "item_format(single line)"], eval: {layer: L1}}
   T-FM3: {skill: S10, name: "repeated-item format (numbering, count, uniqueness)", kinds: [item_format, "<wf>.blocks"], eval: {layer: L1}}

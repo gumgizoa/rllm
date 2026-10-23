@@ -5,7 +5,8 @@ schema: sdlc_if.constraints/1
 workflow: openspec_ff
 role: train
 templates: ../../sdlc_if/templates.yaml
-rubric: reward/rubric.yaml
+rubric: reward/rubric.train.yaml
+generated: reward/rubric.yaml
 constraints:
 - id: openspec_ff.explore.proposal.field_filled.why
   template: T-FM2
@@ -364,7 +365,7 @@ constraints:
 - id: openspec_ff.ff.proposal.item_format.new_capabilities
   template: T-FM3
   status: implemented
-  requirement: should
+  requirement: must
   rule: capability path segments introduced in the proposal are kebab-case (SCHEMA:16; SCHEMA:77; TPL_PROPOSAL:16-18)
   source:
     doc: TPL_PROPOSAL
@@ -372,6 +373,10 @@ constraints:
     quote: 'Use kebab-case for path segments you introduce (e.g., user-auth or identity/user-auth) ... - `<capability-path>`:
       <brief description of what this capability covers>'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: SCHEMA:77 'Any path segment newly introduced in the proposal must be kebab-case'; the spec-path item (ff.spec.delta.kebab)
+      is must
 - id: openspec_ff.ff.proposal.item_format.modified_capabilities_empty
   template: T-FM3
   status: implemented
@@ -481,7 +486,7 @@ constraints:
   fidelity: faithful
 - id: openspec_ff.ff.spec.no_template_residue.template
   template: T-FM4
-  status: implemented
+  status: dropped
   requirement: must
   rule: no spec-template placeholder left (TPL_SPEC:8-13; FF:100)
   source:
@@ -494,6 +499,8 @@ constraints:
     and no_template_residue strips HTML comments before matching (checks/artifacts.py no_template_residue -> M.strip_comments).
     Tested on the unfilled TPL_SPEC: 5/5 raw hits, 0 after stripping, so the item passes whenever the file exists. Effective
     coverage comes from openspec.delta requirement_blocks / requirement_text / when_then'
+  change: {drop: true, reason: 'never fails: every pattern is an HTML comment and the check strips comments before matching;
+      the delta''s content is judged by openspec.delta (requirement_blocks, requirement_text, when_then)'}
 - id: openspec_ff.ff.spec.no_template_residue.context
   template: T-FM4
   status: implemented
@@ -935,16 +942,20 @@ constraints:
 - id: openspec_ff.ff.tasks.section_present.tasks
   template: T-FM2
   status: implemented
-  requirement: should
+  requirement: must
   rule: tasks.md keeps the template heading '# Tasks' (TPL_TASKS:1; FF:100)
   source:
     doc: TPL_TASKS
     lines: [1, 1]
     quote: '# Tasks'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: FF:100 'Use template as the structure for your output file' binds every artifact's template; the proposal and
+      design headings are must
 - id: openspec_ff.ff.tasks.item_format.tasks
   template: T-FM3
-  status: implemented
+  status: dropped
   requirement: should
   rule: 'tracked tasks are grouped under ## numbered headings (TPL_TASKS:3, 8; SCHEMA:218)'
   source:
@@ -952,9 +963,10 @@ constraints:
     lines: [3, 3]
     quote: '## 1. <!-- Task Group Name -->'
   fidelity: faithful
+  change: {drop: true, reason: 'duplicates ff.tasks.item_format.groups (must): numbered ''## N.'' group headings'}
 - id: openspec_ff.ff.tasks.item_format.line
   template: T-FM3
-  status: implemented
+  status: dropped
   requirement: should
   rule: a tracked task is `- [ ] X.Y description` (TPL_TASKS:5-11; SCHEMA:219)
   source:
@@ -962,6 +974,7 @@ constraints:
     lines: [5, 5]
     quote: '- [ ] 1.1 <!-- Task description -->'
   fidelity: faithful
+  change: {drop: true, reason: 'duplicates ff.tasks.item_format.task_lines (must): numbered checkbox task lines'}
 - id: openspec_ff.ff.tasks.item_format.task_lines
   template: T-FM3
   status: implemented
@@ -985,7 +998,7 @@ constraints:
   fidelity: faithful
 - id: openspec_ff.ff.tasks.no_template_residue
   template: T-FM4
-  status: implemented
+  status: dropped
   requirement: must
   rule: no tasks-template placeholder left (TPL_TASKS:3-6; FF:100)
   source:
@@ -996,6 +1009,8 @@ constraints:
   fidelity_note: 'VACUOUS: both patterns are HTML comments (''<!-- Task Group Name -->'', ''<!-- Task description -->'') and
     no_template_residue strips comments before matching; tested on the unfilled TPL_TASKS: 2/2 raw hits, 0 after stripping.
     Effective coverage: openspec.tasks described / has_tasks (placeholder-only descriptions parse as empty)'
+  change: {drop: true, reason: 'never fails: both patterns are HTML comments and the check strips comments before matching;
+      the tasks'' content is judged by tasks.described and tasks.has_tasks'}
 - id: openspec_ff.ff.tasks.no_template_residue.fill_marks
   template: T-FM4
   status: implemented
@@ -1921,7 +1936,7 @@ constraints:
   fidelity: faithful
 - id: openspec_ff.verify.verify.item_format.priorities
   template: T-FM2
-  status: implemented
+  status: dropped
   requirement: should
   rule: issues are grouped by priority CRITICAL / WARNING / SUGGESTION (VF:161-178; VF:202)
   source:
@@ -1931,6 +1946,8 @@ constraints:
   fidelity: broader
   fidelity_note: 'needs at least one CRITICAL/WARNING/SUGGESTION word: a clean report with no issue (''All checks passed'',
     VF:184) has nothing to group and fails'
+  change: {drop: true, reason: 'fails a clean report (''All checks passed. Ready for archive.'', VF:184), which has no issue
+      to group; VF:202 is output-format guidance the report''s other items cover'}
 - id: openspec_ff.verify.verify.item_format.final_assessment
   template: T-FM2
   status: implemented
