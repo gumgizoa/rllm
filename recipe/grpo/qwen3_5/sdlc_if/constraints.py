@@ -19,12 +19,12 @@ by the item id::
     eval         evaluation workflow, implemented items: {layer: L1 | L1C | L2M | L2F, requirement,
                  when?, layer_reason?} -- layer_reason is required where the layer differs from the
                  template's default
-    change       training workflow: how the scored item differs from the generated one, and why
-                 ({reason, drop?, requirement: [from, to]?, check?}; ``build.py`` applies it)
+    change       training workflow: how the item differs from workflow_rubric.generator's first output,
+                 and why ({reason, drop?, requirement: [from, to]?, check?}) -- a record; the rubric
+                 holds the result
 
-The header names the scored rubric (``rubric``: ``reward/rubric.train.yaml`` for a training workflow,
-built by ``build.py``) and, for a training workflow, the generated one (``generated``:
-``reward/rubric.yaml``). The rubric is the implementation; :func:`check` keeps the two in step.
+The header names the rubric (``reward/rubric.yaml``), the implementation; :func:`check` keeps the two in
+step.
 """
 
 from __future__ import annotations
@@ -57,8 +57,6 @@ def check(workflow: str) -> list[str]:
     doc = load(workflow)
     rubric = yaml.safe_load((WORKFLOWS / workflow / doc["rubric"]).read_text())
     items = {it["id"]: it for it in rubric["items"]}
-    gen = yaml.safe_load((WORKFLOWS / workflow / doc["generated"]).read_text()) if doc.get("generated") else rubric
-    gen_items = {it["id"]: it for it in gen["items"]}
     out = []
     seen = set()
     for c in doc["constraints"]:
@@ -69,17 +67,17 @@ def check(workflow: str) -> list[str]:
         seen.add(cid)
         ch = c.get("change") or {}
         if c.get("status") == "dropped":
-            if not ch.get("drop") or cid in items or cid not in gen_items:
-                out.append(f"{where}: dropped needs change.drop, a generated item and no scored one")
+            if not ch.get("drop") or cid in items:
+                out.append(f"{where}: dropped needs change.drop and no rubric item")
             continue
         it = items.get(cid)
         if it is None:
             out.append(f"{where}: no rubric item")
             continue
-        if "requirement" in ch and gen_items.get(cid, {}).get("requirement") != ch["requirement"][0]:
-            out.append(f"{where}: change.requirement starts from {ch['requirement'][0]!r}, generated {gen_items.get(cid, {}).get('requirement')!r}")
+        if "requirement" in ch and ch["requirement"][1] != it["requirement"]:
+            out.append(f"{where}: change.requirement ends at {ch['requirement'][1]!r}, rubric {it['requirement']!r}")
         if "check" in ch and ch["check"] != it["check"]:
-            out.append(f"{where}: change.check is not the scored check (rebuild)")
+            out.append(f"{where}: change.check is not the rubric's check")
         impl = it["check"]["kind"] != "unimplemented"
         t = c.get("template")
         if t is not None and t not in cat:

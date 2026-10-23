@@ -5,8 +5,7 @@ schema: sdlc_if.constraints/1
 workflow: speckit_bug
 role: train
 templates: ../../sdlc_if/templates.yaml
-rubric: reward/rubric.train.yaml
-generated: reward/rubric.yaml
+rubric: reward/rubric.yaml
 constraints:
 - id: speckit_bug.assess.assessment.artifact_exists
   template: T-FM1
@@ -3480,7 +3479,7 @@ constraints:
   rule: no one will reply, so do not pause to ask; note assumptions in the current report and keep going (SP:69-71)
   source:
     doc: SP
-    lines: [70, 70]
+    lines: [69, 69]
     quote: No one will reply during the task, so do not pause to ask
   class: duplicate
   class_note: 'a run that pauses fails the next report''s existence gate (conflict #8)'

@@ -268,7 +268,7 @@ def test_instruction_and_prompt_send_the_agent_to_the_entry_document_first():
         text = re.sub(r"\s+", " ", text)
         assert entry in text and "first action" in text
         assert "filesystem root" in text and "outside the repository" in text
-    sdk = (RECIPE / "workflows" / "speckit_bug" / "system-prompt.j2").read_text(encoding="utf-8")
+    sdk = (RECIPE / "workflows" / "aidlc_v4" / "system-prompt.j2").read_text(encoding="utf-8")
     assert SECTION.sub("", prompt) == SECTION.sub("", sdk)  # the other sections are the SDK default
 
 
