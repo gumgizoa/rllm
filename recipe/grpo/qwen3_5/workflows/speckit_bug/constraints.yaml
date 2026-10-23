@@ -5,7 +5,8 @@ schema: sdlc_if.constraints/1
 workflow: speckit_bug
 role: train
 templates: ../../sdlc_if/templates.yaml
-rubric: reward/rubric.yaml
+rubric: reward/rubric.train.yaml
+generated: reward/rubric.yaml
 constraints:
 - id: speckit_bug.assess.assessment.artifact_exists
   template: T-FM1
@@ -166,10 +167,13 @@ constraints:
     doc: AS
     lines: [71, 71]
     quote: 1. <step>
-  fidelity: broader
-  fidelity_note: 'a Reproduction made only of ''[NEEDS CLARIFICATION: ...]'' marks is read as placeholder (markdown.is_placeholder
-    takes a line of [..] groups for a stand-in) and fails, although AS:30/AS:75 allow marking unknowns when no step is discoverable;
-    conflict #5''s ''a mark with a question is content'' was applied to Open Questions only'
+  fidelity: faithful
+  change:
+    check:
+      kind: item_format
+      params: {section: Reproduction, pattern: \S, min: 1}
+    reason: 'AS:30 ''mark unknowns as [NEEDS CLARIFICATION] rather than guessing'': a Reproduction of marks is content (the
+      documented resolution for Open Questions); the template''s literal ''<step>'' lines are judged by assess.assessment.no_template_residue'
 - id: speckit_bug.assess.assessment.field_filled.risks_considerations
   template: T-FM2
   status: implemented
@@ -505,13 +509,17 @@ constraints:
 - id: speckit_bug.fix.fix.section_present.local_verification
   template: T-FM2
   status: implemented
-  requirement: should
+  requirement: must
   rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
   source:
     doc: FX
     lines: [83, 83]
     quote: '## Local Verification'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: 'CW:50-51 binds every ## heading of the report; the template setting that lowered it was meant for the plain lines
+      under the heading'
 - id: speckit_bug.fix.fix.section_present.summary
   template: T-FM2
   status: implemented
@@ -1406,9 +1414,8 @@ constraints:
       every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
       new failure.'
   fidelity: broader
-  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
-    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
-    this rule does not)
+  fidelity_note: a fail row for a test that already failed in the baseline still fails a verified Result (TS:43-45 allow it);
+    the lint / type-check row is excluded since 2026-10-23
 - id: speckit_bug.test.test.speckit_bug_checks_table.unrun
   template: T-RF1
   status: implemented
@@ -1565,13 +1572,17 @@ constraints:
 - id: speckit_bug.fix_2.fix_2.section_present.local_verification
   template: T-FM2
   status: implemented
-  requirement: should
+  requirement: must
   rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
   source:
     doc: FX
     lines: [83, 83]
     quote: '## Local Verification'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: 'CW:50-51 binds every ## heading of the report; the template setting that lowered it was meant for the plain lines
+      under the heading'
 - id: speckit_bug.fix_2.fix_2.section_present.summary
   template: T-FM2
   status: implemented
@@ -2349,9 +2360,8 @@ constraints:
       every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
       new failure.'
   fidelity: broader
-  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
-    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
-    this rule does not)
+  fidelity_note: a fail row for a test that already failed in the baseline still fails a verified Result (TS:43-45 allow it);
+    the lint / type-check row is excluded since 2026-10-23
 - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.unrun
   template: T-RF1
   status: implemented
@@ -2446,13 +2456,17 @@ constraints:
 - id: speckit_bug.fix_3.fix_3.section_present.local_verification
   template: T-FM2
   status: implemented
-  requirement: should
+  requirement: must
   rule: keep the fix report's '## Local Verification' heading (FX:83; CW:50-51)
   source:
     doc: FX
     lines: [83, 83]
     quote: '## Local Verification'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: 'CW:50-51 binds every ## heading of the report; the template setting that lowered it was meant for the plain lines
+      under the heading'
 - id: speckit_bug.fix_3.fix_3.section_present.summary
   template: T-FM2
   status: implemented
@@ -3230,9 +3244,8 @@ constraints:
       every example from the issue behaves as the issue expects; the existing tests of the fix report''s baseline show no
       new failure.'
   fidelity: broader
-  fidelity_note: any row reading 'fail' under verified fails the item, the Lint / type-check row and a regression row whose
-    failures pre-date the change included, though TS:43-45 make neither a verdict condition (the unrun rule excludes lint,
-    this rule does not)
+  fidelity_note: a fail row for a test that already failed in the baseline still fails a verified Result (TS:43-45 allow it);
+    the lint / type-check row is excluded since 2026-10-23
 - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.unrun
   template: T-RF1
   status: implemented

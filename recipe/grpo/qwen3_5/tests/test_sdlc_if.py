@@ -1,5 +1,6 @@
 """sdlc_if: every workflow's constraints.yaml matches its rubric and the template catalogue, and the
-check finds what it is for; the opt-in ``all`` reading of repeated labels (``markdown.field_values``)."""
+check finds what it is for; each training workflow's scored rubric (``build.py``) is fresh and its golden
+run passes it; the opt-in ``all`` reading of repeated labels (``markdown.field_values``)."""
 
 from __future__ import annotations
 
@@ -7,7 +8,7 @@ import copy
 
 import pytest
 
-from recipe.grpo.qwen3_5.sdlc_if import constraints
+from recipe.grpo.qwen3_5.sdlc_if import build, constraints
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 
 
@@ -41,3 +42,28 @@ def test_field_values_reads_every_occurrence():
     tests = "- Path: tests/t1.py — Contract: foo\n- Path: tests/t2.py — Contract: bar\n"
     assert M.field_values(tests, "Path", multiline=True) == ["tests/t1.py", "tests/t2.py"]
     assert M.field_values(None, "Path") == [] and M.field_value("x", "Path") is None
+
+
+@pytest.mark.parametrize("workflow", build.TRAIN)
+def test_scored_training_rubric_is_fresh_and_its_golden_run_passes(workflow):
+    import importlib
+
+    from recipe.grpo.qwen3_5.workflow_rubric import engine, schema
+    from recipe.grpo.qwen3_5.workflow_rubric.checks import validate_params
+
+    assert build.main(["--check", workflow]) == 0
+    importlib.import_module(f"recipe.grpo.qwen3_5.workflows.{workflow}.reward.checks")
+    golden = importlib.import_module(f"recipe.grpo.qwen3_5.workflows.{workflow}.selftest_golden").golden
+    doc = constraints.load(workflow)
+    rubric = schema.load(constraints.WORKFLOWS / workflow / doc["rubric"])
+    validate_params(rubric)
+    scored = {it.id: it for it in rubric.items}
+    changed = [c for c in doc["constraints"] if c.get("change")]
+    assert changed
+    for c in changed:
+        if c["status"] == "dropped":
+            assert c["id"] not in scored
+        else:
+            assert scored[c["id"]].requirement == c["requirement"]
+    report = engine.evaluate(rubric, *golden(rubric))
+    assert report.scores.compliance == pytest.approx(1.0), [(k, r.detail) for k, r in report.results.items() if r.status == "fail"][:5]

@@ -9,8 +9,8 @@ by the item id::
 
     id           the rubric item id
     template     a catalogue id (T-*, NEW-*), or null for a rule that is no checkable constraint
-    status       implemented | unimplemented (the item's kind is ``unimplemented``)
-    requirement  must | should, as the rubric weighs it in training reward
+    status       implemented | unimplemented (the item's kind is ``unimplemented``) | dropped (not scored)
+    requirement  must | should, as the scored rubric weighs it
     rule         the document's rule in one line, with DOC:line references
     source       {doc, lines, quote}: one of the item's sources
     fidelity     implemented: faithful | narrower | broader | different (the check against the rule),
@@ -19,8 +19,12 @@ by the item id::
     eval         evaluation workflow, implemented items: {layer: L1 | L1C | L2M | L2F, requirement,
                  when?, layer_reason?} -- layer_reason is required where the layer differs from the
                  template's default
+    change       training workflow: how the scored item differs from the generated one, and why
+                 ({reason, drop?, requirement: [from, to]?, check?}; ``build.py`` applies it)
 
-The rubric is the implementation (``reward/rubric.yaml``); :func:`check` keeps the two in step.
+The header names the scored rubric (``rubric``: ``reward/rubric.train.yaml`` for a training workflow,
+built by ``build.py``) and, for a training workflow, the generated one (``generated``:
+``reward/rubric.yaml``). The rubric is the implementation; :func:`check` keeps the two in step.
 """
 
 from __future__ import annotations
@@ -53,6 +57,8 @@ def check(workflow: str) -> list[str]:
     doc = load(workflow)
     rubric = yaml.safe_load((WORKFLOWS / workflow / doc["rubric"]).read_text())
     items = {it["id"]: it for it in rubric["items"]}
+    gen = yaml.safe_load((WORKFLOWS / workflow / doc["generated"]).read_text()) if doc.get("generated") else rubric
+    gen_items = {it["id"]: it for it in gen["items"]}
     out = []
     seen = set()
     for c in doc["constraints"]:
@@ -61,10 +67,19 @@ def check(workflow: str) -> list[str]:
         if cid in seen:
             out.append(f"{where}: duplicate")
         seen.add(cid)
+        ch = c.get("change") or {}
+        if c.get("status") == "dropped":
+            if not ch.get("drop") or cid in items or cid not in gen_items:
+                out.append(f"{where}: dropped needs change.drop, a generated item and no scored one")
+            continue
         it = items.get(cid)
         if it is None:
             out.append(f"{where}: no rubric item")
             continue
+        if "requirement" in ch and gen_items.get(cid, {}).get("requirement") != ch["requirement"][0]:
+            out.append(f"{where}: change.requirement starts from {ch['requirement'][0]!r}, generated {gen_items.get(cid, {}).get('requirement')!r}")
+        if "check" in ch and ch["check"] != it["check"]:
+            out.append(f"{where}: change.check is not the scored check (rebuild)")
         impl = it["check"]["kind"] != "unimplemented"
         t = c.get("template")
         if t is not None and t not in cat:

@@ -5,12 +5,13 @@ schema: sdlc_if.constraints/1
 workflow: agentos_v2
 role: train
 templates: ../../sdlc_if/templates.yaml
-rubric: reward/rubric.yaml
+rubric: reward/rubric.train.yaml
+generated: reward/rubric.yaml
 constraints:
 - id: agentos_v2.shape_spec.spec_dir.artifact_exists
   template: T-FM1
   status: implemented
-  requirement: should
+  requirement: must
   rule: shape-spec creates the spec folder /tmp/agent-os/specs/<YYYY-MM-DD>-<name>/ (CW:43-44; SS:29 'then create the spec
     folder')
   source:
@@ -19,6 +20,9 @@ constraints:
     quote: 'shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short
       kebab-case name you choose for the change.'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: CW:43-44 'shape-spec creates the spec folder once'
 - id: agentos_v2.shape_spec.spec_dir.path_match.dated
   template: T-FM1
   status: implemented
@@ -97,17 +101,20 @@ constraints:
 - id: agentos_v2.shape_spec.verifications_dir.agentos_v2_paths_written
   template: T-WD3
   status: implemented
-  requirement: should
+  requirement: must
   rule: leave implementation/ and verifications/ empty for now (SS:57)
   source:
     doc: SS
     lines: [55, 57]
     quote: '- `$SPEC_PATH/verifications/` ... Leave these folders empty, for now.'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: SS:55-57 'Leave these folders empty, for now'
 - id: agentos_v2.shape_spec.requirements.artifact_exists
   template: T-FM1
   status: implemented
-  requirement: should
+  requirement: must
   rule: record all gathered information to ONE FILE [spec-path]/planning/requirements.md (SS:208)
   source:
     doc: SS
@@ -115,6 +122,9 @@ constraints:
     quote: 'After all questions are answered, record ALL gathered information to ONE FILE at this location with this name:
       `[spec-path]/planning/requirements.md`'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: SS:208 'record ALL gathered information to ONE FILE at this location'
 - id: agentos_v2.shape_spec.requirements.section_present.functional_requirements
   template: T-FM2
   status: implemented
@@ -661,13 +671,16 @@ constraints:
 - id: agentos_v2.write_spec.spec.field_filled.existing_code_to_leverage
   template: T-FM2
   status: implemented
-  requirement: should
+  requirement: must
   rule: document your findings (WS:47) in Existing Code to Leverage (WS:84-89)
   source:
     doc: WS
     lines: [47, 47]
     quote: Document your findings for use in the specification.
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: WS:57 'Follow this structure exactly'; the section's heading item is must
 - id: agentos_v2.write_spec.spec.field_filled.goal
   template: T-FM2
   status: implemented
@@ -846,7 +859,7 @@ constraints:
 - id: agentos_v2.write_spec.run.agentos_v2_holds.visuals_checked
   template: T-AW5
   status: implemented
-  requirement: should
+  requirement: must
   rule: run the ls of planning/visuals as part of reading the inputs (WS:20-21)
   source:
     doc: WS
@@ -854,6 +867,9 @@ constraints:
     quote: '# Check for visual assets ls -la /tmp/agent-os/specs/[current-spec]/planning/visuals/ 2>/dev/null | grep -v "^total"
       | grep -v "^d"'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: 'WS:15-21: write-spec''s inputs block runs the visuals check as shape-spec''s does (must there)'
 - id: agentos_v2.write_spec.unimplemented.unimplemented.2
   template: T-RD4
   status: unimplemented
@@ -1000,13 +1016,17 @@ constraints:
 - id: agentos_v2.create_tasks.tasks.agentos_v2_tasks.group_parts
   template: T-FM6
   status: implemented
-  requirement: should
+  requirement: must
   rule: each task group has **Dependencies:** (CT:55) and acceptance criteria (CT:216 'for each task group')
   source:
     doc: CT
     lines: [216, 216]
     quote: '- **Include acceptance criteria** for each task group'
   fidelity: faithful
+  change:
+    requirement: [should, must]
+    reason: CT:216 'Include acceptance criteria for each task group'; the documented resolution makes the acceptance criteria
+      must, and this is the only per-group check
 - id: agentos_v2.create_tasks.tasks.unimplemented
   template: T-FM3
   status: unimplemented
@@ -1470,13 +1490,17 @@ constraints:
 - id: agentos_v2.implement_tasks.final_verification.no_template_residue
   template: T-FM4
   status: implemented
-  requirement: must
+  requirement: should
   rule: no template placeholder or unchosen status choice left in the report (IT:252-309)
   source:
     doc: IT
     lines: [252, 252]
     quote: '# Verification Report: [Spec Title]'
   fidelity: faithful
+  change:
+    requirement: [must, should]
+    reason: 'IT:249 ''The content of this report should follow this structure'': the report template''s other 29 items are
+      should'
 - id: agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed
   template: T-RF2
   status: implemented
@@ -1597,7 +1621,7 @@ constraints:
   fidelity: faithful
 - id: agentos_v2.implement_tasks.run.agentos_v2_read.spec_inputs
   template: T-RD4
-  status: implemented
+  status: dropped
   requirement: should
   rule: analyze the provided spec.md, requirements.md (IT:29)
   source:
@@ -1607,6 +1631,8 @@ constraints:
   fidelity: broader
   fidelity_note: IT:29 says 'Analyze the provided' files (already in context) and does not ask for a read; the item fails
     a run that analyzes them from context
+  change: {drop: true, reason: 'IT:29 ''Analyze the provided spec.md, requirements.md'' asks for no read: they are provided,
+      already in context; the item rewarded a read the document does not ask for'}
 - id: agentos_v2.implement_tasks.run.code_change
   template: T-AW1
   status: implemented

@@ -16,7 +16,8 @@ not touch the repository, ``exec_evidence`` for the test runs. What they cannot 
       {rule: test_run}      some row claiming pass or fail names a command that is a *valid* test run of the
                             window (evidence.py: runner output in its own observation, base-repo targets --
                             an echoed summary or a dummy test under /tmp is none)
-      {rule: consistent}    a verified Result has no row claiming fail (03-test.md:43, :45)
+      {rule: consistent}    a verified Result has no row claiming fail (03-test.md:43, :45), the lint /
+                            type-check row aside (not one of the verdict's conditions, as for ``unrun``)
       {rule: unrun}         a verified Result has no ``skipped`` / ``not-run`` row for the reproduction or the
                             fix's checks (03-test.md:44 "partial -- ... one of them was not run", :106); the
                             lint / type-check row is not one of the verdict's conditions
@@ -163,7 +164,7 @@ def _commands(cell: str) -> list[str]:
 
 @register("speckit_bug.checks_table", params={"rule": True, "artifact": False, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("results", "commands_run", "test_run", "consistent", "unrun")})
 def checks_table(item: Item, ctx: EvalContext) -> Result:
-    """rule: results | commands_run | test_run | consistent | unrun -- the Checks Performed table: one result value per row; claimed commands were run; a valid test run among them; no failed row (consistent) and no skipped / not-run reproduction or fix-check row (unrun) under a verified Result."""
+    """rule: results | commands_run | test_run | consistent | unrun -- the Checks Performed table: one result value per row; claimed commands were run; a valid test run among them; no failed row but lint / type-check (consistent) and no skipped / not-run reproduction or fix-check row (unrun) under a verified Result."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     text = ctx.artifact_text(_artifact(item), getattr(item.target, "state", "final") or "final")
@@ -185,7 +186,7 @@ def checks_table(item: Item, ctx: EvalContext) -> Result:
         if rule == "unrun":
             unrun = [r["check"][:40] for r in rows if _VERDICT_ROW.search(r["check"]) and not _LINT_ROW.search(r["check"]) and result_of(r["result"]) in ("skipped", "not-run")]
             return Result.no(item, f"verified with checks not run: {unrun[:3]}") if unrun else Result.ok(item, "every reproduction / fix-check row was run")
-        failed = [r["check"][:40] for r in rows if result_of(r["result"]) == "fail"]
+        failed = [r["check"][:40] for r in rows if result_of(r["result"]) == "fail" and not _LINT_ROW.search(r["check"])]
         return Result.no(item, f"verified with failed checks: {failed[:3]}") if failed else Result.ok(item, "no failed check")
     w = _window(item, ctx)
     if w is None:

@@ -2501,7 +2501,7 @@ constraints:
     quote: Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs
   class: duplicate
 - id: aidlc_v4_gen.global.unimplemented.unimplemented.4
-  template: T-OR1
+  template: T-OR3
   status: unimplemented
   requirement: should
   rule: no stage returns to an earlier stage (CW:71, BT:58)
@@ -2509,11 +2509,10 @@ constraints:
     doc: CW
     lines: [71, 71]
     quote: '**No stage returns to an earlier stage.**'
-  class: candidate
-  class_note: no read of an earlier stage's rule detail file after a later stage's file was first read (doc_reads), plus no
-    write of an earlier artifact after the next stage began (= no_rewrite, partly implemented)
+  class: duplicate
+  class_note: implemented by aidlc_v4_ifeval.global.run.no_return (log_only)
 - id: aidlc_v4_gen.global.unimplemented.unimplemented.5
-  template: T-SR1
+  template: T-SR2
   status: unimplemented
   requirement: should
   rule: never generate a question file (CW:132)
@@ -2521,10 +2520,10 @@ constraints:
     doc: CW
     lines: [132, 132]
     quote: Never generate a question file
-  class: candidate
-  class_note: no file written whose path marks a question file (e.g. /question/i) anywhere in the run
+  class: duplicate
+  class_note: implemented by aidlc_v4_ifeval.global.run.no_question_file (log_only)
 - id: aidlc_v4_gen.global.unimplemented.unimplemented.6
-  template: T-SR1
+  template: T-SR2
   status: unimplemented
   requirement: should
   rule: never ask for approval (CW:132)
@@ -2532,10 +2531,10 @@ constraints:
     doc: CW
     lines: [132, 132]
     quote: never ask for approval
-  class: vague
-  class_note: an approval request lives in a message; needs an LLM judge
+  class: duplicate
+  class_note: implemented by aidlc_v4_ifeval.global.run.no_request_for_input (log_only)
 - id: aidlc_v4_gen.global.unimplemented.unimplemented.7
-  template: T-SR1
+  template: T-SR2
   status: unimplemented
   requirement: should
   rule: never wait for input (CW:132)
@@ -2543,8 +2542,8 @@ constraints:
     doc: CW
     lines: [132, 132]
     quote: never wait for input
-  class: vague
-  class_note: only observable as a run that ends with a question to the user; needs a message judge
+  class: duplicate
+  class_note: implemented by aidlc_v4_ifeval.global.run.no_request_for_input (log_only)
 - id: aidlc_v4_gen.global.unimplemented.unimplemented.8
   template: NEW-WD-exists-before
   status: unimplemented
@@ -2585,3 +2584,38 @@ constraints:
     cp); a recursive grep over /tmp/swe-bench-pro counts as reading every artifact. Narrower in one respect: a read in the
     same step as the write is exempt, which CW:42-43 does not allow (the written content is already visible; it is no recovery)'
   eval: {layer: L1C, requirement: must}
+- id: aidlc_v4_ifeval.global.run.no_return
+  template: T-OR3
+  status: implemented
+  requirement: must
+  rule: 'no stage returns to an earlier stage: no earlier stage rule-detail file is read once a later one was (CW:71, BT:58,
+    CG:34)'
+  source:
+    doc: CW
+    lines: [71, 71]
+    quote: '**No stage returns to an earlier stage.**'
+  fidelity: faithful
+  eval: {layer: L1C, requirement: must}
+- id: aidlc_v4_ifeval.global.run.no_question_file
+  template: T-SR2
+  status: implemented
+  requirement: must
+  rule: never generate a question file (CW:132)
+  source:
+    doc: CW
+    lines: [132, 132]
+    quote: '**No user interaction.** Never generate a question file'
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_ifeval.global.run.no_request_for_input
+  template: T-SR2
+  status: implemented
+  requirement: must
+  rule: 'never ask for approval or wait for input: the run does not end on a message asking the user (CW:132)'
+  source:
+    doc: CW
+    lines: [132, 132]
+    quote: never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption
+  fidelity: narrower
+  fidelity_note: a heuristic on the run's last message only; the finish tool's message is not in the trace
+  eval: {layer: L2M, requirement: must}

@@ -214,3 +214,29 @@ def test_evaluation_policy_loads_the_layers():
 
     ev = Evaluation()
     assert ev.layers and build.NO_REREAD in ev.layers
+
+
+def _status(rubric, run, col, iid):
+    return engine.evaluate(rubric, run, col).results[iid].status
+
+
+def test_returning_to_an_earlier_stage_document_fails_no_return(setup):
+    rubric, _ = setup
+    iid = "aidlc_v4_ifeval.global.run.no_return"
+    run, col = golden(rubric)
+    assert _status(rubric, run, col, iid) == "pass"
+    root, container = aidlc_v4_ifeval.SPEC.docs_dir, aidlc_v4_ifeval.SPEC.container_dir
+    planning = "rule-details/03-code-generation-planning.md"
+    run.steps[-3].actions.insert(0, Action(kind="shell", name="terminal", command=f"cat {container}/{planning}", observation=(root / planning).read_text()))
+    assert _status(rubric, run, col, iid) == "fail"
+
+
+def test_a_question_file_or_a_closing_question_fails_no_asking(setup):
+    rubric, _ = setup
+    run, col = golden(rubric)
+    assert _status(rubric, run, col, "aidlc_v4_ifeval.global.run.no_question_file") == "pass"
+    assert _status(rubric, run, col, "aidlc_v4_ifeval.global.run.no_request_for_input") == "pass"
+    run.steps[3].actions.append(Action(kind="create", name="file_editor", path="/tmp/swe-bench-pro/questions.md", text="1. Which API?", status="ok", observation="File created successfully at: /tmp/swe-bench-pro/questions.md"))
+    run.steps[-1].message = "The plan is ready. Would you like me to proceed with the implementation?"
+    assert _status(rubric, run, col, "aidlc_v4_ifeval.global.run.no_question_file") == "fail"
+    assert _status(rubric, run, col, "aidlc_v4_ifeval.global.run.no_request_for_input") == "fail"
