@@ -5,8 +5,7 @@ schema: sdlc_if.constraints/1
 workflow: agentos_v2
 role: train
 templates: ../../sdlc_if/templates.yaml
-rubric: reward/rubric.train.yaml
-generated: reward/rubric.yaml
+rubric: reward/rubric.yaml
 constraints:
 - id: agentos_v2.shape_spec.spec_dir.artifact_exists
   template: T-FM1
@@ -1728,7 +1727,7 @@ constraints:
   rule: implement-tasks builds the task groups and verifies the result (SP:64-65)
   source:
     doc: SP
-    lines: [64, 65]
+    lines: [63, 64]
     quote: implement-tasks builds them and verifies the result
   class: duplicate
   class_note: PROBLEM_SOLVING_WORKFLOW description; code_change + suite_run reward it
@@ -2090,7 +2089,7 @@ constraints:
   rule: the issue is turned into a spec before any code changes (SP:62)
   source:
     doc: SP
-    lines: [62, 62]
+    lines: [61, 61]
     quote: The issue is turned into a spec before any code changes
   class: duplicate
   class_note: also the per-stage repo_write prohibitions
@@ -2101,7 +2100,7 @@ constraints:
   rule: shape-spec -> write-spec -> create-tasks -> implement-tasks (SP:62-64)
   source:
     doc: SP
-    lines: [62, 64]
+    lines: [61, 63]
     quote: shape-spec gathers the requirements, write-spec writes the specification, create-tasks splits it into task groups,
       and implement-tasks builds them
   class: duplicate
@@ -2125,7 +2124,7 @@ constraints:
   rule: /agent-os sits directly under /, not inside /testbed (SP:68-69)
   source:
     doc: SP
-    lines: [68, 69]
+    lines: [67, 68]
     quote: The /agent-os directory sits directly under /, not inside the repository at /testbed.
   class: vague
   class_note: location information
@@ -2136,7 +2135,7 @@ constraints:
   rule: questions a document raises are answered by you and written down as assumptions (SP:72-73)
   source:
     doc: SP
-    lines: [72, 73]
+    lines: [71, 72]
     quote: Questions a document raises are answered by you and written down as assumptions
   class: duplicate
 - id: agentos_v2.global.unimplemented.unimplemented.12
@@ -2158,7 +2157,7 @@ constraints:
   rule: every turn includes a tool call (SP:73-74)
   source:
     doc: SP
-    lines: [73, 74]
+    lines: [72, 73]
     quote: every turn includes a tool call
   class: candidate
   class_note: 'same as global.unimplemented.unimplemented.9 (trace: no tool-less turn before finish)'

@@ -165,6 +165,9 @@ def test_decided_behaviors_are_in_the_commands():
 # ---- the harness and the hand-written text
 
 
+SDLC_IF_STUDY = ("openspec_ff", "speckit_bug", "aidlc_v4_ifeval")
+
+
 def test_hand_written_text_is_its_own():
     h = OpenHandsSdkWorkflow(workflow=NAME, instruction_position="prefix")
     entry = f"{SPEC.container_dir.rstrip('/')}/{SPEC.entry_doc}"
@@ -183,8 +186,7 @@ def test_hand_written_text_is_its_own():
         theirs_prompt = spec.system_prompt.get("openhands-sdk")
         if theirs_prompt:
             text = theirs_prompt.read_text(encoding="utf-8")
-            # the other 15 sections are the SDK's; aidlc_v4_ifeval's copy drops three instructions AI-DLC forbids
-            if other != "aidlc_v4_ifeval":
+            if other in SDLC_IF_STUDY:  # the study's workflows share one prompt outside their sections (sdlc_if)
                 assert SECTION.sub("", text) == SECTION.sub("", prompt), other
             assert SECTION.search(text).group(0).replace(spec.container_dir, SPEC.container_dir) != ours_sec, other
 

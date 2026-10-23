@@ -1,6 +1,7 @@
 """sdlc_if: every workflow's constraints.yaml matches its rubric and the template catalogue, and the
-check finds what it is for; each training workflow's scored rubric (``build.py``) is fresh and its golden
-run passes it; the opt-in ``all`` reading of repeated labels (``markdown.field_values``)."""
+check finds what it is for; each training workflow's rubric carries the changes its constraints record and
+its golden run passes it; every workflow's system prompt is the same outside its workflow section; the
+opt-in ``all`` reading of repeated labels (``markdown.field_values``)."""
 
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ import copy
 
 import pytest
 
-from recipe.grpo.qwen3_5.sdlc_if import build, constraints
+from recipe.grpo.qwen3_5.sdlc_if import constraints
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 
 
@@ -44,14 +45,16 @@ def test_field_values_reads_every_occurrence():
     assert M.field_values(None, "Path") == [] and M.field_value("x", "Path") is None
 
 
-@pytest.mark.parametrize("workflow", build.TRAIN)
-def test_scored_training_rubric_is_fresh_and_its_golden_run_passes(workflow):
+TRAIN = ("agentos_v2", "openspec_ff", "speckit_bug")
+
+
+@pytest.mark.parametrize("workflow", TRAIN)
+def test_training_rubric_carries_its_changes_and_its_golden_run_passes(workflow):
     import importlib
 
     from recipe.grpo.qwen3_5.workflow_rubric import engine, schema
     from recipe.grpo.qwen3_5.workflow_rubric.checks import validate_params
 
-    assert build.main(["--check", workflow]) == 0
     importlib.import_module(f"recipe.grpo.qwen3_5.workflows.{workflow}.reward.checks")
     golden = importlib.import_module(f"recipe.grpo.qwen3_5.workflows.{workflow}.selftest_golden").golden
     doc = constraints.load(workflow)
@@ -67,3 +70,13 @@ def test_scored_training_rubric_is_fresh_and_its_golden_run_passes(workflow):
             assert scored[c["id"]].requirement == c["requirement"]
     report = engine.evaluate(rubric, *golden(rubric))
     assert report.scores.compliance == pytest.approx(1.0), [(k, r.detail) for k, r in report.results.items() if r.status == "fail"][:5]
+
+
+def test_system_prompts_share_everything_but_the_workflow_section():
+    import re
+
+    section = re.compile(r"<PROBLEM_SOLVING_WORKFLOW>.*?</PROBLEM_SOLVING_WORKFLOW>", re.S)
+    common = {wf: section.sub("", (constraints.WORKFLOWS / wf / "system-prompt.j2").read_text()) for wf in constraints.DEFAULT}
+    assert len(set(common.values())) == 1
+    text = next(iter(common.values()))
+    assert "<ENVIRONMENT_SETUP>" not in text and "confirm with the user" not in text and "thoroughly understand the codebase" not in text
