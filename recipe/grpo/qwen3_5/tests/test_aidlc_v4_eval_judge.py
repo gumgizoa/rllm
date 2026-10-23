@@ -55,15 +55,43 @@ def test_no_judge_signals_without_a_model(monkeypatch):
 
 def test_the_questions_follow_what_the_artifacts_hold():
     asked = {st: [r for r, _ in qs] for st, (qs, _) in _requests(Run()).items()}
-    # no test file read (D10b), non-functional none (E7a, E7b, H3c), no deviations (G8a, G8c), no
-    # pre-existing failures (H8d), no fixes (H9b): not asked
+    # no test file read (D10b), non-functional none (E7a, E7b, H3c), a one-step plan (F6), no deviations
+    # (G8a, G8c), no pre-existing failures (H8d), no fixes (H9b): not asked
     assert asked == {
         1: ["D3", "D6"],
         2: ["E1a", "E1b", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
         3: ["F2d", "F2e", "F4a", "F9a"],
         4: ["G5", "B4b"],
-        5: ["H3a", "H3b"],
+        5: ["H3a", "H3b", "H8b", "B7"],
     }
+
+
+def test_a_plan_of_two_steps_is_asked_about_their_order():
+    r = Run()
+    step2 = "### Step 2 [satisfies R1]\n- Target: pkg/mod.py (modify in place)\n- Change: guard the empty case\n- Contract: none\n- Verification: repro\n\n"
+    r.edit(3, "## Reproduction Script", step2 + "## Reproduction Script")
+    assert "F6" in [q for q, _ in _requests(r)[3][0]]
+
+
+def test_a_regression_is_asked_about_with_the_first_and_last_stage_5_runs():
+    r = Run()
+    first = sh("cd /testbed && python -m pytest tests/test_mod.py -q", "1 failed, 2 passed in 0.10s\n[Command finished with exit code 1]")
+    r.insert(r.write_of(4) + 1, first)
+    qs, mat = _requests(r)[5]
+    assert "H8b" in [q for q, _ in qs]
+    assert mat["STAGE 5 TEST RUN (the first one, before any stage 5 fix, output tail)"].endswith("1 failed, 2 passed in 0.10s")
+    assert "ARTIFACT 03" in mat and "STAGE 5 TEST RUN (the last one, output tail)" in mat
+    # one stage-5 run is shown once; none run and none recorded: not asked
+    assert "STAGE 5 TEST RUN (the first one, before any stage 5 fix, output tail)" not in _requests(Run())[5][1]
+    r = Run()
+    for i in r.runs("pytest")[1:]:
+        r.set_command(i, "ls /testbed")
+    assert "H8b" not in [q for q, _ in _requests(r)[5][0]]
+
+
+def test_unresolved_work_is_judged_against_artifact_04_too():
+    qs, mat = _requests(Run())[5]
+    assert "B7" in [q for q, _ in qs] and "ARTIFACT 04" in mat
 
 
 def test_material_holds_the_script_and_the_test_code_the_run_read():
@@ -123,7 +151,7 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     assert s["aidlc/judge/D6"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
     assert "aidlc/judge/D3" not in s and "aidlc/judge/E8b" not in s
     assert s["aidlc/judge_calls"] == 5.0
-    assert s["aidlc/judge_void"] == pytest.approx(1 / 17)  # 18 asked, one n/a, one quote not found
+    assert s["aidlc/judge_void"] == pytest.approx(1 / 19)  # 20 asked, one n/a, one quote not found
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 
@@ -169,6 +197,18 @@ def test_a_reply_broken_after_its_answers_keeps_them(judge_on, monkeypatch):
     assert s["aidlc/judge/D3"] == 1.0 and s["aidlc/judge/H3a"] == 1.0
 
 
+def test_answers_merged_into_one_object_are_split(judge_on, monkeypatch):
+    """Nemotron twice wrote every answer's keys into one object; a plain read keeps only the last answer."""
+
+    def ask(text, seed=None):
+        good = json.loads(_reply(text))["answers"]
+        return '{"answers": [{' + ", ".join(f'"id": "{a["id"]}", "answer": "{a["answer"]}", "quote": {json.dumps(a["quote"])}' for a in good) + "}]}"
+
+    monkeypatch.setattr(J, "ask", ask)
+    s = Run().score()
+    assert s["aidlc/judge/D3"] == s["aidlc/judge/D6"] == s["aidlc/judge/H3a"] == s["aidlc/judge/B7"] == 1.0
+
+
 def test_a_failed_call_leaves_its_stage_unjudged(judge_on, monkeypatch):
     def ask(text, seed=None):
         if "stage 2 artifact" in text:
@@ -199,6 +239,32 @@ def test_the_cache_asks_once(judge_on, monkeypatch, tmp_path):
     assert calls[0]["response_format"] == {"type": "json_object"}
     J.ask("q", seed=1)  # another sample is another request
     assert len(calls) == 2
+
+
+def test_an_empty_reply_is_a_failed_call_never_cached(judge_on, monkeypatch, tmp_path):
+    """swebv100 episodes: 11 of 1319 cached replies were empty (the reasoning out of tokens) and a rescoring
+    read them back as judged-nothing for good."""
+    import httpx
+
+    content = [""]
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": content[0]}, "finish_reason": "length"}]}
+
+    monkeypatch.setenv("AIDLC_JUDGE_CACHE", str(tmp_path))
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: Response())
+    with pytest.raises(ValueError, match="length"):
+        J.ask("q")
+    assert not list(tmp_path.iterdir())
+    content[0] = '{"answers": []}'
+    assert J.ask("q") == '{"answers": []}'
+    next(tmp_path.iterdir()).write_text(json.dumps({"content": ""}))  # an empty entry cached before: asked again
+    content[0] = '{"answers": [{"id": "D3"}]}'
+    assert J.ask("q") == '{"answers": [{"id": "D3"}]}'
 
 
 def test_every_question_has_a_category():

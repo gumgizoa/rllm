@@ -5703,6 +5703,31 @@ items:
     - 27
     quote: '- [ ] Plan a script that reproduces the issue before the fix and demonstrates correct behavior after it'
   note: Is the reproduction script planned so that it shows the issue before the fix and passes after it?
+- id: judge/F6
+  scope: specific
+  class: content
+  stage: '3'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.judge
+    params:
+      question: F6
+  requirement: must
+  category: Q
+  rule: F6
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S3
+    lines:
+    - 91
+    - 91
+    quote: '- The steps are ordered so that each is executable when reached'
+  note: 'Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?'
 - id: judge/F9a
   scope: specific
   class: content
@@ -5922,6 +5947,31 @@ items:
     - 29
     quote: '- [ ] Confirm the constraints the Non-Functional Requirements state, where any are stated'
   note: Does the reproduction script check the Non-Functional constraints?
+- id: judge/H8b
+  scope: specific
+  class: content
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.judge
+    params:
+      question: H8b
+  requirement: must
+  category: Q
+  rule: H8b
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S5
+    lines:
+    - 48
+    - 48
+    quote: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved |'
+  note: 'If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it under Regressions (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact 03) marks as preserved? Answer n/a if no such test fails and artifact 05 records no regression.'
 - id: judge/H8d
   scope: specific
   class: content
@@ -5989,6 +6039,36 @@ items:
     - 87
     quote: '- [none | what changed and why]'
   note: Does each item under Fixes Applied say what was changed and why?
+- id: judge/B7
+  scope: specific
+  class: content
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.judge
+    params:
+      question: B7
+  requirement: must
+  category: Q
+  rule: B7
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 40
+    - 40
+    quote: 'The artifact''s existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else.'
+  - doc: S5
+    lines:
+    - 98
+    - 98
+    quote: 'Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean.'
+  note: 'Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement, known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing remains? A failure a later fix resolved (the last test run passes it) is not unresolved work.'
 appendix:
   rules_without_items:
     covered by another rule's items:
@@ -6012,11 +6092,8 @@ appendix:
       G6a: resolve, the task verifier's
       G6b: the task verifier's tests
     judge, low priority, not asked:
-      B7: unresolved work only under Outstanding Failures
       D2: the scope extends to direct callers and callees
       E2: stage 1's result used as context
-      F6: the steps in an order that can be carried out
-      H8b: a regression suspects the contract first
       H8c: pre-existing failures left unfixed
     not a judge question:
       D1a: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed)

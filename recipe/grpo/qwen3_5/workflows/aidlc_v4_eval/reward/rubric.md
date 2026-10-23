@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 manual (ported from the hand-written aidlc_v4_eval verifier, 2026-10-22). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-209 items | check kinds {'aidlc_v4_eval.atom': 58, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 26, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+212 items | check kinds {'aidlc_v4_eval.atom': 58, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 29, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells, and the total (`score`) the mean of the categories.
@@ -16,7 +16,7 @@ Items per cell (scored / diagnostic):
 | E execution | — | 5 | — | — | — | 5 |
 | C consistency across stages | — | — | — | 1 | 6 | 5 |
 | R forbidden action | 3 | 1 | — | 3 | 3 | 3 |
-| Q content adequacy | 1 | 5 | 12 | 7 | 2 | 6 |
+| Q content adequacy | 1 | 5 | 12 | 8 | 2 | 8 |
 | A report accuracy | — | 7 | — | 3 | 9 | 10 |
 
 ## global — the whole run
@@ -139,6 +139,7 @@ Items per cell (scored / diagnostic):
 - [Q] **F3** - [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**, and any new interface this step introduces for later steps to use… — `aidlc_v4_eval.atom` {"rule": "F3"} (`atom/F3`) — /ai-dlc/rule-details/03-code-generation-planning.md:19
 - [Q] **F4a** Is the reproduction script planned so that it shows the issue before the fix and passes after it? — `aidlc_v4_eval.judge` {"question": "F4a"} (`judge/F4a`) — /ai-dlc/rule-details/03-code-generation-planning.md:27
 - [Q] **F4b** - [ ] Include the conditions from the Edge Cases & Error Handling requirements — `aidlc_v4_eval.atom` {"rule": "F4b"} (`atom/F4b`) — /ai-dlc/rule-details/03-code-generation-planning.md:28
+- [Q] **F6** Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces? — `aidlc_v4_eval.judge` {"question": "F6"} (`judge/F6`) — /ai-dlc/rule-details/03-code-generation-planning.md:91
 - [Q] **F9a** Can each step be carried out as written, without interpretation: a concrete target and a concrete change? — `aidlc_v4_eval.judge` {"question": "F9a"} (`judge/F9a`) — /ai-dlc/rule-details/03-code-generation-planning.md:73
 - [Q] **F9b** - Follow the existing repository structure — `aidlc_v4_eval.atom` {"rule": "F9b"} (`atom/F9b`) — /ai-dlc/rule-details/03-code-generation-planning.md:76
 - [A] **F5** The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy it. It is the check that no requirement was dropped between the… — `aidlc_v4_eval.claim` {"check": "c23_coverage_refs"} (`check/c23_coverage_refs`) — /ai-dlc/rule-details/03-code-generation-planning.md:67
@@ -229,10 +230,12 @@ Items per cell (scored / diagnostic):
 - [R] **H12** - Unintended files in the repository: none — `aidlc_v4_eval.rule` {"check": "r_repo_clean"} (`rule/r_repo_clean`) — /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:102
 - [R] **H6** **Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated by conditions unrelated to the change. — `aidlc_v4_eval.rule` {"check": "r_targeted_tests"} (`rule/r_targeted_tests`) — /ai-dlc/rule-details/05-build-and-test.md:39
 - [R] **H7** **The baseline and the test command are established, not re-derived.** Use them as Reverse Engineering recorded them. Read `/tmp/swe-bench-pro/01-reverse-engineering.md` only if t… — `aidlc_v4_eval.atom` {"rule": "H7"} (`atom/H7`) — /ai-dlc/rule-details/05-build-and-test.md:11
+- [Q] **B7** Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement, known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing remains? A failure a later fix resolved (the last test run passes it) is not unresolved work. — `aidlc_v4_eval.judge` {"question": "B7"} (`judge/B7`) — /ai-dlc/core-workflow.md:40; /ai-dlc/rule-details/05-build-and-test.md:98
 - [Q] **H11** - [none | what remains, and why it was not resolved] — `aidlc_v4_eval.atom` {"rule": "H11"} (`atom/H11`) — /ai-dlc/rule-details/05-build-and-test.md:90; /ai-dlc/rule-details/05-build-and-test.md:98
 - [Q] **H3a** Does the reproduction script check the behaviour each Functional requirement describes? — `aidlc_v4_eval.judge` {"question": "H3a"} (`judge/H3a`) — /ai-dlc/rule-details/05-build-and-test.md:27
 - [Q] **H3b** Does the reproduction script check the conditions the Edge Cases describe? — `aidlc_v4_eval.judge` {"question": "H3b"} (`judge/H3b`) — /ai-dlc/rule-details/05-build-and-test.md:28
 - [Q] **H3c** Does the reproduction script check the Non-Functional constraints? — `aidlc_v4_eval.judge` {"question": "H3c"} (`judge/H3c`) — /ai-dlc/rule-details/05-build-and-test.md:29
+- [Q] **H8b** If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it under Regressions (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact 03) marks as preserved? Answer n/a if no such test fails and artifact 05 records no regression. — `aidlc_v4_eval.judge` {"question": "H8b"} (`judge/H8b`) — /ai-dlc/rule-details/05-build-and-test.md:48
 - [Q] **H8d** Does each pre-existing failure listed give a reason, and is the reason plausible (the failure is unrelated to the change and was there at the baseline in artifact 01)? — `aidlc_v4_eval.judge` {"question": "H8d"} (`judge/H8d`) — /ai-dlc/core-workflow.md:125; /ai-dlc/rule-details/05-build-and-test.md:49; /ai-dlc/rule-details/05-build-and-test.md:84
 - [Q] **H9b** Does each item under Fixes Applied say what was changed and why? — `aidlc_v4_eval.judge` {"question": "H9b"} (`judge/H9b`) — /ai-dlc/rule-details/05-build-and-test.md:55; /ai-dlc/rule-details/05-build-and-test.md:87
 - [A] **H11** - [none | what remains, and why it was not resolved] — `aidlc_v4_eval.claim` {"check": "e5_outstanding_none"} (`check/e5_outstanding_none`) — /ai-dlc/rule-details/05-build-and-test.md:90; /ai-dlc/rule-details/05-build-and-test.md:98
@@ -251,5 +254,5 @@ Items per cell (scored / diagnostic):
 - covered by another rule's items: **B2** B1 (the artifact at its fixed path); **B5a** B6a (frontmatter keys); **B5c** the per-field rules (field prefixes); **B9** the reference checks (R ids, steps quoted as written); **E5** B5b@2 and the S2 fields (the three categories); **F2c** the step parse behind the S3 fields and tags; **G1b** G9, G2; **G3b** H12, F8b, S4.checks; **G4a** D13; **H16** run/fidelity; **I2** D11a's reading of a test run (agent-written runner scripts are no run); **B5d** S1.recorded, S4.executed (the skeleton's two fixed sentences)
 - a flag, in no score: **I1** leak_history
 - not applicable: **A4** document lookup order; **A5** an overall instruction; **G6a** resolve, the task verifier's; **G6b** the task verifier's tests
-- judge, low priority, not asked: **B7** unresolved work only under Outstanding Failures; **D2** the scope extends to direct callers and callees; **E2** stage 1's result used as context; **F6** the steps in an order that can be carried out; **H8b** a regression suspects the contract first; **H8c** pre-existing failures left unfixed
+- judge, low priority, not asked: **D2** the scope extends to direct callers and callees; **E2** stage 1's result used as context; **H8c** pre-existing failures left unfixed
 - not a judge question: **D1a** whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed); **D1b** same; code checks the issue's paths are in scope (atom/D1b)

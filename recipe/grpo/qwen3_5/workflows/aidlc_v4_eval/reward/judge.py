@@ -10,14 +10,15 @@ code checks the quote:
 Emitted as ``aidlc/judge/<rule>`` (their ``rubric.yaml`` items place them by category and stage), with
 ``aidlc/judge_void`` (the share of yes/no answers dropped for their quote) and ``aidlc/judge_calls``.
 A question whose subject the artifact lacks (no deviations, no pre-existing failures, no baseline test the
-run read) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the
+run read, a one-step plan, no stage-5 test run and no regression recorded) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the
 trajectory: it judges what the run wrote, and code judges what the run did. The extracts:
 
     stage 1   the code of each baseline test, from every read of the Existing Tests files (view, cat, sed,
               head, tail, grep, ...), lines the run skipped shown as ``...``
     stage 4   the final patch
-    stage 5   the reproduction script as it last ran; for a pre-existing-failure question, the last stage-5
-              test run's output tail
+    stage 5   the reproduction script as it last ran; artifacts 03 and 04 (the preserved contracts, unresolved
+              work recorded outside 05); the first and the last stage-5 test run's output tail, for the
+              regression and pre-existing-failure questions
 
 Whether Files names the right source (D1a, D1b) is no judge question: without the repository the judge has
 only the issue's words, and code already checks the files were opened and the issue's paths are in scope.
@@ -85,6 +86,7 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("F2d", "Does every step's Contract name the signatures or return shapes that must be preserved, and any new interface the step introduces?"),
         ("F2e", "Does every step's Verification say what the reproduction script will check for that step?"),
         ("F4a", "Is the reproduction script planned so that it shows the issue before the fix and passes after it?"),
+        ("F6", "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?"),
         ("F9a", "Can each step be carried out as written, without interpretation: a concrete target and a concrete change?"),
     ],
     4: [
@@ -97,8 +99,20 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("H3a", "Does the reproduction script check the behaviour each Functional requirement describes?"),
         ("H3b", "Does the reproduction script check the conditions the Edge Cases describe?"),
         ("H3c", "Does the reproduction script check the Non-Functional constraints?"),
+        (
+            "H8b",
+            "If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it under Regressions"
+            " (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact 03) marks as preserved?"
+            " Answer n/a if no such test fails and artifact 05 records no regression.",
+        ),
         ("H8d", "Does each pre-existing failure listed give a reason, and is the reason plausible (the failure is unrelated to the change and was there at the baseline in artifact 01)?"),
         ("H9b", "Does each item under Fixes Applied say what was changed and why?"),
+        (
+            "B7",
+            "Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement,"
+            " known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing remains?"
+            " A failure a later fix resolved (the last test run passes it) is not unresolved work.",
+        ),
     ],
 }
 
@@ -256,16 +270,19 @@ def _test_text(run, parsed: dict) -> str | None:
     return "\n\n".join(found.values()) + (f"\n\n(not read by the run: {', '.join(missing)})" if missing else "")
 
 
-def _stage5_tests(run, parsed: dict) -> str | None:
-    """The last test run of stage 5 (after the last source edit, before artifact 05): command and output tail."""
+def _stage5_tests(run, parsed: dict, first: bool = False) -> str | None:
+    """The last test run of stage 5 (after the last source edit, before artifact 05): command and output tail.
+    With ``first``, the first test run after artifact 04 instead (where a regression shows before its fix),
+    None when that is the last one too."""
     from .read import first_write_steps, observe
 
     obs = observe(run)
     w = first_write_steps(run)
-    runs = obs.tests_in(after=obs.last_edit if obs.last_edit is not None else w.get(4), before=w.get(5))
-    if not runs:
+    last = obs.tests_in(after=obs.last_edit if obs.last_edit is not None else w.get(4), before=w.get(5))
+    runs = obs.tests_in(after=w.get(4), before=w.get(5)) if first else last
+    if not runs or (first and last and runs[0] == last[-1]):
         return None
-    _, command, out = runs[-1]
+    _, command, out = runs[0] if first else runs[-1]
     return f"$ {command}\n" + _clean(out)[-4000:]
 
 
@@ -278,8 +295,10 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
         if not body[st]:
             continue
         material = {"ISSUE": issue} if st in (1, 2, 3) and issue else {}
-        material |= {f"ARTIFACT 0{k}": body[k] for k in {1: [1], 2: [1, 2], 3: [2, 3], 4: [3, 4], 5: [1, 2, 5]}[st] if body[k]}
+        material |= {f"ARTIFACT 0{k}": body[k] for k in {1: [1], 2: [1, 2], 3: [2, 3], 4: [3, 4], 5: [1, 2, 3, 4, 5]}[st] if body[k]}
         skip = set()
+        if st == 3 and len(re.findall(r"(?m)^#{2,4}\s*Step\s+\d+", body[3])) < 2:
+            skip.add("F6")  # one step has no order
         if st == 1:
             tests = _test_text(run, parsed)
             if tests:
@@ -311,8 +330,14 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
             pre = _field(parsed.get(5), "Existing Tests vs Baseline", "Pre-existing failures")
             if not pre or is_none(pre):
                 skip.add("H8d")
-            elif tests := _stage5_tests(run, parsed):
-                material["STAGE 5 TEST RUN (the last one, output tail)"] = tests
+            reg = _field(parsed.get(5), "Existing Tests vs Baseline", "Regressions")
+            first, last = _stage5_tests(run, parsed, first=True), _stage5_tests(run, parsed)
+            if not first and not last and (not reg or is_none(reg)):
+                skip.add("H8b")  # no run to show a regression and none recorded
+            if first and "H8b" not in skip:
+                material["STAGE 5 TEST RUN (the first one, before any stage 5 fix, output tail)"] = first
+            if last and not {"H8b", "H8d"} <= skip:
+                material["STAGE 5 TEST RUN (the last one, output tail)"] = last
             if _section_none(parsed.get(5), "Fixes Applied") in (None, True):
                 skip.add("H9b")
         asked = [(r, q) for r, q in questions if r not in skip]
@@ -350,16 +375,35 @@ def quote_found(quote: str, shown: str) -> bool:
 _TRIPLE = re.compile(r'"id"\s*:\s*"(\w+)"\s*,\s*"answer"\s*:\s*"(yes|no|n/a)"\s*,\s*"quote"\s*:\s*"((?:[^"\\]|\\.)*)"', re.I)
 
 
-def verdicts(reply: str, questions: list[tuple[str, str]], material: dict[str, str]) -> tuple[dict[str, float | None], int, int]:
-    """rule -> 1 / 0 / None from a reply, and (yes/no answers, those dropped for their quote)."""
+def _split_answers(pairs: list[tuple[str, object]]) -> dict:
+    """A JSON object as read, except one holding several answers' keys (``{"id": .., "answer": .., "id": ..}``,
+    2 of 1311 replies): split at each ``id``, under ``_answers``."""
+    if [k for k, _ in pairs].count("id") < 2:
+        return dict(pairs)
+    out: list[dict] = []
+    for k, v in pairs:
+        if k == "id" or not out:
+            out.append({})
+        out[-1][k] = v
+    return {"_answers": out}
+
+
+def answers(reply: str) -> list[dict]:
+    """The answer objects of a reply."""
     m = re.search(r"\{.*\}", reply or "", re.S)
     try:
-        answers = json.loads(m.group(0)).get("answers", []) if m else []
+        got = json.loads(m.group(0), object_pairs_hook=_split_answers).get("answers", []) if m else []
     except (json.JSONDecodeError, AttributeError):
         # A reply broken further on (an unquoted reason) still holds well-formed id / answer / quote triples.
-        answers = [{"id": i, "answer": a, "quote": json.loads(f'"{q}"')} for i, a, q in _TRIPLE.findall(reply or "")]
+        return [{"id": i, "answer": a, "quote": json.loads(f'"{q}"')} for i, a, q in _TRIPLE.findall(reply or "")]
+    return [b for a in got if isinstance(a, dict) for b in a.get("_answers", [a])] if isinstance(got, list) else []
+
+
+def verdicts(reply: str, questions: list[tuple[str, str]], material: dict[str, str]) -> tuple[dict[str, float | None], int, int]:
+    """rule -> 1 / 0 / None from a reply, and (yes/no answers, those dropped for their quote)."""
+    answers_ = answers(reply)
     shown = _norm("\n".join(material.values()))
-    by_id = {str(a.get("id", "")).strip(): a for a in answers if isinstance(a, dict)}
+    by_id = {str(a.get("id", "")).strip(): a for a in answers_}
     out, decided, void = {}, 0, 0
     for rule, _ in questions:
         a = by_id.get(rule) or {}
@@ -390,13 +434,16 @@ def ask(text: str, seed: int | None = None) -> str:
         body["seed"] = seed
     cache = os.environ.get("AIDLC_JUDGE_CACHE")
     path = Path(cache) / (hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest() + ".json") if cache else None
-    if path is not None and path.exists():
-        return json.loads(path.read_text())["content"]
+    if path is not None and path.exists() and (content := json.loads(path.read_text())["content"]):
+        return content  # an empty reply cached before it counted as a failure is asked again
     url = os.environ["AIDLC_JUDGE_BASE_URL"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": f"Bearer {os.environ.get('AIDLC_JUDGE_API_KEY', 'EMPTY')}"}
     r = httpx.post(url, json=body, headers=headers, timeout=float(os.environ.get("AIDLC_JUDGE_TIMEOUT", "300")))
     r.raise_for_status()
-    content = r.json()["choices"][0]["message"].get("content") or ""
+    choice = r.json()["choices"][0]
+    content = choice["message"].get("content") or ""
+    if not content:  # e.g. the reasoning ran out of tokens: a failed call, not cached
+        raise ValueError(f"empty judge reply (finish_reason {choice.get('finish_reason')})")
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"content": content}))
