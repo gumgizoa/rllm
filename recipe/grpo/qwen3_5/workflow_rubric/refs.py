@@ -29,7 +29,8 @@ source edit, or to the end when neither happened).
 Selectors -> a value (str), a list or a set, used by ``cross_ref`` and predicates::
 
     {field: {artifact, section, label, state?}}           str | None (the label's value)
-    {field_list: {artifact, section, label, state?}}      list[str] (one item per line / comma)
+    {field_list: {artifact, section, label, all?, state?}} list[str] (one item per line / comma; ``all``: of every
+                                                           occurrence of a repeated label, not only the first)
     {section_text: {artifact, section, state?}}           str | None
     {section_lines: {artifact, section, state?}}          list[str] (non-empty content lines)
     {ids: {artifact, section?, pattern, group?, state?}}  set[str] (regex matches in the text)
@@ -363,8 +364,13 @@ def select(ctx: EvalContext, spec: dict):
         if key == "field":
             val = M.field_value(section_of(text, arg["section"]), arg["label"])
         elif key == "field_list":
-            v = M.field_value(section_of(text, arg["section"]), arg["label"], multiline=True)
-            val = M.split_list(v) if v is not None else None
+            body = section_of(text, arg["section"])
+            if arg.get("all"):
+                vs = M.field_values(body, arg["label"], multiline=True)
+                val = [x for v in vs for x in M.split_list(v)] if vs else None
+            else:
+                v = M.field_value(body, arg["label"], multiline=True)
+                val = M.split_list(v) if v is not None else None
         elif key == "section_text":
             val = M.section(text, arg["section"])
         elif key == "section_lines":

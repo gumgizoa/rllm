@@ -1,0 +1,2587 @@
+# Constraints of aidlc_v4_ifeval: one per rubric item (same id), with the template that judges it.
+# Maintained by hand; the rubric implements them, workflow_rubric checks the two stay in step
+# (sdlc_if/constraints.py, which also documents the fields).
+schema: sdlc_if.constraints/1
+workflow: aidlc_v4_ifeval
+role: eval
+templates: ../../sdlc_if/templates.yaml
+rubric: reward/rubric.yaml
+constraints:
+- id: aidlc_v4_gen.reverse_engineering.a1.artifact_exists.2
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: Stage 1 ends by writing /tmp/swe-bench-pro/01-reverse-engineering.md (CW:81, RE:45, CW:22)
+  source:
+    doc: CW
+    lines: [81, 81]
+    quote: Write `/tmp/swe-bench-pro/01-reverse-engineering.md`
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: A1 at /tmp/swe-bench-pro/01-reverse-engineering.md (CW:24, RE:45)
+  source:
+    doc: CW
+    lines: [24, 24]
+    quote: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename. Stage 1 writes `/tmp/swe-bench-pro/01-reverse-engineering.md`'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.frontmatter
+  template: T-FM5
+  status: implemented
+  requirement: must
+  rule: 'frontmatter is exactly ''stage: 1'', ''name: reverse-engineering'', no other keys (CW:31-37, RE:47)'
+  source:
+    doc: RE
+    lines: [50, 50]
+    quote: '---'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.section_present.affected_scope
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Affected Scope' heading exactly (RE:55, RE:47, CW:30)
+  source:
+    doc: RE
+    lines: [55, 55]
+    quote: '## Affected Scope'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.section_present.baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Baseline' heading exactly (RE:67, RE:47, CW:30)
+  source:
+    doc: RE
+    lines: [67, 67]
+    quote: '## Baseline'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.section_present.build_test_commands
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Build & Test Commands' heading exactly (RE:60, RE:47, CW:30)
+  source:
+    doc: RE
+    lines: [60, 60]
+    quote: '## Build & Test Commands'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.section_present.existing_tests
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '## Existing Tests' heading exactly (RE:64, RE:47, CW:30)
+  source:
+    doc: RE
+    lines: [64, 64]
+    quote: '## Existing Tests'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.files
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Files:' field prefix under Affected Scope (RE:56, RE:47)
+  source:
+    doc: RE
+    lines: [56, 56]
+    quote: '- Files: [full paths from the repository root, one per line]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.language_framework
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Language/framework:' field prefix under Affected Scope (RE:58, RE:47)
+  source:
+    doc: RE
+    lines: [58, 58]
+    quote: '- Language/framework: [as it follows from the files above]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.owning_module
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Owning module:' field prefix under Affected Scope (RE:57, RE:47)
+  source:
+    doc: RE
+    lines: [57, 57]
+    quote: '- Owning module: [module or package, and its boundary in the repository]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.failing
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Failing:' field prefix under Baseline (RE:70, RE:47)
+  source:
+    doc: RE
+    lines: [70, 70]
+    quote: '- Failing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.passing
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Passing:' field prefix under Baseline (RE:69, RE:47)
+  source:
+    doc: RE
+    lines: [69, 69]
+    quote: '- Passing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.build
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Build:' field prefix under Build & Test Commands (RE:61, RE:47)
+  source:
+    doc: RE
+    lines: [61, 61]
+    quote: '- Build: [verbatim build or type-check command | not applicable]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.test
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Test:' field prefix under Build & Test Commands (RE:62, RE:47)
+  source:
+    doc: RE
+    lines: [62, 62]
+    quote: '- Test: [verbatim targeted test command for the covering tests]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.label_present.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Path:' field prefix under Existing Tests (RE:65, RE:47)
+  source:
+    doc: RE
+    lines: [65, 65]
+    quote: '- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_literal.baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: fixed line 'Recorded before any source file was modified.' under Baseline (RE:68, RE:47)
+  source:
+    doc: RE
+    lines: [68, 68]
+    quote: Recorded before any source file was modified.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.owning_module
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the owning module and its boundary (RE:17, RE:57)
+  source:
+    doc: RE
+    lines: [57, 57]
+    quote: '- Owning module: [module or package, and its boundary in the repository]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.language_framework
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: note the language/framework (RE:18, RE:58)
+  source:
+    doc: RE
+    lines: [58, 58]
+    quote: '- Language/framework: [as it follows from the files above]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.files
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the affected files in full from the repository root (RE:19, RE:56, RE:74)
+  source:
+    doc: RE
+    lines: [56, 56]
+    quote: '- Files: [full paths from the repository root, one per line]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.test
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the verbatim targeted test command (RE:26, RE:62)
+  source:
+    doc: RE
+    lines: [62, 62]
+    quote: '- Test: [verbatim targeted test command for the covering tests]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.failing
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: record which covering tests already fail at baseline; 'none' only when none failed (RE:37, RE:70)
+  source:
+    doc: RE
+    lines: [70, 70]
+    quote: '- Failing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.passing
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: record which covering tests pass at baseline; 'none' only when none passed (RE:37, RE:69)
+  source:
+    doc: RE
+    lines: [69, 69]
+    quote: '- Passing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.build
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Build: verbatim build/type-check command, or ''not applicable'' (RE:61, RE:25)'
+  source:
+    doc: RE
+    lines: [61, 61]
+    quote: '- Build: [verbatim build or type-check command | not applicable]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_filled.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Existing Tests line ''- Path: [full path] — Contract: …'' filled (RE:65)'
+  source:
+    doc: RE
+    lines: [65, 65]
+    quote: '- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.files
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: 'affected files recorded as full paths from the repository root: each exists at BASE_SHA or in the diff (RE:19, RE:56)'
+  source:
+    doc: RE
+    lines: [19, 19]
+    quote: Record every path in full, from the repository root, so that it is unambiguous in later stages
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.path
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: existing test paths recorded in full from the repository root (RE:19, RE:65)
+  source:
+    doc: RE
+    lines: [19, 19]
+    quote: Record every path in full, from the repository root, so that it is unambiguous in later stages
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): with one ''-
+    Path:'' line per covering test (RE:65) only the first listed test path is checked'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.test_run
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: A1 'Test' is the verbatim command of the baseline run executed before any source file is modified (RE:62, RE:36, CW:79)
+  source:
+    doc: RE
+    lines: [62, 62]
+    quote: '- Test: [verbatim targeted test command for the covering tests]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.test_selection
+  template: T-PR5
+  status: implemented
+  requirement: must
+  rule: the recorded test command targets the covering tests, not the whole suite (RE:27, RE:62)
+  source:
+    doc: RE
+    lines: [27, 27]
+    quote: Express the test command so that it can target **the tests covering the affected scope**, not the whole suite
+  fidelity: faithful
+  eval: {layer: L1, requirement: must, layer_reason: a rule on the recorded command's shape; training conflicts only on running
+      the whole suite}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.failing
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each Failing id failed in a valid baseline run before A1 and before the first edit (RE:37, RE:70, RE:77)
+  source:
+    doc: RE
+    lines: [70, 70]
+    quote: '- Failing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.field_type.passing
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each Passing id is backed by a valid baseline run (RE:37, RE:69, RE:77)
+  source:
+    doc: RE
+    lines: [69, 69]
+    quote: '- Passing: [test id, one per line | none]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.item_format.existing_tests
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 'every Existing Tests line is ''- Path: … — Contract: …'' (RE:65, RE:47)'
+  source:
+    doc: RE
+    lines: [65, 65]
+    quote: '- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: replace only the bracketed text (RE:47, CW:28 'no placeholder')
+  source:
+    doc: RE
+    lines: [56, 56]
+    quote: '- Files: [full paths from the repository root, one per line]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.cross_ref
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: 'the existing covering tests are located in the repository: listed test paths exist at BASE_SHA (RE:34, RE:65)'
+  source:
+    doc: RE
+    lines: [34, 34]
+    quote: Locate the existing tests that cover the affected scope
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): field_list of
+    ''Path'' reads only the first ''- Path:'' line; later covering tests are not checked (overlaps field_type.path, which
+    also accepts diff paths)'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.a1.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: write A1 once, full content, at the end of Stage 1 (RE:45, CW:28)
+  source:
+    doc: RE
+    lines: [45, 45]
+    quote: Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.run.doc_read.re
+  template: T-RD3
+  status: implemented
+  requirement: must
+  rule: load 01-reverse-engineering.md as the first step of Stage 1, one file at a time, whole file (CW:11, CW:18, CW:77,
+    SP:67-68)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: Load that file as the first step of the stage, and execute the stage from it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.run.exec_evidence.baseline
+  template: T-AW2
+  status: implemented
+  requirement: must
+  rule: execute the covering tests before any source file is modified (CW:79, RE:36)
+  source:
+    doc: CW
+    lines: [79, 79]
+    quote: Record the baseline pass/fail state by executing those tests **before any source file is modified**
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.reverse_engineering.run.aidlc_executed.read_tests
+  template: T-RD4
+  status: implemented
+  requirement: must
+  rule: read every existing covering test (the paths A1 lists) before writing A1 (RE:35, RE:76, CW:78)
+  source:
+    doc: RE
+    lines: [35, 35]
+    quote: Read them to understand the contract the affected code must honor
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.artifact_exists.2
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: Stage 2 ends by writing 02-requirements-analysis.md (CW:94, RA:5)
+  source:
+    doc: CW
+    lines: [86, 86]
+    quote: '## Stage 2: Requirements Analysis (ALWAYS EXECUTE)'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: A2 at /tmp/swe-bench-pro/02-requirements-analysis.md (CW:24, RA:40)
+  source:
+    doc: CW
+    lines: [24, 24]
+    quote: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename.'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.frontmatter
+  template: T-FM5
+  status: implemented
+  requirement: must
+  rule: 'frontmatter exactly ''stage: 2'', ''name: requirements-analysis'' (CW:31-37, RA:42)'
+  source:
+    doc: RA
+    lines: [45, 45]
+    quote: '---'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.section_present.assumptions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Assumptions' (RA:61, RA:42)
+  source:
+    doc: RA
+    lines: [61, 61]
+    quote: '## Assumptions'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.section_present.edge_cases_error_handling
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Edge Cases & Error Handling'; a dropped heading reads as unevaluated (RA:57, RA:65)
+  source:
+    doc: RA
+    lines: [57, 57]
+    quote: '## Edge Cases & Error Handling'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.section_present.functional_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Functional Requirements' (RA:50, RA:69)
+  source:
+    doc: RA
+    lines: [50, 50]
+    quote: '## Functional Requirements'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.section_present.non_functional_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Non-Functional Requirements' (RA:54, RA:69)
+  source:
+    doc: RA
+    lines: [54, 54]
+    quote: '## Non-Functional Requirements'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.field_filled.assumptions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record every assumption made in place of a clarifying question (RA:62, RA:70, CW:92)
+  source:
+    doc: RA
+    lines: [62, 62]
+    quote: '- [any ambiguity resolved by decision, with the reasoning]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.field_filled.non_functional_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: NFR only if the task states one, otherwise 'none stated' (RA:55, RA:32)
+  source:
+    doc: RA
+    lines: [55, 55]
+    quote: '- R3: [statement, only if stated in the task description; otherwise "none stated"]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.item_format.r_sequence
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: requirements numbered R1, R2, … in one sequence across categories (RA:20, RA:22)
+  source:
+    doc: RA
+    lines: [20, 20]
+    quote: Express every requirement as a single, verifiable statement, identified as `R1`, `R2`, `R3`, and so on.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.item_format.r_unique
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: each requirement identifier unique in the artifact (RA:22)
+  source:
+    doc: RA
+    lines: [22, 22]
+    quote: Number the requirements in one sequence across all three categories, so that each identifier is unique in the artifact
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.item_format.functional_requirements
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: at least one '- Rn:' line under Functional Requirements (RA:51-52, RA:42)
+  source:
+    doc: RA
+    lines: [51, 51]
+    quote: '- R1: [statement]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.item_format.edge_cases_error_handling
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: at least one '- Rn:' line under Edge Cases & Error Handling (RA:58-59, RA:24)
+  source:
+    doc: RA
+    lines: [58, 58]
+    quote: '- R4: [condition -> expected behavior]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: replace only the bracketed text (RA:42)
+  source:
+    doc: RA
+    lines: [51, 51]
+    quote: '- R1: [statement]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.a2.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: write A2 once, full content (RA:40, CW:28)
+  source:
+    doc: RA
+    lines: [40, 40]
+    quote: Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write, with the full content below
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.run.doc_read.ra
+  template: T-RD3
+  status: implemented
+  requirement: must
+  rule: load 02-requirements-analysis.md as the first step of Stage 2, not before A1 is written, one at a time (CW:11, CW:18,
+    CW:90, SP:67-68)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: Load that file as the first step of the stage, and execute the stage from it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented
+  template: T-FM3
+  status: unimplemented
+  requirement: should
+  rule: convert the task into an explicit, numbered set of requirements (RA:3)
+  source:
+    doc: RA
+    lines: [3, 3]
+    quote: Convert the task description into an explicit, numbered set of requirements that the patch must satisfy
+  class: duplicate
+  class_note: purpose line; numbering checked by r_sequence/r_unique
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 2 prerequisite: Stage 1 complete and recorded in 01 (RA:8)'
+  source:
+    doc: RA
+    lines: [8, 8]
+    quote: 'Reverse Engineering is complete: its Affected Scope, Build & Test Commands, Existing Tests, and Baseline are established,
+      and recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`'
+  class: duplicate
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented.3
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 2 prerequisite: Reverse Engineering complete (RA:8)'
+  source:
+    doc: RA
+    lines: [8, 8]
+    quote: Reverse Engineering is complete
+  class: duplicate
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented.4
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: evaluate all three categories (RA:24, RA:69)
+  source:
+    doc: RA
+    lines: [24, 24]
+    quote: 'Evaluate all three categories:'
+  class: duplicate
+  class_note: with the NFR / Edge section_present and item_format siblings
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented.5
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: assumptions made in place of clarifying questions recorded explicitly (RA:70)
+  source:
+    doc: RA
+    lines: [70, 70]
+    quote: Assumptions made in place of clarifying questions recorded explicitly
+  class: duplicate
+  class_note: the implemented item checks only a skeleton fill (none passes)
+- id: aidlc_v4_gen.requirements_analysis.unimplemented.unimplemented.6
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: proceed to Stage 3 (CW:95)
+  source:
+    doc: CW
+    lines: [95, 95]
+    quote: Proceed to Stage 3
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_planning.a3.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: A3 at /tmp/swe-bench-pro/03-code-generation-planning.md (CW:24, CP:33)
+  source:
+    doc: CW
+    lines: [24, 24]
+    quote: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename.'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.artifact_exists.2
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: Stage 3 ends by writing 03-code-generation-planning.md (CW:105, CP:94)
+  source:
+    doc: CW
+    lines: [105, 105]
+    quote: '5. Write `/tmp/swe-bench-pro/03-code-generation-planning.md`: the numbered plan'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.frontmatter
+  template: T-FM5
+  status: implemented
+  requirement: must
+  rule: 'frontmatter exactly ''stage: 3'', ''name: code-generation-planning'' (CW:31-37, CP:35)'
+  source:
+    doc: CP
+    lines: [38, 38]
+    quote: '---'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.section_present.plan
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Plan' (CP:43, CP:35)
+  source:
+    doc: CP
+    lines: [43, 43]
+    quote: '## Plan'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.section_present.reproduction_script
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Reproduction Script' (CP:57)
+  source:
+    doc: CP
+    lines: [57, 57]
+    quote: '## Reproduction Script'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.section_present.requirement_coverage
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Requirement Coverage' (CP:61)
+  source:
+    doc: CP
+    lines: [61, 61]
+    quote: '## Requirement Coverage'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Change:' step field prefix (CP:47, CP:35)
+  source:
+    doc: CP
+    lines: [47, 47]
+    quote: '- Change: [what changes]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.contract
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Contract:' step field prefix (CP:48, CP:35)
+  source:
+    doc: CP
+    lines: [48, 48]
+    quote: '- Contract: [signatures/return shapes to preserve; new interfaces introduced]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.target
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Target:' step field prefix (CP:46, CP:35)
+  source:
+    doc: CP
+    lines: [46, 46]
+    quote: '- Target: [full path] (modify in place | create)'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.verification
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Verification:' step field prefix (CP:49, CP:35)
+  source:
+    doc: CP
+    lines: [49, 49]
+    quote: '- Verification: [what the reproduction script exercises]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.exercises
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '- Exercises:' under Reproduction Script (CP:59)
+  source:
+    doc: CP
+    lines: [59, 59]
+    quote: '- Exercises: [the requirements it covers, by identifier]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.label_present.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '- Path:' under Reproduction Script (CP:58)
+  source:
+    doc: CP
+    lines: [58, 58]
+    quote: '- Path: [full path where Stage 4 will write it]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.change
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: every plan step records its Change (CP:18, CP:89, CW:102)
+  source:
+    doc: CP
+    lines: [47, 47]
+    quote: '- Change: [what changes]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.verification
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: every plan step records its Verification (CP:20, CP:89, CW:102)
+  source:
+    doc: CP
+    lines: [49, 49]
+    quote: '- Verification: [what the reproduction script exercises]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.contract
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: every plan step records its Contract (CP:19, CP:23, CP:89, CW:102)
+  source:
+    doc: CP
+    lines: [48, 48]
+    quote: '- Contract: [signatures/return shapes to preserve; new interfaces introduced]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the reproduction script path (CP:29, CP:58, CP:92)
+  source:
+    doc: CP
+    lines: [58, 58]
+    quote: '- Path: [full path where Stage 4 will write it]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.target
+  template: T-FM6
+  status: implemented
+  requirement: must
+  rule: every plan step records its Target (CP:17, CP:89, CW:102)
+  source:
+    doc: CP
+    lines: [46, 46]
+    quote: '- Target: [full path] (modify in place | create)'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_filled.exercises
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the requirements the reproduction script exercises, by identifier (CP:59)
+  source:
+    doc: CP
+    lines: [59, 59]
+    quote: '- Exercises: [the requirements it covers, by identifier]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.field_type.target
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: plan Targets recorded as full paths from the repository root (CP:77, CP:17)
+  source:
+    doc: CP
+    lines: [15, 17]
+    quote: '**MANDATORY**: Create one or more explicit steps for each requirement. ... For every step, record: ... **Target
+      file(s)** — full path'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): only Step 1''s
+    ''- Target:'' is checked; also a ''(create)'' Target that Stage 4 never creates fails although a recorded deviation allows
+    it (broader edge)'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.plan.3
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: plan steps numbered sequentially from 1, '### Step n' (CP:15, CP:35)
+  source:
+    doc: CP
+    lines: [15, 15]
+    quote: '**MANDATORY**: Create one or more explicit steps for each requirement. Number the steps sequentially.'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.plan
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every Target line carries '(modify in place | create)' (CP:46, CP:17)
+  source:
+    doc: CP
+    lines: [46, 46]
+    quote: '- Target: [full path] (modify in place | create)'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.requirement_coverage
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 'Requirement Coverage lines ''- Rn: Step k'' (CP:62-64)'
+  source:
+    doc: CP
+    lines: [62, 62]
+    quote: '- R1: Step 1'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.plan.2
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: at least one '### Step n' heading in Plan (CP:45, CP:35)
+  source:
+    doc: CP
+    lines: [45, 45]
+    quote: '### Step 1 [satisfies R1]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.plan.4
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: every step heading keeps '### Step n [satisfies Rx]' (CP:35, CP:85)
+  source:
+    doc: CP
+    lines: [35, 35]
+    quote: Keep the frontmatter keys, the `##` headings, the `### Step n [satisfies Rx]` step headings, and the field prefixes
+      exactly as given.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.no_test_target
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: no plan step targets a test file (CP:93, CP:78)
+  source:
+    doc: CP
+    lines: [93, 93]
+    quote: No step targets a test file
+  fidelity: narrower
+  fidelity_note: 'VACUOUS: pattern ''^\s*[-*+]\s+\**Target\**:[\s*`]*(?![^\s`*]*\btests?\b)'' always matches — ''[\s*`]*''
+    backtracks to zero width so the lookahead is tested at the space before the path and succeeds; verified: ''- Target: tests/test_a.py
+    (modify in place)'' passes (2/2 lines in a sample A3). Even if repaired it would miss test_*.py outside tests/ (\btest\b
+    fails on ''test_'') and flag library code like django/test/'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.item_format.plan.5
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: never plan a duplicate such as module_new.py / ClassName_modified.java (CP:82)
+  source:
+    doc: CP
+    lines: [82, 82]
+    quote: Never plan a duplicate such as `module_new.py` or `ClassName_modified.java`
+  fidelity: narrower
+  fidelity_note: only the documents' two suffixes (_new, _modified); 'such as' is open-ended
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: replace only the bracketed text (CP:35)
+  source:
+    doc: CP
+    lines: [46, 46]
+    quote: '- Target: [full path] (modify in place | create)'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.step_tags_cover
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: 'every A2 requirement is satisfied by at least one plan step: plan tags ⊇ A2 ids (CP:15, CP:86)'
+  source:
+    doc: CP
+    lines: [15, 15]
+    quote: Create one or more explicit steps for each requirement.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.create_mode
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: 'an existing target is planned ''modify in place'': no ''(create)'' Target exists at BASE_SHA (CP:81, CP:46)'
+  source:
+    doc: CP
+    lines: [81, 81]
+    quote: If the target file exists, plan to modify it **in place**
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: plan requirement tags are identifiers A2 defines, quoted verbatim (CP:21, CW:42)
+  source:
+    doc: CW
+    lines: [99, 99]
+    quote: the Stage 2 requirements (`R1`, `R2`, ...)
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.exercises_edge_cases
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: 'the reproduction script includes the Edge Cases & Error Handling conditions: Exercises names every A2 edge-case id
+    (CP:28, CP:59)'
+  source:
+    doc: CP
+    lines: [28, 28]
+    quote: Include the conditions from the Edge Cases & Error Handling requirements
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.2
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: Coverage maps requirements to steps that exist in the plan (CP:67, CW:42)
+  source:
+    doc: CP
+    lines: [67, 67]
+    quote: The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy
+      it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.coverage_ids
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: every Coverage key is a requirement A2 defines (CP:67, CW:42)
+  source:
+    doc: CP
+    lines: [67, 67]
+    quote: The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy
+      it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.coverage
+  template: T-TR1
+  status: implemented
+  requirement: should
+  rule: Requirement Coverage accounts for every A2 identifier (CP:67, CP:90)
+  source:
+    doc: CP
+    lines: [67, 67]
+    quote: it must account for every identifier that artifact defines.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.cross_ref.3
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: no plan step targets a test file (CP:93, CP:78, CW:104)
+  source:
+    doc: CP
+    lines: [93, 93]
+    quote: No step targets a test file
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): field_list ''Target''
+    reads only Step 1''s Target; and a planned test target passes unless it is also a test path in the final diff (the planned-but-unchanged
+    case is unchecked); state stage_end'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: write A3 once, full content (CP:33, CW:28)
+  source:
+    doc: CP
+    lines: [33, 33]
+    quote: Write `/tmp/swe-bench-pro/03-code-generation-planning.md` in a single write, with the full content below
+  fidelity: narrower
+  fidelity_note: 'window [start, end]: ''at the end of the stage'' (CW:28) is not checked, unlike the other four write-once
+    items (docs.json conflicts[35] kept cp-019)'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.a3.unimplemented
+  template: T-RF4
+  status: unimplemented
+  requirement: must
+  rule: follow the existing repository structure (CP:76)
+  source:
+    doc: CP
+    lines: [76, 76]
+    quote: Follow the existing repository structure
+  class: vague
+  class_note: a '(create)' Target's parent directory exists at BASE_SHA (a prefix of base_paths); 'structure' beyond that
+    is vague
+- id: aidlc_v4_gen.code_generation_planning.run.doc_read.cp
+  template: T-RD3
+  status: implemented
+  requirement: must
+  rule: load 03-code-generation-planning.md first in Stage 3, not before A2, one at a time (CW:11, CW:18, CW:101)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: Load that file as the first step of the stage, and execute the stage from it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_planning.unimplemented.unimplemented
+  template: T-FM1
+  status: unimplemented
+  requirement: should
+  rule: planning artifact at /tmp/swe-bench-pro/03-code-generation-planning.md (CP:5)
+  source:
+    doc: CP
+    lines: [5, 5]
+    quote: '**Artifact**: `/tmp/swe-bench-pro/03-code-generation-planning.md`'
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_planning.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 3 prerequisite: Stage 1 recorded (CP:8)'
+  source:
+    doc: CP
+    lines: [8, 8]
+    quote: 'Reverse Engineering is complete: Affected Scope, Build & Test Commands, Existing Tests, and Baseline are established,
+      and recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`'
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_planning.unimplemented.unimplemented.3
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 3 prerequisite: requirements recorded in 02 (CP:9)'
+  source:
+    doc: CP
+    lines: [9, 9]
+    quote: 'Requirements Analysis is complete: the numbered requirements `R1`, `R2`, ... are established, and recorded in
+      `/tmp/swe-bench-pro/02-requirements-analysis.md`'
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_planning.unimplemented.unimplemented.4
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: proceed to Stage 4 (CW:106)
+  source:
+    doc: CW
+    lines: [106, 106]
+    quote: Proceed to Stage 4
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.a3.cross_ref
+  template: T-TR2
+  status: implemented
+  requirement: should
+  rule: 'use the path recorded in the plan: every planned Target is written in Stage 4 (CG:21, CG:16)'
+  source:
+    doc: CG
+    lines: [21, 21]
+    quote: '- [ ] Use the path recorded in the plan'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): field_list ''Target''
+    reads only Step 1''s Target; later planned targets are not checked'
+  eval:
+    layer: L2M
+    requirement: must
+    when: &id001
+      section_is_none: {artifact: a4, section: Deviations from Plan}
+- id: aidlc_v4_gen.code_generation_generation.a4.artifact_exists.2
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: Stage 4 ends by writing 04-code-generation-generation.md (CW:116, CG:89)
+  source:
+    doc: CW
+    lines: [116, 116]
+    quote: Write `/tmp/swe-bench-pro/04-code-generation-generation.md`
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: A4 at /tmp/swe-bench-pro/04-code-generation-generation.md (CW:24, CG:52)
+  source:
+    doc: CW
+    lines: [24, 24]
+    quote: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename.'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.frontmatter
+  template: T-FM5
+  status: implemented
+  requirement: must
+  rule: 'frontmatter exactly ''stage: 4'', ''name: code-generation-generation'' (CW:31-37, CG:54)'
+  source:
+    doc: CG
+    lines: [57, 57]
+    quote: '---'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.section_present.changed_files
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Changed Files' (CG:62, CG:54)
+  source:
+    doc: CG
+    lines: [62, 62]
+    quote: '## Changed Files'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.section_present.checks
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Checks' (CG:78, CG:54)
+  source:
+    doc: CG
+    lines: [78, 78]
+    quote: '## Checks'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.section_present.deviations_from_plan
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Deviations from Plan' (CG:75, CG:54)
+  source:
+    doc: CG
+    lines: [75, 75]
+    quote: '## Deviations from Plan'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.section_present.plan_execution
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Plan Execution' (CG:71, CG:54)
+  source:
+    doc: CG
+    lines: [71, 71]
+    quote: '## Plan Execution'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.section_present.reproduction_script
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Reproduction Script' (CG:67, CG:54)
+  source:
+    doc: CG
+    lines: [67, 67]
+    quote: '## Reproduction Script'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.modified
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Modified:' field prefix (CG:63-64, CG:54)
+  source:
+    doc: CG
+    lines: [63, 63]
+    quote: '- Modified: [full path] [requirement tags]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.duplicate_files_created
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Duplicate files created:' field prefix (CG:79, CG:54)
+  source:
+    doc: CG
+    lines: [79, 79]
+    quote: '- Duplicate files created: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.test_files_modified
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Test files modified:' field prefix (CG:80, CG:54)
+  source:
+    doc: CG
+    lines: [80, 80]
+    quote: '- Test files modified: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.executed
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Executed:' field prefix (CG:69, CG:54)
+  source:
+    doc: CG
+    lines: [69, 69]
+    quote: '- Executed: no'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Path:' field prefix (CG:68, CG:54)
+  source:
+    doc: CG
+    lines: [68, 68]
+    quote: '- Path: [full path as written, matching the planned path]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.label_present.created
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: a '- Created:' line when generation created a file (CG:65, CG:89)
+  source:
+    doc: CG
+    lines: [65, 65]
+    quote: '- Created: [full path] [requirement tags]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_literal.executed
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: 'A4 records ''Executed: no'', and it is true: the script was not run in Stage 4 (CG:69, CG:28)'
+  source:
+    doc: CG
+    lines: [69, 69]
+    quote: '- Executed: no'
+  fidelity: faithful
+  eval: {layer: L1C, requirement: must, layer_reason: 'a recorded ''Executed: no'' fails only when Stage 4 ran the script,
+      the T-AW4 fact training rewards the opposite of'}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_literal.test_files_modified
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: 'Checks ''Test files modified: none'', true: no existing test file edited before A4 (CG:80, CG:43, CG:30)'
+  source:
+    doc: CG
+    lines: [80, 80]
+    quote: '- Test files modified: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_literal.duplicate_files_created
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Checks ''Duplicate files created: none'' (CG:79, CG:42)'
+  source:
+    doc: CG
+    lines: [79, 79]
+    quote: '- Duplicate files created: none'
+  fidelity: narrower
+  fidelity_note: 'literal only: unlike ''Test files modified'' it is not refuted by the run (a _new/_modified file written
+    before A4 leaves it passing); the fact is carried by the global duplicate_variant prohibition'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_filled.path
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the reproduction script path as written (CG:68, CG:28)
+  source:
+    doc: CG
+    lines: [68, 68]
+    quote: '- Path: [full path as written, matching the planned path]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_filled.deviations
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: record any deviation from the plan with what changed and why; 'none' only if every edit was planned (CG:34, CG:76,
+    CW:157)
+  source:
+    doc: CG
+    lines: [76, 76]
+    quote: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and
+      what supersedes them]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_filled.created
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Created lists the created files, not none, when generation created one (CG:65, CG:89)
+  source:
+    doc: CG
+    lines: [65, 65]
+    quote: '- Created: [full path] [requirement tags]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.field_filled.modified
+  template: T-RF2
+  status: implemented
+  requirement: should
+  rule: list the modified files; 'none' only if no base file was edited in Stage 4 (CG:63, CG:89)
+  source:
+    doc: CG
+    lines: [89, 89]
+    quote: listing modified and created files
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.item_format.plan_execution.2
+  template: T-FM3
+  status: implemented
+  requirement: should
+  rule: work through the plan in order (CG:16)
+  source:
+    doc: CG
+    lines: [14, 16]
+    quote: '### Step 1: Take the Next Step from the Plan ... - [ ] Work through the plan in order'
+  fidelity: different
+  fidelity_note: 'checks that Plan Execution lists steps 1, 2, … in ascending order: a record-layout proxy, not the order
+    in which steps were executed'
+  eval: {layer: L1, requirement: should}
+- id: aidlc_v4_gen.code_generation_generation.a4.item_format.plan_execution.3
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: 'Plan Execution lines ''- Step n [Rx]: complete'', each once (CG:72-73, CG:41)'
+  source:
+    doc: CG
+    lines: [41, 41]
+    quote: Note that the step is complete, and which requirement it satisfied
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.item_format.deviations_from_plan
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: 'Deviations value is ''none'' | ''local correction: …'' | ''structural invalidation: …'' (CG:76, CG:36-37)'
+  source:
+    doc: CG
+    lines: [76, 76]
+    quote: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and
+      what supersedes them]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.item_format.plan_execution
+  template: T-FM3
+  status: implemented
+  requirement: must
+  rule: at least one '- Step n' line in Plan Execution (CG:72-73)
+  source:
+    doc: CG
+    lines: [72, 72]
+    quote: '- Step 1 [R1]: complete'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: replace only the bracketed text (CG:54)
+  source:
+    doc: CG
+    lines: [63, 63]
+    quote: '- Modified: [full path] [requirement tags]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.repro_path
+  template: T-TR2
+  status: implemented
+  requirement: should
+  rule: the reproduction script Path in A4 is the planned path (CG:68, CG:21, CG:28)
+  source:
+    doc: CG
+    lines: [68, 68]
+    quote: '- Path: [full path as written, matching the planned path]'
+  fidelity: faithful
+  eval:
+    layer: L2M
+    requirement: must
+    when: *id001
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref
+  template: T-RF4
+  status: implemented
+  requirement: should
+  rule: a file reported as Created did not exist (check existence; create only if absent) (CG:22-24)
+  source:
+    doc: CG
+    lines: [22, 24]
+    quote: '- [ ] Check whether the target file exists ... **If it exists**: modify it in place. ... **If it does not exist**:
+      create it'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): only the first
+    ''- Created:'' line is read'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.2
+  template: T-RF4
+  status: implemented
+  requirement: should
+  rule: a file reported as Modified existed (modify in place) (CG:23)
+  source:
+    doc: CG
+    lines: [23, 23]
+    quote: '**If it exists**: modify it in place.'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): only the first
+    ''- Modified:'' line is read'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.3
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: a file reported as Created did not exist at BASE_SHA (CW:116, CG:24)
+  source:
+    doc: CW
+    lines: [116, 116]
+    quote: 'Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): only the first
+    ''- Created:'' line is read'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.plan_execution_tags
+  template: T-TR1b
+  status: implemented
+  requirement: should
+  rule: Plan Execution quotes each plan step with the same requirement ids (CG:41, CG:72-73, CW:42)
+  source:
+    doc: CG
+    lines: [72, 73]
+    quote: '- Step 1 [R1]: complete ... - Step 2 [R2, R4]: complete'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.changed_files
+  template: T-RF3
+  status: implemented
+  requirement: must
+  rule: A4 lists every file generation modified or created (CG:89, BT:63)
+  source:
+    doc: CG
+    lines: [89, 89]
+    quote: listing modified and created files and any deviation from the plan
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.4
+  template: T-RF3
+  status: implemented
+  requirement: should
+  rule: every file listed as Modified was written in Stage 4 (CG:89, BT:63)
+  source:
+    doc: CG
+    lines: [89, 89]
+    quote: listing modified and created files
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): field_list ''Modified''
+    reads only the first ''- Modified:'' line (template has one line per file, CG:63-64): later listed files are unchecked'
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.cross_ref.5
+  template: T-RF4
+  status: implemented
+  requirement: must
+  rule: a file reported as Modified existed at BASE_SHA (CW:116, CG:23)
+  source:
+    doc: CW
+    lines: [116, 116]
+    quote: 'Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations'
+  fidelity: narrower
+  fidelity_note: 'M.field_value returns only the FIRST occurrence of a repeated label (verified on a sample): only the first
+    ''- Modified:'' line is read'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.a4.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: write A4 once, full content, within Stage 4 (CG:52, CW:28)
+  source:
+    doc: CG
+    lines: [52, 52]
+    quote: Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.run.doc_read.cg
+  template: T-RD3
+  status: implemented
+  requirement: must
+  rule: load 04-code-generation-generation.md first in Stage 4, not before A3, one at a time (CW:11, CW:18, CW:112)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: Load that file as the first step of the stage, and execute the stage from it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.run.prohibited_action.execute
+  template: T-AW4
+  status: implemented
+  requirement: must
+  rule: write the reproduction script but do not execute it (nor run tests) in Stage 4 (CG:28, CW:113, CG:86)
+  source:
+    doc: CG
+    lines: [28, 28]
+    quote: Write the reproduction script at the path the plan records, and **do not execute it in this stage**
+  fidelity: faithful
+  eval: {layer: L1C, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented
+  template: T-TR2
+  status: unimplemented
+  requirement: should
+  rule: 'execute the plan: modify the source and write the reproduction script (CG:3)'
+  source:
+    doc: CG
+    lines: [3, 3]
+    quote: '**Purpose**: Execute the plan to modify source code and write the reproduction script'
+  class: duplicate
+  class_note: with repro_written
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.2
+  template: T-PR2
+  status: unimplemented
+  requirement: should
+  rule: '''Generate'' means modify the existing file, not create a variant beside it (CG:7)'
+  source:
+    doc: CG
+    lines: [7, 7]
+    quote: '"Generate" means **modify the existing file** when one exists, not create a variant alongside it.'
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.3
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 4 prerequisite: plan and repro path recorded in 03 (CG:10)'
+  source:
+    doc: CG
+    lines: [10, 10]
+    quote: 'Code Generation Planning is complete: the numbered plan and the reproduction script path are established, and
+      recorded in `/tmp/swe-bench-pro/03-code-generation-planning.md`'
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.run.aidlc_executed.repro_written
+  template: T-TR2
+  status: implemented
+  requirement: must
+  rule: write the reproduction script at the path the plan records, in Stage 4 (CG:28, CG:21, CG:68)
+  source:
+    doc: CG
+    lines: [28, 28]
+    quote: Write the reproduction script at the path the plan records, and **do not execute it in this stage**
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.4
+  template: T-PR1
+  status: unimplemented
+  requirement: should
+  rule: modify application source code only (CG:25)
+  source:
+    doc: CG
+    lines: [25, 25]
+    quote: Modify **application source code only**
+  class: duplicate
+  class_note: 'partial: the test-file part; edits of non-source, non-test files (docs, config) are not covered'
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.5
+  template: T-FM2
+  status: unimplemented
+  requirement: should
+  rule: 'structural invalidation: state which steps are invalid, why, and what supersedes them (CG:37, CG:76)'
+  source:
+    doc: CG
+    lines: [37, 37]
+    quote: '**Structural invalidation** — the approach itself does not work ... State which steps are invalidated, why, and
+      what supersedes them'
+  class: duplicate
+  class_note: the 'structural invalidation:' prefix is checked; the content (which steps, why) is not decidable
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.6
+  template: T-PR2
+  status: unimplemented
+  requirement: should
+  rule: verify no duplicate file was created (CG:42)
+  source:
+    doc: CG
+    lines: [42, 42]
+    quote: '**Verify no duplicate file was created** — no `module_new.py` beside `module.py`'
+  class: duplicate
+  class_note: the outcome is checked; the per-step verification act is not observable
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.7
+  template: T-TR1b
+  status: unimplemented
+  requirement: should
+  rule: if steps remain, return to Step 1 — every plan step is executed (CG:47, CG:84)
+  source:
+    doc: CG
+    lines: [47, 47]
+    quote: If steps remain, return to Step 1
+  class: duplicate
+  class_note: procedural loop; its checkable outcome (every step listed as executed) is the PE == plan item
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.8
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: when every step is complete, write the artifact and proceed (CG:48)
+  source:
+    doc: CG
+    lines: [48, 48]
+    quote: If every step is complete, write the artifact and proceed to Build and Test
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.9
+  template: T-PR2
+  status: unimplemented
+  requirement: should
+  rule: no duplicate files created (CG:87)
+  source:
+    doc: CG
+    lines: [87, 87]
+    quote: No duplicate files created
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.10
+  template: T-PR1
+  status: unimplemented
+  requirement: should
+  rule: no test file modified (CG:88)
+  source:
+    doc: CG
+    lines: [88, 88]
+    quote: No test file modified
+  class: duplicate
+- id: aidlc_v4_gen.code_generation_generation.duplicate_file_variants.unimplemented
+  template: T-PR2
+  status: unimplemented
+  requirement: must
+  rule: verify that no duplicate file was created (CW:115)
+  source:
+    doc: CW
+    lines: [115, 115]
+    quote: Verify the Completion Criteria in that file are met — in particular, that no duplicate file was created
+  class: duplicate
+  class_note: the generator's 'no pattern' objection is met by the manual item's two document suffixes (CW:146)
+- id: aidlc_v4_gen.code_generation_generation.unimplemented.unimplemented.11
+  template: T-PR1
+  status: unimplemented
+  requirement: should
+  rule: no test file was modified (CW:115)
+  source:
+    doc: CW
+    lines: [115, 115]
+    quote: no test file was modified
+  class: duplicate
+- id: aidlc_v4_gen.build_and_test.a1.field_type.build_run
+  template: T-TR2
+  status: implemented
+  requirement: must
+  rule: run the build/type-check command Reverse Engineering recorded, in Stage 5 (BT:17, RE:61)
+  source:
+    doc: BT
+    lines: [17, 17]
+    quote: Run the build or type-check command Reverse Engineering recorded
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.artifact_exists
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: A5 at /tmp/swe-bench-pro/05-build-and-test.md (CW:24, BT:70)
+  source:
+    doc: CW
+    lines: [24, 24]
+    quote: Stage 5 writes `/tmp/swe-bench-pro/05-build-and-test.md`
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.artifact_exists.2
+  template: T-FM1
+  status: implemented
+  requirement: must
+  rule: Stage 5 ends by writing 05-build-and-test.md (CW:127)
+  source:
+    doc: CW
+    lines: [127, 127]
+    quote: '5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding
+      failures'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.frontmatter
+  template: T-FM5
+  status: implemented
+  requirement: must
+  rule: 'frontmatter exactly ''stage: 5'', ''name: build-and-test'' (CW:31-37, BT:72)'
+  source:
+    doc: BT
+    lines: [67, 67]
+    quote: '---'
+  fidelity: faithful
+  eval: {layer: L2F, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.build
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Build' (BT:80, BT:72)
+  source:
+    doc: BT
+    lines: [80, 80]
+    quote: '## Build'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.existing_tests_vs_baseline
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Existing Tests vs Baseline' (BT:88, BT:72)
+  source:
+    doc: BT
+    lines: [88, 88]
+    quote: '## Existing Tests vs Baseline'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.final_change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Final Change' (BT:100, BT:72)
+  source:
+    doc: BT
+    lines: [100, 100]
+    quote: '## Final Change'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.fixes_applied
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Fixes Applied' (BT:94, BT:72)
+  source:
+    doc: BT
+    lines: [94, 94]
+    quote: '## Fixes Applied'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.outstanding_failures
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Outstanding Failures' (BT:97, BT:72)
+  source:
+    doc: BT
+    lines: [97, 97]
+    quote: '## Outstanding Failures'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.section_present.reproduction_script
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep '## Reproduction Script' (BT:84, BT:72)
+  source:
+    doc: BT
+    lines: [84, 84]
+    quote: '## Reproduction Script'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.command
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Command (Build):' field prefix (BT:82, BT:72)
+  source:
+    doc: BT
+    lines: [82, 82]
+    quote: '- Command: [the command run, verbatim]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Result (Build):' field prefix (BT:81, BT:72)
+  source:
+    doc: BT
+    lines: [81, 81]
+    quote: '- Result: [success | failure]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.command.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Command (Existing Tests vs Baseline):' field prefix (BT:89, BT:72)
+  source:
+    doc: BT
+    lines: [89, 89]
+    quote: '- Command: [the command run, verbatim — the same selection as the baseline]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.pre_existing_failures
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Pre-existing failures:' field prefix (BT:92, BT:72)
+  source:
+    doc: BT
+    lines: [92, 92]
+    quote: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.regressions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Regressions:' field prefix (BT:91, BT:72)
+  source:
+    doc: BT
+    lines: [91, 91]
+    quote: '- Regressions: [none | test id -> what broke it -> how it was resolved]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.verdict
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Verdict:' field prefix (BT:90, BT:72)
+  source:
+    doc: BT
+    lines: [90, 90]
+    quote: '- Verdict: [unchanged | regression resolved | pre-existing failures only]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.files_in_the_change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Files in the change:' field prefix (BT:101, BT:72)
+  source:
+    doc: BT
+    lines: [101, 101]
+    quote: '- Files in the change: [full paths]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.test_files_in_the_change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Test files in the change:' field prefix (BT:103, BT:72)
+  source:
+    doc: BT
+    lines: [103, 103]
+    quote: '- Test files in the change: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.unintended_files_in_the_repository
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Unintended files in the repository:' field prefix (BT:102, BT:72)
+  source:
+    doc: BT
+    lines: [102, 102]
+    quote: '- Unintended files in the repository: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.result.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Result (Reproduction Script):' field prefix (BT:85, BT:72)
+  source:
+    doc: BT
+    lines: [85, 85]
+    quote: '- Result: [pass | fail]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.label_present.unmet_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: keep the '- Unmet requirements:' field prefix (BT:86, BT:72)
+  source:
+    doc: BT
+    lines: [86, 86]
+    quote: '- Unmet requirements: [none | which requirement is unmet and how it fails]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_literal.test_files_in_change
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: '''Test files in the change: none'', true: no test path in the final diff (BT:103, BT:64)'
+  source:
+    doc: BT
+    lines: [103, 103]
+    quote: '- Test files in the change: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_literal.unintended_files
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: '''Unintended files in the repository: none'', true: no undeclared untracked file and the reproduction script not
+    left (BT:102, BT:62, BT:66)'
+  source:
+    doc: BT
+    lines: [102, 102]
+    quote: '- Unintended files in the repository: none'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_enum.build_result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Build Result is success | failure (BT:81)
+  source:
+    doc: BT
+    lines: [81, 81]
+    quote: '- Result: [success | failure]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_enum.verdict
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Verdict is unchanged | regression resolved | pre-existing failures only (BT:90)
+  source:
+    doc: BT
+    lines: [90, 90]
+    quote: '- Verdict: [unchanged | regression resolved | pre-existing failures only]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_enum.result
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: Reproduction Result is pass | fail (BT:85)
+  source:
+    doc: BT
+    lines: [85, 85]
+    quote: '- Result: [pass | fail]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.command
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the build command run, verbatim (BT:82, BT:17)
+  source:
+    doc: BT
+    lines: [82, 82]
+    quote: '- Command: [the command run, verbatim]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.outstanding
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: Outstanding Failures names what remains; never 'none' to make the run look clean (BT:106, CW:40, BT:56)
+  source:
+    doc: BT
+    lines: [98, 98]
+    quote: '- [none | what remains, and why it was not resolved]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.pre_existing
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: record failures judged pre-existing with the reasoning (BT:92, BT:49, CW:158)
+  source:
+    doc: BT
+    lines: [92, 92]
+    quote: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.fixes
+  template: T-RF2
+  status: implemented
+  requirement: must
+  rule: record what was changed in Stage 5 and why (BT:55, BT:95)
+  source:
+    doc: BT
+    lines: [95, 95]
+    quote: '- [none | what changed and why]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.command.2
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the re-run command, verbatim (BT:89)
+  source:
+    doc: BT
+    lines: [89, 89]
+    quote: '- Command: [the command run, verbatim — the same selection as the baseline]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.files_in_the_change
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record the files in the change (BT:101, BT:63)
+  source:
+    doc: BT
+    lines: [101, 101]
+    quote: '- Files in the change: [full paths]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.unmet_requirements
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record unmet requirements or none (BT:86)
+  source:
+    doc: BT
+    lines: [86, 86]
+    quote: '- Unmet requirements: [none | which requirement is unmet and how it fails]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_filled.regressions
+  template: T-FM2
+  status: implemented
+  requirement: must
+  rule: record regressions with cause and fix, or none (BT:91, BT:90)
+  source:
+    doc: BT
+    lines: [91, 91]
+    quote: '- Regressions: [none | test id -> what broke it -> how it was resolved]'
+  fidelity: narrower
+  fidelity_note: '''none'' is judged only against the Verdict (''regression resolved''), not against Stage-5 runs where a
+    baseline-passing test failed (a resolved regression recorded as none passes; an unrecorded failure is caught only by Outstanding''s
+    failures_not_in)'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_type.build_command
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: A5 Build Command is the command actually run, verbatim, in Stage 5 (BT:82)
+  source:
+    doc: BT
+    lines: [82, 82]
+    quote: '- Command: [the command run, verbatim]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_type.rerun_command
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: A5 re-run Command is a test command actually run in Stage 5 after the last source edit (BT:89, BT:54, BT:35)
+  source:
+    doc: BT
+    lines: [89, 89]
+    quote: '- Command: [the command run, verbatim — the same selection as the baseline]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.field_type.command
+  template: T-PR5
+  status: implemented
+  requirement: should
+  rule: the recorded re-run command selects tests, not the full suite (BT:39, BT:89)
+  source:
+    doc: BT
+    lines: [39, 39]
+    quote: '**Do NOT** run the full repository test suite.'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must, layer_reason: a rule on the recorded command's shape; training conflicts only on running
+      the whole suite}
+- id: aidlc_v4_gen.build_and_test.a5.field_type.pre_existing_ids
+  template: T-RF1
+  status: implemented
+  requirement: must
+  rule: each pre-existing failure also failed in the baseline (BT:49, BT:92, RE:70)
+  source:
+    doc: BT
+    lines: [49, 49]
+    quote: '**Existing test failure that also failed in the baseline**'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.no_template_residue
+  template: T-FM4
+  status: implemented
+  requirement: must
+  rule: replace only the bracketed text (BT:72)
+  source:
+    doc: BT
+    lines: [81, 81]
+    quote: '- Result: [success | failure]'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.cross_ref.build_command
+  template: T-TR2
+  status: implemented
+  requirement: should
+  rule: A5 Build Command equals the build command A1 recorded (BT:17, BT:82)
+  source:
+    doc: BT
+    lines: [82, 82]
+    quote: '- Command: [the command run, verbatim]'
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.cross_ref
+  template: T-RF3
+  status: implemented
+  requirement: should
+  rule: A5 'Files in the change' lists exactly the files of the final diff (BT:101, BT:60-64)
+  source:
+    doc: BT
+    lines: [63, 63]
+    quote: Confirm the files in the change are exactly those Code Generation listed as modified or created, plus any file
+      a Step 5 fix changed
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.write_discipline.once
+  template: T-WD1
+  status: implemented
+  requirement: must
+  rule: write A5 once, full content (BT:70, CW:28)
+  source:
+    doc: BT
+    lines: [70, 70]
+    quote: Write `/tmp/swe-bench-pro/05-build-and-test.md` in a single write, with the full content below
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.a5.unimplemented
+  template: T-RF1
+  status: unimplemented
+  requirement: must
+  rule: confirm the build succeeds (BT:18, BT:109)
+  source:
+    doc: BT
+    lines: [18, 18]
+    quote: Confirm it succeeds
+  class: candidate
+  class_note: A5 Build Result agrees with the exit status of the last Stage-5 run of A1's Build command (observation exit
+    code)
+- id: aidlc_v4_gen.build_and_test.run.cross_ref.repro_not_left
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: the reproduction script must not remain inside the repository (BT:62, BT:66, BT:113)
+  source:
+    doc: BT
+    lines: [62, 62]
+    quote: '**MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug
+      output inside the repository'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.run.doc_read.bt
+  template: T-RD3
+  status: implemented
+  requirement: must
+  rule: load 05-build-and-test.md first in Stage 5, not before A4, one at a time (CW:11, CW:18, CW:123)
+  source:
+    doc: CW
+    lines: [11, 11]
+    quote: Load that file as the first step of the stage, and execute the stage from it.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.run.exec_evidence.rerun
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: re-run the existing covering tests in Stage 5 (BT:35, BT:37)
+  source:
+    doc: BT
+    lines: [35, 35]
+    quote: Re-run the existing covering tests identified in Reverse Engineering
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.build_and_test.run.prohibited_action.full_suite
+  template: T-PR5
+  status: implemented
+  requirement: must
+  rule: do not run the full repository test suite in Stage 5 (BT:39)
+  source:
+    doc: BT
+    lines: [39, 39]
+    quote: '**Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated
+      by conditions unrelated to the change.'
+  fidelity: faithful
+  eval: {layer: L1C, requirement: must}
+- id: aidlc_v4_gen.build_and_test.unimplemented.unimplemented
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 5 prerequisite: Code Generation complete, script written but not executed (BT:8)'
+  source:
+    doc: BT
+    lines: [8, 8]
+    quote: 'Code Generation is complete: source modified and the reproduction script written but not executed, recorded in
+      `/tmp/swe-bench-pro/04-code-generation-generation.md`'
+  class: duplicate
+  class_note: the 'not executed' half is prohibited_action.execute
+- id: aidlc_v4_gen.build_and_test.unimplemented.unimplemented.2
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: 'Stage 5 prerequisite: commands and baseline recorded in 01 (BT:9)'
+  source:
+    doc: BT
+    lines: [9, 9]
+    quote: 'Reverse Engineering is complete: the build and test commands and the baseline — which covering tests passed, and
+      which already failed — recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`'
+  class: duplicate
+- id: aidlc_v4_gen.build_and_test.run.aidlc_executed.same_selection
+  template: T-AW6
+  status: implemented
+  requirement: must
+  rule: re-run the same selection that produced the baseline (BT:36, BT:11)
+  source:
+    doc: BT
+    lines: [36, 36]
+    quote: Run the **same selection** that produced the baseline
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must}
+- id: aidlc_v4_gen.build_and_test.run.aidlc_executed.sequence
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: build, run the reproduction script, then re-run the covering tests, in that order (CW:124, BT:17, BT:26, BT:35)
+  source:
+    doc: CW
+    lines: [124, 124]
+    quote: 'Execute them: build, run the reproduction script, then re-run the existing covering tests and compare against
+      the Stage 1 baseline'
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must, layer_reason: 'the chain runs targets taken from the agent''s own artifacts (A1 build
+      command, A4 script path), an element training rewards only per tick'}
+- id: aidlc_v4_gen.build_and_test.reproduction_script_execution.aidlc_executed
+  template: T-AW3
+  status: implemented
+  requirement: must
+  rule: execute the reproduction script at the path Code Generation recorded, in Stage 5 before A5 (BT:26)
+  source:
+    doc: BT
+    lines: [26, 26]
+    quote: Execute the reproduction script at the path Code Generation recorded
+  fidelity: faithful
+  eval: {layer: L2M, requirement: must, layer_reason: 'runs the script at the path A4 recorded, an element training rewards
+      only per tick (AOS ticked_after_work)'}
+- id: aidlc_v4_gen.build_and_test.unimplemented.unimplemented.3
+  template: T-RF1
+  status: unimplemented
+  requirement: should
+  rule: the reproduction script demonstrates the issue is resolved, including edge cases (BT:110)
+  source:
+    doc: BT
+    lines: [110, 110]
+    quote: Reproduction script demonstrates the issue is resolved, including the edge cases and any stated constraints
+  class: candidate
+  class_note: A5 Reproduction Result 'pass' only when the last Stage-5 execution of the A4 Path exited 0; the demonstration
+    itself is an outcome
+- id: aidlc_v4_gen.build_and_test.unimplemented.unimplemented.4
+  template: null
+  status: unimplemented
+  requirement: should
+  rule: produce the final diff (CW:128)
+  source:
+    doc: CW
+    lines: [128, 128]
+    quote: Produce the final diff
+  class: vague
+  class_note: the diff is the run's product; nothing to check beyond the outcome
+- id: aidlc_v4_gen.global.a1.write_discipline.no_rewrite
+  template: T-WD2
+  status: implemented
+  requirement: must
+  rule: never rewrite an earlier stage's artifact (A1 after requirements_analysis starts) (CW:29)
+  source:
+    doc: CW
+    lines: [29, 29]
+    quote: '**Never rewrite an earlier stage''s artifact.**'
+  fidelity: narrower
+  fidelity_note: only a later full write (create/overwrite/unknown) counts; an in-place edit or append to the earlier artifact
+    passes here (it fails that artifact's write-once item and voids its order pair instead)
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.a2.write_discipline.no_rewrite
+  template: T-WD2
+  status: implemented
+  requirement: must
+  rule: never rewrite an earlier stage's artifact (A2 after code_generation_planning starts) (CW:29)
+  source:
+    doc: CW
+    lines: [29, 29]
+    quote: '**Never rewrite an earlier stage''s artifact.**'
+  fidelity: narrower
+  fidelity_note: only a later full write (create/overwrite/unknown) counts; an in-place edit or append to the earlier artifact
+    passes here (it fails that artifact's write-once item and voids its order pair instead)
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.a3.write_discipline.no_rewrite
+  template: T-WD2
+  status: implemented
+  requirement: must
+  rule: never rewrite an earlier stage's artifact (A3 after code_generation_generation starts) (CW:29)
+  source:
+    doc: CW
+    lines: [29, 29]
+    quote: '**Never rewrite an earlier stage''s artifact.**'
+  fidelity: narrower
+  fidelity_note: only a later full write (create/overwrite/unknown) counts; an in-place edit or append to the earlier artifact
+    passes here (it fails that artifact's write-once item and voids its order pair instead)
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.a4.write_discipline.no_rewrite
+  template: T-WD2
+  status: implemented
+  requirement: must
+  rule: never rewrite an earlier stage's artifact (A4 after build_and_test starts) (CW:29)
+  source:
+    doc: CW
+    lines: [29, 29]
+    quote: '**Never rewrite an earlier stage''s artifact.**'
+  fidelity: narrower
+  fidelity_note: only a later full write (create/overwrite/unknown) counts; an in-place edit or append to the earlier artifact
+    passes here (it fails that artifact's write-once item and voids its order pair instead)
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.doc_read_first.cw
+  template: T-RD1
+  status: implemented
+  requirement: must
+  rule: read core-workflow.md before any other action (SP:63, INS:3)
+  source:
+    doc: SP
+    lines: [63, 63]
+    quote: Read /ai-dlc/core-workflow.md before taking any other action on the task.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.order.stages
+  template: T-OR1
+  status: implemented
+  requirement: must
+  rule: 'every stage in order: read its rule file, then write its artifact; no read ahead, no multi-read, no rewrite (CW:7,
+    CW:18, CW:28-29, SP:67-68)'
+  source:
+    doc: CW
+    lines: [7, 7]
+    quote: Every stage always executes, in order.
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.prohibited_action.edit_before_generation
+  template: T-AW1
+  status: implemented
+  requirement: must
+  rule: 'no source edit before the plan is written: modifying the source is Stage 4''s step (CW:113, CW:7, CW:84, CP:73)'
+  source:
+    doc: CW
+    lines: [7, 7]
+    quote: '**The pipeline is fixed. Every stage always executes, in order.**'
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.prohibited_action.install
+  template: T-PR3
+  status: implemented
+  requirement: must
+  rule: no dependency install or environment setup (CW:134, BT:20, RE:30)
+  source:
+    doc: CW
+    lines: [134, 134]
+    quote: Do not spend effort on environment setup
+  fidelity: faithful
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.prohibited_action.duplicate_variant
+  template: T-PR2
+  status: implemented
+  requirement: must
+  rule: never create a duplicate variant such as module_new.py / ClassName_modified.java (CW:146, CG:23)
+  source:
+    doc: CW
+    lines: [146, 146]
+    quote: Never create a duplicate variant such as `module_new.py` or `ClassName_modified.java`
+  fidelity: narrower
+  fidelity_note: only the two document suffixes; 'any similar duplicate' (CG:23) is not decidable
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.run.prohibited_action.test_file_write
+  template: T-PR1
+  status: implemented
+  requirement: must
+  rule: do not modify existing test files (CW:141-142, CG:30, BT:53)
+  source:
+    doc: CW
+    lines: [141, 142]
+    quote: '**DO NOT MODIFY**: test files ... Existing tests are **read and executed**, never edited.'
+  fidelity: narrower
+  fidelity_note: 'pattern ''(?:^|/)tests?/'' AND is_test_path: an existing test file outside a test/ or tests/ directory (pkg/test_x.py,
+    root conftest.py) is not caught here (a4 field_literal.test_files_modified uses is_test_path only)'
+  eval: {layer: L1, requirement: must}
+- id: aidlc_v4_gen.global.unimplemented.unimplemented
+  template: T-PR1
+  status: unimplemented
+  requirement: should
+  rule: existing tests are never modified (RE:41)
+  source:
+    doc: RE
+    lines: [41, 41]
+    quote: Existing tests are read and executed here. They are **never modified**
+  class: duplicate
+- id: aidlc_v4_gen.global.artifact_reads.unimplemented
+  template: T-RD6
+  status: unimplemented
+  requirement: must
+  rule: do not re-read an artifact you can still see; read only to recover (CW:42-43)
+  source:
+    doc: CW
+    lines: [42, 43]
+    quote: '**Do not re-read an artifact you can still see.** ... **Read an artifact only to recover**, when an earlier stage''s
+      content is no longer visible because output was truncated or history was compacted'
+  class: duplicate
+  class_note: implemented in aidlc_v4_ifeval (log_only)
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.2
+  template: T-RD2
+  status: unimplemented
+  requirement: should
+  rule: load the rule detail file as the first step of the stage it governs (SP:64-65)
+  source:
+    doc: SP
+    lines: [64, 65]
+    quote: Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs
+  class: duplicate
+  class_note: with the per-stage doc_read items
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.3
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: load the rule detail file as the first step of its stage (SP:64-65)
+  source:
+    doc: SP
+    lines: [64, 65]
+    quote: Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs
+  class: duplicate
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.4
+  template: T-OR1
+  status: unimplemented
+  requirement: should
+  rule: no stage returns to an earlier stage (CW:71, BT:58)
+  source:
+    doc: CW
+    lines: [71, 71]
+    quote: '**No stage returns to an earlier stage.**'
+  class: candidate
+  class_note: no read of an earlier stage's rule detail file after a later stage's file was first read (doc_reads), plus no
+    write of an earlier artifact after the next stage began (= no_rewrite, partly implemented)
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.5
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: never generate a question file (CW:132)
+  source:
+    doc: CW
+    lines: [132, 132]
+    quote: Never generate a question file
+  class: candidate
+  class_note: no file written whose path marks a question file (e.g. /question/i) anywhere in the run
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.6
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: never ask for approval (CW:132)
+  source:
+    doc: CW
+    lines: [132, 132]
+    quote: never ask for approval
+  class: vague
+  class_note: an approval request lives in a message; needs an LLM judge
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.7
+  template: T-SR1
+  status: unimplemented
+  requirement: should
+  rule: never wait for input (CW:132)
+  source:
+    doc: CW
+    lines: [132, 132]
+    quote: never wait for input
+  class: vague
+  class_note: only observable as a run that ends with a question to the user; needs a message judge
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.8
+  template: NEW-WD-exists-before
+  status: unimplemented
+  requirement: should
+  rule: check whether a file exists before writing it (CW:145, CG:22)
+  source:
+    doc: CW
+    lines: [145, 145]
+    quote: Check whether a file exists before writing it
+  class: candidate
+  class_note: before the first write of a repository path, an observation of that path (editor view, ls, test -e) in the trace;
+    the editor's create already refuses an existing file
+- id: aidlc_v4_gen.global.unimplemented.unimplemented.9
+  template: T-PR2
+  status: unimplemented
+  requirement: should
+  rule: verify after each step that no duplicate was produced (CW:147)
+  source:
+    doc: CW
+    lines: [147, 147]
+    quote: Verify after each step that no duplicate was produced
+  class: duplicate
+  class_note: the per-step act is not observable; the outcome is
+- id: aidlc_v4_ifeval.global.run.no_reread
+  template: T-RD6
+  status: implemented
+  requirement: must
+  rule: do not re-read an own artifact still in context; read one only to recover after truncation/compaction (CW:42-43, BT:11)
+  source:
+    doc: CW
+    lines: [42, 43]
+    quote: '**Do not re-read an artifact you can still see.** ... **Read an artifact only to recover**, when an earlier stage''s
+      content is no longer visible because output was truncated or history was compacted'
+  fidelity: broader
+  fidelity_note: 'broader: counts any read after the first content write, including (i) a Stage-5 read of A2 after a failing
+    reproduction that BT:47 ''Re-read the requirement'' invites (stage_rule outranks core in generator.yaml precedence), (ii)
+    CG:17/BT:48-invited reads of A3, (iii) an artifact written by a command whose content never appeared in context (python-generated,
+    cp); a recursive grep over /tmp/swe-bench-pro counts as reading every artifact. Narrower in one respect: a read in the
+    same step as the write is exempt, which CW:42-43 does not allow (the written content is already visible; it is no recovery)'
+  eval: {layer: L1C, requirement: must}

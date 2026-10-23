@@ -789,18 +789,6 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
       - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
     note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
-  - id: speckit_bug.fix.fix.cross_ref.changes
-    stage: fix
-    target: {type: artifact, ref: fix}
-    class: content
-    requirement: must
-    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix", "write:fix"], final: true}}, right: {ids: {artifact: fix, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
-    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
-      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
-    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
   - id: speckit_bug.fix.fix.field_type.commands_run
     stage: fix
     target: {type: artifact, ref: fix}
@@ -1244,18 +1232,6 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
       - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
     note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
-  - id: speckit_bug.fix_2.fix_2.cross_ref.changes
-    stage: fix_2
-    target: {type: artifact, ref: fix_2}
-    class: content
-    requirement: must
-    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix_2", "write:fix_2"], final: true}}, right: {ids: {artifact: fix_2, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
-    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
-      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
-    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
   - id: speckit_bug.fix_2.fix_2.field_type.commands_run
     stage: fix_2
     target: {type: artifact, ref: fix_2}
@@ -1701,18 +1677,6 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
       - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
     note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
-  - id: speckit_bug.fix_3.fix_3.cross_ref.changes
-    stage: fix_3
-    target: {type: artifact, ref: fix_3}
-    class: content
-    requirement: must
-    check: {kind: cross_ref, params: {left: {fact: {name: repo_write_paths, window: ["stage_start:fix_3", "write:fix_3"], final: true}}, right: {ids: {artifact: fix_3, section: Changes, pattern: '(?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)', group: 1}}, relation: subset, normalize: path, allow_empty: true}}
-    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
-      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
-    note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
   - id: speckit_bug.fix_3.fix_3.field_type.commands_run
     stage: fix_3
     target: {type: artifact, ref: fix_3}

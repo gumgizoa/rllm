@@ -97,26 +97,32 @@ def parse_run(episode: Any, instance_id: str = "") -> Run:
         raise UnknownHarness(str(e)) from None
 
 
-def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str) -> dict[str, float]:
-    """The engine's signals for one run, ``{prefix}/compliance`` clamped to [0, 1], plus collection diagnostics."""
+def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, layers: dict[str, dict] | None = None) -> dict[str, float]:
+    """The engine's signals for one run, ``{prefix}/compliance`` clamped to [0, 1], plus collection diagnostics,
+    plus the ``{prefix}/layer*/<L>`` pass rates when a layers file is given (:mod:`.layers`)."""
     eng = _engine()
     report = eng.evaluate(rubric, run, collected)
     out = {str(k): _finite(v) for k, v in eng.signals(report, prefix).items()}
     key = f"{prefix}/compliance"
     out[key] = min(1.0, max(0.0, out.get(key, 0.0)))
     out[f"{prefix}/collect_errors"] = float(len(collected.errors))
+    if layers:
+        from . import layers as LY
+
+        out.update({k: _finite(v) for k, v in LY.signals(rubric, run, collected, report, layers, prefix).items()})
     return out
 
 
 class RubricEvaluator(ComplianceEvaluator):
     """One rollout's verifier with the rubric's ``{prefix}/*`` signals appended; holds that rollout's task info."""
 
-    def __init__(self, inner, sandbox, rubric: Rubric, prefix: str, info: TaskInfo, extra: Iterable[Extra] = ()):
+    def __init__(self, inner, sandbox, rubric: Rubric, prefix: str, info: TaskInfo, extra: Iterable[Extra] = (), layers: dict[str, dict] | None = None):
         super().__init__(inner, sandbox, self._collect, self._score, prefix)
         self.rubric = rubric
         self.prefix = prefix
         self.info = info
         self.extra = list(extra)
+        self.layers = layers
 
     # The (collect, score) pair ComplianceEvaluator expects, for callers that use it directly;
     # evaluate() below runs the same steps with the parsed run available to collect.
@@ -124,7 +130,7 @@ class RubricEvaluator(ComplianceEvaluator):
         return C.collect(sandbox, self.rubric, self.info, None)
 
     def _score(self, task, episode, collected: Collected) -> dict[str, float]:
-        return rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix)
+        return rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.layers)
 
     def evaluate(self, task, episode) -> EvalOutput:
         tid = str(getattr(task, "id", "") or "")
@@ -147,7 +153,7 @@ class RubricEvaluator(ComplianceEvaluator):
         signals = failure_signals(self.prefix)
         if run is not None and collected is not None:
             try:
-                signals = rubric_signals(self.rubric, run, collected, self.prefix)
+                signals = rubric_signals(self.rubric, run, collected, self.prefix, self.layers)
             except Exception:
                 logger.warning("%s compliance: scoring failed for %s; compliance 0", self.name, tid, exc_info=True)
         for name, value in self._score_extra(task, episode, extra_data).items():
@@ -193,9 +199,11 @@ class RubricEvaluation(ComplianceEvaluation):
     plugins      module names (or modules) whose import registers the workflow's ``<wf>.<name>``
                  check kinds, imported before validation
     extra        legacy ``(collect, score)`` scorers run independently next to the rubric
+    layers_path  optional ``layers.yaml`` (:mod:`.layers`): adds per-layer pass rates to the signals,
+                 checked against the rubric here
     """
 
-    def __init__(self, rubric_path: str | Path, prefix: str, plugins: Iterable[Any] = (), extra: Iterable[Extra] = ()):
+    def __init__(self, rubric_path: str | Path, prefix: str, plugins: Iterable[Any] = (), extra: Iterable[Extra] = (), layers_path: str | Path | None = None):
         super().__init__(_per_rollout, _per_rollout, prefix)
         self.rubric_path = Path(rubric_path)
         self.prefix = prefix
@@ -206,6 +214,11 @@ class RubricEvaluation(ComplianceEvaluation):
         self._load_plugins()
         self.rubric = schema.load(self.rubric_path)
         checks.validate_params(self.rubric)
+        self.layers = None
+        if layers_path is not None:
+            from . import layers as LY
+
+            self.layers = LY.load(layers_path, self.rubric, self.rubric_path)
         _engine()  # a missing module is an error now, not a 0 on every rollout
         _episode()
 
@@ -232,7 +245,7 @@ class RubricEvaluation(ComplianceEvaluation):
         inner = FromTaskEvaluation.resolve(self, task, sandbox, kind, config)
         if sandbox is None:
             return inner
-        return RubricEvaluator(inner, sandbox, self.rubric, self.prefix, C.task_info(sandbox, task), self.extra)
+        return RubricEvaluator(inner, sandbox, self.rubric, self.prefix, C.task_info(sandbox, task), self.extra, getattr(self, "layers", None))
 
 
 __all__ = ["RubricEvaluation", "RubricEvaluator", "UnknownHarness", "failure_signals", "parse_run", "rubric_signals"]

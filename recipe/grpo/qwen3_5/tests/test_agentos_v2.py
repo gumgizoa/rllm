@@ -183,7 +183,9 @@ def test_hand_written_text_is_its_own():
         theirs_prompt = spec.system_prompt.get("openhands-sdk")
         if theirs_prompt:
             text = theirs_prompt.read_text(encoding="utf-8")
-            assert SECTION.sub("", text) == SECTION.sub("", prompt), other  # the other 15 sections are the SDK's
+            # the other 15 sections are the SDK's; aidlc_v4_ifeval's copy drops three instructions AI-DLC forbids
+            if other != "aidlc_v4_ifeval":
+                assert SECTION.sub("", text) == SECTION.sub("", prompt), other
             assert SECTION.search(text).group(0).replace(spec.container_dir, SPEC.container_dir) != ours_sec, other
 
 
