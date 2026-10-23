@@ -606,8 +606,8 @@ def _run_eval(
 @click.option(
     "--verify-network/--no-verify-network",
     "verify_network",
-    default=False,
-    help="Docker sandboxes have no internet while the agent runs; with this, the sandbox gets it back for the verifier (tests that download datasets, models or build backends). Default: off.",
+    default=True,
+    help="Give docker sandboxes, kept off the internet while the agent runs, the internet back for the verifier (tests that download datasets, models or build backends). Default: on.",
 )
 @click.option(
     "--warm-queue-size",
