@@ -118,11 +118,16 @@ class EvalProxyManager(_ProxyManagerBase):
         api_key: str,
         proxy_host: str = "127.0.0.1",
         proxy_port: int = 4000,
+        extra_litellm_params: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self.provider = provider
         self.model_name = model_name
         self.api_key = api_key
+        # ``--proxy-params``: merged into the model's litellm_params, e.g. prompt
+        # caching (cache_control_injection_points) or params a model rejects
+        # (additional_drop_params). recipe/eval/config/claude-opus-5-5-proxy.yaml.
+        self.extra_litellm_params = dict(extra_litellm_params or {})
         self._stderr_path: str | None = None
 
     def _generate_litellm_config(self) -> dict[str, Any]:
@@ -141,6 +146,7 @@ class EvalProxyManager(_ProxyManagerBase):
         # through the ``openai/`` adapter pinned to their ``api_base``.
         if info and info.base_url:
             litellm_params["api_base"] = info.base_url
+        litellm_params.update(self.extra_litellm_params)
 
         return {
             "model_list": [

@@ -29,6 +29,35 @@ from litellm.proxy.proxy_server import initialize
 from pydantic import BaseModel, Field
 
 
+def _patch_tool_message_cache_control() -> None:
+    """Put an injected cache breakpoint on a tool message itself, not inside its content.
+
+    ``cache_control_injection_points`` (litellm 1.83) puts the breakpoint on the last
+    block of a list-valued ``content``. For a ``tool`` message that block ends up in
+    Anthropic's ``tool_result.content``, which the API rejects ("cache_control may not
+    be specified within tool_result.content"); agent harnesses such as openhands-sdk
+    send tool results as lists, and the newest message of an agent turn is a tool
+    result. A message-level ``cache_control`` is what litellm moves onto the
+    ``tool_result`` block itself.
+    """
+    try:
+        from litellm.integrations.anthropic_cache_control_hook import AnthropicCacheControlHook
+    except ImportError:  # other litellm layout: nothing to patch
+        return
+    original = AnthropicCacheControlHook._safe_insert_cache_control_in_message
+
+    def insert(message, control):
+        if isinstance(message, dict) and message.get("role") == "tool":
+            message["cache_control"] = control
+            return message
+        return original(message, control)
+
+    AnthropicCacheControlHook._safe_insert_cache_control_in_message = staticmethod(insert)
+
+
+_patch_tool_message_cache_control()
+
+
 class ReloadPayload(BaseModel):
     config_yaml: str = Field(description="Inline LiteLLM config YAML.")
 

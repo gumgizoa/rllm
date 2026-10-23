@@ -167,3 +167,12 @@ def test_compiled_dependencies_install_from_wheels():
     script = OpenHandsSdkHarness().install_script()
     assert "--only-binary tiktoken" in script
     assert "--only-binary pillow" in script
+
+
+def test_model_goes_through_the_gateway_as_openai():
+    # The gateway speaks OpenAI chat completions; an inferred anthropic/ prefix
+    # made litellm post Anthropic-format requests it does not serve (404).
+    h = OpenHandsSdkHarness()
+    cfg = AgentConfig(base_url="http://gw:8000/sessions/eval-0/v1", model="claude-opus-5-5", session_uid="eval-0")
+    assert h.build_env(_task(), cfg)["LLM_MODEL"] == "openai/claude-opus-5-5"
+    assert h.build_env(_task(), _config())["LLM_MODEL"] == "openai/Qwen3.5-4B"

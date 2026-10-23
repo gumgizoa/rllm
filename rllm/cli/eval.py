@@ -579,6 +579,16 @@ def _run_eval(
     ),
 )
 @click.option(
+    "--proxy-params",
+    "proxy_params",
+    default=None,
+    help=(
+        "Extra LiteLLM litellm_params for the auto-started proxy (no --base-url), as 'key=value,...' "
+        "or @file.yaml / @file.json, e.g. prompt caching and dropped params for Claude: "
+        "@recipe/eval/config/claude-opus-5-5-proxy.yaml."
+    ),
+)
+@click.option(
     "--snapshot/--no-snapshot",
     "use_snapshot",
     default=True,
@@ -620,6 +630,7 @@ def eval_cmd(
     sandbox_concurrency: int | None,
     agent_image: str | None,
     agent_kwargs: str | None,
+    proxy_params: str | None,
     use_snapshot: bool,
     hide_git_history: bool,
     warm_queue_size: int,
@@ -659,6 +670,8 @@ def eval_cmd(
         # Direct mode: user provided --base-url, require --model too
         if model is None:
             fail("--model is required when --base-url is provided.")
+        if proxy_params:
+            logger.warning("--proxy-params has no effect with --base-url (no proxy is started)")
     else:
         # Proxy mode: auto-start LiteLLM proxy from config
         from rllm.eval.config import load_config
@@ -686,6 +699,7 @@ def eval_cmd(
                 provider=config.provider,
                 model_name=model,
                 api_key=config.api_key,
+                extra_litellm_params=parse_mapping_spec(proxy_params, flag="--proxy-params") if proxy_params else None,
             )
             with Status(f"[dim]Starting LiteLLM proxy for [bold]{config.provider}/{model}[/bold]...[/]", console=console):
                 try:
