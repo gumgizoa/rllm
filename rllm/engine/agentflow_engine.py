@@ -198,7 +198,30 @@ def enrich_episode_with_traces(
     def _malformed(s: Step) -> bool:
         return not s.model_output.prompt_ids or not s.model_output.completion_ids
 
-    if agent_populates_steps:
+    # The gateway marks a context-window 400 on the trace itself (see
+    # classify_upstream_error). Trust that marker over the trailing-malformed
+    # heuristic below, which misses the overflow twice over: in training the
+    # rejected call is not always the last trace, so the rollout raised and was
+    # resampled and the overflow never reached the budget penalty; on the eval
+    # path no trace carries token ids, so every trace looks malformed and the
+    # reason was never stamped. Without agent steps traces are not matched
+    # positionally, so every malformed one can go, wherever it sits.
+    overflow = not agent_populates_steps and any(_upstream_termination_reason([t]) is TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED for t in traces)
+    if overflow:
+        episode.termination_reason = TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+        usable = [s for s in training_steps if not _malformed(s)]
+        if strict and usable:
+            logger.warning(
+                "[%s] context overflow: dropping %d malformed trace(s); keeping %d",
+                uid,
+                len(training_steps) - len(usable),
+                len(usable),
+            )
+            training_steps = usable
+        # Nothing usable (first call already over the window): the strict
+        # check below raises and the retry path reissues, as before.
+        keep = len(training_steps)
+    elif agent_populates_steps:
         keep = n_agent_steps if len(training_steps) > n_agent_steps and all(_malformed(s) for s in training_steps[n_agent_steps:]) else len(training_steps)
     else:
         keep = len(training_steps)
