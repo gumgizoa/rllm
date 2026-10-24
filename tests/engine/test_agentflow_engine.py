@@ -284,3 +284,61 @@ def test_trailing_malformed_trace_is_dropped_without_agent_steps():
     assert episode is not None
     assert sum(len(t.steps) for t in episode.trajectories) == 2
     assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def _overflow_trace(session_id: str):
+    bad = _empty_token_trace(session_id)
+    bad.metadata = {"upstream_error": {"kind": "context_length_exceeded", "status": 400}}
+    return bad
+
+
+def _run_noop(traces, *, is_validation):
+    @__import__("rllm").rollout(name="noop")
+    def noop_flow(task, config):
+        return None
+
+    engine = AgentFlowEngine(
+        agent_flow=noop_flow,
+        evaluator=_Evaluator(),
+        gateway=_Gateway(traces=traces),
+        model="test-model",
+        n_parallel_tasks=1,
+        retry_limit=1,
+    )
+    task = task_from_row({"question": "q"}, "task")
+    try:
+        return asyncio.run(engine._run_single(task, "task:0", is_validation=is_validation))
+    finally:
+        engine.shutdown()
+
+
+def test_mid_rollout_context_overflow_is_kept_and_stamped():
+    """Run 3 logged ``traces=109 agent_steps=0 empty_prompt_ids=1``: the
+    rejected call sat mid-rollout, not last, so the trailing drop missed it,
+    the rollout raised and was resampled, and context overflow never reached
+    the budget penalty. The gateway's marker must win wherever it sits."""
+    traces = [_token_trace("task:0", 0), _overflow_trace("task:0"), _token_trace("task:0", 1)]
+    episode = _run_noop(traces, is_validation=False)
+
+    assert episode is not None
+    assert sum(len(t.steps) for t in episode.trajectories) == 2
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def test_context_overflow_is_stamped_on_eval_path_without_token_ids():
+    """Eval traces carry no token ids, so every trace looks malformed and the
+    trailing drop gives up; the overflow was recorded as ENV_DONE."""
+    traces = [_empty_token_trace("task:0"), _empty_token_trace("task:0"), _overflow_trace("task:0")]
+    episode = _run_noop(traces, is_validation=True)
+
+    assert episode is not None
+    assert sum(len(t.steps) for t in episode.trajectories) == 3
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def test_context_overflow_on_first_call_still_retries():
+    """No usable trace at all: keep raising so the retry path reissues."""
+    from rllm.engine.agentflow_engine import EnrichMismatchError
+
+    with pytest.raises(EnrichMismatchError):
+        _run_noop([_overflow_trace("task:0")], is_validation=False)

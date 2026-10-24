@@ -92,9 +92,11 @@ actor_rollout_ref:
       do_sample: true
 
     # = rllm.data.max_prompt_length + max_response_length. Overrunning this is
-    # not a truncation: vLLM answers 400 mid-rollout, litellm's retries hit the
-    # same wall, and the episode is discarded whole. One run at 32768 lost 28%
-    # of its rollouts that way.
+    # not a truncation: vLLM answers 400 mid-rollout and the agent stops. The
+    # engine keeps the turns before it, stamps MAX_PROMPT_LENGTH_EXCEEDED, and
+    # the rollout is graded and budget-scaled (rllm_grpo.yaml
+    # mask_max_prompt_length_exceeded: false). Run 3 predates that and
+    # resampled these instead: ~18% of rollouts overflowed on the first try.
     max_model_len: 131072
 
     engine_kwargs:
