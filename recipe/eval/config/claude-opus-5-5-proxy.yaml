@@ -1,0 +1,21 @@
+# Claude Opus 5.5 behind rllm's auto-started LiteLLM proxy (no --base-url):
+#
+#   ANTHROPIC_API_KEY=... rllm eval <bench> --model claude-opus-5-5 \
+#       --proxy-params @recipe/eval/config/claude-opus-5-5-proxy.yaml \
+#       --sampling-params @recipe/eval/config/claude-opus-5-5.yaml ...
+#
+# with rllm config ($RLLM_HOME/config.json) provider "anthropic" and api key
+# "os.environ/ANTHROPIC_API_KEY" (LiteLLM reads the key from the environment).
+#
+# These are litellm_params of the proxy's model entry (litellm 1.83):
+thinking: {type: adaptive}    # Opus 5.5 always thinks; budget_tokens returns a 400
+output_config: {effort: high} # Opus 5.5 defaults to medium; litellm 1.83 rejects xhigh
+# The harness sends temperature and reasoning_effort ("high"): Opus 5.5 rejects
+# temperature / top_p / top_k, and litellm 1.83 maps reasoning_effort to the
+# budget_tokens thinking form the model rejects.
+additional_drop_params: [temperature, top_p, top_k, reasoning_effort]
+# Prompt caching: one breakpoint after the system prompt (covers the tools too)
+# and one on the newest message, so each agent turn reads the cached history.
+cache_control_injection_points:
+  - {location: message, role: system}
+  - {location: message, index: -1}

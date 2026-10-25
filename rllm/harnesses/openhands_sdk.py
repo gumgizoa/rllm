@@ -148,8 +148,12 @@ class OpenHandsSdkHarness(BaseCliHarness):
         return _install_script(f"{agent_mount_target()}/openhands-sdk-venv")
 
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
-        # litellm needs ``provider/model``; rllm setup hands out bare names.
-        _, _, qualified = self.ensure_provider_prefix(config.model)
+        # litellm needs ``provider/model``. The endpoint is always rLLM's gateway,
+        # which speaks OpenAI chat completions whatever model sits behind it, so the
+        # provider is ``openai`` -- inferring it from the name (``anthropic/claude-*``)
+        # would send Anthropic-format requests the gateway does not serve (404).
+        _, model_id, _ = self.ensure_provider_prefix(config.model)
+        qualified = f"openai/{model_id}"
         env = {
             "LLM_MODEL": qualified,
             "LLM_BASE_URL": config.base_url,

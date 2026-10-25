@@ -746,6 +746,17 @@ rllm eval swebenchpro_100 \
   - bake stage에서는 apt를 쓰지 않는다. bullseye는 EOL이라 security pool의 해당 version이 404이고(`apt-get install curl`이 exit 100), uv binary는 공식 uv image에서 복사한다. uv가 TLS root를 내장하므로 ca-certificates도 필요 없다.
 - **bake image의 tag는 install script hash다**(`agent_image_tag(install_script)`). bake Dockerfile만 바꾸면 tag가 그대로여서 기존 image가 재사용되고 변경이 반영되지 않는다. Dockerfile을 고쳤으면 `docker rmi rllm-agent-<hash>`로 지워 다시 굽게 한다. 다른 harness(mini-swe-agent, opencode, claude-code)도 같다.
 - **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다.
+- **Claude로 평가하기 (Opus 5.5).** `--base-url` 없이 실행하면 rLLM이 LiteLLM proxy를 띄워 Anthropic API로 보낸다. `$RLLM_HOME/config.json`에 `{"provider": "anthropic", "model": "claude-opus-5-5", "api_keys": {"anthropic": "os.environ/ANTHROPIC_API_KEY"}}`를 두면 key 자체는 파일에 남지 않고 환경변수에서 읽힌다.
+
+  ```bash
+  ANTHROPIC_API_KEY=... rllm eval <bench> --agent openhands-sdk --agent-image auto --hide-git-history \
+      --model claude-opus-5-5 \
+      --agent-kwargs @recipe/eval/config/openhands-sdk.yaml \
+      --sampling-params @recipe/eval/config/claude-opus-5-5.yaml \
+      --proxy-params @recipe/eval/config/claude-opus-5-5-proxy.yaml
+  ```
+
+  `--proxy-params`는 proxy model의 `litellm_params`에 병합된다. `claude-opus-5-5-proxy.yaml`은 (1) adaptive thinking과 effort `high`, (2) Opus 5.5가 400으로 거부하는 `temperature`/`top_p`/`top_k`와, litellm 1.83이 거부되는 `budget_tokens` 형태로 바꾸는 `reasoning_effort`의 제거, (3) prompt caching(system 뒤와 최신 message에 breakpoint)을 설정한다. tool 결과가 list인 message에 litellm이 breakpoint를 `tool_result.content` 안에 넣어 400이 나던 문제는 proxy server(`rllm/eval/_litellm_server.py`)가 tool message 자체에 두도록 보정한다. openhands-sdk harness는 gateway가 OpenAI 형식만 받으므로 model을 항상 `openai/<model>`로 넘긴다(`anthropic/` 추론 시 404).
 - SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 fallback한다는 경고를 남기지만 동작에는 문제가 없다.
 
 ---

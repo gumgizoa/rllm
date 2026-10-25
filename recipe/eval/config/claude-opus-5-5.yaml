@@ -1,0 +1,4 @@
+# Claude Opus 5.5 sampling params -- rllm eval ... --sampling-params @recipe/eval/config/claude-opus-5-5.yaml
+# Use with --proxy-params @recipe/eval/config/claude-opus-5-5-proxy.yaml (thinking, effort,
+# prompt caching). No temperature / top_p / top_k: Opus 5.5 rejects them.
+max_tokens: 32000   # per turn; thinking counts against it
