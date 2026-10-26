@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 manual (ported from the hand-written aidlc_v4_eval verifier, 2026-10-22). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-212 items | check kinds {'aidlc_v4_eval.atom': 58, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 29, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+214 items | check kinds {'aidlc_v4_eval.atom': 60, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 29, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells, and the total (`score`) the mean of the categories.
@@ -13,7 +13,7 @@ Items per cell (scored / diagnostic):
 |---|---|---|---|---|---|---|
 | P procedure | 5 | 4 | 4 | 4 | 5 | 5 |
 | F artifact form | 2 / 1 | 17 | 13 | 16 | 16 | 20 |
-| E execution | — | 5 | — | — | — | 5 |
+| E execution | — | 6 | — | — | — | 6 |
 | C consistency across stages | — | — | — | 1 | 6 | 5 |
 | R forbidden action | 3 | 1 | — | 3 | 3 | 3 |
 | Q content adequacy | 1 | 5 | 12 | 8 | 2 | 8 |
@@ -57,6 +57,7 @@ Items per cell (scored / diagnostic):
 - [F] **S1.recorded** Recorded before any source file was modified. — `aidlc_v4_eval.atom` {"rule": "B5d", "stage": 1} (`atom/B5d@1`) — /ai-dlc/rule-details/01-reverse-engineering.md:68
 - [F] **S1.test** - Test: [verbatim targeted test command for the covering tests] — `aidlc_v4_eval.form` {"rule": "S1.test", "stage": 1} (`form/S1.test@1`) — /ai-dlc/rule-details/01-reverse-engineering.md:62
 - [F] **S1.tpath** - Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces] — `aidlc_v4_eval.form` {"rule": "S1.tpath", "stage": 1} (`form/S1.tpath@1`) — /ai-dlc/rule-details/01-reverse-engineering.md:65
+- [E] **D10a** - [ ] Locate the existing tests that cover the affected scope — `aidlc_v4_eval.atom` {"rule": "D10a"} (`atom/D10a`) — /ai-dlc/rule-details/01-reverse-engineering.md:34
 - [E] **D10b** Does the Existing Tests `Contract` state what the shown test code actually checks (signatures, return values, raised errors)? — `aidlc_v4_eval.judge` {"question": "D10b"} (`judge/D10b`) — /ai-dlc/rule-details/01-reverse-engineering.md:35
 - [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.claim` {"check": "t1_baseline_before_edit"} (`check/t1_baseline_before_edit`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
 - [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.claim` {"check": "t1_baseline_before_write"} (`check/t1_baseline_before_write`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
@@ -217,6 +218,7 @@ Items per cell (scored / diagnostic):
 - [F] **S5.rresult** - Result: [pass | fail] — `aidlc_v4_eval.form` {"rule": "S5.rresult", "stage": 5} (`form/S5.rresult@5`) — /ai-dlc/rule-details/05-build-and-test.md:77
 - [F] **S5.unmet** - Unmet requirements: [none | which requirement is unmet and how it fails] — `aidlc_v4_eval.form` {"rule": "S5.unmet", "stage": 5} (`form/S5.unmet@5`) — /ai-dlc/rule-details/05-build-and-test.md:78
 - [F] **S5.verdict** - Verdict: [unchanged | regression resolved | pre-existing failures only] — `aidlc_v4_eval.form` {"rule": "S5.verdict", "stage": 5} (`form/S5.verdict@5`) — /ai-dlc/rule-details/05-build-and-test.md:82
+- [E] **H1b** - [ ] Run the build or type-check command Reverse Engineering recorded — `aidlc_v4_eval.atom` {"rule": "H1b"} (`atom/H1b`) — /ai-dlc/rule-details/05-build-and-test.md:17
 - [E] **H2** - [ ] Execute the reproduction script at the path Code Generation recorded — `aidlc_v4_eval.claim` {"check": "t5_repro_run_after_last_edit"} (`check/t5_repro_run_after_last_edit`) — /ai-dlc/rule-details/05-build-and-test.md:26
 - [E] **H4b** - [ ] Re-run the existing covering tests identified in Reverse Engineering — `aidlc_v4_eval.claim` {"check": "t5_regression_after_last_edit"} (`check/t5_regression_after_last_edit`) — /ai-dlc/rule-details/05-build-and-test.md:35
 - [E] **H8a** | **Reproduction script failure** | The patch logic is wrong. Re-read the requirement and correct the source | — `aidlc_v4_eval.atom` {"rule": "H8a"} (`atom/H8a`) — /ai-dlc/rule-details/05-build-and-test.md:47; /ai-dlc/rule-details/05-build-and-test.md:53

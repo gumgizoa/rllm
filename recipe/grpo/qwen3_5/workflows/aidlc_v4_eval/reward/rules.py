@@ -29,7 +29,8 @@ hold per artifact are scored per stage, as ``<rule>@<stage>`` (``aidlc/atom/<rul
     consistency  G3c planned creations made, H1a/H4a stage 5 reruns stage 1's build and test selection,
                  H15b verdict vs regressions, H15c unmet requirements vs the reproduction result
     execution    H8a a failing reproduction is followed by a source fix, H8e no regression left unfixed,
-                 H9a a stage-5 fix is re-verified
+                 H9a a stage-5 fix is re-verified, D10a stage 1 read or ran existing tests, H1b stage 5 ran the
+                 recorded build (D10a and H1b are reports too: their A items are content checks)
     forbidden    B10 no design/report document, E10a no question file, F7 no step on a test file, F8a/F8b
                  no create over an existing file or duplicate variant, G4b no new test file in the
                  repository, C2 no stage document re-read after its stage closed
@@ -64,8 +65,8 @@ ATOMIC = (
     *(f"{r}@{k}" for r in ("B6b", "B6c") for k in range(1, 6)),
     "B5d@1",
     "B5d@4",
-    *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
-    *"G1a G3a G3c G4b G8b H1a H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
+    *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D10a D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
+    *"G1a G3a G3c G4b G8b H1a H1b H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
 )
 
 _MEDIA = re.compile(r"\.(?:png|jpe?g|gif|bmp|pdf|svg|eps)$", re.I)
@@ -515,6 +516,20 @@ def atomic_checks(
             fixed = min(fixes + [n for n, cmd, out in builds if n > failed_at and EV.exit_code(cmd, out) == 0], default=None)
             checks = [n for n, _, _ in obs.tests_in(after=failed_at, before=w5)] + ([n for n, _, _ in obs.ran(repro, after=failed_at, before=w5)] if repro else [])
             c["H1c"] = float(not checks or (fixed is not None and fixed < min(checks)))
+    # -- the execution side of rules the content checks hold as reports (E, beside their A items) -------
+    if w1 is not None:
+        # D10a: stage 1 looked for the tests that cover the scope -- read an existing test file or ran tests
+        # before 01 was written (which tests the artifact names, and whether they were seen, is e1_test_path_seen's)
+        new = obs.new_files
+        read_tests = [p for p, n in obs.viewed.items() if n <= w1 and EV.is_test_file(norm_path(p), test_files) and p not in new]
+        c["D10a"] = 1.0 if read_tests or obs.tests_in(before=w1) else 0.0
+    if w4 is not None and p1:
+        # H1b: stage 5 ran the build stage 1 recorded ("Run the build or type-check command Reverse Engineering
+        # recorded"); whether it succeeded as 05 says is e5_build_result's. None recorded (`not applicable`), or an
+        # install written in the build field (D9's to forbid, not a build to run), leaves it out.
+        build = _field(p1, "Build & Test Commands", "Build")
+        if build and not is_none(build) and command_core(build) and EV.test_targets(build) is None and not EV.is_env_setup(build):
+            c["H1b"] = 1.0 if obs.command_runs(build, after=w4, before=w5) else 0.0
     if run.steps:
         # H10: no endless retry -- the same command with the same output three more times with nothing
         # written in between, or a run cut off (its last turn a tool call, no finish) after the plan with

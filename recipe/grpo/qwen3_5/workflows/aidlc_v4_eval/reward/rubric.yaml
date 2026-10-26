@@ -2178,6 +2178,54 @@ items:
     - 78
     - 78
     quote: '- Unmet requirements: [none | which requirement is unmet and how it fails]'
+- id: atom/D10a
+  scope: specific
+  class: evidence
+  stage: '1'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: D10a
+  requirement: must
+  category: E
+  rule: D10a
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S1
+    lines:
+    - 34
+    - 34
+    quote: '- [ ] Locate the existing tests that cover the affected scope'
+- id: atom/H1b
+  scope: specific
+  class: evidence
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: H1b
+  requirement: must
+  category: E
+  rule: H1b
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S5
+    lines:
+    - 17
+    - 17
+    quote: '- [ ] Run the build or type-check command Reverse Engineering recorded'
 - id: atom/H8a
   scope: specific
   class: evidence

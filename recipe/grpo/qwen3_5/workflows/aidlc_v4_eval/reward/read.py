@@ -129,12 +129,18 @@ _NONE_EXPLAINED = re.compile(r"\s+[-–—]\s+|[.:;]\s+|\s*\(")
 _NONE_PHRASE = re.compile(r"^(?:none stated|not applicable|n/a)\b", re.I)
 
 
+# A value that is only a parenthesised remark saying there is nothing to do.
+_NO_STEP = re.compile(r"\([^()]*\b(?:no \w+ (?:step )?(?:required|needed)|not (?:required|needed|applicable))\b[^()]*\)", re.I)
+
+
 def is_none(value: str | None) -> bool:
     """A field that says none / n/a: the whole value, its first clause before an explanation, or a
     phrase that cannot be anything else (see ``_NONE_EXPLAINED`` / ``_NONE_PHRASE``)."""
     if not value:
         return False
     v = value.strip()
+    if _NO_STEP.fullmatch(v):  # `(Django is a library, no build step required)`: swebv100 000048
+        return True
     return NONE_VALUE.fullmatch(_NONE_EXPLAINED.split(v, maxsplit=1)[0].strip()) is not None or _NONE_PHRASE.match(v) is not None
 
 
@@ -437,9 +443,16 @@ class Observed:
         )
 
     def command_runs(self, command: str, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
-        """Shell steps that ran ``command`` as written (all its core tokens present)."""
+        """Shell steps that ran ``command`` as written (all its core tokens present), read without heredoc
+        bodies: the artifact that records the command quotes it (swebv100 000004's 05 write)."""
         tokens = command_core(command)
-        return [(n, c, o) for n, c, o in self.shell_in(after, before) if tokens and all(t in c for t in tokens)]
+        if not tokens:
+            return []
+        return [
+            (n, c, o)
+            for (n, c, o), raw in zip(self.shell, self.shell_raw, strict=True)
+            if (after is None or n > after) and (before is None or n < before) and all(t in re.sub(r"\s+", " ", F.drop_heredoc_bodies(raw)) for t in tokens)
+        ]
 
     def commands_matching(self, pattern: re.Pattern, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
         return [(n, c, o) for n, c, o in self.shell_in(after, before) if pattern.search(c)]
