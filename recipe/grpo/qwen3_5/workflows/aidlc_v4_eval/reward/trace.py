@@ -112,10 +112,14 @@ def _status(observation: str):
     return "ok" if _OK.search(observation) else "fail" if _FAIL.search(observation) else None
 
 
+# The terminal refused the call: nothing in it ran (it reads two commands where one was meant).
+_REJECTED = re.compile(r"^\s*(?:\[An error occurred during execution\.\]\s*)?Cannot execute multiple commands at once")
+
+
 def parse_openhands(name: str, args: dict, observation: str) -> Action:
     if name in _SHELL:
         cmd = args.get("command")
-        if args.get("is_input") or not isinstance(cmd, str) or not cmd.strip():
+        if args.get("is_input") or not isinstance(cmd, str) or not cmd.strip() or _REJECTED.match(observation or ""):
             return Action("other", name, observation=observation)
         return Action("shell", name, command=cmd, observation=observation)
     if name in _EDITOR and args.get("path") and args.get("command") in _EDITOR_KIND:

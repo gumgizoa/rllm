@@ -991,3 +991,29 @@ def test_no_reproduction_script_recorded_is_no_reproduction_run():
     for k in (3, 4):
         r.edit(k, "- Path: /tmp/repro.py", "- Path: N/A (existing tests suffice)")
     assert r.score()["aidlc/check/t5_repro_run_after_last_edit"] == 0.0
+
+
+def test_readings_fixed_by_the_per_rule_audit():
+    """The per-rule audit of 184 real verdicts (tasks/2026-10-21, out/rule_logic_audit): each reading it
+    found wrong, held."""
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import trace as TR
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rules import _covers, _scratch
+
+    # the terminal refused the call: nothing in it ran (swebv100 000026, 000080)
+    refused = TR.parse_openhands(
+        "terminal", {"command": "cat > /tmp/swe-bench-pro/01-x.md << 'EOF'\nx\nEOF\necho ok"}, "[An error occurred during execution.]\n\nCannot execute multiple commands at once."
+    )
+    assert refused.kind == "other"
+    # installing a runner runs no test (step24 000487)
+    assert not EV.is_test_attempt("pip install pytest -q") and EV.test_targets("pip install pytest -q") is None
+    # `- Path: x — Contract: y`: the path ends where the next label starts (swebv100 000000)
+    assert EV.field_value("- Path: /testbed/a/tests/test_q.py — Contract: reading/writing files", "Path") == "/testbed/a/tests/test_q.py"
+    # a pytest path and a Django label name the same selection (step24 000125)
+    assert _covers(["migrations.test_operations"], "tests/migrations/test_operations.py")
+    # a relative write after `cd` lands in that directory (swebv100 000080)
+    assert EV._from_cwd("cd /tmp/t && cat > m.py << 'EOF'", "m.py") == "/tmp/t/m.py"
+    # a test-named script left at the repository root is scratch (step24 000310)
+    assert _scratch("test_where_fix.py", ())
+    # the script run as a Django label (step24 000133)
+    assert EV.runs_script("cd /testbed/tests && python runtests.py check_framework.test_inherited_pk", "tests/check_framework/test_inherited_pk.py")

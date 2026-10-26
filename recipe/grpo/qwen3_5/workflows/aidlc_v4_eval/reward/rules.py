@@ -76,6 +76,8 @@ _ROOT_SCRATCH = re.compile(r"^[^/]+\.(?:py|sh|txt|md|log|json|out|diff|patch)$")
 def _scratch(path: str, test_files) -> bool:
     """An added repository file that is no part of a fix: scratch-named, a backup or duplicate, build
     output, a generated image outside the tests, or a loose script or note at the repository root."""
+    if _ROOT_SCRATCH.match(path) and path not in test_files:
+        return True
     if EV.is_test_file(path, test_files) and not _MEDIA.search(path):
         return False
     return bool(F.SCRATCH_HINT_RE.search(path) or F.BACKUP_RE.search(path) or F.ARTIFACT_RE.search(path) or DUPLICATE.search(path) or _MEDIA.search(path) or _ROOT_SCRATCH.match(path))
@@ -181,6 +183,26 @@ def _lines(value: str) -> list[str]:
     return [x.strip(" -*`") for x in re.split(r"\n+", value or "") if x.strip(" -*`")]
 
 
+def _dotted(target: str) -> str:
+    """A test target as a dotted name, so a pytest path and a Django label compare: ``tests/migrations/
+    test_operations.py::OperationsTests::test_x`` and ``migrations.test_operations.OperationsTests.test_x``
+    both read ``migrations.test_operations.OperationsTests.test_x``."""
+    t = target.removeprefix("/testbed/").removeprefix("./")
+    path, _, node = t.partition("::")
+    if path.endswith(".py"):
+        t = path[:-3].replace("/", ".") + ("." + node.replace("::", ".") if node else "")
+    return t.removeprefix("tests.")
+
+
+def _covers(selection: list[str], target: str) -> bool:
+    """``target`` is in ``selection``: the same, or under a file / class / module of it."""
+    for u in selection:
+        for a, b in ((target, u), (_dotted(target), _dotted(u))):
+            if a == b or any(a.startswith(b.rstrip("/") + sep) for sep in ("::", ".", "/")):
+                return True
+    return False
+
+
 def _frac(flags: list[bool]) -> float | None:
     return sum(flags) / len(flags) if flags else None
 
@@ -256,7 +278,9 @@ def atomic_checks(
     # -- consistency ----------------------------------------------------------------------
     if steps and final is not None:
         made = {norm_path(p) for p in final[1]} | {norm_path(p) for p in obs.created}
+        existing = {norm_path(p) for p in final[0]} - {norm_path(p) for p in final[1]}
         planned = [t for s in steps if re.search(r"\(\s*create\s*\)", s["fields"].get("Target") or "", re.I) for t in claimed_paths(s["fields"].get("Target"))]
+        planned = [t for t in planned if not any(same_file(t, e) for e in existing) and not obs.seen(t, before=write_step.get(3))]
         c["G3c"] = _frac([any(same_file(t, m) for m in made) for t in planned])
     if p1 and p5:
         b1, b5 = _field(p1, "Build & Test Commands", "Build"), _field(p5, "Build", "Command")
@@ -266,15 +290,12 @@ def atomic_checks(
         if t1 and t5:
             # The baseline's selection rerun: every stage-1 target is covered by a stage-5 one (the same, or
             # a file / class / module that holds it). A narrower rerun is not comparable to the baseline.
-            def covered(t: str) -> bool:
-                return any(t == u or t.startswith(u.rstrip("/") + sep) for u in t5 for sep in ("::", ".", "/"))
-
             # Or a test run after stage 4 that covers the stage-1 selection, whatever 05 records (a -k selection
             # cannot be compared as a set, so a differing -k in 05 alone decides nothing).
             after4 = write_step.get(4)
             runs5 = [EV.test_targets(cmd) for _, cmd, _ in obs.tests_in(after=after4)] if after4 is not None else []
-            rerun = any(tt and all(any(t == u or t.startswith(u.rstrip("/") + sep) for u in tt for sep in ("::", ".", "/")) for t in t1) for tt in runs5)
-            c["H4a"] = float(rerun or all(covered(t) for t in t1))
+            rerun = any(tt and all(_covers(tt, t) for t in t1) for tt in runs5)
+            c["H4a"] = float(rerun or all(_covers(t5, t) for t in t1))
     if p5:
         verdict = (_field(p5, "Existing Tests vs Baseline", "Verdict") or "").lower()
         reg, pre = _field(p5, "Existing Tests vs Baseline", "Regressions"), _field(p5, "Existing Tests vs Baseline", "Pre-existing failures")
@@ -317,7 +338,7 @@ def atomic_checks(
             c["H9a"] = float(bool(rerun))
 
     # -- forbidden ------------------------------------------------------------------------
-    c["B10"] = 0.0 if any(_DOC.search(p) and not p.startswith(A.ARTIFACT_DIR) for p in obs.created) else 1.0
+    c["B10"] = 0.0 if any(_DOC.search(p) and not p.startswith(A.ARTIFACT_DIR) and not EV.is_test_file(norm_path(p), test_files) for p in obs.created) else 1.0
     c["E10a"] = 0.0 if any(re.search(r"question", p.rsplit("/", 1)[-1], re.I) for p in obs.created) else 1.0
     if steps:
         # The plan's own reproduction script is no test file even when named test_*.py (left in the
@@ -331,7 +352,8 @@ def atomic_checks(
         if creates:
             c["F8a"] = 0.0 if any(obs.seen(t, before=w3) for t in creates) else 1.0
     if final is not None:
-        c["G4b"] = 0.0 if any(EV.is_test_file(norm_path(p), test_files) and not is_repro(p) for p in final[1]) else 1.0
+        new_tests = [p for p in final[1] if EV.is_test_file(norm_path(p), test_files) and not is_repro(p) and "/" in p and p.endswith(".py") and "/_build/" not in p]
+        c["G4b"] = 0.0 if new_tests else 1.0
     if any(write_step.values()):
         # A stage's rule document read again after the stage's artifact was written: the run went back.
         reread = [step.n for step in run.steps for a in step.actions for d in F.doc_reads(a) if d != "core" and write_step.get(int(d)) is not None and step.n > write_step[int(d)]]
@@ -342,8 +364,12 @@ def atomic_checks(
     if p1:
         files = claimed_paths(_field(p1, "Affected Scope", "Files"))
         # (a test file the issue quotes, e.g. in a test diff, is not the source scope to start from)
-        named = [p for p in dict.fromkeys(_ISSUE_PATH.findall(issue)) if norm_path(p) in known and not EV.is_test_file(norm_path(p), test_files)]
-        c["D1b"] = _frac([any(same_file(p, f) for f in files) for p in named])
+        # (an example or documentation file the issue shows the bug with is not the source to start from:
+        # step24 000354 `examples/decomposition/plot_sparse_coding.py`)
+        named = [
+            p for p in dict.fromkeys(_ISSUE_PATH.findall(issue)) if norm_path(p) in known and not EV.is_test_file(norm_path(p), test_files) and not re.match(r"(?:examples?|docs?)/", norm_path(p))
+        ]
+        c["D1b"] = (1.0 if any(same_file(p, f) for p in named for f in files) else 0.0) if named else None
         # D3 (the owning module matches the files) is left to the judge: a name match is either too loose
         # (`django` passes any file) or too strict ("Django ORM", "matplotlib.widgets" for
         # lib/matplotlib/widgets.py fail), both seen on swebv100.
@@ -459,7 +485,10 @@ def atomic_checks(
             for m, cmd, _ in obs.shell:
                 if m >= n:
                     break
-                if base in cmd or any(re.match(r"(?:ls|find|test|stat|\[)\b", s) and (parent in s if parent else not re.search(r"\s/testbed/\S", s)) for s in _plain_segments(cmd)):
+                # (a file at the repository root: its listing, not a find that searches the tree for something
+                # else -- step24 000361's stage-1 `find /testbed -name "*.py" | xargs grep` looked for no file)
+                listing = r"(?:ls|find|test|stat|\[)\b" if parent else r"(?:ls|test|stat|\[)\b"
+                if base in cmd or any(re.match(listing, s) and (parent in s if parent else not re.search(r"\s/testbed/\S", s)) for s in _plain_segments(cmd)):
                     return True
             return False
 

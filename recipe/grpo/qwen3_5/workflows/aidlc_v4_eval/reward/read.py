@@ -360,9 +360,15 @@ class Observed:
         before, so it is an edit of the repository's own file, not a new one."""
         out = {}
         for p, n in self.created.items():
-            seen_before = any(same_file(q, p) and m < n for q, m in self.viewed.items())
+            # the same path, both read from the trajectory (``same_file`` would take a root `test_x.py` read
+            # for `pkg/tests/test_x.py`: swebv100 000089)
+            seen_before = any(q == p and m < n for q, m in self.viewed.items())
             edited_before = any(m < n for m in self.edit_steps.get(p, []))
             if not seen_before and not edited_before:
+                out[p] = n
+        dirs = [p for p in out if p.endswith("/")]
+        for p, n in self.edited.items():
+            if p not in out and any(p.startswith(d) for d in dirs):
                 out[p] = n
         return out
 
@@ -418,13 +424,14 @@ class Observed:
     def shell_in(self, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
         return [(n, c, o) for n, c, o in self.shell if (after is None or n > after) and (before is None or n < before)]
 
-    def command_run(self, tokens: list[str], after: int | None = None, before: int | None = None) -> bool:
+    def command_run(self, tokens: list[str], after: int | None = None, before: int | None = None, started: bool = False) -> bool:
         """Some shell step within (after, before) ran a test command holding every token, read against the
         directory it ``cd``'d into (``evidence.command_has_tokens``). Only a test run counts: a ``grep`` or
         ``cat`` of the recorded test file holds its path too (swebv100 + step24 004741: 12 of 449 recorded
-        stage-1 commands were never run but looked up)."""
+        stage-1 commands were never run but looked up). ``started``: only a run that ran tests counts."""
+        ran = {n for n, _, _ in self.test_runs}
         return bool(tokens) and any(
-            command_has_tokens(raw, tokens) and is_test_attempt(raw)
+            command_has_tokens(raw, tokens) and is_test_attempt(raw) and (not started or n in ran)
             for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True)
             if (after is None or n > after) and (before is None or n < before)
         )
@@ -457,6 +464,25 @@ class Observed:
         """Written (anywhere) and not removed afterwards."""
         n = self.written(path)
         return n is not None and not any(same_file(r, path) and m > n for r, m in self.removed.items())
+
+
+# ``grep -rn word /testbed/pkg`` / ``rg word``: a recursive search, whose output lines start ``path:line:``.
+_SEARCH = re.compile(r"\b(?:grep|egrep)\s+(?:-\S*\s+)*-\w*[rR]|\brg\s")
+
+_HIT = re.compile(r"^(/?[\w.-]+(?:/[\w.-]+)+\.\w+):(?:\d+:)?", re.M)
+
+
+_LEADING_CD = re.compile(r"^\s*cd\s+(/\S+)\s*(?:&&|;)")
+
+
+def _from_cwd(command: str, target: str) -> str:
+    """``target`` read against the directory the command ``cd``'d into first: ``cd /tmp/t && cat > m.py``
+    writes /tmp/t/m.py, not the repository's m.py (swebv100 000080); ``cd /testbed/tests/roots/x && cat >
+    index.rst`` writes tests/roots/x/index.rst (000077)."""
+    m = _LEADING_CD.match(command or "")
+    if not m or not target or target.startswith(("/", "~")):
+        return target
+    return m.group(1).rstrip("/") + "/" + target.removeprefix("./")
 
 
 def _observe(run: Run, watch: Iterable[str] = ()) -> Observed:
@@ -511,11 +537,15 @@ def _observe(run: Run, watch: Iterable[str] = ()) -> Observed:
                 for p in re.findall(r"(?<![\w-])(/?[\w.-]+(?:/[\w.-]+)+)", skeleton):
                     if not F.OUTSIDE_REPO_RE.match(p) or p.startswith("/testbed/"):
                         obs.viewed.setdefault(norm_path(p), step.n)
+            if _SEARCH.search(skeleton):  # a recursive search shows the lines of the files it lists
+                for p in _HIT.findall(out):
+                    if not F.OUTSIDE_REPO_RE.match(p) or p.startswith("/testbed/"):
+                        obs.viewed.setdefault(norm_path(p), step.n)
             if PATCH_WRITE.search(skeleton):
                 obs.edits_unknown = True
             if a.status == "fail":
                 continue
-            for t in F.write_targets(a):
+            for t in (_from_cwd(cmd, t) for t in F.write_targets(a)):
                 if t.startswith("/dev/"):
                     continue
                 if F._rm_matches(cmd, t):
@@ -653,6 +683,8 @@ def is_lookup(segment: str) -> bool:
 
 def _runner_in(segment: str) -> bool:
     head = _PIPE.split(segment, maxsplit=1)[0]
+    if INSTALL.match(head.strip()):  # `pip install pytest` names a runner and runs nothing
+        return False
     return F.matches_any(head, F.TEST_RUN_PATTERNS) or EXTRA_RUNNERS.search(head) is not None
 
 
@@ -687,10 +719,18 @@ _NO_RUN_FLAGS = re.compile(r"\s(?:--help|-h|--collect-only|--co|--version|--fixt
 _NOT_STARTED = re.compile(r"can't open file|No such file or directory: '[^']*(?:runtests|manage)\.py'|ERROR: file or directory not found|ERROR: not found:", re.I)
 
 
+# The settings a Django run needs could not be loaded, and no test reported: nothing ran (swebv100 000009).
+_NO_SETTINGS = re.compile(r"No module named '[\w.]*settings[\w.]*'|ImproperlyConfigured")
+
+_TEST_REPORT = re.compile(r"\bRan \d+ tests?\b|\b\d+ (?:passed|failed)\b|\btests? (?:passed|failed)\b", re.I)
+
+
 def started(a) -> bool:
     """A test attempt that ran tests: not one the rubric sees failing to start (``ran_something``), not one
-    whose runner or target was missing, and not a ``--help`` / ``--collect-only`` query."""
-    return F.ran_something(a) and not _NOT_STARTED.search(a.observation or "") and not any(_NO_RUN_FLAGS.search(s) for s in segments(a.command or ""))
+    whose runner, target or settings was missing, and not a ``--help`` / ``--collect-only`` query."""
+    out = a.observation or ""
+    no_settings = _NO_SETTINGS.search(out) is not None and _TEST_REPORT.search(out) is None
+    return F.ran_something(a) and not _NOT_STARTED.search(out) and not no_settings and not any(_NO_RUN_FLAGS.search(s) for s in segments(a.command or ""))
 
 
 # ``python -c "from sympy.core.tests.test_evalf import test_x; test_x()"``: a repository test function called
@@ -786,6 +826,9 @@ def is_env_setup(command: str) -> bool:
     return any(INSTALL.match(s) for s in segments(command))
 
 
+_DJANGO_LABELS = re.compile(r"runtests\.py|manage\.py\s+test|-m\s+django\s+test")
+
+
 def runs_script(command: str, path: str) -> bool:
     """``command`` executes the script at ``path``: an interpreter or test runner with it as an argument,
     ``./path`` / ``/abs/path`` as the program, or ``python -c`` importing it as a module."""
@@ -795,9 +838,13 @@ def runs_script(command: str, path: str) -> bool:
     base, module = re.escape(name), re.escape(name.rsplit(".", 1)[0])
     interp = re.compile(rf"^(?:{F.RUNNER}|pytest|py\.test|python[0-9.]*\s+-m\s+pytest|timeout\s+\d+\s+{F.RUNNER})\s+(?:-\S+\s+)*\S*{base}(?:\s|$|::)")
     direct = re.compile(rf"^\.?/\S*{base}(?:\s|$)")
+    # Django's runner given the script as a dotted label: `runtests.py check_framework.test_inherited_pk`
+    label = re.compile(rf"(?:^|\s)(?:\w+\.)*{module}(?:\.\w+)*(?:\s|$)")
     for seg in (s for s in segments(command) if not is_lookup(s)):
         head = _PIPE.split(seg, maxsplit=1)[0].strip()
         if interp.search(head) or direct.search(head):
+            return True
+        if _DJANGO_LABELS.search(head) and label.search(head):
             return True
     return bool(re.search(rf"\bpython[0-9.]*\s+-c\s+\S*(?:import\s+{module}\b|from\s+{module}\s+import)", command or ""))
 

@@ -201,6 +201,10 @@ def section_map(stage: int, body: str) -> dict:
     return {"exact": exact, "near_misses": near, "unknown": [t for t, _ in found if t not in seen and _norm(t) not in wanted_norm]}
 
 
+# A second label on a field's line, set off by a dash: ``— Contract:``.
+_INLINE_LABEL = re.compile(r"\s+[—–]\s+\*{0,2}[A-Z][\w &/()-]{2,40}\*{0,2}\s*:")
+
+
 def field_value(body: str | None, label: str) -> str | None:
     """Value of a ``- Label: value`` / ``- **Label**: value`` line with its continuation lines. A line
     indented under the label is part of its value even when it reads like a label itself
@@ -219,7 +223,12 @@ def field_value(body: str | None, label: str) -> str | None:
         m = lab.match(line)
         if not m:
             continue
-        val = [line[m.end() :].strip()]
+        rest = line[m.end() :]
+        inline = _INLINE_LABEL.search(rest)
+        if inline:  # `- Path: x — Contract: y` (01's skeleton): the value ends where the next label starts
+            text = rest[: inline.start()].strip(" *`")
+            return "" if PLACEHOLDER.fullmatch(text) else text
+        val = [rest.strip()]
         for nxt in lines[i + 1 :]:
             if not nxt.strip() or nxt.lstrip().startswith(("#", "|")):
                 break

@@ -172,6 +172,10 @@ TIMED_BY_EDITS = [
 _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
 
 
+# A plan target that changes nothing: `common.py (verify existing fix)` (no "(modify in place)" / "(create)").
+_VERIFY_ONLY = re.compile(r"\((?![^)]*\b(?:modify|create)\b)[^)]*\b(?:verify|verification|check|inspect|read|no change)\b[^)]*\)", re.I)
+
+
 def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
     for parsed in (p4, p3):
         for cand in claimed_paths(_field(parsed, "Reproduction Script", "Path")):
@@ -216,7 +220,11 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
     if p1 is not None:
         scope = claimed_paths(_field(p1, "Affected Scope", "Files"))
         c["e1_scope_viewed"] = _membership(scope, [obs.seen(p, before=w[1]) for p in scope])
-        c["e1_test_command_run"] = SUPPORTED if obs.command_run(tok := _command_tokens(_field(p1, "Build & Test Commands", "Test"))) else (CONTRADICTED if tok else None)
+        # The recorded command runs the tests: some run of it ran tests (one that only failed to start --
+        # `No module named pytest` in a Django checkout -- establishes nothing: step24 004741 000241). When it
+        # ran is the baseline checks' concern (t1_*).
+        tok = _command_tokens(_field(p1, "Build & Test Commands", "Test"))
+        c["e1_test_command_run"] = SUPPORTED if obs.command_run(tok, started=True) else (CONTRADICTED if tok else None)
         build = _field(p1, "Build & Test Commands", "Build")
         if build and not _none(build) and _command_core(build):
             c["e1_build_command_run"] = SUPPORTED if obs.command_runs(build) else CONTRADICTED
@@ -294,8 +302,10 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             c["e4_created"] = _membership(cre, [obs.written(k) is not None or changed(k) for k in cre])
         edited = changed_now if final_files is not None else list(obs.edited)
         if edited and not edits_unknown:
-            named = [any(same_file(p, q) for q in claimed_paths(p4["body"])) or p.rsplit("/", 1)[-1] in p4["body"] for p in edited]
-            c["e4_undisclosed"] = _membership(edited, named)
+            # (a file first changed after 04 was written is stage 5's to report: step24 004741 000236)
+            stage4 = [p for p in edited if not ((n := obs.written(p)) is not None and w[4] is not None and n > w[4])]
+            named = [any(same_file(p, q) for q in claimed_paths(p4["body"])) or p.rsplit("/", 1)[-1] in p4["body"] for p in stage4]
+            c["e4_undisclosed"] = _membership(stage4, named)
         if _none(_field(p4, "Checks", "Test files modified")):
             # The patch has the test files still changed; the trajectory also has one changed and put back.
             touched = [p for p in [*edited, *obs.edited] if EV.is_test_file(p, test_files) and p not in new_now and p not in obs.new_files]
@@ -304,15 +314,16 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             dupes = [p for p in changed_now if p in new_now and (_DUPLICATE.search(p) or F.BACKUP_RE.search(p))]
             c["e4_duplicates_none"] = CONTRADICTED if dupes else SUPPORTED
         if repro:
-            wrote = obs.written(repro)
-            c["t4_repro_written_before_write"] = SUPPORTED if wrote is not None and (w[4] is None or wrote <= w[4]) else CONTRADICTED
+            # before the 04 that is scored, its last write (an early 04 written again is B4a's: step24 000440)
+            wrote, w4_last = obs.written(repro), (obs.writes.get(A.artifact_path(4)) or [w[4]])[-1]
+            c["t4_repro_written_before_write"] = SUPPORTED if wrote is not None and (w4_last is None or wrote <= w4_last) else CONTRADICTED
 
     targets: list[str] = []
     if p3 is not None and p4 is not None:
         p3_path, p4_path = (claimed_paths(_field(p, "Reproduction Script", "Path")) for p in (p3, p4))
         if p3_path and p4_path:
             c["c34_repro_path"] = SUPPORTED if same_file(p3_path[0], p4_path[0]) else CONTRADICTED
-        targets = list(dict.fromkeys(t for s in p3["steps"] for t in claimed_paths(s["fields"].get("Target"))))
+        targets = list(dict.fromkeys(t for s in p3["steps"] if not _VERIFY_ONLY.search(s["fields"].get("Target") or "") for t in claimed_paths(s["fields"].get("Target"))))
         changed_claims = p4["claims"]["modified"] + p4["claims"]["created"]
         if targets and changed_claims:
             c["c34_targets_changed"] = _membership(targets, [any(same_file(t, q) for q in changed_claims) for t in targets])
