@@ -697,23 +697,45 @@ def started(a) -> bool:
 # directly, the way runs test where no runner is installed (sympy's environment has no pytest).
 _PY_C = re.compile(r"\bpython[0-9.]*\s+-c\s")
 
-_TEST_IMPORT = re.compile(r"\bfrom\s+((?:[\w]+\.)*tests?(?:\.[\w]+)*)\s+import\s+([\w, ()]+)|\bimport\s+((?:[\w]+\.)*tests?\.[\w.]+)")
+_TEST_IMPORT = re.compile(r"\bfrom\s+((?:[\w]+\.)*tests?(?:\.[\w]+)*)\s+import\s+([\w, ()*]+)|\bimport\s+((?:[\w]+\.)*tests?\.[\w.]+)")
 
 
 # ``sympy.test('sympy.core.tests.test_x')``: the package's own test runner, called from Python.
 _PKG_TEST = re.compile(r"\bsympy\.(?:test|doctest)\s*\(")
 
+# ``get_runner(settings)(...).run_tests(['auth_tests.test_checks'])``: Django's runner, called from Python.
+_DJANGO_RUN = re.compile(r"\bget_runner\s*\(.*?\.run_tests\s*\(", re.S)
+
 # ``unittest.TextTestRunner().run(loader.loadTestsFromTestCase(UtilsTests))``: test classes run through unittest.
 _UNITTEST_RUN = re.compile(r"\bunittest\.(?:TextTestRunner|main)\b|\bloadTestsFrom\w+\s*\(")
 
+# ``python << 'EOF'``: the heredoc is the program python runs, not a file written.
+_PY_STDIN = re.compile(r"\bpython[0-9.]*\s+(?:-\s+)?<<")
+
+
+def _python_code(command: str) -> str:
+    """The command with every heredoc body blanked but the ones fed to python: an artifact written by a
+    heredoc may quote a test command, a ``python << EOF`` body is code that runs."""
+    out, pos = [], 0
+    for opener, _, (start, stop) in A.heredocs(command):
+        if start >= pos and not _PY_STDIN.search(opener):
+            out.append(command[pos:start])
+            pos = stop
+    out.append(command[pos:])
+    return " ".join(out)
+
 
 def _calls_repo_test(command: str, agent_files) -> bool:
-    command = F.drop_heredoc_bodies(command or "")  # a heredoc writing an artifact may quote such a command
-    if not _PY_C.search(command):
+    command = _python_code(command or "")
+    if not (_PY_C.search(command) or _PY_STDIN.search(command)):
         return False
+    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
     if _PKG_TEST.search(command):
         return True
-    names = {str(p).rsplit("/", 1)[-1] for p in agent_files}
+    if _DJANGO_RUN.search(command):
+        # not when every label is a module the agent wrote (``run_tests(['test_repro'])``, step24 000205)
+        labels = [x for m in re.finditer(r"\.run_tests\s*\(\s*\[([^\]]*)\]", command) for x in re.findall(r"['\"]([\w.]+)['\"]", m.group(1))]
+        return not labels or not all(any(f"{part}.py" in names for part in label.split(".")) for label in labels)
     for m in _TEST_IMPORT.finditer(command):
         module = m.group(1) or m.group(3)
         if f"{module.rsplit('.', 1)[-1]}.py" in names:  # a test module the agent wrote itself
@@ -721,7 +743,7 @@ def _calls_repo_test(command: str, agent_files) -> bool:
         if _UNITTEST_RUN.search(command):
             return True
         called = re.findall(r"\b(test_\w+)\s*\(", command)
-        if called and (m.group(3) or any(c in m.group(2) for c in called)):
+        if called and (m.group(3) or m.group(2).strip() == "*" or any(c in m.group(2) for c in called)):
             return True
     return False
 

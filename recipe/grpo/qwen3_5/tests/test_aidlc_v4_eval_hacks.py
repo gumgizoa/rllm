@@ -779,6 +779,15 @@ def test_a_test_function_called_from_python_c_is_a_test_run():
     # the package's own runner, and test classes run through unittest (swebv100 000097, 000014)
     assert EV.is_test_attempt("python -c \"import sympy; sympy.test('sympy.physics.hep.tests.test_gamma_matrices')\"")
     assert EV.is_test_attempt('python -c "import unittest\nfrom tests.admin_utils.tests import UtilsTests\nunittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(UtilsTests))"')
+    # Django's runner called from Python, a test module star-imported into unittest, and a python heredoc
+    # (step24 000119, 000427; swebv100 000028)
+    assert EV.is_test_attempt("python -c \"import django\nfrom django.test.utils import get_runner\nfrom django.conf import settings\nget_runner(settings)().run_tests(['auth_tests.test_checks'])\"")
+    assert EV.is_test_attempt('python -c "from sympy.combinatorics.tests.test_permutations import *; import unittest; unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromModule(m))"')
+    own = "python -c \"from django.test.utils import get_runner\nget_runner(settings)().run_tests(['test_repro'])\""
+    assert not EV.is_test_attempt(own, agent_files={"/testbed/test_repro.py"})
+    program = "import unittest\nfrom tests.expressions.tests import T\nunittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(T))"
+    assert EV.is_test_attempt(f"cd /testbed && python << 'PYEOF'\n{program}\nPYEOF")
+    assert not EV.is_test_attempt(f"cat > /tmp/notes.md << 'EOF'\n{program}\nEOF")
     # an artifact written through a heredoc that quotes such a command runs nothing (swebv100 000090)
     assert not EV.is_test_attempt("cat > /tmp/swe-bench-pro/01-reverse-engineering.md << 'EOF'\n- Command: python -c \"from sympy.core.tests.test_evalf import test_x; test_x()\"\nEOF")
 
