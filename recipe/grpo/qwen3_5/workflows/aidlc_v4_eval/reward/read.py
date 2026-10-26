@@ -47,7 +47,7 @@ R_REF = re.compile(r"\bR\d+\b")
 # A requirement line: ``- R1: statement`` / ``- **R1**: statement`` (id, statement).
 R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
 
-NONE_VALUE = re.compile(r"^(?:none|none stated|not applicable|n/?a|empty)\b[.,]?$", re.I)
+NONE_VALUE = A.NONE_VALUE
 
 PLACEHOLDER = A.PLACEHOLDER  # a skeleton placeholder left in: `[statement]`, `TBD`, `...`
 
@@ -256,34 +256,7 @@ def section(body: str | None, name: str, level: int = 2) -> str | None:
     return None
 
 
-def field_value(body: str | None, label: str) -> str | None:
-    """Value of a ``- Label: value`` / ``- **Label**: value`` line with its continuation lines. A line
-    indented under the label is part of its value even when it reads like a label itself
-    (``  - test_x: why it fails`` under ``- Regressions:``). None when the label is absent (or the body
-    is), "" when present but empty or a placeholder."""
-    if body is None:
-        return None
-    lines = body.splitlines()
-    lab = re.compile(rf"^\s*(?:[-*+]\s*)?\*{{0,2}}{re.escape(label)}\*{{0,2}}\s*:\s*\**", re.I)
-    other = re.compile(r"^\s*(?:[-*+]\s*)?\*{0,2}[A-Za-z][\w &/()-]{2,40}\*{0,2}\s*:")
-
-    def indent(s: str) -> int:
-        return len(s) - len(s.lstrip())
-
-    for i, line in enumerate(lines):
-        m = lab.match(line)
-        if not m:
-            continue
-        val = [line[m.end() :].strip()]
-        for nxt in lines[i + 1 :]:
-            if not nxt.strip() or nxt.lstrip().startswith(("#", "|")):
-                break
-            if indent(nxt) <= indent(line) and (lab.match(nxt) or other.match(nxt)):
-                break
-            val.append(nxt.strip())
-        text = " ".join(v for v in val if v).strip(" *`")
-        return "" if PLACEHOLDER.fullmatch(text) else text
-    return None
+field_value = A.field_value  # one reader of `- Label: value` fields for the parser and the checks
 
 
 def get_field(body: str | None, label: str) -> str | None:

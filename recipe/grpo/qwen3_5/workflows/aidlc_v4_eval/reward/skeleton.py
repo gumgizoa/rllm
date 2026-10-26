@@ -134,7 +134,7 @@ PATH_RE = re.compile(r"[\w./-]*[\w-]/[\w./-]+|[\w-]+\.[A-Za-z]{1,5}\b")
 # with a meaning (see NONE_VALUE) that some fields accept and others reject.
 PLACEHOLDER = re.compile(r"^(?:tbd|todo|-+|\.{2,}|\?+|\[.*\]|<.*>)?$", re.I)
 # A bare `no` is deliberately absent: `- Executed: no` is the value stage 4 prescribes.
-NONE_VALUE = re.compile(r"^(?:none|none stated|not applicable|n/?a)\b[.,]?$", re.I)
+NONE_VALUE = re.compile(r"^(?:none|none stated|not applicable|n/?a|empty)\b[.,]?$", re.I)
 
 
 def strip_fence(body: str) -> tuple[str, bool]:
@@ -201,21 +201,29 @@ def section_map(stage: int, body: str) -> dict:
     return {"exact": exact, "near_misses": near, "unknown": [t for t, _ in found if t not in seen and _norm(t) not in wanted_norm]}
 
 
-def field_value(section_body: str, label: str) -> str | None:
-    """Value of a `- Label: value` field with its indented continuation lines.
+def field_value(body: str | None, label: str) -> str | None:
+    """Value of a ``- Label: value`` / ``- **Label**: value`` line with its continuation lines. A line
+    indented under the label is part of its value even when it reads like a label itself
+    (``  - test_x: why it fails`` under ``- Regressions:``). None when the label is absent (or the body
+    is), "" when present but empty or a placeholder."""
+    if body is None:
+        return None
+    lines = body.splitlines()
+    lab = re.compile(rf"^\s*(?:[-*+]\s*)?\*{{0,2}}{re.escape(label)}\*{{0,2}}\s*:\s*\**", re.I)
+    other = re.compile(r"^\s*(?:[-*+]\s*)?\*{0,2}[A-Za-z][\w &/()-]{2,40}\*{0,2}\s*:")
 
-    None when the label is absent; "" when present but empty or a skeleton placeholder.
-    """
-    lines = (section_body or "").splitlines()
-    lab = re.compile(rf"^\s*(?:[-*+]\s*)?\*{{0,2}}{re.escape(label)}\*{{0,2}}\s*:", re.I)
-    other = re.compile(r"^\s*(?:[-*+]\s*)?\*{0,2}[A-Za-z][\w &/-]{2,30}\*{0,2}\s*:")
+    def indent(s: str) -> int:
+        return len(s) - len(s.lstrip())
+
     for i, line in enumerate(lines):
         m = lab.match(line)
         if not m:
             continue
         val = [line[m.end() :].strip()]
         for nxt in lines[i + 1 :]:
-            if not nxt.strip() or lab.match(nxt) or other.match(nxt) or nxt.startswith("#"):
+            if not nxt.strip() or nxt.lstrip().startswith(("#", "|")):
+                break
+            if indent(nxt) <= indent(line) and (lab.match(nxt) or other.match(nxt)):
                 break
             val.append(nxt.strip())
         text = " ".join(v for v in val if v).strip(" *`")
