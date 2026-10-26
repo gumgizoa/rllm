@@ -253,20 +253,28 @@ def section(body: str | None, name: str, level: int = 2) -> str | None:
 
 
 def field_value(body: str | None, label: str) -> str | None:
-    """Value of a ``- Label: value`` / ``- **Label**: value`` line with its indented continuation
-    lines. None when the label is absent (or the body is), "" when present but empty or a placeholder."""
+    """Value of a ``- Label: value`` / ``- **Label**: value`` line with its continuation lines. A line
+    indented under the label is part of its value even when it reads like a label itself
+    (``  - test_x: why it fails`` under ``- Regressions:``). None when the label is absent (or the body
+    is), "" when present but empty or a placeholder."""
     if body is None:
         return None
     lines = body.splitlines()
     lab = re.compile(rf"^\s*(?:[-*+]\s*)?\*{{0,2}}{re.escape(label)}\*{{0,2}}\s*:\s*\**", re.I)
     other = re.compile(r"^\s*(?:[-*+]\s*)?\*{0,2}[A-Za-z][\w &/()-]{2,40}\*{0,2}\s*:")
+
+    def indent(s: str) -> int:
+        return len(s) - len(s.lstrip())
+
     for i, line in enumerate(lines):
         m = lab.match(line)
         if not m:
             continue
         val = [line[m.end() :].strip()]
         for nxt in lines[i + 1 :]:
-            if not nxt.strip() or lab.match(nxt) or other.match(nxt) or nxt.lstrip().startswith(("#", "|")):
+            if not nxt.strip() or nxt.lstrip().startswith(("#", "|")):
+                break
+            if indent(nxt) <= indent(line) and (lab.match(nxt) or other.match(nxt)):
                 break
             val.append(nxt.strip())
         text = " ".join(v for v in val if v).strip(" *`")
@@ -434,10 +442,14 @@ class Observed:
         return [(n, c, o) for n, c, o in self.shell if (after is None or n > after) and (before is None or n < before)]
 
     def command_run(self, tokens: list[str], after: int | None = None, before: int | None = None) -> bool:
-        """Some shell step within (after, before) ran a command holding every token, read against the
-        directory it ``cd``'d into (``evidence.command_has_tokens``)."""
+        """Some shell step within (after, before) ran a test command holding every token, read against the
+        directory it ``cd``'d into (``evidence.command_has_tokens``). Only a test run counts: a ``grep`` or
+        ``cat`` of the recorded test file holds its path too (swebv100 + step24 004741: 12 of 449 recorded
+        stage-1 commands were never run but looked up)."""
         return bool(tokens) and any(
-            command_has_tokens(raw, tokens) for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before)
+            command_has_tokens(raw, tokens) and is_test_attempt(raw)
+            for (n, _, _), raw in zip(self.shell, self.shell_raw, strict=True)
+            if (after is None or n > after) and (before is None or n < before)
         )
 
     def command_runs(self, command: str, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:

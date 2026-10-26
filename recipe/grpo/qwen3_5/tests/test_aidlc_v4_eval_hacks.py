@@ -783,6 +783,25 @@ def test_a_test_function_called_from_python_c_is_a_test_run():
     assert not EV.is_test_attempt("cat > /tmp/swe-bench-pro/01-reverse-engineering.md << 'EOF'\n- Command: python -c \"from sympy.core.tests.test_evalf import test_x; test_x()\"\nEOF")
 
 
+def test_a_lookup_of_the_recorded_test_file_is_no_run_of_its_command():
+    """`grep -n parse tests/test_mod.py` holds the recorded command's only token, and runs nothing."""
+    r = Run()
+    for i in r.runs("pytest"):
+        r.set_command(i, "cd /testbed && grep -n parse tests/test_mod.py", obs="12:def test_parse():")
+    s = r.score()
+    assert s["aidlc/check/e1_test_command_run"] == 0.0
+    assert s["aidlc/check/e5_command_run"] == 0.0
+
+
+def test_a_field_value_on_indented_lines_under_its_label():
+    """swebv100 000090: the value is a nested list whose items carry their own colon."""
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
+
+    body = "- Regressions:\n  - test_x: now returns oo (intended)\n  - test_y: same\n- Pre-existing failures: none\n"
+    assert EV.field_value(body, "Regressions") == "- test_x: now returns oo (intended) - test_y: same"
+    assert EV.field_value(body, "Pre-existing failures") == "none"
+
+
 def test_django_as_a_module_is_a_test_runner():
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
