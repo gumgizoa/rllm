@@ -26,11 +26,11 @@ from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 
 from . import read as EV
 from . import skeleton as A
-from .claims import content_checks
+from .claims import CHECKS, content_checks
 from .judge import judge_checks
 from .read import artifact_write_steps, first_write_steps, observe, parsed_artifacts
 from .read import field_value as claims_field_value
-from .rules import atomic_checks, rule_checks
+from .rules import ATOMIC, RULE_CHECKS, atomic_checks, rule_checks
 from .trace import episode_to_run
 
 # Skeleton fields, one rule each: rule -> (stage, section, label or None for the section's own content, none allowed)
@@ -141,6 +141,24 @@ def procedure_rules(read_step: dict, write_step: dict, invalid: set) -> list[tup
     return out
 
 
+# --- the keys a measurement can have -------------------------------------------------------------
+
+
+def _measurable() -> frozenset[str]:
+    """Every key :func:`measure` can set outside the judge's: an item naming another is a broken link,
+    a measurement setting another is one no item reads. (Both raise: a missing key must not read as
+    "not applicable" and drop out of every mean unnoticed.)"""
+    stages = range(1, 6)
+    form = [f"form/{r}@{k}" for r in ("B1", "B6a", "B5b") for k in stages]
+    form += [f"form/{rule}@{st}" for rule, (st, *_) in FIELDS.items()] + [f"form/{rule}@3" for rule in [*STEP_FIELDS, "S3.tag"]]
+    form += ["form/E3c@2", "form/E4b@2"]
+    proc = ["proc/A3a@0", *(f"proc/{r}@{k}" for r in ("C1", "A2") for k in stages), *(f"proc/A3b@{k}" for k in range(2, 6)), *(f"proc/B3b@{k}" for k in range(1, 5))]
+    return frozenset([*(f"check/{k}" for k in CHECKS), *(f"rule/{k}" for k in RULE_CHECKS), *(f"atom/{k}" for k in ATOMIC), *form, *proc, "run/entry", "run/ran_real_test", "run/fidelity"])
+
+
+MEASURABLE = _measurable()
+
+
 # --- the run, measured once --------------------------------------------------------------------
 
 
@@ -181,6 +199,8 @@ def measure(ctx: EvalContext) -> dict:
         m[f"form/{rule}@{stage}"] = value
     for rule, _, stage, value in procedure_rules(read_step, artifact_write_steps(run), set(EV.multi_read(read_step))):
         m[f"proc/{rule}@{stage}"] = value
+    if unknown := sorted(set(m) - MEASURABLE):
+        raise ValueError(f"measurements no rubric key declares: {unknown}")
     judged = judge_checks(run, obs, parsed, whole_patch, task)
     m |= {k.removeprefix("aidlc/"): v for k, v in judged.items() if k.startswith("aidlc/judge/")}
     diag = {
@@ -212,7 +232,10 @@ def _result(item: Item, value: float | None, detail: str = "") -> Result:
 
 def _lookup(key: str):
     def fn(item: Item, ctx: EvalContext) -> Result:
-        return _result(item, measure(ctx)["measure"].get(key(item.check.params)))
+        k = key(item.check.params)
+        if k not in MEASURABLE:
+            raise KeyError(f"{item.id}: no measurement is named {k!r}")
+        return _result(item, measure(ctx)["measure"].get(k))
 
     return fn
 

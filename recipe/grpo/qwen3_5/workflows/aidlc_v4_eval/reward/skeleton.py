@@ -235,7 +235,7 @@ def plan_steps(plan_body: str) -> list[dict]:
     return out
 
 
-def claimed_paths(changed_files_body: str) -> dict:
+def changed_file_claims(changed_files_body: str) -> dict:
     """Paths stage 4 claims under `- Modified:` / `- Created:` -- those two labels only."""
     out = {"modified": [], "created": []}
     for line in (changed_files_body or "").splitlines():
@@ -268,7 +268,7 @@ def parse(stage: int, body: str) -> dict:
         rec["steps"] = plan_steps(sm["exact"].get("Plan", ""))
         rec["coverage_ids"] = [m.group(1) for m in COVERAGE_LINE.finditer(sm["exact"].get("Requirement Coverage", ""))]
     if stage == 4:
-        rec["claims"] = claimed_paths(sm["exact"].get("Changed Files", ""))
+        rec["claims"] = changed_file_claims(sm["exact"].get("Changed Files", ""))
     return rec
 
 

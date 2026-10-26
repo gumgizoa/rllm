@@ -51,8 +51,7 @@ from pathlib import Path
 
 from . import skeleton as A
 from . import trace as F
-from .read import Observed, _section_none, claimed_paths, is_none, norm_path, runs_script, same_file, task_text
-from .read import field_value as claims_field_value
+from .read import Observed, _field, _section_none, claimed_paths, is_none, norm_path, runs_script, same_file, task_text
 
 log = logging.getLogger(__name__)
 
@@ -236,10 +235,6 @@ def _function(lines: list[tuple[int | None, str]], name: str) -> str | None:
             prev = n
         return "\n".join(out).rstrip()
     return None
-
-
-def _field(p, section, label):
-    return claims_field_value((p or {}).get("section_bodies", {}).get(section) or "", label) or None
 
 
 def _repro_text(run, parsed: dict, patch: str | None) -> str | None:

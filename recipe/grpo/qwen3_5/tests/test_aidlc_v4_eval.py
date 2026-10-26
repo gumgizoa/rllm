@@ -421,6 +421,25 @@ def test_the_review_surface_matches_the_rubric():
     assert (PKG / "reward" / "rubric.md").read_text() == render(schema.load(PKG / "reward" / "rubric.yaml"))
 
 
+def test_every_item_reads_a_measurement_and_every_measurement_has_an_item():
+    """An item naming a key no check sets would read "not applicable" and drop out of every mean unnoticed."""
+    from recipe.grpo.qwen3_5.workflow_rubric import schema
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.checks import MEASURABLE
+
+    prefix = {"claim": "check", "rule": "rule", "atom": "atom", "form": "form", "procedure": "proc", "run": "run"}
+    keys = {}
+    for item in schema.load(PKG / "reward" / "rubric.yaml").items:
+        kind = item.check.kind.split(".")[-1]
+        if kind == "judge":
+            continue
+        p = item.check.params
+        name = p.get("check") or p.get("rule") or p.get("measure")
+        keys[item.id] = f"{prefix[kind]}/{name}" + (f"@{p['stage']}" if p.get("stage") not in (None, "") else "")
+    assert {i: k for i, k in keys.items() if i != k} == {}  # an item is named after what it reads
+    assert set(keys.values()) - MEASURABLE == set()
+    assert MEASURABLE - set(keys.values()) == set()
+
+
 def test_the_verifier_does_not_lean_on_the_legacy_scoring():
     """reward/ never imports legacy/ (the milestone-1 scoring rides along from the spec, and can go)."""
     for path in (PKG / "reward").rglob("*.py"):

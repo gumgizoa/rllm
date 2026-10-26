@@ -391,10 +391,6 @@ def is_repo_write(a: Action) -> bool:
     return any(not OUTSIDE_REPO_RE.match(t) for t in targets)
 
 
-def is_test_attempt(a: Action) -> bool:
-    return a.kind == "shell" and matches_any(command_skeleton(a.command or ""), TEST_RUN_PATTERNS)
-
-
 def probes_git_history(a: Action) -> bool:
     return a.kind == "shell" and GIT_HISTORY_RE.search(command_skeleton(a.command or "")) is not None
 

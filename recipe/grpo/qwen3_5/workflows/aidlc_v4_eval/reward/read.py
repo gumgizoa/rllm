@@ -41,11 +41,15 @@ PATH_LINE_RE = re.compile(r"((?:[\w./-]*/)?[\w-]+\.[A-Za-z]{1,5}):(\d+)")
 
 TEST_ID = re.compile(r"\b(test_\w+)")
 
-R_ID = re.compile(r"\bR\d+\b")
+# An R id named anywhere (``Exercises: R1, R3``); a requirement line of artifact 02 is ``R_LINE`` (skeleton ``R_ID``).
+R_REF = re.compile(r"\bR\d+\b")
+
+# A requirement line: ``- R1: statement`` / ``- **R1**: statement`` (id, statement).
+R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
 
 NONE_VALUE = re.compile(r"^(?:none|none stated|not applicable|n/?a|empty)\b[.,]?$", re.I)
 
-PLACEHOLDER = re.compile(r"^(?:tbd|todo|-+|\.{2,}|\?+|\[.*\]|<.*>)?$", re.I)
+PLACEHOLDER = A.PLACEHOLDER  # a skeleton placeholder left in: `[statement]`, `TBD`, `...`
 
 CHECKBOX = re.compile(r"^\s*[-*+]\s*\[([ xX]?)\]\s*(.*)$", re.M)
 
@@ -139,7 +143,7 @@ def is_filler(value: str | None) -> bool:
 
 
 def r_ids(text: str | None) -> list[str]:
-    return list(dict.fromkeys(R_ID.findall(text or "")))
+    return list(dict.fromkeys(R_REF.findall(text or "")))
 
 
 def command_core(command: str) -> list[str]:
@@ -1058,18 +1062,10 @@ def leaks(run: Run) -> tuple[list[int], list[int]]:
 
 
 def artifact_write_steps(run: Run) -> dict[int, int | None]:
-    """Stage -> the first step that wrote its artifact's path, counted only when the file was collected."""
-    first: dict[int, int] = {}
-    for step in run.steps:
-        for a in step.actions:
-            if a.status == "fail":
-                continue
-            targets = F.write_targets(a) if a.kind == "shell" else ([a.path] if F.is_write(a) else [])
-            for t in targets:
-                st = A.ARTIFACT_PATHS.get(t)
-                if st is not None and not (a.kind == "shell" and F._rm_matches(a.command or "", t)):
-                    first.setdefault(st, step.n)
-    return {st: (first.get(st) if path in run.artifact_files else None) for path, st in A.ARTIFACT_PATHS.items()}
+    """Stage -> the first step that wrote its artifact's path (:func:`first_write_steps`), counted only when
+    the file was collected."""
+    first = first_write_steps(run)
+    return {st: (first[st] if path in run.artifact_files else None) for path, st in A.ARTIFACT_PATHS.items()}
 
 
 def fidelity(run: Run) -> float:

@@ -55,10 +55,18 @@ import re
 from . import read as EV
 from . import skeleton as A
 from . import trace as F
-from .read import DUPLICATE, Observed, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
-from .read import field_value as claims_field_value
+from .read import DUPLICATE, R_LINE, Observed, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file, task_text
 
 RULE_CHECKS = ["r_tests_untouched", "r_targeted_tests", "r_no_env_setup", "r_repro_not_in_stage4", "r_artifacts_written_once", "r_repo_clean"]
+
+# Every key :func:`atomic_checks` may set (a rule, or ``<rule>@<stage>`` for one held per artifact).
+ATOMIC = (
+    *(f"{r}@{k}" for r in ("B6b", "B6c") for k in range(1, 6)),
+    "B5d@1",
+    "B5d@4",
+    *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
+    *"G1a G3a G3c G4b G8b H1a H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
+)
 
 _MEDIA = re.compile(r"\.(?:png|jpe?g|gif|bmp|pdf|svg|eps)$", re.I)
 
@@ -117,8 +125,6 @@ _TEST_LIKE = re.compile(r"::|\btest_\w+|\w+ \([\w.]+\)|\.[Tt]est\w*\b")
 
 _ARROW = re.compile(r"->|→")
 
-_R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
-
 _ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|rs|java|rb|c|h|cpp|cfg|toml|ini))\b")
 
 _PERF = re.compile(r"\b(?:performance|slow(?:er|ly)?|fast(?:er)?|speed|memory|complexity|efficien\w*|latency|O\(|quadratic|linear time|time-?out)\b", re.I)
@@ -167,10 +173,6 @@ def _near(a: str, b: str) -> bool:
         return sum(x != y for x, y in zip(a, b, strict=True)) == 1
     s, t = (a, b) if len(a) < len(b) else (b, a)
     return any(t[:i] + t[i + 1 :] == s for i in range(len(t)))
-
-
-def _field(p, section, label):
-    return claims_field_value((p or {}).get("section_bodies", {}).get(section) or "", label) or None
 
 
 def _lines(value: str) -> list[str]:
@@ -227,7 +229,7 @@ def atomic_checks(
         seq = list(dict.fromkeys(p2.get("r_ids", [])))
         c["E4a"] = float(seq == [f"R{i}" for i in range(1, len(seq) + 1)]) if seq else None
         edge = p2["section_bodies"].get("Edge Cases & Error Handling") or ""
-        lines = [v for _, v in _R_LINE.findall(edge) if not is_none(v)]
+        lines = [v for _, v in R_LINE.findall(edge) if not is_none(v)]
         c["E8c"] = _frac([bool(_ARROW.search(v)) for v in lines])
     steps = (p3 or {}).get("steps", [])
     if steps:
@@ -356,16 +358,16 @@ def atomic_checks(
     if p2:
         nfr = p2["section_bodies"].get("Non-Functional Requirements")
         if nfr is not None and issue:
-            r_lines = _R_LINE.findall(nfr)
+            r_lines = R_LINE.findall(nfr)
             stated = [v for _, v in r_lines if not is_none(v)] if r_lines else [x for x in bullets(nfr) if not is_none(x)]
             c["E7b"] = 1.0 if not stated else (None if _PERF.search(issue) else 0.0)
         edge_ids = r_ids(p2["section_bodies"].get("Edge Cases & Error Handling"))
-        real = [r for r in edge_ids if not any(rid == r and is_none(v) for rid, v in _R_LINE.findall(p2["body"]))]
+        real = [r for r in edge_ids if not any(rid == r and is_none(v) for rid, v in R_LINE.findall(p2["body"]))]
         exercises = r_ids(_field(p3, "Reproduction Script", "Exercises")) if p3 else []
         if real and p3:
             c["F4b"] = _frac([r in exercises for r in real])
         # E3a: one sentence per requirement, read with quotes, code spans and abbreviations masked
-        reqs = [v for _, v in _R_LINE.findall(p2["body"]) if not is_none(v)]
+        reqs = [v for _, v in R_LINE.findall(p2["body"]) if not is_none(v)]
         masked = [_ABBREV.sub("x", re.sub(r"`[^`]*`|\"[^\"]*\"|'[^']*'", "x", v.strip())) for v in reqs]
         c["E3a"] = _frac([len([s for s in _SENTENCE.split(v) if s.strip()]) == 1 for v in masked])
     if steps and issue:

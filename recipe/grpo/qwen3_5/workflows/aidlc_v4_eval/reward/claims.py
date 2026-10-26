@@ -53,6 +53,7 @@ from . import trace as F
 from .read import (
     CONTRADICTED,
     PARTIAL,
+    R_LINE,
     SOURCE_EXT,
     SUPPORTED,
     Observed,
@@ -170,8 +171,6 @@ TIMED_BY_EDITS = [
 
 _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
 
-_R_LINE = re.compile(r"^\s*[-*+]\s*\*{0,2}(R\d+)\*{0,2}\s*:\s*(.*)$", re.M)
-
 
 def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
     for parsed in (p4, p3):
@@ -265,7 +264,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if r_ids:
             # A requirement line whose value says none (``R3: none stated``) is no requirement; one that
             # merely starts with the word (``R3: None input -> TypeError``) is.
-            values = [(m.group(1), m.group(2)) for m in _R_LINE.finditer(p2["body"])]
+            values = [(m.group(1), m.group(2)) for m in R_LINE.finditer(p2["body"])]
             real = [r for r in r_ids if not any(rid == r and _none(v) for rid, v in values)]
             covered = set(tags) | set(p3.get("coverage_ids", []))
             # A plan whose steps and coverage cannot be read at all (form broken, scored under F) says
