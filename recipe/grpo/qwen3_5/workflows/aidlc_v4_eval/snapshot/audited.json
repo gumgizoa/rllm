@@ -1,0 +1,1666 @@
+[
+{
+"data": "step24",
+"episode": "episode_000324_pylint-dev__pylint-6528_0.json",
+"item": "atom/H15c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000006_django__django-11555_0.json",
+"item": "atom/G4b",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000250_django__django-7530_0.json",
+"item": "check/c45_final_files",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000306_pydata__xarray-4629_0.json",
+"item": "atom/G3c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": null
+},
+{
+"data": "step24",
+"episode": "episode_000248_django__django-17084_0.json",
+"item": "check/t4_repro_written_before_write",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000412_sphinx-doc__sphinx-9230_0.json",
+"item": "atom/H10",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000100_django__django-13158_0.json",
+"item": "check/e5_build_result",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000428_sympy__sympy-12489_0.json",
+"item": "check/t5_regression_after_last_edit",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000408_sphinx-doc__sphinx-8621_0.json",
+"item": "atom/H15b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000274_matplotlib__matplotlib-25122_0.json",
+"item": "atom/F3",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000023_django__django-13363_0.json",
+"item": "atom/D5",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000324_pylint-dev__pylint-6528_0.json",
+"item": "atom/H1c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000353_scikit-learn__scikit-learn-12585_0.json",
+"item": "rule/r_repro_not_in_stage4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000080_sphinx-doc__sphinx-7889_0.json",
+"item": "check/t1_no_edit_before_write",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000157_django__django-14534_0.json",
+"item": "check/c34_deviations_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000216_django__django-16116_0.json",
+"item": "atom/H4a",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000457_sympy__sympy-16886_0.json",
+"item": "check/t1_baseline_before_edit",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000389_sphinx-doc__sphinx-7454_0.json",
+"item": "check/e1_build_command_run",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000261_matplotlib__matplotlib-22871_0.json",
+"item": "atom/H15b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000357_scikit-learn__scikit-learn-13135_0.json",
+"item": "check/c23_tags_exist",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000399_sphinx-doc__sphinx-8120_0.json",
+"item": "atom/H1a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000382_sphinx-doc__sphinx-10449_0.json",
+"item": "rule/r_targeted_tests",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000348_scikit-learn__scikit-learn-10297_0.json",
+"item": "atom/H8e",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000350_scikit-learn__scikit-learn-10908_0.json",
+"item": "atom/G1a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000061_django__django-11820_0.json",
+"item": "check/c23_requirements_covered",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000177_django__django-15104_0.json",
+"item": "atom/F2b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000241_django__django-16819_0.json",
+"item": "check/e1_test_command_run",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000403_sphinx-doc__sphinx-8475_0.json",
+"item": "check/e4_created",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000180_django__django-15161_0.json",
+"item": "atom/B4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000232_django__django-16569_0.json",
+"item": "atom/H8a",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000204_django__django-15741_0.json",
+"item": "check/t5_repro_run_after_last_edit",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000021_astropy__astropy-8872_0.json",
+"item": "check/c15_preexisting_subset",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000047_django__django-16801_0.json",
+"item": "check/t1_no_edit_before_write",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000137_django__django-14011_0.json",
+"item": "check/e5_outstanding_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000081_sphinx-doc__sphinx-8265_0.json",
+"item": "atom/B10",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000193_django__django-15503_0.json",
+"item": "atom/B3a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000432_sympy__sympy-13480_0.json",
+"item": "atom/F2b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000431_sympy__sympy-13372_0.json",
+"item": "atom/F1b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000456_sympy__sympy-16792_0.json",
+"item": "atom/F9b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000491_sympy__sympy-23824_0.json",
+"item": "atom/D12b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000453_sympy__sympy-16450_0.json",
+"item": "check/e5_unintended_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000458_sympy__sympy-17139_0.json",
+"item": "check/c15_preexisting_subset",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000034_django__django-15127_0.json",
+"item": "atom/S4.tags",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.6666666666666666
+},
+{
+"data": "swebv100",
+"episode": "episode_000097_sympy__sympy-23824_0.json",
+"item": "atom/E7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000201_django__django-15695_0.json",
+"item": "atom/H9a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000496_sympy__sympy-24539_0.json",
+"item": "atom/E7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000326_pylint-dev__pylint-7080_0.json",
+"item": "atom/B6b@4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000279_matplotlib__matplotlib-25775_0.json",
+"item": "atom/G8b",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000277_matplotlib__matplotlib-25332_0.json",
+"item": "atom/H7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000291_psf__requests-1766_0.json",
+"item": "check/c34_plan_execution_steps",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000405_sphinx-doc__sphinx-8551_0.json",
+"item": "check/e1_scope_viewed",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000222_django__django-16263_0.json",
+"item": "atom/B5d@4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000402_sphinx-doc__sphinx-8459_0.json",
+"item": "check/c34_deviations_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000361_scikit-learn__scikit-learn-13496_0.json",
+"item": "atom/G3a",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000196_django__django-15561_0.json",
+"item": "atom/E10b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000062_pydata__xarray-4966_0.json",
+"item": "atom/F4b",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000026_django__django-13821_0.json",
+"item": "atom/D4b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000230_django__django-16527_0.json",
+"item": "atom/G4b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000083_sphinx-doc__sphinx-9320_0.json",
+"item": "check/e5_test_files_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000256_matplotlib__matplotlib-20826_0.json",
+"item": "atom/F4b",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000084_django__django-12708_0.json",
+"item": "atom/H10",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000159_django__django-14559_0.json",
+"item": "atom/H11",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000429_sympy__sympy-13031_0.json",
+"item": "check/e4_created",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000433_sympy__sympy-13551_0.json",
+"item": "atom/F8a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000051_matplotlib__matplotlib-22871_0.json",
+"item": "atom/E3a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.8571428571428571
+},
+{
+"data": "swebv100",
+"episode": "episode_000057_pallets__flask-5014_0.json",
+"item": "atom/E8c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000304_pydata__xarray-4094_0.json",
+"item": "atom/F2b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000390_sphinx-doc__sphinx-7462_0.json",
+"item": "rule/r_repro_not_in_stage4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000037_django__django-15375_0.json",
+"item": "atom/B5d@4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000000_astropy__astropy-14365_0.json",
+"item": "check/e1_test_path_seen",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000027_django__django-14011_0.json",
+"item": "check/e5_test_files_none",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000131_django__django-13821_0.json",
+"item": "atom/H15d",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000254_matplotlib__matplotlib-20488_0.json",
+"item": "atom/D1b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000009_django__django-11815_0.json",
+"item": "check/e1_baseline_failing",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": null
+},
+{
+"data": "step24",
+"episode": "episode_000427_sympy__sympy-12481_0.json",
+"item": "atom/H10",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000046_django__django-11400_0.json",
+"item": "atom/G8b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000070_scikit-learn__scikit-learn-10844_0.json",
+"item": "atom/G1a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000041_django__django-11265_0.json",
+"item": "atom/B8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000013_django__django-12304_0.json",
+"item": "atom/G3c",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": null
+},
+{
+"data": "step24",
+"episode": "episode_000337_pytest-dev__pytest-6197_0.json",
+"item": "atom/D5",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000065_pylint-dev__pylint-7277_0.json",
+"item": "atom/F2a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000406_sphinx-doc__sphinx-8593_0.json",
+"item": "atom/D5",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000322_pylint-dev__pylint-4970_0.json",
+"item": "atom/H15a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000449_sympy__sympy-15599_0.json",
+"item": "rule/r_tests_untouched",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000060_django__django-11815_0.json",
+"item": "atom/G8b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000026_django__django-13821_0.json",
+"item": "rule/r_artifacts_written_once",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000470_sympy__sympy-19637_0.json",
+"item": "check/e5_build_result",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000297_pydata__xarray-2905_0.json",
+"item": "check/c23_requirements_covered",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000077_sphinx-doc__sphinx-10673_0.json",
+"item": "atom/B10",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000086_sympy__sympy-13031_0.json",
+"item": "check/c34_targets_changed",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": null
+},
+{
+"data": "step24",
+"episode": "episode_000090_django__django-12965_0.json",
+"item": "atom/F7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000134_django__django-13933_0.json",
+"item": "check/e5_outstanding_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000290_psf__requests-1724_0.json",
+"item": "atom/H1a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000463_sympy__sympy-18199_0.json",
+"item": "check/c34_plan_execution_steps",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "swebv100",
+"episode": "episode_000035_django__django-15277_0.json",
+"item": "check/t5_regression_after_last_edit",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000014_django__django-12308_0.json",
+"item": "check/e1_build_command_run",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000144_django__django-14155_0.json",
+"item": "check/e1_baseline_failing",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000404_sphinx-doc__sphinx-8548_0.json",
+"item": "atom/F4b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000183_django__django-15277_0.json",
+"item": "atom/H4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000127_django__django-13807_0.json",
+"item": "atom/F8a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000054_matplotlib__matplotlib-25332_0.json",
+"item": "atom/F8a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000310_pydata__xarray-6461_0.json",
+"item": "rule/r_repo_clean",
+"verdict": "누락",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000339_pytest-dev__pytest-7205_0.json",
+"item": "check/e4_tests_untouched",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000118_django__django-13551_0.json",
+"item": "atom/G3a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000207_django__django-15863_0.json",
+"item": "check/c23_coverage_refs",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000251_django__django-9296_0.json",
+"item": "atom/G3a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000410_sphinx-doc__sphinx-8721_0.json",
+"item": "rule/r_no_env_setup",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000473_sympy__sympy-20154_0.json",
+"item": "rule/r_artifacts_written_once",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000386_sphinx-doc__sphinx-11445_0.json",
+"item": "atom/D4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000073_django__django-12193_0.json",
+"item": "rule/r_repro_not_in_stage4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000028_django__django-11087_0.json",
+"item": "atom/H15a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.6666666666666666
+},
+{
+"data": "step24",
+"episode": "episode_000125_django__django-13786_0.json",
+"item": "atom/H4a",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000133_django__django-13925_0.json",
+"item": "check/t5_repro_run_after_last_edit",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000330_pytest-dev__pytest-10081_0.json",
+"item": "check/e1_scope_viewed",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000053_matplotlib__matplotlib-24570_0.json",
+"item": "atom/D8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000050_django__django-11490_0.json",
+"item": "atom/H8e",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000487_sympy__sympy-22914_0.json",
+"item": "rule/r_targeted_tests",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000122_django__django-13658_0.json",
+"item": "atom/H15d",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000129_django__django-13810_0.json",
+"item": "atom/E3a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000423_sphinx-doc__sphinx-9711_0.json",
+"item": "atom/D8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000435_sympy__sympy-13647_0.json",
+"item": "check/c23_exercises_exist",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000229_django__django-16502_0.json",
+"item": "rule/r_tests_untouched",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000139_django__django-14034_0.json",
+"item": "check/c14_scope_changed",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000044_django__django-16145_0.json",
+"item": "atom/H9a",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000372_scikit-learn__scikit-learn-25102_0.json",
+"item": "atom/E4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000004_django__django-10554_0.json",
+"item": "atom/D7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000016_astropy__astropy-7166_0.json",
+"item": "check/e5_final_files_diff",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "swebv100",
+"episode": "episode_000049_matplotlib__matplotlib-20676_0.json",
+"item": "atom/F8b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000468_sympy__sympy-19346_0.json",
+"item": "atom/D4b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000085_sympy__sympy-12481_0.json",
+"item": "rule/r_no_env_setup",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000486_sympy__sympy-22714_0.json",
+"item": "atom/B10",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000454_sympy__sympy-16597_0.json",
+"item": "atom/H9a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000062_django__django-11848_0.json",
+"item": "atom/H8e",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000098_sympy__sympy-23950_0.json",
+"item": "atom/E3a",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000212_django__django-15987_0.json",
+"item": "atom/H1c",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000236_django__django-16642_0.json",
+"item": "check/e4_undisclosed",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000359_scikit-learn__scikit-learn-13328_0.json",
+"item": "check/e5_unintended_none",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000066_django__django-11964_0.json",
+"item": "rule/r_tests_untouched",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000044_django__django-16145_0.json",
+"item": "atom/B5d@1",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000180_django__django-15161_0.json",
+"item": "check/c23_coverage_refs",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000008_astropy__astropy-14182_0.json",
+"item": "atom/E7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000373_scikit-learn__scikit-learn-25232_0.json",
+"item": "atom/B6b@3",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000038_django__django-11206_0.json",
+"item": "atom/C2",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000490_sympy__sympy-23534_0.json",
+"item": "rule/r_targeted_tests",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000260_matplotlib__matplotlib-22865_0.json",
+"item": "atom/H7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000417_sphinx-doc__sphinx-9461_0.json",
+"item": "atom/B6c@2",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000181_django__django-15252_0.json",
+"item": "atom/D1b",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000475_sympy__sympy-20438_0.json",
+"item": "atom/F7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000000_astropy__astropy-12907_0.json",
+"item": "atom/B4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000498_sympy__sympy-24661_0.json",
+"item": "atom/S4.tags",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000049_django__django-11477_0.json",
+"item": "check/e4_modified",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000326_pylint-dev__pylint-7080_0.json",
+"item": "atom/B6c@4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000203_django__django-15732_0.json",
+"item": "atom/B5d@4",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000192_django__django-15499_0.json",
+"item": "atom/D8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000119_django__django-13568_0.json",
+"item": "atom/H15d",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000302_pydata__xarray-3993_0.json",
+"item": "atom/B8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000252_matplotlib__matplotlib-13989_0.json",
+"item": "atom/E8c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000242_django__django-16877_0.json",
+"item": "atom/H8a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000034_django__django-15127_0.json",
+"item": "atom/B8",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000086_django__django-12741_0.json",
+"item": "atom/F7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000440_sympy__sympy-13878_0.json",
+"item": "check/t4_repro_written_before_write",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000059_django__django-11790_0.json",
+"item": "atom/H8a",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000397_sphinx-doc__sphinx-8035_0.json",
+"item": "rule/r_no_env_setup",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000424_sympy__sympy-11618_0.json",
+"item": "atom/E10a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000089_sympy__sympy-13974_0.json",
+"item": "check/e4_tests_untouched",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000495_sympy__sympy-24443_0.json",
+"item": "atom/H15b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000489_sympy__sympy-23413_0.json",
+"item": "atom/B4a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000073_scikit-learn__scikit-learn-13779_0.json",
+"item": "atom/B5d@1",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000169_django__django-14792_0.json",
+"item": "atom/H7",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000354_scikit-learn__scikit-learn-12682_0.json",
+"item": "atom/D1b",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": null
+},
+{
+"data": "swebv100",
+"episode": "episode_000003_astropy__astropy-8707_0.json",
+"item": "atom/F2a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000334_pytest-dev__pytest-5787_0.json",
+"item": "atom/D7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000365_scikit-learn__scikit-learn-14141_0.json",
+"item": "atom/E8c",
+"verdict": "판정 불가",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000284_matplotlib__matplotlib-26342_0.json",
+"item": "atom/H15c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000447_sympy__sympy-15345_0.json",
+"item": "check/t1_baseline_before_write",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000439_sympy__sympy-13877_0.json",
+"item": "atom/G3c",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000298_pydata__xarray-3095_0.json",
+"item": "atom/D12b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000234_django__django-16612_0.json",
+"item": "check/e1_test_path_seen",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000327_pylint-dev__pylint-7277_0.json",
+"item": "check/e1_test_command_run",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000027_django__django-11066_0.json",
+"item": "atom/D12b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000036_django__django-15368_0.json",
+"item": "atom/H1a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000208_django__django-15916_0.json",
+"item": "atom/H15a",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.6666666666666666
+},
+{
+"data": "step24",
+"episode": "episode_000121_django__django-13590_0.json",
+"item": "atom/D7b",
+"verdict": "정답",
+"audit": "rule_logic_audit",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000381_sphinx-doc__sphinx-10435_0.json",
+"item": "atom/G4b",
+"verdict": "오탐",
+"audit": "rule_logic_audit",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000069_django__django-12050_0.json",
+"item": "check/e1_baseline_passing",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000446_sympy__sympy-15017_0.json",
+"item": "atom/E10c",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000031_django__django-11119_0.json",
+"item": "atom/D5b",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000133_django__django-13925_0.json",
+"item": "atom/G7c",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000406_sphinx-doc__sphinx-8593_0.json",
+"item": "atom/H17",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000462_sympy__sympy-18189_0.json",
+"item": "proc/C1b@4",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000037_django__django-15375_0.json",
+"item": "proc/C1b@5",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000298_pydata__xarray-3095_0.json",
+"item": "atom/E10c",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000046_django__django-16667_0.json",
+"item": "atom/G7c",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000070_django__django-12125_0.json",
+"item": "proc/C1a@1",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000016_django__django-12741_0.json",
+"item": "atom/B11",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000047_django__django-11433_0.json",
+"item": "proc/C1a@5",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000034_django__django-15127_0.json",
+"item": "atom/G7c",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000309_pydata__xarray-4966_0.json",
+"item": "atom/H17",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000011_astropy__astropy-14369_0.json",
+"item": "atom/B11",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000289_psf__requests-1142_0.json",
+"item": "check/e5_preexisting_listed",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000162_django__django-14631_0.json",
+"item": "atom/H17",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000492_sympy__sympy-23950_0.json",
+"item": "atom/D5b",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000254_matplotlib__matplotlib-20488_0.json",
+"item": "check/e5_preexisting_listed",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000359_scikit-learn__scikit-learn-13328_0.json",
+"item": "proc/C1a@4",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000193_django__django-15503_0.json",
+"item": "check/e1_baseline_passing",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000387_sphinx-doc__sphinx-11510_0.json",
+"item": "atom/D5b",
+"verdict": "정답",
+"audit": "rule_logic_audit_new",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000167_django__django-14771_0.json",
+"item": "check/e1_baseline_passing",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 0.5
+},
+{
+"data": "swebv100",
+"episode": "episode_000081_sphinx-doc__sphinx-8265_0.json",
+"item": "proc/C1b@5",
+"verdict": "오탐",
+"audit": "rule_logic_audit_new",
+"expected": 1.0
+}
+]
