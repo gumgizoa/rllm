@@ -233,3 +233,126 @@ def test_env_flow_receives_sandbox_and_container_url():
 
     assert seen["env"] is sandbox
     assert seen["base_url"].startswith("http://host.docker.internal:9131/")
+
+
+# --- failed upstream calls in harnesses that record no agent steps ----------
+#
+# mini-swe-agent and openhands-sdk return no Steps; the engine builds the
+# episode from gateway traces. A vLLM 400 leaves a trace with no tokens that
+# the gateway marks with ``upstream_error`` (classify_upstream_error).
+
+
+def _answered_trace(session_id: str, i: int):
+    from rllm_model_gateway.models import TraceRecord
+
+    return TraceRecord(
+        trace_id=f"t-{session_id}-{i}",
+        session_id=session_id,
+        model="m",
+        messages=[{"role": "user", "content": f"Q{i}"}],
+        response_message={"role": "assistant", "content": f"A{i}"},
+        prompt_token_ids=[1, 2, 3 + i],
+        completion_token_ids=[10 + i, 11 + i],
+        logprobs=[-0.1, -0.2],
+        finish_reason="stop",
+        metadata={},
+    )
+
+
+def _failed_trace(session_id: str, kind: str, *, eval_path: bool = False, i: int = 0):
+    bad = _empty_token_trace(session_id)
+    bad.trace_id = f"t-{session_id}-failed-{kind}-{i}"
+    bad.metadata = {"upstream_error": {"kind": kind, "status": 400}}
+    return bad
+
+
+def _run_stepless(traces, *, is_validation=False, step_limit=None):
+    @__import__("rllm").rollout(name="noop")
+    def noop_flow(task, config):
+        return None
+
+    if step_limit is not None:
+        noop_flow.step_limit = step_limit
+    engine = AgentFlowEngine(
+        agent_flow=noop_flow,
+        evaluator=_Evaluator(),
+        gateway=_Gateway(traces=traces),
+        model="test-model",
+        n_parallel_tasks=1,
+        retry_limit=1,
+    )
+    task = task_from_row({"question": "q"}, "task")
+    try:
+        return asyncio.run(engine._run_single(task, "task:0", is_validation=is_validation))
+    finally:
+        engine.shutdown()
+
+
+def _n_steps(episode):
+    return sum(len(t.steps) for t in episode.trajectories)
+
+
+def test_overflow_on_the_last_call_is_kept_and_budget_stamped():
+    """mini-swe-agent / openhands-sdk abort on ContextWindowExceededError, so
+    the rejected call is the last trace. The rollout must be graded with the
+    turns before it, not resampled."""
+    traces = [_answered_trace("task:0", 0), _answered_trace("task:0", 1), _failed_trace("task:0", "context_length_exceeded")]
+    episode = _run_stepless(traces)
+    assert _n_steps(episode) == 2
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def test_overflow_mid_rollout_is_dropped_wherever_it_sits():
+    """An agent that carries on after the 400 (condenser) leaves it in the middle."""
+    traces = [_answered_trace("task:0", 0), _failed_trace("task:0", "context_length_exceeded"), _answered_trace("task:0", 1)]
+    episode = _run_stepless(traces)
+    assert _n_steps(episode) == 2
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def test_overflow_is_stamped_on_the_eval_path_without_token_ids():
+    """The eval gateway does not ask for token ids, so every trace looks
+    malformed; the marker is what tells the overflow apart."""
+    traces = [_empty_token_trace("task:0"), _failed_trace("task:0", "context_length_exceeded")]
+    episode = _run_stepless(traces, is_validation=True)
+    assert _n_steps(episode) == 1
+    assert episode.termination_reason == TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+
+
+def test_failure_on_the_first_call_still_retries():
+    from rllm.engine.agentflow_engine import EnrichMismatchError
+
+    with pytest.raises(EnrichMismatchError):
+        _run_stepless([_failed_trace("task:0", "context_length_exceeded")])
+
+
+def test_infrastructure_error_at_the_end_wins_over_an_earlier_overflow():
+    """Infrastructure beats budget: compact_filtering must drop this rollout."""
+    traces = [_answered_trace("task:0", 0), _failed_trace("task:0", "context_length_exceeded"), _answered_trace("task:0", 1), _failed_trace("task:0", "upstream_error")]
+    episode = _run_stepless(traces)
+    assert episode.termination_reason == TerminationReason.ERROR
+
+
+def test_transient_error_the_agent_recovered_from_stamps_nothing():
+    """litellm resent the request and it went through: the data is intact."""
+    traces = [_answered_trace("task:0", 0), _failed_trace("task:0", "upstream_error"), _answered_trace("task:0", 1)]
+    episode = _run_stepless(traces)
+    assert _n_steps(episode) == 2
+    assert episode.termination_reason == TerminationReason.ENV_DONE
+
+
+def test_unmarked_empty_trace_still_raises_in_training():
+    """No marker means the cause is unknown; keep resampling those."""
+    from rllm.engine.agentflow_engine import EnrichMismatchError
+
+    with pytest.raises(EnrichMismatchError):
+        _run_stepless([_answered_trace("task:0", 0), _empty_token_trace("task:0")])
+
+
+def test_failed_calls_do_not_count_as_turns():
+    """Resent requests leave one trace each; counting them would stamp
+    MAX_TURNS_EXCEEDED on a rollout that used fewer turns than its budget."""
+    traces = [_answered_trace("task:0", 0), _failed_trace("task:0", "upstream_error", i=0), _failed_trace("task:0", "upstream_error", i=1), _answered_trace("task:0", 1)]
+    episode = _run_stepless(traces, step_limit=3)
+    assert episode.termination_reason == TerminationReason.ENV_DONE
+    assert episode.metrics["n_turns"] == 2.0
