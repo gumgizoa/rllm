@@ -1009,21 +1009,21 @@ tree for the agent, and restores the original before the verifier (`rllm/sandbox
 * Off by default so existing runs stay comparable; the hide/restore time shows up as
   `time/git_hide_s` in the setup metrics.
 
-## Sandbox network isolation — still not supported
+## Sandbox network
 
-`DockerSandbox` / `ModalSandbox` / `DaytonaSandbox` expose no `network_mode` or egress policy,
-and the task sandboxes here **do** need the network:
+Docker sandboxes start on `rllm-sandbox-isolated`, a network with no way out except a relay
+container (`rllm-egress-relay`) that forwards only the gateway's port to the host: the agent can
+call the model and nothing else. With the internet open, a policy can fetch the task's own
+upstream release or repository and copy the fix. Implementation: `rllm/sandbox/backends/egress.py`.
 
-| setting | internet | gateway (LLM) | result |
+| config | CLI | default | effect |
 |---|---|---|---|
-| `network_mode=none` | blocked | **blocked** | every rollout fails — the agent's LLM calls go out through `host.docker.internal` |
-| default bridge (today) | allowed | allowed | reward hacking is possible (web search, external APIs, `pip install`) |
-| selective egress (not implemented) | blocked | host-only allow | what you actually want |
+| `recipe.agent_network` | `rllm eval --agent-network` | `false` | internet while the agent runs |
+| `recipe.verify_network` | `rllm eval --verify-network` | `true` | internet for the verifier only, once the agent is done |
 
-Both verifiers also need the network at runtime: SWE-bench Verified's `test.sh` runs
-`uv run parser.py` (pulls `swebench`, `datasets`, `fastcore`), and SWE-smith's runs
-`apt-get install` + `uv add pytest swebench datasets swesmith`. Blocking egress means
-pre-baking those into the task images first.
+Keep `verify_network` on: SWE-bench Verified's `test.sh` runs `uv run parser.py` and SWE-smith's
+runs `apt-get install` + `uv add ...`, and some tests download datasets or models. Both switches
+join the sandbox to an ordinary bridge (`rllm-sandbox-verify`). Docker backend only.
 
 ### A hung verifier used to hang the whole run
 

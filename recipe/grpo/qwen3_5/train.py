@@ -153,6 +153,9 @@ def main(config: DictConfig) -> None:
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Same mechanism as `rllm eval --hide-git-history`.
         hide_git_history=bool(recipe.hide_git_history),
+        # Same mechanisms as `rllm eval --agent-network` / `--verify-network`.
+        agent_network=bool(recipe.agent_network),
+        verify_network=bool(recipe.verify_network),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
         traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale)),
     )
