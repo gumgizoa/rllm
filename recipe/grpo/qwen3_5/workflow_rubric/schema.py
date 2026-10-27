@@ -56,6 +56,7 @@ DERIVED_BY = ("template_compiler", "llm_extract", "adapter", "manual")
 SOURCE_ROLES = ("adapter", "instruction", "core", "stage_rule", "command", "skill", "template", "schema", "script", "system_prompt", "reference")
 WRITE_EVENTS = ("first", "last", "last_in_window")
 PROCESS_SCALES = (None, "stage_mean")  # scoring.process_scale (see aggregate)
+MATRIX_KINDS = (None, "cells", "rules")  # scoring.matrix.kind (see aggregate.kind_matrix)
 CATEGORIES = ("", "P", "F", "E", "C", "R", "Q", "A")  # Item.category (see aggregate.kind_matrix)
 AGGREGATES = (None, "stages", "kind_matrix")  # scoring.aggregate
 
@@ -393,6 +394,9 @@ def validate(r: Rubric) -> None:
         errors.append(f"scoring.aggregate {(r.scoring or {}).get('aggregate')!r} (one of {AGGREGATES[1:]})")
     if (r.scoring or {}).get("aggregate") == "kind_matrix" and any(not i.category for i in r.items if not i.log_only):
         errors.append("scoring.aggregate kind_matrix: every scored item needs a category")
+    kind = ((r.scoring or {}).get("matrix") or {}).get("kind")
+    if kind not in MATRIX_KINDS:
+        errors.append(f"scoring.matrix.kind {kind!r} (one of {MATRIX_KINDS[1:]})")
     scale = (r.scoring or {}).get("process_scale")
     if scale not in PROCESS_SCALES:
         errors.append(f"scoring.process_scale {scale!r} (one of {PROCESS_SCALES[1:]})")

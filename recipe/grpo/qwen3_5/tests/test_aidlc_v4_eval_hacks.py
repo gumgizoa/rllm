@@ -713,6 +713,27 @@ def test_a_stage_not_carried_out_scores_zero_and_its_prohibitions_no_credit():
     assert s["aidlc/score"] == pytest.approx(sum(kinds) / len(kinds)) and s["aidlc/score"] < 0.8
 
 
+def test_a_kind_is_the_mean_of_its_rules_not_of_its_cells():
+    from recipe.grpo.qwen3_5.workflow_rubric import schema
+
+    rub = schema.load(PKG / "reward" / "rubric.yaml")
+    number = {st.id: k for k, st in enumerate(rub.stages, start=1)} | {"global": 0}
+    r = Run()
+    r.drop(lambda a: a.get("path") == ART[5])
+    del r.files[ART[5]]
+    ATOM_CASES["D12b"](r)  # one failed rule in a done stage, so the kinds are not all 1.0
+    s = r.score(_atom_task(r))
+    per_rule: dict[tuple[str, str, int], list[float]] = {}
+    for i in rub.items:
+        v = s.get(f"aidlc/{i.id}")
+        if not i.log_only and v is not None and number[i.stage] != 5:
+            per_rule.setdefault((i.rule or i.id, i.category, number[i.stage]), []).append(v)
+    stage5 = {(i.rule or i.id, i.category) for i in rub.items if not i.log_only and i.stage == "5" and i.category != "R" and i.check.kind != "aidlc_v4_eval.judge"}
+    for c in "PFECRA":
+        vals = [sum(v) / len(v) for (_, k, _), v in per_rule.items() if k == c] + [0.0] * sum(k == c for _, k in stage5)
+        assert s[f"aidlc/kind/{c}"] == pytest.approx(sum(vals) / len(vals)), c
+
+
 def test_no_artifact_at_all_keeps_only_the_whole_run_prohibitions():
     r = Run()
     r.drop(lambda a: a.get("path") in ART.values())

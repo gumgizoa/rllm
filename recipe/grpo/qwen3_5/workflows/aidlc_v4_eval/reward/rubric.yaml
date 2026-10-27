@@ -92,6 +92,7 @@ scoring:
   item_signals: true
   matrix:
     done_rule: B1
+    kind: rules
 items:
 - id: run/entry
   scope: specific

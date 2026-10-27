@@ -4,8 +4,8 @@ manual (ported from the hand-written aidlc_v4_eval verifier, 2026-10-22). Render
 214 items | check kinds {'aidlc_v4_eval.atom': 60, 'aidlc_v4_eval.claim': 38, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 29, 'aidlc_v4_eval.procedure': 19, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
-A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells, and the total (`score`) the mean of the categories.
-A stage whose `B1` item fails (its artifact was not collected) scores 0 in its cells, its forbidden-action cell left out.
+A rule's items in a stage average into it, a category is the mean of its rules (a rule counted once per stage it applies in), a cell (category x stage) the mean of its rules, reported as a diagnostic, and the total (`score`) the mean of the categories.
+A stage whose `B1` item fails (its artifact was not collected) scores 0 in its rules, its forbidden-action rules left out.
 
 Items per cell (scored / diagnostic):
 

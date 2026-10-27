@@ -140,32 +140,41 @@ def kind_matrix(rubric: Rubric, results: dict[str, Result], scoring: dict) -> tu
     prohibition kept by not doing the stage earns nothing, so that cell is left out. A cell no item
     measures in a carried-out stage is left out. Stage 0 cells are never filled in.
 
+    ``matrix.kind: rules`` makes a category the mean of its rules instead, every (rule, stage) pair
+    alike, so a rule weighs the same whichever cell it sits in (one-rule cells otherwise weigh as much
+    as eighteen-rule ones); a stage not carried out puts a 0 for each of its rules, ``R`` left out as
+    before. The cells are still reported, as diagnostics.
+
     Signals: ``score`` (or ``scoring.total``), ``kind/<C>``, ``cat/<C><n>``, ``done_stages``.
     """
     number = {st.id: k for k, st in enumerate(rubric.stages, start=1)} | {"global": 0}
-    done_rule = (scoring.get("matrix") or {}).get("done_rule")
+    matrix = scoring.get("matrix") or {}
+    done_rule = matrix.get("done_rule")
     items = [i for i in rubric.items if not i.log_only]
     done = {number[i.stage] for i in items if i.rule == done_rule and results.get(i.id) and results[i.id].status == "pass"}
     per_rule: dict[tuple[str, str, int], list[float]] = {}
-    expected: set[tuple[str, int]] = set()
+    expected: set[tuple[str, str, int]] = set()  # (rule, category, stage) a carried-out stage can score
     for i in items:
         r = results.get(i.id)
         n = number[i.stage]
         if r is None or r.status == "unavailable":
             continue
         if n > 0:
-            expected.add((i.category, n))
+            expected.add((i.rule or i.id, i.category, n))
         if r.status in SCORED:
             per_rule.setdefault((i.rule or i.id, i.category, n), []).append(r.score)
-    rules: dict[tuple[str, int], list[float]] = {}
+    rules: dict[tuple[str, int], list[float]] = {}  # cell -> its rules' scores
     for (_, cat, n), values in per_rule.items():
-        if n == 0 or n in done or cat != "R":
+        if n == 0 or n in done:
             rules.setdefault((cat, n), []).append(sum(values) / len(values))
-    cells = {c: sum(v) / len(v) for c, v in rules.items()}
-    for cat, n in expected:
+    for _, cat, n in expected:
         if n not in done and cat != "R":
-            cells[(cat, n)] = 0.0
-    cats = {c: [v for (k, _), v in cells.items() if k == c] for c in sorted({k for k, _ in cells})}
+            rules.setdefault((cat, n), []).append(0.0)
+    cells = {c: sum(v) / len(v) for c, v in rules.items()}
+    if matrix.get("kind") == "rules":
+        cats = {c: [v for (k, _), vs in rules.items() if k == c for v in vs] for c in sorted({k for k, _ in cells})}
+    else:
+        cats = {c: [v for (k, _), v in cells.items() if k == c] for c in sorted({k for k, _ in cells})}
     kinds = {c: sum(v) / len(v) for c, v in cats.items()}
     total = sum(kinds.values()) / len(kinds) if kinds else 0.0
     signals = {f"cat/{c}{n}": v for (c, n), v in sorted(cells.items())} | {f"kind/{c}": v for c, v in kinds.items()}

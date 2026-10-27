@@ -57,11 +57,17 @@ def render(rub: schema.Rubric) -> str:
     if s.get("aggregate") == "kind_matrix":
         cats = [c for c in CATEGORY_NAMES if any(i.category == c for i in rub.items)]
         done = (s.get("matrix") or {}).get("done_rule", "")
+        by_rules = (s.get("matrix") or {}).get("kind") == "rules"
         out += [
             "Each item measures one atomic rule (`rule`) of one category in one stage.",
-            "A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells,"
-            f" and the total (`{s.get('total') or 'score'}`) the mean of the categories.",
-            f"A stage whose `{done}` item fails (its artifact was not collected) scores 0 in its cells, its forbidden-action cell left out.",
+            (
+                "A rule's items in a stage average into it, a category is the mean of its rules (a rule counted once per stage it applies in),"
+                " a cell (category x stage) the mean of its rules, reported as a diagnostic,"
+                if by_rules
+                else "A rule's items average into it, a cell (category x stage) is the mean of its rules, a category the mean of its cells,"
+            )
+            + f" and the total (`{s.get('total') or 'score'}`) the mean of the categories.",
+            f"A stage whose `{done}` item fails (its artifact was not collected) scores 0 in its rules, its forbidden-action rules left out.",
             "",
             "Items per cell (scored / diagnostic):",
             "",
