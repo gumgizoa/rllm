@@ -108,6 +108,7 @@ FAMILIES = {
         "e1_baseline_tests",
         "e1_baseline_failing",
         "e1_baseline_none",
+        "e1_baseline_passing",
         "e1_scope_viewed",
         "e1_test_command_run",
         "e1_build_command_run",
@@ -119,6 +120,7 @@ FAMILIES = {
         "e4_duplicates_none",
         "e5_command_run",
         "e5_regressions",
+        "e5_preexisting_listed",
         "e5_outstanding_none",
         "e5_repro_result",
         "e5_build_result",
@@ -160,12 +162,14 @@ TIMED_BY_EDITS = [
     "e1_baseline_tests",
     "e1_baseline_none",
     "e1_baseline_failing",
+    "e1_baseline_passing",
     "t5_repro_run_after_last_edit",
     "e5_repro_result",
     "e5_build_result",
     "t5_regression_after_last_edit",
     "e5_command_run",
     "e5_regressions",
+    "e5_preexisting_listed",
     "e5_outstanding_none",
 ]
 
@@ -261,6 +265,13 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
                 c["e1_baseline_failing"] = CONTRADICTED if fails else SUPPORTED
             elif failing1:
                 c["e1_baseline_failing"] = SUPPORTED if fails or any(n in out for n in _TEST_ID.findall(failing1)) else CONTRADICTED
+            # Passing names tests the baseline run passed: none it reports failed (judged on the tests whose
+            # state the output shows -- a verbose run's PASSED / ... ok, any run's FAILED lines)
+            if passing and not _none(passing):
+                named = list(dict.fromkeys(_TEST_ID.findall(passing)))
+                states = {t: st for t in named if (st := EV.test_state(out, t)) is not None}
+                if states:
+                    c["e1_baseline_passing"] = _membership(list(states), list(states.values()))
 
     # -- stage 2 <-> 3: requirements and the plan --------------------------------------------
     r_ids = list(dict.fromkeys(p2["r_ids"])) if p2 else []
@@ -387,6 +398,12 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if post and _section_none(p5, "Outstanding Failures"):
             c["e5_outstanding_none"] = CONTRADICTED if _failures(post[-1][2]) else SUPPORTED
         pre = _field(p5, "Existing Tests vs Baseline", "Pre-existing failures")
+        if post and failing1 and not _none(failing1):
+            # every baseline failure the last run still fails is recorded as pre-existing (05 Step 3 table: "Record
+            # the reasoning that identifies it as pre-existing"; whether the reasoning holds is the judge's)
+            still = [t for t in dict.fromkeys(_TEST_ID.findall(failing1)) if EV.test_state(post[-1][2], t) is False]
+            if still:
+                c["e5_preexisting_listed"] = _membership(still, [bool(pre) and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", pre) is not None for t in still])
         if pre and p1 is not None:
             if _none(pre):
                 named = _TEST_ID.findall(failing1 or "")

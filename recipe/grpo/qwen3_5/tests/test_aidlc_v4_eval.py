@@ -138,7 +138,7 @@ def test_content_honest_run_scores_one_everywhere():
     assert s["aidlc/compliance"] == pytest.approx(1.0)
     assert [s[f"aidlc/{k}"] for k in ("order", "s1", "s2", "s3", "s4", "s5")] == pytest.approx([1.0] * 6)
     checks = {k: v for k, v in s.items() if k.startswith("aidlc/check/")}
-    assert len(checks) == 35 and set(checks.values()) == {1.0}
+    assert len(checks) == 36 and set(checks.values()) == {1.0}
     assert s["aidlc/content"] == pytest.approx(1.0) and s["aidlc/content_contradictions"] == 0.0
 
 
@@ -223,7 +223,7 @@ def test_the_patch_moves_no_compliance_signal():
 def test_the_patch_matching_the_trajectory_keeps_every_check():
     s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH), FILES)
     checks = {k: v for k, v in s.items() if k.startswith("aidlc/check/")}
-    assert len(checks) == 35 and set(checks.values()) == {1.0}
+    assert len(checks) == 36 and set(checks.values()) == {1.0}
 
 
 def test_final_changes_are_read_from_the_patch():
@@ -485,7 +485,7 @@ def test_a_line_added_to_a_document_renumbers_the_lines_below_it(tmp_path):
     left = ruleset.sync(tmp_path / "ruleset.yaml", tmp_path / "rubric.yaml", tmp_path)
     assert set(left) == {"new"}  # renumbered, sources rewritten; the new line waits for a hand
     rubric = yaml.safe_load((tmp_path / "rubric.yaml").read_text())
-    entry = next(i for i in rubric["items"] if i["id"] == "proc/C1@1")
+    entry = next(i for i in rubric["items"] if i["id"] == "proc/C1a@1")
     assert [s["lines"][0] for s in entry["sources"] if s["doc"] == "CW"] == [8]  # was core-workflow.md:7
 
 

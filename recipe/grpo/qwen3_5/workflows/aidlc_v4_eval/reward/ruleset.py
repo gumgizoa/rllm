@@ -7,7 +7,8 @@
 
     lines      every candidate line of what the agent sees (``DOCS``: blank lines and headings outside code
                blocks left out), with its text, and the rules it states -- or why it states none
-               (``skip: <why>``, or ``dup: <rule>`` for a rule stated elsewhere first)
+               (``skip: <why>``); ``dup: [<rule>, ...]`` the rules it repeats from elsewhere, beside or
+               instead of the ones it states first (a stage summary names a dozen)
     rules      each atomic rule's primary stage and kind, and the methods that score it: rubric item keys
                (``method_key``; one key covers every stage of a per-stage check) with the materials each
                reads; or, scored by nothing, ``excluded`` with why
@@ -129,6 +130,12 @@ def _align(stored: list[dict], current: list[Line]) -> tuple[dict[int, Line], li
     return match, gone, new
 
 
+def dups(entry: dict) -> list[str]:
+    """The rules a line repeats (``dup``: one id, or a list)."""
+    d = entry.get("dup")
+    return [] if not d else [d] if isinstance(d, str) else list(d)
+
+
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -136,7 +143,7 @@ def _sha(path: Path) -> str:
 def sources(rs: dict, rule: str) -> list[dict]:
     """An item's sources: its rule's lines (the lines that state it, else those that repeat it)."""
     primary = [e for e in rs["lines"] if rule in (e.get("rules") or [])]
-    picked = primary or [e for e in rs["lines"] if e.get("dup") == rule]
+    picked = primary or [e for e in rs["lines"] if rule in dups(e)]
     if not picked:
         first = next(e for e in rs["lines"] if e["at"].split(":")[0] == "I")
         picked = [first]  # a task condition (``source: task``): the instruction's first line
@@ -251,7 +258,7 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
             report["moved"].append(f"{rs['lines'][i]['at']} -> {ln.at}: {ln.text[:80]}")
     for i in gone:
         e = rs["lines"][i]
-        report["changed"].append(f"{e['at']} ({', '.join(e.get('rules') or []) or e.get('skip') or 'dup:' + str(e.get('dup'))}): {e['text'][:80]}")
+        report["changed"].append(f"{e['at']} ({', '.join([*(e.get('rules') or []), *(f'dup:{d}' for d in dups(e))]) or e.get('skip')}): {e['text'][:80]}")
     report["new"] += [f"{ln.at}: {ln.text[:80]}" for ln in new]
 
     links = report["links"]
@@ -259,10 +266,10 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
     known = set(ids)
     links += [f"rule {r} listed twice" for r in sorted({r for r in ids if ids.count(r) > 1})]
     for e in rs["lines"]:
-        kinds = [k for k in ("rules", "skip", "dup") if e.get(k)]
-        if len(kinds) != 1:
-            links.append(f"line {e['at']}: needs exactly one of rules / skip / dup, has {kinds}")
-        links += [f"line {e['at']}: unknown rule {r}" for r in (e.get("rules") or []) + ([e["dup"]] if e.get("dup") else []) if r not in known]
+        if bool(e.get("skip")) == bool(e.get("rules") or e.get("dup")):
+            links.append(f"line {e['at']}: needs rules and/or dup, or else skip")
+        links += [f"line {e['at']}: unknown rule {r}" for r in (e.get("rules") or []) + dups(e) if r not in known]
+        links += [f"line {e['at']}: {r} both stated and repeated" for r in set(e.get("rules") or []) & set(dups(e))]
     stated = {r for e in rs["lines"] for r in e.get("rules") or []}
     listed: set[tuple[str, str]] = set()  # (method, rule): one check may score two rules, in different stages
     for r in rs["rules"]:

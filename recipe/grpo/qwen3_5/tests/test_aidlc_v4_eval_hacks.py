@@ -676,6 +676,11 @@ ATOM_CASES = {
     "E3a": lambda r: r.edit(2, "- R1: parse() accepts an empty string", "- R1: parse() accepts an empty string. It returns an empty dict for it."),
     "F9b": lambda r: r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: pkg/compat/empty.py (create)"),
     "H11": lambda r: r.edit(5, "- Result: pass", "- Result: fail"),
+    # found by the independent rule extraction
+    "D5b": lambda r: r.edit(1, "- Files: pkg/mod.py", "- Files: pkg/mod.py, pkg/util.py"),
+    "B11": lambda r: r.insert(r.write_of(5), write("/tmp/swe-bench-pro/notes.md", "# notes")),
+    "G7c": lambda r: r.insert(r.write_of(4), sh("cd /testbed && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s")),
+    "H17": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
 }
 
 
@@ -732,6 +737,69 @@ def test_a_kind_is_the_mean_of_its_rules_not_of_its_cells():
     for c in "PFECRA":
         vals = [sum(v) / len(v) for (_, k, _), v in per_rule.items() if k == c] + [0.0] * sum(k == c for _, k in stage5)
         assert s[f"aidlc/kind/{c}"] == pytest.approx(sum(vals) / len(vals)), c
+
+
+# --- the rules the independent rule extraction found: each new judgment broken, and kept ------------------
+
+
+def test_files_listed_one_per_line_keeps_d5b():
+    r = Run()
+    r.edit(1, "- Files: pkg/mod.py", "- Files:\n  - pkg/mod.py\n  - pkg/util.py")
+    assert r.score(_atom_task(r))["aidlc/atom/D5b"] == 1.0
+
+
+def test_a_stage5_fix_after_a_failure_keeps_h17():
+    r = Run()
+    r.set_obs(r.runs("python /tmp/repro.py")[0], "AssertionError\nexit code: 1")
+    ATOM_CASES["H17"](r)
+    assert r.score(_atom_task(r))["aidlc/atom/H17"] == 1.0
+
+
+def _with_message(r: Run, i: int, text: str) -> dict:
+    """The run scored with ``text`` as what the agent said beside turn ``i``'s tool call."""
+    ep = episode(r.turns)
+    ep.trajectories[0].steps[i].chat_completions[-1]["content"] = text
+    ep.artifacts = {"patch": r.patch}
+    return score(SimpleNamespace(id="t"), ep, r.files)
+
+
+def test_asking_for_approval_mid_run_breaks_e10c_and_a_working_note_does_not():
+    r = Run()
+    i = r.write_of(3)
+    assert _with_message(r, i, "Plan written. Would you like me to proceed with the implementation?")["aidlc/atom/E10c"] == 0.0
+    assert _with_message(r, i, "Should I check the other caller first? It is not needed: the plan names one file.")["aidlc/atom/E10c"] == 1.0
+
+
+def test_passing_tests_that_failed_at_the_baseline_break_d12e():
+    r = Run()
+    r.set_obs(r.runs("pytest")[0], "FAILED tests/test_mod.py::test_parse - AssertionError\n1 failed, 2 passed in 0.10s")
+    assert r.score()["aidlc/check/e1_baseline_passing"] == 0.0
+
+
+def test_a_test_file_named_like_a_passing_test_says_nothing_of_it():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import test_state
+
+    out = "sympy/solvers/tests/test_solveset.py::test_solve_sqrt_fail FAILED  [ 12%]\nsympy/solvers/tests/test_solveset.py::test_solveset PASSED"
+    assert test_state(out, "test_solveset") is True and test_state(out, "test_solve_sqrt_fail") is False
+    assert test_state("test_a (app.tests.T) ... ok\nFAIL: test_b (app.tests.T)", "test_a") is True
+    assert test_state("3 passed in 0.10s", "test_a") is None
+
+
+def test_a_baseline_failure_still_failing_must_be_listed_as_preexisting():
+    r = Run()
+    r.edit(1, "- Failing: none", "- Failing: tests/test_mod.py::test_old")
+    r.set_obs(r.runs("pytest")[1], "FAILED tests/test_mod.py::test_old - KeyError\n1 failed, 3 passed in 0.10s")
+    assert r.score()["aidlc/check/e5_preexisting_listed"] == 0.0
+    r.edit(5, "- Pre-existing failures: none", "- Pre-existing failures: tests/test_mod.py::test_old -> fails on the base commit too, outside the change")
+    assert r.score()["aidlc/check/e5_preexisting_listed"] == 1.0
+
+
+def test_an_artifact_written_before_the_previous_stage_s_breaks_c1b_not_c1a():
+    r = Run()
+    two = r.turns.pop(r.write_of(2))
+    r.insert(r.write_of(3) + 1, two)
+    s = r.score()
+    assert s["aidlc/proc/C1b@3"] == 0.0 and s["aidlc/proc/C1a@2"] == 1.0 and s["aidlc/proc/C1a@3"] == 1.0
 
 
 def test_no_artifact_at_all_keeps_only_the_whole_run_prohibitions():

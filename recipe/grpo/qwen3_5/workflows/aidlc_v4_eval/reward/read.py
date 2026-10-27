@@ -186,6 +186,25 @@ def passes(out: str) -> int:
     return sum(int(x) for x in PASSES.findall(out))
 
 
+_STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b")
+_STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b")
+
+
+def test_state(out: str, name: str) -> bool | None:
+    """Whether test ``name`` (a function name, ``test_x``) passed in a run's output: False when a line naming it
+    reports a failure or error (pytest ``FAILED`` / ``ERROR``, unittest ``... FAIL``, ``FAIL: test_x (...)``),
+    True when a line reports it passed (``PASSED``, ``... ok``) and none failed, None when no line says
+    (a quiet ``pytest -q`` names no passing test). A file or directory of that name is not the test
+    (``test_solveset.py::test_solve_sqrt_fail FAILED`` says nothing of ``test_solveset``: step24 004741 000464)."""
+    pat = re.compile(rf"(?<![\w/]){re.escape(name)}(?!\w|\.py\b|/)")
+    lines = [ln for ln in out.splitlines() if pat.search(ln)]
+    if any(_STATE_FAIL.search(ln) for ln in lines):
+        return False
+    if any(_STATE_PASS.search(ln) for ln in lines):
+        return True
+    return None
+
+
 def names_test_ids(out: str) -> bool:
     return TEST_ID.search(out) is not None
 

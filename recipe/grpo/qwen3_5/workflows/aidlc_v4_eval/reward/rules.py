@@ -47,6 +47,9 @@ hold per artifact are scored per stage, as ``<rule>@<stage>`` (``aidlc/atom/<rul
                  H7 no baseline rebuilt from stashed source, E3a one sentence per requirement, F9b new
                  files go under existing directories, F3 the issue's names are not altered, H11 a failed
                  or unmet reproduction is left outstanding
+    found by the independent rule extraction (2026-10-27): D5b Files one path per line, B11 no file in the
+                 artifact directory but the five artifacts, G7c stage 4 runs no test, H17 no stage-5 source change
+                 before anything failed, E10c no approval asked mid-run
 """
 
 from __future__ import annotations
@@ -67,6 +70,7 @@ ATOMIC = (
     "B5d@4",
     *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D10a D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
     *"G1a G3a G3c G4b G8b H1a H1b H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
+    *"D5b B11 G7c H17 E10c".split(),
 )
 
 _MEDIA = re.compile(r"\.(?:png|jpe?g|gif|bmp|pdf|svg|eps)$", re.I)
@@ -140,6 +144,16 @@ _ARTIFACT = re.compile(r"/tmp/swe-bench-pro/(0[1-5])-[\w-]+\.md")
 
 _READ_VERB = re.compile(r"^\s*(?:sudo\s+)?(?:cat|head|tail|less|more|grep|egrep|sed\s+-n|awk|nl)\b")
 
+# A message that hands the run back to the user (E10c, before the last turn: the narrower phrases, since a
+# working note says "should I check ..." to itself)
+_ASK_USER = re.compile(
+    r"\b(?:would you like me to|do you want me to|shall i (?:proceed|continue|go ahead)|please (?:confirm|approve|advise|let me know)"
+    r"|awaiting your|let me know (?:if|whether|how) you|before i (?:proceed|continue), (?:please|could you))\b",
+    re.I,
+)
+
+_LABEL_LINE = re.compile(r"^\s*[-*]\s*[A-Z][\w /&().-]*:")
+
 _ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
 
 _REDUCE = re.compile(r"(?<!\S)-[a-zA-Z]*q[a-zA-Z]*\b|--quiet\b|--tb=(?:short|line|no)\b|--no-header\b")
@@ -202,6 +216,23 @@ def _covers(selection: list[str], target: str) -> bool:
             if a == b or any(a.startswith(b.rstrip("/") + sep) for sep in ("::", ".", "/")):
                 return True
     return False
+
+
+def _raw_rows(body: str, label: str) -> list[str]:
+    """A field's physical lines in the artifact: the label line's value and the lines under it up to the next
+    label (``skeleton.field_value`` joins them, so "one per line" cannot be read from the value)."""
+    lines = body.splitlines()
+    for i, line in enumerate(lines):
+        m = re.match(rf"^\s*[-*]\s*{re.escape(label)}\s*:(.*)$", line)
+        if not m:
+            continue
+        rows = [m.group(1)]
+        for nxt in lines[i + 1 :]:
+            if not nxt.strip() or _LABEL_LINE.match(nxt) and not nxt.startswith((" ", "\t")):
+                break
+            rows.append(nxt)
+        return [r.strip(" -*`") for r in rows if r.strip(" -*`")]
+    return []
 
 
 def _frac(flags: list[bool]) -> float | None:
@@ -578,4 +609,41 @@ def atomic_checks(
                     rebuilt |= hidden
         if ran:
             c["H7"] = 0.0 if rebuilt else 1.0
+
+    # -- found by the independent rule extraction ------------------------------------------
+    if p1:
+        # D5b: Files lists one path per line (01 skeleton "[full paths from the repository root, one per line]")
+        rows = _raw_rows(p1["section_bodies"].get("Affected Scope") or "", "Files")
+        if any(claimed_paths(r) for r in rows):
+            c["D5b"] = 0.0 if any(len(claimed_paths(r)) > 1 for r in rows) else 1.0
+    if any(write_step.values()):
+        # B11: each stage writes one artifact file (core "Each stage writes one artifact file"): nothing else in
+        # the artifact directory but a script (the reproduction script may live there); documents elsewhere are B10's
+        extra = [p for p in obs.created if p.startswith(A.ARTIFACT_DIR + "/") and p not in A.ARTIFACT_PATHS and not is_repro(p) and not re.search(r"\.(?:py|sh)$", p)]
+        c["B11"] = 0.0 if extra else 1.0
+    start4 = read_step.get("04") if read_step.get("04") is not None else w3
+    if start4 is not None and w4 is not None:
+        # G7c: stage 4 executes nothing it changed (04 "modify the source files in place and write the
+        # reproduction script, executing neither yet"): no test attempt between the stage's start and its
+        # artifact. Running the reproduction script there is G7b's (r_repro_not_in_stage4).
+        c["G7c"] = 0.0 if obs.attempts_in(after=start4, before=w4) else 1.0
+    if w4 is not None and w5 is not None:
+        # H17: with nothing failed, stage 5 changes no source (05 "If the build succeeded and both Step 2 and
+        # Step 3 passed, nothing has failed -- skip to Step 6"): a stage-5 source edit comes after some
+        # stage-5 verification failed -- a test attempt with failures or a nonzero exit, the reproduction
+        # script or the build exiting nonzero. (Once something failed, the fixes that follow are not judged.)
+        edits5 = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if w4 < n < w5)
+
+        def failed_before(n: int) -> bool:
+            runs = obs.attempts_in(after=w4, before=n) + (obs.ran(repro, after=w4, before=n) if repro else [])
+            build = _field(p1, "Build & Test Commands", "Build") if p1 else None
+            if build and not is_none(build) and command_core(build):
+                runs += obs.command_runs(build, after=w4, before=n)
+            return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) for _, cmd, out in runs)
+
+        c["H17"] = 0.0 if edits5 and not failed_before(edits5[0]) else 1.0
+    if len(run.steps) > 1:
+        # E10c: no approval asked before the end either (core "never ask for approval, never wait for input");
+        # the last turn is E10b's
+        c["E10c"] = 0.0 if any(_ASK_USER.search(s.message or "") for s in run.steps[:-1]) else 1.0
     return c

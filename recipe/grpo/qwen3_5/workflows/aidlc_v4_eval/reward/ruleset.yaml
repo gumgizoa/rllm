@@ -30,6 +30,7 @@ materials:
   ISSUE: 이슈 본문 추출
   FINAL: 마지막 응답
   JUDGE: LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄)
+  MSG: agent 메시지 (마지막 응답 앞의 것까지)
 rules:
 - id: A1
   stage: 0
@@ -82,22 +83,37 @@ rules:
   excluded:
     why: covered by another rule's items
     detail: B1 (the artifact at its fixed path)
+- id: B2b
+  stage: 0
+  kind: P
+  text: 첫 산출물을 쓰기 전에 /tmp/swe-bench-pro/를 mkdir -p로 만듦
+  excluded:
+    why: not applicable
+    detail: 'an instrumental step: the edit tool makes the directory, and the artifact at its path is B1''s'
 - id: B3a
   stage: 0
-  kind: F
-  text: 산출물은 한 번에 전체 내용으로 씀 (덧붙이기·나중에 채울 빈칸 금지)
+  kind: P
+  text: 산출물은 한 번의 write로 씀 (덧붙이기·같은 단계 안 다시 쓰기 없음)
   methods:
     rule/r_artifacts_written_once: [WRITE]
     atom/B3a: [WRITE, DOC, EDIT, TEST, SCRIPT]
+- id: B3c
+  stage: 0
+  kind: F
+  text: 산출물에 나중에 채울 빈칸·placeholder를 남기지 않음 (전체 내용으로 씀)
+  excluded:
+    why: covered by another rule's items
+    detail: the field items (a placeholder reads as an empty field) and B5b (a missing section)
 - id: B3b
   stage: 0
   kind: P
-  text: 산출물은 그 단계 완료 기준을 채운 뒤 단계 끝에 씀
+  text: 산출물은 단계 끝에 씀 (다음 단계 문서를 읽기 전)
   methods:
     proc/B3b: [DOC, WRITE]
+  note: 'Completion Criteria met first: each criterion''s own timing rule scores it (D11c, G7a, H2, H4b)'
 - id: B4a
   stage: 0
-  kind: F
+  kind: R
   text: 이전 단계 산출물을 다시 쓰지 않음
   methods:
     atom/B4a: [WRITE, DOC, EDIT, TEST, SCRIPT]
@@ -177,12 +193,24 @@ rules:
   text: 산출물 외에 설계·보고서 문서를 만들지 않음
   methods:
     atom/B10: [EDIT]
-- id: C1
+- id: B11
+  stage: 0
+  kind: F
+  text: 단계마다 산출물 파일은 하나만 씀 (산출물 디렉터리에 다섯 산출물 외 문서를 만들지 않음)
+  methods:
+    atom/B11: [WRITE, PATH]
+- id: C1a
   stage: 0
   kind: P
-  text: 다섯 단계를 모두, 순서대로 실행함 (생략·선택 없음)
+  text: 다섯 단계를 하나도 빠뜨리지 않고 모두 실행함 (단계 선택·깊이 조정 없음)
   methods:
-    proc/C1: [DOC, WRITE]
+    proc/C1a: [DOC, WRITE]
+- id: C1b
+  stage: 0
+  kind: P
+  text: 단계를 1→5 순서대로 실행함 (앞 단계 산출물 뒤에 다음 단계 산출물)
+  methods:
+    proc/C1b: [WRITE]
 - id: C2
   stage: 0
   kind: P
@@ -198,9 +226,15 @@ rules:
 - id: E10b
   stage: 0
   kind: P
-  text: 사용자의 승인·입력을 기다리지 않음 (질문으로 끝내지 않음)
+  text: 입력을 기다리며 끝내지 않음 (마지막 응답이 질문·승인 요청이 아님)
   methods:
     atom/E10b: [FINAL]
+- id: E10c
+  stage: 0
+  kind: P
+  text: 중간에도 사용자에게 승인을 묻지 않음
+  methods:
+    atom/E10c: [MSG]
 - id: D9
   stage: 0
   kind: R
@@ -231,7 +265,7 @@ rules:
   note: 'not a judge question: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed)'
 - id: D1b
   stage: 1
-  kind: Q
+  kind: P
   text: 이슈가 파일·심볼을 직접 지목하면 거기서 시작함
   methods:
     atom/D1b: [AP, COLLECT, ISSUE, PATH, SEEN, TESTFILE]
@@ -267,6 +301,12 @@ rules:
   text: 모든 경로를 repo root부터 전체 경로로 적음
   methods:
     atom/D5: [AP, COLLECT, PATH, SEEN]
+- id: D5b
+  stage: 1
+  kind: F
+  text: 01 Files에 경로를 한 줄에 하나씩 적음
+  methods:
+    atom/D5b: [AP, COLLECT, PATH]
 - id: D6
   stage: 1
   kind: Q
@@ -301,10 +341,17 @@ rules:
     atom/D10a: [SEEN, TESTFILE, TEST, WRITE]
 - id: D10b
   stage: 1
-  kind: E
-  text: 그 테스트를 읽어 계약(시그니처·반환·오류)을 파악함
+  kind: Q
+  text: 기존 테스트가 강제하는 계약(시그니처·반환·예외)을 맞게 파악해 Contract에 적음
   methods:
     judge/D10b: [JUDGE, ISSUE, COLLECT, SEEN]
+- id: D10c
+  stage: 1
+  kind: E
+  text: 찾은 기존 테스트 파일을 실제로 엶
+  excluded:
+    why: covered by another rule's items
+    detail: D10a (atom/D10a, check/e1_test_path_seen)
 - id: D11a
   stage: 1
   kind: E
@@ -341,6 +388,12 @@ rules:
   text: Passing·Failing이 둘 다 none이면 baseline 실행에서 돈 테스트가 없음
   methods:
     check/e1_baseline_none: [AP, COLLECT, NONE, TEST, EDIT]
+- id: D12e
+  stage: 1
+  kind: A
+  text: 01 Passing에 적은 테스트는 baseline 실행에서 실제로 통과함
+  methods:
+    check/e1_baseline_passing: [AP, COLLECT, NONE, TEST, EDIT]
 - id: D12b
   stage: 1
   kind: F
@@ -421,7 +474,7 @@ rules:
     judge/E1b: [JUDGE, ISSUE, COLLECT]
 - id: E2
   stage: 2
-  kind: Q
+  kind: C
   text: 1단계 결과를 맥락으로 사용함
   excluded:
     why: judge, low priority, not asked
@@ -456,13 +509,20 @@ rules:
   text: 요구사항 id가 중복되지 않음
   methods:
     form/E4b: [AP, COLLECT]
-- id: E5
+- id: E5a
   stage: 2
   kind: F
-  text: 세 범주(Functional, Non-Functional, Edge Cases) 모두 제목과 함께 평가함
+  text: 세 범주(Functional, Non-Functional, Edge Cases & Error Handling) 제목이 모두 있음
   excluded:
     why: covered by another rule's items
-    detail: B5b@2 and the S2 fields (the three categories)
+    detail: B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge)
+- id: E5b
+  stage: 2
+  kind: Q
+  text: 세 범주를 각각 검토함
+  excluded:
+    why: covered by another rule's items
+    detail: judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases)
 - id: E6a
   stage: 2
   kind: Q
@@ -594,7 +654,7 @@ rules:
     judge/F4a: [JUDGE, ISSUE, COLLECT]
 - id: F4b
   stage: 3
-  kind: Q
+  kind: C
   text: 재현 스크립트에 Edge Cases 요구사항의 조건을 포함함
   methods:
     atom/F4b: [AP, COLLECT, NONE]
@@ -782,6 +842,12 @@ rules:
   text: 4단계에서는 재현 스크립트를 실행하지 않음
   methods:
     rule/r_repro_not_in_stage4: [AP, COLLECT, PATH, SCRIPT, DOC, WRITE]
+- id: G7c
+  stage: 4
+  kind: R
+  text: 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음
+  methods:
+    atom/G7c: [DOC, WRITE, TEST]
 - id: G8a
   stage: 4
   kind: Q
@@ -939,7 +1005,7 @@ rules:
     check/e5_regressions: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
 - id: H5b
   stage: 5
-  kind: A
+  kind: C
   text: 05 Pre-existing failures는 01 baseline에서 실패한 테스트만
   methods:
     check/c15_preexisting_subset: [AP, COLLECT, NONE, TARGET]
@@ -977,9 +1043,15 @@ rules:
 - id: H8d
   stage: 5
   kind: Q
-  text: pre-existing으로 판정한 실패를 이유와 함께 기록함
+  text: 적은 pre-existing 실패마다 그렇게 판단한 이유를 붙임
   methods:
     judge/H8d: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+- id: H8f
+  stage: 5
+  kind: A
+  text: 마지막 실행에서도 실패하는 baseline 실패 테스트를 모두 05 Pre-existing failures에 적음
+  methods:
+    check/e5_preexisting_listed: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
 - id: H8e
   stage: 5
   kind: E
@@ -999,9 +1071,9 @@ rules:
   methods:
     judge/H9b: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
 - id: H10
-  stage: 5
+  stage: 0
   kind: P
-  text: 무한 재시도하지 않고, 진전이 없으면 Outstanding에 남기고 멈춤
+  text: 무한 재시도하지 않음 (진전이 없으면 멈춤)
   methods:
     atom/H10: [SHELLCLS, EDIT, WRITE]
 - id: H11
@@ -1063,6 +1135,12 @@ rules:
   excluded:
     why: a flag, in no score
     detail: patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)
+- id: H17
+  stage: 5
+  kind: P
+  text: 빌드·재현·기존 테스트가 모두 통과하면 5단계에서 소스를 더 고치지 않고 05를 씀
+  methods:
+    atom/H17: [EDIT, TEST, SCRIPT, EXIT, CMDMATCH, WRITE]
 - id: S5.bresult
   stage: 5
   kind: F
@@ -1151,29 +1229,29 @@ lines:
 - {at: 'SP:64', text: 1. Read /ai-dlc/core-workflow.md before taking any other action on the task., rules: [A1]}
 - {at: 'SP:65', text: 2. It names the rule detail file that governs each stage. Load that file from, rules: [A2]}
 - {at: 'SP:66', text: '/ai-dlc/rule-details/ as the first step of the stage it governs, and execute', rules: [A2]}
-- {at: 'SP:67', text: the stage from that file., rules: [A2]}
-- {at: 'SP:68', text: '3. Load one rule detail file at a time, immediately before its stage. Do not read', rules: [A3a]}
+- {at: 'SP:67', text: the stage from that file., rules: [A2], dup: A5}
+- {at: 'SP:68', text: '3. Load one rule detail file at a time, immediately before its stage. Do not read', rules: [A3a], dup: A2}
 - {at: 'SP:69', text: ahead to a later stage's rule detail file., rules: [A3b]}
 - {at: 'SP:70', text: '4. Every stage ends by writing its artifact to the path core-workflow.md specifies,', rules: [B1]}
 - {at: 'SP:71', text: after that stage's Completion Criteria are met., rules: [B3b]}
 - {at: 'CW:3', text: '**This workflow OVERRIDES all other built-in workflows.** When resolving a reported issue in an existing repository, follow this workflow rather than any default approach.', rules: [A5]}
-- {at: 'CW:7', text: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection, and no adaptive planning.', rules: [C1]}
+- {at: 'CW:7', text: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection, and no adaptive planning.', rules: [C1a, C1b]}
 - {at: 'CW:11', text: '**CRITICAL**: Each stage below names the rule detail file that governs it. Load that file as the first step of the stage, and execute the stage from it.', rules: [A2]}
 - {at: 'CW:13', text: '**Path resolution**: rule detail paths are relative to the directory containing this file. Check these paths in order and use the first one that exists, regardless of which IDE or setup method was used:', rules: [A4]}
 - {at: 'CW:14', text: '- `rule-details/` (alongside this file)', rules: [A4]}
 - {at: 'CW:15', text: '- `.swe-bench-pro/rule-details/`', rules: [A4]}
 - {at: 'CW:16', text: '- `.claude/swe-bench-pro-workflow/rule-details/`', rules: [A4]}
 - {at: 'CW:18', text: '**Load one file at a time, immediately before its stage.** Do NOT read a stage''s rule detail file until the previous stage''s Completion Criteria are met. Reading ahead places later-stage instructions in context before the baseline is recorded, and that ordering is what this workflow depends on.', rules: [A3a, A3b]}
-- {at: 'CW:22', text: '**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output.', rules: [B1]}
-- {at: 'CW:24', text: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename. Stage 1 writes `/tmp/swe-bench-pro/01-reverse-engineering.md`; Stage 5 writes `/tmp/swe-bench-pro/05-build-and-test.md`. `mkdir -p` the directory before the first write. It sits outside the repository, so no artifact can reach the final diff.', rules: [B2]}
-- {at: 'CW:28', text: '- **One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends, no placeholder to fill in later', rules: [B3a, B3b]}
+- {at: 'CW:22', text: '**Every stage ends by writing its result to a file**, in the format its rule detail file specifies — not as chat output.', rules: [B1], dup: B5b}
+- {at: 'CW:24', text: '**Artifact path**: `/tmp/swe-bench-pro/` + the stage''s rule detail filename. Stage 1 writes `/tmp/swe-bench-pro/01-reverse-engineering.md`; Stage 5 writes `/tmp/swe-bench-pro/05-build-and-test.md`. `mkdir -p` the directory before the first write. It sits outside the repository, so no artifact can reach the final diff.', rules: [B2, B2b]}
+- {at: 'CW:28', text: '- **One write, full content, at the end of the stage**, after its Completion Criteria are met. No appends, no placeholder to fill in later', rules: [B3a, B3b, B3c]}
 - {at: 'CW:29', text: '- **Never rewrite an earlier stage''s artifact.** A later stage that contradicts an earlier one records that in its own artifact — as a deviation, a correction, or a pre-existing failure', rules: [B4a, B4b]}
 - {at: 'CW:30', text: '- **Keep the prescribed skeleton exactly** — frontmatter keys, `##` headings, field prefixes. A renamed or omitted heading makes the stage unverifiable even when the work behind it was done', rules: [B5a, B5b, B5c]}
 - {at: 'CW:31', text: '- **Frontmatter is these two keys and no others:**', rules: [B6a]}
-- {at: 'CW:34', text: '---', skip: frontmatter 예시 구분선}
+- {at: 'CW:34', text: '---', dup: B6a}
 - {at: 'CW:35', text: 'stage: <1-5>', rules: [B6b]}
 - {at: 'CW:36', text: 'name: <reverse-engineering | requirements-analysis | code-generation-planning | code-generation-generation | build-and-test>', rules: [B6c]}
-- {at: 'CW:37', text: '---', skip: frontmatter 예시 구분선}
+- {at: 'CW:37', text: '---', dup: B6a}
 - {at: 'CW:40', text: 'The artifact''s existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else.', rules: [B3b, B7]}
 - {at: 'CW:42', text: '- **Do not re-read an artifact you can still see.** The result is already in context; re-reading duplicates the largest artifacts where context is already largest. Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased', rules: [B8, B9]}
 - {at: 'CW:43', text: '- **Read an artifact only to recover**, when an earlier stage''s content is no longer visible because output was truncated or history was compacted', rules: [B8]}
@@ -1201,42 +1279,42 @@ lines:
 - {at: 'CW:71', text: '**No stage returns to an earlier stage.** When a plan proves wrong during generation, or a fix is needed during verification, it is handled inside the stage where it surfaced and the deviation is recorded in that stage''s artifact. Cycling between stages repeats the same reasoning with the same context and risks never terminating.', rules: [C2, B4b]}
 - {at: 'CW:75', text: '**Consumes**: Task description', skip: 단계가 입력으로 쓰는 것 (설명)}
 - {at: 'CW:77', text: 1. Load all steps from `01-reverse-engineering.md`, dup: A2}
-- {at: 'CW:78', text: '2. Execute them: identify the affected scope, determine the build and targeted test commands, locate and read the existing covering tests', dup: D1a}
-- {at: 'CW:79', text: '3. **MANDATORY**: Record the baseline pass/fail state by executing those tests **before any source file is modified**', dup: D11a}
+- {at: 'CW:78', text: '2. Execute them: identify the affected scope, determine the build and targeted test commands, locate and read the existing covering tests', dup: [D1a, D6, D7a, D7b, D10a, D10b, D10c]}
+- {at: 'CW:79', text: '3. **MANDATORY**: Record the baseline pass/fail state by executing those tests **before any source file is modified**', dup: [D11a, D12a, D12c, D12d]}
 - {at: 'CW:80', text: 4. Verify the Completion Criteria in that file are met, skip: 완료 기준 확인 (각 기준은 단계 문서에서 따로)}
-- {at: 'CW:81', text: '5. Write `/tmp/swe-bench-pro/01-reverse-engineering.md`: Affected Scope (paths, owning module, language/framework), Build & Test Commands, Existing Tests, Baseline', dup: S1.files}
-- {at: 'CW:82', text: 6. Proceed to Stage 2, dup: C1}
-- {at: 'CW:84', text: '**This stage must run first because of the baseline.** It is recorded before any modification and consumed in Stage 5. Once source code has changed, a failing test cannot be attributed to the patch or to a pre-existing condition, and that distinction cannot be recovered afterwards.', rules: [D11b]}
+- {at: 'CW:81', text: '5. Write `/tmp/swe-bench-pro/01-reverse-engineering.md`: Affected Scope (paths, owning module, language/framework), Build & Test Commands, Existing Tests, Baseline', dup: [S1.files, B2, S1.module, S1.lang, S1.build, S1.test, S1.tpath, S1.contract, S1.passing, S1.failing]}
+- {at: 'CW:82', text: 6. Proceed to Stage 2, dup: [C1a, C1b]}
+- {at: 'CW:84', text: '**This stage must run first because of the baseline.** It is recorded before any modification and consumed in Stage 5. Once source code has changed, a failing test cannot be attributed to the patch or to a pre-existing condition, and that distinction cannot be recovered afterwards.', rules: [D11b], dup: [H4a, H7, H5b]}
 - {at: 'CW:88', text: '**Consumes**: Task description, the Stage 1 result (Affected Scope, Build & Test Commands, Existing Tests, Baseline)', skip: 단계가 입력으로 쓰는 것 (설명)}
 - {at: 'CW:90', text: 1. Load all steps from `02-requirements-analysis.md`, dup: A2}
-- {at: 'CW:91', text: '2. Execute them: derive numbered requirements in all three categories — Functional, Non-Functional, Edge Cases & Error Handling', dup: E5}
+- {at: 'CW:91', text: '2. Execute them: derive numbered requirements in all three categories — Functional, Non-Functional, Edge Cases & Error Handling', dup: [E5a, E5b, S2.fr, S2.nfr, S2.edge, E3c]}
 - {at: 'CW:92', text: 3. Record every assumption made in place of a clarifying question, dup: E9}
 - {at: 'CW:93', text: 4. Verify the Completion Criteria in that file are met, skip: 완료 기준 확인}
-- {at: 'CW:94', text: '5. Write `/tmp/swe-bench-pro/02-requirements-analysis.md`: requirements `R1`, `R2`, ... and the recorded assumptions', dup: E3c}
-- {at: 'CW:95', text: 6. Proceed to Stage 3, dup: C1}
+- {at: 'CW:94', text: '5. Write `/tmp/swe-bench-pro/02-requirements-analysis.md`: requirements `R1`, `R2`, ... and the recorded assumptions', dup: [E3c, B1, S2.assume, E9]}
+- {at: 'CW:95', text: 6. Proceed to Stage 3, dup: [C1a, C1b]}
 - {at: 'CW:99', text: '**Consumes**: the Stage 1 result, the Stage 2 requirements (`R1`, `R2`, ...)', skip: 단계가 입력으로 쓰는 것 (설명)}
 - {at: 'CW:101', text: 1. Load all steps from `03-code-generation-planning.md`, dup: A2}
-- {at: 'CW:102', text: '2. Execute them: produce a numbered plan in which every step names its target files, the change, the contracts to preserve, its verification, and its requirement tag', dup: S3.target}
-- {at: 'CW:103', text: 3. Plan the reproduction script and record its path, dup: S3.rpath}
-- {at: 'CW:104', text: '4. Verify the Completion Criteria in that file are met — in particular, that every requirement is covered and no step targets a test file', dup: F5}
+- {at: 'CW:102', text: '2. Execute them: produce a numbered plan in which every step names its target files, the change, the contracts to preserve, its verification, and its requirement tag', dup: [S3.target, F1b, S3.change, S3.contract, S3.verify, S3.tag]}
+- {at: 'CW:103', text: 3. Plan the reproduction script and record its path, dup: [S3.rpath, F4a, F2e, S3.exercises]}
+- {at: 'CW:104', text: '4. Verify the Completion Criteria in that file are met — in particular, that every requirement is covered and no step targets a test file', dup: [F5, F7]}
 - {at: 'CW:105', text: '5. Write `/tmp/swe-bench-pro/03-code-generation-planning.md`: the numbered plan', dup: B1}
-- {at: 'CW:106', text: 6. Proceed to Stage 4, dup: C1}
+- {at: 'CW:106', text: 6. Proceed to Stage 4, dup: [C1a, C1b]}
 - {at: 'CW:110', text: '**Consumes**: the Stage 3 plan, with the reproduction script path', skip: 단계가 입력으로 쓰는 것 (설명)}
 - {at: 'CW:112', text: 1. Load all steps from `04-code-generation-generation.md`, dup: A2}
-- {at: 'CW:113', text: '2. Execute every plan step: modify the source files in place and write the reproduction script, executing neither yet', dup: G1b}
+- {at: 'CW:113', text: '2. Execute every plan step: modify the source files in place and write the reproduction script, executing neither yet', dup: [G1b, G3b, G7a, G7b], rules: [G7c]}
 - {at: 'CW:114', text: '3. Record any deviation from the plan, with what changed and why', dup: G8a}
-- {at: 'CW:115', text: '4. Verify the Completion Criteria in that file are met — in particular, that no duplicate file was created and no test file was modified', dup: G3b}
-- {at: 'CW:116', text: '5. Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations', dup: S4.modified}
-- {at: 'CW:117', text: 6. Proceed to Stage 5, dup: C1}
+- {at: 'CW:115', text: '4. Verify the Completion Criteria in that file are met — in particular, that no duplicate file was created and no test file was modified', dup: [G3b, D13]}
+- {at: 'CW:116', text: '5. Write `/tmp/swe-bench-pro/04-code-generation-generation.md`: modified files, created files, deviations', dup: [S4.modified, B2, S4.created, S4.deviations, S4.modified_real, S4.modified_all]}
+- {at: 'CW:117', text: 6. Proceed to Stage 5, dup: [C1a, C1b]}
 - {at: 'CW:121', text: '**Consumes**: every earlier stage''s result, especially the Stage 1 baseline', skip: 단계가 입력으로 쓰는 것 (설명)}
 - {at: 'CW:123', text: 1. Load all steps from `05-build-and-test.md`, dup: A2}
-- {at: 'CW:124', text: '2. Execute them: build, run the reproduction script, then re-run the existing covering tests and compare against the Stage 1 baseline', dup: H1b}
-- {at: 'CW:125', text: '3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning', rules: [H8e, H8d]}
+- {at: 'CW:124', text: '2. Execute them: build, run the reproduction script, then re-run the existing covering tests and compare against the Stage 1 baseline', dup: [H1b, H2, H4b, H4a, H5a, H5b]}
+- {at: 'CW:125', text: '3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning', rules: [H8e, H8d, H8f]}
 - {at: 'CW:126', text: 4. Verify the Completion Criteria in that file are met, skip: 완료 기준 확인}
-- {at: 'CW:127', text: '5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures', dup: S5.bresult}
+- {at: 'CW:127', text: '5. Write `/tmp/swe-bench-pro/05-build-and-test.md`: build result, reproduction result, regression verdict, outstanding failures', dup: [S5.bresult, B2, S5.rresult, S5.verdict, S5.outstanding, H1b, H2, H5a]}
 - {at: 'CW:128', text: 6. Produce the final diff, rules: [H16]}
-- {at: 'CW:132', text: '- **No user interaction.** Never generate a question file, never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption', rules: [E10a, E10b, E9]}
-- {at: 'CW:133', text: '- **Artifacts, not documents.** This workflow produces no design or report document for a reader. Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage''s result', rules: [B10]}
+- {at: 'CW:132', text: '- **No user interaction.** Never generate a question file, never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption', rules: [E10a, E10b, E9, E10c]}
+- {at: 'CW:133', text: '- **Artifacts, not documents.** This workflow produces no design or report document for a reader. Each stage writes one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage''s result', rules: [B10, B11], dup: [B5b, B5a, B5c]}
 - {at: 'CW:134', text: '- **The environment can already build and test the project.** Do not spend effort on environment setup', rules: [D9]}
 - {at: 'CW:135', text: '- **No one will interrupt a loop.** No loop may run indefinitely', rules: [H10]}
 - {at: 'CW:140', text: '- **MODIFY**: application source code in the repository', rules: [G4a]}
@@ -1244,17 +1322,17 @@ lines:
 - {at: 'CW:142', text: '- Existing tests are **read and executed**, never edited. New behavior is verified with a **reproduction script**', rules: [D13, G4b]}
 - {at: 'CW:145', text: '- Check whether a file exists before writing it', rules: [G3a]}
 - {at: 'CW:146', text: '- If it exists, modify it **in place**. Never create a duplicate variant such as `module_new.py` or `ClassName_modified.java`', rules: [G3b]}
-- {at: 'CW:147', text: '- Verify after each step that no duplicate was produced', skip: '자기 확인 (관찰 불가, 결과는 G3b)'}
+- {at: 'CW:147', text: '- Verify after each step that no duplicate was produced', dup: G3b}
 - {at: 'CW:150', text: '- The change must resolve the reported issue **and** leave every previously passing test passing', rules: [G6a, G6b]}
 - {at: 'CW:151', text: '- Changing a public signature or return shape breaks callers and the tests that cover them, even when the reported issue is resolved', skip: G5의 이유}
-- {at: 'CW:152', text: '- Stage 3 names the contracts to preserve; Stage 4 preserves them; Stage 5 verifies the outcome against the baseline', rules: [G5]}
+- {at: 'CW:152', text: '- Stage 3 names the contracts to preserve; Stage 4 preserves them; Stage 5 verifies the outcome against the baseline', rules: [G5], dup: [F2d, S3.contract, H5a, H5b]}
 - {at: 'CW:155', text: 'Record each of the following in the artifact of the stage where it arises:', skip: 목록 머리말}
 - {at: 'CW:156', text: '- Assumptions made in place of asking a question — Stage 2', dup: E9}
 - {at: 'CW:157', text: '- Deviations from the plan, with what changed and why — Stage 4', dup: G8a}
-- {at: 'CW:158', text: '- Failures judged to be pre-existing rather than caused by the patch, with the reasoning — Stage 5', dup: H8d}
+- {at: 'CW:158', text: '- Failures judged to be pre-existing rather than caused by the patch, with the reasoning — Stage 5', dup: [H8d, H8f]}
 - {at: 'CW:159', text: '- Outstanding failures at the end of the run — Stage 5', dup: H11}
 - {at: 'CW:162', text: '- No loop runs indefinitely: this covers the fix-and-re-verify loop and any correction during generation', dup: H10}
-- {at: 'CW:163', text: '- When further attempts stop producing progress, record what remains under Outstanding Failures in the Stage 5 artifact and move on rather than continuing', dup: H10}
+- {at: 'CW:163', text: '- When further attempts stop producing progress, record what remains under Outstanding Failures in the Stage 5 artifact and move on rather than continuing', dup: [H10, H11]}
 - {at: 'S1:3', text: '**Purpose**: Understand the parts of the existing codebase that the reported issue touches, and record a regression baseline before any code is modified', skip: 목적}
 - {at: 'S1:5', text: '**Artifact**: `/tmp/swe-bench-pro/01-reverse-engineering.md`', dup: B2}
 - {at: 'S1:8', text: '- The task description (PR/issue text) is available', skip: 전제}
@@ -1271,33 +1349,33 @@ lines:
 - {at: 'S1:28', text: '- [ ] Prefer output-reducing flags (for example `-q`, `--tb=short`) so that results remain readable', rules: [D8]}
 - {at: 'S1:30', text: '**Do NOT** plan dependency installation or environment setup — the environment can already build and test the project.', rules: [D9]}
 - {at: 'S1:34', text: '- [ ] Locate the existing tests that cover the affected scope', rules: [D10a]}
-- {at: 'S1:35', text: '- [ ] Read them to understand the contract the affected code must honor — expected signatures, return shapes, raised errors', rules: [D10b]}
+- {at: 'S1:35', text: '- [ ] Read them to understand the contract the affected code must honor — expected signatures, return shapes, raised errors', rules: [D10b, D10c]}
 - {at: 'S1:36', text: '- [ ] **MANDATORY**: Execute those tests once, **before any source file is modified**', rules: [D11a]}
 - {at: 'S1:37', text: '- [ ] Record which of them pass and which already fail', rules: [D12a, D11c, D12c, D12d]}
 - {at: 'S1:39', text: '**CRITICAL**: This baseline is the only means of later distinguishing a regression you introduced from a failure that already existed. A test that was already failing is outside the scope of this task; pursuing it spends effort on unrelated code and risks introducing a real regression. Once source files have changed, this distinction cannot be recovered.', rules: [H8c]}
 - {at: 'S1:41', text: '**Note**: Existing tests are read and executed here. They are **never modified**', dup: D13}
-- {at: 'S1:45', text: '- [ ] Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write, with the full content below', dup: B3a}
+- {at: 'S1:45', text: '- [ ] Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write, with the full content below', dup: [B3a, B3c]}
 - {at: 'S1:47', text: 'Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.', rules: [B5a, B5b, B5c, B5d]}
-- {at: 'S1:50', text: '---', skip: frontmatter 구분선}
+- {at: 'S1:50', text: '---', dup: B6a}
 - {at: 'S1:51', text: 'stage: 1', dup: B6b}
 - {at: 'S1:52', text: 'name: reverse-engineering', dup: B6c}
-- {at: 'S1:53', text: '---', skip: frontmatter 구분선}
+- {at: 'S1:53', text: '---', dup: B6a}
 - {at: 'S1:55', text: '## Affected Scope', dup: B5b}
-- {at: 'S1:56', text: '- Files: [full paths from the repository root, one per line]', rules: [S1.files, D5]}
-- {at: 'S1:57', text: '- Owning module: [module or package, and its boundary in the repository]', rules: [S1.module]}
-- {at: 'S1:58', text: '- Language/framework: [as it follows from the files above]', rules: [S1.lang]}
+- {at: 'S1:56', text: '- Files: [full paths from the repository root, one per line]', rules: [S1.files, D5, D5b]}
+- {at: 'S1:57', text: '- Owning module: [module or package, and its boundary in the repository]', rules: [S1.module], dup: D3}
+- {at: 'S1:58', text: '- Language/framework: [as it follows from the files above]', rules: [S1.lang], dup: D4a}
 - {at: 'S1:60', text: '## Build & Test Commands', dup: B5b}
-- {at: 'S1:61', text: '- Build: [verbatim build or type-check command | not applicable]', rules: [S1.build]}
-- {at: 'S1:62', text: '- Test: [verbatim targeted test command for the covering tests]', rules: [S1.test, D7b]}
+- {at: 'S1:61', text: '- Build: [verbatim build or type-check command | not applicable]', rules: [S1.build], dup: D6}
+- {at: 'S1:62', text: '- Test: [verbatim targeted test command for the covering tests]', rules: [S1.test, D7b], dup: D7a}
 - {at: 'S1:64', text: '## Existing Tests', dup: B5b}
-- {at: 'S1:65', text: '- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]', rules: [S1.tpath, S1.contract]}
+- {at: 'S1:65', text: '- Path: [full path] — Contract: [signatures, return shapes, raised errors it enforces]', rules: [S1.tpath, S1.contract], dup: [D5, D10b, D10c]}
 - {at: 'S1:67', text: '## Baseline', dup: B5b}
 - {at: 'S1:68', text: Recorded before any source file was modified., rules: [S1.recorded]}
-- {at: 'S1:69', text: '- Passing: [test id, one per line | none]', rules: [S1.passing, D12b]}
-- {at: 'S1:70', text: '- Failing: [test id, one per line | none]', rules: [S1.failing, D12b]}
-- {at: 'S1:74', text: '- Affected scope identified, with full paths and owning module', dup: D3}
-- {at: 'S1:75', text: '- Build/type-check command and a targeted test command known', dup: D7a}
-- {at: 'S1:76', text: '- Existing covering tests located and read', dup: D10b}
+- {at: 'S1:69', text: '- Passing: [test id, one per line | none]', rules: [S1.passing, D12b, D12e]}
+- {at: 'S1:70', text: '- Failing: [test id, one per line | none]', rules: [S1.failing, D12b], dup: D12c}
+- {at: 'S1:74', text: '- Affected scope identified, with full paths and owning module', dup: [D3, D5, D1a]}
+- {at: 'S1:75', text: '- Build/type-check command and a targeted test command known', dup: [D7a, D6]}
+- {at: 'S1:76', text: '- Existing covering tests located and read', dup: [D10b, D10a, D10c]}
 - {at: 'S1:77', text: '- Baseline pass/fail state recorded **before** any modification, with each test named individually', rules: [D11a, D12b, D11c]}
 - {at: 'S1:78', text: '- `/tmp/swe-bench-pro/01-reverse-engineering.md` written in the prescribed skeleton', dup: B5b}
 - {at: 'S2:3', text: '**Purpose**: Convert the task description into an explicit, numbered set of requirements that the patch must satisfy', skip: 목적}
@@ -1308,19 +1386,19 @@ lines:
 - {at: 'S2:16', text: '- [ ] Use the Reverse Engineering result as context for how the described behavior maps onto actual code and onto the contract enforced by existing tests', rules: [E2]}
 - {at: 'S2:20', text: '**MANDATORY**: Express every requirement as a single, verifiable statement, identified as `R1`, `R2`, `R3`, and so on. A requirement is verifiable when it can be checked either by running a reproduction script or by running existing tests. A requirement that cannot be checked by either means is out of scope.', rules: [E3a, E3b, E3c]}
 - {at: 'S2:22', text: 'Number the requirements in one sequence across all three categories, so that each identifier is unique in the artifact and can be traced from Stage 3 onward.', rules: [E4a, E4b]}
-- {at: 'S2:24', text: 'Evaluate all three categories:', rules: [E5]}
+- {at: 'S2:24', text: 'Evaluate all three categories:', rules: [E5a, E5b]}
 - {at: 'S2:27', text: '- The behavior the affected code must exhibit once the issue is resolved', rules: [E6a]}
 - {at: 'S2:28', text: '- The behavior it must continue to exhibit — contracts visible in existing tests that the change must not break', rules: [E6b]}
 - {at: 'S2:31', text: '- Constraints on how the behavior must be achieved — complexity or memory bounds', rules: [E7a]}
 - {at: 'S2:32', text: '- Only what the task description states; often nothing', rules: [E7b]}
 - {at: 'S2:35', text: '- Boundary values, empty and null inputs, invalid inputs, and type or range limits', rules: [E8a]}
 - {at: 'S2:36', text: '- Error paths: which condition must raise, which must be handled, and what the observable result is', rules: [E8b]}
-- {at: 'S2:40', text: '- [ ] Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write, with the full content below', dup: B3a}
-- {at: 'S2:42', text: 'Keep the frontmatter keys, the `##` headings, and the `- Rn:` prefix exactly as given. Replace only the bracketed text.', dup: B5c}
-- {at: 'S2:45', text: '---', skip: frontmatter 구분선}
+- {at: 'S2:40', text: '- [ ] Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write, with the full content below', dup: [B3a, B3c]}
+- {at: 'S2:42', text: 'Keep the frontmatter keys, the `##` headings, and the `- Rn:` prefix exactly as given. Replace only the bracketed text.', dup: [B5c, B5a, B5b, B5d]}
+- {at: 'S2:45', text: '---', dup: B6a}
 - {at: 'S2:46', text: 'stage: 2', dup: B6b}
 - {at: 'S2:47', text: 'name: requirements-analysis', dup: B6c}
-- {at: 'S2:48', text: '---', skip: frontmatter 구분선}
+- {at: 'S2:48', text: '---', dup: B6a}
 - {at: 'S2:50', text: '## Functional Requirements', dup: B5b}
 - {at: 'S2:51', text: '- R1: [statement]', rules: [S2.fr]}
 - {at: 'S2:52', text: '- R2: [statement]', rules: [S2.fr]}
@@ -1331,9 +1409,9 @@ lines:
 - {at: 'S2:59', text: '- R5: [condition -> expected behavior]', rules: [S2.edge, E8c]}
 - {at: 'S2:61', text: '## Assumptions', dup: B5b}
 - {at: 'S2:62', text: '- [any ambiguity resolved by decision, with the reasoning]', rules: [S2.assume, E9]}
-- {at: 'S2:65', text: A dropped heading reads as an unevaluated category., dup: E5}
-- {at: 'S2:68', text: '- Every requirement stated as a numbered, verifiable item, uniquely identified across all categories', dup: E3b}
-- {at: 'S2:69', text: '- All three categories evaluated, each with its heading present', dup: E5}
+- {at: 'S2:65', text: A dropped heading reads as an unevaluated category., dup: [E5a, E5b]}
+- {at: 'S2:68', text: '- Every requirement stated as a numbered, verifiable item, uniquely identified across all categories', dup: [E3b, E4b]}
+- {at: 'S2:69', text: '- All three categories evaluated, each with its heading present', dup: [E5a, E5b]}
 - {at: 'S2:70', text: '- Assumptions made in place of clarifying questions recorded explicitly', dup: E9}
 - {at: 'S2:71', text: '- `/tmp/swe-bench-pro/02-requirements-analysis.md` written in the prescribed skeleton', dup: B5b}
 - {at: 'S3:3', text: '**Purpose**: Produce an explicit, numbered plan that resolves every requirement, and that can be executed step by step without further interpretation', skip: 목적}
@@ -1342,7 +1420,7 @@ lines:
 - {at: 'S3:9', text: '- Requirements Analysis is complete: the numbered requirements `R1`, `R2`, ... are established, and recorded in `/tmp/swe-bench-pro/02-requirements-analysis.md`', dup: A3b}
 - {at: 'S3:15', text: '**MANDATORY**: Create one or more explicit steps for each requirement. Number the steps sequentially. For every step, record:', rules: [F1a, F1b]}
 - {at: 'S3:17', text: '- [ ] **Target file(s)** — full path, and whether the file is modified in place or newly created.', rules: [S3.target, F2a, F2b]}
-- {at: 'S3:18', text: '- [ ] **Change** — what is added, altered, or removed', rules: [S3.change]}
+- {at: 'S3:18', text: '- [ ] **Change** — what is added, altered, or removed', rules: [S3.change], dup: F9a}
 - {at: 'S3:19', text: '- [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**, and any new interface this step introduces for later steps to use. If the task description specifies names, signatures, or file paths, use them exactly as given rather than choosing your own', rules: [S3.contract, F2d, F3]}
 - {at: 'S3:20', text: '- [ ] **Verification** — what the reproduction script must exercise to demonstrate this step is correct', rules: [S3.verify, F2e]}
 - {at: 'S3:21', text: '- [ ] **Requirement tag** — which requirement (`R1`, `R2`, ...) the step satisfies', rules: [S3.tag]}
@@ -1350,12 +1428,12 @@ lines:
 - {at: 'S3:27', text: '- [ ] Plan a script that reproduces the issue before the fix and demonstrates correct behavior after it', rules: [F4a]}
 - {at: 'S3:28', text: '- [ ] Include the conditions from the Edge Cases & Error Handling requirements', rules: [F4b]}
 - {at: 'S3:29', text: '- [ ] Record the path where the script will be written', rules: [S3.rpath]}
-- {at: 'S3:33', text: '- [ ] Write `/tmp/swe-bench-pro/03-code-generation-planning.md` in a single write, with the full content below', dup: B3a}
-- {at: 'S3:35', text: 'Keep the frontmatter keys, the `##` headings, the `### Step n [satisfies Rx]` step headings, and the field prefixes exactly as given. Replace only the bracketed text.', rules: [F2c]}
-- {at: 'S3:38', text: '---', skip: frontmatter 구분선}
+- {at: 'S3:33', text: '- [ ] Write `/tmp/swe-bench-pro/03-code-generation-planning.md` in a single write, with the full content below', dup: [B3a, B3c]}
+- {at: 'S3:35', text: 'Keep the frontmatter keys, the `##` headings, the `### Step n [satisfies Rx]` step headings, and the field prefixes exactly as given. Replace only the bracketed text.', rules: [F2c], dup: [B5a, B5b, B5c, B5d]}
+- {at: 'S3:38', text: '---', dup: B6a}
 - {at: 'S3:39', text: 'stage: 3', dup: B6b}
 - {at: 'S3:40', text: 'name: code-generation-planning', dup: B6c}
-- {at: 'S3:41', text: '---', skip: frontmatter 구분선}
+- {at: 'S3:41', text: '---', dup: B6a}
 - {at: 'S3:43', text: '## Plan', dup: B5b}
 - {at: 'S3:45', text: '### Step 1 [satisfies R1]', rules: [F2c]}
 - {at: 'S3:46', text: '- Target: [full path] (modify in place | create)', rules: [S3.target, F2a, F2b]}
@@ -1405,20 +1483,20 @@ lines:
 - {at: 'S4:27', text: '- [ ] Satisfy the requirement (`Rx`) the step is tagged with', rules: [G6a]}
 - {at: 'S4:28', text: '- [ ] Write the reproduction script at the path the plan records, and **do not execute it in this stage**', rules: [G7a, G7b]}
 - {at: 'S4:30', text: '**MANDATORY — do not modify test files.** They are the specification the change must satisfy; editing them removes the independent check that the change is correct and leaves false confidence that the work is verified.', rules: [D13]}
-- {at: 'S4:34', text: 'The plan is executed as written. When implementation reveals that the plan cannot be followed, adjust it **within this stage** and record what changed and why in this stage''s artifact. Do not return to Planning.', rules: [G8a, C2]}
+- {at: 'S4:34', text: 'The plan is executed as written. When implementation reveals that the plan cannot be followed, adjust it **within this stage** and record what changed and why in this stage''s artifact. Do not return to Planning.', rules: [G8a, C2], dup: [G1b, G1a]}
 - {at: 'S4:36', text: '- **Local correction** — the approach holds and only a detail is wrong, such as a function residing in a different file than the plan states. Note the correction and proceed', rules: [G8b]}
 - {at: 'S4:37', text: '- **Structural invalidation** — the approach itself does not work, for example a requirement cannot be satisfied while preserving a contract the plan marked as preserved, or several steps become invalid at once. State which steps are invalidated, why, and what supersedes them', rules: [G8b, G8c]}
 - {at: 'S4:41', text: '- [ ] Note that the step is complete, and which requirement it satisfied', rules: [G9]}
-- {at: 'S4:42', text: '- [ ] **Verify no duplicate file was created** — no `module_new.py` beside `module.py`', skip: '자기 확인 (결과는 G3b, S4.checks)'}
-- {at: 'S4:43', text: '- [ ] Confirm no test file was modified', skip: '자기 확인 (결과는 D13, S4.checks)'}
+- {at: 'S4:42', text: '- [ ] **Verify no duplicate file was created** — no `module_new.py` beside `module.py`', dup: G3b}
+- {at: 'S4:43', text: '- [ ] Confirm no test file was modified', dup: D13}
 - {at: 'S4:47', text: '- [ ] If steps remain, return to Step 1', dup: G1b}
-- {at: 'S4:48', text: '- [ ] If every step is complete, write the artifact and proceed to Build and Test', rules: [G1b, B3b]}
-- {at: 'S4:52', text: '- [ ] Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below', dup: B3a}
-- {at: 'S4:54', text: 'Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.', dup: B5b}
-- {at: 'S4:57', text: '---', skip: frontmatter 구분선}
+- {at: 'S4:48', text: '- [ ] If every step is complete, write the artifact and proceed to Build and Test', rules: [G1b, B3b], dup: [C1a, C1b]}
+- {at: 'S4:52', text: '- [ ] Write `/tmp/swe-bench-pro/04-code-generation-generation.md` in a single write, with the full content below', dup: [B3a, B3c]}
+- {at: 'S4:54', text: 'Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.', dup: [B5b, B5a, B5c, B5d]}
+- {at: 'S4:57', text: '---', dup: B6a}
 - {at: 'S4:58', text: 'stage: 4', dup: B6b}
 - {at: 'S4:59', text: 'name: code-generation-generation', dup: B6c}
-- {at: 'S4:60', text: '---', skip: frontmatter 구분선}
+- {at: 'S4:60', text: '---', dup: B6a}
 - {at: 'S4:62', text: '## Changed Files', dup: B5b}
 - {at: 'S4:63', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags, S4.modified_real, S4.modified_all]}
 - {at: 'S4:64', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags, S4.modified_real, S4.modified_all]}
@@ -1430,19 +1508,19 @@ lines:
 - {at: 'S4:72', text: '- Step 1 [R1]: complete', rules: [G9]}
 - {at: 'S4:73', text: '- Step 2 [R2, R4]: complete', rules: [G9]}
 - {at: 'S4:75', text: '## Deviations from Plan', dup: B5b}
-- {at: 'S4:76', text: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and what supersedes them]', rules: [S4.deviations, G8b]}
+- {at: 'S4:76', text: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and what supersedes them]', rules: [S4.deviations, G8b], dup: [G8a, B4b]}
 - {at: 'S4:78', text: '## Checks', dup: B5b}
 - {at: 'S4:79', text: '- Duplicate files created: none', rules: [S4.dupcheck]}
 - {at: 'S4:80', text: '- Test files modified: none', rules: [S4.testcheck]}
 - {at: 'S4:84', text: '- Every plan step executed', dup: G1b}
 - {at: 'S4:85', text: '- Every requirement (`R1`, `R2`, ...) implemented', dup: G6a}
-- {at: 'S4:86', text: '- Source code modified and the reproduction script written, with neither executed yet', rules: [G7b]}
+- {at: 'S4:86', text: '- Source code modified and the reproduction script written, with neither executed yet', rules: [G7b, G7c], dup: [G7a, G1b]}
 - {at: 'S4:87', text: '- No duplicate files created', dup: G3b}
 - {at: 'S4:88', text: '- No test file modified', dup: D13}
-- {at: 'S4:89', text: '- `/tmp/swe-bench-pro/04-code-generation-generation.md` written in the prescribed skeleton, listing modified and created files and any deviation from the plan', dup: S4.modified}
+- {at: 'S4:89', text: '- `/tmp/swe-bench-pro/04-code-generation-generation.md` written in the prescribed skeleton, listing modified and created files and any deviation from the plan', dup: [S4.modified, B5b]}
 - {at: 'S5:3', text: '**Purpose**: Build the change, verify that it resolves the issue, and confirm that it introduces no regression', skip: 목적}
 - {at: 'S5:5', text: '**Artifact**: `/tmp/swe-bench-pro/05-build-and-test.md`', dup: B2}
-- {at: 'S5:8', text: '- Code Generation is complete: source modified and the reproduction script written but not executed, recorded in `/tmp/swe-bench-pro/04-code-generation-generation.md`', dup: A3b}
+- {at: 'S5:8', text: '- Code Generation is complete: source modified and the reproduction script written but not executed, recorded in `/tmp/swe-bench-pro/04-code-generation-generation.md`', dup: [A3b, G7b]}
 - {at: 'S5:9', text: '- Reverse Engineering is complete: the build and test commands and the baseline — which covering tests passed, and which already failed — recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`', dup: A3b}
 - {at: 'S5:11', text: '**The baseline and the test command are established, not re-derived.** Use them as Reverse Engineering recorded them. Read `/tmp/swe-bench-pro/01-reverse-engineering.md` only if that content is no longer visible — never re-run the tests to reconstruct a baseline, because the source has since changed and the result would no longer be a baseline.', rules: [H4a, H7, B8]}
 - {at: 'S5:17', text: '- [ ] Run the build or type-check command Reverse Engineering recorded', rules: [H1a, H1b]}
@@ -1458,34 +1536,34 @@ lines:
 - {at: 'S5:36', text: '- [ ] Run the **same selection** that produced the baseline', rules: [H4a]}
 - {at: 'S5:37', text: '- [ ] **MANDATORY**: Compare the result against the recorded baseline', rules: [H5a, H5b]}
 - {at: 'S5:39', text: '**Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated by conditions unrelated to the change.', rules: [H6]}
-- {at: 'S5:43', text: 'If the build succeeded and both Step 2 and Step 3 passed, nothing has failed — skip to Step 6 and write the artifact. Steps 4 and 5 apply only to a failure.', skip: 흐름 안내 (실패가 없으면 6단계로)}
+- {at: 'S5:43', text: 'If the build succeeded and both Step 2 and Step 3 passed, nothing has failed — skip to Step 6 and write the artifact. Steps 4 and 5 apply only to a failure.', rules: [H17]}
 - {at: 'S5:45', text: '| Failure | Response |', skip: 표 머리글}
 - {at: 'S5:46', text: '|---|---|', skip: 표 구분선}
 - {at: 'S5:47', text: '| **Reproduction script failure** | The patch logic is wrong. Re-read the requirement and correct the source |', rules: [H8a]}
 - {at: 'S5:48', text: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved |', rules: [H8b]}
-- {at: 'S5:49', text: '| **Existing test failure that also failed in the baseline** | A pre-existing failure. **Do not fix it.** Record the reasoning that identifies it as pre-existing |', rules: [H8c, H8d]}
+- {at: 'S5:49', text: '| **Existing test failure that also failed in the baseline** | A pre-existing failure. **Do not fix it.** Record the reasoning that identifies it as pre-existing |', rules: [H8c, H8d, H8f], dup: H5b}
 - {at: 'S5:53', text: '- [ ] Correct the source code, never the tests', rules: [H8a, D13]}
 - {at: 'S5:54', text: '- [ ] Re-run the affected verification', rules: [H9a]}
 - {at: 'S5:55', text: '- [ ] Record what was changed and why', rules: [H9b]}
-- {at: 'S5:56', text: '- [ ] **MANDATORY**: Do not retry indefinitely. When further attempts stop producing progress, write the artifact with the outstanding failures and stop', rules: [H10]}
-- {at: 'S5:58', text: '**CRITICAL**: Fix within this stage; do not return to Planning or Generation. Repeating verification indefinitely, or cycling between stages, may never terminate, and nothing will interrupt it.', rules: [C2]}
-- {at: 'S5:62', text: '- [ ] Write `/tmp/swe-bench-pro/05-build-and-test.md` in a single write, with the full content below', dup: B3a}
-- {at: 'S5:64', text: 'Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.', dup: B5b}
-- {at: 'S5:67', text: '---', skip: frontmatter 구분선}
+- {at: 'S5:56', text: '- [ ] **MANDATORY**: Do not retry indefinitely. When further attempts stop producing progress, write the artifact with the outstanding failures and stop', rules: [H10], dup: H11}
+- {at: 'S5:58', text: '**CRITICAL**: Fix within this stage; do not return to Planning or Generation. Repeating verification indefinitely, or cycling between stages, may never terminate, and nothing will interrupt it.', rules: [C2], dup: H10}
+- {at: 'S5:62', text: '- [ ] Write `/tmp/swe-bench-pro/05-build-and-test.md` in a single write, with the full content below', dup: [B3a, B3c]}
+- {at: 'S5:64', text: 'Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text.', dup: [B5b, B5a, B5c, B5d]}
+- {at: 'S5:67', text: '---', dup: B6a}
 - {at: 'S5:68', text: 'stage: 5', dup: B6b}
 - {at: 'S5:69', text: 'name: build-and-test', dup: B6c}
-- {at: 'S5:70', text: '---', skip: frontmatter 구분선}
+- {at: 'S5:70', text: '---', dup: B6a}
 - {at: 'S5:72', text: '## Build', dup: B5b}
-- {at: 'S5:73', text: '- Result: [success | failure]', rules: [S5.bresult, H15a]}
-- {at: 'S5:74', text: '- Command: [the command run, verbatim]', rules: [S5.bcmd]}
+- {at: 'S5:73', text: '- Result: [success | failure]', rules: [S5.bresult, H15a], dup: H1b}
+- {at: 'S5:74', text: '- Command: [the command run, verbatim]', rules: [S5.bcmd], dup: H1b}
 - {at: 'S5:76', text: '## Reproduction Script', dup: B5b}
-- {at: 'S5:77', text: '- Result: [pass | fail]', rules: [S5.rresult, H15a]}
+- {at: 'S5:77', text: '- Result: [pass | fail]', rules: [S5.rresult, H15a], dup: H2}
 - {at: 'S5:78', text: '- Unmet requirements: [none | which requirement is unmet and how it fails]', rules: [S5.unmet, H15c]}
 - {at: 'S5:80', text: '## Existing Tests vs Baseline', dup: B5b}
-- {at: 'S5:81', text: '- Command: [the command run, verbatim — the same selection as the baseline]', rules: [S5.cmd, H4a]}
-- {at: 'S5:82', text: '- Verdict: [unchanged | regression resolved | pre-existing failures only]', rules: [S5.verdict, H15a, H15b]}
+- {at: 'S5:81', text: '- Command: [the command run, verbatim — the same selection as the baseline]', rules: [S5.cmd, H4a], dup: H4b}
+- {at: 'S5:82', text: '- Verdict: [unchanged | regression resolved | pre-existing failures only]', rules: [S5.verdict, H15a, H15b], dup: H5a}
 - {at: 'S5:83', text: '- Regressions: [none | test id -> what broke it -> how it was resolved]', rules: [S5.regress, H15b, H15d, H5a]}
-- {at: 'S5:84', text: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]', rules: [S5.pre, H8d, H15d, H5b]}
+- {at: 'S5:84', text: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]', rules: [S5.pre, H8d, H15d, H5b, H8f]}
 - {at: 'S5:86', text: '## Fixes Applied', dup: B5b}
 - {at: 'S5:87', text: '- [none | what changed and why]', rules: [S5.fixes, H9b]}
 - {at: 'S5:89', text: '## Outstanding Failures', dup: B5b}
@@ -1500,7 +1578,7 @@ lines:
 - {at: 'S5:104', text: '- [ ] Confirm no test file appears in the change', rules: [H14]}
 - {at: 'S5:106', text: 'Artifacts are not part of this check. They live under `/tmp/swe-bench-pro/`, outside the repository, and cannot reach the change. The reproduction script can, if it was written inside the repository — that is what this step exists to catch.', skip: H12의 이유}
 - {at: 'S5:109', text: '- Build succeeds', dup: H1b}
-- {at: 'S5:110', text: '- Reproduction script demonstrates the issue is resolved, including the edge cases and any stated constraints', dup: H3a}
-- {at: 'S5:111', text: '- Existing covering tests compared against the baseline, with any regression resolved and any pre-existing failure recorded with its reasoning', dup: H5a}
+- {at: 'S5:110', text: '- Reproduction script demonstrates the issue is resolved, including the edge cases and any stated constraints', dup: [H3a, H3b, H3c]}
+- {at: 'S5:111', text: '- Existing covering tests compared against the baseline, with any regression resolved and any pre-existing failure recorded with its reasoning', dup: [H5a, H8e, H8d, H8f]}
 - {at: 'S5:112', text: '- `/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton', dup: B5b}
-- {at: 'S5:113', text: '- Repository contains no unintended file, and no test file was modified', dup: H12}
+- {at: 'S5:113', text: '- Repository contains no unintended file, and no test file was modified', dup: [H12, D13]}

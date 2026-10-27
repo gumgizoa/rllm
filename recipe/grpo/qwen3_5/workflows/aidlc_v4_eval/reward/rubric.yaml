@@ -448,7 +448,7 @@ items:
     params:
       rule: B3a
   requirement: must
-  category: F
+  category: P
   rule: B3a
   availability: *id002
   derived_by: manual
@@ -470,7 +470,7 @@ items:
     params:
       rule: B4a
   requirement: must
-  category: F
+  category: R
   rule: B4a
   availability: *id002
   derived_by: manual
@@ -781,6 +781,30 @@ items:
     - 37
     - 37
     quote: '- [ ] Record which of them pass and which already fail'
+- id: check/e1_baseline_passing
+  scope: specific
+  class: evidence
+  stage: '1'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.claim
+    params:
+      check: e1_baseline_passing
+  requirement: must
+  category: A
+  rule: D12e
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S1
+    lines:
+    - 69
+    - 69
+    quote: '- Passing: [test id, one per line | none]'
 - id: check/e1_baseline_none
   scope: specific
   class: evidence
@@ -1233,6 +1257,41 @@ items:
     - 83
     - 83
     quote: '- Regressions: [none | test id -> what broke it -> how it was resolved]'
+- id: check/e5_preexisting_listed
+  scope: specific
+  class: evidence
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.claim
+    params:
+      check: e5_preexisting_listed
+  requirement: must
+  category: A
+  rule: H8f
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 125
+    - 125
+    quote: 3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning
+  - doc: S5
+    lines:
+    - 49
+    - 49
+    quote: '| **Existing test failure that also failed in the baseline** | A pre-existing failure. **Do not fix it.** Record
+      the reasoning that identifies it as pre-existing |'
+  - doc: S5
+    lines:
+    - 84
+    - 84
+    quote: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]'
 - id: check/c15_preexisting_subset
   scope: specific
   class: evidence
@@ -1246,7 +1305,7 @@ items:
     params:
       check: c15_preexisting_subset
   requirement: must
-  category: A
+  category: C
   rule: H5b
   availability:
   - trace
@@ -1767,6 +1826,30 @@ items:
     - 77
     - 77
     quote: '- Baseline pass/fail state recorded **before** any modification, with each test named individually'
+- id: atom/D5b
+  scope: specific
+  class: structure
+  stage: '1'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: D5b
+  requirement: must
+  category: F
+  rule: D5b
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S1
+    lines:
+    - 56
+    - 56
+    quote: '- Files: [full paths from the repository root, one per line]'
 - id: atom/E4a
   scope: specific
   class: structure
@@ -2292,6 +2375,31 @@ items:
     - 125
     - 125
     quote: 3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning
+- id: atom/H17
+  scope: specific
+  class: evidence
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: H17
+  requirement: must
+  category: P
+  rule: H17
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S5
+    lines:
+    - 43
+    - 43
+    quote: If the build succeeded and both Step 2 and Step 3 passed, nothing has failed — skip to Step 6 and write the artifact.
+      Steps 4 and 5 apply only to a failure.
 - id: atom/H9a
   scope: specific
   class: evidence
@@ -2331,6 +2439,31 @@ items:
   requirement: must
   category: R
   rule: B10
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 133
+    - 133
+    quote: '- **Artifacts, not documents.** This workflow produces no design or report document for a reader. Each stage writes
+      one artifact file, in the fixed skeleton its rule detail file specifies, as the record of that stage''s result'
+- id: atom/B11
+  scope: specific
+  class: structure
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: B11
+  requirement: must
+  category: F
+  rule: B11
   availability:
   - trace
   derived_by: manual
@@ -2500,6 +2633,36 @@ items:
     - 142
     - 142
     quote: '- Existing tests are **read and executed**, never edited. New behavior is verified with a **reproduction script**'
+- id: atom/G7c
+  scope: specific
+  class: evidence
+  stage: '4'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: G7c
+  requirement: must
+  category: R
+  rule: G7c
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 113
+    - 113
+    quote: '2. Execute every plan step: modify the source files in place and write the reproduction script, executing neither
+      yet'
+  - doc: S4
+    lines:
+    - 86
+    - 86
+    quote: '- Source code modified and the reproduction script written, with neither executed yet'
 - id: atom/D1b
   scope: specific
   class: content
@@ -2622,7 +2785,7 @@ items:
     params:
       rule: F4b
   requirement: must
-  category: Q
+  category: C
   rule: F4b
   availability:
   - trace
@@ -2697,6 +2860,31 @@ items:
     - 132
     quote: '- **No user interaction.** Never generate a question file, never ask for approval, never wait for input. Resolve
       ambiguity by deciding and recording the assumption'
+- id: atom/E10c
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: E10c
+  requirement: must
+  category: P
+  rule: E10c
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 132
+    - 132
+    quote: '- **No user interaction.** Never generate a question file, never ask for approval, never wait for input. Resolve
+      ambiguity by deciding and recording the assumption'
 - id: atom/G3a
   scope: specific
   class: evidence
@@ -2753,7 +2941,7 @@ items:
 - id: atom/H10
   scope: specific
   class: evidence
-  stage: '5'
+  stage: global
   target:
     type: action
     ref: run
@@ -4656,7 +4844,7 @@ items:
     - 68
     - 68
     quote: 3. Load one rule detail file at a time, immediately before its stage. Do not read
-- id: proc/C1@1
+- id: proc/C1a@1
   scope: specific
   class: evidence
   stage: '1'
@@ -4667,11 +4855,11 @@ items:
   check:
     kind: aidlc_v4_eval.procedure
     params:
-      rule: C1
+      rule: C1a
       stage: 1
   requirement: must
   category: P
-  rule: C1
+  rule: C1a
   availability:
   - trace
   derived_by: manual
@@ -4775,24 +4963,46 @@ items:
     - 71
     - 71
     quote: after that stage's Completion Criteria are met.
-- id: proc/C1@2
+- id: proc/C1a@2
   scope: specific
   class: evidence
   stage: '2'
-  target:
+  target: &id003
     type: action
     ref: run
     state: final
   check:
     kind: aidlc_v4_eval.procedure
     params:
-      rule: C1
+      rule: C1a
       stage: 2
   requirement: must
   category: P
-  rule: C1
-  availability:
+  rule: C1a
+  availability: &id004
   - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 7
+    - 7
+    quote: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection,
+      and no adaptive planning.'
+- id: proc/C1b@2
+  scope: specific
+  class: evidence
+  stage: '2'
+  target: *id003
+  check:
+    kind: aidlc_v4_eval.procedure
+    params:
+      rule: C1b
+      stage: 2
+  requirement: must
+  category: P
+  rule: C1b
+  availability: *id004
   derived_by: manual
   sources:
   - doc: CW
@@ -4926,24 +5136,46 @@ items:
     - 71
     - 71
     quote: after that stage's Completion Criteria are met.
-- id: proc/C1@3
+- id: proc/C1a@3
   scope: specific
   class: evidence
   stage: '3'
-  target:
+  target: &id005
     type: action
     ref: run
     state: final
   check:
     kind: aidlc_v4_eval.procedure
     params:
-      rule: C1
+      rule: C1a
       stage: 3
   requirement: must
   category: P
-  rule: C1
-  availability:
+  rule: C1a
+  availability: &id006
   - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 7
+    - 7
+    quote: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection,
+      and no adaptive planning.'
+- id: proc/C1b@3
+  scope: specific
+  class: evidence
+  stage: '3'
+  target: *id005
+  check:
+    kind: aidlc_v4_eval.procedure
+    params:
+      rule: C1b
+      stage: 3
+  requirement: must
+  category: P
+  rule: C1b
+  availability: *id006
   derived_by: manual
   sources:
   - doc: CW
@@ -5077,24 +5309,46 @@ items:
     - 71
     - 71
     quote: after that stage's Completion Criteria are met.
-- id: proc/C1@4
+- id: proc/C1a@4
   scope: specific
   class: evidence
   stage: '4'
-  target:
+  target: &id007
     type: action
     ref: run
     state: final
   check:
     kind: aidlc_v4_eval.procedure
     params:
-      rule: C1
+      rule: C1a
       stage: 4
   requirement: must
   category: P
-  rule: C1
-  availability:
+  rule: C1a
+  availability: &id008
   - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 7
+    - 7
+    quote: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection,
+      and no adaptive planning.'
+- id: proc/C1b@4
+  scope: specific
+  class: evidence
+  stage: '4'
+  target: *id007
+  check:
+    kind: aidlc_v4_eval.procedure
+    params:
+      rule: C1b
+      stage: 4
+  requirement: must
+  category: P
+  rule: C1b
+  availability: *id008
   derived_by: manual
   sources:
   - doc: CW
@@ -5228,24 +5482,46 @@ items:
     - 71
     - 71
     quote: after that stage's Completion Criteria are met.
-- id: proc/C1@5
+- id: proc/C1a@5
   scope: specific
   class: evidence
   stage: '5'
-  target:
+  target: &id009
     type: action
     ref: run
     state: final
   check:
     kind: aidlc_v4_eval.procedure
     params:
-      rule: C1
+      rule: C1a
       stage: 5
   requirement: must
   category: P
-  rule: C1
-  availability:
+  rule: C1a
+  availability: &id010
   - trace
+  derived_by: manual
+  sources:
+  - doc: CW
+    lines:
+    - 7
+    - 7
+    quote: '**The pipeline is fixed. Every stage always executes, in order.** There is no stage selection, no depth selection,
+      and no adaptive planning.'
+- id: proc/C1b@5
+  scope: specific
+  class: evidence
+  stage: '5'
+  target: *id009
+  check:
+    kind: aidlc_v4_eval.procedure
+    params:
+      rule: C1b
+      stage: 5
+  requirement: must
+  category: P
+  rule: C1b
+  availability: *id010
   derived_by: manual
   sources:
   - doc: CW
@@ -5402,7 +5678,7 @@ items:
     params:
       question: D10b
   requirement: must
-  category: E
+  category: Q
   rule: D10b
   availability:
   - trace
@@ -6144,15 +6420,19 @@ appendix:
     not applicable:
       A4: document lookup order
       A5: an overall instruction
+      B2b: 'an instrumental step: the edit tool makes the directory, and the artifact at its path is B1''s'
       G6a: resolve, the task verifier's
       G6b: the task verifier's tests
     covered by another rule's items:
       B2: B1 (the artifact at its fixed path)
+      B3c: the field items (a placeholder reads as an empty field) and B5b (a missing section)
       B5a: B6a (frontmatter keys)
       B5c: the per-field rules (field prefixes)
       B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
       B9: the reference checks (R ids, steps quoted as written)
-      E5: B5b@2 and the S2 fields (the three categories)
+      D10c: D10a (atom/D10a, check/e1_test_path_seen)
+      E5a: B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge)
+      E5b: judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases)
       F2c: the step parse behind the S3 fields and tags
       G1b: G9, G2
       G3b: H12, F8b, S4.dupcheck

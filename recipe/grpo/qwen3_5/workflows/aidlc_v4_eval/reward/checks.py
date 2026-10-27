@@ -129,9 +129,12 @@ def procedure_rules(read_step: dict, write_step: dict, invalid: set) -> list[tup
         out.append(("A3a", "P", 0, 1 - len(invalid) / 5))
     for k in range(1, 6):
         w, r, wprev = write_step.get(k), read[k], write_step.get(k - 1)
-        # The stage was carried out: its document read (however) before its artifact, the artifacts in order.
+        # C1a: the stage was carried out, its document read (however) before its artifact; C1b: in order, its
+        # artifact after the previous stage's (both written: a stage left out is C1a's)
         doc_read = read_step.get(f"0{k}") is not None and w is not None and read_step[f"0{k}"] < w
-        out.append(("C1", "P", k, 1.0 if doc_read and (k == 1 or (wprev is not None and wprev < w)) else 0.0))
+        out.append(("C1a", "P", k, 1.0 if doc_read else 0.0))
+        if k > 1 and w is not None and wprev is not None:
+            out.append(("C1b", "P", k, 1.0 if wprev < w else 0.0))
         if w is not None:  # the stage was done: was its document its first step?
             out.append(("A2", "P", k, 1.0 if r is not None and r < w and (wprev is None or r > wprev) else 0.0))
         if k > 1 and r is not None:  # no reading ahead of the previous stage's artifact
@@ -152,7 +155,7 @@ def _measurable() -> frozenset[str]:
     form = [f"form/{r}@{k}" for r in ("B1", "B6a", "B5b") for k in stages]
     form += [f"form/{rule}@{st}" for rule, (st, *_) in FIELDS.items()] + [f"form/{rule}@3" for rule in [*STEP_FIELDS, "S3.tag"]]
     form += ["form/E3c@2", "form/E4b@2"]
-    proc = ["proc/A3a@0", *(f"proc/{r}@{k}" for r in ("C1", "A2") for k in stages), *(f"proc/A3b@{k}" for k in range(2, 6)), *(f"proc/B3b@{k}" for k in range(1, 5))]
+    proc = ["proc/A3a@0", *(f"proc/{r}@{k}" for r in ("C1a", "A2") for k in stages), *(f"proc/{r}@{k}" for r in ("A3b", "C1b") for k in range(2, 6)), *(f"proc/B3b@{k}" for k in range(1, 5))]
     return frozenset([*(f"check/{k}" for k in CHECKS), *(f"rule/{k}" for k in RULE_CHECKS), *(f"atom/{k}" for k in ATOMIC), *form, *proc, "run/entry", "run/ran_real_test", "run/fidelity"])
 
 
