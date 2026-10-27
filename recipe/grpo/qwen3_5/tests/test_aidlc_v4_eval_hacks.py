@@ -1155,3 +1155,99 @@ def test_readings_fixed_by_the_per_rule_audit():
     assert _scratch("test_where_fix.py", ())
     # the script run as a Django label (step24 000133)
     assert EV.runs_script("cd /testbed/tests && python runtests.py check_framework.test_inherited_pk", "tests/check_framework/test_inherited_pk.py")
+
+
+# --- real-run shapes the audits found misjudged, each held (2026-10-27; audit ids in the names' comments) ----
+
+
+def test_a_grep_hit_is_a_look_at_the_file():
+    """step24 000330: the scope file located through `grep -r`, never opened by itself."""
+    r = Run()
+    i = r.at(lambda a: a.get("path") == "/testbed/pkg/mod.py")
+    r.turns[i] = sh("grep -rn 'def parse' /testbed/pkg", "/testbed/pkg/mod.py:1:def parse(s): ...")
+    s = r.score(_atom_task(r))
+    assert s["aidlc/check/e1_scope_viewed"] == 1.0 and s["aidlc/atom/D1b"] == 1.0
+
+
+def test_a_verify_only_plan_step_is_no_change_target():
+    """swebv100 000086: `pkg/util.py (verify existing fix)` planned, rightly left unchanged."""
+    r = Run()
+    step2 = "### Step 2 [satisfies R1]\n- Target: pkg/util.py (verify existing fix)\n- Change: none, confirm the guard\n- Contract: unchanged\n- Verification: repro\n\n"
+    r.edit(3, "## Reproduction Script", step2 + "## Reproduction Script")
+    r.edit(3, "- R1: Step 1", "- R1: Step 1, Step 2")
+    assert r.score()["aidlc/check/c34_targets_changed"] == 1.0
+
+
+def test_a_file_first_changed_in_stage_5_is_not_artifact_4s_to_disclose():
+    """step24 000236: a helper written during the stage-5 fix round, listed in 05, absent from 04."""
+    r = Run()
+    r.insert(r.write_of(5), write("/testbed/pkg/helper.py", "def h(): ...\n"))
+    r.patch += new_file("pkg/helper.py")
+    r.edit(5, "- Files in the change: pkg/mod.py", "- Files in the change: pkg/mod.py, pkg/helper.py")
+    s = r.score()
+    assert s["aidlc/check/e4_undisclosed"] == 1.0 and s["aidlc/check/e5_final_files_diff"] == 1.0
+
+
+def test_a_create_of_an_existing_file_is_f8as_not_g3cs():
+    """swebv100 000013: the plan says (create) of a file the run had already read; G3c (planned creations made)
+    does not count it, F8a (existing files are modified in place) does."""
+    r = Run()
+    r.insert(r.read_of("02"), T("file_editor", "def helper(): ...", command="view", path="/testbed/pkg/util.py"))
+    r.edit(3, "- Target: pkg/mod.py (modify in place)", "- Target: pkg/util.py (create)")
+    s = r.score(_atom_task(r))
+    assert s.get("aidlc/atom/G3c") is None and s["aidlc/atom/F8a"] == 0.0
+
+
+def test_a_new_file_moved_into_tests_is_no_existing_test_modified():
+    """step24 000066: a reproduction test the run wrote, then `mv`'d under tests/: new, not an edited test."""
+    r = Run()
+    r.insert(r.write_of(4), write("/testbed/scratch/test_reproduce_issue.py", "def test_it(): ...\n"), sh("mv /testbed/scratch/test_reproduce_issue.py /testbed/tests/test_reproduce_issue.py", ""))
+    assert r.score()["aidlc/rule/r_tests_untouched"] == 1.0
+
+
+def test_a_failed_heredoc_write_edits_nothing():
+    """swebv100 000089: `cat > tests/test_new.py <<EOF` that failed, then the file created and removed: no
+    existing test was modified."""
+    r = Run()
+    i = r.write_of(4)
+    r.insert(
+        i,
+        sh("cat > /testbed/tests/test_new.py <<'EOF'\ndef test_new(): ...\nEOF", "bash: cannot create /testbed/tests/test_new.py: Permission denied\nexit code: 1"),
+        write("/testbed/tests/test_new.py", "def test_new(): ...\n"),
+        sh("rm /testbed/tests/test_new.py", ""),
+    )
+    s = r.score()
+    assert s["aidlc/check/e4_tests_untouched"] == 1.0 and s["aidlc/rule/r_tests_untouched"] == 1.0
+
+
+def test_a_baseline_attempt_dying_on_settings_is_no_baseline_run():
+    """swebv100 000009: the only pre-edit run died importing settings; `Failing: none` rests on nothing."""
+    r = Run()
+    r.set_obs(r.runs("pytest")[0], "Traceback (most recent call last):\n  ...\ndjango.core.exceptions.ImproperlyConfigured: Requested setting INSTALLED_APPS, but settings are not configured.")
+    s = r.score()
+    assert s.get("aidlc/check/e1_baseline_failing") is None and s["aidlc/check/t1_baseline_before_write"] == 0.0
+
+
+def test_the_reproduction_script_is_timed_against_the_last_write_of_04():
+    """step24 000440: 04 written early, the script written, 04 written again (the text scored): the script came
+    before the 04 that is judged."""
+    r = Run()
+    early = r.turns[r.write_of(4)]
+    r.insert(r.at(lambda a: a.get("path") == "/tmp/repro.py"), early)
+    s = r.score()
+    assert s["aidlc/check/t4_repro_written_before_write"] == 1.0
+
+
+def test_an_rst_test_input_under_tests_is_no_document():
+    """swebv100 000077: a Sphinx test root's index.rst written under tests/ is test input, not a report."""
+    r = Run()
+    r.insert(r.write_of(4), write("/testbed/tests/roots/test-case/index.rst", "Title\n=====\n"))
+    assert r.score()["aidlc/atom/B10"] == 1.0
+
+
+def test_an_example_script_the_issue_shows_is_no_scope_to_start_from():
+    """step24 000354 / 000181: the issue shows the bug with examples/demo.py and names the module that owns it;
+    starting from the module is starting from what the issue names."""
+    r = Run()
+    task = SimpleNamespace(id="t", metadata={"instruction": "Running examples/demo.py shows parse() in pkg/mod.py raising on an empty string; it should return {}."})
+    assert r.score(task)["aidlc/atom/D1b"] == 1.0
