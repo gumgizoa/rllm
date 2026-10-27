@@ -551,6 +551,11 @@ items:
     - 30
     quote: '**MANDATORY — do not modify test files.** They are the specification the change must satisfy; editing them removes
       the independent check that the change is correct and leaves false confidence that the work is verified.'
+  - doc: S5
+    lines:
+    - 53
+    - 53
+    quote: '- [ ] Correct the source code, never the tests'
 - id: rule/r_repro_not_in_stage4
   scope: specific
   class: evidence
@@ -1154,6 +1159,11 @@ items:
   - trace
   derived_by: manual
   sources:
+  - doc: S5
+    lines:
+    - 17
+    - 17
+    quote: '- [ ] Run the build or type-check command Reverse Engineering recorded'
   - doc: S5
     lines:
     - 18
@@ -2227,6 +2237,11 @@ items:
     - 17
     - 17
     quote: '- [ ] Run the build or type-check command Reverse Engineering recorded'
+  - doc: S5
+    lines:
+    - 18
+    - 18
+    quote: '- [ ] Confirm it succeeds'
 - id: atom/H8a
   scope: specific
   class: evidence
@@ -3348,6 +3363,12 @@ items:
     - 30
     quote: '- **Keep the prescribed skeleton exactly** — frontmatter keys, `##` headings, field prefixes. A renamed or omitted
       heading makes the stage unverifiable even when the work behind it was done'
+  - doc: S1
+    lines:
+    - 47
+    - 47
+    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
+      text.
 - id: form/B6a@2
   scope: specific
   class: structure
@@ -3593,6 +3614,12 @@ items:
     - 30
     quote: '- **Keep the prescribed skeleton exactly** — frontmatter keys, `##` headings, field prefixes. A renamed or omitted
       heading makes the stage unverifiable even when the work behind it was done'
+  - doc: S1
+    lines:
+    - 47
+    - 47
+    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
+      text.
 - id: form/B6a@3
   scope: specific
   class: structure
@@ -3939,6 +3966,12 @@ items:
     - 30
     quote: '- **Keep the prescribed skeleton exactly** — frontmatter keys, `##` headings, field prefixes. A renamed or omitted
       heading makes the stage unverifiable even when the work behind it was done'
+  - doc: S1
+    lines:
+    - 47
+    - 47
+    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
+      text.
 - id: form/B6a@4
   scope: specific
   class: structure
@@ -4247,6 +4280,12 @@ items:
     - 30
     quote: '- **Keep the prescribed skeleton exactly** — frontmatter keys, `##` headings, field prefixes. A renamed or omitted
       heading makes the stage unverifiable even when the work behind it was done'
+  - doc: S1
+    lines:
+    - 47
+    - 47
+    quote: Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed
+      text.
 - id: form/B6a@5
   scope: specific
   class: structure
@@ -4768,6 +4807,11 @@ items:
     - 40
     quote: The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in
       the Stage 5 artifact, and nowhere else.
+  - doc: S4
+    lines:
+    - 48
+    - 48
+    quote: '- [ ] If every step is complete, write the artifact and proceed to Build and Test'
   - doc: SP
     lines:
     - 71
@@ -4914,6 +4958,11 @@ items:
     - 40
     quote: The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in
       the Stage 5 artifact, and nowhere else.
+  - doc: S4
+    lines:
+    - 48
+    - 48
+    quote: '- [ ] If every step is complete, write the artifact and proceed to Build and Test'
   - doc: SP
     lines:
     - 71
@@ -5060,6 +5109,11 @@ items:
     - 40
     quote: The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in
       the Stage 5 artifact, and nowhere else.
+  - doc: S4
+    lines:
+    - 48
+    - 48
+    quote: '- [ ] If every step is complete, write the artifact and proceed to Build and Test'
   - doc: SP
     lines:
     - 71
@@ -5776,7 +5830,8 @@ items:
     - 91
     - 91
     quote: '- The steps are ordered so that each is executable when reached'
-  note: 'Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?'
+  note: 'Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change
+    that only a later step introduces?'
 - id: judge/F9a
   scope: specific
   class: content
@@ -6019,8 +6074,11 @@ items:
     lines:
     - 48
     - 48
-    quote: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved |'
-  note: 'If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it under Regressions (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact 03) marks as preserved? Answer n/a if no such test fails and artifact 05 records no regression.'
+    quote: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check
+      the interfaces the plan marked as preserved |'
+  note: If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it
+    under Regressions (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact
+    03) marks as preserved? Answer n/a if no such test fails and artifact 05 records no regression.
 - id: judge/H8d
   scope: specific
   class: content
@@ -6111,39 +6169,40 @@ items:
     lines:
     - 40
     - 40
-    quote: 'The artifact''s existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else.'
+    quote: The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in
+      the Stage 5 artifact, and nowhere else.
   - doc: S5
     lines:
     - 98
     - 98
-    quote: 'Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean.'
-  note: 'Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement, known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing remains? A failure a later fix resolved (the last test run passes it) is not unresolved work.'
+    quote: Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains
+      and why; it is never left as `none` to make the run look clean.
+  note: 'Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement,
+    known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing
+    remains? A failure a later fix resolved (the last test run passes it) is not unresolved work.'
 appendix:
   rules_without_items:
+    not applicable:
+      A4: document lookup order
+      A5: an overall instruction
+      G6a: resolve, the task verifier's
+      G6b: the task verifier's tests
     covered by another rule's items:
       B2: B1 (the artifact at its fixed path)
       B5a: B6a (frontmatter keys)
       B5c: the per-field rules (field prefixes)
+      B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
       B9: the reference checks (R ids, steps quoted as written)
+      I2: D11a's reading of a test run (agent-written runner scripts are no run)
       E5: B5b@2 and the S2 fields (the three categories)
       F2c: the step parse behind the S3 fields and tags
       G1b: G9, G2
       G3b: H12, F8b, S4.checks
       G4a: D13
       H16: run/fidelity
-      I2: D11a's reading of a test run (agent-written runner scripts are no run)
-      B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
     a flag, in no score:
       I1: leak_history
-    not applicable:
-      A4: document lookup order
-      A5: an overall instruction
-      G6a: resolve, the task verifier's
-      G6b: the task verifier's tests
     judge, low priority, not asked:
       D2: the scope extends to direct callers and callees
       E2: stage 1's result used as context
       H8c: pre-existing failures left unfixed
-    not a judge question:
-      D1a: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed)
-      D1b: same; code checks the issue's paths are in scope (atom/D1b)

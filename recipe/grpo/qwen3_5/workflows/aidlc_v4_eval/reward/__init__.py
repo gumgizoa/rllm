@@ -1,5 +1,8 @@
 """aidlc_v4_eval's verifier: the workflow's atomic rules as ``rubric.yaml``, on the common rubric engine.
 
+    ruleset.yaml  document lines -> atomic rules -> methods (rubric item keys) with their materials, or why a
+                  rule is scored by nothing; ``ruleset.py check`` / ``sync`` keep it, the documents and
+                  rubric.yaml in step, ``ruleset.md`` is its render
     rubric.yaml   the rules: one item per measurement (its atomic rule, category, stage and the document
                   lines it comes from), the ``kind_matrix`` aggregate, the rules no item measures and why
     eval.py       the evaluation policy (``workflow_rubric.RubricEvaluation``)

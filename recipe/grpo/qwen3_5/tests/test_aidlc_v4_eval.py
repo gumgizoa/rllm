@@ -19,6 +19,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 RECIPE = Path(__file__).resolve().parents[1]
 REPO = RECIPE.parents[2]
@@ -438,6 +439,64 @@ def test_every_item_reads_a_measurement_and_every_measurement_has_an_item():
     assert {i: k for i, k in keys.items() if i != k} == {}  # an item is named after what it reads
     assert set(keys.values()) - MEASURABLE == set()
     assert MEASURABLE - set(keys.values()) == set()
+
+
+def test_the_rule_set_documents_and_rubric_are_in_step():
+    """Every document line accounted for, every rule scored or excused, every item one rule's method, and
+    the rubric's sources what the set says (reward/ruleset.py check; ``sync`` fixes what follows)."""
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import ruleset
+
+    assert ruleset.check() == {}
+
+
+def test_a_rule_left_without_methods_or_reason_is_reported():
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import ruleset
+
+    rs = ruleset.load()
+    rule = next(r for r in rs["rules"] if r["id"] == "D13")
+    del rule["methods"]
+    rs["materials"].pop("JUDGE")
+    links = ruleset.check(rs)["links"]
+    assert "rule D13: needs methods or excluded (exactly one)" in links
+    assert "item rule/r_tests_untouched: rule D13 lists no method rule/r_tests_untouched" in links
+    assert any(row.startswith("method judge/") and row.endswith("unknown material JUDGE") for row in links)
+
+
+def _docs_copy(tmp_path):
+    import shutil
+
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import ruleset
+
+    for name in ("docs", "instruction.md", "system-prompt.j2"):
+        src = PKG / name
+        (shutil.copytree if src.is_dir() else shutil.copy)(src, tmp_path / name)
+    for name in ("ruleset.yaml", "rubric.yaml"):
+        shutil.copy(ruleset.HERE / name, tmp_path / name)
+    return ruleset, tmp_path / "docs" / "core-workflow.md"
+
+
+def test_a_line_added_to_a_document_renumbers_the_lines_below_it(tmp_path):
+    ruleset, core = _docs_copy(tmp_path)
+    text = core.read_text().splitlines(keepends=True)
+    core.write_text("".join(text[:2] + ["A sentence that states no rule.\n"] + text[2:]))
+    report = ruleset.check(ruleset.load(tmp_path / "ruleset.yaml"), yaml.safe_load((tmp_path / "rubric.yaml").read_text()), tmp_path)
+    assert report["new"] == ["CW:3: A sentence that states no rule."] and "changed" not in report
+    assert any(r.startswith("CW:3 -> CW:4: ") for r in report["moved"]) and len(report["moved"]) == 99  # every CW line below it
+    left = ruleset.sync(tmp_path / "ruleset.yaml", tmp_path / "rubric.yaml", tmp_path)
+    assert set(left) == {"new"}  # renumbered, sources rewritten; the new line waits for a hand
+    rubric = yaml.safe_load((tmp_path / "rubric.yaml").read_text())
+    entry = next(i for i in rubric["items"] if i["id"] == "proc/C1@1")
+    assert [s["lines"][0] for s in entry["sources"] if s["doc"] == "CW"] == [8]  # was core-workflow.md:7
+
+
+def test_a_changed_rule_line_names_the_rules_to_review(tmp_path):
+    ruleset, core = _docs_copy(tmp_path)
+    old = "- **DO NOT MODIFY**: test files"
+    assert old in core.read_text()
+    core.write_text(core.read_text().replace(old, "- **DO NOT MODIFY**: test files or fixtures"))
+    report = ruleset.check(ruleset.load(tmp_path / "ruleset.yaml"), yaml.safe_load((tmp_path / "rubric.yaml").read_text()), tmp_path)
+    assert len(report["changed"]) == 1 and report["changed"][0].startswith("CW:141 (D13): ")
+    assert report["new"] == ["CW:141: - **DO NOT MODIFY**: test files or fixtures"] and "moved" not in report
 
 
 def test_the_verifier_does_not_lean_on_the_legacy_scoring():
