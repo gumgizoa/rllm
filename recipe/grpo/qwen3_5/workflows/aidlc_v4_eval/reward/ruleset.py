@@ -1,39 +1,42 @@
-"""The verifier's rule set: document lines -> atomic rules -> scoring methods -> judgments.
+"""The verifier's rule set: document lines -> atomic rules -> scoring methods -> judgments, and the rubric built
+from it.
 
     python -m recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.ruleset check    # what is out of step
-    python -m recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.ruleset sync     # fix what follows
+    python -m recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.ruleset sync     # rewrite what follows
 
-``ruleset.yaml`` holds the links written by hand:
+Two things are written by hand; everything else follows from them.
 
-    lines      every candidate line of what the agent sees (``DOCS``: blank lines and headings outside code
-               blocks left out), with its text, and the rules it states -- or why it states none
-               (``skip: <why>``); ``dup: [<rule>, ...]`` the rules it repeats from elsewhere, beside or
-               instead of the ones it states first (a stage summary names a dozen)
-    rules      each atomic rule's primary stage and kind, and the methods that score it: rubric item keys
-               (``method_key``; one key covers every stage of a per-stage check) with the materials each
-               reads; or, scored by nothing, ``excluded`` with why
-    materials  the shared readings a method may rest on (``read.py``, ``skeleton.py``, the judge)
+``ruleset.yaml``:
 
-``rubric.yaml``'s items are the judgments: each item is one method applied in one stage (its key one rule's
-method, its ``category`` and ``stage`` its cell in the matrix), and a rule has at most one scored item per
-category and stage -- a second way to score the same face of a rule is ``log_only`` (a diagnostic), or the
-rule was not atomic and is split. The rest of the rubric follows from the set: each item's
-``sources`` are its rule's lines, ``sources[].sha256`` the documents', the appendix the excluded rules
-(``sync`` writes them, and renders ``ruleset.md`` and ``rubric.md``).
+    docs       the documents the agent sees (``DOCS``), each with a path (and the section of a prompt file)
+    rubric     the rubric's head: schema, sources (their sha256 is filled in), roots, stages, artifacts, scoring
+    rules      each atomic rule: id, primary stage and kind, text, and its ``methods`` -- the scoring methods
+               that judge it, each placed in the matrix: ``{kind: F, stage: 1}`` (one judgment) or
+               ``{kind: P, stages: [1, 2, 3, 4, 5]}`` (one per stage, items ``<method>@<stage>``), with
+               ``log_only: true`` for a diagnostic, ``class`` when not the kind's usual, ``note`` to carry.
+               A rule scored by nothing has ``excluded`` with why
+    lines      every candidate line of the documents (blank lines and headings outside code blocks left out),
+               with its text, and the rules it states (``rules``) or repeats (``dup``), or why neither (``skip``)
 
-``check`` aligns the stored lines with the documents by text (a diff, so a repeated line is no problem)
-and reports, by kind:
+The code (``checks.MEASURABLE``, the keys ``measure`` sets; ``materials.METHOD_MATERIALS``, what each method
+reads; ``judge.QUESTIONS``): a method key of the set must be measured by the code, and every measured key placed
+by the set.
+
+``rubric.yaml`` is generated (``generated_rubric``): one item per method placement and stage, its check kind
+and params from the method key, its sources the rule's lines, its appendix the excluded rules. ``ruleset.md``
+and ``rubric.md`` are its renders. ``sync`` writes all three (renumbering moved lines first); ``check`` reports:
 
     moved      a stored line now at another number, text unchanged (``sync`` renumbers it)
     changed    a stored line whose text is gone: its rules need review, then the entry is edited by hand
     new        a document line no entry accounts for: assign it rules, ``skip`` or ``dup``
-    links      a broken link: an unknown rule or material, a rule with no line, a rule with neither
-               methods nor ``excluded``, a method with no item of its rule, an item its rule does not
-               list (one check may score two rules, in different stages: ``atom/B5d``), two scored items
-               making one judgment (rule, category, stage)
-    stale      what ``sync`` rewrites differs from the files (sources, sha256, appendix, the two renders)
+    links      a broken link: an unknown rule, a rule with no line, a rule with neither methods nor
+               ``excluded``, a placement without a kind or stage, a method the code does not measure or
+               declares no materials for (or the reverse), a judge method with no question, two scored
+               items making one judgment (rule, category, stage)
+    stale      rubric.yaml, ruleset.md or rubric.md differ from what ``sync`` writes
 
-The test suite runs ``check`` and fails on any report, so an edited document cannot go unnoticed.
+The test suite runs ``check`` and fails on any report, so an edited document, a judgment added to the code
+without a place in the set, or a placement without code cannot go unnoticed.
 """
 
 from __future__ import annotations
@@ -52,6 +55,7 @@ PKG = HERE.parent
 RULESET = HERE / "ruleset.yaml"
 RUBRIC = HERE / "rubric.yaml"
 KINDS = {"P": "procedure", "F": "artifact form", "E": "execution", "C": "consistency", "R": "forbidden action", "Q": "content", "A": "report accuracy"}
+CLASS_OF_KIND = {"F": "structure", "Q": "content"}  # else evidence
 METHOD_KEYS = {
     "claim": "check/{check}",
     "rule": "rule/{check}",
@@ -61,6 +65,7 @@ METHOD_KEYS = {
     "run": "run/{measure}",
     "judge": "judge/{question}",
 }  # check kind (aidlc_v4_eval.<kind>) -> method key, from the item's params
+CHECK_KIND = {"check": "claim", "rule": "rule", "atom": "atom", "form": "form", "proc": "procedure", "run": "run", "judge": "judge"}  # method prefix -> check kind
 TASK = "task"  # a rule's ``source`` when it is a condition of the task, stated on no document line
 
 
@@ -154,18 +159,82 @@ def sources(rs: dict, rule: str) -> list[dict]:
     return out
 
 
-def synced_rubric(rs: dict, rubric: dict, root: Path = PKG) -> dict:
-    """The rubric with what follows from the set rewritten: item sources, document sha256, appendix."""
-    out = dict(rubric)
-    out["items"] = [{**it, "sources": sources(rs, it["rule"])} for it in rubric["items"]]
+# --- the rubric, generated ---------------------------------------------------------------------
+
+
+def placements(rule: dict) -> list[tuple[str, dict, int, bool]]:
+    """A rule's judgments: (method key, placement, stage number, per-stage) -- one per stage of ``stages``,
+    or one at ``stage``."""
+    out = []
+    for m, p in (rule.get("methods") or {}).items():
+        p = p or {}
+        if "stages" in p:
+            out += [(m, p, int(k), True) for k in p["stages"]]
+        else:
+            out.append((m, p, int(p.get("stage", rule.get("stage", 0))), False))
+    return out
+
+
+def item_id(method: str, stage: int, per_stage: bool) -> str:
+    """``<method>@<stage>`` for a per-stage check (form and procedure always, an atom placed by ``stages``)."""
+    return f"{method}@{stage}" if per_stage or method.split("/")[0] in ("form", "proc") else method
+
+
+def _check(method: str, stage: int, per_stage: bool) -> dict:
+    prefix, name = method.split("/", 1)
+    kind = CHECK_KIND[prefix]
+    params = {"claim": {"check": name}, "rule": {"check": name}, "atom": {"rule": name}, "form": {"rule": name}, "procedure": {"rule": name}, "run": {"measure": name}, "judge": {"question": name}}[
+        kind
+    ]
+    if kind in ("form", "procedure") or (kind == "atom" and per_stage):
+        params["stage"] = stage
+    return {"kind": f"aidlc_v4_eval.{kind}", "params": params}
+
+
+def generated_rubric(rs: dict, root: Path = PKG, questions: dict[str, str] | None = None) -> dict:
+    """``rubric.yaml`` from the set: its head (document sha256 filled in), one item per placement and stage,
+    the excluded rules as the appendix. ``questions``: judge question id -> text (``judge.QUESTIONS``), the
+    note of a judge item."""
+    head = dict(rs["rubric"])
     paths = {d: s["path"] for d, s in rs["docs"].items()}
-    out["sources"] = [{**s, "sha256": _sha(root / paths[s["id"]])} if s["id"] in paths else s for s in rubric["sources"]]
+    head["sources"] = [{**s, "sha256": _sha(root / paths[s["id"]])} if s["id"] in paths else dict(s) for s in head["sources"]]
+    items = []
+    for r in rs["rules"]:
+        for m, p, k, per_stage in placements(r):
+            prefix = m.split("/")[0]
+            kind = p["kind"]
+            target = {"type": "artifact", "ref": f"a{k}", "state": "final"} if k and (prefix == "form" or (prefix == "atom" and per_stage)) else {"type": "action", "ref": "run", "state": "final"}
+            item = {
+                "id": item_id(m, k, per_stage),
+                "scope": "specific",
+                "class": p.get("class") or CLASS_OF_KIND.get(kind, "evidence"),
+                "stage": "global" if k == 0 else str(k),
+                "target": target,
+                "check": _check(m, k, per_stage),
+                "requirement": "must",
+                "category": kind,
+                "rule": r["id"],
+                "availability": ["trace"],
+                "derived_by": "manual",
+                "sources": sources(rs, r["id"]),
+            }
+            if p.get("log_only"):
+                item["log_only"] = True
+            note = p.get("note") or ((questions or {}).get(m.split("/", 1)[1]) if prefix == "judge" else None)
+            if note:
+                item["note"] = note
+            items.append(item)
     groups: dict[str, dict[str, str]] = {}
     for r in rs["rules"]:
         if r.get("excluded"):
             groups.setdefault(r["excluded"]["why"], {})[r["id"]] = r["excluded"].get("detail", "")
-    out["appendix"] = {**(rubric.get("appendix") or {}), "rules_without_items": groups}
-    return out
+    return {**head, "items": items, "appendix": {"rules_without_items": groups}}
+
+
+def _questions() -> dict[str, str]:
+    from .judge import QUESTIONS
+
+    return {qid: text for qs in QUESTIONS.values() for qid, text in qs}
 
 
 def dump(data: dict) -> str:
@@ -189,7 +258,7 @@ _Dumper.add_representer(_FlowList, lambda d, v: d.represent_sequence("tag:yaml.o
 
 
 def dump_ruleset(rs: dict) -> str:
-    """ruleset.yaml's layout: one document line per row, a method's materials on its key's row."""
+    """ruleset.yaml's layout: one document line per row, a method's placement on its key's row."""
 
     def flat(d: dict) -> _Flow:
         return _Flow({k: _FlowList(v) if isinstance(v, list) else v for k, v in d.items()})
@@ -197,13 +266,13 @@ def dump_ruleset(rs: dict) -> str:
     out = {
         **rs,
         "docs": {k: flat(v) for k, v in rs["docs"].items()},
-        "rules": [{**r, **({"methods": {m: _FlowList(x) for m, x in r["methods"].items()}} if r.get("methods") else {})} for r in rs["rules"]],
+        "rules": [{**r, **({"methods": {m: flat(p or {}) for m, p in r["methods"].items()}} if r.get("methods") else {})} for r in rs["rules"]],
         "lines": [flat(e) for e in rs["lines"]],
     }
     return yaml.dump(out, Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=10_000)
 
 
-def render(rs: dict, rubric: dict) -> str:
+def render(rs: dict, rubric: dict, materials: dict[str, str], method_materials: dict[str, tuple[str, ...]]) -> str:
     """``ruleset.md``: rule -> lines -> methods (category, stages, materials), and the excluded rules."""
     place: dict[tuple[str, str], list[tuple[str, str, bool]]] = {}
     for it in rubric["items"]:
@@ -220,23 +289,23 @@ def render(rs: dict, rubric: dict) -> str:
         "Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.",
         f"{len(rs['lines'])} document lines -> {len(rs['rules'])} atomic rules -> {n_methods} methods -> {judgments} judgments"
         f" (scored rubric items; {len(rubric['items']) - judgments} more are diagnostics).",
-        "A method's category and stages are its items' (`rubric.yaml`); `global` is stage 0.",
+        "A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).",
         "",
-        "Materials: " + "; ".join(f"`{k}` {v}" for k, v in rs["materials"].items()),
+        "Materials: " + "; ".join(f"`{k}` {v}" for k, v in materials.items()),
         "",
         "| rule | stage | kind | rule text | lines | methods (category: stages; materials) |",
         "|---|---|---|---|---|---|",
     ]
     for r in rs["rules"]:
         methods = []
-        for m, mats in (r.get("methods") or {}).items():
+        for m in r.get("methods") or {}:
             cats: dict[str, list[str]] = {}
             its = place.get((m, r["id"]), [])
             for c, s, _ in its:
                 cats.setdefault(c, []).append("0" if s == "global" else str(s))
             where = ", ".join(f"{c}: {' '.join(sorted(set(ss)))}" for c, ss in cats.items())
             diag = ", diagnostic" if its and all(lo for *_, lo in its) else ""
-            methods.append(f"`{m}` ({where}; {' '.join(mats)}{diag})")
+            methods.append(f"`{m}` ({where}; {' '.join(method_materials.get(m, ()))}{diag})")
         if r.get("excluded"):
             methods.append(f"none: {r['excluded']['why']}" + (f" ({r['excluded']['detail']})" if r["excluded"].get("detail") else ""))
         if r.get("note"):
@@ -247,8 +316,16 @@ def render(rs: dict, rubric: dict) -> str:
     return "\n".join(out) + "\n"
 
 
+def _code() -> tuple[frozenset[str], dict[str, str], dict[str, tuple[str, ...]], dict[str, str]]:
+    """What the code declares: the measured keys, the materials and each method's, the judge questions."""
+    from .checks import MEASURABLE
+    from .materials import MATERIALS, METHOD_MATERIALS
+
+    return MEASURABLE, MATERIALS, METHOD_MATERIALS, _questions()
+
+
 def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) -> dict[str, list[str]]:
-    """Every way the set, the documents and the rubric are out of step (see the module docstring)."""
+    """Every way the set, the documents, the code and the rubric are out of step (see the module docstring)."""
     rs = rs if rs is not None else load()
     rubric = rubric if rubric is not None else yaml.safe_load(RUBRIC.read_text())
     report: dict[str, list[str]] = {"moved": [], "changed": [], "new": [], "links": [], "stale": []}
@@ -271,7 +348,8 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
         links += [f"line {e['at']}: unknown rule {r}" for r in (e.get("rules") or []) + dups(e) if r not in known]
         links += [f"line {e['at']}: {r} both stated and repeated" for r in set(e.get("rules") or []) & set(dups(e))]
     stated = {r for e in rs["lines"] for r in e.get("rules") or []}
-    listed: set[tuple[str, str]] = set()  # (method, rule): one check may score two rules, in different stages
+    measurable, materials, method_materials, questions = _code()
+    placed: set[str] = set()
     for r in rs["rules"]:
         if r["kind"] not in KINDS:
             links.append(f"rule {r['id']}: kind {r['kind']!r}")
@@ -279,31 +357,41 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
             links.append(f"rule {r['id']}: no document line states it")
         if bool(r.get("methods")) == bool(r.get("excluded")):
             links.append(f"rule {r['id']}: needs methods or excluded (exactly one)")
-        for m, mats in (r.get("methods") or {}).items():
-            listed.add((m, r["id"]))
-            links += [f"method {m}: unknown material {x}" for x in mats if x not in rs["materials"]]
-            if not mats:
-                links.append(f"method {m}: no material")
-    scored = {(method_key(it), it["rule"]) for it in rubric["items"]}
-    links += [f"item {it['id']}: rule {it['rule']} lists no method {method_key(it)}" for it in rubric["items"] if (method_key(it), it["rule"]) not in listed]
-    links += [f"method {m} ({r}): no rubric item of that rule" for m, r in sorted(listed - scored)]
-    judged: dict[tuple[str, str, str], list[str]] = {}
-    for it in rubric["items"]:
-        if not it.get("log_only"):
-            judged.setdefault((it["rule"], it["category"], str(it["stage"])), []).append(it["id"])
-    links += [f"judgment {r} {c}@{st}: scored items {', '.join(ids)} (one per judgment)" for (r, c, st), ids in sorted(judged.items()) if len(ids) > 1]
+        for m, p in (r.get("methods") or {}).items():
+            p = p or {}
+            placed.add(m)
+            if p.get("kind") not in KINDS or ("stage" not in p and "stages" not in p):
+                links.append(f"method {m} ({r['id']}): placement needs kind and stage or stages, has {p}")
+            if m.split("/")[0] not in CHECK_KIND:
+                links.append(f"method {m} ({r['id']}): unknown prefix")
+            links += [f"method {m}: unknown material {x}" for x in method_materials.get(m, ()) if x not in materials]
+            if m.split("/")[0] == "judge" and m.split("/", 1)[1] not in questions:
+                links.append(f"method {m}: no judge question")
+    links += [f"method {m}: no materials declared (materials.METHOD_MATERIALS)" for m in sorted(placed - set(method_materials))]
+    links += [f"method {m}: materials declared, placed by no rule" for m in sorted(set(method_materials) - placed)]
+    try:
+        gen = generated_rubric(rs, root, questions)
+    except (KeyError, TypeError, ValueError) as e:  # a placement the generator cannot read: reported above
+        links.append(f"rubric cannot be generated from the set: {type(e).__name__} {e}")
+        gen = None
+    if gen is not None:
+        code_keys = {it["id"] for it in gen["items"] if not it["id"].startswith("judge/")}
+        links += [f"item {k}: the code measures no such key" for k in sorted(code_keys - measurable)]
+        links += [f"measurement {k}: no rule places it" for k in sorted(measurable - code_keys)]
+        judged: dict[tuple[str, str, str], list[str]] = {}
+        for it in gen["items"]:
+            if not it.get("log_only"):
+                judged.setdefault((it["rule"], it["category"], it["stage"]), []).append(it["id"])
+        links += [f"judgment {r} {c}@{st}: scored items {', '.join(v)} (one per judgment)" for (r, c, st), v in sorted(judged.items()) if len(v) > 1]
 
-    if not (report["moved"] or report["changed"] or report["new"]):
-        synced = synced_rubric(rs, rubric, root)
-        for key in ("sources", "appendix"):
-            if synced[key] != rubric.get(key):
-                report["stale"].append(f"rubric.yaml {key}")
-        report["stale"] += [f"item {a['id']}: sources" for a, b in zip(synced["items"], rubric["items"], strict=True) if a["sources"] != b.get("sources")][:20]
+    if gen is not None and not (report["moved"] or report["changed"] or report["new"]):
+        if gen != rubric:
+            report["stale"].append("rubric.yaml (run sync)")
         if root == PKG and not report["stale"]:
             from recipe.grpo.qwen3_5.scripts.render_rubric_md import render as render_rubric
             from recipe.grpo.qwen3_5.workflow_rubric import schema
 
-            if (HERE / "ruleset.md").read_text() != render(rs, rubric):
+            if (HERE / "ruleset.md").read_text() != render(rs, rubric, materials, method_materials):
                 report["stale"].append("ruleset.md")
             if (HERE / "rubric.md").read_text() != render_rubric(schema.load(RUBRIC)):
                 report["stale"].append("rubric.md")
@@ -311,21 +399,22 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
 
 
 def sync(rs_path: Path = RULESET, rubric_path: Path = RUBRIC, root: Path = PKG) -> dict:
-    """Renumber moved lines, then rewrite what follows from the set; returns the remaining ``check`` report."""
+    """Renumber moved lines, then write the rubric and the renders; returns the remaining ``check`` report."""
     rs = yaml.safe_load(rs_path.read_text())
     match, _, _ = _align(rs["lines"], doc_lines(rs["docs"], root))
     for i, ln in match.items():
         rs["lines"][i]["at"] = ln.at
     rs["lines"].sort(key=lambda e: (list(rs["docs"]).index(e["at"].split(":")[0]), int(e["at"].split(":")[1])))
     rs_path.write_text(_header(rs_path) + dump_ruleset(rs))
-    rubric = synced_rubric(rs, yaml.safe_load(rubric_path.read_text()), root)
+    _, materials, method_materials, questions = _code()
+    rubric = generated_rubric(rs, root, questions)
     rubric_path.write_text(dump(rubric))
     if rubric_path == RUBRIC:
         from recipe.grpo.qwen3_5.scripts.render_rubric_md import render as render_rubric
         from recipe.grpo.qwen3_5.workflow_rubric import schema
 
         (HERE / "rubric.md").write_text(render_rubric(schema.load(RUBRIC)))
-        (HERE / "ruleset.md").write_text(render(rs, rubric))
+        (HERE / "ruleset.md").write_text(render(rs, rubric, materials, method_materials))
     return check(rs, rubric, root)
 
 

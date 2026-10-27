@@ -1,6 +1,6 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
-manual (ported from the hand-written aidlc_v4_eval verifier, 2026-10-22). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
+reward/ruleset.py sync (from ruleset.yaml and the code's registrations). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
 231 items | check kinds {'aidlc_v4_eval.atom': 65, 'aidlc_v4_eval.claim': 40, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 35, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.

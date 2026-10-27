@@ -10,52 +10,119 @@ docs:
   S3: {path: docs/rule-details/03-code-generation-planning.md}
   S4: {path: docs/rule-details/04-code-generation-generation.md}
   S5: {path: docs/rule-details/05-build-and-test.md}
-materials:
-  COLLECT: 산출물 수집 (수집본만 인정)
-  TEST: 테스트 실행 인식·출력의 통과/실패 수
-  SCRIPT: 재현 스크립트 실행 인식
-  EXIT: exit code
-  PATCH: 최종 변경 파일 (patch)
-  EDIT: trajectory의 편집 파일·시점
-  NONE: none 값
-  TESTFILE: 테스트 파일 판별
-  PATH: 경로 추출·비교
-  AP: 산출물 section·field·step parser
-  DOC: 문서 읽기 시점
-  WRITE: 산출물 쓰기 시점
-  TARGET: test id·target 추출
-  CMDMATCH: 기록한 명령과 실행 명령 대조
-  SEEN: 파일 열람 여부
-  SHELLCLS: 그 밖의 명령 분류 (설치, 조회, stash, 반복)
-  ISSUE: 이슈 본문 추출
-  FINAL: 마지막 응답
-  JUDGE: LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄)
-  MSG: agent 메시지 (마지막 응답 앞의 것까지)
+rubric:
+  schema: wfrubric/1
+  workflow: aidlc_v4_eval
+  generated:
+    tool: reward/ruleset.py sync (from ruleset.yaml and the code's registrations)
+    rules: the workflow's atomic rules, every document line accounted for
+  sources:
+  - id: I
+    path: instruction.md
+    role: instruction
+  - id: SP
+    path: system-prompt.j2
+    role: system_prompt
+  - id: CW
+    path: docs/core-workflow.md
+    role: core
+    container_path: /ai-dlc/core-workflow.md
+  - id: S1
+    path: docs/rule-details/01-reverse-engineering.md
+    role: stage_rule
+    container_path: /ai-dlc/rule-details/01-reverse-engineering.md
+  - id: S2
+    path: docs/rule-details/02-requirements-analysis.md
+    role: stage_rule
+    container_path: /ai-dlc/rule-details/02-requirements-analysis.md
+  - id: S3
+    path: docs/rule-details/03-code-generation-planning.md
+    role: stage_rule
+    container_path: /ai-dlc/rule-details/03-code-generation-planning.md
+  - id: S4
+    path: docs/rule-details/04-code-generation-generation.md
+    role: stage_rule
+    container_path: /ai-dlc/rule-details/04-code-generation-generation.md
+  - id: S5
+    path: docs/rule-details/05-build-and-test.md
+    role: stage_rule
+    container_path: /ai-dlc/rule-details/05-build-and-test.md
+  roots:
+    art: /tmp/swe-bench-pro
+  stages:
+  - id: '1'
+    doc: S1
+    artifacts:
+    - a1
+    order_artifact: a1
+  - id: '2'
+    doc: S2
+    artifacts:
+    - a2
+    order_artifact: a2
+  - id: '3'
+    doc: S3
+    artifacts:
+    - a3
+    order_artifact: a3
+  - id: '4'
+    doc: S4
+    artifacts:
+    - a4
+    order_artifact: a4
+  - id: '5'
+    doc: S5
+    artifacts:
+    - a5
+    order_artifact: a5
+  artifacts:
+    a1:
+      locations:
+      - '{art}/01-reverse-engineering.md'
+    a2:
+      locations:
+      - '{art}/02-requirements-analysis.md'
+    a3:
+      locations:
+      - '{art}/03-code-generation-planning.md'
+    a4:
+      locations:
+      - '{art}/04-code-generation-generation.md'
+    a5:
+      locations:
+      - '{art}/05-build-and-test.md'
+  scoring:
+    aggregate: kind_matrix
+    total: score
+    item_signals: true
+    matrix:
+      done_rule: B1
+      kind: rules
 rules:
 - id: A1
   stage: 0
   kind: P
   text: core-workflow.md를 다른 어떤 행동보다 먼저 읽음
   methods:
-    run/entry: [DOC]
+    run/entry: {kind: P, stage: 0}
 - id: A2
   stage: 0
   kind: P
   text: 각 단계의 첫 행동으로 그 단계 규칙 문서를 읽음
   methods:
-    proc/A2: [DOC, WRITE]
+    proc/A2: {kind: P, stages: [1, 2, 3, 4, 5]}
 - id: A3a
   stage: 0
   kind: P
   text: 규칙 문서는 한 번에 하나씩 읽음
   methods:
-    proc/A3a: [DOC]
+    proc/A3a: {kind: P, stages: [0]}
 - id: A3b
   stage: 0
   kind: P
   text: 이전 단계를 마치기(산출물) 전에 다음 단계 규칙 문서를 읽지 않음
   methods:
-    proc/A3b: [DOC, WRITE]
+    proc/A3b: {kind: P, stages: [2, 3, 4, 5]}
 - id: A4
   stage: 0
   kind: P
@@ -75,7 +142,7 @@ rules:
   kind: F
   text: 각 단계 결과를 채팅이 아닌 파일로 씀
   methods:
-    form/B1: [AP, COLLECT]
+    form/B1: {kind: F, stages: [1, 2, 3, 4, 5]}
 - id: B2
   stage: 0
   kind: F
@@ -95,8 +162,8 @@ rules:
   kind: P
   text: 산출물은 한 번의 write로 씀 (덧붙이기·같은 단계 안 다시 쓰기 없음)
   methods:
-    rule/r_artifacts_written_once: [WRITE]
-    atom/B3a: [WRITE, DOC, EDIT, TEST, SCRIPT]
+    rule/r_artifacts_written_once: {kind: F, stage: 0, log_only: true, note: diagnostic (aidlc/rules); scored as atom/B3a (within its stage) and atom/B4a (after the next stage began)}
+    atom/B3a: {kind: P, stage: 0, class: structure}
 - id: B3c
   stage: 0
   kind: F
@@ -109,20 +176,20 @@ rules:
   kind: P
   text: 산출물은 단계 끝에 씀 (다음 단계 문서를 읽기 전)
   methods:
-    proc/B3b: [DOC, WRITE]
+    proc/B3b: {kind: P, stages: [1, 2, 3, 4]}
   note: 'Completion Criteria met first: each criterion''s own timing rule scores it (D11c, G7a, H2, H4b)'
 - id: B4a
   stage: 0
   kind: R
   text: 이전 단계 산출물을 다시 쓰지 않음
   methods:
-    atom/B4a: [WRITE, DOC, EDIT, TEST, SCRIPT]
+    atom/B4a: {kind: R, stage: 0, class: structure}
 - id: B4b
   stage: 0
   kind: Q
   text: 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로 기록
   methods:
-    judge/B4b: [JUDGE, ISSUE, COLLECT]
+    judge/B4b: {kind: Q, stage: 0}
 - id: B5a
   stage: 0
   kind: F
@@ -135,7 +202,7 @@ rules:
   kind: F
   text: '## 제목을 skeleton대로 씀 (이름 바꾸기·빠뜨리기 금지)'
   methods:
-    form/B5b: [AP, COLLECT]
+    form/B5b: {kind: F, stages: [1, 2, 3, 4, 5]}
 - id: B5c
   stage: 0
   kind: F
@@ -155,37 +222,37 @@ rules:
   kind: F
   text: frontmatter는 stage, name 두 키만
   methods:
-    form/B6a: [AP, COLLECT]
+    form/B6a: {kind: F, stages: [1, 2, 3, 4, 5]}
 - id: B6b
   stage: 0
   kind: F
   text: frontmatter stage 값이 파일의 단계와 같음
   methods:
-    atom/B6b: [AP, COLLECT]
+    atom/B6b: {kind: F, stages: [1, 2, 3, 4, 5]}
 - id: B6c
   stage: 0
   kind: F
   text: frontmatter name 값이 파일의 단계 이름과 같음
   methods:
-    atom/B6c: [AP, COLLECT]
+    atom/B6c: {kind: F, stages: [1, 2, 3, 4, 5]}
 - id: B7
   stage: 5
   kind: Q
   text: 04·05에 언급된 미해결 작업을 모두 Outstanding Failures에 적음 (none으로 포장하지 않음)
   methods:
-    judge/B7: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/B7: {kind: Q, stage: 5}
 - id: B7b
   stage: 5
   kind: R
   text: Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음
   methods:
-    judge/B7b: [JUDGE, ISSUE, COLLECT]
+    judge/B7b: {kind: R, stage: 5, class: content}
 - id: B8
   stage: 0
   kind: P
   text: 보이는 산출물은 다시 읽지 않고, 내용이 안 보일 때만 복구용으로 읽음
   methods:
-    atom/B8: [WRITE, SHELLCLS]
+    atom/B8: {kind: P, stage: 0}
 - id: B9
   stage: 0
   kind: C
@@ -198,55 +265,55 @@ rules:
   kind: R
   text: 산출물 외에 설계·보고서 문서를 만들지 않음
   methods:
-    atom/B10: [EDIT]
+    atom/B10: {kind: R, stage: 0}
 - id: B11
   stage: 0
   kind: F
   text: 단계마다 산출물 파일은 하나만 씀 (산출물 디렉터리에 다섯 산출물 외 문서를 만들지 않음)
   methods:
-    atom/B11: [WRITE, PATH]
+    atom/B11: {kind: F, stage: 0}
 - id: C1a
   stage: 0
   kind: P
   text: 다섯 단계를 하나도 빠뜨리지 않고 모두 실행함 (단계 선택·깊이 조정 없음)
   methods:
-    proc/C1a: [DOC, WRITE]
+    proc/C1a: {kind: P, stages: [1, 2, 3, 4, 5]}
 - id: C1b
   stage: 0
   kind: P
   text: 단계를 1→5 순서대로 실행함 (앞 단계 산출물 뒤에 다음 단계 산출물)
   methods:
-    proc/C1b: [WRITE]
+    proc/C1b: {kind: P, stages: [2, 3, 4, 5]}
 - id: C2
   stage: 0
   kind: P
   text: 이전 단계로 돌아가지 않음 (문제는 드러난 단계에서 처리)
   methods:
-    atom/C2: [DOC, WRITE]
+    atom/C2: {kind: P, stage: 0}
 - id: E10a
   stage: 0
   kind: R
   text: 질문 파일을 만들지 않음
   methods:
-    atom/E10a: [EDIT]
+    atom/E10a: {kind: R, stage: 0}
 - id: E10b
   stage: 0
   kind: P
   text: 입력을 기다리며 끝내지 않음 (마지막 응답이 질문·승인 요청이 아님)
   methods:
-    atom/E10b: [FINAL]
+    atom/E10b: {kind: P, stage: 0}
 - id: E10c
   stage: 0
   kind: P
   text: 중간에도 사용자에게 승인을 묻지 않음
   methods:
-    atom/E10c: [MSG]
+    atom/E10c: {kind: P, stage: 0}
 - id: D9
   stage: 0
   kind: R
   text: 의존성 설치·환경 설정을 하지 않음 (계획도 하지 않음)
   methods:
-    rule/r_no_env_setup: [SHELLCLS]
+    rule/r_no_env_setup: {kind: R, stage: 0}
 - id: I1
   stage: 0
   kind: R
@@ -261,20 +328,20 @@ rules:
   text: 가짜 테스트로 실행을 꾸미지 않음 (task 조건)
   source: task
   methods:
-    run/ran_real_test: [TEST]
+    run/ran_real_test: {kind: E, stage: 1}
 - id: D1a
   stage: 1
   kind: Q
   text: 이슈가 가리키는 소스 파일을 찾아 Affected Scope에 적음
   methods:
-    check/e1_scope_viewed: [AP, COLLECT, PATH, SEEN, WRITE]
+    check/e1_scope_viewed: {kind: A, stage: 1}
   note: 'not a judge question: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed)'
 - id: D1b
   stage: 1
   kind: P
   text: 이슈가 파일·심볼을 직접 지목하면 거기서 시작함
   methods:
-    atom/D1b: [AP, COLLECT, ISSUE, PATH, SEEN, TESTFILE]
+    atom/D1b: {kind: Q, stage: 1}
   note: 'not a judge question: same; code checks the issue''s paths are in scope (atom/D1b)'
 - id: D2
   stage: 1
@@ -288,81 +355,81 @@ rules:
   kind: Q
   text: Owning module이 Files가 속한 모듈·패키지임
   methods:
-    judge/D3: [JUDGE, ISSUE, COLLECT, SEEN]
+    judge/D3: {kind: Q, stage: 1}
 - id: D3b
   stage: 1
   kind: Q
   text: Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함
   methods:
-    judge/D3b: [JUDGE, ISSUE, COLLECT]
+    judge/D3b: {kind: Q, stage: 1}
 - id: D4a
   stage: 1
   kind: Q
   text: 언어·프레임워크를 Files에서 판단해 기록함
   methods:
-    atom/D4a: [AP, COLLECT]
+    atom/D4a: {kind: Q, stage: 1}
 - id: D4b
   stage: 1
   kind: R
   text: 1단계에서 repo를 넓게 조사하지 않음
   methods:
-    atom/D4b: [SHELLCLS, WRITE, EDIT]
+    atom/D4b: {kind: R, stage: 1}
 - id: D4c
   stage: 1
   kind: R
   text: Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음
   methods:
-    judge/D4c: [JUDGE, ISSUE, COLLECT]
+    judge/D4c: {kind: R, stage: 1, class: content}
 - id: D5
   stage: 1
   kind: F
   text: 모든 경로를 repo root부터 전체 경로로 적음
   methods:
-    atom/D5: [AP, COLLECT, PATH, SEEN]
+    atom/D5: {kind: F, stage: 1}
 - id: D5b
   stage: 1
   kind: F
   text: 01 Files에 경로를 한 줄에 하나씩 적음
   methods:
-    atom/D5b: [AP, COLLECT, PATH]
+    atom/D5b: {kind: F, stage: 1}
 - id: D6
   stage: 1
   kind: Q
   text: build·type-check 방법을 정함 (언어가 요구하면)
   methods:
-    check/e1_build_command_run: [AP, COLLECT, NONE, CMDMATCH]
-    judge/D6: [JUDGE, ISSUE, COLLECT, SEEN]
+    check/e1_build_command_run: {kind: A, stage: 1}
+    judge/D6: {kind: Q, stage: 1}
 - id: D7a
   stage: 1
   kind: Q
   text: 테스트를 어떻게 실행하는지 정함
   methods:
-    check/e1_test_command_run: [AP, COLLECT, CMDMATCH, TARGET]
+    check/e1_test_command_run: {kind: A, stage: 1}
 - id: D7b
   stage: 1
   kind: Q
   text: 테스트 명령이 해당 범위의 테스트를 대상으로 함 (전체 suite 아님)
   methods:
-    atom/D7b: [AP, COLLECT, NONE, TARGET]
+    atom/D7b: {kind: Q, stage: 1}
 - id: D8
   stage: 1
   kind: E
   text: 출력을 줄이는 옵션(-q, --tb=short)을 씀
   methods:
-    atom/D8: [AP, COLLECT]
+    atom/D8: {kind: E, stage: 1}
 - id: D10a
   stage: 1
   kind: E
   text: 해당 범위를 덮는 기존 테스트를 찾음
   methods:
-    check/e1_test_path_seen: [AP, COLLECT, PATH, SEEN]
-    atom/D10a: [SEEN, TESTFILE, TEST, WRITE]
+    check/e1_test_path_seen: {kind: A, stage: 1}
+    atom/D10a: {kind: E, stage: 1}
 - id: D10b
   stage: 1
   kind: Q
   text: 기존 테스트가 강제하는 계약(시그니처·반환·예외)을 맞게 파악해 Contract에 적음
   methods:
-    judge/D10b: [JUDGE, ISSUE, COLLECT, SEEN]
+    judge/D10b: {kind: Q, stage: 1, class: evidence}
 - id: D10c
   stage: 1
   kind: E
@@ -375,127 +442,127 @@ rules:
   kind: E
   text: 소스를 고치기 전에 그 테스트를 한 번 실행함 (baseline)
   methods:
-    check/t1_baseline_before_edit: [TEST, EDIT]
+    check/t1_baseline_before_edit: {kind: E, stage: 1}
 - id: D11c
   stage: 1
   kind: E
   text: baseline 테스트를 실행한 뒤 그 결과를 01에 적음 (실행 전에 쓰지 않음)
   methods:
-    check/t1_baseline_before_write: [AP, COLLECT, NONE, TEST, WRITE]
+    check/t1_baseline_before_write: {kind: E, stage: 1}
 - id: D11b
   stage: 1
   kind: P
   text: 1단계 산출물을 소스 수정 전에 씀
   methods:
-    check/t1_no_edit_before_write: [EDIT, WRITE]
+    check/t1_no_edit_before_write: {kind: P, stage: 1}
 - id: D12a
   stage: 1
   kind: A
   text: 01 Baseline에 적은 테스트 이름이 baseline 실행 출력에 있음
   methods:
-    check/e1_baseline_tests: [AP, COLLECT, TEST, EDIT, TARGET]
+    check/e1_baseline_tests: {kind: A, stage: 1}
 - id: D12c
   stage: 1
   kind: A
   text: 01 Failing 기록이 baseline 실행 결과와 맞음 (none이면 실패가 없음)
   methods:
-    check/e1_baseline_failing: [AP, COLLECT, NONE, TEST, EDIT, TARGET]
+    check/e1_baseline_failing: {kind: A, stage: 1}
 - id: D12d
   stage: 1
   kind: A
   text: Passing·Failing이 둘 다 none이면 baseline 실행에서 돈 테스트가 없음
   methods:
-    check/e1_baseline_none: [AP, COLLECT, NONE, TEST, EDIT]
+    check/e1_baseline_none: {kind: A, stage: 1}
 - id: D12e
   stage: 1
   kind: A
   text: 01 Passing에 적은 테스트는 baseline 실행에서 실제로 통과함
   methods:
-    check/e1_baseline_passing: [AP, COLLECT, NONE, TEST, EDIT]
+    check/e1_baseline_passing: {kind: A, stage: 1}
 - id: D12b
   stage: 1
   kind: F
   text: 테스트를 하나씩 이름으로, 한 줄에 하나씩 적음
   methods:
-    atom/D12b: [AP, COLLECT, NONE]
+    atom/D12b: {kind: F, stage: 1}
 - id: S1.files
   stage: 1
   kind: F
   text: 01 필드 Files
   methods:
-    form/S1.files: [AP, COLLECT]
+    form/S1.files: {kind: F, stages: [1]}
 - id: S1.module
   stage: 1
   kind: F
   text: 01 필드 Owning module
   methods:
-    form/S1.module: [AP, COLLECT]
+    form/S1.module: {kind: F, stages: [1]}
 - id: S1.lang
   stage: 1
   kind: F
   text: 01 필드 Language/framework
   methods:
-    form/S1.lang: [AP, COLLECT]
+    form/S1.lang: {kind: F, stages: [1]}
 - id: S1.build
   stage: 1
   kind: F
   text: 01 필드 Build (없으면 not applicable)
   methods:
-    form/S1.build: [AP, COLLECT]
+    form/S1.build: {kind: F, stages: [1]}
 - id: S1.test
   stage: 1
   kind: F
   text: 01 필드 Test
   methods:
-    form/S1.test: [AP, COLLECT]
+    form/S1.test: {kind: F, stages: [1]}
 - id: S1.tpath
   stage: 1
   kind: F
   text: 01 필드 Existing Tests의 Path
   methods:
-    form/S1.tpath: [AP, COLLECT]
+    form/S1.tpath: {kind: F, stages: [1]}
 - id: S1.contract
   stage: 1
   kind: F
   text: 01 필드 Existing Tests의 Contract
   methods:
-    form/S1.contract: [AP, COLLECT]
+    form/S1.contract: {kind: F, stages: [1]}
 - id: S1.passing
   stage: 1
   kind: F
   text: 01 필드 Passing (없으면 none)
   methods:
-    form/S1.passing: [AP, COLLECT]
+    form/S1.passing: {kind: F, stages: [1]}
 - id: S1.failing
   stage: 1
   kind: F
   text: 01 필드 Failing (없으면 none)
   methods:
-    form/S1.failing: [AP, COLLECT]
+    form/S1.failing: {kind: F, stages: [1]}
 - id: S1.recorded
   stage: 1
   kind: F
   text: 01 고정 문장 'Recorded before any source file was modified.'
   methods:
-    atom/B5d: [AP, COLLECT]
+    atom/B5d: {kind: F, stages: [1]}
 - id: E1a
   stage: 2
   kind: Q
   text: task 설명(기대 동작·이름·시그니처·경로)을 권위로 삼음
   methods:
-    judge/E1a: [JUDGE, ISSUE, COLLECT]
+    judge/E1a: {kind: Q, stage: 2}
 - id: E1b
   stage: 2
   kind: Q
   text: 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음
   methods:
-    judge/E1b: [JUDGE, ISSUE, COLLECT]
+    judge/E1b: {kind: Q, stage: 2}
 - id: E1c
   stage: 2
   kind: Q
   text: 이슈가 정한 동작을 뜻이 달라지게(바꾸거나 좁히거나 넓혀) 바꿔 쓰지 않음
   methods:
-    judge/E1c: [JUDGE, ISSUE, COLLECT]
+    judge/E1c: {kind: Q, stage: 2}
 - id: E2
   stage: 2
   kind: C
@@ -508,31 +575,31 @@ rules:
   kind: Q
   text: 요구사항 하나에 문장 하나
   methods:
-    atom/E3a: [AP, COLLECT, NONE]
+    atom/E3a: {kind: Q, stage: 2}
 - id: E3b
   stage: 2
   kind: Q
   text: 요구사항이 재현 스크립트나 기존 테스트로 검증 가능함 (아니면 범위 밖)
   methods:
-    judge/E3b: [JUDGE, ISSUE, COLLECT]
+    judge/E3b: {kind: Q, stage: 2}
 - id: E3c
   stage: 2
   kind: F
   text: 요구사항 id를 R1, R2…로 붙임
   methods:
-    form/E3c: [AP, COLLECT]
+    form/E3c: {kind: F, stages: [2]}
 - id: E4a
   stage: 2
   kind: F
   text: 세 범주를 통틀어 하나의 연속된 번호
   methods:
-    atom/E4a: [AP, COLLECT]
+    atom/E4a: {kind: F, stage: 2}
 - id: E4b
   stage: 2
   kind: F
   text: 요구사항 id가 중복되지 않음
   methods:
-    form/E4b: [AP, COLLECT]
+    form/E4b: {kind: F, stages: [2]}
 - id: E5a
   stage: 2
   kind: F
@@ -552,99 +619,99 @@ rules:
   kind: Q
   text: Functional에 해결 후 보여야 할 동작을 적음
   methods:
-    judge/E6a: [JUDGE, ISSUE, COLLECT]
+    judge/E6a: {kind: Q, stage: 2}
 - id: E6b
   stage: 2
   kind: Q
   text: Functional에 계속 유지할 동작(기존 테스트의 계약)을 적음
   methods:
-    judge/E6b: [JUDGE, ISSUE, COLLECT]
+    judge/E6b: {kind: Q, stage: 2}
 - id: E7a
   stage: 2
   kind: Q
   text: Non-Functional은 복잡도·메모리 같은 방식의 제약
   methods:
-    judge/E7a: [JUDGE, ISSUE, COLLECT]
+    judge/E7a: {kind: Q, stage: 2}
 - id: E7b
   stage: 2
   kind: Q
   text: Non-Functional은 task에 적힌 것만, 없으면 none stated
   methods:
-    atom/E7b: [AP, COLLECT, NONE, ISSUE]
-    judge/E7b: [JUDGE, ISSUE, COLLECT]
+    atom/E7b: {kind: Q, stage: 2}
+    judge/E7b: {kind: Q, stage: 2, log_only: true}
   note: judge/E7b asks the same question as atom/E7b and is a diagnostic
 - id: E8a
   stage: 2
   kind: Q
   text: Edge Cases에 경계값·빈 값·잘못된 입력·타입/범위 한계를 적음
   methods:
-    judge/E8a: [JUDGE, ISSUE, COLLECT]
+    judge/E8a: {kind: Q, stage: 2}
 - id: E8b
   stage: 2
   kind: Q
   text: 오류 경로(무엇이 raise·처리되고 무엇이 관찰되는지)를 적음
   methods:
-    judge/E8b: [JUDGE, ISSUE, COLLECT]
+    judge/E8b: {kind: Q, stage: 2}
 - id: E8c
   stage: 2
   kind: F
   text: Edge Cases 항목은 '조건 -> 기대 동작' 형식
   methods:
-    atom/E8c: [AP, COLLECT, NONE]
+    atom/E8c: {kind: F, stage: 2}
 - id: E9
   stage: 2
   kind: Q
   text: 질문 대신 내린 결정을 가정으로, 이유와 함께 기록함
   methods:
-    judge/E9: [JUDGE, ISSUE, COLLECT]
+    judge/E9: {kind: Q, stage: 2}
 - id: S2.fr
   stage: 2
   kind: F
   text: '02 섹션 Functional Requirements (- Rn: 항목)'
   methods:
-    form/S2.fr: [AP, COLLECT]
+    form/S2.fr: {kind: F, stages: [2]}
 - id: S2.nfr
   stage: 2
   kind: F
   text: 02 섹션 Non-Functional Requirements (없으면 none stated)
   methods:
-    form/S2.nfr: [AP, COLLECT]
+    form/S2.nfr: {kind: F, stages: [2]}
 - id: S2.edge
   stage: 2
   kind: F
   text: 02 섹션 Edge Cases & Error Handling
   methods:
-    form/S2.edge: [AP, COLLECT]
+    form/S2.edge: {kind: F, stages: [2]}
 - id: S2.assume
   stage: 2
   kind: F
   text: 02 섹션 Assumptions (없으면 none)
   methods:
-    form/S2.assume: [AP, COLLECT]
+    form/S2.assume: {kind: F, stages: [2]}
 - id: F1a
   stage: 3
   kind: C
   text: 요구사항마다 step이 하나 이상 있음
   methods:
-    check/c23_requirements_covered: [AP, COLLECT, NONE]
+    check/c23_requirements_covered: {kind: C, stage: 3}
 - id: F1b
   stage: 3
   kind: F
   text: step 번호가 1부터 순서대로
   methods:
-    atom/F1b: [AP, COLLECT]
+    atom/F1b: {kind: F, stage: 3}
 - id: F2a
   stage: 3
   kind: F
   text: step Target이 repo root부터 전체 경로
   methods:
-    atom/F2a: [AP, COLLECT, PATH, SEEN]
+    atom/F2a: {kind: F, stage: 3}
 - id: F2b
   stage: 3
   kind: F
   text: step Target에 (modify in place | create) 표기
   methods:
-    atom/F2b: [AP, COLLECT]
+    atom/F2b: {kind: F, stage: 3}
 - id: F2c
   stage: 3
   kind: F
@@ -657,135 +724,135 @@ rules:
   kind: Q
   text: Contract에 보존할 기존 시그니처·반환 형태를 적음 (영향이 없으면 그렇게 적음)
   methods:
-    judge/F2d: [JUDGE, ISSUE, COLLECT]
+    judge/F2d: {kind: Q, stage: 3}
 - id: F2f
   stage: 3
   kind: Q
   text: 뒤 step이 쓸 새 인터페이스를 도입하면 그 step의 Contract에 적음
   methods:
-    judge/F2f: [JUDGE, ISSUE, COLLECT]
+    judge/F2f: {kind: Q, stage: 3}
 - id: F2e
   stage: 3
   kind: Q
   text: Verification에 재현 스크립트가 확인할 것을 적음
   methods:
-    judge/F2e: [JUDGE, ISSUE, COLLECT]
+    judge/F2e: {kind: Q, stage: 3}
 - id: F3
   stage: 3
   kind: Q
   text: task가 지정한 이름·시그니처·경로를 그대로 씀
   methods:
-    atom/F3: [AP, COLLECT, ISSUE, PATCH, SEEN]
+    atom/F3: {kind: Q, stage: 3}
 - id: F4a
   stage: 3
   kind: Q
   text: 재현 스크립트가 수정 전에는 문제를 보이고 수정 후에는 정상임을 보이도록 계획
   methods:
-    judge/F4a: [JUDGE, ISSUE, COLLECT]
+    judge/F4a: {kind: Q, stage: 3}
 - id: F4b
   stage: 3
   kind: C
   text: 재현 스크립트에 Edge Cases 요구사항의 조건을 포함함
   methods:
-    atom/F4b: [AP, COLLECT, NONE]
+    atom/F4b: {kind: C, stage: 3, class: content}
 - id: F5
   stage: 3
   kind: C
   text: Requirement Coverage가 2단계의 모든 요구사항을 step에 연결함
   methods:
-    check/c23_coverage_refs: [AP, COLLECT]
+    check/c23_coverage_refs: {kind: A, stage: 3}
 - id: F6
   stage: 3
   kind: Q
   text: step 순서가 도달했을 때 실행 가능한 순서
   methods:
-    judge/F6: [JUDGE, ISSUE, COLLECT]
+    judge/F6: {kind: Q, stage: 3}
 - id: F7
   stage: 3
   kind: R
   text: 테스트 파일을 대상으로 하는 step이 없음
   methods:
-    atom/F7: [AP, COLLECT, PATH, TESTFILE]
+    atom/F7: {kind: R, stage: 3}
 - id: F8a
   stage: 3
   kind: R
   text: 있는 파일은 in place 수정으로 계획함
   methods:
-    atom/F8a: [AP, COLLECT, PATH, SEEN, WRITE]
+    atom/F8a: {kind: R, stage: 3}
 - id: F8b
   stage: 3
   kind: R
   text: 중복 변형 파일(module_new.py)을 계획하지 않음
   methods:
-    atom/F8b: [AP, COLLECT, PATH]
+    atom/F8b: {kind: R, stage: 3}
 - id: F9a
   stage: 3
   kind: Q
   text: 해석 없이 step별로 실행 가능한 plan
   methods:
-    judge/F9a: [JUDGE, ISSUE, COLLECT]
+    judge/F9a: {kind: Q, stage: 3}
 - id: F9b
   stage: 3
   kind: Q
   text: 기존 repo 구조를 따름
   methods:
-    atom/F9b: [AP, COLLECT, PATH, SEEN, EDIT]
+    atom/F9b: {kind: Q, stage: 3}
 - id: S3.target
   stage: 3
   kind: F
   text: 03 step 필드 Target
   methods:
-    form/S3.target: [AP, COLLECT]
+    form/S3.target: {kind: F, stages: [3]}
 - id: S3.change
   stage: 3
   kind: F
   text: 03 step 필드 Change
   methods:
-    form/S3.change: [AP, COLLECT]
+    form/S3.change: {kind: F, stages: [3]}
 - id: S3.contract
   stage: 3
   kind: F
   text: 03 step 필드 Contract
   methods:
-    form/S3.contract: [AP, COLLECT]
+    form/S3.contract: {kind: F, stages: [3]}
 - id: S3.verify
   stage: 3
   kind: F
   text: 03 step 필드 Verification
   methods:
-    form/S3.verify: [AP, COLLECT]
+    form/S3.verify: {kind: F, stages: [3]}
 - id: S3.tag
   stage: 3
   kind: F
   text: 03 step 요구사항 태그
   methods:
-    check/c23_tags_exist: [AP, COLLECT]
-    form/S3.tag: [AP, COLLECT]
+    check/c23_tags_exist: {kind: A, stage: 3}
+    form/S3.tag: {kind: F, stages: [3]}
 - id: S3.rpath
   stage: 3
   kind: F
   text: 03 필드 Reproduction Script Path
   methods:
-    form/S3.rpath: [AP, COLLECT]
+    form/S3.rpath: {kind: F, stages: [3]}
 - id: S3.exercises
   stage: 3
   kind: F
   text: 03 필드 Reproduction Script Exercises
   methods:
-    check/c23_exercises_exist: [AP, COLLECT]
-    form/S3.exercises: [AP, COLLECT]
+    check/c23_exercises_exist: {kind: A, stage: 3}
+    form/S3.exercises: {kind: F, stages: [3]}
 - id: S3.coverage
   stage: 3
   kind: F
   text: '03 섹션 Requirement Coverage (''- Rn: Step k'')'
   methods:
-    form/S3.coverage: [AP, COLLECT]
+    form/S3.coverage: {kind: F, stages: [3]}
 - id: G1a
   stage: 4
   kind: C
   text: plan 순서대로 step을 실행함
   methods:
-    atom/G1a: [AP, COLLECT, PATH, EDIT, WRITE]
+    atom/G1a: {kind: C, stage: 4}
 - id: G1b
   stage: 4
   kind: C
@@ -798,15 +865,15 @@ rules:
   kind: C
   text: plan에 적힌 경로를 사용함
   methods:
-    check/c14_scope_changed: [AP, COLLECT, PATH]
-    check/c34_targets_changed: [AP, COLLECT, PATH]
+    check/c14_scope_changed: {kind: C, stage: 4, log_only: true}
+    check/c34_targets_changed: {kind: C, stage: 4}
   note: 'check/c14_scope_changed (04 Modified가 01 Affected Scope와 겹침) is a diagnostic: no document line states it'
 - id: G3a
   stage: 4
   kind: P
   text: 쓰기 전에 파일이 있는지 확인함
   methods:
-    atom/G3a: [EDIT, SEEN, WRITE, SHELLCLS]
+    atom/G3a: {kind: P, stage: 4}
 - id: G3b
   stage: 4
   kind: R
@@ -819,7 +886,7 @@ rules:
   kind: C
   text: plan이 create로 계획한 파일을 새로 만듦
   methods:
-    atom/G3c: [AP, COLLECT, PATH, PATCH, EDIT]
+    atom/G3c: {kind: C, stage: 4}
 - id: G4a
   stage: 4
   kind: R
@@ -832,19 +899,19 @@ rules:
   kind: R
   text: 새 동작은 재현 스크립트로 검증하고 repo에 새 테스트를 추가하지 않음
   methods:
-    atom/G4b: [AP, COLLECT, PATCH, TESTFILE]
+    atom/G4b: {kind: R, stage: 4}
 - id: D13
   stage: 4
   kind: R
   text: 테스트 파일을 수정하지 않음
   methods:
-    rule/r_tests_untouched: [EDIT, PATCH, TESTFILE]
+    rule/r_tests_untouched: {kind: R, stage: 4}
 - id: G5
   stage: 4
   kind: C
   text: plan이 보존한다고 적은 계약(시그니처·반환 형태)을 유지함
   methods:
-    judge/G5: [JUDGE, ISSUE, COLLECT, PATCH]
+    judge/G5: {kind: C, stage: 4}
 - id: G6a
   stage: 4
   kind: Q
@@ -864,211 +931,211 @@ rules:
   kind: C
   text: 재현 스크립트를 plan에 적은 경로에 씀
   methods:
-    check/c34_repro_path: [AP, COLLECT, PATH]
-    check/t4_repro_written_before_write: [AP, COLLECT, PATH, EDIT, WRITE]
+    check/c34_repro_path: {kind: C, stage: 4}
+    check/t4_repro_written_before_write: {kind: A, stage: 4}
 - id: G7b
   stage: 4
   kind: R
   text: 4단계에서는 재현 스크립트를 실행하지 않음
   methods:
-    rule/r_repro_not_in_stage4: [AP, COLLECT, PATH, SCRIPT, DOC, WRITE]
+    rule/r_repro_not_in_stage4: {kind: R, stage: 4}
 - id: G7c
   stage: 4
   kind: R
   text: 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음
   methods:
-    atom/G7c: [DOC, WRITE, TEST]
+    atom/G7c: {kind: R, stage: 4}
 - id: G8a
   stage: 4
   kind: Q
   text: plan과 달라진 것을 무엇이·왜와 함께 기록함 (없으면 none)
   methods:
-    check/c34_deviations_none: [AP, COLLECT, NONE, PATH]
-    judge/G8a: [JUDGE, ISSUE, COLLECT, PATCH]
+    check/c34_deviations_none: {kind: A, stage: 4}
+    judge/G8a: {kind: Q, stage: 4}
 - id: G8b
   stage: 4
   kind: F
   text: deviation을 local correction / structural invalidation으로 구분함
   methods:
-    atom/G8b: [AP, COLLECT, NONE]
+    atom/G8b: {kind: F, stage: 4}
 - id: G8c
   stage: 4
   kind: Q
   text: structural이면 무효가 된 step, 이유, 대체 방법을 적음
   methods:
-    judge/G8c: [JUDGE, ISSUE, COLLECT, PATCH]
+    judge/G8c: {kind: Q, stage: 4}
 - id: G9
   stage: 4
   kind: F
   text: step마다 완료와 충족한 요구사항을 Plan Execution에 기록함
   methods:
-    check/c34_plan_execution_steps: [AP, COLLECT]
-    form/G9: [AP, COLLECT]
+    check/c34_plan_execution_steps: {kind: A, stage: 4}
+    form/G9: {kind: F, stages: [4]}
 - id: S4.modified
   stage: 4
   kind: F
   text: 04 필드 Modified (전체 경로 + 요구사항 태그)
   methods:
-    form/S4.modified: [AP, COLLECT]
+    form/S4.modified: {kind: F, stages: [4]}
 - id: S4.modified_real
   stage: 4
   kind: A
   text: 04 Modified에 적은 파일은 실제로 바뀜
   methods:
-    check/e4_modified: [AP, COLLECT, PATH, PATCH]
+    check/e4_modified: {kind: A, stage: 4}
 - id: S4.modified_all
   stage: 4
   kind: A
   text: 4단계에서 바꾼 파일은 모두 04에 적음
   methods:
-    check/e4_undisclosed: [AP, COLLECT, PATH, PATCH]
-    run/fidelity: [AP, COLLECT, PATH, PATCH]
+    check/e4_undisclosed: {kind: A, stage: 4}
+    run/fidelity: {kind: A, stage: 4, log_only: true}
 - id: S4.created
   stage: 4
   kind: F
   text: 04 필드 Created (없으면 none)
   methods:
-    check/e4_created: [AP, COLLECT, PATH, EDIT, PATCH]
-    form/S4.created: [AP, COLLECT]
+    check/e4_created: {kind: A, stage: 4}
+    form/S4.created: {kind: F, stages: [4]}
 - id: S4.tags
   stage: 4
   kind: F
   text: 04 Modified·Created 항목에 전체 경로와 요구사항 태그
   methods:
-    atom/S4.tags: [AP, COLLECT, NONE]
+    atom/S4.tags: {kind: F, stage: 4}
 - id: S4.rpath
   stage: 4
   kind: F
   text: 04 필드 Reproduction Script Path
   methods:
-    form/S4.rpath: [AP, COLLECT]
+    form/S4.rpath: {kind: F, stages: [4]}
 - id: S4.executed
   stage: 4
   kind: F
   text: '04 고정값 Executed: no'
   methods:
-    atom/B5d: [AP, COLLECT]
-    form/S4.executed: [AP, COLLECT]
+    atom/B5d: {kind: F, stages: [4]}
+    form/S4.executed: {kind: F, stages: [4], log_only: true}
   note: 'form/S4.executed@4 (the field filled) is a diagnostic: atom/B5d@4 checks the prescribed value'
 - id: S4.deviations
   stage: 4
   kind: F
   text: 04 섹션 Deviations from Plan (없으면 none)
   methods:
-    form/S4.deviations: [AP, COLLECT]
+    form/S4.deviations: {kind: F, stages: [4]}
 - id: S4.dupcheck
   stage: 4
   kind: F
   text: '04 Checks 필드 Duplicate files created: none'
   methods:
-    check/e4_duplicates_none: [AP, COLLECT, NONE, PATCH]
-    form/S4.dupcheck: [AP, COLLECT]
+    check/e4_duplicates_none: {kind: A, stage: 4}
+    form/S4.dupcheck: {kind: F, stages: [4]}
 - id: S4.testcheck
   stage: 4
   kind: F
   text: '04 Checks 필드 Test files modified: none'
   methods:
-    check/e4_tests_untouched: [AP, COLLECT, NONE, PATCH, EDIT, TESTFILE]
-    form/S4.testcheck: [AP, COLLECT]
+    check/e4_tests_untouched: {kind: A, stage: 4}
+    form/S4.testcheck: {kind: F, stages: [4]}
 - id: H1a
   stage: 5
   kind: C
   text: 1단계에 적은 build 명령을 실행함
   methods:
-    atom/H1a: [AP, COLLECT, NONE]
+    atom/H1a: {kind: C, stage: 5}
 - id: H1b
   stage: 5
   kind: E
   text: build를 실행해 성공을 확인함
   methods:
-    check/e5_build_result: [AP, COLLECT, NONE, CMDMATCH, EXIT, EDIT, WRITE]
-    atom/H1b: [AP, COLLECT, NONE, TARGET, SHELLCLS, CMDMATCH, WRITE]
+    check/e5_build_result: {kind: A, stage: 5}
+    atom/H1b: {kind: E, stage: 5}
 - id: H1c
   stage: 5
   kind: P
   text: build 실패를 다른 검증보다 먼저 해결함
   methods:
-    atom/H1c: [AP, COLLECT, NONE, TARGET, CMDMATCH, EXIT, EDIT, TEST, SCRIPT, WRITE]
+    atom/H1c: {kind: P, stage: 5}
 - id: H2
   stage: 5
   kind: E
   text: 재현 스크립트를 실행함 (마지막 수정 뒤)
   methods:
-    check/t5_repro_run_after_last_edit: [AP, COLLECT, PATH, SCRIPT, EDIT, WRITE]
-    check/e5_repro_result: [AP, COLLECT, PATH, SCRIPT, EXIT, EDIT, WRITE]
+    check/t5_repro_run_after_last_edit: {kind: E, stage: 5}
+    check/e5_repro_result: {kind: A, stage: 5}
 - id: H3a
   stage: 5
   kind: Q
   text: 재현으로 Functional 요구사항의 동작을 확인함
   methods:
-    judge/H3a: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H3a: {kind: Q, stage: 5}
 - id: H3b
   stage: 5
   kind: Q
   text: 재현으로 Edge Cases 조건을 확인함
   methods:
-    judge/H3b: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H3b: {kind: Q, stage: 5}
 - id: H3c
   stage: 5
   kind: Q
   text: 재현으로 Non-Functional 제약을 확인함 (있으면)
   methods:
-    judge/H3c: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H3c: {kind: Q, stage: 5}
 - id: H4a
   stage: 5
   kind: C
   text: baseline과 같은 테스트 선택(1단계 Test 명령)으로 다시 실행함
   methods:
-    atom/H4a: [AP, COLLECT, TARGET, TEST, WRITE]
+    atom/H4a: {kind: C, stage: 5}
 - id: H4b
   stage: 5
   kind: E
   text: 기존 커버 테스트를 마지막 수정 뒤 다시 실행함
   methods:
-    check/t5_regression_after_last_edit: [TEST, EDIT, WRITE]
-    check/e5_command_run: [AP, COLLECT, CMDMATCH, TARGET, EDIT]
+    check/t5_regression_after_last_edit: {kind: E, stage: 5}
+    check/e5_command_run: {kind: A, stage: 5}
 - id: H5a
   stage: 5
   kind: A
   text: 05 Regressions·Verdict 기록이 수정 뒤 마지막 테스트 실행과 맞음 (none·unchanged인데 실패가 남지 않음)
   methods:
-    check/e5_regressions: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
+    check/e5_regressions: {kind: A, stage: 5}
 - id: H5b
   stage: 5
   kind: C
   text: 05 Pre-existing failures는 01 baseline에서 실패한 테스트만
   methods:
-    check/c15_preexisting_subset: [AP, COLLECT, NONE, TARGET]
+    check/c15_preexisting_subset: {kind: C, stage: 5}
 - id: H6
   stage: 5
   kind: R
   text: 전체 테스트 suite를 돌리지 않음
   methods:
-    rule/r_targeted_tests: [TEST, TARGET, DOC, WRITE]
+    rule/r_targeted_tests: {kind: R, stage: 5}
 - id: H7
   stage: 5
   kind: R
   text: baseline을 다시 만들려고 테스트를 재실행하지 않음
   methods:
-    atom/H7: [SHELLCLS, TEST, WRITE]
+    atom/H7: {kind: R, stage: 5}
 - id: H8a
   stage: 5
   kind: E
   text: 재현 스크립트가 실패하면 소스를 고침
   methods:
-    atom/H8a: [AP, COLLECT, SCRIPT, EXIT, EDIT, WRITE, PATCH]
+    atom/H8a: {kind: E, stage: 5}
 - id: H8b
   stage: 5
   kind: C
   text: baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음
   methods:
-    judge/H8b: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H8b: {kind: C, stage: 5, class: content}
 - id: H8g
   stage: 5
   kind: Q
   text: Regressions 항목마다 무엇이 테스트를 깨뜨렸고 어떻게 해결했는지 적음
   methods:
-    judge/H8g: [JUDGE, ISSUE, COLLECT]
+    judge/H8g: {kind: Q, stage: 5}
 - id: H8c
   stage: 5
   kind: R
@@ -1081,89 +1148,89 @@ rules:
   kind: Q
   text: 적은 pre-existing 실패마다 그렇게 판단한 이유를 붙임
   methods:
-    judge/H8d: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H8d: {kind: Q, stage: 5}
 - id: H8f
   stage: 5
   kind: A
   text: 마지막 실행에서도 실패하는 baseline 실패 테스트를 모두 05 Pre-existing failures에 적음
   methods:
-    check/e5_preexisting_listed: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
+    check/e5_preexisting_listed: {kind: A, stage: 5}
 - id: H8e
   stage: 5
   kind: E
   text: patch가 만든 regression(baseline에서 통과하던 테스트의 실패)을 고침
   methods:
-    atom/H8e: [TEST, EDIT, WRITE]
+    atom/H8e: {kind: E, stage: 5}
 - id: H9a
   stage: 5
   kind: E
   text: 고친 뒤 영향받은 검증을 다시 실행함
   methods:
-    atom/H9a: [EDIT, TEST, SCRIPT, WRITE, AP, COLLECT]
+    atom/H9a: {kind: E, stage: 5}
 - id: H9b
   stage: 5
   kind: Q
   text: 고친 것을 무엇·왜와 함께 Fixes Applied에 기록함
   methods:
-    judge/H9b: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+    judge/H9b: {kind: Q, stage: 5}
 - id: H10
   stage: 0
   kind: P
   text: 무한 재시도하지 않음 (진전이 없으면 멈춤)
   methods:
-    atom/H10: [SHELLCLS, EDIT, WRITE]
+    atom/H10: {kind: P, stage: 0}
 - id: H11
   stage: 5
   kind: Q
   text: 남은 실패를 Outstanding Failures에 사실대로 적음 (none으로 포장하지 않음)
   methods:
-    check/e5_outstanding_none: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
-    atom/H11: [AP, COLLECT, NONE, SCRIPT, EXIT, EDIT, WRITE]
+    check/e5_outstanding_none: {kind: A, stage: 5}
+    atom/H11: {kind: Q, stage: 5}
 - id: H12
   stage: 5
   kind: R
   text: repo에 의도치 않은 파일(임시 스크립트·스크래치·디버그 출력)이 없음
   methods:
-    rule/r_repo_clean: [PATCH, TESTFILE]
-    check/e5_unintended_none: [AP, COLLECT, NONE, PATH, PATCH]
+    rule/r_repo_clean: {kind: R, stage: 5}
+    check/e5_unintended_none: {kind: A, stage: 5}
 - id: H13
   stage: 5
   kind: C
   text: 최종 변경 파일 = 4단계에 적은 수정·생성 파일
   methods:
-    check/c45_final_files: [AP, COLLECT, PATH]
-    check/e5_final_files_diff: [AP, COLLECT, PATH, PATCH]
+    check/c45_final_files: {kind: C, stage: 5}
+    check/e5_final_files_diff: {kind: A, stage: 5}
 - id: H14
   stage: 5
   kind: R
   text: 최종 변경에 테스트 파일이 없음
   methods:
-    check/e5_test_files_none: [AP, COLLECT, NONE, PATCH, TESTFILE]
+    check/e5_test_files_none: {kind: A, stage: 5}
 - id: H15a
   stage: 5
   kind: F
   text: Result·Verdict는 정해진 값 중 하나 (success|failure, pass|fail, unchanged|regression resolved|pre-existing failures only)
   methods:
-    atom/H15a: [AP, COLLECT]
+    atom/H15a: {kind: F, stage: 5}
 - id: H15b
   stage: 5
   kind: C
   text: Verdict가 Regressions·Pre-existing failures와 모순되지 않음
   methods:
-    atom/H15b: [AP, COLLECT, NONE]
+    atom/H15b: {kind: C, stage: 5}
 - id: H15c
   stage: 5
   kind: C
   text: Unmet requirements가 재현 결과와 모순되지 않음
   methods:
-    check/c25_unmet_exist: [AP, COLLECT]
-    atom/H15c: [AP, COLLECT, NONE]
+    check/c25_unmet_exist: {kind: A, stage: 5}
+    atom/H15c: {kind: C, stage: 5}
 - id: H15d
   stage: 5
   kind: F
   text: Regressions·Pre-existing 항목은 '테스트 id -> 원인 -> 해결·이유' 형식
   methods:
-    atom/H15d: [AP, COLLECT, NONE]
+    atom/H15d: {kind: F, stage: 5}
 - id: H16
   stage: 5
   kind: E
@@ -1176,85 +1243,85 @@ rules:
   kind: P
   text: 빌드·재현·기존 테스트가 모두 통과하면 5단계에서 소스를 더 고치지 않고 05를 씀
   methods:
-    atom/H17: [EDIT, TEST, SCRIPT, EXIT, CMDMATCH, WRITE]
+    atom/H17: {kind: P, stage: 5}
 - id: S5.bresult
   stage: 5
   kind: F
   text: 05 필드 Build Result
   methods:
-    form/S5.bresult: [AP, COLLECT]
+    form/S5.bresult: {kind: F, stages: [5]}
 - id: S5.bcmd
   stage: 5
   kind: F
   text: 05 필드 Build Command
   methods:
-    form/S5.bcmd: [AP, COLLECT]
+    form/S5.bcmd: {kind: F, stages: [5]}
 - id: S5.rresult
   stage: 5
   kind: F
   text: 05 필드 Reproduction Script Result
   methods:
-    form/S5.rresult: [AP, COLLECT]
+    form/S5.rresult: {kind: F, stages: [5]}
 - id: S5.unmet
   stage: 5
   kind: F
   text: 05 필드 Unmet requirements (없으면 none)
   methods:
-    form/S5.unmet: [AP, COLLECT]
+    form/S5.unmet: {kind: F, stages: [5]}
 - id: S5.cmd
   stage: 5
   kind: F
   text: 05 필드 Existing Tests vs Baseline Command
   methods:
-    form/S5.cmd: [AP, COLLECT]
+    form/S5.cmd: {kind: F, stages: [5]}
 - id: S5.verdict
   stage: 5
   kind: F
   text: 05 필드 Verdict
   methods:
-    form/S5.verdict: [AP, COLLECT]
+    form/S5.verdict: {kind: F, stages: [5]}
 - id: S5.regress
   stage: 5
   kind: F
   text: 05 필드 Regressions (없으면 none)
   methods:
-    form/S5.regress: [AP, COLLECT]
+    form/S5.regress: {kind: F, stages: [5]}
 - id: S5.pre
   stage: 5
   kind: F
   text: 05 필드 Pre-existing failures (없으면 none)
   methods:
-    form/S5.pre: [AP, COLLECT]
+    form/S5.pre: {kind: F, stages: [5]}
 - id: S5.fixes
   stage: 5
   kind: F
   text: 05 섹션 Fixes Applied (없으면 none)
   methods:
-    form/S5.fixes: [AP, COLLECT]
+    form/S5.fixes: {kind: F, stages: [5]}
 - id: S5.outstanding
   stage: 5
   kind: F
   text: 05 섹션 Outstanding Failures (없으면 none)
   methods:
-    form/S5.outstanding: [AP, COLLECT]
+    form/S5.outstanding: {kind: F, stages: [5]}
 - id: S5.final_files
   stage: 5
   kind: F
   text: 05 필드 Files in the change
   methods:
-    form/S5.final_files: [AP, COLLECT]
+    form/S5.final_files: {kind: F, stages: [5]}
 - id: S5.final_unintended
   stage: 5
   kind: F
   text: 05 필드 Unintended files in the repository (없으면 none)
   methods:
-    form/S5.final_unintended: [AP, COLLECT]
+    form/S5.final_unintended: {kind: F, stages: [5]}
 - id: S5.final_tests
   stage: 5
   kind: F
   text: 05 필드 Test files in the change (없으면 none)
   methods:
-    form/S5.final_tests: [AP, COLLECT]
+    form/S5.final_tests: {kind: F, stages: [5]}
 lines:
 - {at: 'I:1', text: Follow the workflow defined in /ai-dlc/core-workflow.md., skip: 전체 지시 (A5)}
 - {at: 'I:3', text: Read /ai-dlc/core-workflow.md first. It names the rule detail file that governs, rules: [A1]}

@@ -457,11 +457,15 @@ def test_a_rule_left_without_methods_or_reason_is_reported():
     rs = ruleset.load()
     rule = next(r for r in rs["rules"] if r["id"] == "D13")
     del rule["methods"]
-    rs["materials"].pop("JUDGE")
     links = ruleset.check(rs)["links"]
     assert "rule D13: needs methods or excluded (exactly one)" in links
-    assert "item rule/r_tests_untouched: rule D13 lists no method rule/r_tests_untouched" in links
-    assert any(row.startswith("method judge/") and row.endswith("unknown material JUDGE") for row in links)
+    assert "measurement rule/r_tests_untouched: no rule places it" in links  # the code still measures it
+    assert "method rule/r_tests_untouched: materials declared, placed by no rule" in links
+    rs = ruleset.load()
+    next(r for r in rs["rules"] if r["id"] == "D5b")["methods"]["atom/D5b"] = {"stage": 1}  # no kind
+    links = ruleset.check(rs)["links"]
+    assert any(row.startswith("method atom/D5b (D5b): placement needs kind") for row in links)
+    assert any(row.startswith("rubric cannot be generated") for row in links)
 
 
 def _docs_copy(tmp_path):
