@@ -18,7 +18,8 @@ Rollout path per task:
 
 ```
 SandboxTaskHooks       docker run <task image> (+ agent-image mount)
-MiniSweAgentHarness    mini-swe-agent CLI *inside* the sandbox
+MiniSweAgentHarness    mini-swe-agent CLI *inside* the sandbox   (recipe.harness, default)
+OpenHandsSdkHarness    openhands-sdk runner *inside* the sandbox (recipe.harness=openhands-sdk)
   └─ litellm ────────► rLLM model gateway (host.docker.internal) ──► vLLM (verl rollout)
 GatewayManager         captures prompt/completion token ids + logprobs
 ShellScriptEvaluator   /tests/test.sh → /logs/verifier/reward.txt → reward
@@ -230,6 +231,26 @@ hand: `max_prompt_length + max_response_length` (`rllm_grpo.yaml`) must equal
 and `rllm/trainer/verl/transform.py:38` truncates an overrun *silently*, so a stale value
 here does not fail — it quietly drops the tail of every long episode.
 
+**Harness.** `recipe.harness` picks the agent that runs inside the sandbox:
+`mini-swe-agent` (default) or `openhands-sdk`, the same two the native `rllm eval` path
+runs. `recipe.agent_step_limit` is the turn budget for either (mini-swe-agent
+`agent.step_limit`, openhands-sdk `max_iteration_per_run`); for openhands-sdk,
+`recipe.openhands_default_tools` is `rllm eval`'s `include_default_tools`. Both harnesses
+expose `step_limit`, which is what lets the engine stamp `max_turns_exceeded` and
+`budget_reward_scale` apply: the agent stops on its cap without reporting it (openhands-sdk
+logs an error internally and exits 0), so the engine counts gateway traces against the
+budget. Two things differ for openhands-sdk. Its system prompt and tool specs are ~7.2K
+tokens before the issue statement, which is why `max_prompt_length` is 16384 (the padded
+prompt is cut from the *left* when it overruns, so an 8K width would have dropped the head
+of the system prompt). And observations come back as `role=tool` messages rather than user
+messages, so Qwen3.5's stock template already keeps every turn's `<think>` block for it;
+`preserve_thinking` below is still what keeps the prefix chain intact if the SDK ever
+injects a user message (its stuck-detector nudge).
+
+```bash
+bash recipe/grpo/qwen3_5/train_verl.sh recipe.harness=openhands-sdk
+```
+
 **Batch shape.** `rllm.data.train_batch_size=8` (tasks per step; verl's `sync_config`
 mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 64 trajectories per step,
 and `ppo_mini_batch_size=8` x 8 = 64 makes that exactly one optimizer update — strictly
@@ -297,7 +318,7 @@ computed over the survivors only. See [Compact filtering](#compact-filtering-rem
 | group size `n` | 4 | 4 |
 | temperature | 1.0 | 1.0 |
 | lr | 1e-6 | 1e-6 |
-| max prompt / response | 8192 / 122880 | 8192 / 122880 |
+| max prompt / response | 8192 / 122880 | 16384 / 114688 |
 | max turns | 150 | 150 |
 | agent timeout | 3600 s | 3600 s (`task.toml`) |
 | train batch | 32 | 32 |
@@ -1115,7 +1136,7 @@ recipe/grpo/qwen3_5/
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
 ├── config/
-│   ├── config.yaml               # Hydra entry + recipe.* (datasets, turn budget, reward scale, sandbox)
+│   ├── config.yaml               # Hydra entry + recipe.* (datasets, harness, turn budget, reward scale, sandbox)
 │   ├── rllm_grpo.yaml            # the `rllm.*` tree (data, sampling, gateway, GRPO)
 │   └── verl_trainer.yaml         # verl-native (model, FSDP2 actor/ref, vLLM rollout)
 ├── patches/

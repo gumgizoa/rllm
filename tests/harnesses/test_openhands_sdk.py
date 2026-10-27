@@ -130,6 +130,26 @@ def test_key_value_form_and_unknown_keys(caplog):
     assert "max_iteration" in caplog.text  # a typo is reported, not silently dropped
 
 
+def test_step_limit_mirrors_max_iterations_for_the_engine():
+    """The SDK stops on its iteration cap without telling the runner, so the
+    engine stamps MAX_TURNS_EXCEEDED by counting traces against
+    ``agent_flow.step_limit`` -- the GRPO recipe's budget penalty hangs off it."""
+    from rllm.engine.agentflow_engine import AgentFlowEngine
+    from rllm.workflows.workflow import TerminationReason
+
+    h = OpenHandsSdkHarness()
+    assert h.step_limit == 0  # no cap: never stamps
+    h.configure({"agent_kwargs": {"max_iterations": 150}})
+    assert h.step_limit == 150
+
+    class _Engine:
+        agent_flow = h
+
+    stamp = AgentFlowEngine._turn_budget_termination_reason
+    assert stamp(_Engine(), 150) is TerminationReason.MAX_TURNS_EXCEEDED
+    assert stamp(_Engine(), 149) is None
+
+
 def test_recipe_config_matches_the_harness_keys():
     from rllm.cli._sampling import parse_mapping_spec
 

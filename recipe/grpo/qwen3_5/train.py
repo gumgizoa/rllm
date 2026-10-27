@@ -1,7 +1,8 @@
-"""Native rLLM SWE GRPO on verl — Qwen3.5-4B + mini-swe-agent.
+"""Native rLLM SWE GRPO on verl — Qwen3.5-4B + mini-swe-agent or openhands-sdk.
 
 Not Harbor: the rollout is ``AgentFlowEngine`` → ``SandboxTaskHooks`` (Docker)
-→ ``MiniSweAgentHarness`` (the CLI runs *inside* the task sandbox and calls
+→ the harness ``recipe.harness`` names (``MiniSweAgentHarness`` or
+``OpenHandsSdkHarness``; the agent runs *inside* the task sandbox and calls
 back through the rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh``
 writes ``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
 
@@ -26,6 +27,7 @@ from omegaconf import DictConfig
 
 from rllm.data.dataset import DatasetRegistry
 from rllm.harnesses.mini_swe_agent import MiniSweAgentHarness
+from rllm.harnesses.openhands_sdk import OpenHandsSdkHarness
 from rllm.trainer import AgentTrainer
 from rllm.trainer.algorithms.transform import _default_traj_grouping_hook
 from rllm.types import AgentConfig, Task
@@ -114,6 +116,35 @@ class StepLimitedMiniSweAgent(MiniSweAgentHarness):
         )
 
 
+def make_agent_flow(recipe):
+    """Build the harness ``recipe.harness`` names, carrying the recipe's turn budget.
+
+    Both harnesses expose ``step_limit``: the agent inside the sandbox stops on
+    its cap without reporting it, so the engine stamps ``MAX_TURNS_EXCEEDED``
+    by counting gateway traces against that value, and only then does
+    ``budget_reward_scale`` apply (BUDGET_EXHAUSTED above).
+    """
+    harness = str(recipe.get("harness", "mini-swe-agent"))
+    step_limit = int(recipe.agent_step_limit)
+    if harness == "mini-swe-agent":
+        return StepLimitedMiniSweAgent(step_limit=step_limit)
+    if harness == "openhands-sdk":
+        agent_flow = OpenHandsSdkHarness()
+        # The same keys `rllm eval --agent-kwargs @recipe/eval/config/openhands-sdk.yaml` takes.
+        leftovers = agent_flow.configure(
+            {
+                "agent_kwargs": {
+                    "max_iterations": step_limit,
+                    "include_default_tools": [str(t) for t in recipe.openhands_default_tools],
+                }
+            }
+        )
+        if leftovers:
+            raise SystemExit(f"openhands-sdk harness did not take {sorted(leftovers)}")
+        return agent_flow
+    raise SystemExit(f"recipe.harness must be 'mini-swe-agent' or 'openhands-sdk', got {harness!r}")
+
+
 def _load(name: str, split: str, limit: int | None, kind: str):
     # as_tasks=True roots each row at its ``task_path`` and merges the per-task
     # ``task.toml``. Without it every Task lands on ``dataset_dir="."`` and the
@@ -134,13 +165,13 @@ def main(config: DictConfig) -> None:
     train_dataset = _load(recipe.train_dataset, recipe.train_split, recipe.get("train_limit"), "train")
     val_dataset = _load(recipe.val_dataset, recipe.val_split, recipe.get("val_limit"), "val")
 
-    # `auto` mounts a pre-built mini-swe-agent image into the task sandbox
-    # instead of running `uv tool install` on every rollout (Docker only).
-    # Same mechanism as `rllm eval --agent-image`.
+    # `auto` mounts a pre-built image of the agent into the task sandbox
+    # instead of installing it on every rollout (Docker only). Same mechanism
+    # as `rllm eval --agent-image`.
     agent_image = os.environ.get("RLLM_AGENT_IMAGE", recipe.agent_image)
     os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
 
-    agent_flow = StepLimitedMiniSweAgent(step_limit=recipe.agent_step_limit)
+    agent_flow = make_agent_flow(recipe)
     agent_flow.configure({"agent_image": agent_image})
 
     trainer = AgentTrainer(

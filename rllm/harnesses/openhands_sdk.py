@@ -144,6 +144,19 @@ class OpenHandsSdkHarness(BaseCliHarness):
             logger.warning("%s: --agent-kwargs keys %s have no effect", self.name, sorted(kwargs))
         return leftovers
 
+    @property
+    def step_limit(self) -> int:
+        """The turn budget the engine checks traces against.
+
+        The SDK makes one LLM call per iteration and, on reaching the cap,
+        stops without telling the runner (exit 0, no marker), so the engine
+        stamps ``MAX_TURNS_EXCEEDED`` from the trace count and this value
+        (``AgentFlowEngine._turn_budget_termination_reason``). The GRPO recipe
+        scales the reward of such rollouts; without this property they
+        looked like ordinary completions. 0 means no cap.
+        """
+        return self.max_iterations or 0
+
     def install_script(self) -> str:
         return _install_script(f"{agent_mount_target()}/openhands-sdk-venv")
 
