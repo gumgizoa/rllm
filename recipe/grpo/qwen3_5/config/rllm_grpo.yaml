@@ -19,13 +19,16 @@ rllm:
     train_batch_size: 32
     val_batch_size: 32
     # Only max_prompt_length is a real choice here: it is the padded width of
-    # the initial prompt (system + tool spec + issue statement; observed 1.1-1.3K,
-    # so 8K is roomy). max_response_length is whatever is left of the context
-    # window, and is derived rather than restated -- transform.py:38 truncates a
-    # merged row that overruns it without raising, so a stale hand-set value
-    # silently drops the tail of every long episode.
-    max_prompt_length: 8192
-    max_response_length: 122880
+    # the initial prompt (system + tool spec + issue statement). mini-swe-agent's
+    # is 1.1-1.3K; openhands-sdk's system prompt and tool specs alone measure
+    # ~7.2K tokens before the issue statement, so 8K left no room for it. An
+    # overrun is not an error: transform.py:38 cuts the prompt from the LEFT,
+    # dropping the head of the system prompt the policy actually sampled with.
+    # max_response_length is whatever is left of the context window, and is
+    # derived rather than restated -- the same truncation drops the tail of
+    # every long episode when it is stale.
+    max_prompt_length: 16384
+    max_response_length: 114688
 
   algorithm:
     # SWE-Master leave-one-out estimator: rllm/trainer/algorithms/rl_algo.py:26
@@ -51,7 +54,7 @@ rllm:
     train:
       temperature: 1.0
       top_p: 0.95
-      max_tokens: 8192   # per mini-swe-agent turn, not per episode
+      max_tokens: 8192   # per agent turn, not per episode
     val:
       temperature: 0.6
       top_p: 0.9
