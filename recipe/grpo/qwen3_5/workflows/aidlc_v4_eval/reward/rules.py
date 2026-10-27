@@ -508,9 +508,16 @@ def atomic_checks(
         c["E10b"] = 0.0 if _ASK.search(said_last) or said_last.endswith("?") else 1.0
     if w3 is not None:
         # G3a: each file written whole in stage 4 inside the repository was looked for first: read, named
-        # in a command, or its directory listed
+        # in a command, or its directory listed. The reproduction script is not one of them: the rule (04 Step 2,
+        # core "File Modification") is about the plan's targets and duplicate variants of existing files; the
+        # script is a new file at the path the plan recorded, which F7 and G4b leave out the same way. (On step24
+        # 262 of 403 runs failed G3a, and in a sample of 60 every unchecked file was the reproduction script.)
         end4 = w4 if w4 is not None else w5
-        made4 = [(p, n) for p, n in obs.created.items() if n > w3 and (end4 is None or n < end4) and not F.OUTSIDE_REPO_RE.match(p if p.startswith("/") else "/" + p) and not p.startswith("tmp/")]
+        made4 = [
+            (p, n)
+            for p, n in obs.created.items()
+            if n > w3 and (end4 is None or n < end4) and not F.OUTSIDE_REPO_RE.match(p if p.startswith("/") else "/" + p) and not p.startswith("tmp/") and not is_repro(p)
+        ]
 
         def looked(path: str, n: int) -> bool:
             base, parent = path.rsplit("/", 1)[-1], (path.rsplit("/", 1)[0] if "/" in path else "")

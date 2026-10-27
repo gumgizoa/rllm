@@ -131,7 +131,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | G1a | 4 | C | plan 순서대로 step을 실행함 | S4:16 | `atom/G1a` (C: 4; AP COLLECT PATH EDIT WRITE) |
 | G1b | 4 | C | plan의 모든 step을 실행함 | S4:48 | none: covered by another rule's items (G9, G2) |
 | G2 | 4 | C | plan에 적힌 경로를 사용함 | S4:21 | `check/c14_scope_changed` (C: 4; AP COLLECT PATH, diagnostic)<br>`check/c34_targets_changed` (C: 4; AP COLLECT PATH)<br>note: check/c14_scope_changed (04 Modified가 01 Affected Scope와 겹침) is a diagnostic: no document line states it |
-| G3a | 4 | P | 쓰기 전에 파일이 있는지 확인함 | CW:145, S4:22 | `atom/G3a` (P: 4; EDIT SEEN WRITE SHELLCLS) |
+| G3a | 4 | P | 쓰기 전에 파일이 있는지 확인함 (plan Target 파일; plan이 경로를 정한 재현 스크립트는 제외) | CW:145, S4:22 | `atom/G3a` (P: 4; EDIT SEEN WRITE SHELLCLS) |
 | G3b | 4 | R | 있는 파일은 in place 수정, 중복 변형 파일을 만들지 않음 | CW:146, S4:23 | none: covered by another rule's items (H12, F8b, S4.dupcheck) |
 | G3c | 4 | C | plan이 create로 계획한 파일을 새로 만듦 | S4:24 | `atom/G3c` (C: 4; AP COLLECT PATH PATCH EDIT) |
 | G4a | 4 | R | 애플리케이션 소스만 수정함 | CW:140, S4:25 | none: covered by another rule's items (D13) |

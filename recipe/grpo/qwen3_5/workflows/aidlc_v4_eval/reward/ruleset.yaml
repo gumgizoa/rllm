@@ -871,7 +871,7 @@ rules:
 - id: G3a
   stage: 4
   kind: P
-  text: 쓰기 전에 파일이 있는지 확인함
+  text: 쓰기 전에 파일이 있는지 확인함 (plan Target 파일; plan이 경로를 정한 재현 스크립트는 제외)
   methods:
     atom/G3a: {kind: P, stage: 4}
 - id: G3b

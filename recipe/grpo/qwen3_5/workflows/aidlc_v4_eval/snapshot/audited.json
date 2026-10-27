@@ -429,7 +429,7 @@
 "item": "atom/G3a",
 "verdict": "누락",
 "audit": "rule_logic_audit",
-"expected": 0.0
+"expected": null
 },
 {
 "data": "step24",
@@ -829,7 +829,7 @@
 "item": "atom/G3a",
 "verdict": "정답",
 "audit": "rule_logic_audit",
-"expected": 0.0
+"expected": null
 },
 {
 "data": "step24",
@@ -845,7 +845,7 @@
 "item": "atom/G3a",
 "verdict": "정답",
 "audit": "rule_logic_audit",
-"expected": 0.0
+"expected": null
 },
 {
 "data": "step24",
