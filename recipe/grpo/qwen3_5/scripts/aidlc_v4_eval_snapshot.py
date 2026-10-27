@@ -38,7 +38,7 @@ DATASETS = {
     "step24": "/mnt/nas1/mmi/gwan7801/rllm-home/eval_results/swebench_verified_500_qwen3_5-9b-aidlc-reward-swegym293-v2-step24_20261015_004741/episodes",
 }
 KEPT = ("aidlc/atom/", "aidlc/check/", "aidlc/proc/", "aidlc/form/", "aidlc/rule/", "aidlc/run/", "aidlc/kind/", "aidlc/score")
-AUDITS = ("out/rule_logic_audit/result_*.json", "out/rule_logic_audit_new/result_*.json")  # (data, episode, item, verdict)
+AUDITS = ("out/rule_logic_audit/result_*.json", "out/rule_logic_audit_new/result_*.json", "out/rule_logic_audit_6/result_*.json")  # (data, episode, item, verdict)
 
 
 def load_jsonl(path: Path) -> dict[str, dict[str, float]]:
