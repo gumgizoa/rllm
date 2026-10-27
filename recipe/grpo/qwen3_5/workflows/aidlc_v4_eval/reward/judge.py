@@ -64,7 +64,6 @@ MIN_QUOTE = 8
 QUESTIONS: dict[int, list[tuple[str, str]]] = {
     1: [
         ("D3", "Is `Owning module` the module or package the listed Files belong to?"),
-        ("D3b", "Does `Owning module` state the module's boundary within the repository (for example its directory), and does that boundary contain the listed Files?"),
         ("D4c", "Do Affected Scope's Files and Owning module stay within what the issue touches: no package or module listed that is unrelated to the issue?"),
         (
             "D6",
@@ -106,24 +105,13 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("F9a", "Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision?"),
     ],
     4: [
-        ("G5", "Does the patch keep the signatures and return shapes the plan's Contracts say are preserved? Answer n/a if no Contract preserves anything."),
         ("G8a", "Does each item under Deviations from Plan say what changed from the plan and why?"),
         ("G8c", "Does each structural invalidation name the step it invalidates, the reason, and what replaces it?"),
-        (
-            "B4b",
-            "Compare the plan's steps (artifact 03: targets and changes) with artifact 04's Changed Files and the final patch. Is every changed"
-            " file the plan does not name, and every planned step not carried out, recorded under Deviations from Plan? Answer yes if they match.",
-        ),
     ],
     5: [
         ("H3a", "Does the reproduction script contain a check for each Functional requirement's behaviour?"),
         ("H3b", "Does the reproduction script check the conditions the Edge Cases describe?"),
         ("H3c", "Does the reproduction script check the Non-Functional constraints?"),
-        (
-            "H8b",
-            "If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 list it under Regressions"
-            " rather than as a pre-existing failure? Answer n/a if no such test fails and artifact 05 records no regression.",
-        ),
         ("H8g", "Does each item under Regressions say what broke the test and how it was resolved?"),
         ("H8d", "Does each pre-existing failure listed give the reasoning that identifies it as pre-existing?"),
         ("H9b", "Does each item under Fixes Applied say what was changed and why?"),
@@ -360,8 +348,6 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
         if st == 4:
             if patch:
                 material["FINAL PATCH"] = patch
-            else:
-                skip |= {"G5", "B4b"}
             dev = (parsed.get(4) or {}).get("section_bodies", {}).get("Deviations from Plan")
             if dev is None or _section_none(parsed.get(4), "Deviations from Plan"):
                 skip |= {"G8a", "G8c"}
@@ -377,14 +363,10 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
             if not pre or is_none(pre):
                 skip.add("H8d")
             reg = _field(parsed.get(5), "Existing Tests vs Baseline", "Regressions")
-            first, last = _stage5_tests(run, parsed, first=True), _stage5_tests(run, parsed)
-            if not first and not last and (not reg or is_none(reg)):
-                skip.add("H8b")  # no run to show a regression and none recorded
             if not reg or is_none(reg):
                 skip.add("H8g")
-            if first and "H8b" not in skip:
-                material["STAGE 5 TEST RUN (the first one, before any stage 5 fix, output tail)"] = first
-            if last and not {"H8b", "H8d"} <= skip:
+            last = _stage5_tests(run, parsed)
+            if last and "H8d" not in skip:
                 material["STAGE 5 TEST RUN (the last one, output tail)"] = last
             if _section_none(parsed.get(5), "Fixes Applied") in (None, True):
                 skip.add("H9b")

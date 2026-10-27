@@ -120,6 +120,7 @@ FAMILIES = {
         "e4_duplicates_none",
         "e5_command_run",
         "e5_regressions",
+        "e5_regressions_listed",
         "e5_preexisting_listed",
         "e5_outstanding_none",
         "e5_repro_result",
@@ -145,6 +146,7 @@ FAMILIES = {
         "c34_targets_changed",
         "c34_plan_execution_steps",
         "c34_deviations_none",
+        "c34_deviations_recorded",
         "c14_scope_changed",
         "c15_preexisting_subset",
         "c25_unmet_exist",
@@ -169,11 +171,14 @@ TIMED_BY_EDITS = [
     "t5_regression_after_last_edit",
     "e5_command_run",
     "e5_regressions",
+    "e5_regressions_listed",
     "e5_preexisting_listed",
     "e5_outstanding_none",
 ]
 
 _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
+
+_ON_STASH = re.compile(r"\bgit\s+stash\b(?!\s+(?:pop|apply|list|show))")
 
 
 # A plan target that changes nothing: `common.py (verify existing fix)` (no "(modify in place)" / "(create)").
@@ -186,6 +191,45 @@ _TEST_NAME = re.compile(r"\b(test_\w+)(?!\w|\.py\b|/)")
 
 def _test_names(text: str) -> list[str]:
     return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
+
+
+_SYMBOL = re.compile(r"`([\w.]+)`|\b([A-Za-z_]\w{3,})\s*\(")
+_PATCH_DEF = re.compile(r"^(?:[-+ ]\s*|@@[^@]*@@\s*)(?:async\s+)?(?:def|class)\s+(\w+)", re.M)  # changed, context and hunk-header lines
+
+
+def _symbols(text: str) -> set[str]:
+    """Identifiers a plan step names: in backticks, or called (`to_native_string(`)."""
+    return {a or b for a, b in _SYMBOL.findall(text or "")} - {"none"}
+
+
+_CODE_NAME = re.compile(r"(?<![\w.])((?:_*[a-z]+(?:_[a-z0-9]+)+|[A-Z][a-z]+(?:[A-Z][a-z0-9]+)+)\w*)")  # snake_case or CamelCase, code-like
+
+
+def _patch_symbols(patch: str | None) -> dict[str, set[str]]:
+    """Repository path -> the names a deviation could call that file's change by: the defs and classes its hunks touch
+    (changed, context and header lines) and the code-like names on its changed lines (`_encode_params` when the
+    def itself lies outside the hunk: step24 000294)."""
+    out: dict[str, set[str]] = {}
+    for section in re.split(r"(?m)^diff --git ", patch or "")[1:]:
+        m = re.match(r"a/(\S+) b/(\S+)", section)
+        if not m:
+            continue
+        changed = "\n".join(ln[1:] for ln in section.splitlines() if ln[:1] in "+-" and not ln.startswith(("+++", "---")))
+        out[norm_path(m.group(2))] = set(_PATCH_DEF.findall(section)) | {n for n in _CODE_NAME.findall(changed) if len(n) >= 6}
+    return out
+
+
+def _names_in(text: str, path: str, symbols: set[str], shared: set[str] = frozenset()) -> bool:
+    """``text`` names the file (its name or stem), one of ``symbols``, or -- qualified, `IdentityOperator.__mul__` --
+    one of ``shared`` (a symbol the patch also touches in a planned file, which unqualified would name that file's
+    change: step24 000271 `set_gid()` vs 000471 `IdentityOperator.__mul__`)."""
+    name = path.rsplit("/", 1)[-1]
+    stem = name.rsplit(".", 1)[0]
+    if name in text or re.search(rf"(?<![\w.]){re.escape(stem)}(?![\w])", text):
+        return True
+    if any(re.search(rf"(?<!\w){re.escape(sy)}(?!\w)", text) for sy in symbols if len(sy) >= 4):
+        return True
+    return any(re.search(rf"\w+\.{re.escape(sy)}(?!\w)", text) for sy in shared if len(sy) >= 4)
 
 
 def _regressed(out: str, failing1: str | None, baseline_runs: list) -> bool | None:
@@ -386,11 +430,33 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             if listed:
                 value = _membership(listed, [s in step_nums for s in listed])
                 c["c34_plan_execution_steps"] = PARTIAL if value == SUPPORTED and set(step_nums) - set(listed) else value
+        # The reproduction script has its own section in both stages; a plan may or may not
+        # give it a step, so it is left out of the comparison on both sides.
+        not_repro = lambda xs: [x for x in xs if not (repro and same_file(x, repro))]  # noqa: E731
         if _section_none(p4, "Deviations from Plan") and targets and (mod or cre):
-            # The reproduction script has its own section in both stages; a plan may or may not
-            # give it a step, so it is left out of the comparison on both sides.
-            not_repro = lambda xs: [x for x in xs if not (repro and same_file(x, repro))]  # noqa: E731
             c["c34_deviations_none"] = SUPPORTED if _both_ways(not_repro(targets), not_repro(mod + cre)) == SUPPORTED else CONTRADICTED
+        dev = p4["section_bodies"].get("Deviations from Plan")
+        if dev and _section_none(p4, "Deviations from Plan") is False and targets and (mod or cre):
+            # Deviations recorded: every changed file the plan does not name, and every planned target not changed,
+            # is named there (B4b: a contradiction with an earlier stage is recorded as a deviation). What the
+            # entries say is the judge's (G8a). Replaced the judge question 2026-10-27.
+            changed_files = not_repro(mod + cre)
+            unplanned = [q for q in changed_files if not any(same_file(q, t) for t in not_repro(targets))]
+            unexecuted = [t for t in not_repro(targets) if not any(same_file(q, t) for q in changed_files)]
+            # named by the file, or by a symbol: a def / class the patch touches in that file, or one the plan step for
+            # that target names (step24 000294 wrote "applied in `_encode_params` instead of `to_native_string`")
+            touched = _patch_symbols(patch)
+            # a symbol the patch also touches in a planned file names the planned change, not the unplanned file (step24
+            # 000271: `set_gid()` added in the planned offsetbox.py and in image.py)
+            in_planned = {sy for t in not_repro(targets) for sy in touched.get(norm_path(t), set())}
+            step_syms: dict[str, set[str]] = {}
+            for s in p3["steps"]:
+                for t in claimed_paths(s["fields"].get("Target")):
+                    step_syms.setdefault(t, set()).update(_symbols(" ".join(str(s["fields"].get(k) or "") for k in ("Target", "Change", "Contract"))))
+            if unplanned or unexecuted:
+                found = [_names_in(dev, q, touched.get(norm_path(q), set()) - in_planned, touched.get(norm_path(q), set()) & in_planned) for q in unplanned]
+                found += [_names_in(dev, t, step_syms.get(t, set())) for t in unexecuted]
+                c["c34_deviations_recorded"] = _membership(unplanned + unexecuted, found)
     if p1 is not None and p4 is not None:
         scope = claimed_paths(_field(p1, "Affected Scope", "Files"))
         if scope and mod:
@@ -432,8 +498,10 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         # The run 05's Regressions / Pre-existing / Outstanding describe: the last run of the recorded selection (05
         # Command, else 01 Test) after the last edit; an exploratory run of other tests after it is not what the
         # report compares with the baseline (step24 000346: `-k symlink` on another file failed on the environment).
+        # (a run on stashed source -- `git stash && pytest` -- tests the baseline, not the change: step24 000003)
+        candidates = [r for r in post if not _ON_STASH.search(r[1])] or post
         selection = set(EV.test_targets(command or "") or []) or recorded_targets
-        described = [r for r in post if selection and (t := EV.test_targets(r[1])) and set(t) <= selection] or post
+        described = [r for r in candidates if selection and (t := EV.test_targets(r[1])) and set(t) <= selection] or candidates
         if obs.source_edits:
             c["t5_regression_after_last_edit"] = SUPPORTED if post else CONTRADICTED
         if tokens:
@@ -449,6 +517,17 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if regressed is not None and _section_none(p5, "Outstanding Failures"):
             c["e5_outstanding_none"] = CONTRADICTED if regressed else SUPPORTED
         pre = _field(p5, "Existing Tests vs Baseline", "Pre-existing failures")
+        if described and p1 is not None:
+            # A test that passed at the baseline and fails in the described stage-5 run is a regression: 05 lists it
+            # under Regressions, not Pre-existing failures (05 Step 3 table). Replaced the judge question 2026-10-27.
+            base_out = "\n".join(o for _, _, o in evidence_runs)
+            failing_now = EV.failed_tests(described[-1][2])
+            passed_then = set(_test_names(passing or "")) | {t for t in failing_now if EV.test_state(base_out, t) is True}
+            regressed_names = [t for t in failing_now if t in passed_then and EV.test_state(base_out, t) is not False]
+            if regressed_names:
+                named_in = lambda field, t: bool(field) and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", field) is not None  # noqa: E731
+                listed = [named_in(regressions, t) and not named_in(pre, t) for t in regressed_names]
+                c["e5_regressions_listed"] = _membership(regressed_names, listed)
         if post and failing1 and not _none(failing1):
             # every baseline failure the last run still fails is recorded as pre-existing (05 Step 3 table: "Record
             # the reasoning that identifies it as pre-existing"; whether the reasoning holds is the judge's)

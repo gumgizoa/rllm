@@ -189,7 +189,8 @@ rules:
   kind: Q
   text: 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로 기록
   methods:
-    judge/B4b: {kind: Q, stage: 0}
+    check/c34_deviations_recorded: {kind: C, stage: 4}
+  note: 'placed at C@4: the stage-4 artifact against the plan (was a judge question at Q@0 until 2026-10-27)'
 - id: B5a
   stage: 0
   kind: F
@@ -361,7 +362,7 @@ rules:
   kind: Q
   text: Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함
   methods:
-    judge/D3b: {kind: Q, stage: 1}
+    atom/D3b: {kind: Q, stage: 1}
 - id: D4a
   stage: 1
   kind: Q
@@ -911,7 +912,7 @@ rules:
   kind: C
   text: plan이 보존한다고 적은 계약(시그니처·반환 형태)을 유지함
   methods:
-    judge/G5: {kind: C, stage: 4}
+    atom/G5: {kind: C, stage: 4}
 - id: G6a
   stage: 4
   kind: Q
@@ -1129,7 +1130,7 @@ rules:
   kind: C
   text: baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음
   methods:
-    judge/H8b: {kind: C, stage: 5, class: content}
+    check/e5_regressions_listed: {kind: C, stage: 5}
 - id: H8g
   stage: 5
   kind: Q

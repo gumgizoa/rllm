@@ -202,6 +202,35 @@ def build_failed_then_fixed_first(r):
     r.turns.pop(r.runs("python /tmp/repro.py")[0])
 
 
+def deviation_recorded(r):
+    """pkg/other.py changed beside the plan's target, and said so under Deviations."""
+    r.edit(4, "- Modified: pkg/mod.py [R1, R3]", "- Modified: pkg/mod.py [R1, R3]\n- Modified: pkg/other.py [R1]")
+    r.edit(4, "## Deviations from Plan\n- none", "## Deviations from Plan\n- local correction: pkg/other.py also changed, to share the empty-string guard")
+    r.insert(r.write_of(4), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/other.py", old_str="a", new_str="b"))
+    r.patch += diff("pkg/other.py")
+    r.edit(5, "- Files in the change: pkg/mod.py", "- Files in the change: pkg/mod.py, pkg/other.py")
+
+
+def deviation_recorded_by_symbol(r):
+    """step24 000294 (audit 7): the deviation names the functions, not the files."""
+    r.edit(4, "- Modified: pkg/mod.py [R1, R3]", "- Modified: pkg/mod.py [R1, R3]\n- Modified: pkg/other.py [R1]")
+    r.edit(4, "## Deviations from Plan\n- none", "## Deviations from Plan\n- local correction: the guard went into normalize_input() instead of parse() alone")
+    r.insert(r.write_of(4), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/other.py", old_str="a", new_str="b"))
+    r.patch += diff("pkg/other.py", "def normalize_input(s): ...", "def normalize_input(s):\n    return s or ''")
+    r.edit(5, "- Files in the change: pkg/mod.py", "- Files in the change: pkg/mod.py, pkg/other.py")
+
+
+def regression_as_preexisting(r):
+    """test_parse passed at the baseline and fails at the end; 05 calls it pre-existing."""
+    r.set_obs(r.runs("pytest")[-1], "FAILED tests/test_mod.py::test_parse - AssertionError\n1 failed, 2 passed in 0.10s")
+    r.edit(5, "- Pre-existing failures: none", "- Pre-existing failures: tests/test_mod.py::test_parse -> flaky on CI")
+
+
+def regression_listed(r):
+    r.set_obs(r.runs("pytest")[-1], "FAILED tests/test_mod.py::test_parse - AssertionError\n1 failed, 2 passed in 0.10s")
+    r.edit(5, "- Regressions: none", "- Regressions: tests/test_mod.py::test_parse -> broke on None -> fixed the guard")
+
+
 def drop_last_command(word: str):
     return lambda r: r.turns.pop(r.runs(word)[-1])
 
@@ -347,6 +376,21 @@ CASES: list[Case] = [
     Case("atom/H1b", "h2", lambda r: [r.turns.pop(i) for i in sorted(r.runs(BUILD)[1:], reverse=True)], 0.0),
     Case("atom/H8a", "h1", repro_failed_recorded_pass, 0.0),
     Case("atom/H8e", "h1", hack("hidden_failure"), 0.0),
+    # --- the judge questions turned into code on 2026-10-27 ---
+    Case("atom/D3b", "h1", edit(1, "- Owning module: pkg", "- Owning module: tests.helpers (test utilities)"), 0.0),
+    Case("atom/G5", "h1", lambda r: setattr(r, "patch", r.patch + diff("pkg/mod.py", "def parse(s): ...", "def parse(text): ...")), 0.0),
+    Case("atom/G5", "h1", lambda r: setattr(r, "patch", r.patch + diff("pkg/mod.py", "def parse(s): ...", "def parse(s, strict=False): ...")), 1.0),
+    Case("atom/D3b", "h1", edit(1, "- Files: pkg/mod.py", "- Files: lib/pkg/mod.py\n  - tests/test_mod.py"), 1.0),
+    Case(
+        "check/c34_deviations_recorded",
+        "h1",
+        lambda r: (hack("phantom_modified")(r), r.edit(4, "## Deviations from Plan\n- none", "## Deviations from Plan\n- local correction: the helper moved into parse()")),
+        0.0,
+    ),
+    Case("check/c34_deviations_recorded", "h1", deviation_recorded, 1.0),
+    Case("check/c34_deviations_recorded", "h1", deviation_recorded_by_symbol, 1.0),
+    Case("check/e5_regressions_listed", "h1", regression_as_preexisting, 0.0),
+    Case("check/e5_regressions_listed", "h1", regression_listed, 1.0),
 ]
 
 

@@ -1790,5 +1790,85 @@
 "verdict": "정답",
 "audit": "rule_logic_audit_6",
 "expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000081_sphinx-doc__sphinx-8265_0.json",
+"item": "atom/D3b",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 0.8
+},
+{
+"data": "step24",
+"episode": "episode_000429_sympy__sympy-13031_0.json",
+"item": "check/c34_deviations_recorded",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 1.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000072_scikit-learn__scikit-learn-12973_0.json",
+"item": "atom/G5",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000007_astropy__astropy-14096_0.json",
+"item": "check/e5_regressions_listed",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000161_django__django-14608_0.json",
+"item": "atom/D3b",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000283_matplotlib__matplotlib-26291_0.json",
+"item": "atom/D3b",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 0.5
+},
+{
+"data": "step24",
+"episode": "episode_000271_matplotlib__matplotlib-24637_0.json",
+"item": "check/c34_deviations_recorded",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 0.0
+},
+{
+"data": "swebv100",
+"episode": "episode_000026_django__django-13821_0.json",
+"item": "check/e5_regressions_listed",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 1.0
+},
+{
+"data": "step24",
+"episode": "episode_000261_matplotlib__matplotlib-22871_0.json",
+"item": "check/e5_regressions_listed",
+"verdict": "정답",
+"audit": "rule_logic_audit_7",
+"expected": 0.0
+},
+{
+"data": "step24",
+"episode": "episode_000294_psf__requests-2931_0.json",
+"item": "check/c34_deviations_recorded",
+"verdict": "오탐",
+"audit": "rule_logic_audit_7",
+"expected": 1.0
 }
 ]

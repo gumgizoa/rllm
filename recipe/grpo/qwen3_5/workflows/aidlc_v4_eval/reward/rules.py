@@ -71,6 +71,7 @@ ATOMIC = (
     *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D10a D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
     *"G1a G3a G3c G4b G8b H1a H1b H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
     *"D5b B11 G7c H17 E10c".split(),
+    *"D3b G5".split(),
 )
 
 _MEDIA = re.compile(r"\.(?:png|jpe?g|gif|bmp|pdf|svg|eps)$", re.I)
@@ -153,6 +154,28 @@ _ASK_USER = re.compile(
 )
 
 _PY_SCRIPT = re.compile(r"\bpython[\d.]*\s+(?!-[mc]\b)[^\s|;&]+\.py\b")
+
+# A module boundary written in Owning module: a dotted name (`django.db.models`) or a path (`django/db/models`)
+_BOUNDARY = re.compile(r"(?<![\w./])((?:[A-Za-z_]\w*)(?:[./][A-Za-z_]\w*)+)/?(?![\w])")
+
+# A signature a plan Contract names: `parse(s)`, `QuerySet.filter(**kwargs)`
+_SIGNATURE = re.compile(r"(?<![\w.])((?:\w+\.)*(\w+))\s*\(([^()]*)\)")
+
+_DEF_LINE = re.compile(r"^([-+])\s*(?:async\s+)?def\s+(\w+)\s*\(([^)]*)\)", re.M)
+
+_NEW_CONTRACT = re.compile(r"\b(?:new|introduc\w*|add(?:s|ed)?)\b", re.I)
+
+
+def _required_params(params: str) -> list[str]:
+    """The positional parameters a caller must pass, in order (no default, not *args / **kwargs / self)."""
+    out = []
+    for raw in params.split(","):
+        p = raw.strip()
+        if not p or p.startswith("*") or "=" in p or p in ("self", "cls", "/"):
+            continue
+        out.append(p.split(":")[0].strip())
+    return out
+
 
 _LABEL_LINE = re.compile(r"^\s*[-*]\s*[A-Z][\w /&().-]*:")
 
@@ -659,6 +682,54 @@ def atomic_checks(
             return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) or "Traceback (most recent call last)" in out for _, cmd, out in runs)
 
         c["H17"] = 0.0 if edits5 and not failed_before(edits5[0]) else 1.0
+    if p1:
+        # D3b: Owning module states the module's boundary in the repository and the Files lie inside it. The boundary
+        # is read from a dotted module or a path in the field (`django.db.models (Django ORM)` -> django/db/models);
+        # a field with no such token (a name only) leaves it undecided. Replaced the judge question 2026-10-27.
+        owning = _field(p1, "Affected Scope", "Owning module") or ""
+        bounds = [norm_path(b.replace(".", "/")) if "/" not in b else norm_path(b) for b in _BOUNDARY.findall(owning)]
+        bounds = [b.rstrip("/") for b in bounds if b and not b.endswith((".py", ".md", ".txt"))]
+        # the source files listed (a test file listed there belongs to Existing Tests, not to the owning module)
+        files1 = [norm_path(f) for f in claimed_paths(_field(p1, "Affected Scope", "Files")) if not EV.is_test_file(norm_path(f), test_files)]
+        # a bare package name is a boundary too when it is a directory of a listed file (`pkg` for pkg/mod.py, lib/pkg/mod.py)
+        bounds += [w for w in re.findall(r"[A-Za-z_]\w*", owning) if any(w in f.split("/")[:-1] for f in files1)]
+
+        def inside(f: str, b: str) -> bool:
+            # under the boundary directory, the boundary's own module file (`matplotlib.figure` for lib/matplotlib/figure.py),
+            # at any depth (a `lib/` or `src/` source root before it)
+            return f == b or f.startswith(b + "/") or f"/{b}/" in f"/{f}" or f"/{f}".endswith(f"/{b}.py")
+
+        if bounds and files1:
+            c["D3b"] = _frac([any(inside(f, b) for b in bounds) for f in files1])
+    if steps and patch:
+        # G5: the patch keeps the signatures the plan's Contracts preserve: for each `name(...)` a Contract names
+        # (not one it introduces), a `def name` the patch rewrites keeps its required positional parameters in order,
+        # and is not removed; a function the patch does not touch is kept. Replaced the judge question 2026-10-27.
+        named: dict[str, str] = {}
+        for st_ in steps:
+            contract = st_["fields"].get("Contract") or ""
+            if _NEW_CONTRACT.search(contract) and not re.search(r"\b(?:preserv\w*|unchanged|keep\w*|same)\b", contract, re.I):
+                continue
+            for _, name, params in _SIGNATURE.findall(contract):
+                named.setdefault(name, params)
+        defs: dict[str, dict[str, list[str]]] = {}
+        for sign, name, params in _DEF_LINE.findall(patch):
+            defs.setdefault(name, {}).setdefault(sign, []).append(params)
+        # only a `def` the patch rewrites or removes bears on the contract; a function the patch leaves alone keeps
+        # its signature trivially and decides nothing (on step24 no run touched one in the first 150 checked)
+        verdicts = []
+        for name in named:
+            d = defs.get(name)
+            if not d or "-" not in d:
+                continue
+            if "+" not in d:
+                verdicts.append(False)  # removed
+                continue
+            old = [_required_params(x) for x in d["-"]]
+            new = [_required_params(x) for x in d["+"]]
+            verdicts.append(all(any(o == n[: len(o)] for n in new) for o in old))
+        if verdicts:
+            c["G5"] = _frac(verdicts)
     if len(run.steps) > 1:
         # E10c: no approval asked before the end either (core "never ask for approval, never wait for input");
         # the last turn is E10b's

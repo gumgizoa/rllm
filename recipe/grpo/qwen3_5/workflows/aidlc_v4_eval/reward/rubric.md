@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 reward/ruleset.py sync (from ruleset.yaml and the code's registrations). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-231 items | check kinds {'aidlc_v4_eval.atom': 65, 'aidlc_v4_eval.claim': 40, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 35, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+231 items | check kinds {'aidlc_v4_eval.atom': 67, 'aidlc_v4_eval.claim': 42, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 31, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items in a stage average into it, a category is the mean of its rules (a rule counted once per stage it applies in), a cell (category x stage) the mean of its rules, reported as a diagnostic, and the total (`score`) the mean of the categories.
@@ -14,9 +14,9 @@ Items per cell (scored / diagnostic):
 | P procedure | 8 | 4 | 5 | 5 | 6 | 6 |
 | F artifact form | 1 / 1 | 18 | 13 | 16 | 15 / 1 | 20 |
 | E execution | — | 5 | — | — | — | 6 |
-| C consistency across stages | — | — | — | 2 | 5 / 1 | 7 |
+| C consistency across stages | — | — | — | 2 | 6 / 1 | 7 |
 | R forbidden action | 4 | 2 | — | 3 | 4 | 4 |
-| Q content adequacy | 1 | 7 | 12 / 1 | 8 | 2 | 8 |
+| Q content adequacy | — | 7 | 12 / 1 | 8 | 2 | 8 |
 | A report accuracy | — | 8 | — | 3 | 8 / 1 | 10 |
 
 ## global — the whole run
@@ -35,7 +35,6 @@ Items per cell (scored / diagnostic):
 - [R] **B4a** - **Never rewrite an earlier stage's artifact.** A later stage that contradicts an earlier one records that in its own artifact — as a deviation, a correction, or a pre-existing f… — `aidlc_v4_eval.atom` {"rule": "B4a"} (`atom/B4a`) — /ai-dlc/core-workflow.md:29
 - [R] **D9** - **The environment can already build and test the project.** Do not spend effort on environment setup — `aidlc_v4_eval.rule` {"check": "r_no_env_setup"} (`rule/r_no_env_setup`) — /ai-dlc/core-workflow.md:134; /ai-dlc/rule-details/01-reverse-engineering.md:30
 - [R] **E10a** - **No user interaction.** Never generate a question file, never ask for approval, never wait for input. Resolve ambiguity by deciding and recording the assumption — `aidlc_v4_eval.atom` {"rule": "E10a"} (`atom/E10a`) — /ai-dlc/core-workflow.md:132
-- [Q] **B4b** Compare the plan's steps (artifact 03: targets and changes) with artifact 04's Changed Files and the final patch. Is every changed file the plan does not name, and every planned step not carried out, recorded under Deviations from Plan? Answer yes if they match. — `aidlc_v4_eval.judge` {"question": "B4b"} (`judge/B4b`) — /ai-dlc/core-workflow.md:29; /ai-dlc/core-workflow.md:71
 
 ## 1 — governed by /ai-dlc/rule-details/01-reverse-engineering.md
 
@@ -71,7 +70,7 @@ Items per cell (scored / diagnostic):
 - [Q] **D10b** Does the Existing Tests `Contract` agree with the shown test code: is each signature, return value or raised error it states one those tests check, with nothing the tests contradict? — `aidlc_v4_eval.judge` {"question": "D10b"} (`judge/D10b`) — /ai-dlc/rule-details/01-reverse-engineering.md:35
 - [Q] **D1b** - [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or s… — `aidlc_v4_eval.atom` {"rule": "D1b"} (`atom/D1b`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [Q] **D3** Is `Owning module` the module or package the listed Files belong to? — `aidlc_v4_eval.judge` {"question": "D3"} (`judge/D3`) — /ai-dlc/rule-details/01-reverse-engineering.md:17
-- [Q] **D3b** Does `Owning module` state the module's boundary within the repository (for example its directory), and does that boundary contain the listed Files? — `aidlc_v4_eval.judge` {"question": "D3b"} (`judge/D3b`) — /ai-dlc/rule-details/01-reverse-engineering.md:17; /ai-dlc/rule-details/01-reverse-engineering.md:57
+- [Q] **D3b** - [ ] Record the module or package that owns those files, and its boundary within the repository — `aidlc_v4_eval.atom` {"rule": "D3b"} (`atom/D3b`) — /ai-dlc/rule-details/01-reverse-engineering.md:17; /ai-dlc/rule-details/01-reverse-engineering.md:57
 - [Q] **D4a** - [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it — `aidlc_v4_eval.atom` {"rule": "D4a"} (`atom/D4a`) — /ai-dlc/rule-details/01-reverse-engineering.md:18
 - [Q] **D6** Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one, or 'not applicable' (or an import / compile check) for an interpreted package? — `aidlc_v4_eval.judge` {"question": "D6"} (`judge/D6`) — /ai-dlc/rule-details/01-reverse-engineering.md:25
 - [Q] **D7b** - [ ] Express the test command so that it can target **the tests covering the affected scope**, not the whole suite — `aidlc_v4_eval.atom` {"rule": "D7b"} (`atom/D7b`) — /ai-dlc/rule-details/01-reverse-engineering.md:27; /ai-dlc/rule-details/01-reverse-engineering.md:62
@@ -182,11 +181,12 @@ Items per cell (scored / diagnostic):
 - [F] **S4.rpath** - Path: [full path as written, matching the planned path] — `aidlc_v4_eval.form` {"rule": "S4.rpath", "stage": 4} (`form/S4.rpath@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:68
 - [F] **S4.tags** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.atom` {"rule": "S4.tags"} (`atom/S4.tags`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64; /ai-dlc/rule-details/04-code-generation-generation.md:65
 - [F] **S4.testcheck** - Test files modified: none — `aidlc_v4_eval.form` {"rule": "S4.testcheck", "stage": 4} (`form/S4.testcheck@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:80
+- [C] **B4b** - **Never rewrite an earlier stage's artifact.** A later stage that contradicts an earlier one records that in its own artifact — as a deviation, a correction, or a pre-existing f… — `aidlc_v4_eval.claim` {"check": "c34_deviations_recorded"} (`check/c34_deviations_recorded`) — /ai-dlc/core-workflow.md:29; /ai-dlc/core-workflow.md:71
 - [C] **G1a** - [ ] Work through the plan in order — `aidlc_v4_eval.atom` {"rule": "G1a"} (`atom/G1a`) — /ai-dlc/rule-details/04-code-generation-generation.md:16
 - [C] **G2** - [ ] Use the path recorded in the plan — `aidlc_v4_eval.claim` {"check": "c14_scope_changed"} (`check/c14_scope_changed`) — /ai-dlc/rule-details/04-code-generation-generation.md:21 _(diagnostic, not scored)_
 - [C] **G2** - [ ] Use the path recorded in the plan — `aidlc_v4_eval.claim` {"check": "c34_targets_changed"} (`check/c34_targets_changed`) — /ai-dlc/rule-details/04-code-generation-generation.md:21
 - [C] **G3c** - **If it does not exist**: create it — `aidlc_v4_eval.atom` {"rule": "G3c"} (`atom/G3c`) — /ai-dlc/rule-details/04-code-generation-generation.md:24
-- [C] **G5** Does the patch keep the signatures and return shapes the plan's Contracts say are preserved? Answer n/a if no Contract preserves anything. — `aidlc_v4_eval.judge` {"question": "G5"} (`judge/G5`) — /ai-dlc/core-workflow.md:152; /ai-dlc/rule-details/04-code-generation-generation.md:26
+- [C] **G5** - Stage 3 names the contracts to preserve; Stage 4 preserves them; Stage 5 verifies the outcome against the baseline — `aidlc_v4_eval.atom` {"rule": "G5"} (`atom/G5`) — /ai-dlc/core-workflow.md:152; /ai-dlc/rule-details/04-code-generation-generation.md:26
 - [C] **G7a** - [ ] Write the reproduction script at the path the plan records, and **do not execute it in this stage** — `aidlc_v4_eval.claim` {"check": "c34_repro_path"} (`check/c34_repro_path`) — /ai-dlc/rule-details/04-code-generation-generation.md:28; /ai-dlc/rule-details/04-code-generation-generation.md:68
 - [R] **D13** - **DO NOT MODIFY**: test files — `aidlc_v4_eval.rule` {"check": "r_tests_untouched"} (`rule/r_tests_untouched`) — /ai-dlc/core-workflow.md:141; /ai-dlc/core-workflow.md:142; /ai-dlc/rule-details/04-code-generation-generation.md:30 (+1)
 - [R] **G4b** - Existing tests are **read and executed**, never edited. New behavior is verified with a **reproduction script** — `aidlc_v4_eval.atom` {"rule": "G4b"} (`atom/G4b`) — /ai-dlc/core-workflow.md:142
@@ -244,7 +244,7 @@ Items per cell (scored / diagnostic):
 - [C] **H1a** - [ ] Run the build or type-check command Reverse Engineering recorded — `aidlc_v4_eval.atom` {"rule": "H1a"} (`atom/H1a`) — /ai-dlc/rule-details/05-build-and-test.md:17
 - [C] **H4a** **The baseline and the test command are established, not re-derived.** Use them as Reverse Engineering recorded them. Read `/tmp/swe-bench-pro/01-reverse-engineering.md` only if t… — `aidlc_v4_eval.atom` {"rule": "H4a"} (`atom/H4a`) — /ai-dlc/rule-details/05-build-and-test.md:11; /ai-dlc/rule-details/05-build-and-test.md:36; /ai-dlc/rule-details/05-build-and-test.md:81
 - [C] **H5b** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "c15_preexisting_subset"} (`check/c15_preexisting_subset`) — /ai-dlc/rule-details/05-build-and-test.md:37; /ai-dlc/rule-details/05-build-and-test.md:84
-- [C] **H8b** If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 list it under Regressions rather than as a pre-existing failure? Answer n/a if no such test fails and artifact 05 records no regression. — `aidlc_v4_eval.judge` {"question": "H8b"} (`judge/H8b`) — /ai-dlc/rule-details/05-build-and-test.md:48
+- [C] **H8b** | **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved | — `aidlc_v4_eval.claim` {"check": "e5_regressions_listed"} (`check/e5_regressions_listed`) — /ai-dlc/rule-details/05-build-and-test.md:48
 - [R] **B7b** Is unresolved work kept out of the sections other than Outstanding Failures: does no other section of artifact 04 or 05 record a failure, limitation or follow-up as still open? The fields the skeleton provides for it (Reproduction Script `Unmet requirements`, `Pre-existing failures`) do not count. — `aidlc_v4_eval.judge` {"question": "B7b"} (`judge/B7b`) — /ai-dlc/core-workflow.md:40; /ai-dlc/rule-details/05-build-and-test.md:98
 - [R] **H12** - Unintended files in the repository: none — `aidlc_v4_eval.rule` {"check": "r_repo_clean"} (`rule/r_repo_clean`) — /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:102
 - [R] **H6** **Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated by conditions unrelated to the change. — `aidlc_v4_eval.rule` {"check": "r_targeted_tests"} (`rule/r_targeted_tests`) — /ai-dlc/rule-details/05-build-and-test.md:39

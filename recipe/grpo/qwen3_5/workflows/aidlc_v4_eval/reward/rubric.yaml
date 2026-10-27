@@ -938,20 +938,20 @@ items:
     - 29
     quote: '- **Never rewrite an earlier stage''s artifact.** A later stage that contradicts an earlier one records that in
       its own artifact — as a deviation, a correction, or a pre-existing failure'
-- id: judge/B4b
+- id: check/c34_deviations_recorded
   scope: specific
-  class: content
-  stage: global
+  class: evidence
+  stage: '4'
   target:
     type: action
     ref: run
     state: final
   check:
-    kind: aidlc_v4_eval.judge
+    kind: aidlc_v4_eval.claim
     params:
-      question: B4b
+      check: c34_deviations_recorded
   requirement: must
-  category: Q
+  category: C
   rule: B4b
   availability:
   - trace
@@ -970,9 +970,6 @@ items:
     quote: '**No stage returns to an earlier stage.** When a plan proves wrong during generation, or a fix is needed during
       verification, it is handled inside the stage where it surfaced and the deviation is recorded in that stage''s artifact.
       Cycling between stages repeats the same reasoning with the same context and risks never terminating.'
-  note: 'Compare the plan''s steps (artifact 03: targets and changes) with artifact 04''s Changed Files and the final patch.
-    Is every changed file the plan does not name, and every planned step not carried out, recorded under Deviations from Plan?
-    Answer yes if they match.'
 - id: form/B5b@1
   scope: specific
   class: structure
@@ -2141,7 +2138,7 @@ items:
     - 17
     quote: '- [ ] Record the module or package that owns those files, and its boundary within the repository'
   note: Is `Owning module` the module or package the listed Files belong to?
-- id: judge/D3b
+- id: atom/D3b
   scope: specific
   class: content
   stage: '1'
@@ -2150,9 +2147,9 @@ items:
     ref: run
     state: final
   check:
-    kind: aidlc_v4_eval.judge
+    kind: aidlc_v4_eval.atom
     params:
-      question: D3b
+      rule: D3b
   requirement: must
   category: Q
   rule: D3b
@@ -2170,8 +2167,6 @@ items:
     - 57
     - 57
     quote: '- Owning module: [module or package, and its boundary in the repository]'
-  note: Does `Owning module` state the module's boundary within the repository (for example its directory), and does that
-    boundary contain the listed Files?
 - id: atom/D4a
   scope: specific
   class: content
@@ -4496,7 +4491,7 @@ items:
     - 53
     - 53
     quote: '- [ ] Correct the source code, never the tests'
-- id: judge/G5
+- id: atom/G5
   scope: specific
   class: evidence
   stage: '4'
@@ -4505,9 +4500,9 @@ items:
     ref: run
     state: final
   check:
-    kind: aidlc_v4_eval.judge
+    kind: aidlc_v4_eval.atom
     params:
-      question: G5
+      rule: G5
   requirement: must
   category: C
   rule: G5
@@ -4525,8 +4520,6 @@ items:
     - 26
     - 26
     quote: '- [ ] **Preserve the interfaces and contracts** the plan names as preserved'
-  note: Does the patch keep the signatures and return shapes the plan's Contracts say are preserved? Answer n/a if no Contract
-    preserves anything.
 - id: check/c34_repro_path
   scope: specific
   class: evidence
@@ -5681,18 +5674,18 @@ items:
     - 53
     - 53
     quote: '- [ ] Correct the source code, never the tests'
-- id: judge/H8b
+- id: check/e5_regressions_listed
   scope: specific
-  class: content
+  class: evidence
   stage: '5'
   target:
     type: action
     ref: run
     state: final
   check:
-    kind: aidlc_v4_eval.judge
+    kind: aidlc_v4_eval.claim
     params:
-      question: H8b
+      check: e5_regressions_listed
   requirement: must
   category: C
   rule: H8b
@@ -5706,8 +5699,6 @@ items:
     - 48
     quote: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check
       the interfaces the plan marked as preserved |'
-  note: If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 list it under
-    Regressions rather than as a pre-existing failure? Answer n/a if no such test fails and artifact 05 records no regression.
 - id: judge/H8g
   scope: specific
   class: content

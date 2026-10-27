@@ -21,7 +21,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | B3c | 0 | F | 산출물에 나중에 채울 빈칸·placeholder를 남기지 않음 (전체 내용으로 씀) | CW:28 | none: covered by another rule's items (the field items (a placeholder reads as an empty field) and B5b (a missing section)) |
 | B3b | 0 | P | 산출물은 단계 끝에 씀 (다음 단계 문서를 읽기 전) | SP:71, CW:28, CW:40, S4:48 | `proc/B3b` (P: 1 2 3 4; DOC WRITE)<br>note: Completion Criteria met first: each criterion's own timing rule scores it (D11c, G7a, H2, H4b) |
 | B4a | 0 | R | 이전 단계 산출물을 다시 쓰지 않음 | CW:29 | `atom/B4a` (R: 0; WRITE DOC EDIT TEST SCRIPT) |
-| B4b | 0 | Q | 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로 기록 | CW:29, CW:71 | `judge/B4b` (Q: 0; JUDGE ISSUE COLLECT) |
+| B4b | 0 | Q | 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로 기록 | CW:29, CW:71 | `check/c34_deviations_recorded` (C: 4; AP COLLECT NONE PATH PATCH)<br>note: placed at C@4: the stage-4 artifact against the plan (was a judge question at Q@0 until 2026-10-27) |
 | B5a | 0 | F | frontmatter 키를 skeleton대로 씀 | CW:30, S1:47 | none: covered by another rule's items (B6a (frontmatter keys)) |
 | B5b | 0 | F | ## 제목을 skeleton대로 씀 (이름 바꾸기·빠뜨리기 금지) | CW:30, S1:47 | `form/B5b` (F: 1 2 3 4 5; AP COLLECT) |
 | B5c | 0 | F | 필드 접두어(- Label:)를 skeleton대로 씀 | CW:30, S1:47 | none: covered by another rule's items (the per-field rules (field prefixes)) |
@@ -48,7 +48,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | D1b | 1 | P | 이슈가 파일·심볼을 직접 지목하면 거기서 시작함 | S1:15 | `atom/D1b` (Q: 1; AP COLLECT ISSUE PATH SEEN TESTFILE)<br>note: not a judge question: same; code checks the issue's paths are in scope (atom/D1b) |
 | D2 | 1 | Q | 직접 연결된 파일(호출자·피호출자)까지 확장함 | S1:16 | none: judge, low priority, not asked (the scope extends to direct callers and callees) |
 | D3 | 1 | Q | Owning module이 Files가 속한 모듈·패키지임 | S1:17 | `judge/D3` (Q: 1; JUDGE ISSUE COLLECT SEEN) |
-| D3b | 1 | Q | Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함 | S1:17, S1:57 | `judge/D3b` (Q: 1; JUDGE ISSUE COLLECT) |
+| D3b | 1 | Q | Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함 | S1:17, S1:57 | `atom/D3b` (Q: 1; AP COLLECT PATH) |
 | D4a | 1 | Q | 언어·프레임워크를 Files에서 판단해 기록함 | S1:18 | `atom/D4a` (Q: 1; AP COLLECT) |
 | D4b | 1 | R | 1단계에서 repo를 넓게 조사하지 않음 | S1:18, S1:21 | `atom/D4b` (R: 1; SHELLCLS WRITE EDIT) |
 | D4c | 1 | R | Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음 | S1:21 | `judge/D4c` (R: 1; JUDGE ISSUE COLLECT) |
@@ -137,7 +137,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | G4a | 4 | R | 애플리케이션 소스만 수정함 | CW:140, S4:25 | none: covered by another rule's items (D13) |
 | G4b | 4 | R | 새 동작은 재현 스크립트로 검증하고 repo에 새 테스트를 추가하지 않음 | CW:142 | `atom/G4b` (R: 4; AP COLLECT PATCH TESTFILE) |
 | D13 | 4 | R | 테스트 파일을 수정하지 않음 | CW:141, CW:142, S4:30, S5:53 | `rule/r_tests_untouched` (R: 4; EDIT PATCH TESTFILE) |
-| G5 | 4 | C | plan이 보존한다고 적은 계약(시그니처·반환 형태)을 유지함 | CW:152, S4:26 | `judge/G5` (C: 4; JUDGE ISSUE COLLECT PATCH) |
+| G5 | 4 | C | plan이 보존한다고 적은 계약(시그니처·반환 형태)을 유지함 | CW:152, S4:26 | `atom/G5` (C: 4; AP COLLECT PATCH) |
 | G6a | 4 | Q | 태그된 요구사항을 충족함 (resolve가 담당) | CW:150, S4:27 | none: not applicable (resolve, the task verifier's) |
 | G6b | 4 | Q | 이전에 통과하던 테스트는 계속 통과함 (결과 조건, verifier가 담당) | CW:150 | none: not applicable (the task verifier's tests) |
 | G7a | 4 | C | 재현 스크립트를 plan에 적은 경로에 씀 | S4:28, S4:68 | `check/c34_repro_path` (C: 4; AP COLLECT PATH)<br>`check/t4_repro_written_before_write` (A: 4; AP COLLECT PATH EDIT WRITE) |
@@ -171,7 +171,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H6 | 5 | R | 전체 테스트 suite를 돌리지 않음 | S5:39 | `rule/r_targeted_tests` (R: 5; TEST TARGET DOC WRITE) |
 | H7 | 5 | R | baseline을 다시 만들려고 테스트를 재실행하지 않음 | S5:11 | `atom/H7` (R: 5; SHELLCLS TEST WRITE) |
 | H8a | 5 | E | 재현 스크립트가 실패하면 소스를 고침 | S5:47, S5:53 | `atom/H8a` (E: 5; AP COLLECT SCRIPT EXIT EDIT WRITE PATCH) |
-| H8b | 5 | C | baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음 | S5:48 | `judge/H8b` (C: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| H8b | 5 | C | baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음 | S5:48 | `check/e5_regressions_listed` (C: 5; AP COLLECT TEST EDIT WRITE) |
 | H8g | 5 | Q | Regressions 항목마다 무엇이 테스트를 깨뜨렸고 어떻게 해결했는지 적음 | S5:48, S5:83 | `judge/H8g` (Q: 5; JUDGE ISSUE COLLECT) |
 | H8c | 5 | R | baseline에서도 실패하던 테스트(pre-existing)는 고치지 않음 | S1:39, S5:49 | none: judge, low priority, not asked (pre-existing failures left unfixed) |
 | H8d | 5 | Q | 적은 pre-existing 실패마다 그렇게 판단한 이유를 붙임 | CW:125, S5:49, S5:84 | `judge/H8d` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
