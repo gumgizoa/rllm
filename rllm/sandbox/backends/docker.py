@@ -10,6 +10,7 @@ import tarfile
 import threading
 import time
 
+from rllm.sandbox.backends import egress
 from rllm.sandbox.protocol import SandboxExecTimeout
 
 logger = logging.getLogger(__name__)
@@ -31,12 +32,6 @@ class _ExecFailed(RuntimeError):
         super().__init__(message)
         self.exit_code = exit_code
 
-
-# Linux Docker does not define ``host.docker.internal`` unless the container
-# is started with ``--add-host=host.docker.internal:host-gateway``.
-# CLI harnesses inside sandboxes reach the rLLM gateway via that hostname
-# after ``container_reachable_url`` rewrites loopback addresses.
-_DOCKER_EXTRA_HOSTS = {"host.docker.internal": "host-gateway"}
 
 # Cap on processes + threads per sandbox. A fork bomb in agent-written code (a
 # daemon that respawns itself on every command) otherwise grows until the cgroup
@@ -76,7 +71,14 @@ class DockerSandbox:
             "name": f"rllm-sandbox-{name}",
             "detach": True,
             "remove": False,
-            "extra_hosts": _DOCKER_EXTRA_HOSTS,
+            # No internet: the isolated network's only way out is the egress
+            # relay, which forwards just the gateway port to the host. With the
+            # network open, agents fetched the task's own upstream release or
+            # repository and copied the answer from it. CLI harnesses still reach
+            # the gateway as ``host.docker.internal`` (``container_reachable_url``
+            # rewrites loopback addresses), which now names the relay.
+            "network": egress.NETWORK,
+            "extra_hosts": {"host.docker.internal": egress.ensure_relay(self._client)},
             "pids_limit": _DOCKER_PIDS_LIMIT,
         }
         if mounts:
@@ -102,6 +104,13 @@ class DockerSandbox:
             )
         else:
             logger.info("DockerSandbox %s created (container: %s, image: %s)", name, self._container.short_id, image)
+
+    def open_network(self) -> None:
+        """Join the internet-facing verify network (see ``egress.NetworkOpeningEvaluator``)."""
+        network = egress.ensure_verify_network(self._client)
+        self._container.reload()
+        if egress.VERIFY_NETWORK not in self._container.attrs["NetworkSettings"]["Networks"]:
+            network.connect(self._container)
 
     def exec(self, command: str, timeout: float | None = None, user: str | None = None) -> str:
         """Execute a command inside the container.

@@ -214,6 +214,14 @@ class SandboxTaskHooks:
             host while the agent runs and put back before the verifier (see
             :mod:`rllm.sandbox.git_history`). SWE task images carry commits past
             the base commit, fix included. Off by default.
+        agent_network: When True, a docker sandbox joins an internet-facing
+            network as soon as it exists, so the agent has the internet too.
+            Off by default: with it, agents fetched the task's own upstream
+            release or repository and copied the fix.
+        verify_network: When True, a docker sandbox, kept off the internet while
+            the agent runs, joins an internet-facing network just before the
+            verifier, for tests that download datasets, models or build
+            backends. Off by default.
     """
 
     def __init__(
@@ -222,12 +230,16 @@ class SandboxTaskHooks:
         sandbox_backend: str | None = None,
         use_snapshot: bool = True,
         hide_git_history: bool = False,
+        agent_network: bool = False,
+        verify_network: bool = False,
     ) -> None:
         from rllm.sandbox.snapshot import SnapshotRegistry
 
         self.evaluation: EvaluationPolicy = evaluation if evaluation is not None else FromTaskEvaluation()
         self.sandbox_backend = sandbox_backend
         self.hide_git_history = hide_git_history
+        self.agent_network = agent_network
+        self.verify_network = verify_network
         # Optional per-run warm queue (set by run_dataset / the trainer); when
         # present, setup pops a prefetched sandbox instead of creating one inline.
         self.warm_queue: WarmQueue | None = None
@@ -273,6 +285,8 @@ class SandboxTaskHooks:
                 t0 = time.perf_counter()
                 sandbox = self.warm_queue.pop(task) if self.warm_queue is not None else get_sandbox(task, self.sandbox_backend, self._registry, install, agent_mount_image=agent_mount_image)
                 setup_metrics["time/env_create_s"] = time.perf_counter() - t0
+                if self.agent_network and hasattr(sandbox, "open_network"):
+                    sandbox.open_network()
 
                 if agent_mount_image and install:
                     sandbox.baked_install = install
@@ -299,6 +313,11 @@ class SandboxTaskHooks:
                     setup_metrics["time/env_install_s"] = 0.0
 
             evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
+            if self.verify_network and not self.agent_network and hasattr(sandbox, "open_network"):
+                from rllm.sandbox.backends.egress import NetworkOpeningEvaluator
+
+                # Inside the history restore below: the network opens right before the tests.
+                evaluator = NetworkOpeningEvaluator(evaluator, sandbox)
 
             # Last step before the agent: nothing after this may read the repo's
             # history on the agent's behalf, and the verifier gets it back.

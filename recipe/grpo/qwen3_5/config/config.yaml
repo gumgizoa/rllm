@@ -37,6 +37,13 @@ recipe:
   # prints the answer), so a policy can learn to copy the fix from history.
   # Docker backend only.
   hide_git_history: false
+  # Docker sandboxes are kept off the internet: with it, agents fetched the
+  # task's own upstream release or repository and copied the fix.
+  # agent_network: internet while the agent runs (and so for the verifier too).
+  # verify_network: internet for the verifier only, for tests that download
+  # datasets, models or build backends. Docker backend only.
+  agent_network: false
+  verify_network: true
   # SWE-Master reward shaping (arXiv 2602.03411, sec. 3.4.2, eq. 4): a rollout
   # that ran out of budget -- turns, context window, or agent wall clock -- is
   # still graded, and its reward is multiplied by this. The paper's code uses
