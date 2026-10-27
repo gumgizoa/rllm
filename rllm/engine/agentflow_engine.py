@@ -108,15 +108,25 @@ _UPSTREAM_KIND_TO_REASON = {
 }
 
 
+def _upstream_error_kind(trace: TraceRecord) -> str | None:
+    """``upstream_error.kind`` the gateway stamped on a failed call, or None."""
+    marker = (getattr(trace, "metadata", None) or {}).get("upstream_error")
+    return str(marker.get("kind")) if isinstance(marker, dict) else None
+
+
 def _upstream_termination_reason(traces: list[TraceRecord]) -> TerminationReason | None:
     """Reason carried by the dropped trailing traces, latest marker winning."""
     for trace in reversed(traces):
-        marker = (getattr(trace, "metadata", None) or {}).get("upstream_error")
-        if isinstance(marker, dict):
-            reason = _UPSTREAM_KIND_TO_REASON.get(str(marker.get("kind")))
-            if reason is not None:
-                return reason
+        reason = _UPSTREAM_KIND_TO_REASON.get(_upstream_error_kind(trace) or "")
+        if reason is not None:
+            return reason
     return None
+
+
+def _count_turns(traces: list[TraceRecord]) -> int:
+    """Calls the agent got an answer to. A failed call is not a turn: litellm
+    and the SDKs resend a rejected request, and each resend leaves a trace."""
+    return sum(1 for t in traces if _upstream_error_kind(t) is None)
 
 
 # EvalOutput.metadata marker -> TerminationReason, set by evaluators that can
@@ -212,6 +222,43 @@ def enrich_episode_with_traces(
                 n_agent_steps,
             )
             training_steps = training_steps[:n_agent_steps]
+
+    # Harnesses that record no agent steps (every CLI harness: mini-swe-agent,
+    # openhands-sdk) end the same way, but their traces are absorbed wholesale
+    # rather than matched by position, so a failed call is recognised by the
+    # gateway's marker instead of by where it sits. Guessing from position
+    # missed it twice: a call rejected mid-rollout (the agent carried on, e.g.
+    # after condensing) is not last, and on the eval path no trace carries
+    # token ids, so every trace looks malformed. Either way the episode raised
+    # and was resampled, or ended as ENV_DONE -- a context overflow never
+    # reached budget_reward_scale and the policy never paid for running long.
+    if not agent_populates_steps:
+        failed = [_upstream_error_kind(t) is not None for t in traces]
+        if any(failed):
+            # How the agent stopped: the marker on the calls after its last
+            # answered one. A transient error it recovered from says nothing.
+            n_answered = max((i + 1 for i, f in enumerate(failed) if not f), default=0)
+            reason = _upstream_termination_reason(traces[n_answered:])
+            # An overflow it got past (the SDK condensed and went on) still used
+            # the whole window; anything infrastructural at the end wins over it.
+            if reason is None and any(_upstream_error_kind(t) == "context_length_exceeded" for t in traces):
+                reason = TerminationReason.MAX_PROMPT_LENGTH_EXCEEDED
+            if reason is not None:
+                episode.termination_reason = reason
+            kept = [s for s, f in zip(training_steps, failed, strict=True) if not f]
+            logger.warning(
+                "[%s] dropping %d failed call(s)%s; keeping %d",
+                uid,
+                len(training_steps) - len(kept),
+                f" [{reason.value}]" if reason is not None else "",
+                len(kept),
+            )
+            if strict and not kept:
+                # The first call already failed (prompt over the window from the
+                # start, upstream down): nothing to train on, so let the retry
+                # path reissue the rollout.
+                raise EnrichMismatchError(f"[{uid}] enrich mismatch: all {len(training_steps)} call(s) failed upstream")
+            training_steps = kept
 
     empty_prompt = sum(1 for s in training_steps if not s.model_output.prompt_ids)
     empty_compl = sum(1 for s in training_steps if not s.model_output.completion_ids)
@@ -737,7 +784,7 @@ class AgentFlowEngine:
             _llm_sum_s, _llm_wall_s = _summarize_llm_latencies(traces, _agentflow_s)
             _timings["time/agentflow_llm_sum_s"] = _llm_sum_s
             _timings["time/agentflow_llm_wall_s"] = _llm_wall_s
-            _timings["n_turns"] = float(len(traces))
+            _timings["n_turns"] = float(_count_turns(traces))
 
         # Preserve per-trajectory rewards set by multi-trajectory evaluators.
         for traj in enriched.trajectories:
@@ -763,7 +810,7 @@ class AgentFlowEngine:
         if evaluator_reason is not None:
             enriched.termination_reason = evaluator_reason
         if enriched.termination_reason is None:
-            enriched.termination_reason = self._turn_budget_termination_reason(len(traces))
+            enriched.termination_reason = self._turn_budget_termination_reason(_count_turns(traces))
         if enriched.termination_reason is None:
             enriched.termination_reason = TerminationReason.ENV_DONE
         return enriched
@@ -773,8 +820,9 @@ class AgentFlowEngine:
 
         The CLI harnesses return ``None`` from ``run()`` and let the engine build
         the episode from gateway traces, so the harness never gets an Episode to
-        stamp -- but it does own the budget it passed to the CLI. One trace per
-        turn, so the trace count is the turn count.
+        stamp -- but it does own the budget it passed to the CLI. One answered
+        call per turn, so the count of traces without an upstream-error marker
+        is the turn count.
         """
         limit = getattr(self.agent_flow, "step_limit", 0) or 0
         if limit > 0 and n_turns >= limit:
