@@ -190,7 +190,9 @@ def measure(ctx: EvalContext) -> dict:
     writes = first_write_steps(run)
     cc = content_checks(run, parsed, obs=obs, patch=whole_patch, test_files=tests)
     rc = rule_checks(run, obs, parsed, read_step, writes, whole_patch, tests)
-    ac = atomic_checks(run, obs, parsed, read_step, writes, {}, whole_patch, task, tests, final_words=EV.final_words(episode))
+    # (what the artifact directory held at the end, beside the five artifacts: B11)
+    art_dir = sorted(p for p in ctx.collected.files if p.startswith(A.ARTIFACT_DIR + "/"))
+    ac = atomic_checks(run, obs, parsed, read_step, writes, {"art_dir_files": art_dir}, whole_patch, task, tests, final_words=EV.final_words(episode))
     history, applied = EV.leaks(run)
     m: dict[str, float | None] = {f"check/{k}": v for k, v in cc["checks"].items()}
     m |= {f"rule/{k}": v for k, v in rc["checks"].items()}

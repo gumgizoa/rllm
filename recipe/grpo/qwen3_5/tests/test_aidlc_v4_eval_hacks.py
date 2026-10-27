@@ -678,7 +678,7 @@ ATOM_CASES = {
     "H11": lambda r: r.edit(5, "- Result: pass", "- Result: fail"),
     # found by the independent rule extraction
     "D5b": lambda r: r.edit(1, "- Files: pkg/mod.py", "- Files: pkg/mod.py, pkg/util.py"),
-    "B11": lambda r: r.insert(r.write_of(5), write("/tmp/swe-bench-pro/notes.md", "# notes")),
+    "B11": lambda r: (r.insert(r.write_of(5), write("/tmp/swe-bench-pro/notes.md", "# notes")), r.files.__setitem__("/tmp/swe-bench-pro/notes.md", "# notes")),
     "G7c": lambda r: r.insert(r.write_of(4), sh("cd /testbed && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s")),
     "H17": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
 }
@@ -783,6 +783,52 @@ def test_a_test_file_named_like_a_passing_test_says_nothing_of_it():
     assert test_state(out, "test_solveset") is True and test_state(out, "test_solve_sqrt_fail") is False
     assert test_state("test_a (app.tests.T) ... ok\nFAIL: test_b (app.tests.T)", "test_a") is True
     assert test_state("3 passed in 0.10s", "test_a") is None
+    coloured = "tests/test_mod.py::test_a \x1b[32mPASSED\x1b[0m\ntests/test_mod.py::test_b \x1b[31mFAILED\x1b[0m"
+    assert test_state(coloured, "test_a") is True and test_state(coloured, "test_b") is False
+
+
+# (the new judgments' audit, out/rule_logic_audit_new: each false verdict it found, kept)
+
+
+def test_a_temporary_file_moved_onto_an_artifact_keeps_b11():
+    r = Run()
+    r.insert(r.write_of(2), sh(f"tr -d '\\r' < {ART[1]} > /tmp/swe-bench-pro/tmp.md && mv /tmp/swe-bench-pro/tmp.md {ART[1]}", ""))
+    assert r.score(_atom_task(r))["aidlc/atom/B11"] == 1.0
+
+
+def test_a_stage4_edit_after_an_early_04_is_no_stage5_fix():
+    r = Run()
+    r.insert(r.read_of("05"), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c"))
+    assert r.score(_atom_task(r))["aidlc/atom/H17"] == 1.0
+
+
+def test_a_failing_script_before_a_stage5_fix_keeps_h17():
+    r = Run()
+    i = r.write_of(5)
+    r.insert(i, sh("cd /testbed && python /tmp/check_parse.py", "Traceback (most recent call last):\nAssertionError\nexit code: 1"))
+    r.insert(i + 1, T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c"))
+    assert r.score(_atom_task(r))["aidlc/atom/H17"] == 1.0
+
+
+def test_a_baseline_test_that_failed_to_load_then_passed_keeps_d12e():
+    r = Run()
+    first = r.runs("pytest")[0]
+    r.insert(first, sh("cd /testbed && python -m pytest tests/test_mod.py::Wrong::test_parse -q", "ERROR tests/test_mod.py::Wrong::test_parse - not found\n1 error in 0.01s"))
+    assert r.score()["aidlc/check/e1_baseline_passing"] == 1.0
+
+
+def test_passing_tests_only_some_of_which_failed_score_a_part():
+    r = Run()
+    r.edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing:\n  - tests/test_mod.py::test_parse\n  - tests/test_mod.py::test_empty")
+    r.set_obs(r.runs("pytest")[0], "F.\nFAILED tests/test_mod.py::test_empty - AssertionError\n1 failed, 1 passed in 0.10s")
+    assert r.score()["aidlc/check/e1_baseline_passing"] == 0.5
+
+
+def test_a_copy_whose_source_is_missing_writes_no_artifact():
+    r = Run()
+    r.insert(r.write_of(4), sh(f"cp /tmp/s4.md {ART[4]} && cp /tmp/s5.md {ART[5]}", "cp: cannot stat '/tmp/s5.md': No such file or directory"))
+    s = r.score()
+    assert s["aidlc/proc/C1b@5"] == 1.0
 
 
 def test_a_baseline_failure_still_failing_must_be_listed_as_preexisting():

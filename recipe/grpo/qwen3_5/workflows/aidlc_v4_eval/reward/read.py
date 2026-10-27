@@ -186,6 +186,7 @@ def passes(out: str) -> int:
     return sum(int(x) for x in PASSES.findall(out))
 
 
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 _STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b")
 _STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b")
 
@@ -197,12 +198,23 @@ def test_state(out: str, name: str) -> bool | None:
     (a quiet ``pytest -q`` names no passing test). A file or directory of that name is not the test
     (``test_solveset.py::test_solve_sqrt_fail FAILED`` says nothing of ``test_solveset``: step24 004741 000464)."""
     pat = re.compile(rf"(?<![\w/]){re.escape(name)}(?!\w|\.py\b|/)")
-    lines = [ln for ln in out.splitlines() if pat.search(ln)]
+    # (colours stripped first: ``\x1b[32mPASSED`` has no word boundary before PASSED -- 137 of 4,011 baseline
+    # readings on swebv100 + step24 were lost to it)
+    lines = [ln for ln in _ANSI.sub("", out).splitlines() if pat.search(ln)]
     if any(_STATE_FAIL.search(ln) for ln in lines):
         return False
     if any(_STATE_PASS.search(ln) for ln in lines):
         return True
     return None
+
+
+def passed_count(out: str) -> int | None:
+    """How many tests a run passed by its summary: pytest's ``N passed``, else unittest's ``Ran N tests``
+    less its failures and errors; None when the output has neither."""
+    if PASSES.search(out):
+        return passes(out)
+    ran = re.findall(r"\bRan (\d+) tests?\b", out)
+    return max(0, int(ran[-1]) - failures(out)) if ran else None
 
 
 def names_test_ids(out: str) -> bool:
@@ -1064,6 +1076,17 @@ def _field(parsed: dict | None, section: str, label: str) -> str | None:
     return field_value(body, label) or None
 
 
+_COPY = re.compile(r"\b(?:cp|mv)\s+(?:-\w+\s+)*(\S+)\s+(\S+)")
+_NO_SOURCE = re.compile(r"cannot stat|No such file or directory")
+
+
+def _copy_failed(a, target: str) -> bool:
+    """A ``cp`` / ``mv`` onto ``target`` whose source the output reports missing (``cp: cannot stat 's5.md'``):
+    nothing was written (swebv100 000081: ``cp s4 04 && cp s5 05``, the second failing)."""
+    errors = [ln for ln in (a.observation or "").splitlines() if _NO_SOURCE.search(ln)]
+    return any(F.normalise_doc_paths(dst.strip("'\"")) == target and any(src.strip("'\"").rsplit("/", 1)[-1] in ln for ln in errors) for src, dst in _COPY.findall(a.command or ""))
+
+
 def first_write_steps(run: Run) -> dict[int, int | None]:
     """Stage -> the first step that successfully wrote its artifact's path, whether or not the
     text could be recovered and whether or not the file survived. ``None`` when never written."""
@@ -1075,7 +1098,7 @@ def first_write_steps(run: Run) -> dict[int, int | None]:
             targets = F.write_targets(a) if a.kind == "shell" else ([a.path] if F.is_write(a) else [])
             for t in targets:
                 st = A.ARTIFACT_PATHS.get(t)
-                if st is not None and not (a.kind == "shell" and F._rm_matches(a.command or "", t)):
+                if st is not None and not (a.kind == "shell" and (F._rm_matches(a.command or "", t) or _copy_failed(a, t))):
                     first.setdefault(st, step.n)
     return {st: first.get(st) for st in A.STAGE_FILES}
 

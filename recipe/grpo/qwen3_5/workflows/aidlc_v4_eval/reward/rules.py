@@ -152,6 +152,8 @@ _ASK_USER = re.compile(
     re.I,
 )
 
+_PY_SCRIPT = re.compile(r"\bpython[\d.]*\s+(?!-[mc]\b)[^\s|;&]+\.py\b")
+
 _LABEL_LINE = re.compile(r"^\s*[-*]\s*[A-Z][\w /&().-]*:")
 
 _ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
@@ -618,8 +620,11 @@ def atomic_checks(
             c["D5b"] = 0.0 if any(len(claimed_paths(r)) > 1 for r in rows) else 1.0
     if any(write_step.values()):
         # B11: each stage writes one artifact file (core "Each stage writes one artifact file"): nothing else in
-        # the artifact directory but a script (the reproduction script may live there); documents elsewhere are B10's
-        extra = [p for p in obs.created if p.startswith(A.ARTIFACT_DIR + "/") and p not in A.ARTIFACT_PATHS and not is_repro(p) and not re.search(r"\.(?:py|sh)$", p)]
+        # the artifact directory but a script (the reproduction script may live there); documents elsewhere are
+        # B10's. Read from what the directory held at the end when it was collected (a temporary file moved onto
+        # an artifact -- `tr ... < 01.md > tmp.md && mv tmp.md 01.md`, swebv100 000016 -- is no second file).
+        left = facts.get("art_dir_files") or obs.created
+        extra = [p for p in left if p.startswith(A.ARTIFACT_DIR + "/") and p not in A.ARTIFACT_PATHS and not is_repro(p) and not re.search(r"\.(?:py|sh)$", p)]
         c["B11"] = 0.0 if extra else 1.0
     start4 = read_step.get("04") if read_step.get("04") is not None else w3
     if start4 is not None and w4 is not None:
@@ -627,19 +632,24 @@ def atomic_checks(
         # reproduction script, executing neither yet"): no test attempt between the stage's start and its
         # artifact. Running the reproduction script there is G7b's (r_repro_not_in_stage4).
         c["G7c"] = 0.0 if obs.attempts_in(after=start4, before=w4) else 1.0
+    start5 = max((x for x in (w4, read_step.get("05")) if x is not None), default=None)
     if w4 is not None and w5 is not None:
         # H17: with nothing failed, stage 5 changes no source (05 "If the build succeeded and both Step 2 and
         # Step 3 passed, nothing has failed -- skip to Step 6"): a stage-5 source edit comes after some
         # stage-5 verification failed -- a test attempt with failures or a nonzero exit, the reproduction
-        # script or the build exiting nonzero. (Once something failed, the fixes that follow are not judged.)
-        edits5 = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if w4 < n < w5)
+        # script, the build or any python script exiting nonzero or with a traceback (the script's path is
+        # unknown when no artifact was collected: step24 000309). Stage 5 begins at its document read, after
+        # artifact 04 (an edit between an early 04 and that read is stage 4's: step24 000406). Once something
+        # failed, the fixes that follow are not judged.
+        edits5 = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if start5 < n < w5)
 
         def failed_before(n: int) -> bool:
-            runs = obs.attempts_in(after=w4, before=n) + (obs.ran(repro, after=w4, before=n) if repro else [])
+            runs = obs.attempts_in(after=start5, before=n) + (obs.ran(repro, after=start5, before=n) if repro else [])
+            runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1])]
             build = _field(p1, "Build & Test Commands", "Build") if p1 else None
             if build and not is_none(build) and command_core(build):
-                runs += obs.command_runs(build, after=w4, before=n)
-            return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) for _, cmd, out in runs)
+                runs += obs.command_runs(build, after=start5, before=n)
+            return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) or "Traceback (most recent call last)" in out for _, cmd, out in runs)
 
         c["H17"] = 0.0 if edits5 and not failed_before(edits5[0]) else 1.0
     if len(run.steps) > 1:

@@ -409,7 +409,9 @@ def test_evaluation_survives_pickling():
     """Training pickles the policy into the Ray actor; the unpickled one scores the same."""
     ev = pickle.loads(pickle.dumps(_EVAL))
     data = ev.from_outputs({**FILES, "/tmp/swe-bench-pro/notes.md": "x"})
-    assert ev.score(SimpleNamespace(id="t"), episode(_content_honest_turns()), data) == score(SimpleNamespace(id="t"), episode(_content_honest_turns()), FILES)
+    assert ev.score(SimpleNamespace(id="t"), episode(_content_honest_turns()), data) == _EVAL.score(
+        SimpleNamespace(id="t"), episode(_content_honest_turns()), _EVAL.from_outputs({**FILES, "/tmp/swe-bench-pro/notes.md": "x"})
+    )
 
 
 def test_the_review_surface_matches_the_rubric():

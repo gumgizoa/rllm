@@ -180,6 +180,14 @@ _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
 _VERIFY_ONLY = re.compile(r"\((?![^)]*\b(?:modify|create)\b)[^)]*\b(?:verify|verification|check|inspect|read|no change)\b[^)]*\)", re.I)
 
 
+# A test's name in an artifact field, not its file's (`tests/test_mod.py::test_parse` names test_parse only)
+_TEST_NAME = re.compile(r"\b(test_\w+)(?!\w|\.py\b|/)")
+
+
+def _test_names(text: str) -> list[str]:
+    return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
+
+
 def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
     for parsed in (p4, p3):
         for cand in claimed_paths(_field(parsed, "Reproduction Script", "Path")):
@@ -268,8 +276,18 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             # Passing names tests the baseline run passed: none it reports failed (judged on the tests whose
             # state the output shows -- a verbose run's PASSED / ... ok, any run's FAILED lines)
             if passing and not _none(passing):
-                named = list(dict.fromkeys(_TEST_ID.findall(passing)))
-                states = {t: st for t in named if (st := EV.test_state(out, t)) is not None}
+                named = _test_names(passing)
+                states: dict[str, bool] = {}
+                for _, _, o in reversed(evidence_runs):
+                    # the latest run that says how each test went (an earlier attempt may not have loaded it:
+                    # `test_has_key (unittest.loader._FailedTest) ... ERROR`, step24 000193)
+                    here = {t: st for t in named if t not in states and (st := EV.test_state(o, t)) is not None}
+                    # a run that names only its failures (dots, -q): the rest of the Passing tests passed in it when
+                    # its summary counts at least that many passes (step24 000167, `.....FF.`)
+                    rest = [t for t in named if t not in states and t not in here]
+                    if False in here.values() and rest and (EV.passed_count(o) or 0) >= len(rest):
+                        here |= dict.fromkeys(rest, True)
+                    states |= here
                 if states:
                     c["e1_baseline_passing"] = _membership(list(states), list(states.values()))
 
@@ -401,7 +419,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if post and failing1 and not _none(failing1):
             # every baseline failure the last run still fails is recorded as pre-existing (05 Step 3 table: "Record
             # the reasoning that identifies it as pre-existing"; whether the reasoning holds is the judge's)
-            still = [t for t in dict.fromkeys(_TEST_ID.findall(failing1)) if EV.test_state(post[-1][2], t) is False]
+            still = [t for t in _test_names(failing1) if EV.test_state(post[-1][2], t) is False]
             if still:
                 c["e5_preexisting_listed"] = _membership(still, [bool(pre) and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", pre) is not None for t in still])
         if pre and p1 is not None:
