@@ -79,6 +79,7 @@ class Run:
         self.turns = _content_honest_turns()
         self.files = {ART[k]: ARTIFACTS[k] for k in ART}
         self.patch: str | None = PATCH
+        self.messages: dict[int, str] = {}  # turn index -> what the agent said beside that tool call
 
     def at(self, pred) -> int:
         return next(i for i, t in enumerate(self.turns) if pred(_args(t)))
@@ -133,6 +134,8 @@ class Run:
 
     def score(self, task=None):
         ep = episode(self.turns)
+        for i, text in self.messages.items():
+            ep.trajectories[0].steps[i].chat_completions[-1]["content"] = text
         if self.patch is not None:
             ep.artifacts = {"patch": self.patch}
         return score(task or SimpleNamespace(id="t"), ep, self.files)

@@ -188,6 +188,22 @@ def _test_names(text: str) -> list[str]:
     return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
 
 
+def _regressed(out: str, failing1: str | None, baseline_runs: list) -> bool | None:
+    """The last stage-5 run fails a test the baseline did not; None when that cannot be told -- the baseline
+    failed something it did not name (a class-level ``ERROR: setUpClass``, step24 000123) and 01 names nothing.
+    ``baseline_runs`` are the recorded selection's (an earlier attempt under the wrong settings that errored is not
+    the baseline the run reports: step24 000042)."""
+    known = set(_test_names(failing1 or "")) | {t for _, _, o in baseline_runs for t in EV.failed_tests(o)}
+    base_counts = [_failures(o) for _, _, o in baseline_runs]
+    named = EV.failed_tests(out)
+    if named:
+        new = [t for t in named if t not in known]
+        if new and not known and any(base_counts):
+            return None
+        return bool(new)
+    return _failures(out) > max(base_counts, default=0)
+
+
 def _repro_path(p3: dict | None, p4: dict | None) -> str | None:
     for parsed in (p4, p3):
         for cand in claimed_paths(_field(parsed, "Reproduction Script", "Path")):
@@ -229,6 +245,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
 
     # -- stage 1: scope, commands, baseline -------------------------------------------------
     failing1: str | None = None
+    evidence_runs: list = []  # the baseline runs of the recorded test selection (else any baseline run)
     if p1 is not None:
         scope = claimed_paths(_field(p1, "Affected Scope", "Files"))
         c["e1_scope_viewed"] = _membership(scope, [obs.seen(p, before=w[1]) for p in scope])
@@ -261,6 +278,9 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         recorded_targets = set(EV.test_targets(_field(p1, "Build & Test Commands", "Test") or "") or [])
         recorded = [r for r in baseline_runs if recorded_targets and (t := EV.test_targets(r[1])) and set(t) <= recorded_targets]
         evidence_runs = recorded or baseline_runs
+        if both_none and not evidence_runs and any(_NO_TESTS.search(o) for _, _, o in obs.attempts_in(before=w[1] if w[1] is not None else obs.first_edit)):
+            # nothing ran because nothing was found (`collected 0 items`): that is what `none / none` reports
+            c["e1_baseline_none"] = SUPPORTED
         if evidence_runs:
             out = "\n".join(o for _, _, o in evidence_runs)
             names = sorted({*_TEST_ID.findall(passing or ""), *_TEST_ID.findall(failing1 or "")})
@@ -272,7 +292,8 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             if _none(failing1):
                 c["e1_baseline_failing"] = CONTRADICTED if fails else SUPPORTED
             elif failing1:
-                c["e1_baseline_failing"] = SUPPORTED if fails or any(n in out for n in _TEST_ID.findall(failing1)) else CONTRADICTED
+                # (test names, not the file's: `tests/test_mod.py::test_old` names test_old only)
+                c["e1_baseline_failing"] = SUPPORTED if fails or any(n in out for n in _test_names(failing1)) else CONTRADICTED
             # Passing names tests the baseline run passed: none it reports failed (judged on the tests whose
             # state the output shows -- a verbose run's PASSED / ... ok, any run's FAILED lines)
             if passing and not _none(passing):
@@ -411,10 +432,14 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
             c["e5_command_run"] = SUPPORTED if obs.command_run(tokens, after=obs.last_edit) else CONTRADICTED
         regressions = _field(p5, "Existing Tests vs Baseline", "Regressions")
         verdict = (_field(p5, "Existing Tests vs Baseline", "Verdict") or "").lower()
-        if post and (_none(regressions) or verdict.startswith("unchanged")):
-            c["e5_regressions"] = CONTRADICTED if _failures(post[-1][2]) else SUPPORTED
-        if post and _section_none(p5, "Outstanding Failures"):
-            c["e5_outstanding_none"] = CONTRADICTED if _failures(post[-1][2]) else SUPPORTED
+        # A failure the baseline already had (01 Failing, or failing in the baseline run) is no regression and no
+        # outstanding work: `Regressions: none` and `Verdict: pre-existing failures only` are right beside it (05
+        # Step 3 table). Named failures compare by name; a quiet run (a count only) by count against the baseline's.
+        regressed = _regressed(post[-1][2], failing1, evidence_runs) if post else None
+        if regressed is not None and (_none(regressions) or verdict.startswith("unchanged")):
+            c["e5_regressions"] = CONTRADICTED if regressed else SUPPORTED
+        if regressed is not None and _section_none(p5, "Outstanding Failures"):
+            c["e5_outstanding_none"] = CONTRADICTED if regressed else SUPPORTED
         pre = _field(p5, "Existing Tests vs Baseline", "Pre-existing failures")
         if post and failing1 and not _none(failing1):
             # every baseline failure the last run still fails is recorded as pre-existing (05 Step 3 table: "Record

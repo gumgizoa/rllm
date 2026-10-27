@@ -208,6 +208,21 @@ def test_state(out: str, name: str) -> bool | None:
     return None
 
 
+_FAILED_LINE = re.compile(
+    r"^(?:FAILED|ERROR)\s+\S*?::(test\w+?)(?:\[|\s|$)"  # pytest summary: FAILED path::test_x[p] - msg
+    r"|^(?:\S*::)?(test\w+?)(?:\[[^\]]*\])?\s+(?:FAILED|ERROR)\b"  # pytest -v result line
+    r"|^(?:FAIL|ERROR):\s+(test\w+)\s*\("  # unittest failure header
+    r"|^(test\w+) \([\w.]+\)(?:\s[^\n]*?)? \.\.\. (?:FAIL|ERROR)\b",  # unittest -v
+    re.M,
+)
+
+
+def failed_tests(out: str) -> list[str]:
+    """The tests a run's output names as failed or errored (colours stripped); empty when it names none -- a quiet
+    run reports a count only (``failures``)."""
+    return list(dict.fromkeys(g for m in _FAILED_LINE.finditer(_ANSI.sub("", out)) for g in m.groups() if g))
+
+
 def passed_count(out: str) -> int | None:
     """How many tests a run passed by its summary: pytest's ``N passed``, else unittest's ``Ran N tests``
     less its failures and errors; None when the output has neither."""
