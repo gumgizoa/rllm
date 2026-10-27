@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 195 atomic rules -> 194 methods -> 226 judgments (scored rubric items; 5 more are diagnostics).
+362 document lines -> 195 atomic rules -> 193 methods -> 225 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄); `MSG` agent 메시지 (마지막 응답 앞의 것까지)
@@ -51,7 +51,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | D3b | 1 | Q | Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함 | S1:17, S1:57 | `atom/D3b` (Q: 1; AP COLLECT PATH) |
 | D4a | 1 | Q | 언어·프레임워크를 Files에서 판단해 기록함 | S1:18 | `atom/D4a` (Q: 1; AP COLLECT) |
 | D4b | 1 | R | 1단계에서 repo를 넓게 조사하지 않음 | S1:18, S1:21 | `atom/D4b` (R: 1; SHELLCLS WRITE EDIT) |
-| D4c | 1 | R | Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음 | S1:21 | `judge/D4c` (R: 1; JUDGE ISSUE COLLECT) |
+| D4c | 1 | R | Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음 | S1:21 | none: covered by another rule's items (D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56)) |
 | D5 | 1 | F | 모든 경로를 repo root부터 전체 경로로 적음 | S1:19, S1:56 | `atom/D5` (F: 1; AP COLLECT PATH SEEN) |
 | D5b | 1 | F | 01 Files에 경로를 한 줄에 하나씩 적음 | S1:56 | `atom/D5b` (F: 1; AP COLLECT PATH) |
 | D6 | 1 | Q | build·type-check 방법을 정함 (언어가 요구하면) | S1:25 | `check/e1_build_command_run` (A: 1; AP COLLECT NONE CMDMATCH)<br>`judge/D6` (Q: 1; JUDGE ISSUE COLLECT SEEN) |

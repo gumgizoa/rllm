@@ -183,7 +183,6 @@ METHOD_MATERIALS: dict[str, tuple[str, ...]] = {
     "judge/B7b": ("JUDGE", "ISSUE", "COLLECT"),
     "judge/D10b": ("JUDGE", "ISSUE", "COLLECT", "SEEN"),
     "judge/D3": ("JUDGE", "ISSUE", "COLLECT", "SEEN"),
-    "judge/D4c": ("JUDGE", "ISSUE", "COLLECT"),
     "judge/D6": ("JUDGE", "ISSUE", "COLLECT", "SEEN"),
     "judge/E1a": ("JUDGE", "ISSUE", "COLLECT"),
     "judge/E1b": ("JUDGE", "ISSUE", "COLLECT"),

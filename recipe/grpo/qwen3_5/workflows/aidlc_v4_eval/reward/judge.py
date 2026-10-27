@@ -64,7 +64,6 @@ MIN_QUOTE = 8
 QUESTIONS: dict[int, list[tuple[str, str]]] = {
     1: [
         ("D3", "Is `Owning module` the module or package the listed Files belong to?"),
-        ("D4c", "Do Affected Scope's Files and Owning module stay within what the issue touches: no package or module listed that is unrelated to the issue?"),
         (
             "D6",
             "Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one,"
@@ -89,7 +88,10 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("E9", "Does each Assumption state an ambiguity the issue leaves open, the decision taken on it, and the reasoning for that decision?"),
     ],
     3: [
-        ("F2d", "Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none?"),
+        (
+            "F2d",
+            "Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none? A step that states it changes nothing affects none.",
+        ),
         (
             "F2f",
             "Where a step introduces a new interface (function, parameter, class) that a later step uses, does that step's Contract name it?"
@@ -98,11 +100,14 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("F2e", "Does every step's Verification say what the reproduction script will check for that step?"),
         (
             "F4a",
-            "Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports,"
-            " so that the script would fail on the unfixed code and pass once it is fixed?",
+            "Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports (the issue's own example, or a check equivalent to it)?",
         ),
         ("F6", "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?"),
-        ("F9a", "Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision?"),
+        (
+            "F9a",
+            "Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision?"
+            " A step that states it changes nothing needs no further decision.",
+        ),
     ],
     4: [
         ("G8a", "Does each item under Deviations from Plan say what changed from the plan and why?"),
@@ -112,7 +117,7 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ("H3a", "Does the reproduction script contain a check for each Functional requirement's behaviour?"),
         ("H3b", "Does the reproduction script check the conditions the Edge Cases describe?"),
         ("H3c", "Does the reproduction script check the Non-Functional constraints?"),
-        ("H8g", "Does each item under Regressions say what broke the test and how it was resolved?"),
+        ("H8g", "Does each item under Regressions say what broke the test, and either how it was resolved or that it remains unresolved?"),
         ("H8d", "Does each pre-existing failure listed give the reasoning that identifies it as pre-existing?"),
         ("H9b", "Does each item under Fixes Applied say what was changed and why?"),
         (

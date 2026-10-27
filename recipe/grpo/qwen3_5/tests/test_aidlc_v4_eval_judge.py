@@ -58,7 +58,7 @@ def test_the_questions_follow_what_the_artifacts_hold():
     # no test file read (D10b), non-functional none (E7a, E7b, H3c), a one-step plan (F6), no deviations
     # (G8a, G8c), no pre-existing failures (H8d), no regression recorded (H8g), no fixes (H9b): not asked
     assert asked == {
-        1: ["D3", "D4c", "D6"],
+        1: ["D3", "D6"],
         2: ["E1a", "E1b", "E1c", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
         3: ["F2d", "F2f", "F2e", "F4a", "F9a"],
         5: ["H3a", "H3b", "B7", "B7b"],
@@ -144,7 +144,7 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     assert s["aidlc/judge/D6"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
     assert "aidlc/judge/D3" not in s and "aidlc/judge/E8b" not in s
     assert s["aidlc/judge_calls"] == 4.0  # stages 1, 2, 3, 5
-    assert s["aidlc/judge_void"] == pytest.approx(1 / 20)  # 21 asked, one n/a, one quote not found
+    assert s["aidlc/judge_void"] == pytest.approx(1 / 19)  # 20 asked, one n/a, one quote not found
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 

@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 reward/ruleset.py sync (from ruleset.yaml and the code's registrations). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-231 items | check kinds {'aidlc_v4_eval.atom': 67, 'aidlc_v4_eval.claim': 42, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 31, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+230 items | check kinds {'aidlc_v4_eval.atom': 67, 'aidlc_v4_eval.claim': 42, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 30, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items in a stage average into it, a category is the mean of its rules (a rule counted once per stage it applies in), a cell (category x stage) the mean of its rules, reported as a diagnostic, and the total (`score`) the mean of the categories.
@@ -15,7 +15,7 @@ Items per cell (scored / diagnostic):
 | F artifact form | 1 / 1 | 18 | 13 | 16 | 15 / 1 | 20 |
 | E execution | — | 5 | — | — | — | 6 |
 | C consistency across stages | — | — | — | 2 | 6 / 1 | 7 |
-| R forbidden action | 4 | 2 | — | 3 | 4 | 4 |
+| R forbidden action | 4 | 1 | — | 3 | 4 | 4 |
 | Q content adequacy | — | 7 | 12 / 1 | 8 | 2 | 8 |
 | A report accuracy | — | 8 | — | 3 | 8 / 1 | 10 |
 
@@ -66,7 +66,6 @@ Items per cell (scored / diagnostic):
 - [E] **D8** - [ ] Prefer output-reducing flags (for example `-q`, `--tb=short`) so that results remain readable — `aidlc_v4_eval.atom` {"rule": "D8"} (`atom/D8`) — /ai-dlc/rule-details/01-reverse-engineering.md:28
 - [E] **I2** Follow the workflow defined in /ai-dlc/core-workflow.md. — `aidlc_v4_eval.run` {"measure": "ran_real_test"} (`run/ran_real_test`) — instruction.md:1
 - [R] **D4b** - [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it — `aidlc_v4_eval.atom` {"rule": "D4b"} (`atom/D4b`) — /ai-dlc/rule-details/01-reverse-engineering.md:18; /ai-dlc/rule-details/01-reverse-engineering.md:21
-- [R] **D4c** Do Affected Scope's Files and Owning module stay within what the issue touches: no package or module listed that is unrelated to the issue? — `aidlc_v4_eval.judge` {"question": "D4c"} (`judge/D4c`) — /ai-dlc/rule-details/01-reverse-engineering.md:21
 - [Q] **D10b** Does the Existing Tests `Contract` agree with the shown test code: is each signature, return value or raised error it states one those tests check, with nothing the tests contradict? — `aidlc_v4_eval.judge` {"question": "D10b"} (`judge/D10b`) — /ai-dlc/rule-details/01-reverse-engineering.md:35
 - [Q] **D1b** - [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or s… — `aidlc_v4_eval.atom` {"rule": "D1b"} (`atom/D1b`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [Q] **D3** Is `Owning module` the module or package the listed Files belong to? — `aidlc_v4_eval.judge` {"question": "D3"} (`judge/D3`) — /ai-dlc/rule-details/01-reverse-engineering.md:17
@@ -145,13 +144,13 @@ Items per cell (scored / diagnostic):
 - [R] **F7** - Application source code only; never test files. They are the specification the change must satisfy — `aidlc_v4_eval.atom` {"rule": "F7"} (`atom/F7`) — /ai-dlc/rule-details/03-code-generation-planning.md:78
 - [R] **F8a** - If the target file exists, plan to modify it **in place** — `aidlc_v4_eval.atom` {"rule": "F8a"} (`atom/F8a`) — /ai-dlc/rule-details/03-code-generation-planning.md:81
 - [R] **F8b** - Never plan a duplicate such as `module_new.py` or `ClassName_modified.java` — `aidlc_v4_eval.atom` {"rule": "F8b"} (`atom/F8b`) — /ai-dlc/rule-details/03-code-generation-planning.md:82
-- [Q] **F2d** Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none? — `aidlc_v4_eval.judge` {"question": "F2d"} (`judge/F2d`) — /ai-dlc/rule-details/03-code-generation-planning.md:19
+- [Q] **F2d** Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none? A step that states it changes nothing affects none. — `aidlc_v4_eval.judge` {"question": "F2d"} (`judge/F2d`) — /ai-dlc/rule-details/03-code-generation-planning.md:19
 - [Q] **F2e** Does every step's Verification say what the reproduction script will check for that step? — `aidlc_v4_eval.judge` {"question": "F2e"} (`judge/F2e`) — /ai-dlc/rule-details/03-code-generation-planning.md:20
 - [Q] **F2f** Where a step introduces a new interface (function, parameter, class) that a later step uses, does that step's Contract name it? Answer n/a if no step introduces an interface a later step uses. — `aidlc_v4_eval.judge` {"question": "F2f"} (`judge/F2f`) — /ai-dlc/rule-details/03-code-generation-planning.md:19
 - [Q] **F3** - [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**, and any new interface this step introduces for later steps to use… — `aidlc_v4_eval.atom` {"rule": "F3"} (`atom/F3`) — /ai-dlc/rule-details/03-code-generation-planning.md:19
-- [Q] **F4a** Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports, so that the script would fail on the unfixed code and pass once it is fixed? — `aidlc_v4_eval.judge` {"question": "F4a"} (`judge/F4a`) — /ai-dlc/rule-details/03-code-generation-planning.md:27
+- [Q] **F4a** Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports (the issue's own example, or a check equivalent to it)? — `aidlc_v4_eval.judge` {"question": "F4a"} (`judge/F4a`) — /ai-dlc/rule-details/03-code-generation-planning.md:27
 - [Q] **F6** Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces? — `aidlc_v4_eval.judge` {"question": "F6"} (`judge/F6`) — /ai-dlc/rule-details/03-code-generation-planning.md:91
-- [Q] **F9a** Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision? — `aidlc_v4_eval.judge` {"question": "F9a"} (`judge/F9a`) — /ai-dlc/rule-details/03-code-generation-planning.md:73
+- [Q] **F9a** Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision? A step that states it changes nothing needs no further decision. — `aidlc_v4_eval.judge` {"question": "F9a"} (`judge/F9a`) — /ai-dlc/rule-details/03-code-generation-planning.md:73
 - [Q] **F9b** - Follow the existing repository structure — `aidlc_v4_eval.atom` {"rule": "F9b"} (`atom/F9b`) — /ai-dlc/rule-details/03-code-generation-planning.md:76
 - [A] **F5** The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy it. It is the check that no requirement was dropped between the… — `aidlc_v4_eval.claim` {"check": "c23_coverage_refs"} (`check/c23_coverage_refs`) — /ai-dlc/rule-details/03-code-generation-planning.md:67
 - [A] **S3.exercises** - Exercises: [the requirements it covers, by identifier] — `aidlc_v4_eval.claim` {"check": "c23_exercises_exist"} (`check/c23_exercises_exist`) — /ai-dlc/rule-details/03-code-generation-planning.md:59
@@ -255,7 +254,7 @@ Items per cell (scored / diagnostic):
 - [Q] **H3b** Does the reproduction script check the conditions the Edge Cases describe? — `aidlc_v4_eval.judge` {"question": "H3b"} (`judge/H3b`) — /ai-dlc/rule-details/05-build-and-test.md:28
 - [Q] **H3c** Does the reproduction script check the Non-Functional constraints? — `aidlc_v4_eval.judge` {"question": "H3c"} (`judge/H3c`) — /ai-dlc/rule-details/05-build-and-test.md:29
 - [Q] **H8d** Does each pre-existing failure listed give the reasoning that identifies it as pre-existing? — `aidlc_v4_eval.judge` {"question": "H8d"} (`judge/H8d`) — /ai-dlc/core-workflow.md:125; /ai-dlc/rule-details/05-build-and-test.md:49; /ai-dlc/rule-details/05-build-and-test.md:84
-- [Q] **H8g** Does each item under Regressions say what broke the test and how it was resolved? — `aidlc_v4_eval.judge` {"question": "H8g"} (`judge/H8g`) — /ai-dlc/rule-details/05-build-and-test.md:48; /ai-dlc/rule-details/05-build-and-test.md:83
+- [Q] **H8g** Does each item under Regressions say what broke the test, and either how it was resolved or that it remains unresolved? — `aidlc_v4_eval.judge` {"question": "H8g"} (`judge/H8g`) — /ai-dlc/rule-details/05-build-and-test.md:48; /ai-dlc/rule-details/05-build-and-test.md:83
 - [Q] **H9b** Does each item under Fixes Applied say what was changed and why? — `aidlc_v4_eval.judge` {"question": "H9b"} (`judge/H9b`) — /ai-dlc/rule-details/05-build-and-test.md:55; /ai-dlc/rule-details/05-build-and-test.md:87
 - [A] **H11** - [none | what remains, and why it was not resolved] — `aidlc_v4_eval.claim` {"check": "e5_outstanding_none"} (`check/e5_outstanding_none`) — /ai-dlc/rule-details/05-build-and-test.md:90; /ai-dlc/rule-details/05-build-and-test.md:98
 - [A] **H12** - Unintended files in the repository: none — `aidlc_v4_eval.claim` {"check": "e5_unintended_none"} (`check/e5_unintended_none`) — /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:102
@@ -271,6 +270,6 @@ Items per cell (scored / diagnostic):
 ## Rules without items
 
 - not applicable: **A4** document lookup order; **A5** an overall instruction; **B2b** an instrumental step: the edit tool makes the directory, and the artifact at its path is B1's; **G6a** resolve, the task verifier's; **G6b** the task verifier's tests
-- covered by another rule's items: **B2** B1 (the artifact at its fixed path); **B3c** the field items (a placeholder reads as an empty field) and B5b (a missing section); **B5a** B6a (frontmatter keys); **B5c** the per-field rules (field prefixes); **B5d** S1.recorded, S4.executed (the skeleton's two fixed sentences); **B9** the reference checks (R ids, steps quoted as written); **D10c** D10a (atom/D10a, check/e1_test_path_seen); **E5a** B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge); **E5b** judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases); **F2c** the step parse behind the S3 fields and tags; **G1b** G9, G2; **G3b** H12, F8b, S4.dupcheck; **G4a** D13
+- covered by another rule's items: **B2** B1 (the artifact at its fixed path); **B3c** the field items (a placeholder reads as an empty field) and B5b (a missing section); **B5a** B6a (frontmatter keys); **B5c** the per-field rules (field prefixes); **B5d** S1.recorded, S4.executed (the skeleton's two fixed sentences); **B9** the reference checks (R ids, steps quoted as written); **D4c** D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56); **D10c** D10a (atom/D10a, check/e1_test_path_seen); **E5a** B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge); **E5b** judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases); **F2c** the step parse behind the S3 fields and tags; **G1b** G9, G2; **G3b** H12, F8b, S4.dupcheck; **G4a** D13
 - a flag, in no score: **I1** leak_history; **H16** patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)
 - judge, low priority, not asked: **D2** the scope extends to direct callers and callees; **E2** stage 1's result used as context; **H8c** pre-existing failures left unfixed

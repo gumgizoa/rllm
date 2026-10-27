@@ -379,8 +379,9 @@ rules:
   stage: 1
   kind: R
   text: Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음
-  methods:
-    judge/D4c: {kind: R, stage: 1, class: content}
+  excluded:
+    why: covered by another rule's items
+    detail: D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56)
 - id: D5
   stage: 1
   kind: F

@@ -2222,32 +2222,6 @@ items:
     - 21
     - 21
     quote: '**Do NOT** enumerate packages unrelated to the issue, or survey the repository beyond the files identified above.'
-- id: judge/D4c
-  scope: specific
-  class: content
-  stage: '1'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: D4c
-  requirement: must
-  category: R
-  rule: D4c
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S1
-    lines:
-    - 21
-    - 21
-    quote: '**Do NOT** enumerate packages unrelated to the issue, or survey the repository beyond the files identified above.'
-  note: 'Do Affected Scope''s Files and Owning module stay within what the issue touches: no package or module listed that
-    is unrelated to the issue?'
 - id: atom/D5
   scope: specific
   class: structure
@@ -3684,7 +3658,7 @@ items:
       and any new interface this step introduces for later steps to use. If the task description specifies names, signatures,
       or file paths, use them exactly as given rather than choosing your own'
   note: Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the
-    step affects none?
+    step affects none? A step that states it changes nothing affects none.
 - id: judge/F2f
   scope: specific
   class: content
@@ -3789,7 +3763,7 @@ items:
     - 27
     quote: '- [ ] Plan a script that reproduces the issue before the fix and demonstrates correct behavior after it'
   note: Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue
-    reports, so that the script would fail on the unfixed code and pass once it is fixed?
+    reports (the issue's own example, or a check equivalent to it)?
 - id: atom/F4b
   scope: specific
   class: content
@@ -3964,7 +3938,7 @@ items:
     quote: '- The plan must be executable step by step without further interpretation. Generation executes only what is written
       here, so any gap in the plan is a gap in the implementation'
   note: Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be
-    carried out without a further decision?
+    carried out without a further decision? A step that states it changes nothing needs no further decision.
 - id: atom/F9b
   scope: specific
   class: content
@@ -5729,7 +5703,7 @@ items:
     - 83
     - 83
     quote: '- Regressions: [none | test id -> what broke it -> how it was resolved]'
-  note: Does each item under Regressions say what broke the test and how it was resolved?
+  note: Does each item under Regressions say what broke the test, and either how it was resolved or that it remains unresolved?
 - id: judge/H8d
   scope: specific
   class: content
@@ -6621,6 +6595,7 @@ appendix:
       B5c: the per-field rules (field prefixes)
       B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
       B9: the reference checks (R ids, steps quoted as written)
+      D4c: D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56)
       D10c: D10a (atom/D10a, check/e1_test_path_seen)
       E5a: B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge)
       E5b: judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases)
