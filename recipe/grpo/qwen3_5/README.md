@@ -318,7 +318,7 @@ computed over the survivors only. See [Compact filtering](#compact-filtering-rem
 | group size `n` | 4 | 4 |
 | temperature | 1.0 | 1.0 |
 | lr | 1e-6 | 1e-6 |
-| max prompt / response | 8192 / 122880 | 8192 / 122880 |
+| max prompt / response | 8192 / 122880 | 16384 / 114688 |
 | max turns | 150 | 150 |
 | agent timeout | 3600 s | 3600 s (`task.toml`) |
 | train batch | 32 | 32 |

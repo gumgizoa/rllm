@@ -54,11 +54,11 @@ rllm:
     train:
       temperature: 1.0
       top_p: 0.95
-      max_tokens: 8192   # per agent turn, not per episode
+      max_tokens: 16384  # per agent turn, not per episode
     val:
       temperature: 0.6
       top_p: 0.9
-      max_tokens: 8192
+      max_tokens: 16384
 
   gateway:
     # Drift-free multi-turn: turn N+1's prompt is built by extending the raw
