@@ -1,4 +1,4 @@
-"""The verifier's rule set: document lines -> atomic rules -> scoring methods -> rubric items.
+"""The verifier's rule set: document lines -> atomic rules -> scoring methods -> judgments.
 
     python -m recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.ruleset check    # what is out of step
     python -m recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.ruleset sync     # fix what follows
@@ -13,8 +13,10 @@
                reads; or, scored by nothing, ``excluded`` with why
     materials  the shared readings a method may rest on (``read.py``, ``skeleton.py``, the judge)
 
-``rubric.yaml``'s items are the last link: each item's key is one rule's method, and its ``category`` and
-``stage`` place that method in the matrix. The rest of the rubric follows from the set: each item's
+``rubric.yaml``'s items are the judgments: each item is one method applied in one stage (its key one rule's
+method, its ``category`` and ``stage`` its cell in the matrix), and a rule has at most one scored item per
+category and stage -- a second way to score the same face of a rule is ``log_only`` (a diagnostic), or the
+rule was not atomic and is split. The rest of the rubric follows from the set: each item's
 ``sources`` are its rule's lines, ``sources[].sha256`` the documents', the appendix the excluded rules
 (``sync`` writes them, and renders ``ruleset.md`` and ``rubric.md``).
 
@@ -26,7 +28,8 @@ and reports, by kind:
     new        a document line no entry accounts for: assign it rules, ``skip`` or ``dup``
     links      a broken link: an unknown rule or material, a rule with no line, a rule with neither
                methods nor ``excluded``, a method with no item of its rule, an item its rule does not
-               list (one check may score two rules, in different stages: ``atom/B5d``)
+               list (one check may score two rules, in different stages: ``atom/B5d``), two scored items
+               making one judgment (rule, category, stage)
     stale      what ``sync`` rewrites differs from the files (sources, sha256, appendix, the two renders)
 
 The test suite runs ``check`` and fails on any report, so an edited document cannot go unnoticed.
@@ -195,9 +198,10 @@ def dump_ruleset(rs: dict) -> str:
 
 def render(rs: dict, rubric: dict) -> str:
     """``ruleset.md``: rule -> lines -> methods (category, stages, materials), and the excluded rules."""
-    place: dict[str, list[tuple[str, str]]] = {}
+    place: dict[tuple[str, str], list[tuple[str, str, bool]]] = {}
     for it in rubric["items"]:
-        place.setdefault(method_key(it), []).append((it["category"], it["stage"]))
+        place.setdefault((method_key(it), it["rule"]), []).append((it["category"], it["stage"], bool(it.get("log_only"))))
+    judgments = sum(1 for it in rubric["items"] if not it.get("log_only"))
     lines_of: dict[str, list[str]] = {}
     for e in rs["lines"]:
         for r in e.get("rules") or []:
@@ -207,7 +211,8 @@ def render(rs: dict, rubric: dict) -> str:
         "# aidlc_v4_eval rule set",
         "",
         "Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.",
-        f"{len(rs['lines'])} document lines -> {len(rs['rules'])} atomic rules -> {n_methods} methods -> {len(rubric['items'])} rubric items.",
+        f"{len(rs['lines'])} document lines -> {len(rs['rules'])} atomic rules -> {n_methods} methods -> {judgments} judgments"
+        f" (scored rubric items; {len(rubric['items']) - judgments} more are diagnostics).",
         "A method's category and stages are its items' (`rubric.yaml`); `global` is stage 0.",
         "",
         "Materials: " + "; ".join(f"`{k}` {v}" for k, v in rs["materials"].items()),
@@ -219,10 +224,12 @@ def render(rs: dict, rubric: dict) -> str:
         methods = []
         for m, mats in (r.get("methods") or {}).items():
             cats: dict[str, list[str]] = {}
-            for c, s in place.get(m, []):
-                cats.setdefault(c, []).append("0" if s == "global" else s)
+            its = place.get((m, r["id"]), [])
+            for c, s, _ in its:
+                cats.setdefault(c, []).append("0" if s == "global" else str(s))
             where = ", ".join(f"{c}: {' '.join(sorted(set(ss)))}" for c, ss in cats.items())
-            methods.append(f"`{m}` ({where}; {' '.join(mats)})")
+            diag = ", diagnostic" if its and all(lo for *_, lo in its) else ""
+            methods.append(f"`{m}` ({where}; {' '.join(mats)}{diag})")
         if r.get("excluded"):
             methods.append(f"none: {r['excluded']['why']}" + (f" ({r['excluded']['detail']})" if r["excluded"].get("detail") else ""))
         if r.get("note"):
@@ -273,6 +280,11 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
     scored = {(method_key(it), it["rule"]) for it in rubric["items"]}
     links += [f"item {it['id']}: rule {it['rule']} lists no method {method_key(it)}" for it in rubric["items"] if (method_key(it), it["rule"]) not in listed]
     links += [f"method {m} ({r}): no rubric item of that rule" for m, r in sorted(listed - scored)]
+    judged: dict[tuple[str, str, str], list[str]] = {}
+    for it in rubric["items"]:
+        if not it.get("log_only"):
+            judged.setdefault((it["rule"], it["category"], str(it["stage"])), []).append(it["id"])
+    links += [f"judgment {r} {c}@{st}: scored items {', '.join(ids)} (one per judgment)" for (r, c, st), ids in sorted(judged.items()) if len(ids) > 1]
 
     if not (report["moved"] or report["changed"] or report["new"]):
         synced = synced_rubric(rs, rubric, root)

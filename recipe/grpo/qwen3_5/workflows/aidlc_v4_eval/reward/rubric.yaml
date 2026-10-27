@@ -163,21 +163,16 @@ items:
       measure: ran_real_test
   requirement: must
   category: E
-  rule: D11a
+  rule: I2
   availability:
   - trace
   derived_by: manual
   sources:
-  - doc: S1
+  - doc: I
     lines:
-    - 36
-    - 36
-    quote: '- [ ] **MANDATORY**: Execute those tests once, **before any source file is modified**'
-  - doc: S1
-    lines:
-    - 77
-    - 77
-    quote: '- Baseline pass/fail state recorded **before** any modification, with each test named individually'
+    - 1
+    - 1
+    quote: Follow the workflow defined in /ai-dlc/core-workflow.md.
 - id: check/t1_baseline_before_write
   scope: specific
   class: evidence
@@ -192,16 +187,16 @@ items:
       check: t1_baseline_before_write
   requirement: must
   category: E
-  rule: D11a
+  rule: D11c
   availability:
   - trace
   derived_by: manual
   sources:
   - doc: S1
     lines:
-    - 36
-    - 36
-    quote: '- [ ] **MANDATORY**: Execute those tests once, **before any source file is modified**'
+    - 37
+    - 37
+    quote: '- [ ] Record which of them pass and which already fail'
   - doc: S1
     lines:
     - 77
@@ -308,6 +303,7 @@ items:
     - 21
     - 21
     quote: '- [ ] Use the path recorded in the plan'
+  log_only: true
 - id: check/c23_requirements_covered
   scope: specific
   class: evidence
@@ -775,7 +771,7 @@ items:
       check: e1_baseline_failing
   requirement: must
   category: A
-  rule: D12a
+  rule: D12c
   availability:
   - trace
   derived_by: manual
@@ -799,7 +795,7 @@ items:
       check: e1_baseline_none
   requirement: must
   category: A
-  rule: D12a
+  rule: D12d
   availability:
   - trace
   derived_by: manual
@@ -985,7 +981,7 @@ items:
       check: e4_modified
   requirement: must
   category: A
-  rule: S4.modified
+  rule: S4.modified_real
   availability:
   - trace
   derived_by: manual
@@ -1014,7 +1010,7 @@ items:
       check: e4_undisclosed
   requirement: must
   category: A
-  rule: S4.modified
+  rule: S4.modified_all
   availability:
   - trace
   derived_by: manual
@@ -1043,7 +1039,7 @@ items:
       measure: fidelity
   requirement: must
   category: A
-  rule: S4.modified
+  rule: S4.modified_all
   availability:
   - trace
   derived_by: manual
@@ -1058,6 +1054,7 @@ items:
     - 64
     - 64
     quote: '- Modified: [full path] [requirement tags]'
+  log_only: true
 - id: check/e4_created
   scope: specific
   class: evidence
@@ -1096,7 +1093,7 @@ items:
       check: e4_duplicates_none
   requirement: must
   category: A
-  rule: S4.checks
+  rule: S4.dupcheck
   availability:
   - trace
   derived_by: manual
@@ -1106,11 +1103,6 @@ items:
     - 79
     - 79
     quote: '- Duplicate files created: none'
-  - doc: S4
-    lines:
-    - 80
-    - 80
-    quote: '- Test files modified: none'
 - id: check/e4_tests_untouched
   scope: specific
   class: evidence
@@ -1125,16 +1117,11 @@ items:
       check: e4_tests_untouched
   requirement: must
   category: A
-  rule: S4.checks
+  rule: S4.testcheck
   availability:
   - trace
   derived_by: manual
   sources:
-  - doc: S4
-    lines:
-    - 79
-    - 79
-    quote: '- Duplicate files created: none'
   - doc: S4
     lines:
     - 80
@@ -1231,7 +1218,7 @@ items:
       check: e5_regressions
   requirement: must
   category: A
-  rule: H5
+  rule: H5a
   availability:
   - trace
   derived_by: manual
@@ -1241,6 +1228,11 @@ items:
     - 37
     - 37
     quote: '- [ ] **MANDATORY**: Compare the result against the recorded baseline'
+  - doc: S5
+    lines:
+    - 83
+    - 83
+    quote: '- Regressions: [none | test id -> what broke it -> how it was resolved]'
 - id: check/c15_preexisting_subset
   scope: specific
   class: evidence
@@ -1255,7 +1247,7 @@ items:
       check: c15_preexisting_subset
   requirement: must
   category: A
-  rule: H5
+  rule: H5b
   availability:
   - trace
   derived_by: manual
@@ -1265,6 +1257,11 @@ items:
     - 37
     - 37
     quote: '- [ ] **MANDATORY**: Compare the result against the recorded baseline'
+  - doc: S5
+    lines:
+    - 84
+    - 84
+    quote: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]'
 - id: check/e5_outstanding_none
   scope: specific
   class: evidence
@@ -4098,7 +4095,7 @@ items:
       stage: 4
   requirement: must
   category: F
-  rule: S4.checks
+  rule: S4.dupcheck
   availability:
   - trace
   derived_by: manual
@@ -4108,11 +4105,6 @@ items:
     - 79
     - 79
     quote: '- Duplicate files created: none'
-  - doc: S4
-    lines:
-    - 80
-    - 80
-    quote: '- Test files modified: none'
 - id: form/S4.executed@4
   scope: specific
   class: structure
@@ -4138,6 +4130,7 @@ items:
     - 69
     - 69
     quote: '- Executed: no'
+  log_only: true
 - id: form/S4.modified@4
   scope: specific
   class: structure
@@ -4208,16 +4201,11 @@ items:
       stage: 4
   requirement: must
   category: F
-  rule: S4.checks
+  rule: S4.testcheck
   availability:
   - trace
   derived_by: manual
   sources:
-  - doc: S4
-    lines:
-    - 79
-    - 79
-    quote: '- Duplicate files created: none'
   - doc: S4
     lines:
     - 80
@@ -4401,7 +4389,7 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final
+  rule: S5.final_files
   availability:
   - trace
   derived_by: manual
@@ -4411,16 +4399,6 @@ items:
     - 93
     - 93
     quote: '- Files in the change: [full paths]'
-  - doc: S5
-    lines:
-    - 94
-    - 94
-    quote: '- Unintended files in the repository: none'
-  - doc: S5
-    lines:
-    - 95
-    - 95
-    quote: '- Test files in the change: none'
 - id: form/S5.final_tests@5
   scope: specific
   class: structure
@@ -4436,21 +4414,11 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final
+  rule: S5.final_tests
   availability:
   - trace
   derived_by: manual
   sources:
-  - doc: S5
-    lines:
-    - 93
-    - 93
-    quote: '- Files in the change: [full paths]'
-  - doc: S5
-    lines:
-    - 94
-    - 94
-    quote: '- Unintended files in the repository: none'
   - doc: S5
     lines:
     - 95
@@ -4471,26 +4439,16 @@ items:
       stage: 5
   requirement: must
   category: F
-  rule: S5.final
+  rule: S5.final_unintended
   availability:
   - trace
   derived_by: manual
   sources:
   - doc: S5
     lines:
-    - 93
-    - 93
-    quote: '- Files in the change: [full paths]'
-  - doc: S5
-    lines:
     - 94
     - 94
     quote: '- Unintended files in the repository: none'
-  - doc: S5
-    lines:
-    - 95
-    - 95
-    quote: '- Test files in the change: none'
 - id: form/S5.fixes@5
   scope: specific
   class: structure
@@ -5646,6 +5604,7 @@ items:
     - 55
     quote: '- R3: [statement, only if stated in the task description; otherwise "none stated"]'
   note: Is every Non-Functional requirement something the issue itself states?
+  log_only: true
 - id: judge/E8a
   scope: specific
   class: content
@@ -6193,15 +6152,14 @@ appendix:
       B5c: the per-field rules (field prefixes)
       B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
       B9: the reference checks (R ids, steps quoted as written)
-      I2: D11a's reading of a test run (agent-written runner scripts are no run)
       E5: B5b@2 and the S2 fields (the three categories)
       F2c: the step parse behind the S3 fields and tags
       G1b: G9, G2
-      G3b: H12, F8b, S4.checks
+      G3b: H12, F8b, S4.dupcheck
       G4a: D13
-      H16: run/fidelity
     a flag, in no score:
       I1: leak_history
+      H16: patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)
     judge, low priority, not asked:
       D2: the scope extends to direct callers and callees
       E2: stage 1's result used as context

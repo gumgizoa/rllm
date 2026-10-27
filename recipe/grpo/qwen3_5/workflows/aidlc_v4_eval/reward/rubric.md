@@ -12,12 +12,12 @@ Items per cell (scored / diagnostic):
 | category | 0 (whole run) | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|---|
 | P procedure | 5 | 4 | 4 | 4 | 5 | 5 |
-| F artifact form | 2 / 1 | 17 | 13 | 16 | 16 | 20 |
+| F artifact form | 2 / 1 | 17 | 13 | 16 | 15 / 1 | 20 |
 | E execution | — | 6 | — | — | — | 6 |
-| C consistency across stages | — | — | — | 1 | 6 | 5 |
+| C consistency across stages | — | — | — | 1 | 5 / 1 | 5 |
 | R forbidden action | 3 | 1 | — | 3 | 3 | 3 |
-| Q content adequacy | 1 | 5 | 12 | 8 | 2 | 8 |
-| A report accuracy | — | 7 | — | 3 | 9 | 10 |
+| Q content adequacy | 1 | 5 | 11 / 1 | 8 | 2 | 8 |
+| A report accuracy | — | 7 | — | 3 | 8 / 1 | 10 |
 
 ## global — the whole run
 
@@ -60,9 +60,9 @@ Items per cell (scored / diagnostic):
 - [E] **D10a** - [ ] Locate the existing tests that cover the affected scope — `aidlc_v4_eval.atom` {"rule": "D10a"} (`atom/D10a`) — /ai-dlc/rule-details/01-reverse-engineering.md:34
 - [E] **D10b** Does the Existing Tests `Contract` state what the shown test code actually checks (signatures, return values, raised errors)? — `aidlc_v4_eval.judge` {"question": "D10b"} (`judge/D10b`) — /ai-dlc/rule-details/01-reverse-engineering.md:35
 - [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.claim` {"check": "t1_baseline_before_edit"} (`check/t1_baseline_before_edit`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
-- [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.claim` {"check": "t1_baseline_before_write"} (`check/t1_baseline_before_write`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
-- [E] **D11a** - [ ] **MANDATORY**: Execute those tests once, **before any source file is modified** — `aidlc_v4_eval.run` {"measure": "ran_real_test"} (`run/ran_real_test`) — /ai-dlc/rule-details/01-reverse-engineering.md:36; /ai-dlc/rule-details/01-reverse-engineering.md:77
+- [E] **D11c** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "t1_baseline_before_write"} (`check/t1_baseline_before_write`) — /ai-dlc/rule-details/01-reverse-engineering.md:37; /ai-dlc/rule-details/01-reverse-engineering.md:77
 - [E] **D8** - [ ] Prefer output-reducing flags (for example `-q`, `--tb=short`) so that results remain readable — `aidlc_v4_eval.atom` {"rule": "D8"} (`atom/D8`) — /ai-dlc/rule-details/01-reverse-engineering.md:28
+- [E] **I2** Follow the workflow defined in /ai-dlc/core-workflow.md. — `aidlc_v4_eval.run` {"measure": "ran_real_test"} (`run/ran_real_test`) — instruction.md:1
 - [R] **D4b** - [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it — `aidlc_v4_eval.atom` {"rule": "D4b"} (`atom/D4b`) — /ai-dlc/rule-details/01-reverse-engineering.md:18; /ai-dlc/rule-details/01-reverse-engineering.md:21
 - [Q] **D1b** - [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or s… — `aidlc_v4_eval.atom` {"rule": "D1b"} (`atom/D1b`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [Q] **D3** Is `Owning module` the module or package the listed Files belong to, and does any boundary it states agree with those Files? — `aidlc_v4_eval.judge` {"question": "D3"} (`judge/D3`) — /ai-dlc/rule-details/01-reverse-engineering.md:17
@@ -70,9 +70,9 @@ Items per cell (scored / diagnostic):
 - [Q] **D6** Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one, or 'not applicable' (or an import / compile check) for an interpreted package? — `aidlc_v4_eval.judge` {"question": "D6"} (`judge/D6`) — /ai-dlc/rule-details/01-reverse-engineering.md:25
 - [Q] **D7b** - [ ] Express the test command so that it can target **the tests covering the affected scope**, not the whole suite — `aidlc_v4_eval.atom` {"rule": "D7b"} (`atom/D7b`) — /ai-dlc/rule-details/01-reverse-engineering.md:27; /ai-dlc/rule-details/01-reverse-engineering.md:62
 - [A] **D10a** - [ ] Locate the existing tests that cover the affected scope — `aidlc_v4_eval.claim` {"check": "e1_test_path_seen"} (`check/e1_test_path_seen`) — /ai-dlc/rule-details/01-reverse-engineering.md:34
-- [A] **D12a** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "e1_baseline_failing"} (`check/e1_baseline_failing`) — /ai-dlc/rule-details/01-reverse-engineering.md:37
-- [A] **D12a** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "e1_baseline_none"} (`check/e1_baseline_none`) — /ai-dlc/rule-details/01-reverse-engineering.md:37
 - [A] **D12a** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "e1_baseline_tests"} (`check/e1_baseline_tests`) — /ai-dlc/rule-details/01-reverse-engineering.md:37
+- [A] **D12c** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "e1_baseline_failing"} (`check/e1_baseline_failing`) — /ai-dlc/rule-details/01-reverse-engineering.md:37
+- [A] **D12d** - [ ] Record which of them pass and which already fail — `aidlc_v4_eval.claim` {"check": "e1_baseline_none"} (`check/e1_baseline_none`) — /ai-dlc/rule-details/01-reverse-engineering.md:37
 - [A] **D1a** - [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or s… — `aidlc_v4_eval.claim` {"check": "e1_scope_viewed"} (`check/e1_scope_viewed`) — /ai-dlc/rule-details/01-reverse-engineering.md:15
 - [A] **D6** - [ ] Determine how the affected module is built or type-checked, if the language requires it — `aidlc_v4_eval.claim` {"check": "e1_build_command_run"} (`check/e1_build_command_run`) — /ai-dlc/rule-details/01-reverse-engineering.md:25
 - [A] **D7a** - [ ] Determine how its tests are invoked — `aidlc_v4_eval.claim` {"check": "e1_test_command_run"} (`check/e1_test_command_run`) — /ai-dlc/rule-details/01-reverse-engineering.md:26
@@ -104,7 +104,7 @@ Items per cell (scored / diagnostic):
 - [Q] **E6b** Does Functional Requirements also state existing behaviour that must keep working, such as the contract of the existing tests recorded in artifact 01? — `aidlc_v4_eval.judge` {"question": "E6b"} (`judge/E6b`) — /ai-dlc/rule-details/02-requirements-analysis.md:28
 - [Q] **E7a** Is every Non-Functional requirement a constraint on how the code works (complexity, memory, performance, compatibility) rather than a functional behaviour? — `aidlc_v4_eval.judge` {"question": "E7a"} (`judge/E7a`) — /ai-dlc/rule-details/02-requirements-analysis.md:31
 - [Q] **E7b** - Only what the task description states; often nothing — `aidlc_v4_eval.atom` {"rule": "E7b"} (`atom/E7b`) — /ai-dlc/rule-details/02-requirements-analysis.md:32; /ai-dlc/rule-details/02-requirements-analysis.md:55
-- [Q] **E7b** Is every Non-Functional requirement something the issue itself states? — `aidlc_v4_eval.judge` {"question": "E7b"} (`judge/E7b`) — /ai-dlc/rule-details/02-requirements-analysis.md:32; /ai-dlc/rule-details/02-requirements-analysis.md:55
+- [Q] **E7b** Is every Non-Functional requirement something the issue itself states? — `aidlc_v4_eval.judge` {"question": "E7b"} (`judge/E7b`) — /ai-dlc/rule-details/02-requirements-analysis.md:32; /ai-dlc/rule-details/02-requirements-analysis.md:55 _(diagnostic, not scored)_
 - [Q] **E8a** Do the Edge Cases cover the boundary, empty, invalid or out-of-range inputs that matter for this issue? — `aidlc_v4_eval.judge` {"question": "E8a"} (`judge/E8a`) — /ai-dlc/rule-details/02-requirements-analysis.md:35
 - [Q] **E8b** Do the Edge Cases state an error path: what is raised or handled, and what the caller observes? Answer n/a only if the changed behaviour has no failure mode at all. — `aidlc_v4_eval.judge` {"question": "E8b"} (`judge/E8b`) — /ai-dlc/rule-details/02-requirements-analysis.md:36
 - [Q] **E9** Is each Assumption a decision taken in place of asking a question, given with its reason? — `aidlc_v4_eval.judge` {"question": "E9"} (`judge/E9`) — /ai-dlc/core-workflow.md:132; /ai-dlc/rule-details/02-requirements-analysis.md:62
@@ -161,17 +161,17 @@ Items per cell (scored / diagnostic):
 - [F] **B6c** name: <reverse-engineering | requirements-analysis | code-generation-planning | code-generation-generation | build-and-test> — `aidlc_v4_eval.atom` {"rule": "B6c", "stage": 4} (`atom/B6c@4`) — /ai-dlc/core-workflow.md:36
 - [F] **G8b** - **Local correction** — the approach holds and only a detail is wrong, such as a function residing in a different file than the plan states. Note the correction and proceed — `aidlc_v4_eval.atom` {"rule": "G8b"} (`atom/G8b`) — /ai-dlc/rule-details/04-code-generation-generation.md:36; /ai-dlc/rule-details/04-code-generation-generation.md:37; /ai-dlc/rule-details/04-code-generation-generation.md:76
 - [F] **G9** - [ ] Note that the step is complete, and which requirement it satisfied — `aidlc_v4_eval.form` {"rule": "G9", "stage": 4} (`form/G9@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:41; /ai-dlc/rule-details/04-code-generation-generation.md:72; /ai-dlc/rule-details/04-code-generation-generation.md:73
-- [F] **S4.checks** - Duplicate files created: none — `aidlc_v4_eval.form` {"rule": "S4.dupcheck", "stage": 4} (`form/S4.dupcheck@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:79; /ai-dlc/rule-details/04-code-generation-generation.md:80
-- [F] **S4.checks** - Duplicate files created: none — `aidlc_v4_eval.form` {"rule": "S4.testcheck", "stage": 4} (`form/S4.testcheck@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:79; /ai-dlc/rule-details/04-code-generation-generation.md:80
 - [F] **S4.created** - Created: [full path] [requirement tags] — `aidlc_v4_eval.form` {"rule": "S4.created", "stage": 4} (`form/S4.created@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:65
 - [F] **S4.deviations** - [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and what supersedes them] — `aidlc_v4_eval.form` {"rule": "S4.deviations", "stage": 4} (`form/S4.deviations@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:76
+- [F] **S4.dupcheck** - Duplicate files created: none — `aidlc_v4_eval.form` {"rule": "S4.dupcheck", "stage": 4} (`form/S4.dupcheck@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:79
 - [F] **S4.executed** - Executed: no — `aidlc_v4_eval.atom` {"rule": "B5d", "stage": 4} (`atom/B5d@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:69
-- [F] **S4.executed** - Executed: no — `aidlc_v4_eval.form` {"rule": "S4.executed", "stage": 4} (`form/S4.executed@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:69
+- [F] **S4.executed** - Executed: no — `aidlc_v4_eval.form` {"rule": "S4.executed", "stage": 4} (`form/S4.executed@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:69 _(diagnostic, not scored)_
 - [F] **S4.modified** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.form` {"rule": "S4.modified", "stage": 4} (`form/S4.modified@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
 - [F] **S4.rpath** - Path: [full path as written, matching the planned path] — `aidlc_v4_eval.form` {"rule": "S4.rpath", "stage": 4} (`form/S4.rpath@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:68
 - [F] **S4.tags** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.atom` {"rule": "S4.tags"} (`atom/S4.tags`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64; /ai-dlc/rule-details/04-code-generation-generation.md:65
+- [F] **S4.testcheck** - Test files modified: none — `aidlc_v4_eval.form` {"rule": "S4.testcheck", "stage": 4} (`form/S4.testcheck@4`) — /ai-dlc/rule-details/04-code-generation-generation.md:80
 - [C] **G1a** - [ ] Work through the plan in order — `aidlc_v4_eval.atom` {"rule": "G1a"} (`atom/G1a`) — /ai-dlc/rule-details/04-code-generation-generation.md:16
-- [C] **G2** - [ ] Use the path recorded in the plan — `aidlc_v4_eval.claim` {"check": "c14_scope_changed"} (`check/c14_scope_changed`) — /ai-dlc/rule-details/04-code-generation-generation.md:21
+- [C] **G2** - [ ] Use the path recorded in the plan — `aidlc_v4_eval.claim` {"check": "c14_scope_changed"} (`check/c14_scope_changed`) — /ai-dlc/rule-details/04-code-generation-generation.md:21 _(diagnostic, not scored)_
 - [C] **G2** - [ ] Use the path recorded in the plan — `aidlc_v4_eval.claim` {"check": "c34_targets_changed"} (`check/c34_targets_changed`) — /ai-dlc/rule-details/04-code-generation-generation.md:21
 - [C] **G3c** - **If it does not exist**: create it — `aidlc_v4_eval.atom` {"rule": "G3c"} (`atom/G3c`) — /ai-dlc/rule-details/04-code-generation-generation.md:24
 - [C] **G5** Does the patch keep the signatures and return shapes the plan's Contracts say are preserved? Answer n/a if no Contract preserves anything. — `aidlc_v4_eval.judge` {"question": "G5"} (`judge/G5`) — /ai-dlc/core-workflow.md:152; /ai-dlc/rule-details/04-code-generation-generation.md:26
@@ -184,12 +184,12 @@ Items per cell (scored / diagnostic):
 - [A] **G7a** - [ ] Write the reproduction script at the path the plan records, and **do not execute it in this stage** — `aidlc_v4_eval.claim` {"check": "t4_repro_written_before_write"} (`check/t4_repro_written_before_write`) — /ai-dlc/rule-details/04-code-generation-generation.md:28; /ai-dlc/rule-details/04-code-generation-generation.md:68
 - [A] **G8a** The plan is executed as written. When implementation reveals that the plan cannot be followed, adjust it **within this stage** and record what changed and why in this stage's arti… — `aidlc_v4_eval.claim` {"check": "c34_deviations_none"} (`check/c34_deviations_none`) — /ai-dlc/rule-details/04-code-generation-generation.md:34
 - [A] **G9** - [ ] Note that the step is complete, and which requirement it satisfied — `aidlc_v4_eval.claim` {"check": "c34_plan_execution_steps"} (`check/c34_plan_execution_steps`) — /ai-dlc/rule-details/04-code-generation-generation.md:41; /ai-dlc/rule-details/04-code-generation-generation.md:72; /ai-dlc/rule-details/04-code-generation-generation.md:73
-- [A] **S4.checks** - Duplicate files created: none — `aidlc_v4_eval.claim` {"check": "e4_duplicates_none"} (`check/e4_duplicates_none`) — /ai-dlc/rule-details/04-code-generation-generation.md:79; /ai-dlc/rule-details/04-code-generation-generation.md:80
-- [A] **S4.checks** - Duplicate files created: none — `aidlc_v4_eval.claim` {"check": "e4_tests_untouched"} (`check/e4_tests_untouched`) — /ai-dlc/rule-details/04-code-generation-generation.md:79; /ai-dlc/rule-details/04-code-generation-generation.md:80
 - [A] **S4.created** - Created: [full path] [requirement tags] — `aidlc_v4_eval.claim` {"check": "e4_created"} (`check/e4_created`) — /ai-dlc/rule-details/04-code-generation-generation.md:65
-- [A] **S4.modified** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.claim` {"check": "e4_modified"} (`check/e4_modified`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
-- [A] **S4.modified** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.claim` {"check": "e4_undisclosed"} (`check/e4_undisclosed`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
-- [A] **S4.modified** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.run` {"measure": "fidelity"} (`run/fidelity`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
+- [A] **S4.dupcheck** - Duplicate files created: none — `aidlc_v4_eval.claim` {"check": "e4_duplicates_none"} (`check/e4_duplicates_none`) — /ai-dlc/rule-details/04-code-generation-generation.md:79
+- [A] **S4.modified_all** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.claim` {"check": "e4_undisclosed"} (`check/e4_undisclosed`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
+- [A] **S4.modified_all** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.run` {"measure": "fidelity"} (`run/fidelity`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64 _(diagnostic, not scored)_
+- [A] **S4.modified_real** - Modified: [full path] [requirement tags] — `aidlc_v4_eval.claim` {"check": "e4_modified"} (`check/e4_modified`) — /ai-dlc/rule-details/04-code-generation-generation.md:63; /ai-dlc/rule-details/04-code-generation-generation.md:64
+- [A] **S4.testcheck** - Test files modified: none — `aidlc_v4_eval.claim` {"check": "e4_tests_untouched"} (`check/e4_tests_untouched`) — /ai-dlc/rule-details/04-code-generation-generation.md:80
 
 ## 5 — governed by /ai-dlc/rule-details/05-build-and-test.md
 
@@ -208,9 +208,9 @@ Items per cell (scored / diagnostic):
 - [F] **S5.bcmd** - Command: [the command run, verbatim] — `aidlc_v4_eval.form` {"rule": "S5.bcmd", "stage": 5} (`form/S5.bcmd@5`) — /ai-dlc/rule-details/05-build-and-test.md:74
 - [F] **S5.bresult** - Result: [success | failure] — `aidlc_v4_eval.form` {"rule": "S5.bresult", "stage": 5} (`form/S5.bresult@5`) — /ai-dlc/rule-details/05-build-and-test.md:73
 - [F] **S5.cmd** - Command: [the command run, verbatim — the same selection as the baseline] — `aidlc_v4_eval.form` {"rule": "S5.cmd", "stage": 5} (`form/S5.cmd@5`) — /ai-dlc/rule-details/05-build-and-test.md:81
-- [F] **S5.final** - Files in the change: [full paths] — `aidlc_v4_eval.form` {"rule": "S5.final_files", "stage": 5} (`form/S5.final_files@5`) — /ai-dlc/rule-details/05-build-and-test.md:93; /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:95
-- [F] **S5.final** - Files in the change: [full paths] — `aidlc_v4_eval.form` {"rule": "S5.final_tests", "stage": 5} (`form/S5.final_tests@5`) — /ai-dlc/rule-details/05-build-and-test.md:93; /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:95
-- [F] **S5.final** - Files in the change: [full paths] — `aidlc_v4_eval.form` {"rule": "S5.final_unintended", "stage": 5} (`form/S5.final_unintended@5`) — /ai-dlc/rule-details/05-build-and-test.md:93; /ai-dlc/rule-details/05-build-and-test.md:94; /ai-dlc/rule-details/05-build-and-test.md:95
+- [F] **S5.final_files** - Files in the change: [full paths] — `aidlc_v4_eval.form` {"rule": "S5.final_files", "stage": 5} (`form/S5.final_files@5`) — /ai-dlc/rule-details/05-build-and-test.md:93
+- [F] **S5.final_tests** - Test files in the change: none — `aidlc_v4_eval.form` {"rule": "S5.final_tests", "stage": 5} (`form/S5.final_tests@5`) — /ai-dlc/rule-details/05-build-and-test.md:95
+- [F] **S5.final_unintended** - Unintended files in the repository: none — `aidlc_v4_eval.form` {"rule": "S5.final_unintended", "stage": 5} (`form/S5.final_unintended@5`) — /ai-dlc/rule-details/05-build-and-test.md:94
 - [F] **S5.fixes** - [none | what changed and why] — `aidlc_v4_eval.form` {"rule": "S5.fixes", "stage": 5} (`form/S5.fixes@5`) — /ai-dlc/rule-details/05-build-and-test.md:87
 - [F] **S5.outstanding** - [none | what remains, and why it was not resolved] — `aidlc_v4_eval.form` {"rule": "S5.outstanding", "stage": 5} (`form/S5.outstanding@5`) — /ai-dlc/rule-details/05-build-and-test.md:90
 - [F] **S5.pre** - Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing] — `aidlc_v4_eval.form` {"rule": "S5.pre", "stage": 5} (`form/S5.pre@5`) — /ai-dlc/rule-details/05-build-and-test.md:84
@@ -248,12 +248,12 @@ Items per cell (scored / diagnostic):
 - [A] **H1b** - [ ] Run the build or type-check command Reverse Engineering recorded — `aidlc_v4_eval.claim` {"check": "e5_build_result"} (`check/e5_build_result`) — /ai-dlc/rule-details/05-build-and-test.md:17; /ai-dlc/rule-details/05-build-and-test.md:18
 - [A] **H2** - [ ] Execute the reproduction script at the path Code Generation recorded — `aidlc_v4_eval.claim` {"check": "e5_repro_result"} (`check/e5_repro_result`) — /ai-dlc/rule-details/05-build-and-test.md:26
 - [A] **H4b** - [ ] Re-run the existing covering tests identified in Reverse Engineering — `aidlc_v4_eval.claim` {"check": "e5_command_run"} (`check/e5_command_run`) — /ai-dlc/rule-details/05-build-and-test.md:35
-- [A] **H5** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "c15_preexisting_subset"} (`check/c15_preexisting_subset`) — /ai-dlc/rule-details/05-build-and-test.md:37
-- [A] **H5** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "e5_regressions"} (`check/e5_regressions`) — /ai-dlc/rule-details/05-build-and-test.md:37
+- [A] **H5a** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "e5_regressions"} (`check/e5_regressions`) — /ai-dlc/rule-details/05-build-and-test.md:37; /ai-dlc/rule-details/05-build-and-test.md:83
+- [A] **H5b** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "c15_preexisting_subset"} (`check/c15_preexisting_subset`) — /ai-dlc/rule-details/05-build-and-test.md:37; /ai-dlc/rule-details/05-build-and-test.md:84
 
 ## Rules without items
 
 - not applicable: **A4** document lookup order; **A5** an overall instruction; **G6a** resolve, the task verifier's; **G6b** the task verifier's tests
-- covered by another rule's items: **B2** B1 (the artifact at its fixed path); **B5a** B6a (frontmatter keys); **B5c** the per-field rules (field prefixes); **B5d** S1.recorded, S4.executed (the skeleton's two fixed sentences); **B9** the reference checks (R ids, steps quoted as written); **I2** D11a's reading of a test run (agent-written runner scripts are no run); **E5** B5b@2 and the S2 fields (the three categories); **F2c** the step parse behind the S3 fields and tags; **G1b** G9, G2; **G3b** H12, F8b, S4.checks; **G4a** D13; **H16** run/fidelity
-- a flag, in no score: **I1** leak_history
+- covered by another rule's items: **B2** B1 (the artifact at its fixed path); **B5a** B6a (frontmatter keys); **B5c** the per-field rules (field prefixes); **B5d** S1.recorded, S4.executed (the skeleton's two fixed sentences); **B9** the reference checks (R ids, steps quoted as written); **E5** B5b@2 and the S2 fields (the three categories); **F2c** the step parse behind the S3 fields and tags; **G1b** G9, G2; **G3b** H12, F8b, S4.dupcheck; **G4a** D13
+- a flag, in no score: **I1** leak_history; **H16** patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)
 - judge, low priority, not asked: **D2** the scope extends to direct callers and callees; **E2** stage 1's result used as context; **H8c** pre-existing failures left unfixed

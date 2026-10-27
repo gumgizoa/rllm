@@ -220,9 +220,8 @@ rules:
   kind: R
   text: 가짜 테스트로 실행을 꾸미지 않음 (task 조건)
   source: task
-  excluded:
-    why: covered by another rule's items
-    detail: D11a's reading of a test run (agent-written runner scripts are no run)
+  methods:
+    run/ran_real_test: [TEST]
 - id: D1a
   stage: 1
   kind: Q
@@ -311,9 +310,13 @@ rules:
   kind: E
   text: 소스를 고치기 전에 그 테스트를 한 번 실행함 (baseline)
   methods:
-    run/ran_real_test: [TEST]
-    check/t1_baseline_before_write: [AP, COLLECT, NONE, TEST, WRITE]
     check/t1_baseline_before_edit: [TEST, EDIT]
+- id: D11c
+  stage: 1
+  kind: E
+  text: baseline 테스트를 실행한 뒤 그 결과를 01에 적음 (실행 전에 쓰지 않음)
+  methods:
+    check/t1_baseline_before_write: [AP, COLLECT, NONE, TEST, WRITE]
 - id: D11b
   stage: 1
   kind: P
@@ -322,11 +325,21 @@ rules:
     check/t1_no_edit_before_write: [EDIT, WRITE]
 - id: D12a
   stage: 1
-  kind: E
-  text: baseline에서 통과·실패한 테스트를 기록함
+  kind: A
+  text: 01 Baseline에 적은 테스트 이름이 baseline 실행 출력에 있음
   methods:
     check/e1_baseline_tests: [AP, COLLECT, TEST, EDIT, TARGET]
+- id: D12c
+  stage: 1
+  kind: A
+  text: 01 Failing 기록이 baseline 실행 결과와 맞음 (none이면 실패가 없음)
+  methods:
     check/e1_baseline_failing: [AP, COLLECT, NONE, TEST, EDIT, TARGET]
+- id: D12d
+  stage: 1
+  kind: A
+  text: Passing·Failing이 둘 다 none이면 baseline 실행에서 돈 테스트가 없음
+  methods:
     check/e1_baseline_none: [AP, COLLECT, NONE, TEST, EDIT]
 - id: D12b
   stage: 1
@@ -475,6 +488,7 @@ rules:
   methods:
     atom/E7b: [AP, COLLECT, NONE, ISSUE]
     judge/E7b: [JUDGE, ISSUE, COLLECT]
+  note: judge/E7b asks the same question as atom/E7b and is a diagnostic
 - id: E8a
   stage: 2
   kind: Q
@@ -696,6 +710,7 @@ rules:
   methods:
     check/c14_scope_changed: [AP, COLLECT, PATH]
     check/c34_targets_changed: [AP, COLLECT, PATH]
+  note: 'check/c14_scope_changed (04 Modified가 01 Affected Scope와 겹침) is a diagnostic: no document line states it'
 - id: G3a
   stage: 4
   kind: P
@@ -708,7 +723,7 @@ rules:
   text: 있는 파일은 in place 수정, 중복 변형 파일을 만들지 않음
   excluded:
     why: covered by another rule's items
-    detail: H12, F8b, S4.checks
+    detail: H12, F8b, S4.dupcheck
 - id: G3c
   stage: 4
   kind: C
@@ -798,10 +813,20 @@ rules:
   kind: F
   text: 04 필드 Modified (전체 경로 + 요구사항 태그)
   methods:
+    form/S4.modified: [AP, COLLECT]
+- id: S4.modified_real
+  stage: 4
+  kind: A
+  text: 04 Modified에 적은 파일은 실제로 바뀜
+  methods:
     check/e4_modified: [AP, COLLECT, PATH, PATCH]
+- id: S4.modified_all
+  stage: 4
+  kind: A
+  text: 4단계에서 바꾼 파일은 모두 04에 적음
+  methods:
     check/e4_undisclosed: [AP, COLLECT, PATH, PATCH]
     run/fidelity: [AP, COLLECT, PATH, PATCH]
-    form/S4.modified: [AP, COLLECT]
 - id: S4.created
   stage: 4
   kind: F
@@ -828,20 +853,26 @@ rules:
   methods:
     atom/B5d: [AP, COLLECT]
     form/S4.executed: [AP, COLLECT]
+  note: 'form/S4.executed@4 (the field filled) is a diagnostic: atom/B5d@4 checks the prescribed value'
 - id: S4.deviations
   stage: 4
   kind: F
   text: 04 섹션 Deviations from Plan (없으면 none)
   methods:
     form/S4.deviations: [AP, COLLECT]
-- id: S4.checks
+- id: S4.dupcheck
   stage: 4
   kind: F
-  text: '04 섹션 Checks (Duplicate files created: none, Test files modified: none)'
+  text: '04 Checks 필드 Duplicate files created: none'
   methods:
     check/e4_duplicates_none: [AP, COLLECT, NONE, PATCH]
-    check/e4_tests_untouched: [AP, COLLECT, NONE, PATCH, EDIT, TESTFILE]
     form/S4.dupcheck: [AP, COLLECT]
+- id: S4.testcheck
+  stage: 4
+  kind: F
+  text: '04 Checks 필드 Test files modified: none'
+  methods:
+    check/e4_tests_untouched: [AP, COLLECT, NONE, PATCH, EDIT, TESTFILE]
     form/S4.testcheck: [AP, COLLECT]
 - id: H1a
   stage: 5
@@ -900,12 +931,17 @@ rules:
   methods:
     check/t5_regression_after_last_edit: [TEST, EDIT, WRITE]
     check/e5_command_run: [AP, COLLECT, CMDMATCH, TARGET, EDIT]
-- id: H5
+- id: H5a
   stage: 5
-  kind: E
-  text: 재실행 결과를 baseline과 비교함
+  kind: A
+  text: 05 Regressions·Verdict 기록이 수정 뒤 마지막 테스트 실행과 맞음 (none·unchanged인데 실패가 남지 않음)
   methods:
     check/e5_regressions: [AP, COLLECT, NONE, TEST, EDIT, WRITE]
+- id: H5b
+  stage: 5
+  kind: A
+  text: 05 Pre-existing failures는 01 baseline에서 실패한 테스트만
+  methods:
     check/c15_preexisting_subset: [AP, COLLECT, NONE, TARGET]
 - id: H6
   stage: 5
@@ -1025,8 +1061,8 @@ rules:
   kind: E
   text: 최종 diff를 만듦
   excluded:
-    why: covered by another rule's items
-    detail: run/fidelity
+    why: a flag, in no score
+    detail: patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)
 - id: S5.bresult
   stage: 5
   kind: F
@@ -1087,14 +1123,24 @@ rules:
   text: 05 섹션 Outstanding Failures (없으면 none)
   methods:
     form/S5.outstanding: [AP, COLLECT]
-- id: S5.final
+- id: S5.final_files
   stage: 5
   kind: F
-  text: '05 섹션 Final Change (Files in the change, Unintended: none, Test files: none)'
+  text: 05 필드 Files in the change
   methods:
     form/S5.final_files: [AP, COLLECT]
-    form/S5.final_tests: [AP, COLLECT]
+- id: S5.final_unintended
+  stage: 5
+  kind: F
+  text: 05 필드 Unintended files in the repository (없으면 none)
+  methods:
     form/S5.final_unintended: [AP, COLLECT]
+- id: S5.final_tests
+  stage: 5
+  kind: F
+  text: 05 필드 Test files in the change (없으면 none)
+  methods:
+    form/S5.final_tests: [AP, COLLECT]
 lines:
 - {at: 'I:1', text: Follow the workflow defined in /ai-dlc/core-workflow.md., skip: 전체 지시 (A5)}
 - {at: 'I:3', text: Read /ai-dlc/core-workflow.md first. It names the rule detail file that governs, rules: [A1]}
@@ -1227,7 +1273,7 @@ lines:
 - {at: 'S1:34', text: '- [ ] Locate the existing tests that cover the affected scope', rules: [D10a]}
 - {at: 'S1:35', text: '- [ ] Read them to understand the contract the affected code must honor — expected signatures, return shapes, raised errors', rules: [D10b]}
 - {at: 'S1:36', text: '- [ ] **MANDATORY**: Execute those tests once, **before any source file is modified**', rules: [D11a]}
-- {at: 'S1:37', text: '- [ ] Record which of them pass and which already fail', rules: [D12a]}
+- {at: 'S1:37', text: '- [ ] Record which of them pass and which already fail', rules: [D12a, D11c, D12c, D12d]}
 - {at: 'S1:39', text: '**CRITICAL**: This baseline is the only means of later distinguishing a regression you introduced from a failure that already existed. A test that was already failing is outside the scope of this task; pursuing it spends effort on unrelated code and risks introducing a real regression. Once source files have changed, this distinction cannot be recovered.', rules: [H8c]}
 - {at: 'S1:41', text: '**Note**: Existing tests are read and executed here. They are **never modified**', dup: D13}
 - {at: 'S1:45', text: '- [ ] Write `/tmp/swe-bench-pro/01-reverse-engineering.md` in a single write, with the full content below', dup: B3a}
@@ -1252,7 +1298,7 @@ lines:
 - {at: 'S1:74', text: '- Affected scope identified, with full paths and owning module', dup: D3}
 - {at: 'S1:75', text: '- Build/type-check command and a targeted test command known', dup: D7a}
 - {at: 'S1:76', text: '- Existing covering tests located and read', dup: D10b}
-- {at: 'S1:77', text: '- Baseline pass/fail state recorded **before** any modification, with each test named individually', rules: [D11a, D12b]}
+- {at: 'S1:77', text: '- Baseline pass/fail state recorded **before** any modification, with each test named individually', rules: [D11a, D12b, D11c]}
 - {at: 'S1:78', text: '- `/tmp/swe-bench-pro/01-reverse-engineering.md` written in the prescribed skeleton', dup: B5b}
 - {at: 'S2:3', text: '**Purpose**: Convert the task description into an explicit, numbered set of requirements that the patch must satisfy', skip: 목적}
 - {at: 'S2:5', text: '**Artifact**: `/tmp/swe-bench-pro/02-requirements-analysis.md`', dup: B2}
@@ -1374,8 +1420,8 @@ lines:
 - {at: 'S4:59', text: 'name: code-generation-generation', dup: B6c}
 - {at: 'S4:60', text: '---', skip: frontmatter 구분선}
 - {at: 'S4:62', text: '## Changed Files', dup: B5b}
-- {at: 'S4:63', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags]}
-- {at: 'S4:64', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags]}
+- {at: 'S4:63', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags, S4.modified_real, S4.modified_all]}
+- {at: 'S4:64', text: '- Modified: [full path] [requirement tags]', rules: [S4.modified, S4.tags, S4.modified_real, S4.modified_all]}
 - {at: 'S4:65', text: '- Created: [full path] [requirement tags]', rules: [S4.created, S4.tags]}
 - {at: 'S4:67', text: '## Reproduction Script', dup: B5b}
 - {at: 'S4:68', text: '- Path: [full path as written, matching the planned path]', rules: [S4.rpath, G7a]}
@@ -1386,8 +1432,8 @@ lines:
 - {at: 'S4:75', text: '## Deviations from Plan', dup: B5b}
 - {at: 'S4:76', text: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and what supersedes them]', rules: [S4.deviations, G8b]}
 - {at: 'S4:78', text: '## Checks', dup: B5b}
-- {at: 'S4:79', text: '- Duplicate files created: none', rules: [S4.checks]}
-- {at: 'S4:80', text: '- Test files modified: none', rules: [S4.checks]}
+- {at: 'S4:79', text: '- Duplicate files created: none', rules: [S4.dupcheck]}
+- {at: 'S4:80', text: '- Test files modified: none', rules: [S4.testcheck]}
 - {at: 'S4:84', text: '- Every plan step executed', dup: G1b}
 - {at: 'S4:85', text: '- Every requirement (`R1`, `R2`, ...) implemented', dup: G6a}
 - {at: 'S4:86', text: '- Source code modified and the reproduction script written, with neither executed yet', rules: [G7b]}
@@ -1410,7 +1456,7 @@ lines:
 - {at: 'S5:31', text: The reproduction script is the only direct evidence that the reported behavior is now correct., skip: H2의 이유}
 - {at: 'S5:35', text: '- [ ] Re-run the existing covering tests identified in Reverse Engineering', rules: [H4b]}
 - {at: 'S5:36', text: '- [ ] Run the **same selection** that produced the baseline', rules: [H4a]}
-- {at: 'S5:37', text: '- [ ] **MANDATORY**: Compare the result against the recorded baseline', rules: [H5]}
+- {at: 'S5:37', text: '- [ ] **MANDATORY**: Compare the result against the recorded baseline', rules: [H5a, H5b]}
 - {at: 'S5:39', text: '**Do NOT** run the full repository test suite. It is not comparable to the baseline, and its failures are dominated by conditions unrelated to the change.', rules: [H6]}
 - {at: 'S5:43', text: 'If the build succeeded and both Step 2 and Step 3 passed, nothing has failed — skip to Step 6 and write the artifact. Steps 4 and 5 apply only to a failure.', skip: 흐름 안내 (실패가 없으면 6단계로)}
 - {at: 'S5:45', text: '| Failure | Response |', skip: 표 머리글}
@@ -1438,16 +1484,16 @@ lines:
 - {at: 'S5:80', text: '## Existing Tests vs Baseline', dup: B5b}
 - {at: 'S5:81', text: '- Command: [the command run, verbatim — the same selection as the baseline]', rules: [S5.cmd, H4a]}
 - {at: 'S5:82', text: '- Verdict: [unchanged | regression resolved | pre-existing failures only]', rules: [S5.verdict, H15a, H15b]}
-- {at: 'S5:83', text: '- Regressions: [none | test id -> what broke it -> how it was resolved]', rules: [S5.regress, H15b, H15d]}
-- {at: 'S5:84', text: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]', rules: [S5.pre, H8d, H15d]}
+- {at: 'S5:83', text: '- Regressions: [none | test id -> what broke it -> how it was resolved]', rules: [S5.regress, H15b, H15d, H5a]}
+- {at: 'S5:84', text: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]', rules: [S5.pre, H8d, H15d, H5b]}
 - {at: 'S5:86', text: '## Fixes Applied', dup: B5b}
 - {at: 'S5:87', text: '- [none | what changed and why]', rules: [S5.fixes, H9b]}
 - {at: 'S5:89', text: '## Outstanding Failures', dup: B5b}
 - {at: 'S5:90', text: '- [none | what remains, and why it was not resolved]', rules: [S5.outstanding, H11]}
 - {at: 'S5:92', text: '## Final Change', dup: B5b}
-- {at: 'S5:93', text: '- Files in the change: [full paths]', rules: [S5.final, H13]}
-- {at: 'S5:94', text: '- Unintended files in the repository: none', rules: [S5.final, H12]}
-- {at: 'S5:95', text: '- Test files in the change: none', rules: [S5.final, H14]}
+- {at: 'S5:93', text: '- Files in the change: [full paths]', rules: [H13, S5.final_files]}
+- {at: 'S5:94', text: '- Unintended files in the repository: none', rules: [H12, S5.final_unintended]}
+- {at: 'S5:95', text: '- Test files in the change: none', rules: [H14, S5.final_tests]}
 - {at: 'S5:98', text: 'Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean.', rules: [H11, B7]}
 - {at: 'S5:102', text: '- [ ] **MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository', rules: [H12]}
 - {at: 'S5:103', text: '- [ ] Confirm the files in the change are exactly those Code Generation listed as modified or created', rules: [H13]}
@@ -1455,6 +1501,6 @@ lines:
 - {at: 'S5:106', text: 'Artifacts are not part of this check. They live under `/tmp/swe-bench-pro/`, outside the repository, and cannot reach the change. The reproduction script can, if it was written inside the repository — that is what this step exists to catch.', skip: H12의 이유}
 - {at: 'S5:109', text: '- Build succeeds', dup: H1b}
 - {at: 'S5:110', text: '- Reproduction script demonstrates the issue is resolved, including the edge cases and any stated constraints', dup: H3a}
-- {at: 'S5:111', text: '- Existing covering tests compared against the baseline, with any regression resolved and any pre-existing failure recorded with its reasoning', dup: H5}
+- {at: 'S5:111', text: '- Existing covering tests compared against the baseline, with any regression resolved and any pre-existing failure recorded with its reasoning', dup: H5a}
 - {at: 'S5:112', text: '- `/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton', dup: B5b}
 - {at: 'S5:113', text: '- Repository contains no unintended file, and no test file was modified', dup: H12}

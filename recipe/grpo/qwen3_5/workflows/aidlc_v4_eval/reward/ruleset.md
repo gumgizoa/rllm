@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 168 atomic rules -> 180 methods -> 214 rubric items.
+362 document lines -> 177 atomic rules -> 180 methods -> 209 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its items' (`rubric.yaml`); `global` is stage 0.
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄)
@@ -16,7 +16,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | A5 | 0 | P | 이 워크플로우가 다른 절차보다 우선함 (전체 지시) | CW:3 | none: not applicable (an overall instruction) |
 | B1 | 0 | F | 각 단계 결과를 채팅이 아닌 파일로 씀 | SP:70, CW:22 | `form/B1` (F: 1 2 3 4 5; AP COLLECT) |
 | B2 | 0 | F | 산출물 경로는 /tmp/swe-bench-pro/<규칙 파일명> | CW:24 | none: covered by another rule's items (B1 (the artifact at its fixed path)) |
-| B3a | 0 | F | 산출물은 한 번에 전체 내용으로 씀 (덧붙이기·나중에 채울 빈칸 금지) | CW:28 | `rule/r_artifacts_written_once` (F: 0; WRITE)<br>`atom/B3a` (F: 0; WRITE DOC EDIT TEST SCRIPT) |
+| B3a | 0 | F | 산출물은 한 번에 전체 내용으로 씀 (덧붙이기·나중에 채울 빈칸 금지) | CW:28 | `rule/r_artifacts_written_once` (F: 0; WRITE, diagnostic)<br>`atom/B3a` (F: 0; WRITE DOC EDIT TEST SCRIPT) |
 | B3b | 0 | P | 산출물은 그 단계 완료 기준을 채운 뒤 단계 끝에 씀 | SP:71, CW:28, CW:40, S4:48 | `proc/B3b` (P: 1 2 3 4; DOC WRITE) |
 | B4a | 0 | F | 이전 단계 산출물을 다시 쓰지 않음 | CW:29 | `atom/B4a` (F: 0; WRITE DOC EDIT TEST SCRIPT) |
 | B4b | 0 | Q | 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로 기록 | CW:29, CW:71 | `judge/B4b` (Q: 0; JUDGE ISSUE COLLECT) |
@@ -37,7 +37,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | E10b | 0 | P | 사용자의 승인·입력을 기다리지 않음 (질문으로 끝내지 않음) | CW:132 | `atom/E10b` (P: 0; FINAL) |
 | D9 | 0 | R | 의존성 설치·환경 설정을 하지 않음 (계획도 하지 않음) | CW:134, S1:30 | `rule/r_no_env_setup` (R: 0; SHELLCLS) |
 | I1 | 0 | R | 정답을 git history에서 가져오지 않음 (task 조건) | task | none: a flag, in no score (leak_history) |
-| I2 | 0 | R | 가짜 테스트로 실행을 꾸미지 않음 (task 조건) | task | none: covered by another rule's items (D11a's reading of a test run (agent-written runner scripts are no run)) |
+| I2 | 0 | R | 가짜 테스트로 실행을 꾸미지 않음 (task 조건) | task | `run/ran_real_test` (E: 1; TEST) |
 | D1a | 1 | Q | 이슈가 가리키는 소스 파일을 찾아 Affected Scope에 적음 | S1:15 | `check/e1_scope_viewed` (A: 1; AP COLLECT PATH SEEN WRITE)<br>note: not a judge question: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed) |
 | D1b | 1 | Q | 이슈가 파일·심볼을 직접 지목하면 거기서 시작함 | S1:15 | `atom/D1b` (Q: 1; AP COLLECT ISSUE PATH SEEN TESTFILE)<br>note: not a judge question: same; code checks the issue's paths are in scope (atom/D1b) |
 | D2 | 1 | Q | 직접 연결된 파일(호출자·피호출자)까지 확장함 | S1:16 | none: judge, low priority, not asked (the scope extends to direct callers and callees) |
@@ -51,9 +51,12 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | D8 | 1 | E | 출력을 줄이는 옵션(-q, --tb=short)을 씀 | S1:28 | `atom/D8` (E: 1; AP COLLECT) |
 | D10a | 1 | E | 해당 범위를 덮는 기존 테스트를 찾음 | S1:34 | `check/e1_test_path_seen` (A: 1; AP COLLECT PATH SEEN)<br>`atom/D10a` (E: 1; SEEN TESTFILE TEST WRITE) |
 | D10b | 1 | E | 그 테스트를 읽어 계약(시그니처·반환·오류)을 파악함 | S1:35 | `judge/D10b` (E: 1; JUDGE ISSUE COLLECT SEEN) |
-| D11a | 1 | E | 소스를 고치기 전에 그 테스트를 한 번 실행함 (baseline) | S1:36, S1:77 | `run/ran_real_test` (E: 1; TEST)<br>`check/t1_baseline_before_write` (E: 1; AP COLLECT NONE TEST WRITE)<br>`check/t1_baseline_before_edit` (E: 1; TEST EDIT) |
+| D11a | 1 | E | 소스를 고치기 전에 그 테스트를 한 번 실행함 (baseline) | S1:36, S1:77 | `check/t1_baseline_before_edit` (E: 1; TEST EDIT) |
+| D11c | 1 | E | baseline 테스트를 실행한 뒤 그 결과를 01에 적음 (실행 전에 쓰지 않음) | S1:37, S1:77 | `check/t1_baseline_before_write` (E: 1; AP COLLECT NONE TEST WRITE) |
 | D11b | 1 | P | 1단계 산출물을 소스 수정 전에 씀 | CW:84 | `check/t1_no_edit_before_write` (P: 1; EDIT WRITE) |
-| D12a | 1 | E | baseline에서 통과·실패한 테스트를 기록함 | S1:37 | `check/e1_baseline_tests` (A: 1; AP COLLECT TEST EDIT TARGET)<br>`check/e1_baseline_failing` (A: 1; AP COLLECT NONE TEST EDIT TARGET)<br>`check/e1_baseline_none` (A: 1; AP COLLECT NONE TEST EDIT) |
+| D12a | 1 | A | 01 Baseline에 적은 테스트 이름이 baseline 실행 출력에 있음 | S1:37 | `check/e1_baseline_tests` (A: 1; AP COLLECT TEST EDIT TARGET) |
+| D12c | 1 | A | 01 Failing 기록이 baseline 실행 결과와 맞음 (none이면 실패가 없음) | S1:37 | `check/e1_baseline_failing` (A: 1; AP COLLECT NONE TEST EDIT TARGET) |
+| D12d | 1 | A | Passing·Failing이 둘 다 none이면 baseline 실행에서 돈 테스트가 없음 | S1:37 | `check/e1_baseline_none` (A: 1; AP COLLECT NONE TEST EDIT) |
 | D12b | 1 | F | 테스트를 하나씩 이름으로, 한 줄에 하나씩 적음 | S1:69, S1:70, S1:77 | `atom/D12b` (F: 1; AP COLLECT NONE) |
 | S1.files | 1 | F | 01 필드 Files | S1:56 | `form/S1.files` (F: 1; AP COLLECT) |
 | S1.module | 1 | F | 01 필드 Owning module | S1:57 | `form/S1.module` (F: 1; AP COLLECT) |
@@ -64,7 +67,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | S1.contract | 1 | F | 01 필드 Existing Tests의 Contract | S1:65 | `form/S1.contract` (F: 1; AP COLLECT) |
 | S1.passing | 1 | F | 01 필드 Passing (없으면 none) | S1:69 | `form/S1.passing` (F: 1; AP COLLECT) |
 | S1.failing | 1 | F | 01 필드 Failing (없으면 none) | S1:70 | `form/S1.failing` (F: 1; AP COLLECT) |
-| S1.recorded | 1 | F | 01 고정 문장 'Recorded before any source file was modified.' | S1:68 | `atom/B5d` (F: 1 4; AP COLLECT) |
+| S1.recorded | 1 | F | 01 고정 문장 'Recorded before any source file was modified.' | S1:68 | `atom/B5d` (F: 1; AP COLLECT) |
 | E1a | 2 | Q | task 설명(기대 동작·이름·시그니처·경로)을 권위로 삼음 | S2:14 | `judge/E1a` (Q: 2; JUDGE ISSUE COLLECT) |
 | E1b | 2 | Q | 이미 지정된 것을 다시 유도하거나 바꿔 쓰지 않음 | S2:15 | `judge/E1b` (Q: 2; JUDGE ISSUE COLLECT) |
 | E2 | 2 | Q | 1단계 결과를 맥락으로 사용함 | S2:16 | none: judge, low priority, not asked (stage 1's result used as context) |
@@ -77,7 +80,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | E6a | 2 | Q | Functional에 해결 후 보여야 할 동작을 적음 | S2:27 | `judge/E6a` (Q: 2; JUDGE ISSUE COLLECT) |
 | E6b | 2 | Q | Functional에 계속 유지할 동작(기존 테스트의 계약)을 적음 | S2:28 | `judge/E6b` (Q: 2; JUDGE ISSUE COLLECT) |
 | E7a | 2 | Q | Non-Functional은 복잡도·메모리 같은 방식의 제약 | S2:31 | `judge/E7a` (Q: 2; JUDGE ISSUE COLLECT) |
-| E7b | 2 | Q | Non-Functional은 task에 적힌 것만, 없으면 none stated | S2:32, S2:55 | `atom/E7b` (Q: 2; AP COLLECT NONE ISSUE)<br>`judge/E7b` (Q: 2; JUDGE ISSUE COLLECT) |
+| E7b | 2 | Q | Non-Functional은 task에 적힌 것만, 없으면 none stated | S2:32, S2:55 | `atom/E7b` (Q: 2; AP COLLECT NONE ISSUE)<br>`judge/E7b` (Q: 2; JUDGE ISSUE COLLECT, diagnostic)<br>note: judge/E7b asks the same question as atom/E7b and is a diagnostic |
 | E8a | 2 | Q | Edge Cases에 경계값·빈 값·잘못된 입력·타입/범위 한계를 적음 | S2:35 | `judge/E8a` (Q: 2; JUDGE ISSUE COLLECT) |
 | E8b | 2 | Q | 오류 경로(무엇이 raise·처리되고 무엇이 관찰되는지)를 적음 | S2:36 | `judge/E8b` (Q: 2; JUDGE ISSUE COLLECT) |
 | E8c | 2 | F | Edge Cases 항목은 '조건 -> 기대 동작' 형식 | S2:58, S2:59 | `atom/E8c` (F: 2; AP COLLECT NONE) |
@@ -113,9 +116,9 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | S3.coverage | 3 | F | 03 섹션 Requirement Coverage ('- Rn: Step k') | S3:62, S3:63, S3:64, S3:67 | `form/S3.coverage` (F: 3; AP COLLECT) |
 | G1a | 4 | C | plan 순서대로 step을 실행함 | S4:16 | `atom/G1a` (C: 4; AP COLLECT PATH EDIT WRITE) |
 | G1b | 4 | C | plan의 모든 step을 실행함 | S4:48 | none: covered by another rule's items (G9, G2) |
-| G2 | 4 | C | plan에 적힌 경로를 사용함 | S4:21 | `check/c14_scope_changed` (C: 4; AP COLLECT PATH)<br>`check/c34_targets_changed` (C: 4; AP COLLECT PATH) |
+| G2 | 4 | C | plan에 적힌 경로를 사용함 | S4:21 | `check/c14_scope_changed` (C: 4; AP COLLECT PATH, diagnostic)<br>`check/c34_targets_changed` (C: 4; AP COLLECT PATH)<br>note: check/c14_scope_changed (04 Modified가 01 Affected Scope와 겹침) is a diagnostic: no document line states it |
 | G3a | 4 | P | 쓰기 전에 파일이 있는지 확인함 | CW:145, S4:22 | `atom/G3a` (P: 4; EDIT SEEN WRITE SHELLCLS) |
-| G3b | 4 | R | 있는 파일은 in place 수정, 중복 변형 파일을 만들지 않음 | CW:146, S4:23 | none: covered by another rule's items (H12, F8b, S4.checks) |
+| G3b | 4 | R | 있는 파일은 in place 수정, 중복 변형 파일을 만들지 않음 | CW:146, S4:23 | none: covered by another rule's items (H12, F8b, S4.dupcheck) |
 | G3c | 4 | C | plan이 create로 계획한 파일을 새로 만듦 | S4:24 | `atom/G3c` (C: 4; AP COLLECT PATH PATCH EDIT) |
 | G4a | 4 | R | 애플리케이션 소스만 수정함 | CW:140, S4:25 | none: covered by another rule's items (D13) |
 | G4b | 4 | R | 새 동작은 재현 스크립트로 검증하고 repo에 새 테스트를 추가하지 않음 | CW:142 | `atom/G4b` (R: 4; AP COLLECT PATCH TESTFILE) |
@@ -129,13 +132,16 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | G8b | 4 | F | deviation을 local correction / structural invalidation으로 구분함 | S4:36, S4:37, S4:76 | `atom/G8b` (F: 4; AP COLLECT NONE) |
 | G8c | 4 | Q | structural이면 무효가 된 step, 이유, 대체 방법을 적음 | S4:37 | `judge/G8c` (Q: 4; JUDGE ISSUE COLLECT PATCH) |
 | G9 | 4 | F | step마다 완료와 충족한 요구사항을 Plan Execution에 기록함 | S4:41, S4:72, S4:73 | `check/c34_plan_execution_steps` (A: 4; AP COLLECT)<br>`form/G9` (F: 4; AP COLLECT) |
-| S4.modified | 4 | F | 04 필드 Modified (전체 경로 + 요구사항 태그) | S4:63, S4:64 | `check/e4_modified` (A: 4; AP COLLECT PATH PATCH)<br>`check/e4_undisclosed` (A: 4; AP COLLECT PATH PATCH)<br>`run/fidelity` (A: 4; AP COLLECT PATH PATCH)<br>`form/S4.modified` (F: 4; AP COLLECT) |
+| S4.modified | 4 | F | 04 필드 Modified (전체 경로 + 요구사항 태그) | S4:63, S4:64 | `form/S4.modified` (F: 4; AP COLLECT) |
+| S4.modified_real | 4 | A | 04 Modified에 적은 파일은 실제로 바뀜 | S4:63, S4:64 | `check/e4_modified` (A: 4; AP COLLECT PATH PATCH) |
+| S4.modified_all | 4 | A | 4단계에서 바꾼 파일은 모두 04에 적음 | S4:63, S4:64 | `check/e4_undisclosed` (A: 4; AP COLLECT PATH PATCH)<br>`run/fidelity` (A: 4; AP COLLECT PATH PATCH, diagnostic) |
 | S4.created | 4 | F | 04 필드 Created (없으면 none) | S4:65 | `check/e4_created` (A: 4; AP COLLECT PATH EDIT PATCH)<br>`form/S4.created` (F: 4; AP COLLECT) |
 | S4.tags | 4 | F | 04 Modified·Created 항목에 전체 경로와 요구사항 태그 | S4:63, S4:64, S4:65 | `atom/S4.tags` (F: 4; AP COLLECT NONE) |
 | S4.rpath | 4 | F | 04 필드 Reproduction Script Path | S4:68 | `form/S4.rpath` (F: 4; AP COLLECT) |
-| S4.executed | 4 | F | 04 고정값 Executed: no | S4:69 | `atom/B5d` (F: 1 4; AP COLLECT)<br>`form/S4.executed` (F: 4; AP COLLECT) |
+| S4.executed | 4 | F | 04 고정값 Executed: no | S4:69 | `atom/B5d` (F: 4; AP COLLECT)<br>`form/S4.executed` (F: 4; AP COLLECT, diagnostic)<br>note: form/S4.executed@4 (the field filled) is a diagnostic: atom/B5d@4 checks the prescribed value |
 | S4.deviations | 4 | F | 04 섹션 Deviations from Plan (없으면 none) | S4:76 | `form/S4.deviations` (F: 4; AP COLLECT) |
-| S4.checks | 4 | F | 04 섹션 Checks (Duplicate files created: none, Test files modified: none) | S4:79, S4:80 | `check/e4_duplicates_none` (A: 4; AP COLLECT NONE PATCH)<br>`check/e4_tests_untouched` (A: 4; AP COLLECT NONE PATCH EDIT TESTFILE)<br>`form/S4.dupcheck` (F: 4; AP COLLECT)<br>`form/S4.testcheck` (F: 4; AP COLLECT) |
+| S4.dupcheck | 4 | F | 04 Checks 필드 Duplicate files created: none | S4:79 | `check/e4_duplicates_none` (A: 4; AP COLLECT NONE PATCH)<br>`form/S4.dupcheck` (F: 4; AP COLLECT) |
+| S4.testcheck | 4 | F | 04 Checks 필드 Test files modified: none | S4:80 | `check/e4_tests_untouched` (A: 4; AP COLLECT NONE PATCH EDIT TESTFILE)<br>`form/S4.testcheck` (F: 4; AP COLLECT) |
 | H1a | 5 | C | 1단계에 적은 build 명령을 실행함 | S5:17 | `atom/H1a` (C: 5; AP COLLECT NONE) |
 | H1b | 5 | E | build를 실행해 성공을 확인함 | S5:17, S5:18 | `check/e5_build_result` (A: 5; AP COLLECT NONE CMDMATCH EXIT EDIT WRITE)<br>`atom/H1b` (E: 5; AP COLLECT NONE TARGET SHELLCLS CMDMATCH WRITE) |
 | H1c | 5 | P | build 실패를 다른 검증보다 먼저 해결함 | S5:22 | `atom/H1c` (P: 5; AP COLLECT NONE TARGET CMDMATCH EXIT EDIT TEST SCRIPT WRITE) |
@@ -145,7 +151,8 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H3c | 5 | Q | 재현으로 Non-Functional 제약을 확인함 (있으면) | S5:29 | `judge/H3c` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
 | H4a | 5 | C | baseline과 같은 테스트 선택(1단계 Test 명령)으로 다시 실행함 | S5:11, S5:36, S5:81 | `atom/H4a` (C: 5; AP COLLECT TARGET TEST WRITE) |
 | H4b | 5 | E | 기존 커버 테스트를 마지막 수정 뒤 다시 실행함 | S5:35 | `check/t5_regression_after_last_edit` (E: 5; TEST EDIT WRITE)<br>`check/e5_command_run` (A: 5; AP COLLECT CMDMATCH TARGET EDIT) |
-| H5 | 5 | E | 재실행 결과를 baseline과 비교함 | S5:37 | `check/e5_regressions` (A: 5; AP COLLECT NONE TEST EDIT WRITE)<br>`check/c15_preexisting_subset` (A: 5; AP COLLECT NONE TARGET) |
+| H5a | 5 | A | 05 Regressions·Verdict 기록이 수정 뒤 마지막 테스트 실행과 맞음 (none·unchanged인데 실패가 남지 않음) | S5:37, S5:83 | `check/e5_regressions` (A: 5; AP COLLECT NONE TEST EDIT WRITE) |
+| H5b | 5 | A | 05 Pre-existing failures는 01 baseline에서 실패한 테스트만 | S5:37, S5:84 | `check/c15_preexisting_subset` (A: 5; AP COLLECT NONE TARGET) |
 | H6 | 5 | R | 전체 테스트 suite를 돌리지 않음 | S5:39 | `rule/r_targeted_tests` (R: 5; TEST TARGET DOC WRITE) |
 | H7 | 5 | R | baseline을 다시 만들려고 테스트를 재실행하지 않음 | S5:11 | `atom/H7` (R: 5; SHELLCLS TEST WRITE) |
 | H8a | 5 | E | 재현 스크립트가 실패하면 소스를 고침 | S5:47, S5:53 | `atom/H8a` (E: 5; AP COLLECT SCRIPT EXIT EDIT WRITE PATCH) |
@@ -164,7 +171,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H15b | 5 | C | Verdict가 Regressions·Pre-existing failures와 모순되지 않음 | S5:82, S5:83 | `atom/H15b` (C: 5; AP COLLECT NONE) |
 | H15c | 5 | C | Unmet requirements가 재현 결과와 모순되지 않음 | S5:78 | `check/c25_unmet_exist` (A: 5; AP COLLECT)<br>`atom/H15c` (C: 5; AP COLLECT NONE) |
 | H15d | 5 | F | Regressions·Pre-existing 항목은 '테스트 id -> 원인 -> 해결·이유' 형식 | S5:83, S5:84 | `atom/H15d` (F: 5; AP COLLECT NONE) |
-| H16 | 5 | E | 최종 diff를 만듦 | CW:128 | none: covered by another rule's items (run/fidelity) |
+| H16 | 5 | E | 최종 diff를 만듦 | CW:128 | none: a flag, in no score (patch_empty; an empty diff also contradicts 04's Modified (check/e4_modified)) |
 | S5.bresult | 5 | F | 05 필드 Build Result | S5:73 | `form/S5.bresult` (F: 5; AP COLLECT) |
 | S5.bcmd | 5 | F | 05 필드 Build Command | S5:74 | `form/S5.bcmd` (F: 5; AP COLLECT) |
 | S5.rresult | 5 | F | 05 필드 Reproduction Script Result | S5:77 | `form/S5.rresult` (F: 5; AP COLLECT) |
@@ -175,4 +182,6 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | S5.pre | 5 | F | 05 필드 Pre-existing failures (없으면 none) | S5:84 | `form/S5.pre` (F: 5; AP COLLECT) |
 | S5.fixes | 5 | F | 05 섹션 Fixes Applied (없으면 none) | S5:87 | `form/S5.fixes` (F: 5; AP COLLECT) |
 | S5.outstanding | 5 | F | 05 섹션 Outstanding Failures (없으면 none) | S5:90 | `form/S5.outstanding` (F: 5; AP COLLECT) |
-| S5.final | 5 | F | 05 섹션 Final Change (Files in the change, Unintended: none, Test files: none) | S5:93, S5:94, S5:95 | `form/S5.final_files` (F: 5; AP COLLECT)<br>`form/S5.final_tests` (F: 5; AP COLLECT)<br>`form/S5.final_unintended` (F: 5; AP COLLECT) |
+| S5.final_files | 5 | F | 05 필드 Files in the change | S5:93 | `form/S5.final_files` (F: 5; AP COLLECT) |
+| S5.final_unintended | 5 | F | 05 필드 Unintended files in the repository (없으면 none) | S5:94 | `form/S5.final_unintended` (F: 5; AP COLLECT) |
+| S5.final_tests | 5 | F | 05 필드 Test files in the change (없으면 none) | S5:95 | `form/S5.final_tests` (F: 5; AP COLLECT) |
