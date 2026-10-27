@@ -1251,3 +1251,23 @@ def test_an_example_script_the_issue_shows_is_no_scope_to_start_from():
     r = Run()
     task = SimpleNamespace(id="t", metadata={"instruction": "Running examples/demo.py shows parse() in pkg/mod.py raising on an empty string; it should return {}."})
     assert r.score(task)["aidlc/atom/D1b"] == 1.0
+
+
+def test_a_final_run_that_executed_no_test_decides_no_regression():
+    """step24 000119 / 000140 (audit 6): the covering tests failed to load before and after the change; the report's
+    `Regressions: none` and `Outstanding Failures: none` are neither borne out nor contradicted by a run of nothing."""
+    r = Run()
+    loader = "ERROR: auth_tests (unittest.loader._FailedTest)\nImportError: Failed to import test module\nRan 1 test in 0.001s\n\nFAILED (errors=1)"
+    for i in r.runs("pytest"):
+        r.set_command(i, "cd /testbed/tests && python runtests.py auth_tests", obs=loader)
+    s = r.score()
+    assert s.get("aidlc/check/e5_regressions") is None and s.get("aidlc/check/e5_outstanding_none") is None
+
+
+def test_an_exploratory_run_after_the_recorded_selection_passed_is_no_regression():
+    """step24 000346 (audit 6): the recorded selection passes after the fix; a later `-k` run of another file fails
+    on the environment. 05 compares the recorded selection with the baseline."""
+    r = Run()
+    r.insert(r.write_of(5), sh("cd /testbed && python -m pytest tests/acceptance_test.py -k symlink -q", "FAILED tests/acceptance_test.py::test_symlink - ImportError\n1 failed in 0.20s"))
+    s = r.score()
+    assert s["aidlc/check/e5_regressions"] == 1.0 and s["aidlc/check/e5_outstanding_none"] == 1.0

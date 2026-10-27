@@ -219,8 +219,21 @@ _FAILED_LINE = re.compile(
 
 def failed_tests(out: str) -> list[str]:
     """The tests a run's output names as failed or errored (colours stripped); empty when it names none -- a quiet
-    run reports a count only (``failures``)."""
-    return list(dict.fromkeys(g for m in _FAILED_LINE.finditer(_ANSI.sub("", out)) for g in m.groups() if g))
+    run reports a count only (``failures``). A loader stub (``ERROR: tests (unittest.loader._FailedTest)``) is a
+    module that did not import, not a test."""
+    clean = "\n".join(ln for ln in _ANSI.sub("", out).splitlines() if "unittest.loader._FailedTest" not in ln)
+    return list(dict.fromkeys(g for m in _FAILED_LINE.finditer(clean) for g in m.groups() if g))
+
+
+def ran_no_test(out: str) -> bool:
+    """The run executed no test at all: nothing collected, ``Ran 0 tests``, or only import / setUpClass errors
+    (step24 000119, 000140: the covering tests never ran before or after the change)."""
+    clean = _ANSI.sub("", out)
+    if NO_TESTS.search(clean) or re.search(r"\bRan 0 tests?\b", clean):
+        return True
+    # a loader stub counts as a test in unittest's `Ran N tests`: nothing real ran when no test passed or was listed
+    stubs = "unittest.loader._FailedTest" in clean or re.search(r"^ERROR: setUp(?:Class|Module) \(", clean, re.M) is not None
+    return stubs and passes(clean) == 0 and re.search(r"\.\.\. ok\b|\bPASSED\b|^OK\b", clean, re.M) is None
 
 
 def passed_count(out: str) -> int | None:

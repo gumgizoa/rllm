@@ -189,10 +189,12 @@ def _test_names(text: str) -> list[str]:
 
 
 def _regressed(out: str, failing1: str | None, baseline_runs: list) -> bool | None:
-    """The last stage-5 run fails a test the baseline did not; None when that cannot be told -- the baseline
-    failed something it did not name (a class-level ``ERROR: setUpClass``, step24 000123) and 01 names nothing.
-    ``baseline_runs`` are the recorded selection's (an earlier attempt under the wrong settings that errored is not
-    the baseline the run reports: step24 000042)."""
+    """The last stage-5 run fails a test the baseline did not; None when that cannot be told -- the run executed no
+    test (an import or setUpClass error: step24 000119, 000140), or the baseline failed something it did not name
+    (step24 000123) and 01 names nothing. ``baseline_runs`` are the recorded selection's (an earlier attempt under
+    the wrong settings that errored is not the baseline the run reports: step24 000042)."""
+    if EV.ran_no_test(out):
+        return None
     known = set(_test_names(failing1 or "")) | {t for _, _, o in baseline_runs for t in EV.failed_tests(o)}
     base_counts = [_failures(o) for _, _, o in baseline_runs]
     named = EV.failed_tests(out)
@@ -246,6 +248,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
     # -- stage 1: scope, commands, baseline -------------------------------------------------
     failing1: str | None = None
     evidence_runs: list = []  # the baseline runs of the recorded test selection (else any baseline run)
+    recorded_targets: set = set()  # the test targets 01 recorded
     if p1 is not None:
         scope = claimed_paths(_field(p1, "Affected Scope", "Files"))
         c["e1_scope_viewed"] = _membership(scope, [obs.seen(p, before=w[1]) for p in scope])
@@ -426,6 +429,11 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         command = _field(p5, "Existing Tests vs Baseline", "Command")
         tokens = _command_tokens(command)
         post = obs.tests_in(after=obs.last_edit, before=w[5]) or []
+        # The run 05's Regressions / Pre-existing / Outstanding describe: the last run of the recorded selection (05
+        # Command, else 01 Test) after the last edit; an exploratory run of other tests after it is not what the
+        # report compares with the baseline (step24 000346: `-k symlink` on another file failed on the environment).
+        selection = set(EV.test_targets(command or "") or []) or recorded_targets
+        described = [r for r in post if selection and (t := EV.test_targets(r[1])) and set(t) <= selection] or post
         if obs.source_edits:
             c["t5_regression_after_last_edit"] = SUPPORTED if post else CONTRADICTED
         if tokens:
@@ -435,7 +443,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         # A failure the baseline already had (01 Failing, or failing in the baseline run) is no regression and no
         # outstanding work: `Regressions: none` and `Verdict: pre-existing failures only` are right beside it (05
         # Step 3 table). Named failures compare by name; a quiet run (a count only) by count against the baseline's.
-        regressed = _regressed(post[-1][2], failing1, evidence_runs) if post else None
+        regressed = _regressed(described[-1][2], failing1, evidence_runs) if described else None
         if regressed is not None and (_none(regressions) or verdict.startswith("unchanged")):
             c["e5_regressions"] = CONTRADICTED if regressed else SUPPORTED
         if regressed is not None and _section_none(p5, "Outstanding Failures"):
@@ -444,7 +452,7 @@ def content_checks(run: Run, parsed: dict[int, dict | None], obs: Observed | Non
         if post and failing1 and not _none(failing1):
             # every baseline failure the last run still fails is recorded as pre-existing (05 Step 3 table: "Record
             # the reasoning that identifies it as pre-existing"; whether the reasoning holds is the judge's)
-            still = [t for t in _test_names(failing1) if EV.test_state(post[-1][2], t) is False]
+            still = [t for t in _test_names(failing1) if EV.test_state(described[-1][2], t) is False]
             if still:
                 c["e5_preexisting_listed"] = _membership(still, [bool(pre) and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", pre) is not None for t in still])
         if pre and p1 is not None:
