@@ -63,56 +63,81 @@ MIN_QUOTE = 8
 # stage -> [(rule, question)]; "yes" keeps the rule
 QUESTIONS: dict[int, list[tuple[str, str]]] = {
     1: [
-        ("D3", "Is `Owning module` the module or package the listed Files belong to, and does any boundary it states agree with those Files?"),
+        ("D3", "Is `Owning module` the module or package the listed Files belong to?"),
+        ("D3b", "Does `Owning module` state the module's boundary within the repository (for example its directory), and does that boundary contain the listed Files?"),
+        ("D4c", "Do Affected Scope's Files and Owning module stay within what the issue touches: no package or module listed that is unrelated to the issue?"),
         (
             "D6",
             "Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one,"
             " or 'not applicable' (or an import / compile check) for an interpreted package?",
         ),
-        ("D10b", "Does the Existing Tests `Contract` state what the shown test code actually checks (signatures, return values, raised errors)?"),
+        (
+            "D10b",
+            "Does the Existing Tests `Contract` agree with the shown test code: is each signature, return value or raised error it states one those tests check, with nothing the tests contradict?",
+        ),
     ],
     2: [
         ("E1a", "Do the requirements keep the expected behaviour, names, signatures and paths exactly as the issue states them (no different expected behaviour, no renamed interface)?"),
-        ("E1b", "Where the issue already specifies a behaviour or an interface, do the requirements take it as given rather than re-deriving it or proposing an alternative?"),
+        ("E1b", "Where the issue already specifies a behaviour or an interface, do the requirements take it as given, without re-deriving it or proposing an alternative?"),
+        ("E1c", "Where the issue already specifies a behaviour, do the requirements keep its meaning: no rewording that changes, narrows or loosens what the issue states?"),
         ("E3b", "Can every requirement be checked by running a reproduction script or an existing test (each one describes observable behaviour, not intent or code style)?"),
         ("E6a", "Does Functional Requirements state the behaviour that must be observable once the issue is resolved?"),
         ("E6b", "Does Functional Requirements also state existing behaviour that must keep working, such as the contract of the existing tests recorded in artifact 01?"),
         ("E7a", "Is every Non-Functional requirement a constraint on how the code works (complexity, memory, performance, compatibility) rather than a functional behaviour?"),
         ("E7b", "Is every Non-Functional requirement something the issue itself states?"),
-        ("E8a", "Do the Edge Cases cover the boundary, empty, invalid or out-of-range inputs that matter for this issue?"),
+        ("E8a", "Do the Edge Cases cover the boundary values, empty or null inputs, invalid inputs and type or range limits that matter for this issue?"),
         ("E8b", "Do the Edge Cases state an error path: what is raised or handled, and what the caller observes? Answer n/a only if the changed behaviour has no failure mode at all."),
-        ("E9", "Is each Assumption a decision taken in place of asking a question, given with its reason?"),
+        ("E9", "Does each Assumption state an ambiguity the issue leaves open, the decision taken on it, and the reasoning for that decision?"),
     ],
     3: [
-        ("F2d", "Does every step's Contract name the signatures or return shapes that must be preserved, and any new interface the step introduces?"),
+        ("F2d", "Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none?"),
+        (
+            "F2f",
+            "Where a step introduces a new interface (function, parameter, class) that a later step uses, does that step's Contract name it?"
+            " Answer n/a if no step introduces an interface a later step uses.",
+        ),
         ("F2e", "Does every step's Verification say what the reproduction script will check for that step?"),
-        ("F4a", "Is the reproduction script planned so that it shows the issue before the fix and passes after it?"),
+        (
+            "F4a",
+            "Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports,"
+            " so that the script would fail on the unfixed code and pass once it is fixed?",
+        ),
         ("F6", "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?"),
-        ("F9a", "Can each step be carried out as written, without interpretation: a concrete target and a concrete change?"),
+        ("F9a", "Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision?"),
     ],
     4: [
         ("G5", "Does the patch keep the signatures and return shapes the plan's Contracts say are preserved? Answer n/a if no Contract preserves anything."),
         ("G8a", "Does each item under Deviations from Plan say what changed from the plan and why?"),
         ("G8c", "Does each structural invalidation name the step it invalidates, the reason, and what replaces it?"),
-        ("B4b", "Where artifact 04 or the patch departs from the plan (artifact 03), is the difference recorded under Deviations from Plan? Answer yes if nothing departs from the plan."),
+        (
+            "B4b",
+            "Compare the plan's steps (artifact 03: targets and changes) with artifact 04's Changed Files and the final patch. Is every changed"
+            " file the plan does not name, and every planned step not carried out, recorded under Deviations from Plan? Answer yes if they match.",
+        ),
     ],
     5: [
-        ("H3a", "Does the reproduction script check the behaviour each Functional requirement describes?"),
+        ("H3a", "Does the reproduction script contain a check for each Functional requirement's behaviour?"),
         ("H3b", "Does the reproduction script check the conditions the Edge Cases describe?"),
         ("H3c", "Does the reproduction script check the Non-Functional constraints?"),
         (
             "H8b",
-            "If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 report it under Regressions"
-            " (not as pre-existing) and say which contract broke, looking first at the interfaces the plan (artifact 03) marks as preserved?"
-            " Answer n/a if no such test fails and artifact 05 records no regression.",
+            "If a test that passed at the baseline (artifact 01) fails in a stage 5 test run shown, does artifact 05 list it under Regressions"
+            " rather than as a pre-existing failure? Answer n/a if no such test fails and artifact 05 records no regression.",
         ),
-        ("H8d", "Does each pre-existing failure listed give a reason, and is the reason plausible (the failure is unrelated to the change and was there at the baseline in artifact 01)?"),
+        ("H8g", "Does each item under Regressions say what broke the test and how it was resolved?"),
+        ("H8d", "Does each pre-existing failure listed give the reasoning that identifies it as pre-existing?"),
         ("H9b", "Does each item under Fixes Applied say what was changed and why?"),
         (
             "B7",
-            "Is Outstanding Failures the one place unresolved work is recorded: does it list every remaining failure, unmet requirement,"
-            " known limitation or follow-up that artifact 04 or another section of artifact 05 mentions, and say `none` only when nothing remains?"
+            "Does Outstanding Failures list every remaining failure, unmet requirement, known limitation or follow-up that artifact 04 or"
+            " another section of artifact 05 mentions, and say `none` only when nothing remains?"
             " A failure a later fix resolved (the last test run passes it) is not unresolved work.",
+        ),
+        (
+            "B7b",
+            "Is unresolved work kept out of the sections other than Outstanding Failures: does no other section of artifact 04 or 05 record"
+            " a failure, limitation or follow-up as still open? The fields the skeleton provides for it (Reproduction Script `Unmet"
+            " requirements`, `Pre-existing failures`) do not count.",
         ),
     ],
 }
@@ -355,6 +380,8 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
             first, last = _stage5_tests(run, parsed, first=True), _stage5_tests(run, parsed)
             if not first and not last and (not reg or is_none(reg)):
                 skip.add("H8b")  # no run to show a regression and none recorded
+            if not reg or is_none(reg):
+                skip.add("H8g")
             if first and "H8b" not in skip:
                 material["STAGE 5 TEST RUN (the first one, before any stage 5 fix, output tail)"] = first
             if last and not {"H8b", "H8d"} <= skip:

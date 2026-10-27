@@ -56,13 +56,13 @@ def test_no_judge_signals_without_a_model(monkeypatch):
 def test_the_questions_follow_what_the_artifacts_hold():
     asked = {st: [r for r, _ in qs] for st, (qs, _) in _requests(Run()).items()}
     # no test file read (D10b), non-functional none (E7a, E7b, H3c), a one-step plan (F6), no deviations
-    # (G8a, G8c), no pre-existing failures (H8d), no fixes (H9b): not asked
+    # (G8a, G8c), no pre-existing failures (H8d), no regression recorded (H8g), no fixes (H9b): not asked
     assert asked == {
-        1: ["D3", "D6"],
-        2: ["E1a", "E1b", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
-        3: ["F2d", "F2e", "F4a", "F9a"],
+        1: ["D3", "D3b", "D4c", "D6"],
+        2: ["E1a", "E1b", "E1c", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
+        3: ["F2d", "F2f", "F2e", "F4a", "F9a"],
         4: ["G5", "B4b"],
-        5: ["H3a", "H3b", "H8b", "B7"],
+        5: ["H3a", "H3b", "H8b", "B7", "B7b"],
     }
 
 
@@ -151,7 +151,7 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     assert s["aidlc/judge/D6"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
     assert "aidlc/judge/D3" not in s and "aidlc/judge/E8b" not in s
     assert s["aidlc/judge_calls"] == 5.0
-    assert s["aidlc/judge_void"] == pytest.approx(1 / 19)  # 20 asked, one n/a, one quote not found
+    assert s["aidlc/judge_void"] == pytest.approx(1 / 24)  # 25 asked, one n/a, one quote not found
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 

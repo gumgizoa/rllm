@@ -171,9 +171,15 @@ rules:
 - id: B7
   stage: 5
   kind: Q
-  text: 미해결 작업은 5단계 Outstanding Failures에만 적고 다른 곳에 적지 않음
+  text: 04·05에 언급된 미해결 작업을 모두 Outstanding Failures에 적음 (none으로 포장하지 않음)
   methods:
     judge/B7: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+- id: B7b
+  stage: 5
+  kind: R
+  text: Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음
+  methods:
+    judge/B7b: [JUDGE, ISSUE, COLLECT]
 - id: B8
   stage: 0
   kind: P
@@ -280,9 +286,15 @@ rules:
 - id: D3
   stage: 1
   kind: Q
-  text: 소유 모듈과 그 경계를 Files와 맞게 기록함
+  text: Owning module이 Files가 속한 모듈·패키지임
   methods:
     judge/D3: [JUDGE, ISSUE, COLLECT, SEEN]
+- id: D3b
+  stage: 1
+  kind: Q
+  text: Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함
+  methods:
+    judge/D3b: [JUDGE, ISSUE, COLLECT]
 - id: D4a
   stage: 1
   kind: Q
@@ -292,9 +304,15 @@ rules:
 - id: D4b
   stage: 1
   kind: R
-  text: 관련 없는 패키지를 나열하거나 repo를 넓게 조사하지 않음
+  text: 1단계에서 repo를 넓게 조사하지 않음
   methods:
     atom/D4b: [SHELLCLS, WRITE, EDIT]
+- id: D4c
+  stage: 1
+  kind: R
+  text: Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음
+  methods:
+    judge/D4c: [JUDGE, ISSUE, COLLECT]
 - id: D5
   stage: 1
   kind: F
@@ -469,9 +487,15 @@ rules:
 - id: E1b
   stage: 2
   kind: Q
-  text: 이미 지정된 것을 다시 유도하거나 바꿔 쓰지 않음
+  text: 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음
   methods:
     judge/E1b: [JUDGE, ISSUE, COLLECT]
+- id: E1c
+  stage: 2
+  kind: Q
+  text: 이슈가 정한 동작을 뜻이 달라지게(바꾸거나 좁히거나 넓혀) 바꿔 쓰지 않음
+  methods:
+    judge/E1c: [JUDGE, ISSUE, COLLECT]
 - id: E2
   stage: 2
   kind: C
@@ -631,9 +655,15 @@ rules:
 - id: F2d
   stage: 3
   kind: Q
-  text: Contract에 보존할 시그니처·반환 형태와 새 인터페이스를 적음
+  text: Contract에 보존할 기존 시그니처·반환 형태를 적음 (영향이 없으면 그렇게 적음)
   methods:
     judge/F2d: [JUDGE, ISSUE, COLLECT]
+- id: F2f
+  stage: 3
+  kind: Q
+  text: 뒤 step이 쓸 새 인터페이스를 도입하면 그 step의 Contract에 적음
+  methods:
+    judge/F2f: [JUDGE, ISSUE, COLLECT]
 - id: F2e
   stage: 3
   kind: Q
@@ -1029,10 +1059,16 @@ rules:
     atom/H8a: [AP, COLLECT, SCRIPT, EXIT, EDIT, WRITE, PATCH]
 - id: H8b
   stage: 5
-  kind: Q
-  text: baseline에서 통과하던 테스트가 실패하면 regression으로 보고 계약부터 의심함
+  kind: C
+  text: baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음
   methods:
     judge/H8b: [JUDGE, ISSUE, COLLECT, SCRIPT, TEST]
+- id: H8g
+  stage: 5
+  kind: Q
+  text: Regressions 항목마다 무엇이 테스트를 깨뜨렸고 어떻게 해결했는지 적음
+  methods:
+    judge/H8g: [JUDGE, ISSUE, COLLECT]
 - id: H8c
   stage: 5
   kind: R
@@ -1252,7 +1288,7 @@ lines:
 - {at: 'CW:35', text: 'stage: <1-5>', rules: [B6b]}
 - {at: 'CW:36', text: 'name: <reverse-engineering | requirements-analysis | code-generation-planning | code-generation-generation | build-and-test>', rules: [B6c]}
 - {at: 'CW:37', text: '---', dup: B6a}
-- {at: 'CW:40', text: 'The artifact''s existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else.', rules: [B3b, B7]}
+- {at: 'CW:40', text: 'The artifact''s existence is what states the stage finished. Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else.', rules: [B3b, B7, B7b]}
 - {at: 'CW:42', text: '- **Do not re-read an artifact you can still see.** The result is already in context; re-reading duplicates the largest artifacts where context is already largest. Quote identifiers — `R1`, step numbers, full paths — verbatim, never renumbered or paraphrased', rules: [B8, B9]}
 - {at: 'CW:43', text: '- **Read an artifact only to recover**, when an earlier stage''s content is no longer visible because output was truncated or history was compacted', rules: [B8]}
 - {at: 'CW:48', text: Stage 1  Reverse Engineering, skip: 단계 흐름 그림 (각 단계 절과 중복)}
@@ -1339,10 +1375,10 @@ lines:
 - {at: 'S1:9', text: '- The repository is available and can already be built and tested', skip: 전제}
 - {at: 'S1:15', text: '- [ ] Locate the source files the issue refers to, using symbol names, keywords, error strings, or stack traces from the task description. If the task description names files or symbols directly, start from those', rules: [D1a, D1b]}
 - {at: 'S1:16', text: '- [ ] Extend to files directly connected to those files (direct callers and callees) where the description implies it', rules: [D2]}
-- {at: 'S1:17', text: '- [ ] Record the module or package that owns those files, and its boundary within the repository', rules: [D3]}
+- {at: 'S1:17', text: '- [ ] Record the module or package that owns those files, and its boundary within the repository', rules: [D3, D3b]}
 - {at: 'S1:18', text: '- [ ] Note the language and framework in use — this follows from the files identified; do not survey the repository to establish it', rules: [D4a, D4b]}
 - {at: 'S1:19', text: '- [ ] Record every path in full, from the repository root, so that it is unambiguous in later stages', rules: [D5]}
-- {at: 'S1:21', text: '**Do NOT** enumerate packages unrelated to the issue, or survey the repository beyond the files identified above.', rules: [D4b]}
+- {at: 'S1:21', text: '**Do NOT** enumerate packages unrelated to the issue, or survey the repository beyond the files identified above.', rules: [D4b, D4c]}
 - {at: 'S1:25', text: '- [ ] Determine how the affected module is built or type-checked, if the language requires it', rules: [D6]}
 - {at: 'S1:26', text: '- [ ] Determine how its tests are invoked', rules: [D7a]}
 - {at: 'S1:27', text: '- [ ] Express the test command so that it can target **the tests covering the affected scope**, not the whole suite', rules: [D7b]}
@@ -1362,7 +1398,7 @@ lines:
 - {at: 'S1:53', text: '---', dup: B6a}
 - {at: 'S1:55', text: '## Affected Scope', dup: B5b}
 - {at: 'S1:56', text: '- Files: [full paths from the repository root, one per line]', rules: [S1.files, D5, D5b]}
-- {at: 'S1:57', text: '- Owning module: [module or package, and its boundary in the repository]', rules: [S1.module], dup: D3}
+- {at: 'S1:57', text: '- Owning module: [module or package, and its boundary in the repository]', rules: [S1.module, D3b], dup: D3}
 - {at: 'S1:58', text: '- Language/framework: [as it follows from the files above]', rules: [S1.lang], dup: D4a}
 - {at: 'S1:60', text: '## Build & Test Commands', dup: B5b}
 - {at: 'S1:61', text: '- Build: [verbatim build or type-check command | not applicable]', rules: [S1.build], dup: D6}
@@ -1382,7 +1418,7 @@ lines:
 - {at: 'S2:5', text: '**Artifact**: `/tmp/swe-bench-pro/02-requirements-analysis.md`', dup: B2}
 - {at: 'S2:8', text: '- Reverse Engineering is complete: its Affected Scope, Build & Test Commands, Existing Tests, and Baseline are established, and recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`', dup: A3b}
 - {at: 'S2:14', text: '- [ ] Treat everything the task description states as authoritative — expected behavior, named symbols, signatures, file paths', rules: [E1a]}
-- {at: 'S2:15', text: '- [ ] Do not re-derive or reword what is already specified', rules: [E1b]}
+- {at: 'S2:15', text: '- [ ] Do not re-derive or reword what is already specified', rules: [E1b, E1c]}
 - {at: 'S2:16', text: '- [ ] Use the Reverse Engineering result as context for how the described behavior maps onto actual code and onto the contract enforced by existing tests', rules: [E2]}
 - {at: 'S2:20', text: '**MANDATORY**: Express every requirement as a single, verifiable statement, identified as `R1`, `R2`, `R3`, and so on. A requirement is verifiable when it can be checked either by running a reproduction script or by running existing tests. A requirement that cannot be checked by either means is out of scope.', rules: [E3a, E3b, E3c]}
 - {at: 'S2:22', text: 'Number the requirements in one sequence across all three categories, so that each identifier is unique in the artifact and can be traced from Stage 3 onward.', rules: [E4a, E4b]}
@@ -1421,7 +1457,7 @@ lines:
 - {at: 'S3:15', text: '**MANDATORY**: Create one or more explicit steps for each requirement. Number the steps sequentially. For every step, record:', rules: [F1a, F1b]}
 - {at: 'S3:17', text: '- [ ] **Target file(s)** — full path, and whether the file is modified in place or newly created.', rules: [S3.target, F2a, F2b]}
 - {at: 'S3:18', text: '- [ ] **Change** — what is added, altered, or removed', rules: [S3.change], dup: F9a}
-- {at: 'S3:19', text: '- [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**, and any new interface this step introduces for later steps to use. If the task description specifies names, signatures, or file paths, use them exactly as given rather than choosing your own', rules: [S3.contract, F2d, F3]}
+- {at: 'S3:19', text: '- [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**, and any new interface this step introduces for later steps to use. If the task description specifies names, signatures, or file paths, use them exactly as given rather than choosing your own', rules: [S3.contract, F2d, F3, F2f]}
 - {at: 'S3:20', text: '- [ ] **Verification** — what the reproduction script must exercise to demonstrate this step is correct', rules: [S3.verify, F2e]}
 - {at: 'S3:21', text: '- [ ] **Requirement tag** — which requirement (`R1`, `R2`, ...) the step satisfies', rules: [S3.tag]}
 - {at: 'S3:23', text: '**CRITICAL — contract preservation**: Naming the contract each step must preserve is what makes it checkable during generation. A step that leaves it unstated can silently change a signature or return shape, and the work then fails even though the reported issue is resolved.', dup: F2d}
@@ -1540,7 +1576,7 @@ lines:
 - {at: 'S5:45', text: '| Failure | Response |', skip: 표 머리글}
 - {at: 'S5:46', text: '|---|---|', skip: 표 구분선}
 - {at: 'S5:47', text: '| **Reproduction script failure** | The patch logic is wrong. Re-read the requirement and correct the source |', rules: [H8a]}
-- {at: 'S5:48', text: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved |', rules: [H8b]}
+- {at: 'S5:48', text: '| **Existing test failure, but it passed in the baseline** | A regression. Suspect a broken contract first — check the interfaces the plan marked as preserved |', rules: [H8b, H8g]}
 - {at: 'S5:49', text: '| **Existing test failure that also failed in the baseline** | A pre-existing failure. **Do not fix it.** Record the reasoning that identifies it as pre-existing |', rules: [H8c, H8d, H8f], dup: H5b}
 - {at: 'S5:53', text: '- [ ] Correct the source code, never the tests', rules: [H8a, D13]}
 - {at: 'S5:54', text: '- [ ] Re-run the affected verification', rules: [H9a]}
@@ -1562,7 +1598,7 @@ lines:
 - {at: 'S5:80', text: '## Existing Tests vs Baseline', dup: B5b}
 - {at: 'S5:81', text: '- Command: [the command run, verbatim — the same selection as the baseline]', rules: [S5.cmd, H4a], dup: H4b}
 - {at: 'S5:82', text: '- Verdict: [unchanged | regression resolved | pre-existing failures only]', rules: [S5.verdict, H15a, H15b], dup: H5a}
-- {at: 'S5:83', text: '- Regressions: [none | test id -> what broke it -> how it was resolved]', rules: [S5.regress, H15b, H15d, H5a]}
+- {at: 'S5:83', text: '- Regressions: [none | test id -> what broke it -> how it was resolved]', rules: [S5.regress, H15b, H15d, H5a, H8g]}
 - {at: 'S5:84', text: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]', rules: [S5.pre, H8d, H15d, H5b, H8f]}
 - {at: 'S5:86', text: '## Fixes Applied', dup: B5b}
 - {at: 'S5:87', text: '- [none | what changed and why]', rules: [S5.fixes, H9b]}
@@ -1572,7 +1608,7 @@ lines:
 - {at: 'S5:93', text: '- Files in the change: [full paths]', rules: [H13, S5.final_files]}
 - {at: 'S5:94', text: '- Unintended files in the repository: none', rules: [H12, S5.final_unintended]}
 - {at: 'S5:95', text: '- Test files in the change: none', rules: [H14, S5.final_tests]}
-- {at: 'S5:98', text: 'Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean.', rules: [H11, B7]}
+- {at: 'S5:98', text: 'Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean.', rules: [H11, B7, B7b]}
 - {at: 'S5:102', text: '- [ ] **MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository', rules: [H12]}
 - {at: 'S5:103', text: '- [ ] Confirm the files in the change are exactly those Code Generation listed as modified or created', rules: [H13]}
 - {at: 'S5:104', text: '- [ ] Confirm no test file appears in the change', rules: [H14]}

@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 189 atomic rules -> 188 methods -> 220 judgments (scored rubric items; 5 more are diagnostics).
+362 document lines -> 195 atomic rules -> 194 methods -> 226 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its items' (`rubric.yaml`); `global` is stage 0.
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄); `MSG` agent 메시지 (마지막 응답 앞의 것까지)
@@ -29,7 +29,8 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | B6a | 0 | F | frontmatter는 stage, name 두 키만 | CW:31 | `form/B6a` (F: 1 2 3 4 5; AP COLLECT) |
 | B6b | 0 | F | frontmatter stage 값이 파일의 단계와 같음 | CW:35 | `atom/B6b` (F: 1 2 3 4 5; AP COLLECT) |
 | B6c | 0 | F | frontmatter name 값이 파일의 단계 이름과 같음 | CW:36 | `atom/B6c` (F: 1 2 3 4 5; AP COLLECT) |
-| B7 | 5 | Q | 미해결 작업은 5단계 Outstanding Failures에만 적고 다른 곳에 적지 않음 | CW:40, S5:98 | `judge/B7` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| B7 | 5 | Q | 04·05에 언급된 미해결 작업을 모두 Outstanding Failures에 적음 (none으로 포장하지 않음) | CW:40, S5:98 | `judge/B7` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| B7b | 5 | R | Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음 | CW:40, S5:98 | `judge/B7b` (R: 5; JUDGE ISSUE COLLECT) |
 | B8 | 0 | P | 보이는 산출물은 다시 읽지 않고, 내용이 안 보일 때만 복구용으로 읽음 | CW:42, CW:43, S5:11 | `atom/B8` (P: 0; WRITE SHELLCLS) |
 | B9 | 0 | C | R id, step 번호, 경로를 바꾸지 않고 그대로 인용함 | CW:42 | none: covered by another rule's items (the reference checks (R ids, steps quoted as written)) |
 | B10 | 0 | R | 산출물 외에 설계·보고서 문서를 만들지 않음 | CW:133 | `atom/B10` (R: 0; EDIT) |
@@ -46,9 +47,11 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | D1a | 1 | Q | 이슈가 가리키는 소스 파일을 찾아 Affected Scope에 적음 | S1:15 | `check/e1_scope_viewed` (A: 1; AP COLLECT PATH SEEN WRITE)<br>note: not a judge question: whether Files is the right source needs the repository; code checks the files were opened (check/e1_scope_viewed) |
 | D1b | 1 | P | 이슈가 파일·심볼을 직접 지목하면 거기서 시작함 | S1:15 | `atom/D1b` (Q: 1; AP COLLECT ISSUE PATH SEEN TESTFILE)<br>note: not a judge question: same; code checks the issue's paths are in scope (atom/D1b) |
 | D2 | 1 | Q | 직접 연결된 파일(호출자·피호출자)까지 확장함 | S1:16 | none: judge, low priority, not asked (the scope extends to direct callers and callees) |
-| D3 | 1 | Q | 소유 모듈과 그 경계를 Files와 맞게 기록함 | S1:17 | `judge/D3` (Q: 1; JUDGE ISSUE COLLECT SEEN) |
+| D3 | 1 | Q | Owning module이 Files가 속한 모듈·패키지임 | S1:17 | `judge/D3` (Q: 1; JUDGE ISSUE COLLECT SEEN) |
+| D3b | 1 | Q | Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를 포함함 | S1:17, S1:57 | `judge/D3b` (Q: 1; JUDGE ISSUE COLLECT) |
 | D4a | 1 | Q | 언어·프레임워크를 Files에서 판단해 기록함 | S1:18 | `atom/D4a` (Q: 1; AP COLLECT) |
-| D4b | 1 | R | 관련 없는 패키지를 나열하거나 repo를 넓게 조사하지 않음 | S1:18, S1:21 | `atom/D4b` (R: 1; SHELLCLS WRITE EDIT) |
+| D4b | 1 | R | 1단계에서 repo를 넓게 조사하지 않음 | S1:18, S1:21 | `atom/D4b` (R: 1; SHELLCLS WRITE EDIT) |
+| D4c | 1 | R | Affected Scope에 이슈와 무관한 패키지·모듈을 나열하지 않음 | S1:21 | `judge/D4c` (R: 1; JUDGE ISSUE COLLECT) |
 | D5 | 1 | F | 모든 경로를 repo root부터 전체 경로로 적음 | S1:19, S1:56 | `atom/D5` (F: 1; AP COLLECT PATH SEEN) |
 | D5b | 1 | F | 01 Files에 경로를 한 줄에 하나씩 적음 | S1:56 | `atom/D5b` (F: 1; AP COLLECT PATH) |
 | D6 | 1 | Q | build·type-check 방법을 정함 (언어가 요구하면) | S1:25 | `check/e1_build_command_run` (A: 1; AP COLLECT NONE CMDMATCH)<br>`judge/D6` (Q: 1; JUDGE ISSUE COLLECT SEEN) |
@@ -77,7 +80,8 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | S1.failing | 1 | F | 01 필드 Failing (없으면 none) | S1:70 | `form/S1.failing` (F: 1; AP COLLECT) |
 | S1.recorded | 1 | F | 01 고정 문장 'Recorded before any source file was modified.' | S1:68 | `atom/B5d` (F: 1; AP COLLECT) |
 | E1a | 2 | Q | task 설명(기대 동작·이름·시그니처·경로)을 권위로 삼음 | S2:14 | `judge/E1a` (Q: 2; JUDGE ISSUE COLLECT) |
-| E1b | 2 | Q | 이미 지정된 것을 다시 유도하거나 바꿔 쓰지 않음 | S2:15 | `judge/E1b` (Q: 2; JUDGE ISSUE COLLECT) |
+| E1b | 2 | Q | 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음 | S2:15 | `judge/E1b` (Q: 2; JUDGE ISSUE COLLECT) |
+| E1c | 2 | Q | 이슈가 정한 동작을 뜻이 달라지게(바꾸거나 좁히거나 넓혀) 바꿔 쓰지 않음 | S2:15 | `judge/E1c` (Q: 2; JUDGE ISSUE COLLECT) |
 | E2 | 2 | C | 1단계 결과를 맥락으로 사용함 | S2:16 | none: judge, low priority, not asked (stage 1's result used as context) |
 | E3a | 2 | Q | 요구사항 하나에 문장 하나 | S2:20 | `atom/E3a` (Q: 2; AP COLLECT NONE) |
 | E3b | 2 | Q | 요구사항이 재현 스크립트나 기존 테스트로 검증 가능함 (아니면 범위 밖) | S2:20 | `judge/E3b` (Q: 2; JUDGE ISSUE COLLECT) |
@@ -103,7 +107,8 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | F2a | 3 | F | step Target이 repo root부터 전체 경로 | S3:17, S3:46, S3:52 | `atom/F2a` (F: 3; AP COLLECT PATH SEEN) |
 | F2b | 3 | F | step Target에 (modify in place \| create) 표기 | S3:17, S3:46, S3:52 | `atom/F2b` (F: 3; AP COLLECT) |
 | F2c | 3 | F | step 제목 형식 '### Step n [satisfies Rx]' | S3:35, S3:45, S3:51 | none: covered by another rule's items (the step parse behind the S3 fields and tags) |
-| F2d | 3 | Q | Contract에 보존할 시그니처·반환 형태와 새 인터페이스를 적음 | S3:19 | `judge/F2d` (Q: 3; JUDGE ISSUE COLLECT) |
+| F2d | 3 | Q | Contract에 보존할 기존 시그니처·반환 형태를 적음 (영향이 없으면 그렇게 적음) | S3:19 | `judge/F2d` (Q: 3; JUDGE ISSUE COLLECT) |
+| F2f | 3 | Q | 뒤 step이 쓸 새 인터페이스를 도입하면 그 step의 Contract에 적음 | S3:19 | `judge/F2f` (Q: 3; JUDGE ISSUE COLLECT) |
 | F2e | 3 | Q | Verification에 재현 스크립트가 확인할 것을 적음 | S3:20 | `judge/F2e` (Q: 3; JUDGE ISSUE COLLECT) |
 | F3 | 3 | Q | task가 지정한 이름·시그니처·경로를 그대로 씀 | S3:19 | `atom/F3` (Q: 3; AP COLLECT ISSUE PATCH SEEN) |
 | F4a | 3 | Q | 재현 스크립트가 수정 전에는 문제를 보이고 수정 후에는 정상임을 보이도록 계획 | S3:27 | `judge/F4a` (Q: 3; JUDGE ISSUE COLLECT) |
@@ -166,7 +171,8 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H6 | 5 | R | 전체 테스트 suite를 돌리지 않음 | S5:39 | `rule/r_targeted_tests` (R: 5; TEST TARGET DOC WRITE) |
 | H7 | 5 | R | baseline을 다시 만들려고 테스트를 재실행하지 않음 | S5:11 | `atom/H7` (R: 5; SHELLCLS TEST WRITE) |
 | H8a | 5 | E | 재현 스크립트가 실패하면 소스를 고침 | S5:47, S5:53 | `atom/H8a` (E: 5; AP COLLECT SCRIPT EXIT EDIT WRITE PATCH) |
-| H8b | 5 | Q | baseline에서 통과하던 테스트가 실패하면 regression으로 보고 계약부터 의심함 | S5:48 | `judge/H8b` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| H8b | 5 | C | baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음 | S5:48 | `judge/H8b` (C: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| H8g | 5 | Q | Regressions 항목마다 무엇이 테스트를 깨뜨렸고 어떻게 해결했는지 적음 | S5:48, S5:83 | `judge/H8g` (Q: 5; JUDGE ISSUE COLLECT) |
 | H8c | 5 | R | baseline에서도 실패하던 테스트(pre-existing)는 고치지 않음 | S1:39, S5:49 | none: judge, low priority, not asked (pre-existing failures left unfixed) |
 | H8d | 5 | Q | 적은 pre-existing 실패마다 그렇게 판단한 이유를 붙임 | CW:125, S5:49, S5:84 | `judge/H8d` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
 | H8f | 5 | A | 마지막 실행에서도 실패하는 baseline 실패 테스트를 모두 05 Pre-existing failures에 적음 | CW:125, S5:49, S5:84 | `check/e5_preexisting_listed` (A: 5; AP COLLECT NONE TEST EDIT WRITE) |
