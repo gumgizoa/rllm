@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 195 atomic rules -> 191 methods -> 223 judgments (scored rubric items; 5 more are diagnostics).
+362 document lines -> 195 atomic rules -> 192 methods -> 224 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄); `MSG` agent 메시지 (마지막 응답 앞의 것까지)
@@ -178,7 +178,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H8f | 5 | A | 마지막 실행에서도 실패하는 baseline 실패 테스트를 모두 05 Pre-existing failures에 적음 | CW:125, S5:49, S5:84 | `check/e5_preexisting_listed` (A: 5; AP COLLECT NONE TEST EDIT WRITE) |
 | H8e | 5 | E | patch가 만든 regression(baseline에서 통과하던 테스트의 실패)을 고침 | CW:125 | `atom/H8e` (E: 5; TEST EDIT WRITE) |
 | H9a | 5 | E | 고친 뒤 영향받은 검증을 다시 실행함 | S5:54 | `atom/H9a` (E: 5; EDIT TEST SCRIPT WRITE AP COLLECT) |
-| H9b | 5 | Q | 고친 것을 무엇·왜와 함께 Fixes Applied에 기록함 | S5:55, S5:87 | `judge/H9b` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
+| H9b | 5 | Q | 고친 것을 무엇·왜와 함께 Fixes Applied에 기록함 | S5:55, S5:87 | `judge/H9b` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST)<br>`atom/H9b` (A: 5; AP EDIT NONE WRITE)<br>note: atom/H9b: Fixes Applied none after a stage-5 source edit is false (2026-10-28); judge/H9b asks what and why when it is not none |
 | H10 | 0 | P | 무한 재시도하지 않음 (진전이 없으면 멈춤) | CW:135, S5:56 | `atom/H10` (P: 0; SHELLCLS EDIT WRITE) |
 | H11 | 5 | Q | 남은 실패를 Outstanding Failures에 사실대로 적음 (none으로 포장하지 않음) | S5:90, S5:98 | `check/e5_outstanding_none` (A: 5; AP COLLECT NONE TEST EDIT WRITE)<br>`atom/H11` (Q: 5; AP COLLECT NONE SCRIPT EXIT EDIT WRITE) |
 | H12 | 5 | R | repo에 의도치 않은 파일(임시 스크립트·스크래치·디버그 출력)이 없음 | S5:94, S5:102 | `rule/r_repo_clean` (R: 5; PATCH TESTFILE)<br>`check/e5_unintended_none` (A: 5; AP COLLECT NONE PATH PATCH) |

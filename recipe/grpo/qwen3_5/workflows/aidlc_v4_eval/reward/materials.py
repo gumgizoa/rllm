@@ -83,6 +83,7 @@ METHOD_MATERIALS: dict[str, tuple[str, ...]] = {
     "atom/H15c": ("AP", "COLLECT", "NONE"),
     "atom/H15d": ("AP", "COLLECT", "NONE"),
     "atom/H17": ("EDIT", "TEST", "SCRIPT", "EXIT", "CMDMATCH", "WRITE"),
+    "atom/H9b": ("AP", "EDIT", "NONE", "WRITE"),
     "atom/H1a": ("AP", "COLLECT", "NONE"),
     "atom/H1b": ("AP", "COLLECT", "NONE", "TARGET", "SHELLCLS", "CMDMATCH", "WRITE"),
     "atom/H1c": ("AP", "COLLECT", "NONE", "TARGET", "CMDMATCH", "EXIT", "EDIT", "TEST", "SCRIPT", "WRITE"),

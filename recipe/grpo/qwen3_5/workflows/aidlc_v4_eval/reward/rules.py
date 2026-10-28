@@ -50,6 +50,7 @@ hold per artifact are scored per stage, as ``<rule>@<stage>`` (``aidlc/atom/<rul
     found by the independent rule extraction (2026-10-27): D5b Files one path per line, B11 no file in the
                  artifact directory but the five artifacts, G7c stage 4 runs no test, H17 no stage-5 source change
                  before anything failed, E10c no approval asked mid-run
+    found by the none-field review (2026-10-28): H9b Fixes Applied not none after a stage-5 source edit
 """
 
 from __future__ import annotations
@@ -71,6 +72,7 @@ ATOMIC = (
     *"B3a B4a B8 B10 C2 D1b D4a D4b D5 D7b D8 D10a D12b E3a E4a E7b E8c E10a E10b F1b F2a F2b F3 F4b F7 F8a F8b F9b".split(),
     *"G1a G3a G3c G4b G8b H1a H1b H1c H4a H7 H8a H8e H9a H10 H11 H15a H15b H15c H15d S4.tags".split(),
     *"D5b B11 G7c H17 E10c".split(),
+    "H9b",
     *"D3b G5".split(),
 )
 
@@ -682,6 +684,11 @@ def atomic_checks(
             return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) or "Traceback (most recent call last)" in out for _, cmd, out in runs)
 
         c["H17"] = 0.0 if edits5 and not failed_before(edits5[0]) else 1.0
+        # H9b, the part code can read: a stage-5 source edit is recorded under Fixes Applied (05 Step 5 "Record
+        # what was changed and why"), so `none` there after one is false. Whether each item says what and why
+        # is the judge's question, asked only when the section is not none.
+        if _section_none(p5, "Fixes Applied"):
+            c["H9b"] = 0.0 if edits5 else 1.0
     if p1:
         # D3b: Owning module states the module's boundary in the repository and the Files lie inside it. The boundary
         # is read from a dotted module or a path in the field (`django.db.models (Django ORM)` -> django/db/models);

@@ -1,7 +1,7 @@
 # aidlc_v4_eval: rubric (what the agent is asked to do)
 
 reward/ruleset.py sync (from ruleset.yaml and the code's registrations). Rendered from rubric.yaml by `scripts/render_rubric_md.py`; edit the yaml, not this file.
-228 items | check kinds {'aidlc_v4_eval.atom': 67, 'aidlc_v4_eval.claim': 42, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 28, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
+229 items | check kinds {'aidlc_v4_eval.atom': 68, 'aidlc_v4_eval.claim': 42, 'aidlc_v4_eval.form': 59, 'aidlc_v4_eval.judge': 28, 'aidlc_v4_eval.procedure': 23, 'aidlc_v4_eval.rule': 6, 'aidlc_v4_eval.run': 3} | aggregate kind_matrix
 
 Each item measures one atomic rule (`rule`) of one category in one stage.
 A rule's items in a stage average into it, a category is the mean of its rules (a rule counted once per stage it applies in), a cell (category x stage) the mean of its rules, reported as a diagnostic, and the total (`score`) the mean of the categories.
@@ -17,7 +17,7 @@ Items per cell (scored / diagnostic):
 | C consistency across stages | — | — | — | 2 | 6 / 1 | 7 |
 | R forbidden action | 4 | 1 | — | 3 | 4 | 3 |
 | Q content adequacy | — | 7 | 11 / 1 | 8 | 2 | 8 |
-| A report accuracy | — | 8 | — | 3 | 8 / 1 | 10 |
+| A report accuracy | — | 8 | — | 3 | 8 / 1 | 11 |
 
 ## global — the whole run
 
@@ -264,6 +264,7 @@ Items per cell (scored / diagnostic):
 - [A] **H4b** - [ ] Re-run the existing covering tests identified in Reverse Engineering — `aidlc_v4_eval.claim` {"check": "e5_command_run"} (`check/e5_command_run`) — /ai-dlc/rule-details/05-build-and-test.md:35
 - [A] **H5a** - [ ] **MANDATORY**: Compare the result against the recorded baseline — `aidlc_v4_eval.claim` {"check": "e5_regressions"} (`check/e5_regressions`) — /ai-dlc/rule-details/05-build-and-test.md:37; /ai-dlc/rule-details/05-build-and-test.md:83
 - [A] **H8f** 3. Fix any regression the patch introduced; record any failure judged pre-existing, with the reasoning — `aidlc_v4_eval.claim` {"check": "e5_preexisting_listed"} (`check/e5_preexisting_listed`) — /ai-dlc/core-workflow.md:125; /ai-dlc/rule-details/05-build-and-test.md:49; /ai-dlc/rule-details/05-build-and-test.md:84
+- [A] **H9b** - [ ] Record what was changed and why — `aidlc_v4_eval.atom` {"rule": "H9b"} (`atom/H9b`) — /ai-dlc/rule-details/05-build-and-test.md:55; /ai-dlc/rule-details/05-build-and-test.md:87
 
 ## Rules without items
 

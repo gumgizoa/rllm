@@ -5816,6 +5816,35 @@ items:
     quote: '- [none | what changed and why]'
   note: Does each item under Fixes Applied say what was changed and why it was needed (the failure, error or requirement that
     made the change necessary)? A description of the change alone counts as no.
+- id: atom/H9b
+  scope: specific
+  class: evidence
+  stage: '5'
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: aidlc_v4_eval.atom
+    params:
+      rule: H9b
+  requirement: must
+  category: A
+  rule: H9b
+  availability:
+  - trace
+  derived_by: manual
+  sources:
+  - doc: S5
+    lines:
+    - 55
+    - 55
+    quote: '- [ ] Record what was changed and why'
+  - doc: S5
+    lines:
+    - 87
+    - 87
+    quote: '- [none | what changed and why]'
 - id: atom/H10
   scope: specific
   class: evidence

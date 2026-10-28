@@ -684,6 +684,8 @@ ATOM_CASES = {
     "B11": lambda r: (r.insert(r.write_of(5), write("/tmp/swe-bench-pro/notes.md", "# notes")), r.files.__setitem__("/tmp/swe-bench-pro/notes.md", "# notes")),
     "G7c": lambda r: r.insert(r.write_of(4), sh("cd /testbed && python -m pytest tests/test_mod.py -q", "3 passed in 0.10s")),
     "H17": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
+    # found by the none-field review: a stage-5 source edit with Fixes Applied none
+    "H9b": lambda r: r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="b", new_str="c")),
 }
 
 
@@ -749,6 +751,13 @@ def test_files_listed_one_per_line_keeps_d5b():
     r = Run()
     r.edit(1, "- Files: pkg/mod.py", "- Files:\n  - pkg/mod.py\n  - pkg/util.py")
     assert r.score(_atom_task(r))["aidlc/atom/D5b"] == 1.0
+
+
+def test_a_stage5_fix_recorded_under_fixes_applied_is_no_h9b_question_for_code():
+    r = Run()
+    ATOM_CASES["H9b"](r)
+    r.edit(5, "## Fixes Applied\n- none", "## Fixes Applied\n- pkg/mod.py: guard the empty case -> the reproduction failed on ''")
+    assert r.score(_atom_task(r)).get("aidlc/atom/H9b") is None  # not none: what and why is the judge's
 
 
 def test_a_stage5_fix_after_a_failure_keeps_h17():

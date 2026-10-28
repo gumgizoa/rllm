@@ -1177,6 +1177,8 @@ rules:
   text: 고친 것을 무엇·왜와 함께 Fixes Applied에 기록함
   methods:
     judge/H9b: {kind: Q, stage: 5}
+    atom/H9b: {kind: A, stage: 5}
+  note: 'atom/H9b: Fixes Applied none after a stage-5 source edit is false (2026-10-28); judge/H9b asks what and why when it is not none'
 - id: H10
   stage: 0
   kind: P
