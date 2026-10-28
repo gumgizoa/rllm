@@ -28,6 +28,7 @@ the training pipeline depends on:
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 from collections import defaultdict
@@ -35,7 +36,7 @@ from collections import defaultdict
 from rllm import paths
 
 DB = sys.argv[1] if len(sys.argv) > 1 else paths.rllm_path("traces", "verify.db")
-MODEL = "Qwen/Qwen3.5-4B"
+MODEL = os.environ.get("MODEL_PATH", "Qwen/Qwen3.5-9B")  # same default as config/verl_trainer.yaml
 
 
 def load_sessions(db):

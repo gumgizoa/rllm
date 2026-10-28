@@ -13,13 +13,15 @@ running them as two micro-batches? A vs B isolates the cost of merely turning
 on the varlen path.
 """
 
+import os
 import time
 
 import torch
 from transformers import AutoModelForCausalLM
 from verl.utils.experimental.torch_functional import FusedLinearForPPO
 
-MODEL, T, REPS = "Qwen/Qwen3.5-4B", 8192, 3
+MODEL = os.environ.get("MODEL_PATH", "Qwen/Qwen3.5-9B")  # same default as config/verl_trainer.yaml
+T, REPS = 8192, 3
 model = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.bfloat16, attn_implementation="flash_attention_2").cuda()
 model.gradient_checkpointing_enable()
 model.train()
