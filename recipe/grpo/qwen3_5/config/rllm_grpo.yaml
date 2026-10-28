@@ -14,8 +14,8 @@ rllm:
     # prompt is the first turn's prompt and the response accumulates every
     # later turn's observation + action deltas. Response length therefore
     # has to cover a whole multi-turn episode, not a single completion.
-    # 8 tasks x rollout.n=8 = 64 trajectories per step. verl requires
-    # train_batch_size * rollout.n to divide n_gpus (64 % 8 = 0).
+    # 32 tasks x rollout.n=8 = 256 trajectories per step. verl requires
+    # train_batch_size * rollout.n to be divisible by n_gpus (256 % 8 = 0).
     train_batch_size: 32
     val_batch_size: 32
     # Only max_prompt_length is a real choice here: it is the padded width of
@@ -26,9 +26,10 @@ rllm:
     # dropping the head of the system prompt the policy actually sampled with.
     # max_response_length is whatever is left of the context window, and is
     # derived rather than restated -- the same truncation drops the tail of
-    # every long episode when it is stale.
+    # every long episode when it is stale. 256K window: 16384 + 245760 =
+    # verl_trainer.yaml max_model_len (262144, Qwen3.5-9B's max_position_embeddings).
     max_prompt_length: 16384
-    max_response_length: 114688
+    max_response_length: 245760
 
   algorithm:
     # SWE-Master leave-one-out estimator: rllm/trainer/algorithms/rl_algo.py:26
@@ -42,14 +43,14 @@ rllm:
     # kl_beta=0 is the real switch, and it does more than zero a loss term:
     # verl's need_reference_policy() is (use_kl_in_reward or use_kl_loss), and
     # use_kl_loss is *derived* from kl_beta by sync_config. At 0 the reference
-    # policy worker is never created, so each batch skips a full 4B forward
+    # policy worker is never created, so each batch skips a full 9B forward
     # pass and its memory. Do not set actor.use_kl_loss directly -- that
     # suppresses the derivation and hides where the knob lives.
     kl_beta: 0.0
     loss_agg_mode: seq-mean-token-sum
 
   rollout:
-    n: 4        # GRPO group size
+    n: 8        # GRPO group size
     n_val: 1
     train:
       temperature: 1.0
@@ -107,17 +108,26 @@ rllm:
     retry_limit: 3
     raise_on_error: false
 
+  # Per-rollout wall clock, seconds. Set here, these win over task.toml's
+  # [agent]/[verifier] timeout_sec (rllm/timeouts.py). The verifier's 1000 s is
+  # reserved out of the 4800 s budget first, so the agent gets
+  # min(3600, 4800 - 1000) = 3600 s.
+  timeouts:
+    rollout: 4800
+    agent: 3600
+    verifier: 1000
+
   remote_runtime:
     enabled: false   # explicitly not Harbor
 
   trainer:
     project_name: qwen3_5-swe-grpo
-    experiment_name: qwen3_5-4b-mini-swe-native-verl
+    experiment_name: qwen3_5_9b-openhands_sdk-swefeat-h200
     logger: ['console', 'wandb']
     val_before_train: true
-    test_freq: 3
-    save_freq: 3
-    total_epochs: 1
+    test_freq: 5
+    save_freq: 5
+    total_epochs: 3
 
   episode_logging:
     log_episodes: true

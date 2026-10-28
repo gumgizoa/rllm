@@ -1,4 +1,5 @@
-# Hydra entry point for the Qwen3.5-4B native SWE GRPO recipe.
+# Hydra entry point for the native SWE GRPO recipe: Qwen3.5-9B on swe_feat with
+# openhands-sdk, 8 x H200.
 #
 # `hydra.searchpath` is what lets a config living outside the rllm package
 # reference rLLM's and verl's config groups. It also has to live here, in the
@@ -16,10 +17,12 @@ defaults:
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
-  train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
+  # 171 swe_feat tasks Qwen3.5-9B solved at least once but not 4/4 (scripts/prepare_swefeat.py)
+  train_dataset: swefeat_9b_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
-  val_dataset: swebench_verified_balanced   # difficulty-balanced; see val_tasks.txt
+  # 50 SWE-bench Pro V2 Python tasks, stratified by repo (scripts/select_swebenchpro_v2_val.py)
+  val_dataset: swebenchpro_v2_py50
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
@@ -30,7 +33,7 @@ recipe:
   # so the trajectory and reward path is the same; the system prompt, tools and
   # observation format differ. openhands-sdk's system prompt + tool specs alone
   # are ~7.2K tokens (see rllm_grpo.yaml max_prompt_length).
-  harness: mini-swe-agent
+  harness: openhands-sdk
   # Turn budget per rollout: mini-swe-agent agent.step_limit, openhands-sdk
   # max_iteration_per_run. Either way one LLM call per turn, and the engine
   # stamps MAX_TURNS_EXCEEDED when the trace count reaches it.
@@ -38,7 +41,8 @@ recipe:
   # tightly enough for the arithmetic to mean much (measured median 542, worst
   # 1151), so a turn that overruns max_model_len is handled at rollout time
   # rather than predicted here.
-  agent_step_limit: 150
+  # 250, up from 150: at 150 about 9% of this policy's swe_feat rollouts ran out of turns.
+  agent_step_limit: 250
   # openhands-sdk only. SDK built-in tools to include, same as `rllm eval
   # --agent-kwargs` include_default_tools (recipe/eval/config/openhands-sdk.yaml):
   # FinishTool lets the agent end the run; ThinkTool is left out because a model
@@ -50,7 +54,9 @@ recipe:
   # ship commits past the base commit, fix included (SWE-smith: `git show HEAD`
   # prints the answer), so a policy can learn to copy the fix from history.
   # Docker backend only.
-  hide_git_history: false
+  # On: the pass counts that picked the training tasks were measured with the history
+  # hidden (rllm eval --hide-git-history); train the same way.
+  hide_git_history: true
   # Docker sandboxes are kept off the internet: with it, agents fetched the
   # task's own upstream release or repository and copied the fix.
   # agent_network: internet while the agent runs (and so for the verifier too).
