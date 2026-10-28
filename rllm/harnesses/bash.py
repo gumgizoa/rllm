@@ -18,6 +18,7 @@ import logging
 import re
 
 from rllm.sandbox.sandboxed_flow import SandboxedAgentFlow
+from rllm.timeouts import agent_timeout_for
 from rllm.types import Episode, Step, Task, Trajectory
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class BashHarness(SandboxedAgentFlow):
 
         client = OpenAI(base_url=config.base_url, api_key="EMPTY")
         max_turns = int(task.metadata.get("rllm", {}).get("max_turns") or 50)
-        agent_timeout = float(task.metadata.get("agent_timeout", 600))
+        agent_timeout = agent_timeout_for(task, config)
         agent_user = task.metadata.get("agent_user")
 
         messages = [

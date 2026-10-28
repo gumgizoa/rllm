@@ -243,6 +243,9 @@ class UnifiedTrainer:
                 train_sampling_params=training_sampling_params,
                 val_sampling_params=val_sampling_params,
                 hooks=hooks,
+                rollout_timeout=OmegaConf.select(self.rllm_config, "timeouts.rollout"),
+                agent_timeout=OmegaConf.select(self.rllm_config, "timeouts.agent"),
+                verifier_timeout=OmegaConf.select(self.rllm_config, "timeouts.verifier"),
             )
 
         elif remote_runtime_cfg.get("enabled", False):
@@ -1065,6 +1068,7 @@ class AgentTrainer:
                     hide_git_history=hide_git_history,
                     agent_network=agent_network,
                     verify_network=verify_network,
+                    verifier_timeout=OmegaConf.select(config, "rllm.timeouts.verifier"),
                 )
                 evaluator = None
             elif hide_git_history and not getattr(hooks, "hide_git_history", False):

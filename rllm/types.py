@@ -426,6 +426,10 @@ class AgentConfig:
     # Informational copy of the gateway-enforced sampling config; not authoritative
     # (the gateway applies it server-side regardless of what the flow passes).
     sampling_params: dict = field(default_factory=dict)
+    # Wall-clock seconds the flow may spend, resolved by the engine (see
+    # rllm.timeouts): the agent limit, cut to what the rollout budget leaves.
+    # ``None`` when the caller is not the engine; flows then resolve it themselves.
+    agent_timeout: float | None = None
 
 
 @runtime_checkable
