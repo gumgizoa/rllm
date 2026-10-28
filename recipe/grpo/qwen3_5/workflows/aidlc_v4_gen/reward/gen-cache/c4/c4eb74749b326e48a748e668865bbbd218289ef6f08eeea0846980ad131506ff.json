@@ -1,0 +1,1525 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Completion-criterion phrasing without an explicit imperative, and the check compares the repository state to the agent-declared change list.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every untracked file left in the repository must be part of the declared change; anything else is an unintended leftover.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "fact": "untracked_paths"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field": {
+       "artifact": "a5",
+       "label": "Files in the change",
+       "section": "Final Change"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Repository contains no unintended file"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-055",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "diff"
+    ],
+    "class": "evidence",
+    "kind": "prohibited_action",
+    "none_allowed": "-",
+    "note": "No existing test file (present at BASE_SHA) may be edited at any point of the run.",
+    "params": {
+     "action": "test_file_write",
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "no test file was modified"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-056",
+    "target": {
+     "ref": "test_file_write",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: the recorded test files in the change must match the actual test paths in the final diff.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field": {
+       "artifact": "a5",
+       "label": "Test files in the change",
+       "section": "Final Change"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       113,
+       113
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "no test file was modified"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-056",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: items resting only on it are at most should.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       3
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "Read /ai-dlc/core-workflow.md first."
+     }
+    ],
+    "stage": "global",
+    "statement": "ins-002",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "window": "stage:requirements_analysis"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "window": "stage:code_generation_planning"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "window": "stage:build_and_test"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       3,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "It names the rule detail file that governs each stage; load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "ins-003",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:RE",
+      "first_write:a1"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:RA",
+      "first_write:a2"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CP",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CG",
+      "first_write:a4"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "Instruction (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:BT",
+      "first_write:a5"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       4,
+       5
+      ],
+      "path": "../aidlc_v4/instruction.md",
+      "quote": "load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "ins-004",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read_first",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CW"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Read /ai-dlc/core-workflow.md before taking any other action on the task."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-003",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "read:CW",
+      "read:RE"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Read /ai-dlc/core-workflow.md before taking any other action on the task."
+     }
+    ],
+    "stage": "global",
+    "statement": "sp-004",
+    "target": {
+     "ref": "read:CW",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "window": "stage:requirements_analysis"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "window": "stage:code_generation_planning"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "window": "stage:build_and_test"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-005",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The first stage's rule file is loaded before any write to the repository.",
+    "params": {
+     "chain": [
+      "read:RE",
+      "first_repo_write"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "The code-generation rule file is loaded before the first edit of a file that existed at BASE_SHA.",
+    "params": {
+     "chain": [
+      "read:CG",
+      {
+       "first": {
+        "created": false,
+        "fact": "repo_edit"
+       }
+      }
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       65,
+       66
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load that file from /ai-dlc/rule-details/ as the first step of the stage it governs"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-006",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RE",
+     "single_doc": true,
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "single_doc": true,
+     "window": "stage:requirements_analysis"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "single_doc": true,
+     "window": "stage:code_generation_planning"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "single_doc": true,
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "single_doc": true,
+     "window": "stage:build_and_test"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Load one rule detail file at a time"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-008",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a1",
+      "read:RA"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "immediately before its stage."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-009",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a2",
+      "read:CP"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "immediately before its stage."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-009",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a3",
+      "read:CG"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "immediately before its stage."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-009",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "order",
+    "none_allowed": "-",
+    "params": {
+     "chain": [
+      "write:a4",
+      "read:BT"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "immediately before its stage."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-009",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "RA",
+     "no_read_ahead": true,
+     "window": "stage:requirements_analysis"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:RA",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CP",
+     "no_read_ahead": true,
+     "window": "stage:code_generation_planning"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:CP",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "CG",
+     "no_read_ahead": true,
+     "window": "stage:code_generation_generation"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:CG",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "params": {
+     "doc": "BT",
+     "no_read_ahead": true,
+     "window": "stage:build_and_test"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       68,
+       69
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Do not read ahead to a later stage's rule detail file."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-010",
+    "target": {
+     "ref": "read:BT",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "System-prompt (adapter) text: at most should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "Every stage ends by writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-011",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Path stated in a completion-criterion list without an explicit imperative; the directive itself is adapter text.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5",
+     "pattern": "/tmp/swe-bench-pro/05-build-and-test\\.md$"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton"
+     },
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "writing its artifact to the path core-workflow.md specifies"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Adapter text; artifact directory inferred from the shared {artifact} root stated for the build-and-test artifact.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a1",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "writing its artifact to the path core-workflow.md specifies"
+     },
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a1",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Adapter text; artifact directory inferred from the shared {artifact} root stated for the build-and-test artifact.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a2",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "writing its artifact to the path core-workflow.md specifies"
+     },
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md`"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Adapter text; artifact directory inferred from the shared {artifact} root stated for the build-and-test artifact.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a3",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "writing its artifact to the path core-workflow.md specifies"
+     },
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "downgrade_reason": "Adapter text; artifact directory inferred from the shared {artifact} root stated for the build-and-test artifact.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a4",
+     "pattern": "^/tmp/swe-bench-pro/"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       70,
+       71
+      ],
+      "path": "../aidlc_v4/system-prompt.j2",
+      "quote": "writing its artifact to the path core-workflow.md specifies"
+     },
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md`"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "sp-012",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Umbrella directive ('Follow the workflow defined in /ai-dlc/core-workflow.md'). No single kind checks it. Its checkable parts are itemized through the per-stage doc-read/order/artifact items and the stage-rule statements.",
+    "statement": "sp-001"
+   },
+   {
+    "reason": "'Execute the stage from that file' is a general conformance directive. The concrete obligations come from each stage's rule-detail statements and are itemized there. No standalone deterministic check fits.",
+    "statement": "sp-007"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "b6e15ab1d02650ebd83e3f98563528cbc90534e09133743e19b3b5750ab719a6",
+ "key": "c4eb74749b326e48a748e668865bbbd218289ef6f08eeea0846980ad131506ff",
+ "meta": {
+  "at": "2026-10-12T12:01:17Z",
+  "cost_usd": 0.61282,
+  "duration_ms": 214442,
+  "num_turns": 2,
+  "wall_s": 215.67
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "ecca643df4d167f12d0e185a03c1bcb62b3d9e157e8331852cdcfbbb908844d3",
+ "version": "2.1.283"
+}

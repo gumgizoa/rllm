@@ -1,0 +1,29 @@
+{
+ "answer": {
+  "conflicts": [
+   {
+    "description": "g5.cp-022.0 requires a3 Plan step brackets to read '[satisfies R…]' and g5.cg-023.0 requires a4 Plan Execution brackets to read '[R…]', so g5.cg-014.0 (each step's a4 bracket text must also appear in a3's bracket for that step) fails, since 'R1' never equals 'satisfies R1'.",
+    "items": [
+     "g5.cg-014.0",
+     "g5.cp-022.0",
+     "g5.cg-023.0"
+    ]
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "4417181a1906258f54a7c5aea90c6be04ed3e92bfec98747d871989990ac5de9",
+ "key": "cfa7a46662480d9004ddb95a21b775ce6d8725fa791e6cad8992618d87657318",
+ "meta": {
+  "at": "2026-10-12T12:25:10Z",
+  "cost_usd": 0.4475544000000001,
+  "duration_ms": 155668,
+  "num_turns": 2,
+  "wall_s": 157.05
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "815ac70492ae64d16ad931a83a4345aecf089c358056fb6d8a2184f18da485c1",
+ "salt": "",
+ "schema_sha256": "97c74f547c8c9601cdcda7d2689062d848791b9996334e97a68f025c56b994ba",
+ "version": "2.1.283"
+}

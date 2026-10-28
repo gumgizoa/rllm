@@ -1,0 +1,89 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "Stage 1 is unconditional: its artifact must exist by the time the stage ends, so the stage cannot have been skipped.",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "## Stage 1: Reverse Engineering (ALWAYS EXECUTE)"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "critic-1-001-0",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "downgrade_reason": "The heading only says the stage always executes. Taking a read of the stage rule document during the stage as proof that it ran is an inference, not something the text states.",
+    "kind": "doc_read",
+    "none_allowed": "-",
+    "note": "Trace evidence that the Reverse Engineering stage was actually carried out under its rule document.",
+    "params": {
+     "doc": "RE",
+     "window": "stage:reverse_engineering"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       73,
+       73
+      ],
+      "path": "../aidlc_v4/docs/core-workflow.md",
+      "quote": "## Stage 1: Reverse Engineering (ALWAYS EXECUTE)"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "critic-1-001-0",
+    "target": {
+     "ref": "read:RE",
+     "type": "action"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The artifact path is already set for a1 as '{artifact}/01-reverse-engineering.md'. The skeleton compiles the artifact's location, so another path_match item would repeat it. The hard-coded '/tmp/swe-bench-pro' prefix depends on how the {artifact} directory is set up, so a literal path check could fail runs that are correct. Whether the artifact exists is already covered by the artifact_exists item under critic-1-001-0.",
+    "statement": "critic-1-002-1"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "d9cb66e19b210ffd66048ff01c60464936245ee3cce0cb5a393fb9b196918f53",
+ "key": "b23d0c8b0e5596c0cf2c8e48d69b556d89d27cde1eb3d5e680c152af4399180b",
+ "meta": {
+  "at": "2026-10-12T12:01:46Z",
+  "cost_usd": 0.10950900000000001,
+  "duration_ms": 19621,
+  "num_turns": 2,
+  "wall_s": 20.8
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "critic1sample0",
+ "schema_sha256": "8f9d59013f6b411131561d4de41d06ed4d3b86985ed3ad213abf2646a462f1f5",
+ "version": "2.1.283"
+}

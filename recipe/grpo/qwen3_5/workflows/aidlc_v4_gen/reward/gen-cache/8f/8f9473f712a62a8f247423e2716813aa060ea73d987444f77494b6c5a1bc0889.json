@@ -1,0 +1,474 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Step numbers in the ### Step headings of the Plan section must run 1, 2, 3... with no gaps or repeats.",
+    "params": {
+     "min": 1,
+     "pattern": "^### Step (\\d+)",
+     "section": "Plan",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**MANDATORY**: Create one or more explicit steps for each requirement. Number the steps sequentially."
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the `### Step n [satisfies Rx]` step headings"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-006",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "note": "Each step's Target must name a real file path: one that existed at BASE_SHA (modified in place) or one in the diff (newly created).",
+    "params": {
+     "label": "Target",
+     "section": "Plan",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       17
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**MANDATORY**: Create one or more explicit steps for each requirement. ... For every step, record: ... **Target file(s)** — full path"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-007",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Every Target line must also say whether the file is modified in place or created.",
+    "params": {
+     "min": 1,
+     "of_pattern": "Target:",
+     "pattern": "Target:.*(in place|[Cc]reat)",
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       17,
+       17
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**Target file(s)** — full path, and whether the file is modified in place or newly created."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-008",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Checked per step block, which goes beyond the single template-level filled check.",
+    "params": {
+     "label": "Change",
+     "min_items": 1,
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       18
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "For every step, record: ... **Change** — what is added, altered, or removed"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-009",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Every step block needs a non-empty Verification value.",
+    "params": {
+     "label": "Verification",
+     "min_items": 1,
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "For every step, record:"
+     },
+     {
+      "lines": [
+       20,
+       20
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**Verification** — what the reproduction script must exercise to demonstrate this step is correct"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-013",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are artifacts the agent wrote (a3 step tags vs a2 requirement ids), so the cross_ref is downgraded per rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every R identifier tagged in the Plan steps must be a requirement defined in Stage 2.",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan"
+      },
+      "normalize": "id"
+     },
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       21,
+       21
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**Requirement tag** — which requirement (`R1`, `R2`, ...) the step satisfies"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-014",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Every step block must state its contract. Leaving it unstated or saying none is called out explicitly as a failure.",
+    "params": {
+     "label": "Contract",
+     "min_items": 1,
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       23,
+       23
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**CRITICAL — contract preservation**: Naming the contract each step must preserve is what makes it checkable during generation. A step that leaves it unstated can silently change a signature or return shape"
+     },
+     {
+      "lines": [
+       19,
+       19
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-015",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are artifacts the agent wrote (a3 Reproduction Script vs a2 Edge Cases), so the cross_ref is downgraded per rule 6.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The planned reproduction script must cover every requirement id listed under Edge Cases & Error Handling.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Reproduction Script"
+      },
+      "normalize": "id"
+     },
+     "relation": "superset",
+     "right": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Edge Cases & Error Handling"
+      },
+      "normalize": "id"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       28,
+       28
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Include the conditions from the Edge Cases & Error Handling requirements"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-017",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "That the script actually gets written at the recorded path is inferred from 'where the script will be written', not stated directly.",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The recorded Reproduction Script Path must be the path the run later writes the script to.",
+    "params": {
+     "steps": [
+      {
+       "write_of": {
+        "field": {
+         "artifact": "a3",
+         "label": "Path",
+         "section": "Reproduction Script"
+        },
+        "normalize": "path"
+       }
+      }
+     ],
+     "window": [
+      "last_write:a3",
+      "end"
+     ]
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       29,
+       29
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Record the path where the script will be written"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-018",
+    "target": {
+     "ref": "reproduction script write",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "note": "The planning artifact must be written in exactly one write operation over the whole run.",
+    "params": {
+     "artifact": "a3",
+     "mode": "once",
+     "window": [
+      "start",
+      "end"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       33,
+       33
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Write `/tmp/swe-bench-pro/03-code-generation-planning.md` in a single write, with the full content below"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-019",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Every step heading must keep the '### Step n [satisfies Rx]' format. Step headings are not among the compiled template sections.",
+    "params": {
+     "min": 1,
+     "of_pattern": "^### Step",
+     "pattern": "^### Step \\d+ \\[satisfies R\\d+",
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Keep the frontmatter keys, the `##` headings, the `### Step n [satisfies Rx]` step headings, and the field prefixes exactly as given."
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-022",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The Contract label and its plain filled check come from the template. The per-step rule that the contract must be stated is itemized under cp-015 so it isn't duplicated. 'Use names/signatures/paths exactly as given in the task description' needs the task text, which no selector exposes.",
+    "statement": "cp-010"
+   },
+   {
+    "reason": "The ## Reproduction Script section is already compiled from the template skeleton. Whether the planned script really reproduces the issue before the fix and shows correct behavior after it takes judgment, and no kind can check that at planning time.",
+    "statement": "cp-016"
+   },
+   {
+    "reason": "The template frontmatter keys (stage, name) and their values are already compiled from the template skeleton. The statement adds no rule beyond the skeleton.",
+    "statement": "cp-020"
+   },
+   {
+    "reason": "The ## Plan, ## Reproduction Script and ## Requirement Coverage headings are already compiled from the template skeleton as section_present items.",
+    "statement": "cp-021"
+   },
+   {
+    "reason": "The field prefixes (Target, Change, Contract, Verification, Path, Exercises) are already compiled as template labels. Per-step presence is covered by the cp-007/cp-008/cp-009/cp-013/cp-015 items.",
+    "statement": "cp-023"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "83f46ee0b1ce42a9952e3f40679f36de563f76d3a557416a1fc5551650cf72e9",
+ "key": "8f9473f712a62a8f247423e2716813aa060ea73d987444f77494b6c5a1bc0889",
+ "meta": {
+  "at": "2026-10-12T11:52:22Z",
+  "cost_usd": 0.373423,
+  "duration_ms": 118617,
+  "num_turns": 2,
+  "wall_s": 119.96
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "9eb07f374727a29197d88edd9db8ca55f164014c021253481ae9ef82a11c214d",
+ "version": "2.1.283"
+}

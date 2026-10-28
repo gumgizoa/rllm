@@ -1,0 +1,640 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Every requirement mentioned in Requirement Coverage has to be listed against a step (Rx: Step n).",
+    "params": {
+     "of_pattern": "\\bR\\d+\\b",
+     "pattern": "R\\d+:\\s*Step\\s*\\d+",
+     "section": "Requirement Coverage"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy it. ... it must account for every identifier that artifact defines."
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the `### Step n [satisfies Rx]` step headings"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-025",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written (rule 6): the steps named in the coverage table vs the plan's own step headings.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every step the coverage table names has to be a real plan step.",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a3",
+       "group": 1,
+       "pattern": "Step (\\d+)",
+       "section": "Requirement Coverage"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "headings": {
+       "artifact": "a3",
+       "group": 1,
+       "level": 3,
+       "pattern": "Step (\\d+)"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "The Requirement Coverage section lists every requirement from Requirements Analysis against the steps that satisfy it."
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the `### Step n [satisfies Rx]` step headings"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-025",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6): requirement ids in a2 vs the coverage table in a3.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Requirement Coverage"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       67,
+       67
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "It is the check that no requirement was dropped between the two artifacts, and it must account for every identifier that artifact defines."
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "`### Step n [satisfies Rx]`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-026",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "diff",
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Files written during generation that stay in the final change have to be among the plan's Target paths.",
+    "params": {
+     "left": {
+      "fact": {
+       "final": true,
+       "name": "repo_write_paths",
+       "window": "stage:code_generation_generation"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       72,
+       73
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "The plan is the **single source of truth** for generation ... Generation executes only what is written here, so any gap in the plan is a gap in the implementation"
+     }
+    ],
+    "stage": "code_generation_generation",
+    "statement": "cp-029",
+    "target": {
+     "ref": "repo_write",
+     "state": "final",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "You could check this by testing that each planned new Target's parent directory exists at BASE_SHA, but no kind compares a path's directory with base_paths.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       76,
+       76
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Follow the existing repository structure"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-030",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "base_tree",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "no",
+    "note": "A full repo-root path either exists at BASE_SHA or shows up in the diff; a bare filename does neither.",
+    "params": {
+     "label": "Target",
+     "section": "Plan",
+     "type": "repo_path"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       77,
+       77
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Record full paths from the repository root"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-031",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "No planned Target may be a test file in the change.",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a3",
+       "label": "Target",
+       "section": "Plan"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "diff_test_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       78,
+       78
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Application source code only; never test files. They are the specification the change must satisfy"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-032",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "You could check this by matching each Target that exists at BASE_SHA against a modify-in-place marker, but the vocabulary has no conditional per-value enum tied to base_paths, and the template's mode wording isn't known here.",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       81,
+       81
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "If the target file exists, plan to modify it **in place**"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-033",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Uses only the document's own duplicate examples (_new / _modified).",
+    "params": {
+     "max": 0,
+     "pattern": "\\w+_(new|modified)\\.\\w+",
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       82,
+       82
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Never plan a duplicate such as `module_new.py` or `ClassName_modified.java`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-034",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "of_pattern": "^### Step \\d+",
+     "pattern": "^### Step \\d+ \\[satisfies R\\d+",
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       85,
+       85
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Every step carries the requirement tag it satisfies"
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the `### Step n [satisfies Rx]` step headings"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-035",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "downgrade_reason": "Both sides are agent-written artifacts (rule 6): requirement ids in a2 vs the step tags in a3's Plan.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "pattern": "\\bR\\d+\\b"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       86,
+       86
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "Every requirement is satisfied by at least one step"
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "`### Step n [satisfies Rx]`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-036",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "params": {
+     "min": 1,
+     "pattern": "^### Step (\\d+)",
+     "section": "Plan",
+     "sequence": true,
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "A numbered plan exists in which every step names target files, change, contract obligations, verification, and requirement tag"
+     },
+     {
+      "lines": [
+       35,
+       35
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the `### Step n [satisfies Rx]` step headings"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-037",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Checked per step block, not just once.",
+    "params": {
+     "label": "Target",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-038",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Checked per step block.",
+    "params": {
+     "label": "Change",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-039",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "unspecified",
+    "note": "Checked per step block. The document doesn't say whether a step with no contract obligations may write none.",
+    "params": {
+     "label": "Contract",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change, contract obligations"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-040",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": "no",
+    "note": "Checked per step block.",
+    "params": {
+     "label": "Verification",
+     "per_block": true,
+     "section": "Plan"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       89,
+       89
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "every step names target files, change, contract obligations, verification"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-041",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The template skeleton's compiled placeholder-residue checks already cover bracketed placeholder text left in a3 (rule 10). The statement adds no rule beyond that.",
+    "statement": "cp-024"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "009b04803d28cbcfcdcb8d6f9398fa616db38efeba9522f0218811816053b29b",
+ "key": "6070f6d21cec12f1ac4cbfb48ef5b76876feb82c84d592befe5105165ec93799",
+ "meta": {
+  "at": "2026-10-12T11:52:54Z",
+  "cost_usd": 0.361911,
+  "duration_ms": 116687,
+  "num_turns": 2,
+  "wall_s": 117.99
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "625f966653a0204b166f4e3503f634db2e70bd5af56b92db36bd5384e97bf132",
+ "version": "2.1.283"
+}

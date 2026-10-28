@@ -1,0 +1,389 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Implicit: the NFR category must not be left empty. When the task states no NFRs, an Rn item that says 'none stated' is still expected.",
+    "params": {
+     "min": 1,
+     "pattern": "^- R\\d+:",
+     "section": "Non-Functional Requirements"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       30,
+       32
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "Only what the task description states; often nothing"
+     },
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "the `- Rn:` prefix exactly as given"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-019",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write, with the full content below"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-022",
+    "target": {
+     "ref": "a2",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "write_discipline",
+    "none_allowed": "-",
+    "note": "The artifact must be written in a single write.",
+    "params": {
+     "artifact": "a2",
+     "mode": "once"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       40,
+       40
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "Write `/tmp/swe-bench-pro/02-requirements-analysis.md` in a single write"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-022",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Requirement lines must keep the '- Rn:' prefix.",
+    "params": {
+     "min": 1,
+     "pattern": "^- R\\d+:"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "Keep the frontmatter keys, the `##` headings, and the `- Rn:` prefix exactly as given."
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-026",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "Requirement IDs must be numbered and unique across all categories. Whether each item is verifiable needs judgment and is not checked.",
+    "params": {
+     "min": 1,
+     "pattern": "^- R(\\d+):",
+     "unique": true
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       68,
+       68
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "Every requirement stated as a numbered, verifiable item, uniquely identified across all categories"
+     },
+     {
+      "lines": [
+       42,
+       42
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "the `- Rn:` prefix exactly as given"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-029",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "'Evaluated' is read as: the category holds at least one Rn item (inferred).",
+    "params": {
+     "min": 1,
+     "pattern": "^- R\\d+:",
+     "section": "Functional Requirements"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "All three categories evaluated, each with its heading present"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-030",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "content",
+    "kind": "item_format",
+    "none_allowed": "-",
+    "note": "'Evaluated' is read as: the category holds at least one Rn item (inferred).",
+    "params": {
+     "min": 1,
+     "pattern": "^- R\\d+:",
+     "section": "Edge Cases & Error Handling"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       69,
+       69
+      ],
+      "path": "../aidlc_v4/docs/rule-details/02-requirements-analysis.md",
+      "quote": "All three categories evaluated, each with its heading present"
+     }
+    ],
+    "stage": "requirements_analysis",
+    "statement": "ra-030",
+    "target": {
+     "ref": "a2",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/03-code-generation-planning.md`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-002",
+    "target": {
+     "ref": "a3",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Prerequisite: the Reverse Engineering artifact is written before planning starts.",
+    "params": {
+     "chain": [
+      "first_write:a1",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       7,
+       8
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "## Prerequisites\n- Reverse Engineering is complete: Affected Scope, Build & Test Commands, Existing Tests, and Baseline are established, and recorded in `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-003",
+    "target": {
+     "ref": "a3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "evidence",
+    "kind": "order",
+    "none_allowed": "-",
+    "note": "Prerequisite: the Requirements Analysis artifact is written before planning starts.",
+    "params": {
+     "chain": [
+      "first_write:a2",
+      "first_write:a3"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       7,
+       9
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "## Prerequisites ... - Requirements Analysis is complete: the numbered requirements `R1`, `R2`, ... are established, and recorded in `/tmp/swe-bench-pro/02-requirements-analysis.md`"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-004",
+    "target": {
+     "ref": "a3",
+     "type": "action"
+    }
+   },
+   {
+    "class": "content",
+    "downgrade_reason": "The agent writes both sides (a2 and a3), so under rule 6 this cross_ref is downgraded from must.",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "At least one Plan step must be tagged with each Rn defined in the requirements artifact.",
+    "params": {
+     "left": {
+      "ids": {
+       "artifact": "a2",
+       "group": 1,
+       "pattern": "^- (R\\d+):"
+      }
+     },
+     "normalize": "id",
+     "relation": "subset",
+     "right": {
+      "ids": {
+       "artifact": "a3",
+       "pattern": "\\bR\\d+\\b",
+       "section": "Plan"
+      }
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       15,
+       15
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "**MANDATORY**: Create one or more explicit steps for each requirement."
+     },
+     {
+      "lines": [
+       9,
+       9
+      ],
+      "path": "../aidlc_v4/docs/rule-details/03-code-generation-planning.md",
+      "quote": "the numbered requirements `R1`, `R2`, ... are established"
+     }
+    ],
+    "stage": "code_generation_planning",
+    "statement": "cp-005",
+    "target": {
+     "ref": "a3",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "Frontmatter keys and values (stage, name) are already compiled from the RA template skeleton.",
+    "statement": "ra-024"
+   },
+   {
+    "reason": "The four ## headings are already compiled from the RA template skeleton.",
+    "statement": "ra-025"
+   },
+   {
+    "reason": "Bracketed-placeholder residue checks are already compiled from the RA template skeleton.",
+    "statement": "ra-027"
+   },
+   {
+    "reason": "Presence of every heading is already compiled from the RA template skeleton. Nothing further is observable.",
+    "statement": "ra-028"
+   },
+   {
+    "reason": "The Assumptions heading and its filled check are already compiled from the template. Whether each assumption gives the ambiguity, decision and reasoning needs semantic judgment, and assumptions may legitimately be absent, so no observable rule can be added.",
+    "statement": "ra-031"
+   },
+   {
+    "reason": "Following the skeleton (frontmatter, headings, residue) is already compiled from the template. The Rn prefix is covered by the ra-026 and ra-029 items.",
+    "statement": "ra-033"
+   },
+   {
+    "reason": "This is a purpose statement. Coverage of every requirement is checked by the cp-005 cross_ref. The format of the step numbering is set by the CP template skeleton, which is already compiled. Whether a step can be executed 'without further interpretation' needs judgment.",
+    "statement": "cp-001"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "54531518bcee13ad6a98eae9b0762455900b00c213277e01b684b8e8e9dc95e7",
+ "key": "12672a102a26a095c886811278f06020360ab2a48dd0f54043486b78593a7a4b",
+ "meta": {
+  "at": "2026-10-12T11:51:07Z",
+  "cost_usd": 0.1839382,
+  "duration_ms": 74324,
+  "num_turns": 2,
+  "wall_s": 75.48
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample1",
+ "schema_sha256": "a65ebe880f47277b760f437a81945987c1e795446494cc7ba38819b808085be8",
+ "version": "2.1.283"
+}

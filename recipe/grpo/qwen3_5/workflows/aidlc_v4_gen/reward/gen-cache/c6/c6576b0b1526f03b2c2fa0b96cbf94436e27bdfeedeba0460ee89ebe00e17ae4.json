@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cw-018.1",
+    "reason": "The doc says \"Frontmatter is these two keys and no others\", which supports an exact {stage, name} key check on a2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-018.2",
+    "reason": "The doc says \"Frontmatter is these two keys and no others\", which supports an exact {stage, name} key check on a3.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-018.3",
+    "reason": "The doc says \"Frontmatter is these two keys and no others\", which supports an exact {stage, name} key check on a4.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-018.4",
+    "reason": "The doc says \"Frontmatter is these two keys and no others\", which supports an exact {stage, name} key check on a5.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-019.0",
+    "reason": "\"Unresolved work goes under Outstanding Failures in the Stage 5 artifact, and nowhere else\" means the section must be filled when new failures exist, and it may be empty when there are none.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-033.0",
+    "reason": "The step \"Write `/tmp/swe-bench-pro/01-reverse-engineering.md`\" directly requires artifact a1 to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-038.0",
+    "reason": "The numbered steps \"5. Write ...01-reverse-engineering.md ... 6. Proceed to Stage 2\" put writing a1 before starting a2.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-041.0",
+    "reason": "The heading \"Stage 2: Requirements Analysis (ALWAYS EXECUTE)\" means the stage, and the a2 file it writes, cannot be skipped.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-043.0",
+    "reason": "\"Load all steps from `02-requirements-analysis.md`\" directly supports reading the whole RA doc during that stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-048.0",
+    "reason": "\"Write `/tmp/swe-bench-pro/02-requirements-analysis.md`\" directly requires artifact a2 to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-052.0",
+    "reason": "The heading \"Stage 3: Code Generation — Planning (ALWAYS EXECUTE)\" means the a3 file this stage writes must exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-054.0",
+    "reason": "\"Load all steps from `03-code-generation-planning.md`\" directly supports reading the whole CP doc during the planning stage.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-056.0",
+    "reason": "\"every step names its target files\" supports checking that each plan step's Target field is a repo path.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-057.0",
+    "reason": "\"every step names its target files, the change\" supports requiring a filled Change field in each plan block.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-058.0",
+    "reason": "\"every step names ... the contracts to preserve\" supports requiring a Contract field in each plan block.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-059.0",
+    "reason": "\"every step names ... its verification\" supports requiring a filled Verification field in each plan block.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-066.0",
+    "reason": "\"Write `/tmp/swe-bench-pro/03-code-generation-planning.md`: the numbered plan\" directly requires artifact a3 to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-068.0",
+    "reason": "The heading \"Stage 4: Code Generation — Generation (ALWAYS EXECUTE)\" means the a4 file this stage writes must exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-070.0",
+    "reason": "Step 1, \"Load all steps from `04-code-generation-generation.md`\", supports requiring the CG doc to be read before the first repo edit.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cw-074.0",
+    "reason": "\"modify the source files in place and write the reproduction script, executing neither yet\" explicitly bans running anything during Stage 4.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "bed824b4b39f4ae8a8999ce74fbe9fae1b0df56febc906d29279b61c9b8bfc8d",
+ "key": "c6576b0b1526f03b2c2fa0b96cbf94436e27bdfeedeba0460ee89ebe00e17ae4",
+ "meta": {
+  "at": "2026-10-12T12:22:04Z",
+  "cost_usd": 0.0831764,
+  "duration_ms": 26784,
+  "num_turns": 2,
+  "wall_s": 28.08
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}

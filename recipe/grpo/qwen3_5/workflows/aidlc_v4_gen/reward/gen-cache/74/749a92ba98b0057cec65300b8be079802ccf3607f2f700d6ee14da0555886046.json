@@ -1,0 +1,940 @@
+{
+ "answer": {
+  "items": [
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "field_enum",
+    "none_allowed": "unspecified",
+    "note": "Enum values taken from the template's Verdict field.",
+    "params": {
+     "label": "Verdict",
+     "prefix_ok": true,
+     "section": "Existing Tests vs Baseline",
+     "values": [
+      "unchanged",
+      "regression resolved",
+      "pre-existing failures only"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       64,
+       64
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Keep the frontmatter keys, the `##` headings, and the field prefixes exactly as given. Replace only the bracketed text."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-038",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "all": [
+       {
+        "not": {
+         "counts": {
+          "fact": "valid_run",
+          "failures_not_in": [
+           {
+            "field": {
+             "artifact": "a1",
+             "label": "Failing",
+             "section": "Baseline"
+            }
+           },
+           {
+            "field": {
+             "artifact": "a5",
+             "label": "Pre-existing failures",
+             "section": "Existing Tests vs Baseline"
+            }
+           }
+          ],
+          "which": "last",
+          "window": [
+           "stage_start:build_and_test",
+           "write:a5"
+          ]
+         }
+        }
+       },
+       {
+        "field_is_none": {
+         "artifact": "a5",
+         "label": "Unmet requirements",
+         "section": "Reproduction Script"
+        }
+       }
+      ]
+     }
+    },
+    "note": "'none' is allowed only if the last test run in Build & Test has no failure outside the baseline/pre-existing failures and the reproduction script left no requirement unmet.",
+    "params": {
+     "section": "Outstanding Failures"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       98,
+       98
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains and why; it is never left as `none` to make the run look clean."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-042",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Every file left behind in the repository has to be one that Code Generation listed as created.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "fact": "untracked_paths"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-043",
+    "target": {
+     "ref": "final_change",
+     "state": "final",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "relation": {
+       "left": {
+        "fact": "untracked_paths"
+       },
+       "rel": "subset",
+       "right": {
+        "field_list": {
+         "artifact": "a4",
+         "label": "Created",
+         "section": "Changed Files"
+        }
+       }
+      }
+     }
+    },
+    "note": "Reporting 'none' is refuted when files left in the repository are not on the Code Generation created list.",
+    "params": {
+     "label": "Unintended files in the repository",
+     "section": "Final Change"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       102,
+       102
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "**MANDATORY**: Confirm no unintended file is part of the change — no temporary script, scratch file, or debug output inside the repository"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-043",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_is_none": {
+      "artifact": "a4",
+      "label": "Created",
+      "section": "Changed Files"
+     }
+    },
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "When nothing was created, the change has to be exactly the Modified list.",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Modified",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "fact": "diff_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm the files in the change are exactly those Code Generation listed as modified or created"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-044",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "not": {
+      "field_is_none": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     }
+    },
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Created files listed by Code Generation must appear in the final change (no union selector exists, so the diff-subset-of-Modified-plus-Created direction is only fully checked when Created is none).",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a4",
+       "label": "Created",
+       "section": "Changed Files"
+      }
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "fact": "diff_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm the files in the change are exactly those Code Generation listed as modified or created"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-044",
+    "target": {
+     "ref": "a4",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The recorded list of files in the change must match the actual diff.",
+    "params": {
+     "left": {
+      "field_list": {
+       "artifact": "a5",
+       "label": "Files in the change",
+       "section": "Final Change"
+      }
+     },
+     "normalize": "path",
+     "relation": "equal",
+     "right": {
+      "fact": "diff_paths"
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       103,
+       103
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm the files in the change are exactly those Code Generation listed as modified or created"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-044",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "diff"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "The final diff contains no test file.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "fact": "diff_test_paths"
+     },
+     "normalize": "path",
+     "relation": "subset",
+     "right": {
+      "literal": []
+     }
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm no test file appears in the change"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-045",
+    "target": {
+     "ref": "final_change",
+     "state": "final",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "diff"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "relation": {
+       "left": {
+        "fact": "diff_test_paths"
+       },
+       "rel": "subset",
+       "right": {
+        "literal": []
+       }
+      }
+     }
+    },
+    "note": "'none' is valid only when the diff really contains no test file.",
+    "params": {
+     "label": "Test files in the change",
+     "section": "Final Change"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       104,
+       104
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Confirm no test file appears in the change"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-045",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "applies_when": {
+     "field_present": {
+      "artifact": "a4",
+      "label": "Path",
+      "section": "Reproduction Script"
+     }
+    },
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: the reproduction script must not end up in the final change.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "diff_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "The reproduction script can, if it was written inside the repository — that is what this step exists to catch."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-047",
+    "target": {
+     "ref": "final_change",
+     "state": "final",
+     "type": "action"
+    }
+   },
+   {
+    "applies_when": {
+     "field_present": {
+      "artifact": "a4",
+      "label": "Path",
+      "section": "Reproduction Script"
+     }
+    },
+    "availability": [
+     "diff",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "cross_ref",
+    "none_allowed": "-",
+    "note": "Implicit: the reproduction script must not be left as an untracked file in the repository.",
+    "params": {
+     "allow_empty": true,
+     "left": {
+      "field": {
+       "artifact": "a4",
+       "label": "Path",
+       "section": "Reproduction Script"
+      }
+     },
+     "normalize": "path",
+     "relation": "disjoint",
+     "right": {
+      "fact": "untracked_paths"
+     }
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       106,
+       106
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "The reproduction script can, if it was written inside the repository — that is what this step exists to catch."
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-047",
+    "target": {
+     "ref": "final_change",
+     "state": "final",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "note": "The recorded build command must have actually been run in Build & Test before the artifact was written.",
+    "params": {
+     "label": "Command",
+     "section": "Build",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       109,
+       109
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Build succeeds"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-048",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace",
+     "sandbox_file"
+    ],
+    "class": "content",
+    "kind": "aidlc.executed",
+    "none_allowed": "-",
+    "note": "The reproduction script is run against the final code (after the last change write) before a5 is written.",
+    "params": {
+     "steps": [
+      {
+       "exec_of": {
+        "field": {
+         "artifact": "a4",
+         "label": "Path",
+         "section": "Reproduction Script"
+        }
+       }
+      }
+     ],
+     "window": [
+      [
+       "stage_start:build_and_test",
+       "last_change_write"
+      ],
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       110,
+       110
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Reproduction script demonstrates the issue is resolved, including the edge cases and any stated constraints"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-049",
+    "target": {
+     "ref": "reproduction_script_run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "evidence",
+    "kind": "exec_evidence",
+    "none_allowed": "-",
+    "note": "At least one valid existing-test run on the final code before the artifact is written.",
+    "params": {
+     "kind": "test",
+     "min_count": 1,
+     "window": [
+      [
+       "stage_start:build_and_test",
+       "last_change_write"
+      ],
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       111
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Existing covering tests compared against the baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-050",
+    "target": {
+     "ref": "existing_tests_run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": "unspecified",
+    "note": "The recorded comparison command must be a valid test run made in this stage.",
+    "params": {
+     "label": "Command",
+     "run_kind": "test",
+     "section": "Existing Tests vs Baseline",
+     "type": "command_run",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       111
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Existing covering tests compared against the baseline"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-050",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_filled",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": [
+         {
+          "field": {
+           "artifact": "a1",
+           "label": "Failing",
+           "section": "Baseline"
+          }
+         },
+         {
+          "field": {
+           "artifact": "a5",
+           "label": "Pre-existing failures",
+           "section": "Existing Tests vs Baseline"
+          }
+         }
+        ],
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "note": "Regressions may be 'none' only if the last test run has no failure outside the baseline/pre-existing failures.",
+    "params": {
+     "label": "Regressions",
+     "section": "Existing Tests vs Baseline"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       111
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "Existing covering tests compared against the baseline, with any regression resolved"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-051",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "trace"
+    ],
+    "class": "content",
+    "kind": "unimplemented",
+    "none_allowed": "-",
+    "note": "Would need to check that the final valid test run has no failing test outside the baseline failures; no item kind checks a counts predicate directly (it is only usable as a condition).",
+    "params": {},
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       111
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "with any regression resolved"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-051",
+    "target": {
+     "ref": "existing_tests_run",
+     "type": "action"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file",
+     "trace"
+    ],
+    "class": "content",
+    "kind": "field_type",
+    "none_allowed": {
+     "if": {
+      "not": {
+       "counts": {
+        "fact": "valid_run",
+        "failures_not_in": [
+         {
+          "field": {
+           "artifact": "a5",
+           "label": "Regressions",
+           "section": "Existing Tests vs Baseline"
+          }
+         },
+         {
+          "section_text": {
+           "artifact": "a5",
+           "section": "Outstanding Failures"
+          }
+         }
+        ],
+        "which": "last",
+        "window": [
+         "stage_start:build_and_test",
+         "write:a5"
+        ]
+       }
+      }
+     }
+    },
+    "note": "Each recorded pre-existing failure must have actually failed in this stage's run or be on the baseline failing list. 'none' is refuted when the last run has an unexplained failure.",
+    "params": {
+     "label": "Pre-existing failures",
+     "listed_in": {
+      "field": {
+       "artifact": "a1",
+       "label": "Failing",
+       "section": "Baseline"
+      }
+     },
+     "section": "Existing Tests vs Baseline",
+     "type": "failed_test_id",
+     "window": [
+      "stage_start:build_and_test",
+      "write:a5"
+     ]
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       111,
+       111
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "any pre-existing failure recorded with its reasoning"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-052",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-053",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   },
+   {
+    "availability": [
+     "sandbox_file"
+    ],
+    "class": "structure",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "params": {
+     "artifact": "a5",
+     "pattern": "^/tmp/swe-bench-pro/05-build-and-test\\.md$"
+    },
+    "requirement": "must",
+    "sources": [
+     {
+      "lines": [
+       112,
+       112
+      ],
+      "path": "../aidlc_v4/docs/rule-details/05-build-and-test.md",
+      "quote": "`/tmp/swe-bench-pro/05-build-and-test.md` written in the prescribed skeleton"
+     }
+    ],
+    "stage": "build_and_test",
+    "statement": "bt-053",
+    "target": {
+     "ref": "a5",
+     "state": "final",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": [
+   {
+    "reason": "The ## headings of a5 are already compiled from the template skeleton (TEMPLATE SECTIONS). No further rule is added.",
+    "statement": "bt-037"
+   },
+   {
+    "reason": "Leftover bracketed placeholders are already caught by the compiled no_template_residue items for the a5 skeleton.",
+    "statement": "bt-039"
+   },
+   {
+    "reason": "This line states a fact (artifacts sit outside the repository) and gives no instruction. Each stage's write instruction sets the artifact location, and bt-053's path_match checks it for a5.",
+    "statement": "bt-046"
+   },
+   {
+    "reason": "'Prescribed skeleton' compliance (headings, labels, frontmatter, residue) is already compiled from the a5 template. No further checkable rule beyond those items.",
+    "statement": "bt-054"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "88261a772f050ddad584f826accffa4047fd0ae761189a99502a9ae933b921bf",
+ "key": "749a92ba98b0057cec65300b8be079802ccf3607f2f700d6ee14da0555886046",
+ "meta": {
+  "at": "2026-10-12T12:00:37Z",
+  "cost_usd": 0.518038,
+  "duration_ms": 179510,
+  "num_turns": 2,
+  "wall_s": 180.83
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "sample0",
+ "schema_sha256": "b7947d3f7b0263c5f42e296cc5badf921677af75c9697e2f7adc60c51d0d77ca",
+ "version": "2.1.283"
+}

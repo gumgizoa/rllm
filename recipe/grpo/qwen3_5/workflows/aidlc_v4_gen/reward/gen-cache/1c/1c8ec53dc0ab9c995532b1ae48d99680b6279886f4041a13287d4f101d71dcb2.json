@@ -1,0 +1,79 @@
+{
+ "answer": {
+  "items": [
+   {
+    "class": "structure",
+    "downgrade_reason": "The line names the artifact location but has no MUST or imperative wording (modality is implicit), so this is capped at should.",
+    "kind": "artifact_exists",
+    "none_allowed": "-",
+    "note": "The reverse-engineering artifact (a1) must exist by the time the reverse_engineering stage ends.",
+    "params": {
+     "artifact": "a1"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "critic-2-003-0",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   },
+   {
+    "class": "structure",
+    "downgrade_reason": "The location is implied by the 'Artifact' line, not stated with MUST, so this is capped at should.",
+    "kind": "path_match",
+    "none_allowed": "-",
+    "note": "The a1 artifact's resolved path must be exactly the location given in the stage rule.",
+    "params": {
+     "artifact": "a1",
+     "pattern": "/tmp/swe-bench-pro/01-reverse-engineering\\.md$"
+    },
+    "requirement": "should",
+    "sources": [
+     {
+      "lines": [
+       5,
+       5
+      ],
+      "path": "../aidlc_v4/docs/rule-details/01-reverse-engineering.md",
+      "quote": "**Artifact**: `/tmp/swe-bench-pro/01-reverse-engineering.md`"
+     }
+    ],
+    "stage": "reverse_engineering",
+    "statement": "critic-2-003-0",
+    "target": {
+     "ref": "a1",
+     "state": "stage_end",
+     "type": "artifact"
+    }
+   }
+  ],
+  "unitemized": []
+ },
+ "backend": "claude-cli",
+ "input_sha256": "086b3c6d490fdd82fc85490b1e46eded557bcfc0fa00b89d2287563603fc3acd",
+ "key": "1c8ec53dc0ab9c995532b1ae48d99680b6279886f4041a13287d4f101d71dcb2",
+ "meta": {
+  "at": "2026-10-12T12:02:09Z",
+  "cost_usd": 0.095253,
+  "duration_ms": 14063,
+  "num_turns": 2,
+  "wall_s": 15.39
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "60d5e12bf0b88a5ee4acfe6bb2899ddac6d7721986725ba2d1d185370e7e3876",
+ "salt": "critic2sample1",
+ "schema_sha256": "80d610e87cf8ec204377df2f62cea8195891da65003ccf47cfe6cacc95b86ab9",
+ "version": "2.1.283"
+}

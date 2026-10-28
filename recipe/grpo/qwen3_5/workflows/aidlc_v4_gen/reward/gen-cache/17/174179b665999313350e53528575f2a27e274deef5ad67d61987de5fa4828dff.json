@@ -1,0 +1,121 @@
+{
+ "answer": {
+  "verdicts": [
+   {
+    "id": "g5.cp-048.0",
+    "reason": "The text says \"No step targets a test file\", so the plan's Target paths must not overlap test paths.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cp-049.0",
+    "reason": "The completion item says \"`/tmp/swe-bench-pro/03-code-generation-planning.md` written\", so the a3 artifact must exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-002.0",
+    "reason": "\"**Artifact**: `/tmp/swe-bench-pro/04-code-generation-generation.md`\" names the a4 artifact this stage produces.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-005.0",
+    "reason": "\"Work through the plan in order\" supports, as a should, that the Plan Execution entries are numbered Steps in sequence.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-007.0",
+    "reason": "\"Use the path recorded in the plan\" supports, as a should, that the plan's Target paths are the ones written during generation.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-009.0",
+    "reason": "\"**If it does not exist**: create it\" means files listed as Created should not already exist in the base repo.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-009.1",
+    "reason": "\"**If it exists**: modify it in place\" means files listed as Modified should be files that already exist in the base repo.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-011.0",
+    "reason": "\"**If it does not exist**: create it\" directly supports Created files being absent from the base paths (this duplicates cg-009.0 but is correctly supported).",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-016.0",
+    "reason": "\"**do not execute it in this stage**\" requires Executed to read \"no\", and an actual run of the script during this stage refutes it.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-019.0",
+    "reason": "\"record what changed and why in this stage's artifact\" requires a filled Deviations section whenever edits go outside the plan's targets.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-023.0",
+    "reason": "\"Note that the step is complete, and which requirement it satisfied\" supports a per-step completion line that names an R-requirement.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-025.0",
+    "reason": "\"Confirm no test file was modified\" supports requiring \"Test files modified: none\", which an actual test-file edit refutes.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-028.0",
+    "reason": "\"Write `/tmp/swe-bench-pro/04-code-generation-generation.md`\" makes the existence of a4 mandatory.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-028.1",
+    "reason": "\"in a single write, with the full content below\" directly supports writing the artifact only once.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-040.0",
+    "reason": "The completion criterion \"`/tmp/swe-bench-pro/04-code-generation-generation.md` written\" requires a4 to exist.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-042.0",
+    "reason": "\"listing modified and created files\" together with \"Source code modified\" supports filling the Modified field whenever existing files were edited.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.cg-042.1",
+    "reason": "\"listing modified and created files\" implies the Modified list matches the files actually written during generation.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-002.0",
+    "reason": "\"**Artifact**: `/tmp/swe-bench-pro/05-build-and-test.md`\" names the a5 artifact this stage produces.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-008.0",
+    "reason": "\"Run the build or type-check command Reverse Engineering recorded\" requires the recorded Build Command to actually be run, unless no build command was recorded.",
+    "verdict": "keep"
+   },
+   {
+    "id": "g5.bt-012.0",
+    "reason": "\"Execute the reproduction script at the path Code Generation recorded\" requires running the script at the path recorded in a4 during this stage.",
+    "verdict": "keep"
+   }
+  ]
+ },
+ "backend": "claude-cli",
+ "input_sha256": "68bc36bd45c10da3ecaf87897b6bbb7838343268a883aab01434debd43d8f802",
+ "key": "174179b665999313350e53528575f2a27e274deef5ad67d61987de5fa4828dff",
+ "meta": {
+  "at": "2026-10-12T12:22:33Z",
+  "cost_usd": 0.1083134,
+  "duration_ms": 32275,
+  "num_turns": 2,
+  "wall_s": 33.56
+ },
+ "model": "claude-opus-5-5",
+ "prompt_sha256": "c432d0e47764021961980edcebde56f4fba5b7b949eb0751f8f165d52a7525fb",
+ "salt": "",
+ "schema_sha256": "b473566341a4a4363069e196eb381155f8fff4ea1408e5292ebc0dd92bc40c5f",
+ "version": "2.1.283"
+}
