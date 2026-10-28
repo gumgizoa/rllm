@@ -28,6 +28,10 @@ Fixes applied to the copies (the checkout is left untouched):
 * ``environment/Dockerfile`` -- the apt ``Check-Valid-Until`` override of the
   v1 recipe, for harnesses that run ``apt-get update`` in the task container.
   Harmless on images without apt; the oracle is unaffected.
+* ``[environment] workdir`` -- only with ``--workdir``. V2's Dockerfiles are a
+  bare ``FROM`` and its task.toml names no workdir, which is fine for eval but
+  not for ``hide_git_history`` (GRPO training), which needs to know where the
+  repo is. Every V2 image's WORKDIR is ``/app``.
 
 Kept as V2 ships them:
 
@@ -127,6 +131,13 @@ def set_resources(task_toml: Path, cpus: int, memory_mb: int) -> None:
 APT_NO_VALID_UNTIL = "RUN mkdir -p /etc/apt/apt.conf.d && echo 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99rllm-no-valid-until  # rllm: expired Debian Release files"
 
 
+def set_workdir(task_toml: Path, workdir: str) -> None:
+    """Declare ``workdir`` under ``[environment]`` (replacing one already there)."""
+    text = re.sub(r"^workdir\s*=.*\n", "", task_toml.read_text(), flags=re.M)
+    text = re.sub(r"^\[environment\]\s*$", f'[environment]\nworkdir = "{workdir}"', text, count=1, flags=re.M)
+    task_toml.write_text(text)
+
+
 def patch_dockerfile(dockerfile: Path) -> bool:
     """Append the apt Check-Valid-Until override once (no-op on images without apt)."""
     text = dockerfile.read_text()
@@ -145,6 +156,7 @@ def main() -> None:
     ap.add_argument("--split", default="test")
     ap.add_argument("--cpus", type=int, default=4)
     ap.add_argument("--memory-mb", type=int, default=16384)
+    ap.add_argument("--workdir", help="Declare [environment] workdir (V2 images: /app); needed by hide_git_history")
     ap.add_argument("--force", action="store_true", help="Re-copy task dirs that already exist")
     args = ap.parse_args()
 
@@ -164,6 +176,8 @@ def main() -> None:
         if not dst.exists():
             shutil.copytree(tasks_dir / iid, dst)
         set_resources(dst / "task.toml", args.cpus, args.memory_mb)
+        if args.workdir:
+            set_workdir(dst / "task.toml", args.workdir)
         patch_dockerfile(dst / "environment" / "Dockerfile")
         instruction = (dst / "instruction.md").read_text()
         rows.append({"id": iid, "task_id": iid, "instruction": instruction, "question": instruction, "task_path": str(dst), "design_id": iid})
@@ -173,7 +187,7 @@ def main() -> None:
         name=args.name,
         data=rows,
         split=args.split,
-        source=f"{source} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}",
+        source=f"{source} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}" + (f" workdir={args.workdir}" if args.workdir else ""),
         description=f"SWE-bench Pro V2 subset ({len(rows)} tasks) from Scale's Harbor task tree with resource fixes",
         category="agentic",
     )
