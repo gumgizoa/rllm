@@ -246,8 +246,9 @@ rules:
   stage: 5
   kind: R
   text: Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음
-  methods:
-    judge/B7b: {kind: R, stage: 5, class: content}
+  excluded:
+    why: covered by another rule's items
+    detail: B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in both places is allowed; a judge question until 2026-10-27)
 - id: B8
   stage: 0
   kind: P
@@ -557,8 +558,9 @@ rules:
   stage: 2
   kind: Q
   text: 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음
-  methods:
-    judge/E1b: {kind: Q, stage: 2}
+  excluded:
+    why: covered by another rule's items
+    detail: E1a (an alternative interface) and E1c (an alternative behaviour); re-deriving is a process the artifact does not show; a judge question until 2026-10-27
 - id: E1c
   stage: 2
   kind: Q

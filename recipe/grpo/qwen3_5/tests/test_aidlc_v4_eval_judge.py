@@ -55,14 +55,14 @@ def test_no_judge_signals_without_a_model(monkeypatch):
 
 def test_the_questions_follow_what_the_artifacts_hold():
     asked = {st: [r for r, _ in qs] for st, (qs, _) in _requests(Run()).items()}
-    # no test file read (D10b), non-functional none (E7a, E7b, H3c), a one-step plan (F6), no deviations
+    # no test file read (D10b), non-functional none (E7a, E7b, H3c), a one-step plan (F6, F2f), no deviations
     # (G8a, G8c), no pre-existing failures (H8d), no regression recorded (H8g), no fixes (H9b): not asked
     assert asked == {
         1: ["D3", "D6"],
-        2: ["E1a", "E1b", "E1c", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
-        3: ["F2d", "F2f", "F2e", "F4a", "F9a"],
-        5: ["H3a", "H3b", "B7", "B7b"],
-    }  # stage 4's two questions (G5, B4b) and D3b, H8b became code checks on 2026-10-27
+        2: ["E1a", "E1c", "E3b", "E6a", "E6b", "E8a", "E8b", "E9"],
+        3: ["F2d", "F2e", "F4a", "F9a"],
+        5: ["H3a", "H3b", "B7"],
+    }  # stage 4's two questions (G5, B4b) and D3b, H8b became code checks on 2026-10-27; D4c, E1b, B7b dropped
 
 
 def test_a_plan_of_two_steps_is_asked_about_their_order():
@@ -144,7 +144,7 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
     assert s["aidlc/judge/D6"] == 1.0 and s["aidlc/judge/E6b"] == 0.0
     assert "aidlc/judge/D3" not in s and "aidlc/judge/E8b" not in s
     assert s["aidlc/judge_calls"] == 4.0  # stages 1, 2, 3, 5
-    assert s["aidlc/judge_void"] == pytest.approx(1 / 19)  # 20 asked, one n/a, one quote not found
+    assert s["aidlc/judge_void"] == pytest.approx(1 / 16)  # 17 asked, one n/a, one quote not found
     assert s["aidlc/cat/Q2"] < 1.0 and s["aidlc/cat/Q3"] == 1.0
 
 
@@ -155,6 +155,8 @@ def test_a_verdict_stands_only_on_a_quote_from_the_material(judge_on, monkeypatc
         ("R6: Q objects keep kwargs R7: other objects use args", True),  # two list items in one quote
         ("R6: Q objects ... use args", True),  # an ellipsis
         ("Step 1 Verification: repro calls parse", True),  # where it quotes from, then the field
+        ("- R6: Q objects keep kwargs; assert parse(None)", True),  # two quotes joined by a semicolon
+        ("Step 1: 'Verification: repro calls parse' ... 'R7: other objects use args'", True),  # quoted pieces
         ("assert parse('') == {}\\nassert parse(None)", True),  # code lines, one skipped, newline written out
         ("Owning module: the whole repository", False),  # words the material does not have
         ("none", False),  # too short to rest on

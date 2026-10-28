@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 195 atomic rules -> 193 methods -> 225 judgments (scored rubric items; 5 more are diagnostics).
+362 document lines -> 195 atomic rules -> 191 methods -> 223 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄); `MSG` agent 메시지 (마지막 응답 앞의 것까지)
@@ -30,7 +30,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | B6b | 0 | F | frontmatter stage 값이 파일의 단계와 같음 | CW:35 | `atom/B6b` (F: 1 2 3 4 5; AP COLLECT) |
 | B6c | 0 | F | frontmatter name 값이 파일의 단계 이름과 같음 | CW:36 | `atom/B6c` (F: 1 2 3 4 5; AP COLLECT) |
 | B7 | 5 | Q | 04·05에 언급된 미해결 작업을 모두 Outstanding Failures에 적음 (none으로 포장하지 않음) | CW:40, S5:98 | `judge/B7` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
-| B7b | 5 | R | Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음 | CW:40, S5:98 | `judge/B7b` (R: 5; JUDGE ISSUE COLLECT) |
+| B7b | 5 | R | Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음 | CW:40, S5:98 | none: covered by another rule's items (B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in both places is allowed; a judge question until 2026-10-27)) |
 | B8 | 0 | P | 보이는 산출물은 다시 읽지 않고, 내용이 안 보일 때만 복구용으로 읽음 | CW:42, CW:43, S5:11 | `atom/B8` (P: 0; WRITE SHELLCLS) |
 | B9 | 0 | C | R id, step 번호, 경로를 바꾸지 않고 그대로 인용함 | CW:42 | none: covered by another rule's items (the reference checks (R ids, steps quoted as written)) |
 | B10 | 0 | R | 산출물 외에 설계·보고서 문서를 만들지 않음 | CW:133 | `atom/B10` (R: 0; EDIT) |
@@ -80,7 +80,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | S1.failing | 1 | F | 01 필드 Failing (없으면 none) | S1:70 | `form/S1.failing` (F: 1; AP COLLECT) |
 | S1.recorded | 1 | F | 01 고정 문장 'Recorded before any source file was modified.' | S1:68 | `atom/B5d` (F: 1; AP COLLECT) |
 | E1a | 2 | Q | task 설명(기대 동작·이름·시그니처·경로)을 권위로 삼음 | S2:14 | `judge/E1a` (Q: 2; JUDGE ISSUE COLLECT) |
-| E1b | 2 | Q | 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음 | S2:15 | `judge/E1b` (Q: 2; JUDGE ISSUE COLLECT) |
+| E1b | 2 | Q | 이슈가 정한 동작·인터페이스를 다시 도출하거나 대안을 내지 않음 | S2:15 | none: covered by another rule's items (E1a (an alternative interface) and E1c (an alternative behaviour); re-deriving is a process the artifact does not show; a judge question until 2026-10-27) |
 | E1c | 2 | Q | 이슈가 정한 동작을 뜻이 달라지게(바꾸거나 좁히거나 넓혀) 바꿔 쓰지 않음 | S2:15 | `judge/E1c` (Q: 2; JUDGE ISSUE COLLECT) |
 | E2 | 2 | C | 1단계 결과를 맥락으로 사용함 | S2:16 | none: judge, low priority, not asked (stage 1's result used as context) |
 | E3a | 2 | Q | 요구사항 하나에 문장 하나 | S2:20 | `atom/E3a` (Q: 2; AP COLLECT NONE) |

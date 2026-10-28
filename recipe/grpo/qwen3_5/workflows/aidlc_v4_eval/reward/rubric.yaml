@@ -1536,43 +1536,10 @@ items:
     - 98
     quote: Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains
       and why; it is never left as `none` to make the run look clean.
-  note: Does Outstanding Failures list every remaining failure, unmet requirement, known limitation or follow-up that artifact
-    04 or another section of artifact 05 mentions, and say `none` only when nothing remains? A failure a later fix resolved
-    (the last test run passes it) is not unresolved work.
-- id: judge/B7b
-  scope: specific
-  class: content
-  stage: '5'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: B7b
-  requirement: must
-  category: R
-  rule: B7b
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: CW
-    lines:
-    - 40
-    - 40
-    quote: The artifact's existence is what states the stage finished. Unresolved work goes under Outstanding Failures in
-      the Stage 5 artifact, and nowhere else.
-  - doc: S5
-    lines:
-    - 98
-    - 98
-    quote: Outstanding Failures is the only place unresolved work is recorded. When Step 5 stopped short, it names what remains
-      and why; it is never left as `none` to make the run look clean.
-  note: 'Is unresolved work kept out of the sections other than Outstanding Failures: does no other section of artifact 04
-    or 05 record a failure, limitation or follow-up as still open? The fields the skeleton provides for it (Reproduction Script
-    `Unmet requirements`, `Pre-existing failures`) do not count.'
+  note: Where artifact 04 or another section of artifact 05 records something still open (a requirement under `Unmet requirements`,
+    a regression not resolved, a deviation left incomplete, or a stated limitation or follow-up), is each one listed under
+    Outstanding Failures? Pre-existing failures are not open work. Work that Fixes Applied states was fixed is not open. Answer
+    n/a if nothing open is recorded anywhere and Outstanding Failures is `none`.
 - id: atom/B8
   scope: specific
   class: evidence
@@ -2137,7 +2104,8 @@ items:
     - 17
     - 17
     quote: '- [ ] Record the module or package that owns those files, and its boundary within the repository'
-  note: Is `Owning module` the module or package the listed Files belong to?
+  note: Judging from the path strings alone, does every source path under `Files` (test files aside) sit inside the module
+    or package named as `Owning module` (its directory or dotted-package prefix matches)?
 - id: atom/D3b
   scope: specific
   class: content
@@ -2476,8 +2444,9 @@ items:
     - 35
     quote: '- [ ] Read them to understand the contract the affected code must honor — expected signatures, return shapes,
       raised errors'
-  note: 'Does the Existing Tests `Contract` agree with the shown test code: is each signature, return value or raised error
-    it states one those tests check, with nothing the tests contradict?'
+  note: Does every signature, return shape, raised error or other concrete behaviour that the Existing Tests `Contract` states
+    match what the shown test code actually checks? Answer no if the Contract states nothing concrete (for example only 'existing
+    behaviour must be kept'), or if the run could not read the test file it describes.
 - id: check/t1_baseline_before_edit
   scope: specific
   class: evidence
@@ -2967,34 +2936,9 @@ items:
     - 14
     quote: '- [ ] Treat everything the task description states as authoritative — expected behavior, named symbols, signatures,
       file paths'
-  note: Do the requirements keep the expected behaviour, names, signatures and paths exactly as the issue states them (no
-    different expected behaviour, no renamed interface)?
-- id: judge/E1b
-  scope: specific
-  class: content
-  stage: '2'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: E1b
-  requirement: must
-  category: Q
-  rule: E1b
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S2
-    lines:
-    - 15
-    - 15
-    quote: '- [ ] Do not re-derive or reword what is already specified'
-  note: Where the issue already specifies a behaviour or an interface, do the requirements take it as given, without re-deriving
-    it or proposing an alternative?
+  note: Where the issue names a symbol, a signature or a file path, do the requirements use it exactly as given (same name,
+    same parameters, same path, no renamed or alternative interface)? Answer n/a if the issue names no symbol, signature or
+    path.
 - id: judge/E1c
   scope: specific
   class: content
@@ -3019,8 +2963,9 @@ items:
     - 15
     - 15
     quote: '- [ ] Do not re-derive or reword what is already specified'
-  note: 'Where the issue already specifies a behaviour, do the requirements keep its meaning: no rewording that changes, narrows
-    or loosens what the issue states?'
+  note: 'Where the issue specifies an expected behaviour, does each requirement that restates it keep the issue''s meaning:
+    not changed, narrowed, widened, or replaced by an alternative behaviour? Answer n/a if the issue only reports a symptom
+    and specifies no expected behaviour.'
 - id: atom/E3a
   scope: specific
   class: content
@@ -3073,8 +3018,9 @@ items:
     quote: '**MANDATORY**: Express every requirement as a single, verifiable statement, identified as `R1`, `R2`, `R3`, and
       so on. A requirement is verifiable when it can be checked either by running a reproduction script or by running existing
       tests. A requirement that cannot be checked by either means is out of scope.'
-  note: Can every requirement be checked by running a reproduction script or an existing test (each one describes observable
-    behaviour, not intent or code style)?
+  note: Is every numbered requirement (ignore a 'none stated' line) a statement whose truth could be checked by running a
+    reproduction script or an existing test, i.e. it names an observable outcome rather than an intent, a design preference
+    or code style? Judge by the statement itself, not by any 'verifiable' label the artifact attaches.
 - id: form/E3c@2
   scope: specific
   class: structure
@@ -3177,7 +3123,8 @@ items:
     - 27
     - 27
     quote: '- The behavior the affected code must exhibit once the issue is resolved'
-  note: Does Functional Requirements state the behaviour that must be observable once the issue is resolved?
+  note: Does at least one Functional requirement state the fixed behaviour for the symptom the issue reports (what the reported
+    input or call does once fixed), rather than only 'the bug is fixed' or a restatement of the symptom?
 - id: judge/E6b
   scope: specific
   class: content
@@ -3202,8 +3149,9 @@ items:
     - 28
     - 28
     quote: '- The behavior it must continue to exhibit — contracts visible in existing tests that the change must not break'
-  note: Does Functional Requirements also state existing behaviour that must keep working, such as the contract of the existing
-    tests recorded in artifact 01?
+  note: Does Functional Requirements include at least one requirement naming a specific existing behaviour that must keep
+    working (a signature, return shape, raised error or outcome that an existing test checks), rather than only 'existing
+    tests still pass'? Answer n/a if artifact 01 records no existing covering test.
 - id: judge/E7a
   scope: specific
   class: content
@@ -3314,8 +3262,10 @@ items:
     - 35
     - 35
     quote: '- Boundary values, empty and null inputs, invalid inputs, and type or range limits'
-  note: Do the Edge Cases cover the boundary values, empty or null inputs, invalid inputs and type or range limits that matter
-    for this issue?
+  note: Does Edge Cases & Error Handling cover the specific inputs the issue's example or text uses (the argument values it
+    calls with, and any boundary, empty, invalid or out-of-range input it mentions) and any other specific condition it names
+    (a configuration, a state, a timing)? The error the issue reports is the symptom, not such a condition. Answer n/a if
+    the issue uses or names none.
 - id: judge/E8b
   scope: specific
   class: content
@@ -3340,8 +3290,9 @@ items:
     - 36
     - 36
     quote: '- Error paths: which condition must raise, which must be handled, and what the observable result is'
-  note: 'Do the Edge Cases state an error path: what is raised or handled, and what the caller observes? Answer n/a only if
-    the changed behaviour has no failure mode at all.'
+  note: 'Does at least one Edge Case entry state an error path: the condition, whether it raises or is handled, and what the
+    caller observes? Answer n/a if neither the issue nor the Functional requirements mention an error, exception or invalid
+    input.'
 - id: atom/E8c
   scope: specific
   class: structure
@@ -3401,8 +3352,8 @@ items:
     - 62
     - 62
     quote: '- [any ambiguity resolved by decision, with the reasoning]'
-  note: Does each Assumption state an ambiguity the issue leaves open, the decision taken on it, and the reasoning for that
-    decision?
+  note: Does each item under Assumptions give both the decision taken and the reason for it? An item that only asserts a fact
+    or a choice with no reason counts as no.
 - id: form/S2.fr@2
   scope: specific
   class: structure
@@ -3657,8 +3608,9 @@ items:
     quote: '- [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**,
       and any new interface this step introduces for later steps to use. If the task description specifies names, signatures,
       or file paths, use them exactly as given rather than choosing your own'
-  note: Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the
-    step affects none? A step that states it changes nothing affects none.
+  note: For each step whose Change alters an existing function, method or class, does its Contract name that interface's signature
+    or return shape to be preserved (or say how it changes)? Answer n/a if no step alters an existing function, method or
+    class.
 - id: judge/F2f
   scope: specific
   class: content
@@ -3711,7 +3663,9 @@ items:
     - 20
     - 20
     quote: '- [ ] **Verification** — what the reproduction script must exercise to demonstrate this step is correct'
-  note: Does every step's Verification say what the reproduction script will check for that step?
+  note: Does every step's Verification name a concrete check the reproduction script performs for that step (what is called
+    or run, and the expected result), rather than only 'run the reproduction script' or a requirement identifier? A step that
+    states it changes nothing needs no check.
 - id: atom/F3
   scope: specific
   class: content
@@ -3762,8 +3716,9 @@ items:
     - 27
     - 27
     quote: '- [ ] Plan a script that reproduces the issue before the fix and demonstrates correct behavior after it'
-  note: Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue
-    reports (the issue's own example, or a check equivalent to it)?
+  note: 'Taking the plan''s Reproduction Script `Exercises` together with the steps'' `Verification`, does the planned script
+    include a check of the exact behaviour the issue reports as wrong: the reported input or call and the result the issue
+    expects?'
 - id: atom/F4b
   scope: specific
   class: content
@@ -3937,8 +3892,9 @@ items:
     - 73
     quote: '- The plan must be executable step by step without further interpretation. Generation executes only what is written
       here, so any gap in the plan is a gap in the implementation'
-  note: Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be
-    carried out without a further decision? A step that states it changes nothing needs no further decision.
+  note: Taking the steps together, does the plan name each target file and the concrete change (what is added, altered or
+    removed), so that it can be carried out without a further decision? A step that states it changes nothing needs no further
+    decision.
 - id: atom/F9b
   scope: specific
   class: content
@@ -4726,7 +4682,7 @@ items:
     quote: '- **Structural invalidation** — the approach itself does not work, for example a requirement cannot be satisfied
       while preserving a contract the plan marked as preserved, or several steps become invalid at once. State which steps
       are invalidated, why, and what supersedes them'
-  note: Does each structural invalidation name the step it invalidates, the reason, and what replaces it?
+  note: Does each structural invalidation name the plan step number(s) it invalidates (e.g. 'Step 2', 'Steps 2-3')?
 - id: check/c34_plan_execution_steps
   scope: specific
   class: evidence
@@ -5375,7 +5331,9 @@ items:
     - 27
     - 27
     quote: '- [ ] Confirm the behavior the Functional Requirements describe'
-  note: Does the reproduction script contain a check for each Functional requirement's behaviour?
+  note: Does the reproduction script contain a check (an assertion, a comparison against an expected value, or an expected-exception
+    test) for the behaviour of each Functional requirement? Judge by the script's code, not by comments naming requirement
+    ids.
 - id: judge/H3b
   scope: specific
   class: content
@@ -5400,7 +5358,8 @@ items:
     - 28
     - 28
     quote: '- [ ] Confirm the conditions the Edge Cases & Error Handling requirements describe'
-  note: Does the reproduction script check the conditions the Edge Cases describe?
+  note: Does the reproduction script contain a check (an assertion, a comparison, or an expected-exception test) for the condition
+    of each Edge Cases & Error Handling requirement? Judge by the script's code, not by comments naming requirement ids.
 - id: judge/H3c
   scope: specific
   class: content
@@ -5425,7 +5384,8 @@ items:
     - 29
     - 29
     quote: '- [ ] Confirm the constraints the Non-Functional Requirements state, where any are stated'
-  note: Does the reproduction script check the Non-Functional constraints?
+  note: Does the reproduction script contain a check for each Non-Functional requirement (a direct assertion, or a measurement
+    such as timing, size or call count that tests the stated bound)?
 - id: atom/H4a
   scope: specific
   class: evidence
@@ -5739,7 +5699,9 @@ items:
     - 84
     - 84
     quote: '- Pre-existing failures: [none | test id -> the reasoning that identifies it as pre-existing]'
-  note: Does each pre-existing failure listed give the reasoning that identifies it as pre-existing?
+  note: Does artifact 05 write, next to each pre-existing failure it lists, a reason specific to that test (such as 'fails
+    in the baseline too' or a cause unrelated to the changed files)? A bare list of test names counts as no, even where the
+    tests do appear in the baseline.
 - id: check/e5_preexisting_listed
   scope: specific
   class: evidence
@@ -5852,7 +5814,8 @@ items:
     - 87
     - 87
     quote: '- [none | what changed and why]'
-  note: Does each item under Fixes Applied say what was changed and why?
+  note: Does each item under Fixes Applied say what was changed and why it was needed (the failure, error or requirement that
+    made the change necessary)? A description of the change alone counts as no.
 - id: atom/H10
   scope: specific
   class: evidence
@@ -6594,9 +6557,13 @@ appendix:
       B5a: B6a (frontmatter keys)
       B5c: the per-field rules (field prefixes)
       B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
+      B7b: B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in
+        both places is allowed; a judge question until 2026-10-27)
       B9: the reference checks (R ids, steps quoted as written)
       D4c: D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56)
       D10c: D10a (atom/D10a, check/e1_test_path_seen)
+      E1b: E1a (an alternative interface) and E1c (an alternative behaviour); re-deriving is a process the artifact does not
+        show; a judge question until 2026-10-27
       E5a: B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge)
       E5b: judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases)
       F2c: the step parse behind the S3 fields and tags

@@ -11,7 +11,7 @@ Emitted as ``aidlc/judge/<rule>`` (their ``rubric.yaml`` items place them by cat
 ``aidlc/judge_void`` (the share of yes/no answers dropped for their quote), ``aidlc/judge_calls`` and
 ``aidlc/judge_injection`` (the stages not asked because the agent's text addresses the judge: their
 questions fail, ``addressed_to_judge``).
-A question whose subject the artifact lacks (no deviations, no pre-existing failures, no baseline test the
+A question whose subject the artifact lacks (no deviations, no pre-existing failures, no edge case, no baseline test the
 run read, a one-step plan, no stage-5 test run and no regression recorded) is not asked. The judge sees the issue, the artifacts and the extracts named per stage, never the
 trajectory: it judges what the run wrote, and code judges what the run did. The extracts:
 
@@ -63,7 +63,11 @@ MIN_QUOTE = 8
 # stage -> [(rule, question)]; "yes" keeps the rule
 QUESTIONS: dict[int, list[tuple[str, str]]] = {
     1: [
-        ("D3", "Is `Owning module` the module or package the listed Files belong to?"),
+        (
+            "D3",
+            "Judging from the path strings alone, does every source path under `Files` (test files aside) sit inside the module or"
+            " package named as `Owning module` (its directory or dotted-package prefix matches)?",
+        ),
         (
             "D6",
             "Is the `Build` entry right for this language and repository: a build or type-check command where the language needs one,"
@@ -71,66 +75,126 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ),
         (
             "D10b",
-            "Does the Existing Tests `Contract` agree with the shown test code: is each signature, return value or raised error it states one those tests check, with nothing the tests contradict?",
+            "Does every signature, return shape, raised error or other concrete behaviour that the Existing Tests `Contract` states"
+            " match what the shown test code actually checks? Answer no if the Contract states nothing concrete (for example only"
+            " 'existing behaviour must be kept'), or if the run could not read the test file it describes.",
         ),
     ],
     2: [
-        ("E1a", "Do the requirements keep the expected behaviour, names, signatures and paths exactly as the issue states them (no different expected behaviour, no renamed interface)?"),
-        ("E1b", "Where the issue already specifies a behaviour or an interface, do the requirements take it as given, without re-deriving it or proposing an alternative?"),
-        ("E1c", "Where the issue already specifies a behaviour, do the requirements keep its meaning: no rewording that changes, narrows or loosens what the issue states?"),
-        ("E3b", "Can every requirement be checked by running a reproduction script or an existing test (each one describes observable behaviour, not intent or code style)?"),
-        ("E6a", "Does Functional Requirements state the behaviour that must be observable once the issue is resolved?"),
-        ("E6b", "Does Functional Requirements also state existing behaviour that must keep working, such as the contract of the existing tests recorded in artifact 01?"),
+        (
+            "E1a",
+            "Where the issue names a symbol, a signature or a file path, do the requirements use it exactly as given (same name, same"
+            " parameters, same path, no renamed or alternative interface)? Answer n/a if the issue names no symbol, signature or path.",
+        ),
+        (
+            "E1c",
+            "Where the issue specifies an expected behaviour, does each requirement that restates it keep the issue's meaning: not"
+            " changed, narrowed, widened, or replaced by an alternative behaviour? Answer n/a if the issue only reports a symptom and"
+            " specifies no expected behaviour.",
+        ),
+        (
+            "E3b",
+            "Is every numbered requirement (ignore a 'none stated' line) a statement whose truth could be checked by running a"
+            " reproduction script or an existing test, i.e. it names an observable outcome rather than an intent, a design preference"
+            " or code style? Judge by the statement itself, not by any 'verifiable' label the artifact attaches.",
+        ),
+        (
+            "E6a",
+            "Does at least one Functional requirement state the fixed behaviour for the symptom the issue reports (what the reported"
+            " input or call does once fixed), rather than only 'the bug is fixed' or a restatement of the symptom?",
+        ),
+        (
+            "E6b",
+            "Does Functional Requirements include at least one requirement naming a specific existing behaviour that must keep working"
+            " (a signature, return shape, raised error or outcome that an existing test checks), rather than only 'existing tests still"
+            " pass'? Answer n/a if artifact 01 records no existing covering test.",
+        ),
         ("E7a", "Is every Non-Functional requirement a constraint on how the code works (complexity, memory, performance, compatibility) rather than a functional behaviour?"),
         ("E7b", "Is every Non-Functional requirement something the issue itself states?"),
-        ("E8a", "Do the Edge Cases cover the boundary values, empty or null inputs, invalid inputs and type or range limits that matter for this issue?"),
-        ("E8b", "Do the Edge Cases state an error path: what is raised or handled, and what the caller observes? Answer n/a only if the changed behaviour has no failure mode at all."),
-        ("E9", "Does each Assumption state an ambiguity the issue leaves open, the decision taken on it, and the reasoning for that decision?"),
+        (
+            "E8a",
+            "Does Edge Cases & Error Handling cover the specific inputs the issue's example or text uses (the argument values it calls"
+            " with, and any boundary, empty, invalid or out-of-range input it mentions) and any other specific condition it names (a"
+            " configuration, a state, a timing)? The error the issue reports is the symptom, not such a condition. Answer n/a if the"
+            " issue uses or names none.",
+        ),
+        (
+            "E8b",
+            "Does at least one Edge Case entry state an error path: the condition, whether it raises or is handled, and what the caller"
+            " observes? Answer n/a if neither the issue nor the Functional requirements mention an error, exception or invalid input.",
+        ),
+        (
+            "E9",
+            "Does each item under Assumptions give both the decision taken and the reason for it? An item that only asserts a fact or a choice with no reason counts as no.",
+        ),
     ],
     3: [
         (
             "F2d",
-            "Does every step's Contract name the existing signatures or return shapes that must be preserved, or state that the step affects none? A step that states it changes nothing affects none.",
+            "For each step whose Change alters an existing function, method or class, does its Contract name that interface's signature"
+            " or return shape to be preserved (or say how it changes)? Answer n/a if no step alters an existing function, method or"
+            " class.",
         ),
         (
             "F2f",
             "Where a step introduces a new interface (function, parameter, class) that a later step uses, does that step's Contract name it?"
             " Answer n/a if no step introduces an interface a later step uses.",
         ),
-        ("F2e", "Does every step's Verification say what the reproduction script will check for that step?"),
+        (
+            "F2e",
+            "Does every step's Verification name a concrete check the reproduction script performs for that step (what is called or run,"
+            " and the expected result), rather than only 'run the reproduction script' or a requirement identifier? A step that states"
+            " it changes nothing needs no check.",
+        ),
         (
             "F4a",
-            "Do the plan's Reproduction Script `Exercises` and the steps' `Verification` describe checks of the behaviour the issue reports (the issue's own example, or a check equivalent to it)?",
+            "Taking the plan's Reproduction Script `Exercises` together with the steps' `Verification`, does the planned script include a"
+            " check of the exact behaviour the issue reports as wrong: the reported input or call and the result the issue expects?",
         ),
         ("F6", "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?"),
         (
             "F9a",
-            "Does every step name its target file and the concrete change (what is added, altered or removed), so that it can be carried out without a further decision?"
-            " A step that states it changes nothing needs no further decision.",
+            "Taking the steps together, does the plan name each target file and the concrete change (what is added, altered or removed),"
+            " so that it can be carried out without a further decision? A step that states it changes nothing needs no further decision.",
         ),
     ],
     4: [
         ("G8a", "Does each item under Deviations from Plan say what changed from the plan and why?"),
-        ("G8c", "Does each structural invalidation name the step it invalidates, the reason, and what replaces it?"),
+        ("G8c", "Does each structural invalidation name the plan step number(s) it invalidates (e.g. 'Step 2', 'Steps 2-3')?"),
     ],
     5: [
-        ("H3a", "Does the reproduction script contain a check for each Functional requirement's behaviour?"),
-        ("H3b", "Does the reproduction script check the conditions the Edge Cases describe?"),
-        ("H3c", "Does the reproduction script check the Non-Functional constraints?"),
-        ("H8g", "Does each item under Regressions say what broke the test, and either how it was resolved or that it remains unresolved?"),
-        ("H8d", "Does each pre-existing failure listed give the reasoning that identifies it as pre-existing?"),
-        ("H9b", "Does each item under Fixes Applied say what was changed and why?"),
         (
-            "B7",
-            "Does Outstanding Failures list every remaining failure, unmet requirement, known limitation or follow-up that artifact 04 or"
-            " another section of artifact 05 mentions, and say `none` only when nothing remains?"
-            " A failure a later fix resolved (the last test run passes it) is not unresolved work.",
+            "H3a",
+            "Does the reproduction script contain a check (an assertion, a comparison against an expected value, or an expected-exception"
+            " test) for the behaviour of each Functional requirement? Judge by the script's code, not by comments naming requirement ids.",
         ),
         (
-            "B7b",
-            "Is unresolved work kept out of the sections other than Outstanding Failures: does no other section of artifact 04 or 05 record"
-            " a failure, limitation or follow-up as still open? The fields the skeleton provides for it (Reproduction Script `Unmet"
-            " requirements`, `Pre-existing failures`) do not count.",
+            "H3b",
+            "Does the reproduction script contain a check (an assertion, a comparison, or an expected-exception test) for the condition of"
+            " each Edge Cases & Error Handling requirement? Judge by the script's code, not by comments naming requirement ids.",
+        ),
+        (
+            "H3c",
+            "Does the reproduction script contain a check for each Non-Functional requirement (a direct assertion, or a measurement such as timing, size or call count that tests the stated bound)?",
+        ),
+        ("H8g", "Does each item under Regressions say what broke the test, and either how it was resolved or that it remains unresolved?"),
+        (
+            "H8d",
+            "Does artifact 05 write, next to each pre-existing failure it lists, a reason specific to that test (such as 'fails in the"
+            " baseline too' or a cause unrelated to the changed files)? A bare list of test names counts as no, even where the tests do"
+            " appear in the baseline.",
+        ),
+        (
+            "H9b",
+            "Does each item under Fixes Applied say what was changed and why it was needed (the failure, error or requirement that made"
+            " the change necessary)? A description of the change alone counts as no.",
+        ),
+        (
+            "B7",
+            "Where artifact 04 or another section of artifact 05 records something still open (a requirement under `Unmet requirements`,"
+            " a regression not resolved, a deviation left incomplete, or a stated limitation or follow-up), is each one listed under"
+            " Outstanding Failures? Pre-existing failures are not open work. Work that Fixes Applied states was fixed is not open."
+            " Answer n/a if nothing open is recorded anywhere and Outstanding Failures is `none`.",
         ),
     ],
 }
@@ -337,7 +401,7 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
         material |= {f"ARTIFACT 0{k}": body[k] for k in {1: [1], 2: [1, 2], 3: [2, 3], 4: [3, 4], 5: [1, 2, 3, 4, 5]}[st] if body[k]}
         skip = set()
         if st == 3 and len(re.findall(r"(?m)^#{2,4}\s*Step\s+\d+", body[3])) < 2:
-            skip.add("F6")  # one step has no order
+            skip |= {"F6", "F2f"}  # one step has no order, and no later step to use what it introduces
         if st == 1:
             tests = _test_text(run, parsed)
             if tests:
@@ -350,6 +414,10 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
                 skip |= {"E7a", "E7b", "H3c"}
         if st == 2 and _section_none(parsed.get(2), "Assumptions"):
             skip.add("E9")
+        if st == 5:
+            edge = (parsed.get(2) or {}).get("section_bodies", {}).get("Edge Cases & Error Handling")
+            if edge is None or _section_none(parsed.get(2), "Edge Cases & Error Handling") or all(is_none(v) for v in re.findall(r"R\d+\*{0,2}\s*:\s*(.*)", edge)):
+                skip.add("H3b")  # no edge case to check
         if st == 4:
             if patch:
                 material["FINAL PATCH"] = patch
@@ -400,10 +468,10 @@ def _norm(text: str) -> str:
 
 def quote_found(quote: str, shown: str) -> bool:
     """Every piece of the quote is in the material, the pieces together long enough. Pieces: the quote split at
-    an ellipsis and at line breaks (a quote of code may skip lines), each without a leading ``Step N`` the
-    judge writes to say where it quotes from."""
-    parts = re.split(r"\.\.\.+|…|\n|\\n", quote or "")
-    pieces = [p for p in (_norm(re.sub(r"(?i)^\s*step\s+\d+\b\s*[:.-]?", "", x)) for x in parts) if p]
+    an ellipsis, at line breaks (a quote of code may skip lines) and at a semicolon (two quotes joined), each
+    without a leading ``Step N`` the judge writes to say where it quotes from."""
+    parts = re.split(r"\.\.\.+|…|\n|\\n|;", quote or "")
+    pieces = [p for p in (_norm(re.sub(r"(?i)^\s*step\s+\d+\b\s*[:.-]?", "", x.strip(" '\"`"))) for x in parts) if p]
     return sum(len(p) for p in pieces) >= MIN_QUOTE and all(f" {p} " in f" {shown} " for p in pieces)
 
 
