@@ -1,7 +1,7 @@
 # aidlc_v4_eval rule set
 
 Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.
-362 document lines -> 195 atomic rules -> 192 methods -> 224 judgments (scored rubric items; 5 more are diagnostics).
+362 document lines -> 195 atomic rules -> 190 methods -> 222 judgments (scored rubric items; 5 more are diagnostics).
 A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).
 
 Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 실행 인식·출력의 통과/실패 수; `SCRIPT` 재현 스크립트 실행 인식; `EXIT` exit code; `PATCH` 최종 변경 파일 (patch); `EDIT` trajectory의 편집 파일·시점; `NONE` none 값; `TESTFILE` 테스트 파일 판별; `PATH` 경로 추출·비교; `AP` 산출물 section·field·step parser; `DOC` 문서 읽기 시점; `WRITE` 산출물 쓰기 시점; `TARGET` test id·target 추출; `CMDMATCH` 기록한 명령과 실행 명령 대조; `SEEN` 파일 열람 여부; `SHELLCLS` 그 밖의 명령 분류 (설치, 조회, stash, 반복); `ISSUE` 이슈 본문 추출; `FINAL` 마지막 응답; `JUDGE` LLM judge (이슈·산출물·단계별 발췌만 봄, trajectory는 안 봄); `MSG` agent 메시지 (마지막 응답 앞의 것까지)
@@ -111,7 +111,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | F2f | 3 | Q | 뒤 step이 쓸 새 인터페이스를 도입하면 그 step의 Contract에 적음 | S3:19 | `judge/F2f` (Q: 3; JUDGE ISSUE COLLECT) |
 | F2e | 3 | Q | Verification에 재현 스크립트가 확인할 것을 적음 | S3:20 | `judge/F2e` (Q: 3; JUDGE ISSUE COLLECT) |
 | F3 | 3 | Q | task가 지정한 이름·시그니처·경로를 그대로 씀 | S3:19 | `atom/F3` (Q: 3; AP COLLECT ISSUE PATCH SEEN) |
-| F4a | 3 | Q | 재현 스크립트가 수정 전에는 문제를 보이고 수정 후에는 정상임을 보이도록 계획 | S3:27 | `judge/F4a` (Q: 3; JUDGE ISSUE COLLECT) |
+| F4a | 3 | Q | 재현 스크립트가 수정 전에는 문제를 보이고 수정 후에는 정상임을 보이도록 계획 | S3:27 | none: covered by another rule's items (F2e (what each step's check is), F4b (Exercises name the requirements) and H3a (the script checks each Functional requirement); a judge question until 2026-10-28, caught 3 of 5 planted violations and flipped on 11% of re-asks) |
 | F4b | 3 | C | 재현 스크립트에 Edge Cases 요구사항의 조건을 포함함 | S3:28 | `atom/F4b` (C: 3; AP COLLECT NONE) |
 | F5 | 3 | C | Requirement Coverage가 2단계의 모든 요구사항을 step에 연결함 | S3:67 | `check/c23_coverage_refs` (A: 3; AP COLLECT) |
 | F6 | 3 | Q | step 순서가 도달했을 때 실행 가능한 순서 | S3:91 | `judge/F6` (Q: 3; JUDGE ISSUE COLLECT) |
@@ -145,7 +145,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | G7c | 4 | R | 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음 | CW:113, S4:86 | `atom/G7c` (R: 4; DOC WRITE TEST) |
 | G8a | 4 | Q | plan과 달라진 것을 무엇이·왜와 함께 기록함 (없으면 none) | S4:34 | `check/c34_deviations_none` (A: 4; AP COLLECT NONE PATH)<br>`judge/G8a` (Q: 4; JUDGE ISSUE COLLECT PATCH) |
 | G8b | 4 | F | deviation을 local correction / structural invalidation으로 구분함 | S4:36, S4:37, S4:76 | `atom/G8b` (F: 4; AP COLLECT NONE) |
-| G8c | 4 | Q | structural이면 무효가 된 step, 이유, 대체 방법을 적음 | S4:37 | `judge/G8c` (Q: 4; JUDGE ISSUE COLLECT PATCH) |
+| G8c | 4 | Q | structural이면 무효가 된 step, 이유, 대체 방법을 적음 | S4:37 | none: judge, low priority, not asked (no run of the 200 judged records a structural invalidation (a judge question until 2026-10-28); G8a asks what changed and why of every deviation) |
 | G9 | 4 | F | step마다 완료와 충족한 요구사항을 Plan Execution에 기록함 | S4:41, S4:72, S4:73 | `check/c34_plan_execution_steps` (A: 4; AP COLLECT)<br>`form/G9` (F: 4; AP COLLECT) |
 | S4.modified | 4 | F | 04 필드 Modified (전체 경로 + 요구사항 태그) | S4:63, S4:64 | `form/S4.modified` (F: 4; AP COLLECT) |
 | S4.modified_real | 4 | A | 04 Modified에 적은 파일은 실제로 바뀜 | S4:63, S4:64 | `check/e4_modified` (A: 4; AP COLLECT PATH PATCH) |

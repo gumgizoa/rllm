@@ -3692,33 +3692,6 @@ items:
     quote: '- [ ] **Interfaces and contracts** — the existing public signatures and return shapes that must be **preserved**,
       and any new interface this step introduces for later steps to use. If the task description specifies names, signatures,
       or file paths, use them exactly as given rather than choosing your own'
-- id: judge/F4a
-  scope: specific
-  class: content
-  stage: '3'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: F4a
-  requirement: must
-  category: Q
-  rule: F4a
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S3
-    lines:
-    - 27
-    - 27
-    quote: '- [ ] Plan a script that reproduces the issue before the fix and demonstrates correct behavior after it'
-  note: 'Taking the plan''s Reproduction Script `Exercises` together with the steps'' `Verification`, does the planned script
-    include a check of the exact behaviour the issue reports as wrong: the reported input or call and the result the issue
-    expects?'
 - id: atom/F4b
   scope: specific
   class: content
@@ -3794,7 +3767,8 @@ items:
     - 91
     quote: '- The steps are ordered so that each is executable when reached'
   note: 'Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change
-    that only a later step introduces?'
+    that only a later step introduces? For yes, quote verbatim the `Change` line of the step that relies most on an earlier
+    one.'
 - id: atom/F7
   scope: specific
   class: evidence
@@ -4656,33 +4630,6 @@ items:
     - 76
     quote: '- [none | local correction: what changed and why | structural invalidation: which steps are invalid, why, and
       what supersedes them]'
-- id: judge/G8c
-  scope: specific
-  class: content
-  stage: '4'
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: aidlc_v4_eval.judge
-    params:
-      question: G8c
-  requirement: must
-  category: Q
-  rule: G8c
-  availability:
-  - trace
-  derived_by: manual
-  sources:
-  - doc: S4
-    lines:
-    - 37
-    - 37
-    quote: '- **Structural invalidation** — the approach itself does not work, for example a requirement cannot be satisfied
-      while preserving a contract the plan marked as preserved, or several steps become invalid at once. State which steps
-      are invalidated, why, and what supersedes them'
-  note: Does each structural invalidation name the plan step number(s) it invalidates (e.g. 'Step 2', 'Steps 2-3')?
 - id: check/c34_plan_execution_steps
   scope: specific
   class: evidence
@@ -6596,6 +6543,8 @@ appendix:
       E5a: B5b@2 and the S2 fields (S2.fr, S2.nfr, S2.edge)
       E5b: judge/E6a (Functional), judge/E7a and atom/E7b (Non-Functional), judge/E8a and judge/E8b (Edge Cases)
       F2c: the step parse behind the S3 fields and tags
+      F4a: F2e (what each step's check is), F4b (Exercises name the requirements) and H3a (the script checks each Functional
+        requirement); a judge question until 2026-10-28, caught 3 of 5 planted violations and flipped on 11% of re-asks
       G1b: G9, G2
       G3b: H12, F8b, S4.dupcheck
       G4a: D13
@@ -6605,4 +6554,6 @@ appendix:
     judge, low priority, not asked:
       D2: the scope extends to direct callers and callees
       E2: stage 1's result used as context
+      G8c: no run of the 200 judged records a structural invalidation (a judge question until 2026-10-28); G8a asks what changed
+        and why of every deviation
       H8c: pre-existing failures left unfixed

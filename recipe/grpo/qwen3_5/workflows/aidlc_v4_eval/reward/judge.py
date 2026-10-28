@@ -147,11 +147,10 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
             " it changes nothing needs no check.",
         ),
         (
-            "F4a",
-            "Taking the plan's Reproduction Script `Exercises` together with the steps' `Verification`, does the planned script include a"
-            " check of the exact behaviour the issue reports as wrong: the reported input or call and the result the issue expects?",
+            "F6",
+            "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a"
+            " later step introduces? For yes, quote verbatim the `Change` line of the step that relies most on an earlier one.",
         ),
-        ("F6", "Are the steps ordered so that each can be carried out when it is reached: no step uses a function, file or change that only a later step introduces?"),
         (
             "F9a",
             "Taking the steps together, does the plan name each target file and the concrete change (what is added, altered or removed),"
@@ -160,7 +159,6 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
     ],
     4: [
         ("G8a", "Does each item under Deviations from Plan say what changed from the plan and why?"),
-        ("G8c", "Does each structural invalidation name the plan step number(s) it invalidates (e.g. 'Step 2', 'Steps 2-3')?"),
     ],
     5: [
         (
@@ -423,9 +421,7 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
                 material["FINAL PATCH"] = patch
             dev = (parsed.get(4) or {}).get("section_bodies", {}).get("Deviations from Plan")
             if dev is None or _section_none(parsed.get(4), "Deviations from Plan"):
-                skip |= {"G8a", "G8c"}
-            elif not re.search(r"structural invalidation", dev, re.I):
-                skip.add("G8c")
+                skip.add("G8a")
         if st == 5:
             script = _repro_text(run, parsed, patch)
             if script:

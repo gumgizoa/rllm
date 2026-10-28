@@ -751,8 +751,9 @@ rules:
   stage: 3
   kind: Q
   text: 재현 스크립트가 수정 전에는 문제를 보이고 수정 후에는 정상임을 보이도록 계획
-  methods:
-    judge/F4a: {kind: Q, stage: 3}
+  excluded:
+    why: covered by another rule's items
+    detail: F2e (what each step's check is), F4b (Exercises name the requirements) and H3a (the script checks each Functional requirement); a judge question until 2026-10-28, caught 3 of 5 planted violations and flipped on 11% of re-asks
 - id: F4b
   stage: 3
   kind: C
@@ -966,8 +967,9 @@ rules:
   stage: 4
   kind: Q
   text: structural이면 무효가 된 step, 이유, 대체 방법을 적음
-  methods:
-    judge/G8c: {kind: Q, stage: 4}
+  excluded:
+    why: judge, low priority, not asked
+    detail: no run of the 200 judged records a structural invalidation (a judge question until 2026-10-28); G8a asks what changed and why of every deviation
 - id: G9
   stage: 4
   kind: F
