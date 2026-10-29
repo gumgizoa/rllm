@@ -26,7 +26,7 @@ recipe:
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
-  sandbox_concurrency: 16     # caps live sandboxes AND the warm-queue prefetch depth
+  sandbox_concurrency: 48     # caps live sandboxes AND the warm-queue prefetch depth; = rllm.workflow.n_parallel_tasks
   # Which agent runs inside the task sandbox: mini-swe-agent | openhands-sdk
   # (rllm/harnesses/mini_swe_agent.py, rllm/harnesses/openhands_sdk.py). Both
   # call the model through the gateway and are graded by the task's tests/test.sh,
