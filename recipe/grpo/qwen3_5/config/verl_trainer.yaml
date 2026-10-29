@@ -76,7 +76,12 @@ actor_rollout_ref:
     name: vllm
     mode: async                      # required by the AgentFlow/gateway path
     tensor_model_parallel_size: 1    # -> one vLLM server per GPU
-    gpu_memory_utilization: 0.50
+    # Fraction of each 141 GB H200 vLLM reserves at startup: ~99 GB, i.e. ~80 GB
+    # of KV after the 18.8 GB bf16 weights, ~10 sequences at 256K per GPU (6 are
+    # in flight at n_parallel_tasks=48). Safe to take above 0.5 because the FSDP
+    # actor is CPU-offloaded while vLLM is awake and vLLM sleeps (weights + KV
+    # freed) during old_log_prob and the actor update.
+    gpu_memory_utilization: 0.70
     enforce_eager: false             # keep torch.compile + CUDA graphs
     free_cache_engine: true
     log_prob_micro_batch_size_per_gpu: 1

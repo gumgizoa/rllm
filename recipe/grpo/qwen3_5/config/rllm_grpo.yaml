@@ -51,14 +51,14 @@ rllm:
 
   rollout:
     n: 8        # GRPO group size
-    n_val: 1
+    n_val: 2
     train:
       temperature: 1.0
       top_p: 0.95
       max_tokens: 16384  # per agent turn, not per episode
     val:
-      temperature: 0.6
-      top_p: 0.9
+      temperature: 1.0
+      top_p: 0.95
       max_tokens: 16384
 
   gateway:
@@ -102,9 +102,13 @@ rllm:
     mask_error: true                         # infrastructure: no reward file, upstream 5xx, sandbox
 
   workflow:
-    # One Docker sandbox per in-flight rollout. Each SWE image is 1-15 GB and
-    # the verifier is CPU-heavy, so this is a host-resource knob, not a GPU one.
-    n_parallel_tasks: 16
+    # One Docker sandbox per in-flight rollout, and -- since the agent makes one
+    # LLM call at a time -- also the cap on concurrent requests to the 8 vLLM
+    # servers (48 -> 6 sequences per GPU). Keep equal to recipe.sandbox_concurrency.
+    # Host side: 48 x (4 CPU quota, 16 GB) on 192 cores / 2 TB. GPU side: at
+    # gpu_memory_utilization 0.70 a GPU's KV cache holds ~10 sequences at the full
+    # 256K context (Qwen3.5-9B: 8 full-attention layers, 32 KB/token).
+    n_parallel_tasks: 48
     retry_limit: 3
     raise_on_error: false
 
@@ -122,11 +126,11 @@ rllm:
 
   trainer:
     project_name: qwen3_5-swe-grpo
-    experiment_name: qwen3_5_9b-openhands_sdk-swefeat-h200
+    experiment_name: qwen3_5_9b-openhands_sdk-swefeat-aws
     logger: ['console', 'wandb']
     val_before_train: true
-    test_freq: 5
-    save_freq: 5
+    test_freq: 3
+    save_freq: 3
     total_epochs: 3
 
   episode_logging:
