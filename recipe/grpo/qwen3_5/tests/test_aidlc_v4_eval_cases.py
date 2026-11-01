@@ -28,7 +28,7 @@ from test_aidlc_v4_eval_hacks import ATOM_CASES, HACKS, PKG, Run, T, _atom_task,
 
 from recipe.grpo.qwen3_5.workflow_rubric import schema
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import ruleset
-from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.checks import FIELDS, STEP_FIELDS
+from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.methods.form import FIELDS, STEP_FIELDS
 
 BROKEN = "broken"  # expected: below 1.0
 

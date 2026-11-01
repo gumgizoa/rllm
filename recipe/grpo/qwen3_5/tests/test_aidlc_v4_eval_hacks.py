@@ -579,11 +579,10 @@ def test_each_violation_added_lowers_the_score(signal):
 def test_every_check_is_a_rubric_item():
     from test_aidlc_v4_eval import _EVAL
 
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import CHECKS
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rules import RULE_CHECKS as RULES
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.methods import load
 
     ids = {i.id for i in _EVAL.rubric.items}
-    assert {f"check/{c}" for c in CHECKS} <= ids and {f"rule/{c}" for c in RULES} <= ids
+    assert {k for k in load() if k.startswith(("check/", "rule/"))} <= ids
     assert all(i.category and i.rule and i.sources for i in _EVAL.rubric.items)
 
 
@@ -1145,7 +1144,8 @@ def test_readings_fixed_by_the_per_rule_audit():
     found wrong, held."""
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import trace as TR
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.rules import _covers, _scratch
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.methods.atom import _covers
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.methods.rule import _scratch
 
     # the terminal refused the call: nothing in it ran (swebv100 000026, 000080)
     refused = TR.parse_openhands(

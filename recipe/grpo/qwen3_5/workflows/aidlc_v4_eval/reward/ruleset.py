@@ -18,9 +18,9 @@ Two things are written by hand; everything else follows from them.
     lines      every candidate line of the documents (blank lines and headings outside code blocks left out),
                with its text, and the rules it states (``rules``) or repeats (``dup``), or why neither (``skip``)
 
-The code (``checks.MEASURABLE``, the keys ``measure`` sets; ``materials.METHOD_MATERIALS``, what each method
-reads; ``judge.QUESTIONS``): a method key of the set must be measured by the code, and every measured key placed
-by the set.
+The code (``methods/``: every scoring method registered with its key, stages and materials, the judge's questions
+declared beside them; ``judge.QUESTIONS``): a method key of the set must be registered in the code, and every
+measured key placed by the set.
 
 ``rubric.yaml`` is generated (``generated_rubric``): one item per method placement and stage, its check kind
 and params from the method key, its sources the rule's lines, its appendix the excluded rules. ``ruleset.md``
@@ -289,7 +289,7 @@ def render(rs: dict, rubric: dict, materials: dict[str, str], method_materials: 
         "Rendered from ruleset.yaml by `reward/ruleset.py sync`; edit the yaml, not this file.",
         f"{len(rs['lines'])} document lines -> {len(rs['rules'])} atomic rules -> {n_methods} methods -> {judgments} judgments"
         f" (scored rubric items; {len(rubric['items']) - judgments} more are diagnostics).",
-        "A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared in the code (reward/materials.py).",
+        "A method's category and stages are its placement in ruleset.yaml; `global` is stage 0. Its materials are declared where the code registers it (reward/methods/).",
         "",
         "Materials: " + "; ".join(f"`{k}` {v}" for k, v in materials.items()),
         "",
@@ -318,10 +318,9 @@ def render(rs: dict, rubric: dict, materials: dict[str, str], method_materials: 
 
 def _code() -> tuple[frozenset[str], dict[str, str], dict[str, tuple[str, ...]], dict[str, str]]:
     """What the code declares: the measured keys, the materials and each method's, the judge questions."""
-    from .checks import MEASURABLE
-    from .materials import MATERIALS, METHOD_MATERIALS
+    from .methods import MATERIALS, load, measurements
 
-    return MEASURABLE, MATERIALS, METHOD_MATERIALS, _questions()
+    return frozenset(measurements()), MATERIALS, {k: m.materials for k, m in load().items()}, _questions()
 
 
 def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) -> dict[str, list[str]]:
@@ -367,8 +366,8 @@ def check(rs: dict | None = None, rubric: dict | None = None, root: Path = PKG) 
             links += [f"method {m}: unknown material {x}" for x in method_materials.get(m, ()) if x not in materials]
             if m.split("/")[0] == "judge" and m.split("/", 1)[1] not in questions:
                 links.append(f"method {m}: no judge question")
-    links += [f"method {m}: no materials declared (materials.METHOD_MATERIALS)" for m in sorted(placed - set(method_materials))]
-    links += [f"method {m}: materials declared, placed by no rule" for m in sorted(set(method_materials) - placed)]
+    links += [f"method {m}: not registered in the code (methods/)" for m in sorted(placed - set(method_materials))]
+    links += [f"method {m}: registered, placed by no rule" for m in sorted(set(method_materials) - placed)]
     try:
         gen = generated_rubric(rs, root, questions)
     except (KeyError, TypeError, ValueError) as e:  # a placement the generator cannot read: reported above

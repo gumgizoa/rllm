@@ -226,14 +226,35 @@ def test_the_patch_matching_the_trajectory_keeps_every_check():
     assert len(checks) == 36 and set(checks.values()) == {1.0}
 
 
+def test_a_method_that_raises_costs_its_own_item_only(monkeypatch):
+    """A scoring method that raises is that item's engine error (0); every other measurement is unchanged."""
+    from dataclasses import replace
+
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import methods
+
+    ep = _with_patch(_content_honest_turns(), PATCH)
+    before = score(SimpleNamespace(id="t"), ep, FILES)
+
+    def boom(m):
+        raise RuntimeError("boom")
+
+    monkeypatch.setitem(methods.METHODS, "atom/E10a", replace(methods.METHODS["atom/E10a"], fn=boom))
+    after = score(SimpleNamespace(id="t"), ep, FILES)
+    assert before["aidlc/atom/E10a"] == 1.0 and after["aidlc/atom/E10a"] == 0.0
+    assert before["aidlc/engine_errors"] == 0.0 and after["aidlc/engine_errors"] == 1.0
+    same = lambda k: k.startswith(("aidlc/check/", "aidlc/rule/", "aidlc/form/", "aidlc/proc/", "aidlc/run/")) or (k.startswith("aidlc/atom/") and k != "aidlc/atom/E10a")  # noqa: E731
+    assert {k: v for k, v in before.items() if same(k)} == {k: v for k, v in after.items() if same(k)}
+
+
 def test_final_changes_are_read_from_the_patch():
     """pkg/other.py is in the patch but no trajectory write shows it (a python script, say): it is an
     undisclosed change, and since its edit time is unknown the checks timed by edits are left out."""
     s = score(SimpleNamespace(id="t"), _with_patch(_content_honest_turns(), PATCH + PATCH_OTHER), FILES)
     assert s["aidlc/check/e4_undisclosed"] == 0.5 and s["aidlc/check/e5_final_files_diff"] == 0.5
-    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.claims import TIMED_BY_EDITS
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.methods import load
 
-    assert not any(f"aidlc/check/{k}" in s for k in TIMED_BY_EDITS)
+    timed = [k for k, m in load().items() if m.timed_by_edits]
+    assert len(timed) == 15 and not any(f"aidlc/{k}" in s for k in timed)
 
 
 def test_a_change_put_back_is_not_a_final_change():
@@ -460,7 +481,7 @@ def test_a_rule_left_without_methods_or_reason_is_reported():
     links = ruleset.check(rs)["links"]
     assert "rule D13: needs methods or excluded (exactly one)" in links
     assert "measurement rule/r_tests_untouched: no rule places it" in links  # the code still measures it
-    assert "method rule/r_tests_untouched: materials declared, placed by no rule" in links
+    assert "method rule/r_tests_untouched: registered, placed by no rule" in links
     rs = ruleset.load()
     next(r for r in rs["rules"] if r["id"] == "D5b")["methods"]["atom/D5b"] = {"stage": 1}  # no kind
     links = ruleset.check(rs)["links"]
