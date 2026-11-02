@@ -126,7 +126,9 @@ def e1_baseline_tests(m):
 
 @method("check/e1_baseline_failing", materials=("AP", "COLLECT", "NONE", "TEST", "EDIT", "TARGET"), family=E, timed_by_edits=True)
 def e1_baseline_failing(m):
-    """``Failing: none`` when the baseline failed nothing; a Failing list when it failed something it names."""
+    """``Failing: none`` when the baseline failed nothing; a Failing list when it failed something it names: a listed
+    test the baseline output shows passing contradicts it, and when the output names none of the listed tests, any
+    failure in it supports it (until 2026-11-02 any failure supported a list, even of tests the output shows passing)."""
     if m.p1 is None or not m.evidence_runs:
         return None
     fails = failures(m.evidence_out)
@@ -134,6 +136,11 @@ def e1_baseline_failing(m):
         return CONTRADICTED if fails else SUPPORTED
     if m.failing1:
         # (test names, not the file's: `tests/test_mod.py::test_old` names test_old only)
+        states = [EV.test_state(m.evidence_out, n) for n in test_names(m.failing1)]
+        if any(s is True for s in states):
+            return CONTRADICTED
+        if any(s is False for s in states):
+            return SUPPORTED
         return SUPPORTED if fails or any(n in m.evidence_out for n in test_names(m.failing1)) else CONTRADICTED
     return None
 
@@ -255,13 +262,16 @@ def c23_tags_exist(m):
 def c23_requirements_covered(m):
     """Every requirement is tagged by a step or listed in Requirement Coverage. A requirement line whose value says
     none (``R3: none stated``) is no requirement; one that merely starts with the word (``R3: None input ->
-    TypeError``) is. A plan whose steps and coverage cannot be read at all (form broken, scored under F) says nothing."""
+    TypeError``) is. A plan whose steps and coverage cannot be read at all (form broken, scored under F) says nothing.
+    A Coverage line counts only when it names a step (``R3: Step 2``; 03 "against at least one step"): ``R3: N/A``
+    covered R3 until 2026-11-02."""
     p3 = m.p3
     if p3 is None or not m.r_ids:
         return None
     values = [(x.group(1), x.group(2)) for x in R_LINE.finditer(m.p2["body"])]
     real = [r for r in m.r_ids if not any(rid == r and is_none(v) for rid, v in values)]
-    covered = set(m.tags) | set(p3.get("coverage_ids", []))
+    stepped = {x.group(1) for x in A.COVERAGE_LINE.finditer(p3["section_bodies"].get("Requirement Coverage") or "") if _STEP_REF.search(x.group(2))}
+    covered = set(m.tags) | stepped
     if p3["steps"] or p3.get("coverage_ids"):
         return membership(real, [r in covered for r in real])
     return None
@@ -326,11 +336,14 @@ def e4_undisclosed(m):
 @method("check/e4_tests_untouched", materials=("AP", "COLLECT", "NONE", "PATCH", "EDIT", "TESTFILE"), family=E)
 def e4_tests_untouched(m):
     """``Test files modified: none``: the patch has no test file still changed, and the trajectory none changed and
-    put back."""
+    put back -- by stage 4: a test file first changed after 04 was written is stage 5's (e5_test_files_none), as in
+    e4_undisclosed. Until 2026-11-02 those counted against 04 too."""
     if m.p4 is None or not is_none(_field(m.p4, "Checks", "Test files modified")):
         return None
-    obs = m.obs
-    touched = [p for p in [*m.edited4, *obs.edited] if EV.is_test_file(p, m.tests) and p not in m.new_now and p not in obs.new_files]
+    obs, w4 = m.obs, m.w.get(4)
+    touched = [
+        p for p in [*m.edited4, *obs.edited] if EV.is_test_file(p, m.tests) and p not in m.new_now and p not in obs.new_files and not ((n := obs.written(p)) is not None and w4 is not None and n > w4)
+    ]
     return CONTRADICTED if touched else SUPPORTED
 
 
@@ -578,15 +591,17 @@ def e5_preexisting_listed(m):
 
 @method("check/c15_preexisting_subset", materials=("AP", "COLLECT", "NONE", "TARGET"), family=C)
 def c15_preexisting_subset(m):
-    """05's Pre-existing failures are among 01's Failing."""
+    """05's Pre-existing failures are among 01's Failing. ``none`` is among anything: whether a baseline failure the
+    last run still fails is recorded is e5_preexisting_listed's. Until 2026-11-02 ``none`` scored 0 whenever 01 Failing
+    named a test, so a run that fixed its baseline failures and said so lost it, and one that listed the fixed tests
+    as pre-existing kept it."""
     if m.p5 is None or m.p1 is None:
         return None
     pre, failing1 = _field(m.p5, "Existing Tests vs Baseline", "Pre-existing failures"), m.failing1
     if not pre:
         return None
     if is_none(pre):
-        named = TEST_ID.findall(failing1 or "")
-        return SUPPORTED if (failing1 is None or is_none(failing1)) else (CONTRADICTED if named else None)
+        return SUPPORTED
     base_ids, pre_ids = TEST_ID.findall(failing1 or ""), TEST_ID.findall(pre)
     if not pre_ids:
         return None

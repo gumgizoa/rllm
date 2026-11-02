@@ -134,6 +134,9 @@ def e3c(m, st):
 
 @method("form/E4b", materials=AP, stages=(2,))
 def e4b(m, st):
-    """Artifact 02's R ids are unique."""
+    """Artifact 02's R ids are unique; with none there is nothing to repeat (E3c scores their absence; this scored it
+    a second time until 2026-11-02)."""
     ids = m.p2.get("r_ids", []) if m.p2 else []
-    return float(bool(ids) and len(set(ids)) == len(ids))
+    if not ids:
+        return None
+    return float(len(set(ids)) == len(ids))

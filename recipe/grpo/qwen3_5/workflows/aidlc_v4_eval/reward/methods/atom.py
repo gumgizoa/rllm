@@ -14,14 +14,18 @@ import re
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
+from ..measures import _regressed
 from ..read import DUPLICATE, R_LINE, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file
 from . import STAGES, method
 
 _LITERALS = {1: ["Recorded before any source file was modified."], 4: ["- Executed: no"]}
 
-_TEST_LIKE = re.compile(r"::|\btest_\w+|\w+ \([\w.]+\)|\.[Tt]est\w*\b")
+# A test id, not a test file's name (`test_x.py` names a file: D12b asks for test ids)
+_TEST_LIKE = re.compile(r"::|\btest_\w+\b(?!\.py\b)|\w+ \([\w.]+\)|\.[Tt]est\w*\b")
 
 _ARROW = re.compile(r"->|→")
+
+_WHOLE_SUITE = re.compile(r"(?:\./)?(?:tests?|testing)?/?|\.")
 
 _ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|rs|java|rb|c|h|cpp|cfg|toml|ini))\b")
 
@@ -29,7 +33,9 @@ _PERF = re.compile(r"\b(?:performance|slow(?:er|ly)?|fast(?:er)?|speed|memory|co
 
 _LANG = {"py": "python", "pyi": "python", "js": "javascript", "ts": "typescript", "go": "go", "rs": "rust", "java": "java", "rb": "ruby", "c": "c", "h": "c", "cpp": "c++"}
 
-_DOC = re.compile(r"\.(?:md|rst)$|(?:^|/)[^/]*(?:plan|summary|report|notes|design)[^/]*\.(?:md|txt|rst)$", re.I)
+# A document: any .md, or a .txt / .rst named as a plan, summary, report, notes or design (a bare .rst is as often
+# a reproduction's input -- a sphinx issue's index.rst -- as a document)
+_DOC = re.compile(r"\.md$|(?:^|/)[^/]*(?:plan|summary|report|notes|design)[^/]*\.(?:txt|rst)$", re.I)
 
 _ARTIFACT = re.compile(r"/tmp/swe-bench-pro/(0[1-5])-[\w-]+\.md")
 
@@ -44,6 +50,46 @@ _ASK_USER = re.compile(
 )
 
 _PY_SCRIPT = re.compile(r"\bpython[\d.]*\s+(?!-[mc]\b)[^\s|;&]+\.py\b")
+
+# A python run of inline code or a module (G7c): `python -c <code>`, `python -m <module>`
+_PY_INLINE = re.compile(r"(?:^|[\s(;&|])python[\d.]*\s+(?:-c\s+(?P<code>.+)|-m\s+(?P<module>[\w.]+))", re.S)
+
+# Inline code that writes a file: an edit made with python (`open(path, 'w')`, `.write(...)`), whose text may quote
+# an import it does not run
+_WRITES_FILE = re.compile(r"\.write\(|\.write_text\(|open\([^)]*,\s*['\"][wa]")
+
+# Directories that hold a repository's packages without being one (`lib/matplotlib`, `src/pkg`)
+_PKG_ROOTS = {"lib", "src", "python", "testbed"}
+
+
+def _packages(paths) -> set[str]:
+    """The top-level import names of the repository files ``paths`` (``lib/matplotlib/figure.py`` -> matplotlib)."""
+    out = set()
+    for p in paths:
+        parts = [x for x in norm_path(p).split("/") if x]
+        while len(parts) > 1 and parts[0] in _PKG_ROOTS:
+            parts = parts[1:]
+        if len(parts) > 1:
+            out.add(parts[0])
+        elif parts and parts[0].endswith(".py"):
+            out.add(parts[0][:-3])
+    return out
+
+
+def _runs_package(command: str, packages: set[str]) -> bool:
+    """The command runs code of one of ``packages``: `python -c` importing it (the code read to the command's end:
+    a quoted program spans lines and semicolons), or `python -m` one of its modules."""
+    if not packages:
+        return False
+    names = "|".join(re.escape(p) for p in sorted(packages))
+    for hit in _PY_INLINE.finditer(F.drop_heredoc_bodies(command or "")):
+        if hit.group("module"):
+            if hit.group("module").split(".")[0] in packages:
+                return True
+        elif not _WRITES_FILE.search(hit.group("code")) and re.search(rf"(?:^|[\s;'\"(])(?:import|from)\s+(?:{names})\b", hit.group("code")):
+            return True
+    return False
+
 
 # A module boundary written in Owning module: a dotted name (`django.db.models`) or a path (`django/db/models`)
 _BOUNDARY = re.compile(r"(?<![\w./])((?:[A-Za-z_]\w*)(?:[./][A-Za-z_]\w*)+)/?(?![\w])")
@@ -140,15 +186,31 @@ def _raw_rows(body: str, label: str) -> list[str]:
     return []
 
 
-def _required_params(params: str) -> list[str]:
-    """The positional parameters a caller must pass, in order (no default, not *args / **kwargs / self)."""
-    out = []
+def _params(params: str) -> tuple[list[str], set[str]]:
+    """(the positional parameters in order, the parameters a caller must pass): self / cls, ``/`` and ``*args`` /
+    ``**kwargs`` left out; a parameter after ``*`` or ``*args`` is keyword-only (not positional, required without a
+    default)."""
+    positional, required, kw_only = [], set(), False
     for raw in params.split(","):
         p = raw.strip()
-        if not p or p.startswith("*") or "=" in p or p in ("self", "cls", "/"):
+        if not p or p in ("self", "cls", "/") or p.startswith("**"):
             continue
-        out.append(p.split(":")[0].strip())
-    return out
+        if p.startswith("*"):
+            kw_only = True
+            continue
+        name = p.split(":")[0].split("=")[0].strip()
+        if not kw_only:
+            positional.append(name)
+        if "=" not in p:
+            required.add(name)
+    return positional, required
+
+
+def _compatible(old: str, new: str) -> bool:
+    """A call that worked against ``old`` still works against ``new``: the old positional parameters keep their
+    places, and the new signature requires nothing the old one did not."""
+    (pos_old, req_old), (pos_new, req_new) = _params(old), _params(new)
+    return pos_new[: len(pos_old)] == pos_old and req_new <= req_old
 
 
 def _frac(flags: list[bool]) -> float | None:
@@ -384,12 +446,13 @@ def d5b(m):
 
 @method("atom/D7b", materials=("AP", "COLLECT", "NONE", "TARGET"))
 def d7b(m):
-    """The recorded test command names its targets."""
+    """The recorded test command names its targets: a whole-suite directory (`tests/`, `testing/`, `.`) is no
+    target, slash or not (``test_targets`` counts any token with a slash)."""
     if not m.p1:
         return None
     test = _field(m.p1, "Build & Test Commands", "Test")
     if test and not is_none(test) and (targets := EV.test_targets(test)) is not None:
-        return float(bool(targets))
+        return float(any(not _WHOLE_SUITE.fullmatch(t) for t in targets))
     return None
 
 
@@ -419,10 +482,12 @@ def d10a(m):
 @method("atom/D12b", materials=("AP", "COLLECT", "NONE"))
 def d12b(m):
     """Baseline lists one test id per line: a line listing several ("test_a, test_b"; brackets masked for parametrized
-    ids) breaks it."""
+    ids) breaks it, and so does a line that names no test id (a file name, `test_x.py`, or a sentence). Read from the
+    artifact's physical lines (``_raw_rows``; the field value joins them), so two ids on one line are seen."""
     if not m.p1:
         return None
-    ids = [x for k in ("Passing", "Failing") if (v := _field(m.p1, "Baseline", k)) and not is_none(v) for x in _lines(v)]
+    body = m.p1["section_bodies"].get("Baseline") or ""
+    ids = [x for k in ("Passing", "Failing") if (v := _field(m.p1, "Baseline", k)) and not is_none(v) for x in _raw_rows(body, k)]
     several = [x for x in ids if sum(bool(_TEST_LIKE.search(p)) for p in re.sub(r"\[[^\]]*\]", "[]", x).split(",")) > 1]
     return float(all(_TEST_LIKE.search(x) for x in ids) and not several) if ids else None
 
@@ -617,15 +682,23 @@ def _end4(m) -> int | None:
 
 @method("atom/G1a", materials=("AP", "COLLECT", "PATH", "EDIT", "WRITE"))
 def g1a(m):
-    """The plan's steps carried out in order (each step's first edit in stage 4, ties allowed)."""
+    """The plan's steps carried out in order (each step's first edit in stage 4, ties allowed). A step is timed by the
+    target files no earlier step names; a step on files earlier steps already name cannot be told apart from them and
+    ties with the step before it (it was timed by those files' first edit until 2026-11-02, so pkg/mod.py, then
+    pkg/util.py, then pkg/mod.py again, done in that order, scored 0)."""
     w3, end4 = m.w.get(3), _end4(m)
     if w3 is None:
         return None
-    firsts = []
+    firsts, seen = [], []
     for s in m.steps:
-        hits = [n for t in claimed_paths(s["fields"].get("Target")) for q, ns in m.obs.edit_steps.items() if same_file(q, t) for n in ns if n > w3 and (end4 is None or n < end4)]
+        targets = claimed_paths(s["fields"].get("Target"))
+        new = [t for t in targets if not any(same_file(t, u) for u in seen)]
+        seen += targets
+        hits = [n for t in new for q, ns in m.obs.edit_steps.items() if same_file(q, t) for n in ns if n > w3 and (end4 is None or n < end4)]
         if hits:
             firsts.append(min(hits))
+        elif targets and not new and firsts:
+            firsts.append(firsts[-1])
     return float(firsts == sorted(firsts)) if len(firsts) >= 2 else None
 
 
@@ -685,9 +758,10 @@ def g4b(m):
 @method("atom/G5", materials=("AP", "COLLECT", "PATCH"))
 def g5(m):
     """The patch keeps the signatures the plan's Contracts preserve: for each `name(...)` a Contract names (not one it
-    introduces), a `def name` the patch rewrites keeps its required positional parameters in order, and is not
-    removed; a function the patch does not touch decides nothing (on step24 no run touched one in the first 150
-    checked). Replaced the judge question 2026-10-27."""
+    introduces), a `def name` the patch rewrites stays callable as before (``_compatible``: a default added to a
+    parameter keeps it, a new required parameter breaks it), and is not removed; a function the patch does not touch
+    decides nothing (on step24 no run touched one in the first 150 checked). Replaced the judge question 2026-10-27;
+    the comparison ran the other way until 2026-11-02 (a default added scored 0, a required parameter added 1)."""
     patch = m.whole_patch
     if not (m.steps and patch):
         return None
@@ -709,22 +783,26 @@ def g5(m):
         if "+" not in d:
             verdicts.append(False)  # removed
             continue
-        old = [_required_params(x) for x in d["-"]]
-        new = [_required_params(x) for x in d["+"]]
-        verdicts.append(all(any(o == n[: len(o)] for n in new) for o in old))
+        verdicts.append(all(any(_compatible(o, n) for n in d["+"]) for o in d["-"]))
     return _frac(verdicts) if verdicts else None
 
 
-@method("atom/G7c", materials=("DOC", "WRITE", "TEST"))
+@method("atom/G7c", materials=("DOC", "WRITE", "TEST", "SHELLCLS"))
 def g7c(m):
     """Stage 4 executes nothing it changed (04 "modify the source files in place and write the reproduction script,
-    executing neither yet"): no test attempt between the stage's start and its artifact. Running the reproduction
-    script there is G7b's (r_repro_not_in_stage4). Found by the independent rule extraction."""
+    executing neither yet"): no test attempt, and no `python -c` importing a package the run edited (or `python -m`
+    one of its modules), between the stage's start and its artifact. Running the reproduction script there is G7b's
+    (r_repro_not_in_stage4). A `python <script>.py` is not counted: in stage 4 it is as often a script that applies an
+    edit (`python /tmp/fix.py`) as one that runs the source. Found by the independent rule extraction; the python
+    runs counted from 2026-11-02 (before, only test runners were)."""
     start4 = m.read_step.get("04") if m.read_step.get("04") is not None else m.w.get(3)
     w4 = m.w.get(4)
     if start4 is None or w4 is None:
         return None
-    return 0.0 if m.obs.attempts_in(after=start4, before=w4) else 1.0
+    if m.obs.attempts_in(after=start4, before=w4):
+        return 0.0
+    packages = _packages(m.obs.source_edits)
+    return 0.0 if any(_runs_package(cmd, packages) for _, cmd, _ in m.obs.shell_in(after=start4, before=w4)) else 1.0
 
 
 @method("atom/G8b", materials=("AP", "COLLECT", "NONE"))
@@ -826,10 +904,15 @@ def h7(m):
     return 0.0 if rebuilt else 1.0
 
 
-@method("atom/H8a", materials=("AP", "COLLECT", "SCRIPT", "EXIT", "EDIT", "WRITE", "PATCH"))
+@method("atom/H8a", materials=("AP", "COLLECT", "NONE", "SCRIPT", "EXIT", "EDIT", "WRITE", "PATCH"))
 def h8a(m):
-    """A failed reproduction is acted on: the source (or the script) changed and it ran again, or the run closed.
-    Moving on to the artifact with nothing done is what the rule forbids."""
+    """A failed reproduction is acted on: the source (or the script) changed or it ran again after the last failure;
+    or the run closed as 05 Step 5 asks ("When further attempts stop producing progress, write the artifact with the
+    outstanding failures and stop"): something was done after the first failure, and 05 records the failure (its
+    reproduction Result is fail, or Outstanding Failures is not none). Moving on to the artifact with nothing done, or
+    with the failure unrecorded, is what the rule forbids (step24 000242: the script rewritten, still failing, 05 says
+    pass). Until 2026-11-02 only an action after the last failure counted, so a run that tried, still failed and
+    stopped with the failure recorded scored 0, and with t5_repro_run_after_last_edit no such run could keep both."""
     repro, w4, obs = m.repro, m.w.get(4), m.obs
     if not (repro and w4 is not None and not m.edits_unseen):
         return None
@@ -837,21 +920,29 @@ def h8a(m):
     failing = [n for n, cmd, out in runs if (code := EV.exit_code(cmd, out)) is not None and code != 0]
     if not failing:
         return None
-    acted = [n for p in [*obs.source_edits, repro] for n in obs.edit_steps.get(norm_path(p), []) + ([obs.written(repro)] if p == repro and obs.written(repro) else []) if n > failing[-1]]
-    later_runs = [n for n, _, _ in runs if n > failing[-1]]
-    return float(bool(acted) or bool(later_runs))
+    changes = [n for p in [*obs.source_edits, repro] for n in obs.edit_steps.get(norm_path(p), []) + ([obs.written(repro)] if p == repro and obs.written(repro) else [])]
+    actions = sorted(changes + [n for n, _, _ in runs])
+    if any(n > failing[-1] for n in actions):
+        return 1.0
+    tried = any(n > failing[0] for n in actions)
+    result = (_field(m.p5, "Reproduction Script", "Result") or "").lower()
+    recorded = result.startswith("fail") or _section_none(m.p5, "Outstanding Failures") is False
+    return float(tried and recorded)
 
 
 @method("atom/H8e", materials=("TEST", "EDIT", "WRITE"))
 def h8e(m):
-    """No regression left unfixed: a baseline that ran clean is clean after the last edit too."""
+    """No regression left unfixed: the last test run after the last edit fails no test the baseline did not
+    (``measures._regressed``, the claims' reading: test names where the output gives them, failure counts otherwise;
+    None when that cannot be told). Until 2026-11-02 any baseline failure passed it, and a clean baseline failed it
+    on any later failure, whichever tests ran."""
     obs = m.obs
     baseline = obs.tests_in(before=obs.first_edit) if obs.first_edit is not None else []
     post = obs.tests_in(after=obs.last_edit, before=m.w.get(5)) if obs.last_edit is not None else []
     if not (baseline and post):
         return None
-    clean = all(failures(o) == 0 for _, _, o in baseline)
-    return 0.0 if clean and failures(post[-1][2]) > 0 else 1.0
+    regressed = _regressed(post[-1][2], m.failing1, baseline)
+    return None if regressed is None else float(not regressed)
 
 
 @method("atom/H9a", materials=("EDIT", "TEST", "SCRIPT", "WRITE", "AP", "COLLECT"))
@@ -995,8 +1086,10 @@ def h17(m):
 
 @method("atom/S4.tags", materials=("AP", "COLLECT", "NONE"))
 def s4_tags(m):
-    """Each Changed Files entry tags its requirements ([R1])."""
+    """Each Changed Files entry tags its requirements: an R id after the path, in whatever brackets (the skeleton's
+    `[requirement tags]` is a placeholder; only `[R1` counted until 2026-11-02, so `(R1)` and `[satisfies R1]`
+    scored 0)."""
     if not m.p4:
         return None
     claims = [x.group(2) for x in re.finditer(r"^\s*[-*+]\s*\*{0,2}(Modified|Created)\*{0,2}\s*:\s*(.*)$", m.p4["section_bodies"].get("Changed Files") or "", re.M | re.I)]
-    return _frac([bool(re.search(r"\[\s*R\d+", v)) for v in claims if v.strip() and not is_none(v) and not A.PLACEHOLDER.fullmatch(v.strip())])
+    return _frac([bool(re.search(r"(?<![\w/.-])R\d+\b", v)) for v in claims if v.strip() and not is_none(v) and not A.PLACEHOLDER.fullmatch(v.strip())])

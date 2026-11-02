@@ -24,7 +24,7 @@ from types import SimpleNamespace
 
 import pytest
 from test_aidlc_reward import ART, ARTIFACTS, DOC, _call
-from test_aidlc_v4_eval_hacks import ATOM_CASES, HACKS, PKG, Run, T, _atom_task, _read_ahead, diff, new_file, write
+from test_aidlc_v4_eval_hacks import ATOM_CASES, HACKS, PKG, Run, T, _atom_task, _read_ahead, diff, new_file, sh, write
 
 from recipe.grpo.qwen3_5.workflow_rubric import schema
 from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import ruleset
@@ -231,6 +231,34 @@ def regression_listed(r):
     r.edit(5, "- Regressions: none", "- Regressions: tests/test_mod.py::test_parse -> broke on None -> fixed the guard")
 
 
+def repro_still_failing_at_the_end(r):
+    """honest2's stage 5: the reproduction fails, the source is fixed, it still fails, and the run stops with it
+    recorded (05 Step 5: "write the artifact with the outstanding failures and stop")."""
+    r.set_obs(r.runs("python /tmp/repro.py")[-1], "Traceback (most recent call last):\nAssertionError\nexit code: 1")
+    r.edit(5, "- Result: pass", "- Result: fail")
+    r.edit(5, "- Unmet requirements: none", "- Unmet requirements: R3")
+    r.edit(5, "## Outstanding Failures\n- none", "## Outstanding Failures\n- R3: the None input still raises AttributeError, not TypeError")
+
+
+def later_step_on_an_earlier_steps_file(r):
+    """A three-step plan done in order: pkg/mod.py, then pkg/util.py, then pkg/mod.py again."""
+    step2 = '### Step 2 [satisfies R1]\n- Target: pkg/util.py (modify in place)\n- Change: share the guard\n- Contract: parse(str) -> dict unchanged\n- Verification: repro calls parse("")\n'
+    step3 = "### Step 3 [satisfies R3]\n- Target: pkg/mod.py (modify in place)\n- Change: use the shared guard\n- Contract: parse(str) -> dict unchanged\n- Verification: repro calls parse(None)\n"
+    r.edit(3, '- Verification: repro calls parse("")', '- Verification: repro calls parse("")\n\n' + step2 + "\n" + step3)
+    at = r.edit_at() + 1
+    r.insert(
+        at,
+        T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/util.py", old_str="a", new_str="b"),
+        T("file_editor", "The file has been edited", command="str_replace", path="/testbed/pkg/mod.py", old_str="c", new_str="d"),
+    )
+
+
+def stage5_test_edit(r):
+    """A test file first changed in stage 5, after 04 was written: 04's "Test files modified: none" still holds."""
+    r.insert(r.write_of(5), T("file_editor", "The file has been edited", command="str_replace", path="/testbed/tests/test_mod.py", old_str="x", new_str="y"))
+    r.patch += diff("tests/test_mod.py", "x", "y")
+
+
 def drop_last_command(word: str):
     return lambda r: r.turns.pop(r.runs(word)[-1])
 
@@ -391,7 +419,37 @@ CASES: list[Case] = [
     Case("check/c34_deviations_recorded", "h1", deviation_recorded_by_symbol, 1.0),
     Case("check/e5_regressions_listed", "h1", regression_as_preexisting, 0.0),
     Case("check/e5_regressions_listed", "h1", regression_listed, 1.0),
+    # --- the judgments fixed on 2026-11-02 (tasks: aidlc-v4-eval-conflicts) ---
+    # tried, still failing, stopped (05 Step 5): H8a and t5_repro_run_after_last_edit both kept
+    Case("atom/H8a", "h2", repro_still_failing_at_the_end, 1.0),
+    Case("check/t5_repro_run_after_last_edit", "h2", repro_still_failing_at_the_end, 1.0),
+    # the baseline failure fixed, Pre-existing failures: none
+    Case(
+        "check/c15_preexisting_subset", "h2", edit(5, "- Pre-existing failures: tests/test_mod.py::test_old -> fails on the base commit too, outside the change", "- Pre-existing failures: none"), 1.0
+    ),
+    Case("atom/G5", "h1", lambda r: setattr(r, "patch", r.patch + diff("pkg/mod.py", "def parse(s): ...", "def parse(s, strict): ...")), 0.0),
+    Case("atom/G5", "h1", lambda r: setattr(r, "patch", r.patch + diff("pkg/mod.py", "def parse(s, strict): ...", "def parse(s, strict=False): ...")), 1.0),
+    Case("atom/G1a", "h1", later_step_on_an_earlier_steps_file, 1.0),
+    Case("atom/B10", "h1", lambda r: r.insert(r.write_of(4), write("/testbed/doc/index.rst", "Title\n=====\n")), 1.0),
+    Case("check/e4_tests_untouched", "h1", stage5_test_edit, 1.0),
+    Case("atom/S4.tags", "h1", edit(4, "- Modified: pkg/mod.py [R1, R3]", "- Modified: pkg/mod.py (R1, R3)"), 1.0),
+    Case("atom/H8e", "h2", lambda r: r.set_obs(r.runs("pytest")[-1], "tests/test_mod.py::test_parse FAILED\ntests/test_mod.py::test_old FAILED\n2 failed, 1 passed in 0.10s"), 0.0),
+    Case("atom/D7b", "h1", edit(1, "- Test: python -m pytest tests/test_mod.py -q", "- Test: python -m pytest tests/ -q"), 0.0),
+    Case("atom/D12b", "h1", edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing: tests/test_mod.py"), 0.0),
+    Case("atom/D12b", "h1", edit(1, "- Passing: tests/test_mod.py::test_parse", "- Passing: tests/test_mod.py::test_parse\n  tests/test_mod.py::test_empty"), 1.0),
+    Case("atom/G7c", "h1", lambda r: r.insert(r.write_of(4), sh("cd /testbed && python -c \"from pkg.mod import parse; print(parse(''))\"", "{}")), 0.0),
+    Case("atom/G7c", "h1", lambda r: r.insert(r.write_of(4), sh("cat /testbed/pkg/mod.py", "def parse(s): ...")), 1.0),
+    Case("check/e1_baseline_failing", "h2", edit(1, "- Failing: tests/test_mod.py::test_old", "- Failing: tests/test_mod.py::test_parse"), 0.0),
+    Case("check/c23_requirements_covered", "h1", lambda r: (r.edit(3, "### Step 1 [satisfies R1, R3]", "### Step 1 [satisfies R1]"), r.edit(3, "- R3: Step 1", "- R3: N/A")), BROKEN),
 ]
+
+
+def test_r_ids_absent_is_no_duplicate():
+    """form/E4b@2 is not applicable without R ids (E3c@2 scores their absence)."""
+    r = Run()
+    r.artifact(2, re.sub(r"(?m)^- R(\d+): ", "- ", r.files[ART[2]]))
+    s = r.score(_atom_task(r))
+    assert s["aidlc/form/E3c@2"] == 0.0 and "aidlc/form/E4b@2" not in s
 
 
 def _case_id(c: Case) -> str:

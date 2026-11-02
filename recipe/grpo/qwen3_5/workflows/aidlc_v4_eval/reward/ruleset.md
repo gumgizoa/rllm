@@ -142,7 +142,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | G6b | 4 | Q | 이전에 통과하던 테스트는 계속 통과함 (결과 조건, verifier가 담당) | CW:150 | none: not applicable (the task verifier's tests) |
 | G7a | 4 | C | 재현 스크립트를 plan에 적은 경로에 씀 | S4:28, S4:68 | `check/c34_repro_path` (C: 4; AP COLLECT PATH)<br>`check/t4_repro_written_before_write` (A: 4; AP COLLECT PATH EDIT WRITE) |
 | G7b | 4 | R | 4단계에서는 재현 스크립트를 실행하지 않음 | S4:28, S4:86 | `rule/r_repro_not_in_stage4` (R: 4; AP COLLECT PATH SCRIPT DOC WRITE) |
-| G7c | 4 | R | 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음 | CW:113, S4:86 | `atom/G7c` (R: 4; DOC WRITE TEST) |
+| G7c | 4 | R | 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음 | CW:113, S4:86 | `atom/G7c` (R: 4; DOC WRITE TEST SHELLCLS) |
 | G8a | 4 | Q | plan과 달라진 것을 무엇이·왜와 함께 기록함 (없으면 none) | S4:34 | `check/c34_deviations_none` (A: 4; AP COLLECT NONE PATH)<br>`judge/G8a` (Q: 4; JUDGE ISSUE COLLECT PATCH) |
 | G8b | 4 | F | deviation을 local correction / structural invalidation으로 구분함 | S4:36, S4:37, S4:76 | `atom/G8b` (F: 4; AP COLLECT NONE) |
 | G8c | 4 | Q | structural이면 무효가 된 step, 이유, 대체 방법을 적음 | S4:37 | none: judge, low priority, not asked (no run of the 200 judged records a structural invalidation (a judge question until 2026-10-28); G8a asks what changed and why of every deviation) |
@@ -170,7 +170,7 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | H5b | 5 | C | 05 Pre-existing failures는 01 baseline에서 실패한 테스트만 | S5:37, S5:84 | `check/c15_preexisting_subset` (C: 5; AP COLLECT NONE TARGET) |
 | H6 | 5 | R | 전체 테스트 suite를 돌리지 않음 | S5:39 | `rule/r_targeted_tests` (R: 5; TEST TARGET DOC WRITE) |
 | H7 | 5 | R | baseline을 다시 만들려고 테스트를 재실행하지 않음 | S5:11 | `atom/H7` (R: 5; SHELLCLS TEST WRITE) |
-| H8a | 5 | E | 재현 스크립트가 실패하면 소스를 고침 | S5:47, S5:53 | `atom/H8a` (E: 5; AP COLLECT SCRIPT EXIT EDIT WRITE PATCH) |
+| H8a | 5 | E | 재현 스크립트가 실패하면 소스를 고침 | S5:47, S5:53 | `atom/H8a` (E: 5; AP COLLECT NONE SCRIPT EXIT EDIT WRITE PATCH) |
 | H8b | 5 | C | baseline에서 통과하던 테스트가 실패하면 Pre-existing이 아니라 Regressions에 적음 | S5:48 | `check/e5_regressions_listed` (C: 5; AP COLLECT TEST EDIT WRITE) |
 | H8g | 5 | Q | Regressions 항목마다 무엇이 테스트를 깨뜨렸고 어떻게 해결했는지 적음 | S5:48, S5:83 | `judge/H8g` (Q: 5; JUDGE ISSUE COLLECT) |
 | H8c | 5 | R | baseline에서도 실패하던 테스트(pre-existing)는 고치지 않음 | S1:39, S5:49 | none: judge, low priority, not asked (pre-existing failures left unfixed) |
