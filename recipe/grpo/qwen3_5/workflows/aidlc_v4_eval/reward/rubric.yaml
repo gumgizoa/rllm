@@ -6533,9 +6533,11 @@ appendix:
       B5a: B6a (frontmatter keys)
       B5c: the per-field rules (field prefixes)
       B5d: S1.recorded, S4.executed (the skeleton's two fixed sentences)
-      B7b: B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in
-        both places is allowed; a judge question until 2026-10-27)
-      B9: the reference checks (R ids, steps quoted as written)
+      B7b: B7 (B7 asks whether open work recorded in artifact 04 or another section of artifact 05 is also listed under Outstanding
+        Failures, so open work recorded elsewhere with Outstanding Failures left none is B7's no; recording it in both places
+        is allowed)
+      B9: S3.tag (03 step tags), S3.exercises (03 Exercises), F5 (03 Requirement Coverage), G9 (04 Plan Execution) and H15c
+        (Unmet requirements); each checks that the R ids and step numbers quoted are ones 02 and 03 define
       D4c: D4b (the line is about surveying the repository; a judge question until 2026-10-27, yes on 56 of 56)
       D10c: D10a (atom/D10a, check/e1_test_path_seen)
       E1b: E1a (an alternative interface) and E1c (an alternative behaviour); re-deriving is a process the artifact does not

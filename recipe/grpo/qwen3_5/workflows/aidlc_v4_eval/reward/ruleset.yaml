@@ -248,7 +248,7 @@ rules:
   text: Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음
   excluded:
     why: covered by another rule's items
-    detail: B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in both places is allowed; a judge question until 2026-10-27)
+    detail: B7 (B7 asks whether open work recorded in artifact 04 or another section of artifact 05 is also listed under Outstanding Failures, so open work recorded elsewhere with Outstanding Failures left none is B7's no; recording it in both places is allowed)
 - id: B8
   stage: 0
   kind: P
@@ -261,7 +261,7 @@ rules:
   text: R id, step 번호, 경로를 바꾸지 않고 그대로 인용함
   excluded:
     why: covered by another rule's items
-    detail: the reference checks (R ids, steps quoted as written)
+    detail: S3.tag (03 step tags), S3.exercises (03 Exercises), F5 (03 Requirement Coverage), G9 (04 Plan Execution) and H15c (Unmet requirements); each checks that the R ids and step numbers quoted are ones 02 and 03 define
 - id: B10
   stage: 0
   kind: R

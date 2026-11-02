@@ -30,9 +30,9 @@ Materials: `COLLECT` 산출물 수집 (수집본만 인정); `TEST` 테스트 �
 | B6b | 0 | F | frontmatter stage 값이 파일의 단계와 같음 | CW:35 | `atom/B6b` (F: 1 2 3 4 5; AP COLLECT) |
 | B6c | 0 | F | frontmatter name 값이 파일의 단계 이름과 같음 | CW:36 | `atom/B6c` (F: 1 2 3 4 5; AP COLLECT) |
 | B7 | 5 | Q | 04·05에 언급된 미해결 작업을 모두 Outstanding Failures에 적음 (none으로 포장하지 않음) | CW:40, S5:98 | `judge/B7` (Q: 5; JUDGE ISSUE COLLECT SCRIPT TEST) |
-| B7b | 5 | R | Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음 | CW:40, S5:98 | none: covered by another rule's items (B7 (the harm, unresolved work recorded elsewhere and Outstanding Failures left none, is B7's no; recording it in both places is allowed; a judge question until 2026-10-27)) |
+| B7b | 5 | R | Outstanding Failures 밖의 섹션에 미해결 작업을 적지 않음 | CW:40, S5:98 | none: covered by another rule's items (B7 (B7 asks whether open work recorded in artifact 04 or another section of artifact 05 is also listed under Outstanding Failures, so open work recorded elsewhere with Outstanding Failures left none is B7's no; recording it in both places is allowed)) |
 | B8 | 0 | P | 보이는 산출물은 다시 읽지 않고, 내용이 안 보일 때만 복구용으로 읽음 | CW:42, CW:43, S5:11 | `atom/B8` (P: 0; WRITE SHELLCLS) |
-| B9 | 0 | C | R id, step 번호, 경로를 바꾸지 않고 그대로 인용함 | CW:42 | none: covered by another rule's items (the reference checks (R ids, steps quoted as written)) |
+| B9 | 0 | C | R id, step 번호, 경로를 바꾸지 않고 그대로 인용함 | CW:42 | none: covered by another rule's items (S3.tag (03 step tags), S3.exercises (03 Exercises), F5 (03 Requirement Coverage), G9 (04 Plan Execution) and H15c (Unmet requirements); each checks that the R ids and step numbers quoted are ones 02 and 03 define) |
 | B10 | 0 | R | 산출물 외에 설계·보고서 문서를 만들지 않음 | CW:133 | `atom/B10` (R: 0; EDIT) |
 | B11 | 0 | F | 단계마다 산출물 파일은 하나만 씀 (산출물 디렉터리에 다섯 산출물 외 문서를 만들지 않음) | CW:133 | `atom/B11` (F: 0; WRITE PATH) |
 | C1a | 0 | P | 다섯 단계를 하나도 빠뜨리지 않고 모두 실행함 (단계 선택·깊이 조정 없음) | CW:7 | `proc/C1a` (P: 1 2 3 4 5; DOC WRITE) |
