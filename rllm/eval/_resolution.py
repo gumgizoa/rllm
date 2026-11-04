@@ -32,6 +32,7 @@ from rllm.eval.module_evaluator import PythonModuleEvaluator, _coerce_eval_resul
 from rllm.eval.script_evaluator import ShellScriptEvaluator
 from rllm.eval.types import EvalOutput
 from rllm.sandbox.protocol import Sandbox
+from rllm.timeouts import RolloutClock, resolve_verifier_timeout
 from rllm.types import Episode, Evaluator, Task
 
 logger = logging.getLogger(__name__)
@@ -98,8 +99,14 @@ def _resolve_evaluator(
     sandbox: Sandbox | None,
     kind: str,
     verifier_config: dict,
+    verifier_timeout: float | None = None,
+    clock: RolloutClock | None = None,
 ) -> Evaluator:
-    """Construct an Evaluator instance for this task."""
+    """Construct an Evaluator instance for this task.
+
+    ``verifier_timeout`` is the train-config override and ``clock`` the
+    rollout budget the verifier is cut to (see :mod:`rllm.timeouts`).
+    """
     if kind == "sandbox-shell":
         if sandbox is None:
             raise RuntimeError("sandbox-shell verifier requires an active sandbox")
@@ -107,8 +114,9 @@ def _resolve_evaluator(
             sandbox=sandbox,
             script_path=verifier_config.get("script", "tests/test.sh"),
             verifier_user=task.metadata.get("verifier_user"),
-            verifier_timeout=float(task.metadata.get("verifier_timeout", 600.0)),
+            verifier_timeout=resolve_verifier_timeout(task, verifier_timeout),
             reward_file_override=verifier_config.get("reward_file"),
+            clock=clock,
         )
 
     if kind in ("python-host", "python-hybrid"):

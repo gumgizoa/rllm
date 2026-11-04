@@ -29,6 +29,7 @@ import logging
 import shlex
 
 from rllm.sandbox.sandboxed_flow import SandboxedAgentFlow
+from rllm.timeouts import agent_timeout_for
 from rllm.types import AgentConfig, Episode, Step, Task, Trajectory
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ class OracleHarness(SandboxedAgentFlow):
         sandbox.exec(f"chmod +x {shlex.quote(container_solve)}", user="root")
 
         agent_user = task.metadata.get("agent_user")
-        timeout = float(task.metadata.get("agent_timeout", 7200))
+        timeout = agent_timeout_for(task, config)
 
         # Honor ``[solution].env`` from task.toml — same shape Harbor's
         # OracleAgent reads via ``resolve_env_vars``.

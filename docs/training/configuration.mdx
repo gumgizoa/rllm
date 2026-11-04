@@ -65,6 +65,16 @@ Settings for workflow-based training (alternative to agent-based training).
 | `retry_limit` | `int` | `3` | Maximum number of retries on failure |
 | `raise_on_error` | `bool` | `True` | Whether to raise exceptions on errors |
 
+### Rollout time limits
+
+Wall-clock limits, in seconds, for AgentFlow rollouts in a sandbox. `null` falls through to the task's `task.toml`, then to an `RLLM_*` environment variable (see [Environment variables](/guides/environment-variables)). `rllm eval` has no experiment config, so it uses `task.toml` and the environment variables only. Every limit must be greater than 0 from whichever source sets it; zero and negative values are rejected.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `timeouts.rollout` | `float \| null` | `null` | Budget for the agent and the verifier together (sandbox setup excluded). Else `RLLM_ROLLOUT_TIMEOUT_S`; unset means no budget. The verifier limit is reserved out of it first: the agent runs under `min(agent limit, rollout - verifier limit)` and the verifier under `min(verifier limit, remaining)`. Must exceed the verifier limit |
+| `timeouts.agent` | `float \| null` | `null` | Agent limit. Else `task.toml` `[agent].timeout_sec`, else `RLLM_HARNESS_RUN_TIMEOUT_S` (1800). Running out stamps `agent_timeout` |
+| `timeouts.verifier` | `float \| null` | `null` | Verifier limit. Else `task.toml` `[verifier].timeout_sec`, else `RLLM_VERIFIER_TIMEOUT_S` (600). Running out stamps `verifier_timeout` |
+
 ### Rollout configuration
 
 Settings for trajectory rollouts during training and validation.

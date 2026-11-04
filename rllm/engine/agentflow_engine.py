@@ -35,6 +35,7 @@ from rllm.data.utils import task_from_row
 from rllm.engine.trace_converter import compute_step_metrics, trace_record_to_step
 from rllm.eval.types import EvalOutput
 from rllm.gateway.manager import container_reachable_url
+from rllm.timeouts import RolloutClock, check_rollout_budget, resolve_agent_timeout, resolve_rollout_timeout, resolve_verifier_timeout
 from rllm.types import AgentConfig, Episode, Step, Task, Trajectory, flow_accepts_env, run_agent_flow
 from rllm.utils import colorful_print
 from rllm.workflows.workflow import TerminationReason
@@ -76,6 +77,8 @@ class TaskContext:
     env_backend: str | None = None  # backend that actually provisioned env
     teardown: Any = None  # Callable[[], None] | None — kept loose to avoid Callable import loop
     setup_metrics: dict[str, float] = field(default_factory=dict)
+    # Whole-rollout budget; the engine starts it, a sandbox verifier reads what is left.
+    clock: RolloutClock = field(default_factory=RolloutClock)
 
     def run_teardown(self) -> None:
         if self.teardown is None:
@@ -430,7 +433,14 @@ def _raise_fd_limit(target: int = _MIN_FD_LIMIT) -> None:
 
 
 class AgentFlowEngine:
-    """Executes AgentFlows with gateway-mediated trace capture."""
+    """Executes AgentFlows with gateway-mediated trace capture.
+
+    ``rollout_timeout`` / ``agent_timeout`` / ``verifier_timeout`` are train-config
+    overrides of the rollout budget, the agent limit and the verifier limit; ``None``
+    falls through to task.toml and the ``RLLM_*`` env vars (see :mod:`rllm.timeouts`).
+    The engine needs the verifier limit to reserve grading time out of the budget;
+    the hooks resolve the same limit again for the evaluator itself.
+    """
 
     def __init__(
         self,
@@ -445,6 +455,9 @@ class AgentFlowEngine:
         hooks: TaskHooks | None = None,
         train_sampling_params: dict | None = None,
         val_sampling_params: dict | None = None,
+        rollout_timeout: float | None = None,
+        agent_timeout: float | None = None,
+        verifier_timeout: float | None = None,
     ) -> None:
         if evaluator is None and hooks is None:
             raise ValueError("AgentFlowEngine requires either an `evaluator` (single evaluator for every task) or `hooks` (per-task evaluator + setup/teardown). Both cannot be None.")
@@ -467,6 +480,14 @@ class AgentFlowEngine:
         self.hooks = hooks
         self.train_sampling_params = train_sampling_params
         self.val_sampling_params = val_sampling_params
+        self.rollout_timeout = rollout_timeout
+        self.agent_timeout = agent_timeout
+        self.verifier_timeout = verifier_timeout
+        if verifier_timeout is not None:
+            # Both sides of the check are known here (config / env, no task.toml):
+            # fail at construction rather than per rollout, where an ERROR episode
+            # is all compact_filtering would show of it.
+            check_rollout_budget(resolve_rollout_timeout(rollout_timeout), verifier_timeout)
 
         self.executor = ThreadPoolExecutor(max_workers=n_parallel_tasks)
         self._semaphore = asyncio.Semaphore(n_parallel_tasks)
@@ -719,12 +740,20 @@ class AgentFlowEngine:
             if llm_inside_env and ctx.env is not None:
                 session_url = container_reachable_url(session_url, ctx.env_backend)
 
+            # The rollout budget covers the agent and the verifier, not sandbox
+            # setup. The verifier's limit is reserved up front so an agent that
+            # uses up its share still leaves a gradable repo with time to grade it.
+            budget = resolve_rollout_timeout(self.rollout_timeout)
+            verifier_limit = resolve_verifier_timeout(task_obj, self.verifier_timeout)
+            check_rollout_budget(budget, verifier_limit)
+            ctx.clock.start(budget)
             config = AgentConfig(
                 base_url=session_url,
                 model=self.model,
                 session_uid=uid,
                 is_validation=is_validation,
                 sampling_params=session_sampling_params or {},
+                agent_timeout=ctx.clock.cap(resolve_agent_timeout(task_obj, self.agent_timeout), reserve=verifier_limit),
             )
             logger.debug("[%s] Starting agent flow at %s", uid, session_url)
             t = time.perf_counter()

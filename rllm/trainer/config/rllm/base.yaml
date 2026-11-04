@@ -40,6 +40,12 @@ workflow:
   # negative matches the sandbox-creation frontier, positive = literal cap.
   warm_queue_size: -1
 
+# Rollout time limits in seconds (AgentFlow path); null falls through. See rllm/timeouts.py.
+timeouts:
+  rollout: null   # agent + verifier budget; else $RLLM_ROLLOUT_TIMEOUT_S; else no budget
+  agent: null     # else task.toml [agent].timeout_sec; else $RLLM_HARNESS_RUN_TIMEOUT_S (1800)
+  verifier: null  # else task.toml [verifier].timeout_sec; else $RLLM_VERIFIER_TIMEOUT_S (600)
+
 # Rollout configuration: backend-agnostic source of truth for sampling params.
 # For AgentFlow, rollout.{train,val} are attached to the gateway session and
 # enforced on every LLM call; extra keys (e.g. presence_penalty) pass through.
