@@ -9,7 +9,7 @@ GRPO training for a **native rLLM** SWE agent — `AgentFlowEngine`, not the Har
 | Backend               | tinker                            | **verl**                                                             |
 | Model                 | -                                 | Qwen/Qwen3.5-9B, 256K context, 8 x H200                               |
 | Train data            | `harbor:swesmith`                 | `swe_mix_train` (182 swe_feat + 539 SWE-RL v3 tasks, 721 in all)      |
-| Val data              | `harbor:swebench-verified`        | `swebenchpro_v2_py50` (50 SWE-bench Pro V2 Python tasks)              |
+| Val data              | `harbor:swebench-verified`        | `swebenchpro_v2_strat50` (50 SWE-bench Pro V2 tasks)                  |
 
 `rllm.remote_runtime.enabled=false` throughout. Harbor task trees (SWE-bench Pro V2, and
 SWE-bench Verified for the 4B-era datasets) are used **only as a source of task directories**
@@ -117,32 +117,26 @@ uv pip install flash-linear-attention==0.5.2
 # Backport verl PR #6660 (in v0.9.0; rLLM pins verl==0.8.0). Fixes Qwen3.5 linear
 # attention under sequence packing and Ulysses SP. Idempotent; --revert undoes it.
 bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
-
-# Validation: 50 SWE-bench Pro V2 Python tasks, stratified by repo. The id list is
-# committed (val_tasks_swebenchpro_v2_py50.txt); the eval recipe's builder fetches the
-# pinned, checksummed task tree and registers the subset. --workdir /app is what lets
-# hide_git_history find the repo (V2's task.toml names no workdir).
-python recipe/grpo/qwen3_5/scripts/select_swebenchpro_v2_val.py
-python recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2_subset.py \
-    --ids recipe/grpo/qwen3_5/val_tasks_swebenchpro_v2_py50.txt \
-    --name swebenchpro_v2_py50 --workdir /app
-
-# Training, part 1: swe_feat tasks picked by Qwen3.5-9B's own pass counts (see below).
-python recipe/grpo/qwen3_5/scripts/prepare_swefeat.py \
-    --source "$RLLM_HOME/datasets/swe_feat" \
-    --first4 pass_dist_first4.tsv --extra4 zero4_status.tsv --name swefeat_9b_train_182
 ```
+
+The datasets `config/config.yaml` names are registered under `$RLLM_HOME/datasets` with the
+eval recipe's SWE-bench Pro V2 builder (`recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2.py
+--ids <id list> --name <name>`, which declares `[environment] workdir = "/app"` so
+`hide_git_history` can find the repo) and the native task-per-directory layout for the rest.
+
+Validation is `swebenchpro_v2_strat50`: 50 SWE-bench Pro V2 tasks, stratified by repository
+and by how the base model did on them, so the val score has headroom in both directions.
 
 The training split `recipe.train_dataset=swe_mix_train` is two sets registered as one:
 
-* **`swefeat_9b_train_182/train`** (`scripts/prepare_swefeat.py`) - swe_feat is a set of Python
-  feature-implementation tasks in the native sandbox layout. Every task was rolled out 4 times
-  with Qwen3.5-9B under this harness (`rllm eval --agent openhands-sdk --hide-git-history`),
-  and the 0/4 tasks got 4 more attempts. The split keeps the 158 tasks solved 1-3 times in the
-  first 4 attempts plus the 24 solved only in the extra attempts. Tasks solved 4/4 are out
-  (every group would score 1.0, so the leave-one-out estimator gives them zero advantage), and
-  so are tasks never solved in 8 attempts. The script checks that every task's image exists
-  locally under the tag `task.toml` names, so a missing image fails here and not mid-run.
+* **182 swe_feat tasks** - swe_feat is a set of Python feature-implementation tasks in the
+  native sandbox layout. Every task was rolled out 4 times with Qwen3.5-9B under this harness
+  (`rllm eval --agent openhands-sdk --hide-git-history`), and the 0/4 tasks got 4 more
+  attempts. The split keeps the 158 tasks solved 1-3 times in the first 4 attempts plus the 24
+  solved only in the extra attempts. Tasks solved 4/4 are out (every group would score 1.0, so
+  the leave-one-out estimator gives them zero advantage), and so are tasks never solved in 8
+  attempts. Every task's image has to exist locally under the tag `task.toml` names before
+  training starts; a missing image fails at setup and not mid-run.
 * **539 SWE-RL v3 tasks** - the 540 tasks of its 1-7/8 training lists, minus one whose tests
   need a multicast-capable network interface rLLM's isolated sandbox network does not have.
   The installed copies were adapted to load in stock Harbor and to pass their oracle with the
@@ -208,7 +202,7 @@ cheapest way to prove that a task's image, verifier and reward file all work bef
 rollouts on it:
 
 ```bash
-rllm eval swebenchpro_v2_py50 --agent oracle --sandbox-backend docker --hide-git-history \
+rllm eval swebenchpro_v2_strat50 --agent oracle --sandbox-backend docker --hide-git-history \
     --split test --concurrency 8 --no-ui \
     --base-url http://127.0.0.1:1/v1 --model oracle-dummy
 ```
@@ -1231,7 +1225,6 @@ recipe/grpo/qwen3_5/
 ├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl")
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
-├── val_tasks_swebenchpro_v2_py50.txt     # the 50 val task ids (select_swebenchpro_v2_val.py)
 ├── val_tasks_swebenchverified_30.txt     # 4B-era SWE-bench Verified val pin (prepare_datasets.py)
 ├── config/
 │   ├── config.yaml               # Hydra entry + recipe.* (datasets, harness, turn budget, reward scale, sandbox)
@@ -1240,8 +1233,6 @@ recipe/grpo/qwen3_5/
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/
-    ├── prepare_swefeat.py        # swe_feat training split from the 9B's pass counts
-    ├── select_swebenchpro_v2_val.py  # SWE-bench Pro V2 Python val ids, stratified by repo
     ├── prepare_datasets.py       # 4B-era SWE-smith / SWE-bench Verified benchmarks
     ├── apply_verl_patches.sh     # applies patches/ to the installed verl
     ├── verify_cumulative.py      # asserts the renderer / cumulative-token invariants

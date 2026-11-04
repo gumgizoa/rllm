@@ -17,11 +17,7 @@
 #   source .venv/bin/activate
 #   uv pip install flash-linear-attention==0.5.2
 #   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
-#   python recipe/grpo/qwen3_5/scripts/select_swebenchpro_v2_val.py
-#   python recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2_subset.py \
-#       --ids recipe/grpo/qwen3_5/val_tasks_swebenchpro_v2_py50.txt \
-#       --name swebenchpro_v2_py50 --workdir /app
-#   python recipe/grpo/qwen3_5/scripts/prepare_swefeat.py ...   # + SWE-RL v3 -> swe_mix_train
+#   register the datasets config/config.yaml names (swe_mix_train, swebenchpro_v2_strat50)
 #
 # Env:
 #   ENV_FILE          dotenv to source         (default: <recipe>/.env)
