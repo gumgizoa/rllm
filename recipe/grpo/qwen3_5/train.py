@@ -1,4 +1,4 @@
-"""Native rLLM SWE GRPO on verl — Qwen3.5-4B + mini-swe-agent or openhands-sdk.
+"""Native rLLM SWE GRPO on verl - Qwen3.5-9B + openhands-sdk or mini-swe-agent.
 
 Not Harbor: the rollout is ``AgentFlowEngine`` → ``SandboxTaskHooks`` (Docker)
 → the harness ``recipe.harness`` names (``MiniSweAgentHarness`` or
@@ -136,6 +136,7 @@ def make_agent_flow(recipe):
                 "agent_kwargs": {
                     "max_iterations": step_limit,
                     "include_default_tools": [str(t) for t in recipe.openhands_default_tools],
+                    "strict_tool_calls": bool(recipe.openhands_strict_tool_calls),
                 }
             }
         )
