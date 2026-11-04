@@ -374,8 +374,8 @@ def train_module(monkeypatch):
 
 def _episodes(reason, verifier, compliance_value):
     signals = {} if compliance_value is None else {"aidlc/compliance": compliance_value}
-    traj = SimpleNamespace(reward=verifier, signals=signals)
-    return [SimpleNamespace(termination_reason=reason, trajectories=[traj])], traj
+    traj = SimpleNamespace(reward=verifier, signals=signals, steps=[])
+    return [SimpleNamespace(termination_reason=reason, trajectories=[traj], task_id="t", is_correct=verifier > 0, metrics={})], traj
 
 
 def _reward(train_module, reason, verifier, compliance_value, mode, lam=0.2, scale=0.5):
@@ -465,11 +465,16 @@ def test_hook_reads_whichever_workflow_signal_the_trajectory_carries(train_modul
     from rllm.workflows.workflow import TerminationReason as TR
 
     hook = train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, ("aidlc/compliance", "other/compliance"))
-    a = SimpleNamespace(reward=1.0, signals={"aidlc/compliance": 0.5})
-    b = SimpleNamespace(reward=1.0, signals={"other/compliance": 0.25})
-    plain = SimpleNamespace(reward=1.0, signals={"workflow/none/resolved": 1.0})
-    hook([SimpleNamespace(termination_reason=TR.ENV_DONE, trajectories=[t]) for t in (a, b, plain)], None)
+    a = SimpleNamespace(reward=1.0, signals={"aidlc/compliance": 0.5}, steps=[])
+    b = SimpleNamespace(reward=1.0, signals={"other/compliance": 0.25}, steps=[])
+    plain = SimpleNamespace(reward=1.0, signals={"workflow/none/resolved": 1.0}, steps=[])
+    eps = [SimpleNamespace(termination_reason=TR.ENV_DONE, trajectories=[t], task_id=str(i), is_correct=True, metrics={}) for i, t in enumerate((a, b, plain))]
+    hook(eps, None)
     assert (a.reward, b.reward, plain.reward) == (0.5, 0.25, 1.0)
+    # the hook also wrote the rollout metrics, after shaping
+    assert [e.metrics["rollout/compliance_solved"] for e in eps[:2]] == [0.5, 0.25]
+    assert "rollout/compliance_solved" not in eps[2].metrics
+    assert all(e.metrics["rollout/solved_below_group_mean"] == 0.0 for e in eps)
 
 
 def test_workflow_reward(train_module, tmp_path, monkeypatch):

@@ -115,7 +115,12 @@ def make_budget_scaled_grouping_hook(
     One caveat: the trainer runs the same hook over validation episodes, so
     ``val/reward_*`` is scaled -- and carries the compliance term -- too.
     ``val/accuracy`` is built from ``is_correct`` and is not affected.
+
+    After shaping, ``rollout_metrics.annotate`` writes the ``rollout/*`` episode
+    metrics (exploration turns, test runs, compliance split by verdict, solved
+    rollouts under their group mean); the trainer averages them after this hook.
     """
+    from recipe.grpo.qwen3_5.rollout_metrics import annotate
     if not 0.0 <= scale <= 1.0:
         raise ValueError(f"budget_reward_scale must be in [0, 1], got {scale}")
     if compliance_mode is not None and compliance_mode not in COMPLIANCE_MODES:
@@ -141,6 +146,7 @@ def make_budget_scaled_grouping_hook(
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
                 if exhausted and scale != 1.0:
                     trajectory.reward = trajectory.reward * scale
+        annotate(episodes)
         return _default_traj_grouping_hook(episodes, transform_config, compact_filtering_config)
 
     return hook

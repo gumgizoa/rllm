@@ -542,6 +542,14 @@ class UnifiedTrainer:
         if not trainer_state.has_episodes:
             return
 
+        # stage 2: transform episodes to trajectory groups (sync)
+        trajectory_groups, transform_metrics = transform_episodes_to_trajectory_groups(trainer_state.episodes, self.transform_config, self.cf_config, traj_grouping_hook=self.traj_grouping_hook)
+        trainer_state.trajectory_groups = trajectory_groups
+        trainer_state.metrics.update(transform_metrics)
+
+        # Episode metrics are read after the grouping hook, so metrics the hook
+        # writes (reward shaping diagnostics) reach ``batch/`` like the
+        # evaluator's own; the validation path already reads them after it.
         workflow_metrics, termination_counts = self._collect_workflow_metrics_from_episodes(trainer_state.episodes)
         for key, value in workflow_metrics.items():
             trainer_state.metrics[f"batch/{key}"] = np.mean(value)
@@ -549,11 +557,6 @@ class UnifiedTrainer:
         total_counts = max(sum(termination_counts.values()), 1)
         for r in TerminationReason:
             trainer_state.metrics[f"batch/termination_reason/{r.value}"] = termination_counts[r.value] / total_counts
-
-        # stage 2: transform episodes to trajectory groups (sync)
-        trajectory_groups, transform_metrics = transform_episodes_to_trajectory_groups(trainer_state.episodes, self.transform_config, self.cf_config, traj_grouping_hook=self.traj_grouping_hook)
-        trainer_state.trajectory_groups = trajectory_groups
-        trainer_state.metrics.update(transform_metrics)
 
         # stage 3: apply rejection sampling (sync)
         filtered_groups, filtered_episodes, rs_metrics = apply_rejection_sampling_and_filtering(
