@@ -48,6 +48,11 @@ recipe:
   # FinishTool lets the agent end the run; ThinkTool is left out because a model
   # with reasoning on already thinks every turn and it would only spend steps.
   openhands_default_tools: [FinishTool]
+  # openhands-sdk only, `--agent-kwargs` strict_tool_calls: run tool calls as the model
+  # wrote them. Off, the SDK repairs wrong ones silently (str_replace -> file_editor and
+  # more; rllm/harnesses/tools/openhands_sdk_runner.py), so the policy is rewarded for
+  # them: 24% of the file edits in the first 9B run were `str_replace` calls.
+  openhands_strict_tool_calls: true
   agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
   # Keep each task workdir's .git out of the sandbox while the agent runs and
   # put it back for the verifier (rllm/sandbox/git_history.py). SWE task images

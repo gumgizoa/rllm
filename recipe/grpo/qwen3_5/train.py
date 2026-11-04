@@ -136,6 +136,7 @@ def make_agent_flow(recipe):
                 "agent_kwargs": {
                     "max_iterations": step_limit,
                     "include_default_tools": [str(t) for t in recipe.openhands_default_tools],
+                    "strict_tool_calls": bool(recipe.openhands_strict_tool_calls),
                 }
             }
         )
