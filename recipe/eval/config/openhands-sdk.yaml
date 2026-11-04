@@ -2,7 +2,7 @@
 #
 # Unset keys keep the SDK defaults (500 iterations; FinishTool + ThinkTool).
 # Model request params (reasoning_effort, chat_template_kwargs) go in --sampling-params.
-max_iterations: 150                  # cap on agent steps per rollout
+max_iterations: 250                  # cap on agent steps per rollout
 include_default_tools: [FinishTool]  # drop ThinkTool: models with reasoning on already think every turn
 # true: no SDK repair of wrong tool calls (str_replace -> file_editor, ...); the model gets
 # the error instead. false keeps the SDK default, under which earlier results were measured.
