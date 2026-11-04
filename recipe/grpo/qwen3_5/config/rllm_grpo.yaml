@@ -54,7 +54,7 @@ rllm:
     n_val: 2
     train:
       temperature: 1.0
-      top_p: 0.95
+      top_p: 1.0
       max_tokens: 16384  # per agent turn, not per episode
     val:
       temperature: 1.0

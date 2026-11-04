@@ -17,14 +17,11 @@ defaults:
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
-  # 721 tasks: 182 swe_feat tasks Qwen3.5-9B solved at least once but not 4/4
-  # (scripts/prepare_swefeat.py, swefeat_9b_train_182) + 539 SWE-RL v3 tasks (swe_rl_v1_2_ok /
-  # swe_rl_v2_diff_ok, the v3 1-7/8 lists minus one task rLLM's sandbox network cannot run)
   train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
   # 50 SWE-bench Pro V2 Python tasks, stratified by repo (scripts/select_swebenchpro_v2_val.py)
-  val_dataset: swebenchpro_v2_py50
+  val_dataset: swebenchpro_v2_strat50
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
