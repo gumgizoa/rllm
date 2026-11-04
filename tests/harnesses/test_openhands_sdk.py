@@ -156,7 +156,7 @@ def test_recipe_config_matches_the_harness_keys():
     cfg = Path(__file__).parents[2] / "recipe/eval/config/openhands-sdk.yaml"
     h = OpenHandsSdkHarness()
     assert h.configure({"agent_kwargs": parse_mapping_spec(f"@{cfg}", flag="--agent-kwargs")}) == {}
-    assert h.max_iterations == 150
+    assert h.max_iterations == 250
     assert h.include_default_tools == ["FinishTool"]
     assert h.strict_tool_calls is False
 
