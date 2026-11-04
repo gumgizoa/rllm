@@ -20,7 +20,6 @@ recipe:
   train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
-  # 50 SWE-bench Pro V2 Python tasks, stratified by repo (scripts/select_swebenchpro_v2_val.py)
   val_dataset: swebenchpro_v2_strat50
   val_split: test
   val_limit: -1
