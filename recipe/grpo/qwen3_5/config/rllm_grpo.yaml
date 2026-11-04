@@ -104,11 +104,9 @@ rllm:
   workflow:
     # One Docker sandbox per in-flight rollout, and -- since the agent makes one
     # LLM call at a time -- also the cap on concurrent requests to the 8 vLLM
-    # servers (48 -> 6 sequences per GPU). Keep equal to recipe.sandbox_concurrency.
-    # Host side: 48 x (4 CPU quota, 16 GB) on 192 cores / 2 TB. GPU side: at
-    # gpu_memory_utilization 0.70 a GPU's KV cache holds ~10 sequences at the full
-    # 256K context (Qwen3.5-9B: 8 full-attention layers, 32 KB/token).
-    n_parallel_tasks: 48
+    # servers (8 -> 1 sequence per GPU). Keep equal to recipe.sandbox_concurrency.
+    # Host side: 8 x (4 CPU quota, 16 GB), plus as many prefetched sandboxes.
+    n_parallel_tasks: 8
     retry_limit: 3
     raise_on_error: false
 
