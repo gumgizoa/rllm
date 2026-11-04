@@ -117,6 +117,18 @@ retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
 """
 
 
+def _flag(value, key: str) -> bool:
+    """A boolean ``--agent-kwargs`` value; key=value form gives a string."""
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("true", "1", "yes", "on"):
+        return True
+    if text in ("false", "0", "no", "off"):
+        return False
+    raise ValueError(f"--agent-kwargs {key} must be true or false, got {value!r}")
+
+
 class OpenHandsSdkHarness(BaseCliHarness):
     """Run the OpenHands Software Agent SDK inside the sandbox."""
 
@@ -129,9 +141,12 @@ class OpenHandsSdkHarness(BaseCliHarness):
     # (reasoning_effort, chat_template_kwargs) belong in --sampling-params.
     max_iterations: int | None = None
     include_default_tools: list[str] | None = None
+    # Off keeps the SDK's tool-call repairs; on reports wrong calls to the model
+    # instead (openhands_sdk_runner.strict_tool_calls).
+    strict_tool_calls: bool = False
 
     def configure(self, overrides: dict) -> dict:
-        """Take ``max_iterations`` / ``include_default_tools`` from ``--agent-kwargs``."""
+        """Take ``max_iterations`` / ``include_default_tools`` / ``strict_tool_calls`` from ``--agent-kwargs``."""
         leftovers = super().configure(overrides)
         kwargs = dict(leftovers.pop("agent_kwargs", None) or {})
         if "max_iterations" in kwargs:
@@ -140,6 +155,8 @@ class OpenHandsSdkHarness(BaseCliHarness):
             tools = kwargs.pop("include_default_tools") or []
             # key=value form gives a string; "FinishTool" or "FinishTool;ThinkTool"
             self.include_default_tools = [t for t in re.split(r"[,;\s]+", tools) if t] if isinstance(tools, str) else [str(t) for t in tools]
+        if "strict_tool_calls" in kwargs:
+            self.strict_tool_calls = _flag(kwargs.pop("strict_tool_calls"), "strict_tool_calls")
         if kwargs:
             logger.warning("%s: --agent-kwargs keys %s have no effect", self.name, sorted(kwargs))
         return leftovers
@@ -239,5 +256,6 @@ class OpenHandsSdkHarness(BaseCliHarness):
             f'"$OH_PY" {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE)} 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; '
             f'"$OH_PY" {_PY_FLAGS} {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
+            f"{'--strict-tool-calls ' if self.strict_tool_calls else ''}"
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"
         )

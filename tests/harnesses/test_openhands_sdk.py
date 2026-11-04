@@ -156,8 +156,9 @@ def test_recipe_config_matches_the_harness_keys():
     cfg = Path(__file__).parents[2] / "recipe/eval/config/openhands-sdk.yaml"
     h = OpenHandsSdkHarness()
     assert h.configure({"agent_kwargs": parse_mapping_spec(f"@{cfg}", flag="--agent-kwargs")}) == {}
-    assert h.max_iterations == 150
+    assert h.max_iterations == 250
     assert h.include_default_tools == ["FinishTool"]
+    assert h.strict_tool_calls is False
 
 
 def test_sdk_agent_accepts_the_default_tools_kwarg():
@@ -187,3 +188,60 @@ def test_compiled_dependencies_install_from_wheels():
     script = OpenHandsSdkHarness().install_script()
     assert "--only-binary tiktoken" in script
     assert "--only-binary pillow" in script
+
+
+def test_strict_tool_calls_is_an_agent_kwarg_that_reaches_the_runner():
+    h = OpenHandsSdkHarness()
+    assert h.configure({"agent_kwargs": {"strict_tool_calls": True}}) == {}
+    assert "--strict-tool-calls" in h.build_invocation("fix", _task(), _config())
+    for off in (False, "false", "off", "0"):
+        h.configure({"agent_kwargs": {"strict_tool_calls": off}})
+        assert "--strict-tool-calls" not in h.build_invocation("fix", _task(), _config())
+    h.configure({"agent_kwargs": {"strict_tool_calls": "on"}})
+    assert h.strict_tool_calls is True
+    with pytest.raises(ValueError, match="strict_tool_calls must be true or false"):
+        h.configure({"agent_kwargs": {"strict_tool_calls": "sometimes"}})
+
+
+def test_strict_tool_calls_off_by_default():
+    assert "--strict-tool-calls" not in OpenHandsSdkHarness().build_invocation("fix", _task(), _config())
+
+
+def _sdk_agent_module():
+    """Stand-in for ``openhands.sdk.agent.agent`` with the SDK's repairing helpers."""
+    import types
+
+    return types.SimpleNamespace(
+        normalize_tool_call=lambda name, args, tools: ("file_editor", {"command": "str_replace", **args}),
+        fix_malformed_tool_arguments=lambda args, action_type: {**args, "view_range": [1, 5]},
+        parse_tool_call_arguments=lambda raw: {"repaired": True},
+    )
+
+
+def test_strict_tool_calls_runs_calls_as_written():
+    mod = _sdk_agent_module()
+    runner.strict_tool_calls(mod)
+    # A wrong tool name stays wrong, so the SDK's "Tool ... not found" path answers.
+    assert mod.normalize_tool_call("str_replace", {"old_str": "a"}, {"file_editor", "terminal"}) == ("str_replace", {"old_str": "a"})
+    assert mod.normalize_tool_call("str_replace </parameter", {}, {"str_replace"}) == ("str_replace </parameter", {})
+    # Arguments are neither decoded nor completed.
+    assert mod.fix_malformed_tool_arguments({"view_range": "[1, 5]"}, object) == {"view_range": "[1, 5]"}
+    assert mod.parse_tool_call_arguments('{"path": "/a", "x": null, "security_rort": "LOW"}') == {"path": "/a", "x": None, "security_rort": "LOW"}
+
+
+def test_strict_tool_calls_rejects_what_the_sdk_would_sanitize():
+    import json
+
+    mod = _sdk_agent_module()
+    runner.strict_tool_calls(mod)
+    with pytest.raises(json.JSONDecodeError):
+        mod.parse_tool_call_arguments('{"command": "echo a\nb"}')  # raw control character
+    with pytest.raises(ValueError, match="must be a JSON object"):
+        mod.parse_tool_call_arguments("[1, 2]")
+
+
+def test_strict_tool_calls_refuses_an_sdk_without_the_helpers():
+    import types
+
+    with pytest.raises(RuntimeError, match="the SDK changed"):
+        runner.strict_tool_calls(types.SimpleNamespace(normalize_tool_call=None))
