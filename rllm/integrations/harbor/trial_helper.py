@@ -366,6 +366,7 @@ async def run_harbor_trial(trial_config, timeout: float | None = None, *, hide_g
     from harbor.trial.trial import Trial
 
     trial = await Trial.create(trial_config)
+    _add_reward_file_hooks(trial)
     if hide_git_history:
         _add_git_history_hooks(trial, task_path)
     if timeout is None:
@@ -402,6 +403,27 @@ def _task_workdir(task_path: str | None) -> str | None:
     with open(toml_path, "rb") as f:
         workdir = (tomllib.load(f).get("environment") or {}).get("workdir")
     return str(workdir) if workdir else None
+
+
+def _add_reward_file_hooks(trial) -> None:
+    """Clear the reward files the agent may have planted, just before Harbor's verifier runs.
+
+    Harbor grades ``/logs/verifier/reward.txt`` (then ``reward.json``), and
+    ``/logs/verifier`` is mounted into the environment for the whole trial, so
+    the agent can write there; a verifier that does not overwrite the file
+    would grade the planted one. VERIFICATION_START fires before the verifier
+    uploads ``/tests`` and runs ``test.sh``. A cleanup that fails raises, so
+    Harbor records the trial as failed instead of grading it.
+    """
+    from harbor.trial.hooks import TrialEvent
+    from rllm.eval.script_evaluator import clear_reward_files_cmd
+
+    async def clear(_event) -> None:
+        res = await trial._environment.exec(clear_reward_files_cmd(), timeout_sec=30, user="root")
+        if res.return_code != 0 or "clean" not in (res.stdout or ""):
+            raise RuntimeError(f"could not clear reward files before verification ({res.return_code}): {(res.stderr or res.stdout or '').strip()[-300:]}")
+
+    trial.add_hook(TrialEvent.VERIFICATION_START, clear)
 
 
 def _add_git_history_hooks(trial, task_path: str | None) -> None:

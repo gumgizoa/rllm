@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from omegaconf import DictConfig, OmegaConf
 
 from rllm.gateway.tunnel import is_local_sandbox_backend
+from rllm.timeouts import RolloutClock
 from rllm.types import Evaluator, Task
 
 if TYPE_CHECKING:
@@ -61,22 +62,30 @@ class FixedEvaluation:
     def detect(self, task: Task) -> tuple[str, dict]:  # noqa: ARG002
         return "fixed", {}
 
-    def resolve(self, task: Task, sandbox: Sandbox | None, kind: str, config: dict) -> Evaluator:  # noqa: ARG002
+    def resolve(self, task: Task, sandbox: Sandbox | None, kind: str, config: dict, clock: RolloutClock | None = None) -> Evaluator:  # noqa: ARG002
         return self.evaluator
 
 
 class FromTaskEvaluation:
-    """Evaluation policy: resolve a per-task verifier from the task's ``[verifier]`` config."""
+    """Evaluation policy: resolve a per-task verifier from the task's ``[verifier]`` config.
+
+    Args:
+        verifier_timeout: Train-config verifier limit; wins over task.toml and
+            ``$RLLM_VERIFIER_TIMEOUT_S`` (see :mod:`rllm.timeouts`).
+    """
+
+    def __init__(self, verifier_timeout: float | None = None):
+        self.verifier_timeout = verifier_timeout
 
     def detect(self, task: Task) -> tuple[str, dict]:
         from rllm.eval._resolution import _detect_verifier
 
         return _detect_verifier(task)
 
-    def resolve(self, task: Task, sandbox: Sandbox | None, kind: str, config: dict) -> Evaluator:
+    def resolve(self, task: Task, sandbox: Sandbox | None, kind: str, config: dict, clock: RolloutClock | None = None) -> Evaluator:
         from rllm.eval._resolution import _resolve_evaluator
 
-        return _resolve_evaluator(task, sandbox, kind, config)
+        return _resolve_evaluator(task, sandbox, kind, config, verifier_timeout=self.verifier_timeout, clock=clock)
 
 
 EvaluationPolicy = FixedEvaluation | FromTaskEvaluation
@@ -214,6 +223,16 @@ class SandboxTaskHooks:
             host while the agent runs and put back before the verifier (see
             :mod:`rllm.sandbox.git_history`). SWE task images carry commits past
             the base commit, fix included. Off by default.
+        agent_network: When True, a docker sandbox joins an internet-facing
+            network as soon as it exists, so the agent has the internet too.
+            Off by default: with it, agents fetched the task's own upstream
+            release or repository and copied the fix.
+        verify_network: When True, a docker sandbox, kept off the internet while
+            the agent runs, joins an internet-facing network just before the
+            verifier, for tests that download datasets, models or build
+            backends. Off by default.
+        verifier_timeout: Train-config verifier limit for the default
+            :class:`FromTaskEvaluation` (see :mod:`rllm.timeouts`).
     """
 
     def __init__(
@@ -222,12 +241,17 @@ class SandboxTaskHooks:
         sandbox_backend: str | None = None,
         use_snapshot: bool = True,
         hide_git_history: bool = False,
+        agent_network: bool = False,
+        verify_network: bool = False,
+        verifier_timeout: float | None = None,
     ) -> None:
         from rllm.sandbox.snapshot import SnapshotRegistry
 
-        self.evaluation: EvaluationPolicy = evaluation if evaluation is not None else FromTaskEvaluation()
+        self.evaluation: EvaluationPolicy = evaluation if evaluation is not None else FromTaskEvaluation(verifier_timeout=verifier_timeout)
         self.sandbox_backend = sandbox_backend
         self.hide_git_history = hide_git_history
+        self.agent_network = agent_network
+        self.verify_network = verify_network
         # Optional per-run warm queue (set by run_dataset / the trainer); when
         # present, setup pops a prefetched sandbox instead of creating one inline.
         self.warm_queue: WarmQueue | None = None
@@ -256,6 +280,8 @@ class SandboxTaskHooks:
 
         plan = resolve_rollout_plan(task, agent_flow, self.evaluation)
         setup_metrics: dict[str, float] = {}
+        # The engine starts it with the rollout budget; the verifier reads what is left.
+        clock = RolloutClock()
 
         sandbox = None
         env_backend = None
@@ -273,6 +299,8 @@ class SandboxTaskHooks:
                 t0 = time.perf_counter()
                 sandbox = self.warm_queue.pop(task) if self.warm_queue is not None else get_sandbox(task, self.sandbox_backend, self._registry, install, agent_mount_image=agent_mount_image)
                 setup_metrics["time/env_create_s"] = time.perf_counter() - t0
+                if self.agent_network and hasattr(sandbox, "open_network"):
+                    sandbox.open_network()
 
                 if agent_mount_image and install:
                     sandbox.baked_install = install
@@ -298,7 +326,12 @@ class SandboxTaskHooks:
                 elif install:
                     setup_metrics["time/env_install_s"] = 0.0
 
-            evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config)
+            evaluator = self.evaluation.resolve(task, sandbox, plan.verifier_kind, plan.verifier_config, clock=clock)
+            if self.verify_network and not self.agent_network and hasattr(sandbox, "open_network"):
+                from rllm.sandbox.backends.egress import NetworkOpeningEvaluator
+
+                # Inside the history restore below: the network opens right before the tests.
+                evaluator = NetworkOpeningEvaluator(evaluator, sandbox)
 
             # Last step before the agent: nothing after this may read the repo's
             # history on the agent's behalf, and the verifier gets it back.
@@ -332,7 +365,7 @@ class SandboxTaskHooks:
             except Exception:
                 logger.exception("sandbox.close failed")
 
-        return TaskContext(evaluator=evaluator, env=sandbox, env_backend=env_backend, teardown=teardown, setup_metrics=setup_metrics)
+        return TaskContext(evaluator=evaluator, env=sandbox, env_backend=env_backend, teardown=teardown, setup_metrics=setup_metrics, clock=clock)
 
     @staticmethod
     def _hide_git_history(task: Task, sandbox, setup_metrics: dict[str, float]):

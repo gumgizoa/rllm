@@ -19,6 +19,7 @@ builds the trajectory.
 from __future__ import annotations
 
 import logging
+import re
 import shlex
 from pathlib import Path
 
@@ -40,6 +41,8 @@ _UV_DIR = "/opt/openhands-sdk-uv"
 _RUNNER_PATH = "/opt/openhands-sdk-runner.py"
 
 _RUNNER_SOURCE = Path(__file__).parent / "tools" / "openhands_sdk_runner.py"
+# SDK dependencies installed from wheels only (see the install script).
+_WHEEL_ONLY = ("tiktoken", "pillow")
 # Printed by the install guard so the log says which path a task took.
 _FALLBACK_MARKER = "rllm-openhands-sdk-per-task-install"
 # The SDK must never import from the task repo. Commands run from the task
@@ -103,10 +106,27 @@ export PATH={shlex.quote(_UV_DIR)}:"$PATH"
 
 retry uv python install {PYTHON_VERSION}
 uv venv {shlex.quote(_VENV)} --python {PYTHON_VERSION}
+# Wheels only for the compiled dependencies: their newest releases ship wheels
+# for recent glibc alone, so on an old image (Ubuntu 16.04, glibc 2.23) uv would
+# build them from source and fail (no Rust for tiktoken). This makes uv pick the
+# newest release with a usable wheel; on current images that is the same version.
 retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
+    {" ".join("--only-binary " + p for p in _WHEEL_ONLY)} \
     openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION}
 {shlex.quote(_VENV)}/bin/python {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE + "; print(openhands.sdk.__version__)")}
 """
+
+
+def _flag(value, key: str) -> bool:
+    """A boolean ``--agent-kwargs`` value; key=value form gives a string."""
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("true", "1", "yes", "on"):
+        return True
+    if text in ("false", "0", "no", "off"):
+        return False
+    raise ValueError(f"--agent-kwargs {key} must be true or false, got {value!r}")
 
 
 class OpenHandsSdkHarness(BaseCliHarness):
@@ -122,6 +142,49 @@ class OpenHandsSdkHarness(BaseCliHarness):
     enable_thinking: bool | None = None
     sandbox_backend = "docker"
     stdout_log_path = "/tmp/openhands-sdk.log"
+    # ``--agent-kwargs`` (recipe/eval/config/openhands-sdk.yaml). Unset keeps the
+    # SDK default: 500 iterations, FinishTool + ThinkTool. Model request params
+    # (reasoning_effort, chat_template_kwargs) belong in --sampling-params.
+    max_iterations: int | None = None
+    include_default_tools: list[str] | None = None
+    # Off keeps the SDK's tool-call repairs; on reports wrong calls to the model
+    # instead (openhands_sdk_runner.strict_tool_calls).
+    strict_tool_calls: bool = False
+
+    def configure(self, overrides: dict) -> dict:
+        """Take ``max_iterations`` / ``include_default_tools`` / ``strict_tool_calls`` from ``--agent-kwargs``.
+
+        Any other ``agent_kwargs`` key goes back in the leftovers, as
+        ``SandboxedAgentFlow.configure`` says: a subclass with more attributes
+        (the GRPO recipe's workflow harness) takes them from there, and for this
+        class alone the wiring layer warns about them.
+        """
+        leftovers = super().configure(overrides)
+        kwargs = dict(leftovers.pop("agent_kwargs", None) or {})
+        if "max_iterations" in kwargs:
+            self.max_iterations = int(kwargs.pop("max_iterations"))
+        if "include_default_tools" in kwargs:
+            tools = kwargs.pop("include_default_tools") or []
+            # key=value form gives a string; "FinishTool" or "FinishTool;ThinkTool"
+            self.include_default_tools = [t for t in re.split(r"[,;\s]+", tools) if t] if isinstance(tools, str) else [str(t) for t in tools]
+        if "strict_tool_calls" in kwargs:
+            self.strict_tool_calls = _flag(kwargs.pop("strict_tool_calls"), "strict_tool_calls")
+        if kwargs:
+            leftovers["agent_kwargs"] = kwargs
+        return leftovers
+
+    @property
+    def step_limit(self) -> int:
+        """The turn budget the engine checks traces against.
+
+        The SDK makes one LLM call per iteration and, on reaching the cap,
+        stops without telling the runner (exit 0, no marker), so the engine
+        stamps ``MAX_TURNS_EXCEEDED`` from the trace count and this value
+        (``AgentFlowEngine._turn_budget_termination_reason``). The GRPO recipe
+        scales the reward of such rollouts; without this property they
+        looked like ordinary completions. 0 means no cap.
+        """
+        return self.max_iterations or 0
 
     def install_script(self) -> str:
         return _install_script(f"{agent_mount_target()}/openhands-sdk-venv")
@@ -139,6 +202,11 @@ class OpenHandsSdkHarness(BaseCliHarness):
         }
         if self.enable_thinking is not None:
             env["OPENHANDS_SDK_ENABLE_THINKING"] = "1" if self.enable_thinking else "0"
+        if self.max_iterations is not None:
+            env["OPENHANDS_MAX_ITERATIONS"] = str(self.max_iterations)
+        if self.include_default_tools is not None:
+            # Set but empty means no default tools at all.
+            env["OPENHANDS_DEFAULT_TOOLS"] = ",".join(self.include_default_tools)
         return env
 
     def write_configs(
@@ -202,5 +270,6 @@ class OpenHandsSdkHarness(BaseCliHarness):
             f'"$OH_PY" {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE)} 2>/dev/null || OH_PY={shlex.quote(_VENV)}/bin/python; '
             f'"$OH_PY" {_PY_FLAGS} {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
+            f"{'--strict-tool-calls ' if self.strict_tool_calls else ''}"
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"
         )

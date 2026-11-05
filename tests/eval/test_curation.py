@@ -5,7 +5,9 @@ import json
 import pytest
 
 from rllm.eval.curation import CurationConfig, CurationError, curate
+from rllm.eval.episode_store import EvalEpisodeStore
 from rllm.eval.results import EvalItem, EvalResult
+from rllm.types import Episode, Step, Trajectory
 
 
 def _episode(user: str, assistant: str, name: str = "default") -> dict:
@@ -193,3 +195,67 @@ def test_named_trajectory(tmp_path):
     # non-matching name -> skipped
     rows, stats = curate([rd], CurationConfig(trajectory="nope"))
     assert rows == []
+
+
+# ---------------------------------------------------------------------------
+# Runs written the way `rllm eval` writes them
+# ---------------------------------------------------------------------------
+
+
+def _write_eval_run(run_dir, *, attempts, rollouts):
+    """Write a run through EvalEpisodeStore with engine-shaped Episodes.
+
+    ``rollouts`` is a list of (task_idx, task_id, attempt, is_correct, assistant_text).
+    Like AgentFlowEngine, each Episode's id is the session uid ``task_id:attempt``
+    and its ``task`` is the task's metadata dict, so the store names files after
+    the uid: ``episode_000001_swe-gym_repo-1_1.json``.
+    """
+    store = EvalEpisodeStore(run_dir)
+    items = []
+    for task_idx, task_id, attempt, is_correct, assistant in rollouts:
+        step = Step(chat_completions=[{"role": "user", "content": f"fix {task_id}"}, {"role": "assistant", "content": assistant}])
+        episode = Episode(id=f"{task_id}:{attempt}", task={"instruction": "fix it"}, is_correct=is_correct, trajectories=[Trajectory(steps=[step])])
+        store.write(task_idx * attempts + attempt, episode)
+        reward = 1.0 if is_correct else 0.0
+        items.append(EvalItem(idx=task_idx, attempt=attempt, reward=reward, is_correct=is_correct))
+    EvalResult.from_items("bench", "model", "agent", items, attempts=attempts).save(str(run_dir / "results.json"))
+    return run_dir
+
+
+TWO_TASKS = [
+    (0, "swe-gym/repo-1", 0, True, "a0 correct"),
+    (0, "swe-gym/repo-1", 1, True, "a1 correct"),
+    (1, "swe-gym/repo-2", 0, False, "b0 wrong"),
+    (1, "swe-gym/repo-2", 1, True, "b1 correct"),
+]
+
+
+def test_eval_written_run_groups_attempts_by_task(tmp_path):
+    rd = _write_eval_run(tmp_path / "run", attempts=2, rollouts=TWO_TASKS)
+
+    rows, stats = curate([rd], CurationConfig(select="best"))
+    assert stats.tasks_total == 2
+    assert stats.attempts_total == 4
+    assert sorted(r["task_id"] for r in rows) == ["swe-gym_repo-1", "swe-gym_repo-2"]  # one row per task
+
+    # Task-level aggregates see sibling attempts: only repo-2 is half-solved.
+    _, stats = curate([rd], CurationConfig(filter_expr="0 < avg < 1"))
+    assert stats.tasks_kept == 1
+
+
+def test_eval_written_runs_pool_across_runs(tmp_path):
+    a = _write_eval_run(tmp_path / "a", attempts=2, rollouts=TWO_TASKS[:2])
+    b = _write_eval_run(tmp_path / "b", attempts=1, rollouts=[(0, "swe-gym/repo-1", 0, False, "b wrong")])
+
+    _, stats = curate([a, b], CurationConfig(filter_expr="n == 3"))
+    assert stats.tasks_total == 1
+    assert stats.tasks_kept == 1
+
+
+def test_attempt_without_episode_file_stays_with_its_task(tmp_path):
+    rd = _write_eval_run(tmp_path / "run", attempts=2, rollouts=TWO_TASKS[:2])
+    next((rd / "episodes").glob("episode_000001_*")).unlink()  # e.g. a rollout whose episode was never written
+
+    _, stats = curate([rd], CurationConfig(filter_expr="n == 2"))
+    assert stats.tasks_total == 1
+    assert stats.tasks_kept == 1

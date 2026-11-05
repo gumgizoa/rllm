@@ -13,10 +13,13 @@ from __future__ import annotations
 
 import json
 import logging
+import shlex
 from pathlib import Path
 
 from rllm.eval.types import EvalOutput, Signal
+from rllm.sandbox.backends.local import LocalSandbox
 from rllm.sandbox.protocol import Sandbox, SandboxExecTimeout
+from rllm.timeouts import MIN_EXEC_TIMEOUT_S, RolloutClock
 from rllm.types import Episode, Task
 
 logger = logging.getLogger(__name__)
@@ -30,12 +33,34 @@ _REWARD_PATHS = [
 ]
 
 
+def clear_reward_files_cmd(extra_paths: list[str] | tuple[str, ...] = ()) -> str:
+    """Shell step, run as root before the verifier, that removes what the agent left where rewards are read.
+
+    The agent is root in the sandbox the verifier runs in. A reward file it
+    planted is graded as-is whenever the verifier does not overwrite it: a
+    Harbor-convention ``test.sh`` writes only ``/logs/verifier/reward.txt``,
+    while :class:`ShellScriptEvaluator` reads ``/tmp/rllm/reward.json`` first.
+    A reward directory turned into a file or a symlink is removed as well, and
+    ``/tests``, since the verifier upload merges into it. Prints ``clean`` only
+    if no reward file is left.
+    """
+    paths = " ".join(shlex.quote(p) for p in [*_REWARD_PATHS, *extra_paths])
+    return (
+        f"rm -rf {paths} /tests; "
+        'for d in /logs /tmp/rllm /logs/verifier; do { [ -d "$d" ] && [ ! -L "$d" ]; } || rm -rf "$d"; done; '
+        f'for p in {paths}; do if [ -e "$p" ] || [ -L "$p" ]; then exit 1; fi; done; echo clean'
+    )
+
+
 class ShellScriptEvaluator:
     """Run a verifier script inside the sandbox, parse the reward file.
 
     Constructed by :func:`rllm.eval._resolution._resolve_evaluator` once
     the sandbox is alive — the evaluator carries its sandbox reference
     internally instead of fishing it out of episode artifacts.
+
+    ``clock`` is the rollout's whole-run budget (:class:`rllm.timeouts.RolloutClock`):
+    the script runs under ``verifier_timeout`` cut to what the agent left of it.
     """
 
     def __init__(
@@ -45,12 +70,14 @@ class ShellScriptEvaluator:
         verifier_user: str | None = None,
         verifier_timeout: float = 600.0,
         reward_file_override: str | None = None,
+        clock: RolloutClock | None = None,
     ):
         self.sandbox = sandbox
         self.script_path = script_path  # relative to the task's directory
         self.verifier_user = verifier_user
         self.verifier_timeout = verifier_timeout
         self.reward_file_override = reward_file_override
+        self.clock = clock
 
     def evaluate(self, task: Task, episode: Episode) -> EvalOutput:
         tests_dir = task.task_dir / Path(self.script_path).parent
@@ -63,6 +90,25 @@ class ShellScriptEvaluator:
             )
 
         v_user = self.verifier_user
+
+        # Clear what the agent left where the reward is read. As root: the
+        # agent was, and the verifier user may not be. A reward that cannot be
+        # trusted is not graded; the episode is dropped instead. The local
+        # backend runs on the host, with nothing to protect and the host's own
+        # /tests and /logs in reach, so it is skipped.
+        if not isinstance(self.sandbox, LocalSandbox):
+            extra = [self.reward_file_override] if self.reward_file_override else []
+            try:
+                cleared = "clean" in (self.sandbox.exec(clear_reward_files_cmd(extra), timeout=30, user="root") or "")
+            except Exception as e:
+                logger.warning("Could not clear reward files for %s: %s", task.id, e)
+                cleared = False
+            if not cleared:
+                return EvalOutput(
+                    reward=0.0,
+                    is_correct=False,
+                    metadata={"error": "reward files could not be cleared before verification", "termination_reason": "error"},
+                )
 
         # Prepare reward directories
         try:
@@ -88,10 +134,16 @@ class ShellScriptEvaluator:
         workdir = task.metadata.get("workdir")
         cd_prefix = f"cd {workdir} && " if workdir else ""
         verifier_failure: str | None = None
+        timeout = self.clock.cap(self.verifier_timeout) if self.clock is not None else self.verifier_timeout
         try:
+            if timeout < MIN_EXEC_TIMEOUT_S:
+                # The agent used the whole rollout budget: nothing left to grade with.
+                # Under a second counts as nothing: the backends hand exec a whole
+                # number of seconds, and GNU ``timeout 0`` means no limit at all.
+                raise SandboxExecTimeout("rollout budget exhausted before the verifier started")
             self.sandbox.exec(
                 f"chmod +x /tests/{script_name} && {cd_prefix}/tests/{script_name}",
-                timeout=self.verifier_timeout,
+                timeout=timeout,
                 user=v_user,
             )
         except SandboxExecTimeout as e:

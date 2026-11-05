@@ -1,0 +1,15 @@
+# Qwen3.8-Flash-Next -- rllm eval ... --sampling-params @recipe/eval/config/qwen3_8-flash-next.yaml
+#
+# The gateway writes these keys over every LLM request, whatever the harness sends.
+# No max_tokens: a turn may use the rest of the model context (262144).
+temperature: 1.0
+top_p: 0.95
+top_k: 20
+min_p: 0.0
+presence_penalty: 0.0
+repetition_penalty: 1.0
+# The server accepts only xhigh (its default), medium and low, and answers 400 to
+# "high" -- the openhands-sdk default -- so pin a value it accepts.
+reasoning_effort: xhigh
+chat_template_kwargs:
+  enable_thinking: true

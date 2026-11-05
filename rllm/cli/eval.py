@@ -97,6 +97,8 @@ def _run_eval(
     episodes_dir: str | None = None,
     use_snapshot: bool = True,
     hide_git_history: bool = False,
+    agent_network: bool = False,
+    verify_network: bool = False,
     warm_queue_size: int = 0,
     sampling_config=None,
     attempts: int = 1,
@@ -373,6 +375,9 @@ def _run_eval(
         rows.append(("Snapshots", "[dim]disabled (--no-snapshot, cold start)[/]"))
     if hide_git_history:
         rows.append(("Git history", "[dim]hidden from the agent, restored for the verifier[/]"))
+    network = {(False, False): "off", (False, True): "off for the agent, on for the verifier"}.get(
+        (agent_network, verify_network), "on")
+    rows.append(("Network", f"[dim]{network}[/]"))
     if sampling_config is not None and not sampling_config.is_empty:
         rows.append(("Sampling", f"[dim]{sampling_config.as_dict()} (gateway-enforced)[/]"))
     console.print()
@@ -478,6 +483,8 @@ def _run_eval(
             sandbox_backend=(agent_metadata or {}).get("sandbox_backend"),
             use_snapshot=use_snapshot,
             hide_git_history=hide_git_history,
+            agent_network=agent_network,
+            verify_network=verify_network,
             warm_queue_size=warm_queue_size,
             agent_name=agent_name,
             dataset_name=getattr(dataset, "name", benchmark) or benchmark,
@@ -591,6 +598,18 @@ def _run_eval(
     help="Keep the workdir's .git out of the sandbox while the agent runs; restore it for the verifier. SWE images ship commits past the base commit, fix included. Default: off.",
 )
 @click.option(
+    "--agent-network/--no-agent-network",
+    "agent_network",
+    default=False,
+    help="Give docker sandboxes the internet while the agent runs. Default: off, since agents otherwise fetch the task's own upstream release or repository and copy the fix.",
+)
+@click.option(
+    "--verify-network/--no-verify-network",
+    "verify_network",
+    default=True,
+    help="Give docker sandboxes, kept off the internet while the agent runs, the internet back for the verifier (tests that download datasets, models or build backends). Default: on.",
+)
+@click.option(
     "--warm-queue-size",
     "warm_queue_size",
     default=0,
@@ -622,6 +641,8 @@ def eval_cmd(
     agent_kwargs: str | None,
     use_snapshot: bool,
     hide_git_history: bool,
+    agent_network: bool,
+    verify_network: bool,
     warm_queue_size: int,
     enable_ui: bool | None,
     save_episodes: bool,
@@ -731,6 +752,8 @@ def eval_cmd(
             episodes_dir=episodes_dir,
             use_snapshot=use_snapshot,
             hide_git_history=hide_git_history,
+            agent_network=agent_network,
+            verify_network=verify_network,
             warm_queue_size=warm_queue_size,
             sampling_config=sampling_config,
             attempts=attempts,

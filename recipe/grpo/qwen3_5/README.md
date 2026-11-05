@@ -1,24 +1,27 @@
-# Qwen3.5-4B Native SWE GRPO (verl)
+# Qwen3.5-9B Native SWE GRPO (verl)
 
 GRPO training for a **native rLLM** SWE agent — `AgentFlowEngine`, not the Harbor runtime.
 
 |                       | `examples/harbor_swe`             | This recipe                                                        |
 | --------------------- | --------------------------------- | ------------------------------------------------------------------ |
 | Engine                | `RemoteAgentFlowEngine`           | `AgentFlowEngine`                                                    |
-| Sandbox / agent / verifier | Harbor `Trial.run()`         | `SandboxTaskHooks` + `MiniSweAgentHarness` + `ShellScriptEvaluator`  |
+| Sandbox / agent / verifier | Harbor `Trial.run()`         | `SandboxTaskHooks` + `OpenHandsSdkHarness` + `ShellScriptEvaluator`  |
 | Backend               | tinker                            | **verl**                                                             |
-| Train data            | `harbor:swesmith`                 | `rllm_swesmith_small` (SWE-smith slice)                              |
-| Val data              | `harbor:swebench-verified`        | `swebench_verified_local` (SWE-bench Verified, local-image subset)   |
+| Model                 | -                                 | Qwen/Qwen3.5-9B, 256K context, 8 x H200                               |
+| Train data            | `harbor:swesmith`                 | `swe_mix_train` (182 swe_feat + 539 SWE-RL v3 tasks, 721 in all)      |
+| Val data              | `harbor:swebench-verified`        | `swebenchpro_v2_strat50` (50 SWE-bench Pro V2 tasks)                  |
 
-`rllm.remote_runtime.enabled=false` throughout. `harbor:swebench-verified` is used **only as a
-source of task directories** (`task.toml` + `environment/Dockerfile` + `tests/test.sh`); the
-Harbor runtime, Harbor agent scaffolds and `harbor:mini-swe-agent` are not involved.
+`rllm.remote_runtime.enabled=false` throughout. Harbor task trees (SWE-bench Pro V2, and
+SWE-bench Verified for the 4B-era datasets) are used **only as a source of task directories**
+(`task.toml` + `environment/Dockerfile` + `tests/test.sh`); the Harbor runtime, Harbor agent
+scaffolds and Harbor's agent packages are not involved.
 
 Rollout path per task:
 
 ```
-SandboxTaskHooks       docker run <task image> (+ agent-image mount)
-MiniSweAgentHarness    mini-swe-agent CLI *inside* the sandbox
+SandboxTaskHooks       docker run <task image> (+ agent-image mount, .git hidden)
+OpenHandsSdkHarness    openhands-sdk runner *inside* the sandbox (recipe.harness, default)
+MiniSweAgentHarness    mini-swe-agent CLI *inside* the sandbox   (recipe.harness=mini-swe-agent)
   └─ litellm ────────► rLLM model gateway (host.docker.internal) ──► vLLM (verl rollout)
 GatewayManager         captures prompt/completion token ids + logprobs
 ShellScriptEvaluator   /tests/test.sh → /logs/verifier/reward.txt → reward
@@ -118,7 +121,8 @@ actually constrains it. Two things worth knowing before picking paths:
   native path never bind-mounts - `tests/` go in as a tar stream, the verifier runs
   in the same sandbox, and its reward comes back over `sandbox.exec("cat ...")`.
 * **Capacity is the other constraint, and it is separate.** The model snapshot is
-  8.8 GB and the SWE task images run to tens of GB more. In a container the default
+  19.3 GB, each FSDP checkpoint ~130 GB (`RLLM_CKPT_DIR`, see Run), and the SWE task
+  images run to hundreds of GB. In a container the default
   locations (`~/.cache/huggingface`, `~/.rllm`) sit on the writable layer, which is
   usually the small filesystem and is shared with every other container on that
   disk. Check any path with `findmnt -no SOURCE,FSTYPE -T <path>`.
@@ -137,19 +141,39 @@ uv pip install flash-linear-attention==0.5.2
 # Backport verl PR #6660 (in v0.9.0; rLLM pins verl==0.8.0). Fixes Qwen3.5 linear
 # attention under sequence packing and Ulysses SP. Idempotent; --revert undoes it.
 bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
-
-rllm dataset pull harbor:swebench-verified            # 500 task dirs (text only)
-python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
-xargs -a "$RLLM_HOME/datasets/rllm_swesmith_small/images.txt" -P 4 -I{} docker pull {}
-
-# A larger training split for real runs. --train-name keeps it beside the smoke set
-# rather than overwriting it; the image sets overlap heavily (50 tasks -> 26 images).
-python recipe/grpo/qwen3_5/scripts/prepare_datasets.py \
-    --train-only --train-limit 50 --train-name rllm_swesmith_50
-xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull {}
 ```
 
-`prepare_datasets.py` registers two small benchmarks under `$RLLM_HOME/datasets`:
+The datasets `config/config.yaml` names are registered under `$RLLM_HOME/datasets` with the
+eval recipe's SWE-bench Pro V2 builder (`recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2.py
+--ids <id list> --name <name>`, which declares `[environment] workdir = "/app"` so
+`hide_git_history` can find the repo) and the native task-per-directory layout for the rest.
+
+Validation is `swebenchpro_v2_strat50`: 50 SWE-bench Pro V2 tasks, stratified by repository
+and by how the base model did on them, so the val score has headroom in both directions.
+
+The training split `recipe.train_dataset=swe_mix_train` is two sets registered as one:
+
+* **182 swe_feat tasks** - swe_feat is a set of Python feature-implementation tasks in the
+  native sandbox layout. Every task was rolled out 4 times with Qwen3.5-9B under this harness
+  (`rllm eval --agent openhands-sdk --hide-git-history`), and the 0/4 tasks got 4 more
+  attempts. The split keeps the 158 tasks solved 1-3 times in the first 4 attempts plus the 24
+  solved only in the extra attempts. Tasks solved 4/4 are out (every group would score 1.0, so
+  the leave-one-out estimator gives them zero advantage), and so are tasks never solved in 8
+  attempts. Every task's image has to exist locally under the tag `task.toml` names before
+  training starts; a missing image fails at setup and not mid-run.
+* **539 SWE-RL v3 tasks** - the 540 tasks of its 1-7/8 training lists, minus one whose tests
+  need a multicast-capable network interface rLLM's isolated sandbox network does not have.
+  The installed copies were adapted to load in stock Harbor and to pass their oracle with the
+  history hidden; each dataset's `RLLM_LOCAL_CHANGES.md` records the edits.
+
+Both are picked the same way: **tasks the starting policy solves sometimes**. A task the
+policy always solves or never solves gives a GRPO group with zero reward spread, which is a
+zero gradient (see [What a healthy step looks like](#what-a-healthy-step-looks-like)).
+
+`prepare_datasets.py` is the 4B-era builder and still works; it registers two small
+benchmarks under `$RLLM_HOME/datasets` from `harbor:swebench-verified` and SWE-smith
+(`rllm dataset pull harbor:swebench-verified`, then
+`python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24`):
 
 * **`swebench_verified_local/test`** — every SWE-bench Verified task whose
   `swebench/sweb.eval.x86_64.*` base image is already in the local Docker daemon. The full
@@ -159,14 +183,14 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   Pin the split with `--val-ids` (a file of task ids, or a comma-separated list). Without a pin
   the split is *whatever is currently pulled*, so landing one more base image silently changes
   what the val numbers mean; with one, a missing image is a hard error instead of a quietly
-  smaller set. `recipe/grpo/qwen3_5/val_tasks.txt` is the pinned ten.
+  smaller set. `recipe/grpo/qwen3_5/val_tasks_swebenchverified_30.txt` is the pinned set.
 
   **Pick for headroom, not for scorability.** The first ten were the smallest-test-scope
   instance per repo out of the `<15 min fix` bucket -- chosen to avoid unscorable tasks, but
   that filter selects the easiest of the easy, and the *untrained* 4B policy scored 8/10 on
   them. A val set at 0.8 before training measures nothing: RL has two points of headroom and
-  six steps to show them. `val_tasks.txt` rebalances across `difficulty` (3 easy / 5 medium /
-  2 hard) and still oracle-screens 10/10.
+  six steps to show them. The pinned list rebalances across `difficulty` and still
+  oracle-screens clean.
 
   `--val-name` builds a variant side by side. Rebuilding a name deletes and recopies its task
   dirs, which pulls them out from under a run already pointing at them -- the val twin of the
@@ -185,23 +209,15 @@ xargs -a "$RLLM_HOME/datasets/rllm_swesmith_50/images.txt" -P 4 -I{} docker pull
   rewritten). `--train-pool` sets how many task dirs to download before filtering -- the filter
   discards most of the pool, so it wants to be several times `--train-limit`.
 
-For both, the script patches `[agent].timeout_sec=3600` / `[verifier].timeout_sec=1800` into
-each `task.toml` (upstream ships 3000/3000). The agent budget is SWE-Master's value
-(`agent.trajectory_timeout=3600` in their RL scripts) and is sized for the 150-turn limit: the
-last run measured a median of 3.9 s per turn and a p90 rollout of 567 s at 100 turns, so the
-previous 900 s would have ended the clock before the turn budget on the slower tail and reported
-`agent_timeout` where `max_turns_exceeded` was the truth. Both values are read at rollout time
-from `task.toml`, so an already-registered dataset is retimed in place, without a rebuild:
-
-```bash
-D=$RLLM_HOME/datasets
-for n in rllm_swesmith_fn50 swebench_verified_balanced; do
-  find "$D/$n" -name task.toml -exec \
-    sed -i '/^\[agent\]/,/^\[/ s/^timeout_sec = .*/timeout_sec = 3600.0/' {} +
-done
-```
-
-Do not do that under a running job — the next rollout of every task picks the new value up.
+**Time limits no longer live in `task.toml`.** `rllm.timeouts` in `rllm_grpo.yaml` sets
+them for every task of every dataset (`rllm/timeouts.py`): a **4800 s rollout budget** for
+agent + verifier together, an **agent limit of 3600 s** (SWE-Master's
+`agent.trajectory_timeout`), and a **verifier limit of 1000 s**. The verifier's time is
+reserved out of the budget first, so the agent runs under `min(3600, 4800 - 1000) = 3600 s`
+and a rollout that exhausts the agent's share still gets graded. Set in the config, these win
+over whatever `[agent]` / `[verifier] timeout_sec` a task ships with; set to `null`, the task's
+values apply, then the `RLLM_*_TIMEOUT_S` environment variables. A limit of 0 or less is
+rejected rather than read as "no limit". Edit them in the config, not in the task dirs.
 
 ### Screen the data with the oracle first
 
@@ -210,21 +226,21 @@ cheapest way to prove that a task's image, verifier and reward file all work bef
 rollouts on it:
 
 ```bash
-rllm eval swebench_verified_local --agent oracle --sandbox-backend docker \
-    --split test --concurrency 3 --no-ui \
+rllm eval swebenchpro_v2_strat50 --agent oracle --sandbox-backend docker --hide-git-history \
+    --split test --concurrency 8 --no-ui \
     --base-url http://127.0.0.1:1/v1 --model oracle-dummy
 ```
 
-A task that scores 0 here can never be solved by a policy either. `prepare_datasets.py` drops
-the ones found that way — see `UNSCORABLE` (currently `astropy__astropy-7606`, whose
-`PASS_TO_PASS` list names `test_compose_roundtrip[]`, a pytest param id that never appears in
-the classic-style output the SWE-bench log parser reads).
+Run it with `--hide-git-history`, because that is how training runs: a `solve.sh` that does
+`git checkout <base>` passes with the history in place and fails without it (the SWE-RL v3
+copies needed exactly that edit). A task that scores 0 here can never be solved by a policy
+either. `prepare_datasets.py` drops the ones found that way for its own datasets - see
+`UNSCORABLE` (`astropy__astropy-7606`, whose `PASS_TO_PASS` list names
+`test_compose_roundtrip[]`, a pytest param id that never appears in the classic-style output
+the SWE-bench log parser reads).
 
 Note the `--base-url`/`--model` flags: the oracle never calls an LLM, but `rllm eval` still
 refuses to start without a configured provider, so point it at a dead port.
-
-Measured on this setup: SWE-bench Verified 12/12 candidates scored 1.0 (the 10 kept plus two
-`sympy` instances held in reserve), SWE-smith 1/1.
 
 ## Run
 
@@ -232,10 +248,15 @@ Measured on this setup: SWE-bench Verified 12/12 candidates scored 1.0 (the 10 k
 # 1 batch, 2 tasks x 4 rollouts -- "does it run?"
 bash recipe/grpo/qwen3_5/smoke_test.sh
 
-# the defaults: 50 SWE-smith tasks / 8 per step = 6 steps, 1 epoch,
-# validating before training, at step 5, and at the end
+# the defaults: 721 tasks / 32 per step = 22 steps per epoch, 3 epochs,
+# validating before training and every 3 steps, a checkpoint every 3 steps
 bash recipe/grpo/qwen3_5/train_verl.sh
 ```
+
+Checkpoints go under `RLLM_CKPT_DIR` (`.env`; default `$RLLM_HOME/checkpoints`), not verl's
+cwd-relative default, because the repo may sit on network storage. One FSDP checkpoint is
+bf16 weights plus fp32 Adam state over 9.41B parameters, on the order of 130 GB;
+`max_actor_ckpt_to_keep=5` bounds the volume.
 
 **Every run gets its own episode directory.** `train_verl.sh` stamps `RLLM_RUN_ID`
 (`train.py` sets one too, so a bare `python train.py` is covered) and
@@ -254,11 +275,55 @@ hand: `max_prompt_length + max_response_length` (`rllm_grpo.yaml`) must equal
 and `rllm/trainer/verl/transform.py:38` truncates an overrun *silently*, so a stale value
 here does not fail — it quietly drops the tail of every long episode.
 
-**Batch shape.** `rllm.data.train_batch_size=8` (tasks per step; verl's `sync_config`
-mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 64 trajectories per step,
-and `ppo_mini_batch_size=8` x 8 = 64 makes that exactly one optimizer update — strictly
-on-policy GRPO. That is 8 rows per GPU against `ppo_micro_batch_size_per_gpu=1`, i.e.
-gradient accumulation of 8 (relevant only when scaling to an untied model, see below).
+**Harness.** `recipe.harness` picks the agent that runs inside the sandbox:
+`openhands-sdk` (default) or `mini-swe-agent`, the same two the native `rllm eval` path
+runs. `recipe.agent_step_limit` is the turn budget for either (openhands-sdk
+`max_iteration_per_run`, mini-swe-agent `agent.step_limit`); for openhands-sdk,
+`recipe.openhands_default_tools` is `rllm eval`'s `include_default_tools` and
+`recipe.openhands_strict_tool_calls` its `strict_tool_calls`. Both harnesses
+expose `step_limit`, which is what lets the engine stamp `max_turns_exceeded` and
+`budget_reward_scale` apply: the agent stops on its cap without reporting it (openhands-sdk
+logs an error internally and exits 0), so the engine counts gateway traces against the
+budget. Two things differ for openhands-sdk. Its system prompt and tool specs are ~7.2K
+tokens before the issue statement, which is why `max_prompt_length` is 16384 (the padded
+prompt is cut from the *left* when it overruns, so an 8K width would have dropped the head
+of the system prompt). And observations come back as `role=tool` messages rather than user
+messages, so Qwen3.5's stock template already keeps every turn's `<think>` block for it;
+`preserve_thinking` below is still what keeps the prefix chain intact if the SDK ever
+injects a user message (its stuck-detector nudge).
+
+**Strict tool calls.** openhands-sdk repairs a wrong tool call before running it:
+`str_replace` / `str_replace_editor` become `file_editor`, `bash` / `command` become
+`terminal`, a missing `file_editor` `command` is inferred, JSON-string lists are decoded, and
+so on (`openhands.sdk.agent.utils`). The call then succeeds while the model's next prompt
+still holds the call as it sampled it, so a policy trained on such rollouts is rewarded for
+the wrong call: 24% of the file edits in the first 9B run were `str_replace` calls.
+`recipe.openhands_strict_tool_calls=true` (the default here) makes the runner execute calls
+as written, so the SDK's own error comes back instead - `Tool 'str_replace' not found.
+Available: ['terminal', 'file_editor', 'task_tracker', 'finish']` - and the model gets to
+correct itself (`rllm/harnesses/tools/openhands_sdk_runner.py`). Measured on 8 SWE-bench
+Pro V2 tasks with the base model: 14 `str_replace` calls, 13 of which were followed by a
+`file_editor` call. `rllm eval`'s default stays `false` so earlier eval numbers remain
+comparable.
+
+```bash
+bash recipe/grpo/qwen3_5/train_verl.sh recipe.harness=mini-swe-agent   # the other harness
+```
+
+**Batch shape.** `rllm.data.train_batch_size=32` (tasks per step; verl's `sync_config`
+mirrors it to `data.train_batch_size`) times `rollout.n=8` gives 256 trajectories per step.
+`ppo_mini_batch_size=8` is counted in prompts, so one optimizer update sees 8 x 8 = 64
+trajectories and each step makes **4 updates**; only the first is strictly on-policy. With
+`ulysses_sequence_parallel_size=2` the 8 GPUs form 4 data-parallel ranks, so an update is 16
+rows per rank against `ppo_micro_batch_size_per_gpu=1`, i.e. gradient accumulation of 16
+(see [Scaling from 4B to 9B](#scaling-from-4b-to-9b) for why that matters on an untied model).
+
+**Concurrency.** `rllm.workflow.n_parallel_tasks=8` and `recipe.sandbox_concurrency=8` are
+one knob kept equal: one Docker sandbox per in-flight rollout, and - since the agent makes one
+LLM call at a time - also the number of sequences the 8 vLLM servers hold at once (one per
+GPU at `gpu_memory_utilization=0.5`). Raise both together when the node has the CPU, RAM and
+KV cache for it: at 0.70 a GPU's KV cache holds ~10 sequences at the full 256K context, and
+the config for a 192-core / 2 TB node ran 48 in flight at 0.70. The first 9B run used 16.
 
 Any Hydra override passes through:
 
@@ -270,19 +335,20 @@ bash recipe/grpo/qwen3_5/train_verl.sh \
 ```
 
 Env knobs: `ENV_FILE` (dotenv path, default `<recipe>/.env`), `RLLM_HOME` and
-`HF_HOME` (both required, see Setup), `SANDBOX_BACKEND` (default `docker`),
-`RLLM_AGENT_IMAGE` (`auto` | `skip` | `repo:tag`), `MODEL_PATH`, `RLLM_RUN_DIR`,
-`HF_HUB_OFFLINE`.
+`HF_HOME` (both required, see Setup), `RLLM_CKPT_DIR` (checkpoints), `SANDBOX_BACKEND`
+(default `docker`), `RLLM_AGENT_IMAGE` (`auto` | `skip` | `repo:tag`), `MODEL_PATH`
+(default `Qwen/Qwen3.5-9B`), `RLLM_RUN_DIR`, `HF_HUB_OFFLINE`, `WANDB_API_KEY`
+(`rllm.trainer.logger` includes `wandb`).
 
 ## Variants: openhands-sdk and AI-DLC
 
-The harness is a config choice. `recipe.agent` picks it and `recipe.workflow.name` layers a
+The harness is a config choice. `recipe.harness` picks it and `recipe.workflow.name` layers a
 workflow (`aidlc`) on the openhands-sdk harness; `config/variant/` holds the presets, applied
 *after* `config.yaml` so their values win:
 
 ```bash
-bash recipe/grpo/qwen3_5/train_verl.sh                              # 4B + mini-swe-agent (unchanged default)
-bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk, SDK's own workflow
+bash recipe/grpo/qwen3_5/train_verl.sh                              # default: 9B + openhands-sdk, SDK's own workflow (recipe.harness=mini-swe-agent for the other harness)
+bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk, SDK's own workflow, the variant's 80-turn budget
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_reward   # ... + compliance in the reward
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # 9B + openhands-sdk + AI-DLC, trained on SWE-Gym (below)
@@ -291,7 +357,7 @@ bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2     
 bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_reward   # ... + compliance in the reward
 ```
 
-| `recipe.agent` | `recipe.workflow.name` | harness | where |
+| `recipe.harness` | `recipe.workflow.name` | harness | where |
 | --- | --- | --- | --- |
 | `mini-swe-agent` | `null` | `StepLimitedMiniSweAgent` | `train.py` |
 | `openhands-sdk` | `null` | `OpenHandsSdkWorkflow` (plain: the SDK's own prompt and workflow) | `workflow_harness.py` |
@@ -307,7 +373,7 @@ The workflow itself (documents, instruction, per-harness system prompt and compl
 registered by name in `workflows/` (one package per workflow, e.g. `workflows/aidlc_v4/`);
 `WorkflowMixin` reads it, so another workflow is one more package there and another harness is
 one `WorkflowMixin` subclass plus a branch in `train.py`'s
-`_build_agent_flow`. Training and `rllm eval` install the same scorer -- the harness's
+`make_agent_flow`. Training and `rllm eval` install the same scorer -- the harness's
 `evaluation_policy` -- so compliance is measured the same way in both. For `rllm eval`, select it with
 `--agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow --agent-kwargs workflow=aidlc_v4`
 (`workflow=none` is the plain harness); the harness hands its scorer to the eval hooks, so the
@@ -569,8 +635,13 @@ allocated per card, 13 min for the step. Prefix extension held
   did not drop those trailing traces, so `EnrichMismatchError` re-rolled the task from a fresh
   sandbox up to `retry_limit` (3) times and the episode was dropped as `error` — instead of
   being graded and stamped `MAX_PROMPT_LENGTH_EXCEEDED` (the SWE-Master budget case, reward ×
-  0.5). `enrich_episode_with_traces` now drops trailing malformed traces for step-less
-  harnesses as it already did for step-recording ones, keeping the gateway's reason.
+  0.5). The first fix dropped the trailing malformed traces by position; upstream
+  (`fix(engine): recognise failed upstream calls by the gateway's marker`) replaced it:
+  for step-less harnesses `enrich_episode_with_traces` now drops every trace the gateway
+  marked `upstream_error`, wherever it sits, and takes the termination reason from the marker
+  (`context_length_exceeded` after the last answered call → `MAX_PROMPT_LENGTH_EXCEEDED`,
+  anything else at the end → `ERROR`, a transient error the agent recovered from → nothing).
+  Failed calls no longer count as turns.
 
 **Smoke run 2 (same day, no-think, 16K prompt budget, validation on 4 tasks).** Both fixes held:
 `prompt_length/clip_ratio` 0 (first prompts 8.7K, budget 16K), `rollout_actor_probs_pearson_corr`
@@ -735,23 +806,24 @@ computed over the survivors only. See [Compact filtering](#compact-filtering-rem
 
 | | SWE-Master `examples/swe/*.sh` | here |
 | --- | --- | --- |
-| group size `n` | 4 | 4 |
+| group size `n` | 4 | 8 |
 | temperature | 1.0 | 1.0 |
 | lr | 1e-6 | 1e-6 |
-| max prompt / response | 8192 / 122880 | 8192 / 122880 |
-| max turns | 150 | 150 |
-| agent timeout | 3600 s | 3600 s (`task.toml`) |
+| max prompt / response | 8192 / 122880 | 16384 / 245760 |
+| max turns | 150 | 250 |
+| agent timeout | 3600 s | 3600 s (`rllm.timeouts.agent`, inside a 4800 s rollout budget) |
 | train batch | 32 | 32 |
 | `mask_truncated_samples` | False | False |
 | truncated-rollout handling | `overlong_filter` (mask infra, halve budget) | `compact_filtering` + `budget_reward_scale` |
 
 ## Why the config looks like this
 
-### Qwen3.5-4B is a hybrid-attention VLM
+### Qwen3.5 is a hybrid-attention VLM
 
 `Qwen3_5ForConditionalGeneration`: a vision tower plus a text stack that interleaves
-`Qwen3_5GatedDeltaNet` **linear-attention** layers with full-attention layers (3:1). Two
-consequences:
+`Qwen3_5GatedDeltaNet` **linear-attention** layers with full-attention layers (3:1; the 9B has
+8 full-attention layers out of 32, 4 KV heads of 256 dims, so its KV cache is 32 KB per
+token). Two consequences:
 
 * **A micro-batch must hold exactly one sequence.** The recurrent layers make sequence packing
   unsafe, which pins `ppo_micro_batch_size_per_gpu=1` and `use_dynamic_bsz=false`. Raising either
@@ -778,14 +850,15 @@ verl 0.8.0 does support the architecture (`verl/models/transformers/qwen3_5.py`,
 
 #### The vision tower and the MTP head are carried, not trained
 
-The checkpoint is 4.66B parameters in three groups, and only one of them is what this recipe
-trains:
+The Qwen3.5-9B checkpoint is 9.65B parameters in four groups, and two of them are what this
+recipe trains:
 
 | group | params | share | in this run |
 | --- | --- | --- | --- |
-| `model.language_model` | 4,205,751,296 | 90.3% | trained |
-| `model.visual` | 333,514,240 | 7.2% | carried, never updated |
-| `mtp` | 120,599,552 | 2.6% | never instantiated |
+| `model.language_model` | 7,936,684,544 | 82.2% | trained |
+| `lm_head` | 1,017,118,720 | 10.5% | trained (untied; the 4B tied it to the embeddings) |
+| `model.visual` | 456,010,480 | 4.7% | carried, never updated |
+| `mtp` | 243,290,624 | 2.5% | never instantiated |
 
 **The vision tower is not frozen, and verl's switch for it does nothing.**
 `actor.freeze_vision_tower` exists in `verl/trainer/config/actor/actor.yaml:52` (default
@@ -797,14 +870,14 @@ installed packages reads it** — setting it `true` is a no-op in verl 0.8.0. In
 It does not matter much here, because SWE tasks carry no images. With no image tokens the
 tower is never called, so it stays out of the autograd graph, `p.grad` stays `None`, and
 torch's AdamW skips those parameters *and* never allocates their state (the state dict is
-populated lazily in `step()`). So the 2.5 GiB of Adam moments never appear and the weights
-do not move. What remains is the bf16 weights themselves: 0.62 GiB, or **0.08 GiB per GPU**
-sharded across 8 — noise against the 30-40 GB this run actually peaks at. If you do want it
+populated lazily in `step()`). So the ~3.4 GiB of Adam moments never appear and the weights
+do not move. What remains is the bf16 weights themselves: 0.85 GiB, or **0.11 GiB per GPU**
+sharded across 8 - noise against the 75-80 GB this run actually peaks at. If you do want it
 gone, the flag will not do it; it takes a `model.visual.requires_grad_(False)` after model
 construction.
 
 The `mtp` group is different: `Qwen3_5ForConditionalGeneration` does not build it at all, so
-those 120.6M parameters exist in the checkpoint on disk and nowhere in the training graph.
+those 243M parameters exist in the checkpoint on disk and nowhere in the training graph.
 They load as unexpected keys and are dropped. Harmless for training, but worth knowing when
 saving and reloading — a checkpoint written from this run carries the MTP head at its
 original values while the language model has moved.
@@ -829,7 +902,7 @@ qwen3.6  {preserve_thinking: True}     bridge=OK, prefix-extension holds
 Hence `renderer_family: qwen3.6` + `renderer_kwargs: {preserve_thinking: true}`.
 `Qwen36Renderer` subclasses `Qwen35Renderer` and differs only in tool-argument JSON
 serialization and this flag, so it is token-identical for this workload. (The Qwen3.6-27B
-*Jinja* template likewise differs from Qwen3.5-4B's in exactly two lines — the
+*Jinja* template likewise differs from Qwen3.5's in exactly two lines — the
 `preserve_thinking` gate and the `tojson` change — so shipping it as
 `custom_chat_template` buys nothing here and is left out.)
 
@@ -854,7 +927,7 @@ trajectories. With 8 GPUs:
 
 | | tasks/batch | `rollout.n` | trajectories | `ppo_mini_batch_size` | updates/batch |
 |---|---|---|---|---|---|
-| `train_verl.sh` | 4 | 8 | 32 | 4 | 1 (on-policy) |
+| `train_verl.sh` | 32 | 8 | 256 | 8 | 4 (the first on-policy) |
 | `smoke_test.sh` | 2 | 4 | 8  | 2 | 1 |
 
 ### Verifying the renderer / cumulative-token path
@@ -877,7 +950,7 @@ python recipe/grpo/qwen3_5/scripts/verify_cumulative.py
 | `preserve_thinking` | earlier turns' `<think>` blocks are still in turn N's prompt | 15-turn session: 15 `<think>` / 14 `</think>` in the final prompt |
 | loss mask | replaying `transform.py`'s merge, `mask==1` covers exactly the sampled completions | token **ids** match, not just counts |
 
-`enable_thinking` needs no configuration: Qwen3.5-4B's own template already ends the
+`enable_thinking` needs no configuration: Qwen3.5's own template already ends the
 generation prompt with `<think>\n`, so the renderer auto-resolves it to `True`. What
 does need configuring is `preserve_thinking` — see above.
 
@@ -998,10 +1071,12 @@ micro-batch holds exactly one sequence — see the hybrid-attention note above.
 
 ### Long context, sequence parallelism, and FSDP version
 
-These three interact, so they were measured together. Summary: **fsdp2 + a large
-`max_model_len` gets you to 128K on its own. Sequence parallelism is broken on verl
-0.8.0 and repaired by a backported patch, but even repaired it is not worth enabling
-at this model size — carry it for when the model outgrows one card.**
+These three interact, so they were measured together, on Qwen3.5-4B and 80 GB cards.
+Summary: **fsdp2 + a large `max_model_len` got the 4B to 128K on its own. Sequence
+parallelism is broken on verl 0.8.0 and repaired by a backported patch; at 4B even repaired
+it was not worth enabling. At 9B with 256K rows activation memory is what binds, so this
+recipe runs with it on (`ulysses_sequence_parallel_size=2`) - see
+[Scaling from 4B to 9B](#scaling-from-4b-to-9b).**
 
 #### fsdp2 is strictly better here — it is the default
 
@@ -1021,11 +1096,12 @@ verl also patches this model's vision tower specifically for the fsdp2 cpu-offlo
 path (`monkey_patch.py`: *"Step 2: patch vision model to fix fsdp2 cpu_offload bug"*),
 so fsdp2 is the path upstream expects for Qwen3.5.
 
-#### Context length: 128K fits without sequence parallelism
+#### Context length: 128K fit the 4B without sequence parallelism
 
-Activation memory for one sequence, fwd+bwd, measured with
+Activation memory for one sequence, fwd+bwd, measured on Qwen3.5-4B with
 `scripts/mem_scaling.py` (single GPU, params unsharded — the real run shards and
-offloads them, so subtract ~8 GB):
+offloads them, so subtract ~8 GB; the script now defaults to the 9B, pass the 4B id to
+reproduce):
 
 | seq_len | peak GB | activation GB | GB / 1K tok |
 | --- | --- | --- | --- |
@@ -1193,23 +1269,48 @@ re-measured for regression — there is none:
 
 All within run-to-run variation across different rollout content.
 
-#### Before scaling to a larger model
+#### Scaling from 4B to 9B
 
-Two things to check, neither of which bites Qwen3.5-4B.
+What changed when the recipe moved from Qwen3.5-4B on 80 GB cards to Qwen3.5-9B on H200s,
+and what was checked.
+
+**Context went to 256K** (`max_model_len=262144`, the model's `max_position_embeddings`;
+`16384 + 245760`). openhands-sdk episodes at a 250-turn budget run to ~1,200 tokens per
+merged turn, and the longest training rows of the first 9B run were 214K-233K tokens, so
+128K would have discarded a large share of them as context-length 400s.
+
+**Sequence parallelism is on** (`ulysses_sequence_parallel_size=2`, actor and ref). At 4B it
+bought 30% of activation memory for 3.1x the actor update and was left off. A 9B row of 256K
+tokens is where activation memory binds, so each sequence is split over 2 GPUs (8 GPUs -> 4
+data-parallel ranks). This is what the backported verl patch above makes correct.
 
 **verl [#7520](https://github.com/verl-project/verl/issues/7520)** (open, unassigned):
-an **untied** `lm_head` + FSDP2 + `use_fused_kernels=true` + gradient accumulation crashes
-with `AttributeError: 'FSDPParam' object has no attribute '_unsharded_param'` during the
-backward of a non-final micro-batch. Qwen3.5-4B sets `tie_word_embeddings: true` so it is
-unaffected, but 9B and up are untied and would hit exactly this recipe's configuration.
-Until it is fixed, a larger model needs either no gradient accumulation
-(`ppo_mini_batch_size * rollout.n == the whole batch`, which is what this recipe already
-does) or fused kernels off — and fused kernels are not really optional at this vocabulary
-size, so prefer the former.
+an **untied** `lm_head` + FSDP2 + `use_fused_kernels=true` + gradient accumulation is
+reported to crash with `AttributeError: 'FSDPParam' object has no attribute
+'_unsharded_param'` in the backward of a non-final micro-batch. The 4B tied its embeddings
+and was unaffected; the 9B is untied (`tie_word_embeddings: false`) and this config does
+accumulate gradients (16 micro-batches per update, see Batch shape). The first 9B run's
+actor updates completed without that error on verl 0.8.0 with `impl_backend: torch`, so it
+has not bitten here; if it does, the fallback is one update per step
+(`ppo_mini_batch_size=32`), since fused kernels are not optional at this vocabulary size.
 
-**Sequence parallelism becomes worth its cost.** At 4B it buys 30% of activation memory
-for 3.1x the actor update. Once activation memory is what binds — a bigger model, or
-context past one card — that inverts, and the backported patch is what makes it available.
+**What a 9B step costs**, from the first run (32 tasks x 8 rollouts, 16 rollouts in flight,
+steady-state steps):
+
+| | step 2 | step 3 |
+| --- | --- | --- |
+| `response_length/max` | 225,330 | 233,088 |
+| `response_length/mean` | 99,600 | 108,693 |
+| `batch/n_turns` (= merge ratio) | 77.2 | 85.9 |
+| `perf/max_memory_allocated_gb` | 74.7 | 81.5 (of 141) |
+| `timing_s/old_log_probs` | 1260 s | 1395 s |
+| `timing_s/update_actor` | 5561 s | 6269 s |
+| `timing_s/step` | 17464 s | 16517 s |
+| `rollout_actor_probs_pearson_corr` | 0.99888 | 0.99559 |
+
+Roughly 4.5-5 hours per step, a third of it the actor update. The rollout phase is bounded by
+the 4800 s budget, so the agent and the actor update are of the same order; there is no
+single phase to shorten.
 
 ### Compact filtering: removal, not masking
 
@@ -1338,12 +1439,16 @@ Two rules behind that arithmetic:
   131072 lands at ~47 GB per 80 GB card. Throughput is what you actually pay: 220 tok/s at
   49152 versus 169 at 131072, because the sequences are longer.
 
-**Defaults in this recipe:** `agent_step_limit=40`, `max_model_len=49152`
-(= 8192 + 40960). Validated over six runs with zero context-length errors. That is the
-tightest pairing that holds — 32768 at the same step limit lost 28% of its rollouts.
+The table is mini-swe-agent on Qwen3.5-4B. openhands-sdk on Qwen3.5-9B lands in the same
+place: 99.6K-108.7K mean merged response over 77-86 turns is **1,190-1,270 tokens per
+turn**, and the longest row of the first run was 233,088 tokens.
 
-Raising the turn budget means raising both, e.g. `agent_step_limit=60` wants
-`max_response_length≈69632`, `max_model_len=77824`.
+**Defaults in this recipe:** `agent_step_limit=250`, `max_model_len=262144`
+(= 16384 + 245760, the model's full window). 250 turns x ~1,200 = 300K would not fit, but
+episodes that run the full budget are rare: at 150 turns about 9% of the 9B's swe_feat
+rollouts ran out of turns, which is why the budget was raised, and at 250 the first run
+stamped `max_turns_exceeded` on 0% and context-length errors on 0% over three steps. A row
+that does overrun is masked by compact filtering rather than discarded.
 
 ### Turn budget
 
@@ -1356,21 +1461,22 @@ tokens"*; the agent's retries all fail and rLLM discards the episode with an
 
 `train.py` therefore wraps the harness in `StepLimitedMiniSweAgent`, which passes
 `-c mini.yaml -c agent.step_limit=<recipe.agent_step_limit>` (naming `mini.yaml` again is
-required: `-c` *replaces* the default config rather than layering on it). Size the limit against
-`max_model_len` — roughly **620 prompt tokens per turn** measured on SWE-smith with this policy,
-so 50 turns ≈ 33K tokens under the 40960 ceiling.
+required: `-c` *replaces* the default config rather than layering on it). For openhands-sdk
+the same value reaches `max_iteration_per_run` through `--agent-kwargs max_iterations`, and
+the SDK stops on it by itself. Either way the engine counts gateway traces against the budget
+and stamps `max_turns_exceeded`, which `budget_reward_scale` then halves rather than zeroes.
 
 ### Lengths
 
 An AgentFlow batch row is one **merged trajectory**: the prompt is turn 1's prompt and the
 response accumulates every later turn's observation + action delta. So `max_response_length`
-(24576) has to cover a whole episode, while `rllm.rollout.train.max_tokens` (4096) caps a single
-turn. Rollouts that end badly rather than finishing are removed by
+(245760) has to cover a whole episode, while `rllm.rollout.train.max_tokens` (16384) caps a
+single turn. Rollouts that end badly rather than finishing are removed by
 [compact filtering](#compact-filtering-removal-not-masking).
 
 ### HuggingFace rate limits
 
-Eight FSDP workers, eight vLLM servers and the gateway each resolve `Qwen/Qwen3.5-4B` on
+Eight FSDP workers, eight vLLM servers and the gateway each resolve `Qwen/Qwen3.5-9B` on
 startup. Unauthenticated that exceeds the Hub's 500-requests / 300s per-IP budget, and the
 throttled process reports it as `OSError: Unable to load vocabulary from file` — a rate-limit
 error wearing a corrupted-cache costume. `train_verl.sh` therefore defaults to
@@ -1379,34 +1485,40 @@ or `HF_HUB_OFFLINE=0`, if you actually want the hub consulted.
 
 ## What a healthy step looks like
 
-`train_verl.sh` defaults on 8x A100-80GB — 4 SWE-smith tasks x `rollout.n=8`, untrained
-Qwen3.5-4B. Learning-signal numbers are from a step that happened to contain a solve;
-performance numbers are from a steady-state step (second step of a run, triton kernels cached).
+The defaults on 8 x H200: 32 swe_feat tasks x `rollout.n=8`, Qwen3.5-9B with openhands-sdk,
+second step of the first 9B run. The metric names carry the harness, so they read
+`reward/openhands-sdk/...` here and `reward/mini-swe-agent/...` with the other harness.
 
 **Is the plumbing right?**
 
 | metric | why it matters | observed |
 | --- | --- | --- |
-| `training/rollout_actor_probs_pearson_corr` | actor's recomputed log-probs vs. what the policy actually sampled. The single best check that cumulative-token mode, `preserve_thinking` and the trace pipeline all line up. | **0.9997** (`probs_diff_mean` 0.0026) |
-| `batch/merge_compression_ratio` | turns folded into one batch row by prefix extension. Equal to `batch/n_turns` means the whole episode merged; **1.0 means prefix extension is broken** and every turn became its own row. | **36.4** (= `n_turns`) |
-| `batch/termination_reason/error` | rollouts that died instead of finishing — usually the context ceiling. | **0.0** (was 0.125 at `max_model_len=32768`) |
+| `training/rollout_actor_probs_pearson_corr` | actor's recomputed log-probs vs. what the policy actually sampled. The single best check that cumulative-token mode, `preserve_thinking` and the trace pipeline all line up. | **0.9989** (step 1 of the run read 0.9755, steps 2 and 3 were above 0.995) |
+| `batch/merge_compression_ratio` | turns folded into one batch row by prefix extension. Equal to `batch/n_turns` means the whole episode merged; **1.0 means prefix extension is broken** and every turn became its own row. | **77.2** (= `n_turns`) |
+| `batch/termination_reason/error` | rollouts that died instead of finishing — usually the context ceiling. | **0.0** |
+| `batch/termination_reason/{max_turns_exceeded,agent_timeout}` | rollouts that ran out of budget; graded at half reward, not dropped. | 0.0 / 0.008 |
 
 **Is there a learning signal?**
 
 | metric | why it matters | observed |
 | --- | --- | --- |
-| `reward/mini-swe-agent/{mean,max,std}` | is the verifier reachable at all by the policy? | 0.031 / 1.0 / 0.17 |
-| `batch/mini-swe-agent/fractions/{too_hard,effective}` | groups with no reward spread vs. groups that carry signal. | 0.75 / **0.25** |
-| `advantage/mini-swe-agent/std` | non-zero means GRPO has something to push on. | **0.50** (max 2.65, min -0.38) |
-| `actor/pg_loss`, `grad_norm` | the actual update. | **0.031**, **0.312** |
+| `reward/openhands-sdk/{mean,max,std}` | is the verifier reachable at all by the policy? | 0.57 / 1.0 / 0.50 |
+| `batch/openhands-sdk/fractions/{too_hard,effective}` | groups with no reward spread vs. groups that carry signal. | 0.06 / **0.75** |
+| `advantage/openhands-sdk/std` | non-zero means GRPO has something to push on. | **0.43** |
 
-`pg_loss = 0` with `grad_norm = 0` and `too_hard = 1.0` is **not** a broken optimizer: GRPO
-normalizes reward within a group, so a group where every rollout scores 0 contributes exactly
-zero advantage. That is a normal first-step picture; the gradient appears as soon as one rollout
-in a group solves its task. If it never does, the training set is too hard for the starting
-policy rather than misconfigured.
+A mean reward near 0.5 with three quarters of the groups effective is what picking the
+training tasks by the policy's own pass counts buys: on an unfiltered SWE-smith slice the
+untrained 4B scored 0/88 and every group was `too_hard`. `pg_loss = 0` with `grad_norm = 0`
+and `too_hard = 1.0` is **not** a broken optimizer: GRPO normalizes reward within a group, so
+a group where every rollout scores 0 contributes exactly zero advantage. The gradient appears
+as soon as one rollout in a group solves its task; if it never does, the training set is too
+hard for the starting policy rather than misconfigured. (`actor/pg_loss` is large in absolute
+terms here, tens either way, because `loss_agg_mode=seq-mean-token-sum` sums over rows of
+~100K tokens; its sign flips step to step and that is expected.)
 
-**Is it fast enough?** A clean A/B — same config, only `flash-linear-attention` differs:
+**Is it fast enough?** A clean A/B on Qwen3.5-4B, 80 GB cards — same config, only
+`flash-linear-attention` differs (the 9B's own timings are in
+[Scaling from 4B to 9B](#scaling-from-4b-to-9b)):
 
 | | torch fallback | with fla | |
 | --- | --- | --- | --- |
@@ -1427,9 +1539,12 @@ that answers whether it matters, and it moved the right way.
 
 ## Agent image mount
 
-`RLLM_AGENT_IMAGE=auto` (the default) bakes mini-swe-agent into a small local image once and
-mounts it read-only at `/opt/rllm/agent` in every task sandbox (Docker `type=image` mount), so
-no rollout pays for `uv tool install`. Same mechanism as `rllm eval --agent-image`.
+`RLLM_AGENT_IMAGE=auto` (the default) bakes the harness's agent (openhands-sdk here) into a
+small local image once and mounts it read-only at `/opt/rllm/agent` in every task sandbox
+(Docker `type=image` mount), so no rollout pays for a per-task install. Same mechanism as
+`rllm eval --agent-image`. The image is Debian based, so a musl (Alpine) task image cannot run
+its python; `recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2.py` adds a glibc runtime to
+those task images for exactly this reason.
 
 * Docker backend only. `modal` / `daytona` fall back to a per-task install.
 * `RLLM_AGENT_IMAGE=skip` forces the per-task install path.
@@ -1447,24 +1562,25 @@ tree for the agent, and restores the original before the verifier (`rllm/sandbox
 
 * Docker backend only; other backends fail the rollout instead of running with the history in place.
 * The workdir comes from `task.toml` `[environment].workdir`, else the Dockerfile `WORKDIR`.
-* Off by default so existing runs stay comparable; the hide/restore time shows up as
-  `time/git_hide_s` in the setup metrics.
+* On in this recipe (`recipe.hide_git_history=true`): the pass counts that picked the training
+  tasks were measured with the history hidden, so training sees the same repos. The
+  hide/restore time shows up as `time/git_hide_s` in the setup metrics.
 
-## Sandbox network isolation — still not supported
+## Sandbox network
 
-`DockerSandbox` / `ModalSandbox` / `DaytonaSandbox` expose no `network_mode` or egress policy,
-and the task sandboxes here **do** need the network:
+Docker sandboxes start on `rllm-sandbox-isolated`, a network with no way out except a relay
+container (`rllm-egress-relay`) that forwards only the gateway's port to the host: the agent can
+call the model and nothing else. With the internet open, a policy can fetch the task's own
+upstream release or repository and copy the fix. Implementation: `rllm/sandbox/backends/egress.py`.
 
-| setting | internet | gateway (LLM) | result |
+| config | CLI | default | effect |
 |---|---|---|---|
-| `network_mode=none` | blocked | **blocked** | every rollout fails — the agent's LLM calls go out through `host.docker.internal` |
-| default bridge (today) | allowed | allowed | reward hacking is possible (web search, external APIs, `pip install`) |
-| selective egress (not implemented) | blocked | host-only allow | what you actually want |
+| `recipe.agent_network` | `rllm eval --agent-network` | `false` | internet while the agent runs |
+| `recipe.verify_network` | `rllm eval --verify-network` | `true` | internet for the verifier only, once the agent is done |
 
-Both verifiers also need the network at runtime: SWE-bench Verified's `test.sh` runs
-`uv run parser.py` (pulls `swebench`, `datasets`, `fastcore`), and SWE-smith's runs
-`apt-get install` + `uv add pytest swebench datasets swesmith`. Blocking egress means
-pre-baking those into the task images first.
+Keep `verify_network` on: SWE-bench Verified's `test.sh` runs `uv run parser.py` and SWE-smith's
+runs `apt-get install` + `uv add ...`, and some tests download datasets or models. Both switches
+join the sandbox to an ordinary bridge (`rllm-sandbox-verify`). Docker backend only.
 
 ### A hung verifier used to hang the whole run
 
@@ -1560,7 +1676,7 @@ Each of these was a hard failure of the native training path, not a tuning choic
 recipe/grpo/qwen3_5/
 ├── README.md
 ├── .env.example                  # RLLM_HOME / HF_HOME / tokens; copy to .env (gitignored)
-├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.agent
+├── train.py                      # Hydra entry → unified AgentTrainer(agent_flow=..., backend="verl"); picks the harness from recipe.harness
 ├── workflow_harness.py           # StepLimitedOpenHandsSdk + WorkflowMixin/OpenHandsSdkWorkflow (docs upload, instruction prefix/suffix, system prompt, eval scorer)
 ├── workflow_scoring.py           # ComplianceEvaluation(collect, score): verifier wrapper every workflow scorer shares
 ├── workflows/                    # one package per workflow; __init__.py: WORKFLOWS = {"aidlc_v4": aidlc_v4.SPEC}
@@ -1586,6 +1702,7 @@ recipe/grpo/qwen3_5/
 ├── tests/test_aidlc_v4_eval_cases.py  # every code-scored method broken and kept by a case (gate)
 ├── train_verl.sh                 # launcher: env, transcript, exec (no knobs)
 ├── smoke_test.sh                 # 1 batch, minimal everything
+├── val_tasks_swebenchverified_30.txt     # 4B-era SWE-bench Verified val pin (prepare_datasets.py)
 ├── config/
 │   ├── config.yaml               # Hydra entry + recipe.* (agent, aidlc.*, datasets, turn budget, reward scale, sandbox)
 │   ├── rllm_grpo.yaml            # the `rllm.*` tree (data, sampling, gateway, GRPO)

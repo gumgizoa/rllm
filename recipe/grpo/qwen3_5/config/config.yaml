@@ -1,4 +1,5 @@
-# Hydra entry point for the Qwen3.5-4B native SWE GRPO recipe.
+# Hydra entry point for the native SWE GRPO recipe: Qwen3.5-9B on swe_feat with
+# openhands-sdk, 8 x H200.
 #
 # `hydra.searchpath` is what lets a config living outside the rllm package
 # reference rLLM's and verl's config groups. It also has to live here, in the
@@ -15,15 +16,11 @@ defaults:
   - _self_
   # An optional preset layered *after* this file, so its values win over the
   # defaults below: `variant=openhands_9b` / `variant=openhands_9b_aidlc`
-  # (see config/variant/). Unset = the 4B + mini-swe-agent run as before.
+  # (see config/variant/). Unset = the defaults below (openhands-sdk, no workflow).
   - variant: null
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
-  # Which harness runs inside the task sandbox. Both honour agent_step_limit.
-  #   mini-swe-agent  StepLimitedMiniSweAgent (train.py); takes no workflow
-  #   openhands-sdk   workflow_harness.OpenHandsSdkWorkflow
-  agent: mini-swe-agent
   # Workflow layered on the harness (openhands-sdk only). name is a key of
   # workflows.WORKFLOWS, whose entry holds the documents, the instruction and the
   # system prompt together -- they name each other by absolute container path.
@@ -63,29 +60,56 @@ recipe:
       enable: false
       mode: mul
       lam: 0.2          # mode=add only
-  train_dataset: rllm_swesmith_fn50   # single-function mutations; see scripts/prepare_datasets.py KIND_RE
+  train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
-  val_dataset: swebench_verified_balanced   # difficulty-balanced; see val_tasks.txt
+  val_dataset: swebenchpro_v2_strat50
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
-  sandbox_concurrency: 16     # caps live sandboxes AND the warm-queue prefetch depth
-  # Turn budget per rollout: mini-swe-agent's agent.step_limit, or the SDK's
-  # OPENHANDS_MAX_ITERATIONS. The engine reads the same number to stamp
-  # MAX_TURNS_EXCEEDED.
+  sandbox_concurrency: 8      # caps live sandboxes AND the warm-queue prefetch depth; = rllm.workflow.n_parallel_tasks
+  # Which agent runs inside the task sandbox: mini-swe-agent | openhands-sdk
+  # (rllm/harnesses/mini_swe_agent.py, rllm/harnesses/openhands_sdk.py). Both
+  # call the model through the gateway and are graded by the task's tests/test.sh,
+  # so the trajectory and reward path is the same; the system prompt, tools and
+  # observation format differ. openhands-sdk's system prompt + tool specs alone
+  # are ~7.2K tokens (see rllm_grpo.yaml max_prompt_length).
+  harness: openhands-sdk
+  # Turn budget per rollout: mini-swe-agent agent.step_limit, openhands-sdk
+  # max_iteration_per_run. Either way one LLM call per turn, and the engine
+  # stamps MAX_TURNS_EXCEEDED when the trace count reaches it.
   # Not cross-checked against the context window: nothing bounds tokens-per-turn
   # tightly enough for the arithmetic to mean much (measured median 542, worst
   # 1151), so a turn that overruns max_model_len is handled at rollout time
   # rather than predicted here.
-  agent_step_limit: 150
+  # 250, up from 150: at 150 about 9% of this policy's swe_feat rollouts ran out of turns.
+  agent_step_limit: 250
+  # openhands-sdk only. SDK built-in tools to include, same as `rllm eval
+  # --agent-kwargs` include_default_tools (recipe/eval/config/openhands-sdk.yaml):
+  # FinishTool lets the agent end the run; ThinkTool is left out because a model
+  # with reasoning on already thinks every turn and it would only spend steps.
+  openhands_default_tools: [FinishTool]
+  # openhands-sdk only, `--agent-kwargs` strict_tool_calls: run tool calls as the model
+  # wrote them. Off, the SDK repairs wrong ones silently (str_replace -> file_editor and
+  # more; rllm/harnesses/tools/openhands_sdk_runner.py), so the policy is rewarded for
+  # them: 24% of the file edits in the first 9B run were `str_replace` calls.
+  openhands_strict_tool_calls: true
   agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
   # Keep each task workdir's .git out of the sandbox while the agent runs and
   # put it back for the verifier (rllm/sandbox/git_history.py). SWE task images
   # ship commits past the base commit, fix included (SWE-smith: `git show HEAD`
   # prints the answer), so a policy can learn to copy the fix from history.
   # Docker backend only.
-  hide_git_history: false
+  # On: the pass counts that picked the training tasks were measured with the history
+  # hidden (rllm eval --hide-git-history); train the same way.
+  hide_git_history: true
+  # Docker sandboxes are kept off the internet: with it, agents fetched the
+  # task's own upstream release or repository and copied the fix.
+  # agent_network: internet while the agent runs (and so for the verifier too).
+  # verify_network: internet for the verifier only, for tests that download
+  # datasets, models or build backends. Docker backend only.
+  agent_network: false
+  verify_network: true
   # SWE-Master reward shaping (arXiv 2602.03411, sec. 3.4.2, eq. 4): a rollout
   # that ran out of budget -- turns, context window, or agent wall clock -- is
   # still graded, and its reward is multiplied by this. The paper's code uses

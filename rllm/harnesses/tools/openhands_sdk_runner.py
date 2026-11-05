@@ -18,6 +18,11 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 ``OPENHANDS_SDK_SYSTEM_PROMPT_PATH``  optional absolute path to a Jinja
                      template that replaces the SDK's default system prompt
                      (same name Harbor's openhands-sdk scaffold uses)
+``OPENHANDS_DEFAULT_TOOLS``   optional comma-separated SDK built-in tools to
+                             include (default FinishTool and ThinkTool); set
+                             but empty includes none
+``OPENHANDS_SDK_ENABLE_THINKING``  optional ``enable_thinking`` chat-template
+                             kwarg sent with every request (see below)
 """
 
 from __future__ import annotations
@@ -84,9 +89,62 @@ def reasoning_replay_llm(llm_cls):
     return ReasoningReplayLLM
 
 
+def strict_tool_calls(agent_module) -> None:
+    """Run tool calls as the model wrote them, so a wrong one comes back as an error.
+
+    The SDK quietly repairs tool calls before running them
+    (``openhands.sdk.agent.utils``): it renames unknown tools
+    (``str_replace``/``str_replace_editor`` -> ``file_editor``, ``bash``/``command``/...
+    -> ``terminal``), cuts XML fragments off malformed names, turns bare shell
+    names into terminal commands, infers ``file_editor``'s missing ``command``,
+    decodes list/dict arguments sent as JSON strings, joins chunked strings,
+    escapes raw control characters, fixes ``security_risk`` typos and drops
+    ``None`` arguments. The call then succeeds, the model's next prompt still
+    holds the call as it sampled it, and a policy trained on such rollouts is
+    rewarded for the wrong call and never told otherwise.
+
+    With every repair replaced, the SDK's own error paths answer instead:
+    ``Tool 'str_replace' not found. Available: [...]`` for a wrong name, and a
+    validation error naming the parameters for wrong arguments. Rebinds the
+    names ``agent_module`` (``openhands.sdk.agent.agent``) imported, and fails
+    loudly if an SDK release renamed them, rather than run unpatched.
+    """
+    import json
+
+    names = ("normalize_tool_call", "fix_malformed_tool_arguments", "parse_tool_call_arguments")
+    missing = [n for n in names if not hasattr(agent_module, n)]
+    if missing:
+        raise RuntimeError(f"openhands-sdk runner: strict tool calls cannot patch {missing}; the SDK changed")
+
+    def normalize_tool_call(tool_name, arguments, available_tools):
+        return tool_name, dict(arguments)
+
+    def fix_malformed_tool_arguments(arguments, action_type):
+        return arguments
+
+    def parse_tool_call_arguments(raw_arguments):
+        parsed = json.loads(raw_arguments)
+        if not isinstance(parsed, dict):
+            raise ValueError(f"tool arguments must be a JSON object, got {type(parsed).__name__}")
+        return parsed
+
+    agent_module.normalize_tool_call = normalize_tool_call
+    agent_module.fix_malformed_tool_arguments = fix_malformed_tool_arguments
+    agent_module.parse_tool_call_arguments = parse_tool_call_arguments
+
+
+def agent_kwargs_from_env(environ) -> dict:
+    """Extra ``Agent`` kwargs from the environment (``include_default_tools``)."""
+    tools = environ.get("OPENHANDS_DEFAULT_TOOLS")
+    if tools is None:
+        return {}
+    return {"include_default_tools": [t for t in tools.split(",") if t]}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run an openhands-sdk agent on one task")
     parser.add_argument("--instruction", required=True, help="Task instruction")
+    parser.add_argument("--strict-tool-calls", action="store_true", help="Do not repair tool calls; report wrong ones to the model (strict_tool_calls)")
     args = parser.parse_args()
 
     # The task's repo is the cwd: the harness cd's into ``[environment].workdir``
@@ -101,6 +159,10 @@ def main() -> int:
     from openhands.tools.task_tracker import TaskTrackerTool
     from openhands.tools.terminal import TerminalTool
 
+    if args.strict_tool_calls:
+        import openhands.sdk.agent.agent as agent_module
+
+        strict_tool_calls(agent_module)
     os.chdir(workspace)
 
     model = os.environ.get("LLM_MODEL")
@@ -125,7 +187,9 @@ def main() -> int:
         Tool(name=FileEditorTool.name),
         Tool(name=TaskTrackerTool.name),
     ]
-    agent_kwargs: dict[str, object] = {"llm": llm, "tools": tools}
+    # ``include_default_tools`` from OPENHANDS_DEFAULT_TOOLS (FinishTool / ThinkTool).
+    extra = agent_kwargs_from_env(os.environ)
+    agent_kwargs: dict[str, object] = {"llm": llm, "tools": tools, **extra}
     # The SDK's default system prompt prescribes its own problem-solving
     # procedure, which outranks any workflow the task instruction asks for.
     # A harness that needs a different procedure ships a template and points
@@ -144,7 +208,15 @@ def main() -> int:
         conversation_kwargs["max_iteration_per_run"] = int(max_iterations)
     conversation = Conversation(**conversation_kwargs)  # type: ignore[arg-type]
 
-    print(f"openhands-sdk runner: model={model} workspace={workspace} chat_template_kwargs={chat_template_kwargs or None}", flush=True)
+    print(
+        f"openhands-sdk runner: model={model} workspace={workspace} "
+        f"chat_template_kwargs={chat_template_kwargs or None} "
+        f"system_prompt={system_prompt_path or 'sdk default'} "
+        f"default_tools={extra.get('include_default_tools', 'sdk default')} "
+        f"max_iterations={conversation_kwargs.get('max_iteration_per_run', 'sdk default')} "
+        f"strict_tool_calls={args.strict_tool_calls}",
+        flush=True,
+    )
     conversation.send_message(args.instruction)
     conversation.run()
 

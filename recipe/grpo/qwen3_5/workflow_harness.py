@@ -130,9 +130,20 @@ class StepLimitedOpenHandsSdk(AgentKwargsMixin, OpenHandsSdkHarness):
 
     step_limit: int = 50
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._sync_budget()
+
     def _after_configure(self) -> None:
         super()._after_configure()
+        self._sync_budget()
+
+    def _sync_budget(self) -> None:
+        # The base harness keeps its budget in ``max_iterations`` (its ``step_limit``
+        # property, the engine's MAX_TURNS_EXCEEDED check); keep the two the same
+        # whether the budget arrived as a constructor kwarg or via configure().
         self.step_limit = int(self.step_limit)
+        self.max_iterations = self.step_limit or None
 
     def build_env(self, task: Task, config: AgentConfig) -> dict[str, str]:
         env = super().build_env(task, config)

@@ -243,6 +243,21 @@ class GatewayManager:
 
         if self.tunnel_backend and not self.public_url:
             self._start_tunnel()
+        else:
+            self._open_sandbox_egress()
+
+    def _open_sandbox_egress(self) -> None:
+        """Open this gateway's port through the relay that keeps docker sandboxes off the internet."""
+        try:
+            import docker  # noqa: F401
+        except ImportError:
+            return  # no docker sandboxes on this host
+        from rllm.sandbox.backends import egress
+
+        try:
+            egress.allow_host_port(self.port)
+        except Exception as e:  # docker daemon absent or unreachable: nothing to open for
+            logger.warning("Could not open gateway port %d to docker sandboxes: %s", self.port, e)
 
     def _start_tunnel(self) -> None:
         """Spawn the named tunnel backend and pin its public URL onto ``self.public_url``."""
@@ -513,3 +528,5 @@ class EvalGatewayManager(GatewayManager):
 
         if self.tunnel_backend and not self.public_url:
             self._start_tunnel()
+        else:
+            self._open_sandbox_egress()

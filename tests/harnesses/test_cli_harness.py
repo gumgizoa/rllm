@@ -152,6 +152,32 @@ def test_run_reports_agent_timeout_as_termination_reason():
     assert result.trajectories[0].name == h.name
 
 
+def test_run_uses_the_engines_agent_budget_over_task_metadata():
+    """The engine passes the agent limit already cut to the rollout budget;
+    re-reading task.toml would let the agent overrun that budget."""
+    h = OpenCodeHarness()
+    task = _make_task()
+    task.metadata["agent_timeout"] = 3600
+    config = _make_config()
+    config.agent_timeout = 120.0
+    sandbox = FakeSandbox()
+
+    h.run(task, config, env=sandbox)
+
+    assert [c.timeout for c in sandbox.calls if "opencode --model" in c.command] == [120.0]
+
+
+def test_run_resolves_the_limit_itself_outside_the_engine(monkeypatch):
+    """Without an engine-resolved budget: task.toml, then RLLM_HARNESS_RUN_TIMEOUT_S."""
+    monkeypatch.setenv("RLLM_HARNESS_RUN_TIMEOUT_S", "240")
+    h = OpenCodeHarness()
+    sandbox = FakeSandbox()
+
+    h.run(_make_task(), _make_config(), env=sandbox)
+
+    assert [c.timeout for c in sandbox.calls if "opencode --model" in c.command] == [240.0]
+
+
 @pytest.mark.parametrize(
     ("workdir", "expected_prefix"),
     [

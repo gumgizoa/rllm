@@ -76,6 +76,12 @@ from verl.utils.dataset.multiturn_sft_dataset import MultiTurnSFTDataset  # noqa
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
 
+# How the Qwen3.5 template closes every turn. Serving stops at <|im_end|> (the eos),
+# so the newline after it is never generated: the template writes it as the start
+# of whatever comes next.
+_TURN_END = "<|im_end|>"
+_TURN_SEPARATOR = "\n"
+
 
 class _LazyMessages(Sequence):
     """``dataset.messages[i]`` without holding every row's decoded messages.
@@ -466,6 +472,11 @@ class Qwen3_5_SFTDataset(MultiTurnSFTDataset):
                 rendered=rendered,
                 kwargs=kwargs,
             )
+            # The turn's render ends "<|im_end|>\n". Supervise up to <|im_end|>, which
+            # teaches the model to stop, but not the separator after it: that would
+            # train a prediction serving never makes.
+            if rendered.startswith(_TURN_END + _TURN_SEPARATOR, end - len(_TURN_END + _TURN_SEPARATOR)):
+                end -= len(_TURN_SEPARATOR)
             if end > start:
                 spans.append((start, end))
         return spans

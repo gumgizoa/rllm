@@ -55,7 +55,10 @@ def _stand_in_cmd(workdir: str) -> str:
     return (
         f"set -e; cd {shlex.quote(workdir)}; rm -rf .git; "
         "git config --global --add safe.directory '*' ; "
-        "git init -q; git add -A; "
+        # gc.auto=0: committing a large tree leaves thousands of loose objects, and
+        # the detached ``git gc --auto`` that follows (from this commit or any agent
+        # git command) still writes into .git when restore runs ``rm -rf .git``.
+        "git init -q; git config gc.auto 0; git add -A; "
         f"env {_COMMIT_ENV} git commit -q --no-verify --allow-empty -m 'Initial commit'; "
         "echo commits=$(git rev-list --all | wc -l) refs=$(git for-each-ref | wc -l)"
     )

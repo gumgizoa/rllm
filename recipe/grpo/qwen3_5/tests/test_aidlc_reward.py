@@ -421,31 +421,31 @@ def test_hook_keeps_the_verifier_reward_without_the_signal_or_the_mode(train_mod
 
 
 def _recipe(agent="openhands-sdk", name=None, reward=None, position="prefix", **workflow):
-    return OmegaConf.create({"agent": agent, "agent_step_limit": 80, "workflow": {"name": name, "instruction_position": position, "compliance_reward": reward or {"enable": False}, **workflow}})
+    return OmegaConf.create({"harness": agent, "agent_step_limit": 80, "openhands_default_tools": ["FinishTool"], "openhands_strict_tool_calls": True, "workflow": {"name": name, "instruction_position": position, "compliance_reward": reward or {"enable": False}, **workflow}})
 
 
-def test_build_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
+def test_make_agent_flow_picks_harness_and_workflow(train_module, monkeypatch):
     monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
     cfg = OmegaConf.create({})
-    assert train_module._build_agent_flow(_recipe("mini-swe-agent"), cfg).step_limit == 80
-    with pytest.raises(SystemExit, match="requires recipe.agent=openhands-sdk"):
-        train_module._build_agent_flow(_recipe("mini-swe-agent", "aidlc_v4"), cfg)
-    plain = train_module._build_agent_flow(_recipe(), cfg)
+    assert train_module.make_agent_flow(_recipe("mini-swe-agent"), cfg).step_limit == 80
+    with pytest.raises(SystemExit, match="requires recipe.harness=openhands-sdk"):
+        train_module.make_agent_flow(_recipe("mini-swe-agent", "aidlc_v4"), cfg)
+    plain = train_module.make_agent_flow(_recipe(), cfg)
     assert isinstance(plain, OpenHandsSdkWorkflow) and plain.workflow_spec is None and plain.step_limit == 80
-    wf = train_module._build_agent_flow(_recipe(name="aidlc_v4", position="suffix"), cfg)
+    wf = train_module.make_agent_flow(_recipe(name="aidlc_v4", position="suffix"), cfg)
     assert wf.workflow == "aidlc_v4" and wf.instruction_position == "suffix" and wf.system_prompt_file is not None
-    with pytest.raises(SystemExit, match="recipe.agent must be"):
-        train_module._build_agent_flow(_recipe("claude-code"), cfg)
+    with pytest.raises(SystemExit, match="recipe.harness must be"):
+        train_module.make_agent_flow(_recipe("claude-code"), cfg)
 
 
-def test_build_agent_flow_mixes_workflows_and_pins_validation(train_module, monkeypatch):
+def test_make_agent_flow_mixes_workflows_and_pins_validation(train_module, monkeypatch):
     from recipe.grpo.qwen3_5.workflows import WORKFLOW_KEY
 
     monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
     cfg = OmegaConf.create({})
     # A Hydra list arrives as a ListConfig; val_name need not be in the pool.
     recipe = _recipe(name=["none", "speckit_bug"], seed=7, val_name="aidlc_v4")
-    flow = train_module._build_agent_flow(recipe, cfg)
+    flow = train_module.make_agent_flow(recipe, cfg)
     assert flow.workflow == ("none", "speckit_bug") and flow.workflow_seed == 7
     assert sorted(flow.routes()) == ["aidlc_v4", "none", "speckit_bug"]
     assert all(r.step_limit == 80 and r.instruction_position == "prefix" for r in flow.routes().values())
@@ -455,10 +455,10 @@ def test_build_agent_flow_mixes_workflows_and_pins_validation(train_module, monk
     assert {t.metadata[WORKFLOW_KEY] for t in tasks} == {"aidlc_v4"}
     assert {flow.workflow_for(t) for t in tasks} == {"aidlc_v4"}
     # [none] alone is the plain harness, which mini-swe-agent can run; a real workflow it cannot.
-    assert train_module._build_agent_flow(_recipe(name=["none"]), cfg).workflow_spec is None
-    assert train_module._build_agent_flow(_recipe("mini-swe-agent", ["none"]), cfg).step_limit == 80
-    with pytest.raises(SystemExit, match="requires recipe.agent=openhands-sdk"):
-        train_module._build_agent_flow(_recipe("mini-swe-agent", None, val_name="aidlc_v4"), cfg)
+    assert train_module.make_agent_flow(_recipe(name=["none"]), cfg).workflow_spec is None
+    assert train_module.make_agent_flow(_recipe("mini-swe-agent", ["none"]), cfg).step_limit == 80
+    with pytest.raises(SystemExit, match="requires recipe.harness=openhands-sdk"):
+        train_module.make_agent_flow(_recipe("mini-swe-agent", None, val_name="aidlc_v4"), cfg)
 
 
 def test_hook_reads_whichever_workflow_signal_the_trajectory_carries(train_module):
@@ -484,7 +484,7 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
 
     def r(name, reward, agent="openhands-sdk"):
         recipe = _recipe(agent, name, reward)
-        return train_module._workflow_reward(recipe, train_module._build_agent_flow(recipe, cfg))
+        return train_module._workflow_reward(recipe, train_module.make_agent_flow(recipe, cfg))
 
     assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0)
     assert r(None, {"enable": False}) == (None, None, 0.0)

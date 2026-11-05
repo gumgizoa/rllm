@@ -243,6 +243,9 @@ class UnifiedTrainer:
                 train_sampling_params=training_sampling_params,
                 val_sampling_params=val_sampling_params,
                 hooks=hooks,
+                rollout_timeout=OmegaConf.select(self.rllm_config, "timeouts.rollout"),
+                agent_timeout=OmegaConf.select(self.rllm_config, "timeouts.agent"),
+                verifier_timeout=OmegaConf.select(self.rllm_config, "timeouts.verifier"),
             )
 
         elif remote_runtime_cfg.get("enabled", False):
@@ -1018,6 +1021,11 @@ class AgentTrainer:
             while the agent runs and put it back for the verifier (see
             :mod:`rllm.sandbox.git_history`). Applies to the auto-wired sandbox
             hooks.
+        agent_network: Give a docker sandbox the internet while the agent
+            runs (off by default). Applies to the auto-wired sandbox hooks.
+        verify_network: Give a docker sandbox, kept off the internet while the
+            agent runs, the internet back for the verifier. Applies to the
+            auto-wired sandbox hooks.
     """
 
     def __init__(
@@ -1034,6 +1042,8 @@ class AgentTrainer:
         sandbox_backend: str | None = None,
         sandbox_concurrency: int | None = None,
         hide_git_history: bool = False,
+        agent_network: bool = False,
+        verify_network: bool = False,
         store: Store | None = None,
         **kwargs,
     ):
@@ -1059,6 +1069,9 @@ class AgentTrainer:
                     evaluation=FixedEvaluation(evaluator) if evaluator is not None else None,
                     sandbox_backend=sandbox_backend,
                     hide_git_history=hide_git_history,
+                    agent_network=agent_network,
+                    verify_network=verify_network,
+                    verifier_timeout=OmegaConf.select(config, "rllm.timeouts.verifier"),
                 )
                 evaluator = None
             elif hide_git_history and not getattr(hooks, "hide_git_history", False):

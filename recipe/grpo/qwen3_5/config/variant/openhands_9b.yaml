@@ -12,7 +12,7 @@ model:
   name: ${oc.env:MODEL_PATH,Qwen/Qwen3.5-9B}
 
 recipe:
-  agent: openhands-sdk
+  harness: openhands-sdk
   # Fewer iterations than the mini-swe-agent default (150): an SDK step's
   # observation is a file view or a terminal result rather than one bash line,
   # and the AI-DLC arm spends its first turns reading ~600 lines of workflow

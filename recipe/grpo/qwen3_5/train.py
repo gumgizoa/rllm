@@ -1,16 +1,16 @@
-"""Native rLLM SWE GRPO on verl — Qwen3.5 + a CLI harness in Docker sandboxes.
+"""Native rLLM SWE GRPO on verl - Qwen3.5-9B + openhands-sdk or mini-swe-agent.
 
 Not Harbor: the rollout is ``AgentFlowEngine`` → ``SandboxTaskHooks`` (Docker)
-→ harness (the agent runs *inside* the task sandbox and calls back through the
-rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh`` writes
-``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
+→ the harness ``recipe.harness`` names (``MiniSweAgentHarness`` or
+``OpenHandsSdkHarness``; the agent runs *inside* the task sandbox and calls
+back through the rLLM model gateway) → ``ShellScriptEvaluator`` (``tests/test.sh``
+writes ``/logs/verifier/reward.txt``). ``rllm.remote_runtime.enabled=false``.
 
-The harness is chosen by ``recipe.agent`` and the workflow on it by
+The harness is chosen by ``recipe.harness`` and the workflow on it by
 ``recipe.workflow.name`` (``workflows.WORKFLOWS``; null = none):
 
-* ``mini-swe-agent`` (default) — ``StepLimitedMiniSweAgent`` below, Qwen3.5-4B;
-  no workflow.
-* ``openhands-sdk`` — ``workflow_harness.OpenHandsSdkWorkflow``; with
+* ``mini-swe-agent`` — ``StepLimitedMiniSweAgent`` below; no workflow.
+* ``openhands-sdk`` (default) — ``workflow_harness.OpenHandsSdkWorkflow``; with
   ``recipe.workflow.name=aidlc_v4`` it ships the AI-DLC workflow documents into
   the sandbox, swaps the SDK's system prompt, and scores compliance beside the
   verifier. A list (``recipe.workflow.name=[none,aidlc_v4,speckit_bug]``) gives
@@ -190,7 +190,7 @@ class StepLimitedMiniSweAgent(MiniSweAgentHarness):
         )
 
 
-def _renderer_enable_thinking(config: DictConfig) -> bool | None:
+def _renderer_enable_thinking(config: DictConfig | None) -> bool | None:
     """``rllm.gateway.renderer_kwargs.enable_thinking`` when set, else ``None``.
 
     Turn 1 of an openhands-sdk episode is rendered by vLLM's chat template,
@@ -199,6 +199,8 @@ def _renderer_enable_thinking(config: DictConfig) -> bool | None:
     sampled from. The renderer kwarg is the single source of truth; the
     harness forwards the same value to the SDK as a chat-template kwarg.
     """
+    if config is None:
+        return None
     kwargs = ((config.get("rllm") or {}).get("gateway") or {}).get("renderer_kwargs") or {}
     value = kwargs.get("enable_thinking")
     return None if value is None else bool(value)
@@ -215,50 +217,6 @@ def _workflow_names(recipe: DictConfig) -> tuple[tuple[str, ...], str | None]:
     if len(val) > 1:
         raise SystemExit(f"recipe.workflow.val_name names one workflow, got {list(val)}")
     return pool, (val[0] if val else None)
-
-
-def _build_agent_flow(recipe: DictConfig, config: DictConfig):
-    """Pick the harness from ``recipe.agent`` and the workflow on it from ``recipe.workflow.name``.
-
-    The two harnesses share one ``agent_step_limit`` so a run's turn budget
-    means the same thing whichever agent is under it. A workflow needs a
-    system-prompt override to work at all, and mini-swe-agent has no
-    equivalent seam, so a workflow there is refused rather than run without it.
-    ``recipe.workflow.name: null`` is the plain harness; a list is a mix, each
-    task routed to one of them (``workflow_harness.WorkflowMixin``), and
-    ``val_name`` is routed too, for the validation tasks ``_pin_workflow`` marks.
-    """
-    agent = str(recipe.get("agent", "mini-swe-agent"))
-    step_limit = int(recipe.agent_step_limit)
-    workflow = recipe.get("workflow") or {}
-    pool, val_name = _workflow_names(recipe)
-    name = pool[0] if len(pool) == 1 else (list(pool) or None)
-
-    if agent == "mini-swe-agent":
-        if any(n != "none" for n in (*pool, *((val_name,) if val_name else ()))):
-            raise SystemExit(
-                f"recipe.workflow.name={name!r} requires recipe.agent=openhands-sdk "
-                "(mini-swe-agent has no system-prompt seam for the workflow). "
-                "Use `variant=openhands_9b_aidlc` or set recipe.agent explicitly."
-            )
-        return StepLimitedMiniSweAgent(step_limit=step_limit)
-
-    if agent == "openhands-sdk":
-        # Imported lazily: the harness pulls in the openhands-sdk harness and,
-        # for a workflow with a scorer, its evaluator.
-        from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
-
-        return OpenHandsSdkWorkflow(
-            step_limit=step_limit,
-            enable_thinking=_renderer_enable_thinking(config),
-            workflow=name,
-            workflow_seed=int(workflow.get("seed", 0)),
-            pinned_workflows=(val_name,) if val_name else (),
-            instruction_position=str(workflow.get("instruction_position", "suffix")),
-        )
-
-    raise SystemExit(f"recipe.agent must be 'mini-swe-agent' or 'openhands-sdk', got {agent!r}")
-
 
 def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float]:
     """(signals folded into the reward, "mul" / "add", lam for "add"); ``(None, None, 0.0)`` when off.
@@ -289,7 +247,7 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
         return None, None, 0.0
     for name, flow in flows.items():
         if flow.workflow_spec.reward_signal is None or flow.evaluation_policy is None:
-            raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.agent={flow.name!r}")
+            raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.harness={flow.name!r}")
     if len(flows) < len(routes):
         logger.warning("recipe.workflow.compliance_reward: the 'none' route trains on the verifier reward alone, beside %s", sorted(flows))
     return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
@@ -313,6 +271,52 @@ def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = Fals
     from rllm.hooks import SandboxTaskHooks
 
     return SandboxTaskHooks(evaluation=evaluation, sandbox_backend=sandbox_backend, hide_git_history=hide_git_history)
+
+def make_agent_flow(recipe: DictConfig, config: DictConfig | None = None):
+    """Pick the harness from ``recipe.harness`` and the workflow on it from ``recipe.workflow.name``.
+
+    ``config`` is the whole Hydra config, read for the renderer's ``enable_thinking``;
+    without it the harness leaves the SDK's thinking switch alone.
+
+    The two harnesses share one ``agent_step_limit`` so a run's turn budget
+    means the same thing whichever agent is under it. A workflow needs a
+    system-prompt override to work at all, and mini-swe-agent has no
+    equivalent seam, so a workflow there is refused rather than run without it.
+    ``recipe.workflow.name: null`` is the plain harness; a list is a mix, each
+    task routed to one of them (``workflow_harness.WorkflowMixin``), and
+    ``val_name`` is routed too, for the validation tasks ``_pin_workflow`` marks.
+    """
+    harness = str(recipe.get("harness", "openhands-sdk"))
+    step_limit = int(recipe.agent_step_limit)
+    workflow = recipe.get("workflow") or {}
+    pool, val_name = _workflow_names(recipe)
+    name = pool[0] if len(pool) == 1 else (list(pool) or None)
+
+    if harness == "mini-swe-agent":
+        if any(n != "none" for n in (*pool, *((val_name,) if val_name else ()))):
+            raise SystemExit(
+                f"recipe.workflow.name={name!r} requires recipe.harness=openhands-sdk "
+                "(mini-swe-agent has no system-prompt seam for the workflow). "
+                "Use `variant=openhands_9b_aidlc` or set recipe.harness explicitly."
+            )
+        return StepLimitedMiniSweAgent(step_limit=step_limit)
+
+    if harness == "openhands-sdk":
+        from recipe.grpo.qwen3_5.workflow_harness import OpenHandsSdkWorkflow
+
+        return OpenHandsSdkWorkflow(
+            step_limit=step_limit,
+            enable_thinking=_renderer_enable_thinking(config),
+            workflow=name,
+            workflow_seed=int(workflow.get("seed", 0)),
+            pinned_workflows=(val_name,) if val_name else (),
+            instruction_position=str(workflow.get("instruction_position", "suffix")),
+            # main이 추가한 SDK 옵션 (config.yaml openhands_default_tools / openhands_strict_tool_calls)
+            include_default_tools=[str(t) for t in recipe.openhands_default_tools],
+            strict_tool_calls=bool(recipe.openhands_strict_tool_calls),
+        )
+
+    raise SystemExit(f"recipe.harness must be 'mini-swe-agent' or 'openhands-sdk', got {harness!r}")
 
 
 def _load(name: str, split: str, limit: int | None, kind: str):
@@ -356,13 +360,13 @@ def main(config: DictConfig) -> None:
     train_dataset = _load(recipe.train_dataset, recipe.train_split, recipe.get("train_limit"), "train")
     val_dataset = _load(recipe.val_dataset, recipe.val_split, recipe.get("val_limit"), "val")
 
-    # `auto` mounts a pre-built agent image (mini-swe-agent or the openhands-sdk
-    # venv, per harness) into the task sandbox instead of installing on every
-    # rollout (Docker only). Same mechanism as `rllm eval --agent-image`.
+    # `auto` mounts a pre-built image of the agent into the task sandbox
+    # instead of installing it on every rollout (Docker only). Same mechanism
+    # as `rllm eval --agent-image`.
     agent_image = os.environ.get("RLLM_AGENT_IMAGE", recipe.agent_image)
     os.environ["RLLM_AGENT_IMAGE"] = str(agent_image)
 
-    agent_flow = _build_agent_flow(recipe, config)
+    agent_flow = make_agent_flow(recipe, config)
     agent_flow.configure({"agent_image": agent_image})
     _pin_workflow(val_dataset, _workflow_names(recipe)[1])
     _log_workflow_split(agent_flow, train_dataset, val_dataset)
@@ -392,6 +396,9 @@ def main(config: DictConfig) -> None:
         sandbox_concurrency=recipe.get("sandbox_concurrency"),
         # Same mechanism as `rllm eval --hide-git-history`.
         hide_git_history=bool(recipe.hide_git_history),
+        # Same mechanisms as `rllm eval --agent-network` / `--verify-network`.
+        agent_network=bool(recipe.agent_network),
+        verify_network=bool(recipe.verify_network),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
         traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal),
     )

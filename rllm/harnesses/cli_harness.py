@@ -36,6 +36,7 @@ from abc import abstractmethod
 from rllm.env import env_int
 from rllm.sandbox.protocol import Sandbox, SandboxExecTimeout
 from rllm.sandbox.sandboxed_flow import SandboxedAgentFlow
+from rllm.timeouts import agent_timeout_for
 from rllm.types import AgentConfig, Episode, Task, Trajectory
 from rllm.workflows.workflow import TerminationReason
 
@@ -63,9 +64,9 @@ class BaseCliHarness(SandboxedAgentFlow):
     agent_user: str | None = None
     # Path inside the sandbox where the CLI's stdout is teed.
     stdout_log_path: str = "/tmp/agent-stdout.log"
-    # Per-call timeouts (seconds). Tasks may override via metadata.
+    # Install-script timeout (seconds). The agent run's own limit is resolved per
+    # task by rllm.timeouts (train config -> task.toml -> RLLM_HARNESS_RUN_TIMEOUT_S).
     install_timeout: int = env_int("RLLM_HARNESS_INSTALL_TIMEOUT_S", 600)  # set env var: export RLLM_HARNESS_INSTALL_TIMEOUT_S=xxx
-    run_timeout: int = env_int("RLLM_HARNESS_RUN_TIMEOUT_S", 1800)  # set env var: export RLLM_HARNESS_RUN_TIMEOUT_S=xxx
 
     # ---------------------------------------------------------------------
     # Sandbox helpers
@@ -284,8 +285,8 @@ class BaseCliHarness(SandboxedAgentFlow):
         enriches from gateway-captured traces.
 
         The one thing the harness reports itself is the agent running out
-        of wall clock (``task.metadata["agent_timeout"]``, i.e. task.toml's
-        ``[agent] timeout_sec``). Nothing downstream can see that: the
+        of wall clock (``config.agent_timeout``, the engine's resolution of
+        :mod:`rllm.timeouts`). Nothing downstream can see that: the
         gateway traces look like any other episode's, and the verifier
         still grades whatever the agent left in the repo -- the docker
         backend's in-container ``timeout`` leaves the sandbox alive. So the
@@ -299,7 +300,7 @@ class BaseCliHarness(SandboxedAgentFlow):
         self.write_configs(sandbox, task, config, env_vars)
 
         instruction = str(task.instruction).strip()
-        timeout = float(task.metadata.get("agent_timeout", self.run_timeout))
+        timeout = agent_timeout_for(task, config)
         cmd = self.build_invocation(instruction, task, config)
 
         try:

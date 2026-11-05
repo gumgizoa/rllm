@@ -21,7 +21,9 @@ Every one of these parses through the typed readers in `rllm/env.py` (`env_int` 
 | `RLLM_OPENAI_REQUEST_TIMEOUT_S` | `3600` | Per-request HTTP timeout for OpenAI-compatible rollout calls |
 | `RLLM_GATEWAY_HEALTH_TIMEOUT_S` | `30.0` | Wait for the gateway subprocess to report healthy |
 | `RLLM_TUNNEL_READY_TIMEOUT_S` | `30.0` | Wait for cloudflared to publish a public URL |
-| `RLLM_HARNESS_RUN_TIMEOUT_S` | `1800` | Global per-task agent-CLI wall-clock ceiling (per-task metadata still overrides) |
+| `RLLM_ROLLOUT_TIMEOUT_S` | unset | Whole-rollout budget (agent + verifier, sandbox setup excluded); unset means no budget. The verifier limit is reserved out of it before the agent starts, so it must exceed that limit. `rllm.timeouts.rollout` overrides it in training |
+| `RLLM_HARNESS_RUN_TIMEOUT_S` | `1800` | Agent wall-clock limit for tasks whose `task.toml` has no `[agent].timeout_sec` (that, and `rllm.timeouts.agent` in training, win) |
+| `RLLM_VERIFIER_TIMEOUT_S` | `600` | Verifier wall-clock limit for tasks whose `task.toml` has no `[verifier].timeout_sec` (that, and `rllm.timeouts.verifier` in training, win) |
 | `RLLM_HARNESS_INSTALL_TIMEOUT_S` | `600` | In-sandbox install-script timeout |
 | `RLLM_EVAL_PROXY_STARTUP_TIMEOUT_S` | `30.0` | Deadline for the litellm proxy to accept connections |
 | `RLLM_EVAL_PROXY_NUM_RETRIES` | `3` | litellm `num_retries` baked into the proxy config |
@@ -69,6 +71,7 @@ In rLLM training, the agent rollout loop, gateway/tunnel, harness execution, rew
 The `RLLM_*` knobs that are read inside Ray workers (the `TaskRunner` actor) include:
 
 - `RLLM_HARNESS_INSTALL_TIMEOUT_S`, `RLLM_HARNESS_RUN_TIMEOUT_S`
+- `RLLM_ROLLOUT_TIMEOUT_S`, `RLLM_VERIFIER_TIMEOUT_S`
 - `RLLM_FIREJAIL_EXEC_TIMEOUT_S`, `RLLM_TACO_EXEC_TIMEOUT_S`
 - `RLLM_GATEWAY_HEALTH_TIMEOUT_S`, `RLLM_TUNNEL_READY_TIMEOUT_S`
 - `RLLM_SNAPSHOT_TTL_HOURS`, `RLLM_UI_HTTP_TIMEOUT_S`

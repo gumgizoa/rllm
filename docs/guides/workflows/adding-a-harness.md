@@ -16,8 +16,8 @@ description: qwen3_5 레시피에서 openhands-sdk 외의 에이전트(harness)�
 
 | harness | 학습 | 평가 | 워크플로우 |
 | --- | --- | --- | --- |
-| openhands-sdk | `recipe.agent=openhands-sdk` | `workflow_harness:OpenHandsSdkWorkflow` | 지원 (AI-DLC 채점 포함) |
-| mini-swe-agent | `recipe.agent=mini-swe-agent` | rLLM 기본 harness | 미지원 (지정하면 학습 시작 시 거부) |
+| openhands-sdk | `recipe.harness=openhands-sdk` (기본값) | `workflow_harness:OpenHandsSdkWorkflow` | 지원 (AI-DLC 채점 포함) |
+| mini-swe-agent | `recipe.harness=mini-swe-agent` | rLLM 기본 harness | 미지원 (지정하면 학습 시작 시 거부) |
 
 워크플로우 자체를 추가하는 방법은 [워크플로우 추가하기](/guides/workflows/adding-a-workflow) 참고.
 
@@ -138,10 +138,10 @@ class OpenCodeWorkflow(WorkflowMixin, StepLimitedOpenCode):   # 1단계 클래�
 
 ## 4. 학습에 연결: `train.py`
 
-`_build_agent_flow`에 분기를 추가함.
+`make_agent_flow`에 분기를 추가함.
 
 ```python
-if agent == "opencode":
+if harness == "opencode":
     from recipe.grpo.qwen3_5.workflow_harness import OpenCodeWorkflow
 
     return OpenCodeWorkflow(
@@ -151,7 +151,7 @@ if agent == "opencode":
     )
 ```
 
-- `recipe.agent=opencode`로 선택함.
+- `recipe.harness=opencode`로 선택함.
 - 채점기 연결(`_build_hooks`)과 reward 합성(`_workflow_reward`)은 harness의 `evaluation_policy`와 등록 정보를 읽으므로 수정 불필요.
 - `enable_thinking`은 openhands-sdk 전용 처리(chat template 인자 전달)라 다른 harness에는 해당 에이전트 방식으로 따로 구현해야 함.
 
