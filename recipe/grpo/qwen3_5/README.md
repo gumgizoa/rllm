@@ -1727,7 +1727,8 @@ recipe/grpo/qwen3_5/
 │       ├── openhands_9b_aidlc_swegym_reward.yaml  # `variant=openhands_9b_aidlc_swegym_reward`: the above + compliance in the reward
 │       ├── openhands_9b_aidlc_swegym_v2.yaml      # `variant=openhands_9b_aidlc_swegym_v2`: prompt v2 (swegym293_aidlc; instruction_position=suffix since 2026-10-19)
 │       ├── openhands_9b_aidlc_swegym_v2_reward.yaml  # `variant=openhands_9b_aidlc_swegym_v2_reward`: v2 + compliance in the reward
-│       └── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, workflow.name=null
+│       ├── openhands_9b_swegym.yaml        # `variant=openhands_9b_swegym`: SWE-Gym control arm, workflow.name=null
+│       └── openhands_9b_swegym_think.yaml  # `variant=openhands_9b_swegym_think`: no-workflow control at the speckit/openspec arms' setting (think on, 250 turns, 262144; validation pinned to aidlc_v4)
 ├── patches/
 │   └── verl-pr6660-...patch      # backported verl fix (see Setup)
 └── scripts/

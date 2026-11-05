@@ -1,0 +1,35 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk on SWE-Gym, *without* a workflow, at the think-on
+# 250-turn / 262144 setting the workflow arms train with: the verifier-only
+# control for openhands_9b_speckit_openspec_agentos_swegym_reward (and the
+# other speckit/openspec arms), as openhands_9b_swegym is for the no-think
+# 100-turn / 131072 openhands_9b_aidlc_swegym chain.
+#
+# Everything is inherited from the rewarded arm -- swegym293_aidlc /
+# swegym_val23_aidlc (procedure-free prompt), thinking on, 250 turns in
+# 16384 + 245760, FSDP1 + Ulysses sp 2, one update per step -- and the recipe
+# defaults from config.yaml apply as there (rollout.n 8, FinishTool only,
+# strict tool calls, the rollout/agent/verifier timeouts). Only the workflow
+# is taken out: no documents, no instruction, the SDK's own system prompt.
+#
+# Validation stays pinned to AI-DLC (val_name, inherited), so val/unknown/aidlc/*
+# keeps its meaning across arms: the validation tasks run under aidlc_v4 and its
+# compliance is scored and logged, but never rewarded (no workflow in training,
+# and compliance_reward is off). The mount image therefore still carries the
+# AI-DLC documents.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym_think trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward
+
+recipe:
+  workflow:
+    name: null
+    compliance_reward:
+      enable: false
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-swegym293-think-nowf

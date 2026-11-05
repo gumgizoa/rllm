@@ -5,12 +5,13 @@
 # NOT Harbor: OpenHandsSdkHarness (or MiniSweAgentHarness) + SandboxTaskHooks +
 # gateway traces (rllm.remote_runtime.enabled=false).
 #
-# Default is Qwen3.5-4B + mini-swe-agent. Presets in config/variant/ switch the
-# harness and model (README "Variants"):
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b         # 9B + openhands-sdk
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc   # 9B + openhands-sdk + AI-DLC
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym   # the above on SWE-Gym (prepare_swegym.py)
-#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2 # prompt v2: prepare_swegym.py --instruction aidlc (instruction after the task text since 2026-10-19)
+# Default is Qwen3.5-9B + openhands-sdk with no workflow (recipe.harness=mini-swe-agent
+# for the other harness). Presets in config/variant/ layer a workflow, the compliance
+# reward and the SWE-Gym datasets on top (README "Variants"):
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2        # AI-DLC on SWE-Gym (prepare_swegym.py --instruction aidlc)
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_aidlc_swegym_v2_reward # ... + compliance in the reward
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_openspec_agentos_swegym_reward   # speckit_bug / openspec_ff / agentos_v2 mix, validation pinned to AI-DLC
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_swegym_think                             # its no-workflow control (same data, turns, context, thinking)
 #
 # This script only sets up the environment and launches; every training knob
 # lives in config/ so that one decision is not split across two files:
@@ -24,10 +25,9 @@
 #   source .venv/bin/activate
 #   uv pip install flash-linear-attention==0.5.2
 #   bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh
-#   rllm dataset pull harbor:swebench-verified
-#   python recipe/grpo/qwen3_5/scripts/prepare_datasets.py --train-limit 24
-#   python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir <SkyRL-v0-293-data>   # variant=*_swegym
-#   or register the datasets config/config.yaml names (swe_mix_train, swebenchpro_v2_strat50)
+#   register the datasets config/config.yaml names (swe_mix_train, swebenchpro_v2_strat50), or
+#   python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir <SkyRL-v0-293-data> --instruction aidlc   # variant=*_swegym_v2* / *_speckit_openspec_*
+#   (rllm dataset pull harbor:swebench-verified + scripts/prepare_datasets.py for the small local benchmarks)
 #
 # Env:
 #   ENV_FILE          dotenv to source         (default: <recipe>/.env)
