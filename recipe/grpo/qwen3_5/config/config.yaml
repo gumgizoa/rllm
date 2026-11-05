@@ -57,8 +57,9 @@ recipe:
     #   mode: add   reward = verifier + lam * compliance                     (bonus of at most lam)
     # `variant=openhands_9b_aidlc_reward` turns it on. floor 0 is the plain product,
     # where a solved rollout with low compliance scores about like an unsolved one
-    # and the group advantage pushes against it; floor=0.3 keeps every solve
-    # above every failure (checked to flip that advantage's sign):
+    # and the group advantage pushes against it; a floor flips that advantage's
+    # sign (wf-tcx rollouts: floor 0.3 -> +0.09 with 38 solves still under their
+    # group mean, floor 0.7 -> +0.30 with none; README "Compliance reward"):
     #   ... recipe.workflow.compliance_reward.floor=0.3
     compliance_reward:
       enable: false

@@ -459,10 +459,12 @@ earns. At the default 0 a solved rollout with low compliance scores about like a
 the wf-tcx training rollouts (27 steps, RLOO without std normalisation) a solved rollout with
 compliance under 0.5 in a group of mixed verdicts had a mean advantage of −0.06 where the verifier
 alone gives +0.45, and in groups where every rollout solved -- two thirds of all groups -- the whole
-advantage orders rollouts by compliance, 36% of the batch's |advantage|. `floor=0.3` keeps every
-solve above every failure and cuts that compliance-only share to 12%, while compliance still decides
-the remaining 0.7; the `rollout/solved_below_group_mean` metric shows how many solved rollouts a
-step still pushes against.
+advantage orders rollouts by compliance, 36% of the batch's |advantage|. On those rollouts
+`floor=0.3` turns that −0.06 into +0.09 (38 of the 653 solved rollouts in mixed groups still end
+below their group mean) and cuts the compliance-only share to 27%; `floor=0.7` gives +0.30, no
+solve below any failure, and 12%. The lower the floor, the more of the 1 compliance still decides;
+the `rollout/solved_below_group_mean` metric shows how many solved rollouts a step still pushes
+against.
 
 The budget scale applies last: reading documents cannot buy back what running out of turns costs.
 `is_correct` and `val/accuracy` are the verifier's alone; `val/reward_*` carries the compliance
