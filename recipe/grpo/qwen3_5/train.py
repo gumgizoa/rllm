@@ -86,6 +86,7 @@ def make_budget_scaled_grouping_hook(
     compliance_mode: str | None = None,
     compliance_lam: float = 0.2,
     compliance_signals: str | tuple[str, ...] | None = None,
+    compliance_floor: float = 0.0,
 ):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
@@ -100,9 +101,12 @@ def make_budget_scaled_grouping_hook(
     A run mixing workflows passes each one's signal; they are named per
     workflow, so a trajectory carries at most one of them:
 
-    * ``"mul"``: ``reward = verifier * compliance`` -- an unsolved rollout stays
-      at 0 however well it followed the workflow, and a solved one earns only
-      as much of the 1 as it complied;
+    * ``"mul"``: ``reward = verifier * (floor + (1 - floor) * compliance)`` -- an
+      unsolved rollout stays at 0 however well it followed the workflow, and a
+      solved one earns at least ``compliance_floor`` and the rest as it complied.
+      With the default floor 0 this is ``verifier * compliance``, where a solved
+      rollout with low compliance scores about like an unsolved one and RLOO
+      pushes against it; a floor keeps every solve above every failure;
     * ``"add"``: ``reward = verifier + lam * compliance`` -- compliance is a bonus
       of at most ``lam``, earned whether or not the task was solved;
     * ``None``: the verifier reward alone.
@@ -130,6 +134,10 @@ def make_budget_scaled_grouping_hook(
         raise ValueError("a compliance mode needs the signal it reads (WorkflowSpec.reward_signal)")
     if compliance_mode == "add" and compliance_lam < 0.0:
         raise ValueError(f"recipe.workflow.compliance_reward.lam must be >= 0, got {compliance_lam}")
+    if not 0.0 <= compliance_floor <= 1.0:
+        raise ValueError(f"recipe.workflow.compliance_reward.floor must be in [0, 1], got {compliance_floor}")
+    if compliance_mode != "mul" and compliance_floor != 0.0:
+        raise ValueError(f"recipe.workflow.compliance_reward.floor applies to mode=mul only, got floor={compliance_floor} with mode={compliance_mode!r}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
         for episode in episodes:
@@ -141,7 +149,7 @@ def make_budget_scaled_grouping_hook(
                 c = next((carried[name] for name in signals if name in carried), None) if compliance_mode else None
                 if c is not None:
                     if compliance_mode == "mul":
-                        trajectory.reward = trajectory.reward * float(c)
+                        trajectory.reward = trajectory.reward * (compliance_floor + (1.0 - compliance_floor) * float(c))
                     else:
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
                 if exhausted and scale != 1.0:
@@ -218,8 +226,8 @@ def _workflow_names(recipe: DictConfig) -> tuple[tuple[str, ...], str | None]:
         raise SystemExit(f"recipe.workflow.val_name names one workflow, got {list(val)}")
     return pool, (val[0] if val else None)
 
-def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float]:
-    """(signals folded into the reward, "mul" / "add", lam for "add"); ``(None, None, 0.0)`` when off.
+def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float, float]:
+    """(signals folded into the reward, "mul" / "add", lam for "add", floor for "mul"); ``(None, None, 0.0, 0.0)`` when off.
 
     Scoring itself follows the harness: a workflow with a scorer for it is
     always scored -- and logged as ``<workflow>/*`` episode metrics -- so the
@@ -239,18 +247,18 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
     """
     reward = (recipe.get("workflow") or {}).get("compliance_reward") or {}
     if not bool(reward.get("enable", False)):
-        return None, None, 0.0
+        return None, None, 0.0, 0.0
     routes = agent_flow.routes() if hasattr(agent_flow, "routes") else {}
     flows = {name: flow for name, flow in routes.items() if flow.workflow_spec is not None}
     if not flows:
         logger.warning("recipe.workflow.compliance_reward.enable is set but there is no workflow; training on the verifier reward alone")
-        return None, None, 0.0
+        return None, None, 0.0, 0.0
     for name, flow in flows.items():
         if flow.workflow_spec.reward_signal is None or flow.evaluation_policy is None:
             raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.harness={flow.name!r}")
     if len(flows) < len(routes):
         logger.warning("recipe.workflow.compliance_reward: the 'none' route trains on the verifier reward alone, beside %s", sorted(flows))
-    return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2))
+    return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2)), float(reward.get("floor", 0.0))
 
 
 def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = False):
@@ -370,11 +378,11 @@ def main(config: DictConfig) -> None:
     agent_flow.configure({"agent_image": agent_image})
     _pin_workflow(val_dataset, _workflow_names(recipe)[1])
     _log_workflow_split(agent_flow, train_dataset, val_dataset)
-    reward_signal, compliance_mode, compliance_lam = _workflow_reward(recipe, agent_flow)
+    reward_signal, compliance_mode, compliance_lam, compliance_floor = _workflow_reward(recipe, agent_flow)
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     hooks = _build_hooks(agent_flow, sandbox_backend, bool(recipe.hide_git_history))
     logger.info(
-        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s)",
+        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s)",
         type(agent_flow).__name__,
         recipe.agent_step_limit,
         getattr(agent_flow, "workflow", None),
@@ -383,6 +391,7 @@ def main(config: DictConfig) -> None:
         reward_signal,
         compliance_mode,
         compliance_lam if compliance_mode == "add" else "-",
+        compliance_floor if compliance_mode == "mul" else "-",
     )
 
     trainer = AgentTrainer(
@@ -400,7 +409,7 @@ def main(config: DictConfig) -> None:
         agent_network=bool(recipe.agent_network),
         verify_network=bool(recipe.verify_network),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal, compliance_floor),
     )
     trainer.train()
 

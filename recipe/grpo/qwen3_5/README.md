@@ -441,9 +441,9 @@ and the reward, with `recipe.workflow.compliance_reward.enable`, folds in the wo
 (`aidlc/compliance`, the mean of the six):
 
 ```
-reward = verifier * mean(six signals) * budget_reward_scale         # mode: mul (default)
-reward = (verifier + lam * mean(six signals)) * budget_reward_scale  # mode: add, lam default 0.2
-                                                                     # budget scale only when the budget ran out
+reward = verifier * (floor + (1 - floor) * compliance) * budget_reward_scale  # mode: mul (default), floor default 0
+reward = (verifier + lam * compliance) * budget_reward_scale                  # mode: add, lam default 0.2
+                                                                              # budget scale only when the budget ran out
 ```
 
 Under `mul` an unsolved rollout earns 0 however well it followed the workflow, and a solved one
@@ -453,6 +453,16 @@ rollout fails still has reward spread under `add`, all of it from compliance —
 more zeros and a smaller mean. On the harbor v4 run below: mean reward 0.56 (verifier) → 0.28
 (`mul`) vs 0.64 (`add`, lam 0.2); rewards at 0 go from 44% to 50%, because 11% of solved
 rollouts have compliance 0 (and 30% under 0.2).
+
+`floor` (`recipe.workflow.compliance_reward.floor`, `mul` only) is the least a solved rollout
+earns. At the default 0 a solved rollout with low compliance scores about like an unsolved one. On
+the wf-tcx training rollouts (27 steps, RLOO without std normalisation) a solved rollout with
+compliance under 0.5 in a group of mixed verdicts had a mean advantage of −0.06 where the verifier
+alone gives +0.45, and in groups where every rollout solved -- two thirds of all groups -- the whole
+advantage orders rollouts by compliance, 36% of the batch's |advantage|. `floor=0.3` keeps every
+solve above every failure and cuts that compliance-only share to 12%, while compliance still decides
+the remaining 0.7; the `rollout/solved_below_group_mean` metric shows how many solved rollouts a
+step still pushes against.
 
 The budget scale applies last: reading documents cannot buy back what running out of turns costs.
 `is_correct` and `val/accuracy` are the verifier's alone; `val/reward_*` carries the compliance

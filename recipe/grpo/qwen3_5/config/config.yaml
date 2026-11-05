@@ -53,13 +53,18 @@ recipe:
     # each in [0, 1], as aidlc/* episode metrics). With compliance_reward.enable the
     # workflow's reward_signal (aidlc: their equal-weight mean, aidlc/compliance)
     # enters the reward, then budget_reward_scale applies:
-    #   mode: mul   reward = verifier * compliance        (unsolved stays 0)
-    #   mode: add   reward = verifier + lam * compliance  (bonus of at most lam)
-    # `variant=openhands_9b_aidlc_reward` turns it on.
+    #   mode: mul   reward = verifier * (floor + (1 - floor) * compliance)   (unsolved stays 0)
+    #   mode: add   reward = verifier + lam * compliance                     (bonus of at most lam)
+    # `variant=openhands_9b_aidlc_reward` turns it on. floor 0 is the plain product,
+    # where a solved rollout with low compliance scores about like an unsolved one
+    # and the group advantage pushes against it; floor=0.3 keeps every solve
+    # above every failure (checked to flip that advantage's sign):
+    #   ... recipe.workflow.compliance_reward.floor=0.3
     compliance_reward:
       enable: false
       mode: mul
       lam: 0.2          # mode=add only
+      floor: 0.0        # mode=mul only; the least a solved rollout earns
   train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
