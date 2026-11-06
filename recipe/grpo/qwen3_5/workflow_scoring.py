@@ -85,8 +85,12 @@ class ComplianceEvaluation(FromTaskEvaluation):
         self.name = name
         self.from_outputs = from_outputs
 
-    def resolve(self, task, sandbox, kind, config):
-        inner = super().resolve(task, sandbox, kind, config)
+    # FromTaskEvaluation.__init__ is not called above; the hooks builder sets the train-config
+    # verifier limit on the instance (train._build_hooks), else task.toml's applies.
+    verifier_timeout: float | None = None
+
+    def resolve(self, task, sandbox, kind, config, clock=None):
+        inner = super().resolve(task, sandbox, kind, config, clock=clock)
         return inner if sandbox is None else ComplianceEvaluator(inner, sandbox, self.collect, self.score, self.name)
 
 
@@ -122,8 +126,15 @@ class RoutedEvaluation(FromTaskEvaluation):
         self.route = route
         self.reward_signals = dict(reward_signals or {})
 
-    def resolve(self, task, sandbox, kind, config):
+    verifier_timeout: float | None = None
+
+    def resolve(self, task, sandbox, kind, config, clock=None):
         name = self.route(task)
         policy = self.policies[name]
-        inner = super().resolve(task, sandbox, kind, config) if policy is None else policy.resolve(task, sandbox, kind, config)
+        if policy is not None and getattr(policy, "verifier_timeout", None) is None:
+            policy.verifier_timeout = self.verifier_timeout
+        # Forward the rollout clock only when there is one, so a policy with the pre-clock
+        # four-argument resolve() still works.
+        kw = {"clock": clock} if clock is not None else {}
+        inner = super().resolve(task, sandbox, kind, config, **kw) if policy is None else policy.resolve(task, sandbox, kind, config, **kw)
         return RoutedSignalEvaluator(inner, name, self.reward_signals.get(name))

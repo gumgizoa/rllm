@@ -281,9 +281,12 @@ class RubricEvaluation(ComplianceEvaluation):
         self.__dict__.update(state)
         self._load_plugins()
 
-    def resolve(self, task, sandbox, kind, config):
+    # Set by train._build_hooks / RoutedEvaluation (FromTaskEvaluation.__init__ is not called).
+    verifier_timeout: float | None = None
+
+    def resolve(self, task, sandbox, kind, config, clock=None):
         self._load_plugins()
-        inner = FromTaskEvaluation.resolve(self, task, sandbox, kind, config)
+        inner = FromTaskEvaluation.resolve(self, task, sandbox, kind, config, clock=clock)
         if sandbox is None:
             return inner
         return RubricEvaluator(inner, sandbox, self.rubric, self.prefix, C.task_info(sandbox, task), self.extra, self.inputs, self.post)

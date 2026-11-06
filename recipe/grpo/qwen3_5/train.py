@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 
 import hydra
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from rllm.data.dataset import DatasetRegistry
 from rllm.harnesses.mini_swe_agent import MiniSweAgentHarness
@@ -261,7 +261,15 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
     return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2)), float(reward.get("floor", 0.0))
 
 
-def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = False):
+def _build_hooks(
+    agent_flow,
+    sandbox_backend: str,
+    hide_git_history: bool = False,
+    *,
+    agent_network: bool = False,
+    verify_network: bool = False,
+    verifier_timeout: float | None = None,
+):
     """``SandboxTaskHooks`` with the harness's workflow scorer, or ``None`` to let AgentTrainer auto-wire.
 
     The scorer is the harness's ``evaluation_policy`` -- the same one
@@ -278,7 +286,19 @@ def _build_hooks(agent_flow, sandbox_backend: str, hide_git_history: bool = Fals
         return None
     from rllm.hooks import SandboxTaskHooks
 
-    return SandboxTaskHooks(evaluation=evaluation, sandbox_backend=sandbox_backend, hide_git_history=hide_git_history)
+    # The auto-wired hooks get these from AgentTrainer; caller-built ones must carry them
+    # themselves, or the verifier runs offline and under task.toml's limit instead of
+    # recipe.verify_network / rllm.timeouts.verifier.
+    if getattr(evaluation, "verifier_timeout", None) is None:
+        evaluation.verifier_timeout = verifier_timeout
+    return SandboxTaskHooks(
+        evaluation=evaluation,
+        sandbox_backend=sandbox_backend,
+        hide_git_history=hide_git_history,
+        agent_network=agent_network,
+        verify_network=verify_network,
+        verifier_timeout=verifier_timeout,
+    )
 
 def make_agent_flow(recipe: DictConfig, config: DictConfig | None = None):
     """Pick the harness from ``recipe.harness`` and the workflow on it from ``recipe.workflow.name``.
@@ -380,7 +400,14 @@ def main(config: DictConfig) -> None:
     _log_workflow_split(agent_flow, train_dataset, val_dataset)
     reward_signal, compliance_mode, compliance_lam, compliance_floor = _workflow_reward(recipe, agent_flow)
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
-    hooks = _build_hooks(agent_flow, sandbox_backend, bool(recipe.hide_git_history))
+    hooks = _build_hooks(
+        agent_flow,
+        sandbox_backend,
+        bool(recipe.hide_git_history),
+        agent_network=bool(recipe.agent_network),
+        verify_network=bool(recipe.verify_network),
+        verifier_timeout=OmegaConf.select(config, "rllm.timeouts.verifier"),
+    )
     logger.info(
         "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s)",
         type(agent_flow).__name__,
