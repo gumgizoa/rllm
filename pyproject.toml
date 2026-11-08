@@ -76,7 +76,11 @@ dev = [
 ]
 
 verl = [
-    "transformers>=5.5.3",
+    # Pinned to the version recipe/grpo/qwen3_5 was validated on (its Ulysses-SP
+    # correctness test included). verl 0.8.0's Qwen3.5 decoder forward reads
+    # `self.layer_type`, which transformers 5.13.0 renamed to `block_type`, so
+    # newer releases crash in the first actor compute_log_prob.
+    "transformers==5.5.3",
     "numpy",
     "verl==0.8.0",
     "ray",
