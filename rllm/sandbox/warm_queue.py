@@ -52,6 +52,9 @@ logger = logging.getLogger(__name__)
 # retry loops.
 _PREFETCH_RETRY_BACKOFF_S = 15.0
 
+# Key placeholder for a schedule entry whose environment could not be resolved.
+_UNRESOLVED = "\0unresolved:"
+
 
 def _close(sandbox: Sandbox) -> None:
     try:
@@ -123,6 +126,10 @@ class WarmQueue:
         # already balanced (the entry was consumed without a product), so
         # it must NOT leave a credit.
         self._failed: dict[str, int] = {}
+        # env_keys of upcoming schedule entries (index -> key), resolved by
+        # fillers outside the lock; _resolving holds the indices in progress.
+        self._keys: dict[int, str] = {}
+        self._resolving: set[int] = set()
         self._cursor = 0
         self._free_slots = size
         self._stop = False
@@ -206,25 +213,60 @@ class WarmQueue:
 
         Credited entries (their pop already self-served inline) are consumed
         without building — the cursor advances, no slot is taken.
+
+        Entries are claimed in schedule order, but their ``env_key`` is never
+        computed under the lock: resolving it can build the task image
+        (docker), and holding the lock through that stalled every other
+        filler and every :meth:`pop`. A filler with nothing claimable resolves
+        the next unresolved key within ``size`` of the cursor instead, so the
+        images of upcoming entries build in parallel.
         """
-        with self._cond:
-            while not self._stop:
-                if self._cursor >= len(self._schedule):
-                    return None
-                task = self._schedule[self._cursor]
-                key = env_key_for(task, self._backend, self._install_script)
-                if self._credits.get(key, 0) > 0:
-                    self._credits[key] -= 1
-                    self._cursor += 1
-                    logger.info("warm queue: skipping schedule entry for %s — its consumer already created inline", key)
-                    continue
-                if self._free_slots > 0:
-                    self._cursor += 1
-                    self._free_slots -= 1
-                    self._pending[key] = self._pending.get(key, 0) + 1
-                    return task, key
-                self._cond.wait()
-            return None
+        while True:
+            with self._cond:
+                while True:
+                    if self._stop or self._cursor >= len(self._schedule):
+                        return None
+                    idx = self._cursor
+                    key = self._keys.get(idx)
+                    if key is not None:
+                        if key.startswith(_UNRESOLVED):
+                            # Its key could not be resolved: the matching pop
+                            # fails the same way, so there is nothing to build.
+                            del self._keys[idx]
+                            self._cursor += 1
+                            self._cond.notify_all()
+                            continue
+                        if self._credits.get(key, 0) > 0:
+                            self._credits[key] -= 1
+                            del self._keys[idx]
+                            self._cursor += 1
+                            self._cond.notify_all()
+                            logger.info("warm queue: skipping schedule entry for %s — its consumer already created inline", key)
+                            continue
+                        if self._free_slots > 0:
+                            del self._keys[idx]
+                            self._cursor += 1
+                            self._free_slots -= 1
+                            self._pending[key] = self._pending.get(key, 0) + 1
+                            return self._schedule[idx], key
+                    todo = next(
+                        (i for i in range(idx, min(len(self._schedule), idx + self._size)) if i not in self._keys and i not in self._resolving),
+                        None,
+                    )
+                    if todo is not None:
+                        self._resolving.add(todo)
+                        break
+                    self._cond.wait()
+            task = self._schedule[todo]
+            try:
+                resolved = env_key_for(task, self._backend, self._install_script)
+            except Exception:
+                logger.exception("warm queue: could not resolve the environment of task %s; not prefetching it", getattr(task, "id", "?"))
+                resolved = f"{_UNRESOLVED}{todo}"
+            with self._cond:
+                self._keys[todo] = resolved
+                self._resolving.discard(todo)
+                self._cond.notify_all()
 
     def _wait_unless_stopped(self, timeout: float) -> bool:
         """Sleep up to ``timeout`` seconds, waking early on stop; return the stop flag."""
