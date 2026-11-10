@@ -18,6 +18,9 @@ Harbor scaffold uses so a trajectory from either path looks the same:
 ``OPENHANDS_SDK_SYSTEM_PROMPT_PATH``  optional absolute path to a Jinja
                      template that replaces the SDK's default system prompt
                      (same name Harbor's openhands-sdk scaffold uses)
+``OPENHANDS_SDK_EXTRA_TOOLS``  optional comma-separated tool names added to the
+                     agent's three default tools; ``task`` is the SDK's
+                     sub-agent tool (see ``_EXTRA_TOOLS_ENV``)
 """
 
 from __future__ import annotations
@@ -38,6 +41,17 @@ import tempfile
 # turn 1 and turns 2+ are shaped differently.
 _ENABLE_THINKING_ENV = "OPENHANDS_SDK_ENABLE_THINKING"
 
+# Tools beyond the three the plain harness wires (terminal, file_editor,
+# task_tracker), as a comma-separated list of names. A workflow asks for one
+# through its ``WorkflowSpec.runner_env``; the plain harness never sets it.
+#   task   the SDK's sub-agent tool (``openhands.tools.task.TaskToolSet``):
+#          each call runs one sub-agent to completion in the same workspace
+#          and returns its final message. The built-in sub-agent types
+#          (general-purpose, code-explorer, bash-runner) are registered here,
+#          since the SDK leaves that to the application.
+_EXTRA_TOOLS_ENV = "OPENHANDS_SDK_EXTRA_TOOLS"
+_KNOWN_EXTRA_TOOLS = ("task",)
+
 
 def _chat_template_kwargs_from_env(environ=os.environ) -> dict[str, object]:
     """``{"enable_thinking": bool}`` from ``OPENHANDS_SDK_ENABLE_THINKING``, or ``{}`` when unset."""
@@ -50,6 +64,23 @@ def _chat_template_kwargs_from_env(environ=os.environ) -> dict[str, object]:
     if value in ("0", "false", "no", "off"):
         return {"enable_thinking": False}
     raise ValueError(f"{_ENABLE_THINKING_ENV} must be a boolean-ish string, got {raw!r}")
+
+
+def _extra_tools_from_env(environ=os.environ) -> tuple[str, ...]:
+    """The extra tool names ``OPENHANDS_SDK_EXTRA_TOOLS`` asks for, in order, or ``()`` when unset."""
+    raw = environ.get(_EXTRA_TOOLS_ENV)
+    if raw is None or raw.strip() == "":
+        return ()
+    names: list[str] = []
+    for item in raw.split(","):
+        name = item.strip()
+        if not name:
+            continue
+        if name not in _KNOWN_EXTRA_TOOLS:
+            raise ValueError(f"{_EXTRA_TOOLS_ENV}: unknown tool {name!r}; known: {', '.join(_KNOWN_EXTRA_TOOLS)}")
+        if name not in names:
+            names.append(name)
+    return tuple(names)
 
 
 def reasoning_replay_llm(llm_cls):
@@ -101,6 +132,21 @@ def main() -> int:
     from openhands.tools.task_tracker import TaskTrackerTool
     from openhands.tools.terminal import TerminalTool
 
+    try:
+        extra_tools = _extra_tools_from_env()
+    except ValueError as e:
+        print(f"openhands-sdk runner: {e}", file=sys.stderr)
+        return 2
+    extra_tool_specs: list[object] = []
+    if "task" in extra_tools:
+        from openhands.tools.preset.default import register_builtins_agents
+        from openhands.tools.task import TaskToolSet
+
+        # The sub-agent types the tool's description lists; without this call
+        # ``get_agent_factory("general-purpose")`` has nothing registered.
+        register_builtins_agents(enable_browser=False)
+        extra_tool_specs.append(Tool(name=TaskToolSet.name))
+
     os.chdir(workspace)
 
     model = os.environ.get("LLM_MODEL")
@@ -124,6 +170,7 @@ def main() -> int:
         Tool(name=TerminalTool.name),
         Tool(name=FileEditorTool.name),
         Tool(name=TaskTrackerTool.name),
+        *extra_tool_specs,
     ]
     agent_kwargs: dict[str, object] = {"llm": llm, "tools": tools}
     # The SDK's default system prompt prescribes its own problem-solving
@@ -144,7 +191,7 @@ def main() -> int:
         conversation_kwargs["max_iteration_per_run"] = int(max_iterations)
     conversation = Conversation(**conversation_kwargs)  # type: ignore[arg-type]
 
-    print(f"openhands-sdk runner: model={model} workspace={workspace} chat_template_kwargs={chat_template_kwargs or None}", flush=True)
+    print(f"openhands-sdk runner: model={model} workspace={workspace} chat_template_kwargs={chat_template_kwargs or None} extra_tools={list(extra_tools) or None}", flush=True)
     conversation.send_message(args.instruction)
     conversation.run()
 

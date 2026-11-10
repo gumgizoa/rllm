@@ -46,6 +46,10 @@ class WorkflowSpec:
                       kept apart from them (the agent is not pointed at these)
     setup_script      a bash script run as root after the uploads and before the agent starts;
                       it must exit 0, or the rollout stops
+    runner_env        environment variables added to the harness runner's environment (the
+                      agent process in the sandbox), e.g. ``OPENHANDS_SDK_EXTRA_TOOLS`` to give
+                      the openhands-sdk agent a tool the plain harness does not wire. Keys and
+                      values are strings; a workflow without them runs the harness as it is
     """
 
     docs_dir: Path
@@ -59,6 +63,7 @@ class WorkflowSpec:
     agent_image_extra: str = ""
     sandbox_files: Mapping[str, Path] = field(default_factory=dict)
     setup_script: Path | None = None
+    runner_env: Mapping[str, str] = field(default_factory=dict)
 
     def fingerprint(self, harness: str) -> str:
         """sha256 over what the agent is given -- documents, instruction, ``harness``'s system prompt,
@@ -81,4 +86,6 @@ class WorkflowSpec:
             h.update(label.encode() + b"\0" + path.read_bytes() + b"\0")
         if self.agent_image_extra:
             h.update(b"agent_image_extra\0" + self.agent_image_extra.encode() + b"\0")
+        for key, value in sorted(self.runner_env.items()):
+            h.update(b"runner_env\0" + f"{key}={value}".encode() + b"\0")
         return h.hexdigest()

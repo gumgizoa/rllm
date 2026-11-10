@@ -5,6 +5,10 @@ Tools as harbor records them (tool_definitions in trajectory.json):
     file_editor  {command: view|create|str_replace|insert|undo_edit, path, file_text, old_str,
                   new_str, insert_line, view_range}
     think / task_tracker / finish                       no effect
+    task         {prompt, subagent_type, description, resume}   runs one sub-agent (openhands-tools 1.42.1
+                 ``TaskToolSet``); kept as ``other`` with its arguments on the Action -- ``text`` = prompt,
+                 ``path`` = subagent_type, ``old`` = resume (the task id continued) -- so a workflow's
+                 checks can read what was delegated; its observation is the sub-agent's final message
 
 The editor's replies are the only success signal the trajectory keeps, so ok/fail is read off them.
 """
@@ -24,6 +28,7 @@ _FAIL = re.compile(
     r"|No such file or directory|is required for command",
     re.I,
 )
+TASK = "task"  # the SDK sub-agent tool (openhands.tools.task)
 _SHELL = {"terminal", "execute_bash", "bash", "shell"}
 _EDITOR = {"file_editor", "str_replace_editor"}
 _EDITOR_KIND = {"view": "view", "create": "create", "str_replace": "replace", "insert": "insert", "undo_edit": "undo"}
@@ -58,4 +63,12 @@ def parse(name: str, args: dict, observation: str) -> Action:
     # it carries the prose channel the report-era rubric reads; keep the thought, act on nothing.
     if name == "think":
         return Action("other", name, text=args.get("thought") or "", observation=observation)
+    if name == TASK:
+        return Action(
+            "other", name,
+            text=args.get("prompt") if isinstance(args.get("prompt"), str) else "",
+            path=args.get("subagent_type") if isinstance(args.get("subagent_type"), str) else "general-purpose",
+            old=args.get("resume") if isinstance(args.get("resume"), str) else "",
+            observation=observation,
+        )
     return Action("other", name, observation=observation)

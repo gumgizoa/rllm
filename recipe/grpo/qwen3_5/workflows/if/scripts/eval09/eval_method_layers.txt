@@ -1,0 +1,73 @@
+methods 189, rubric items 227 (scored 222, diagnostic 5)
+
+A. methods per layer
+     L1    L1C    L2M    L2F      J   total
+    128      5     19     11     26   189
+
+B. scored items (method@stage) per layer
+     L1    L1C    L2M    L2F      J   total
+    159      5     18     15     25   222
+
+C. distinct templates per layer (the k that matters)
+     L1    L1C    L2M    L2F      J   total
+     25      4      9      7      1   46
+
+D. templates per layer:
+  L1   (25): T-AW1×1, T-AW2×1, T-AW3×4, T-FM1×1, T-FM2×54, T-FM3×6, T-FM6×1, T-OR1×3, T-OR2×3, T-PR1×3, T-PR2×3, T-PR3×1, T-PR5×1, T-PR6×2, T-RD1×1, T-RD2×1, T-RD3×1, T-RD5×1, T-RF1×11, T-RF2×11, T-RF4×2, T-TR1×12, T-WD1×2, T-WD2×1, T-WD3×1
+  L1C  (4): T-AW4×2, T-OR3×1, T-PR5×1, T-RD6×1
+  L2M  (9): NEW-IS-issue-fidelity×1, NEW-RF-record-after-observation×2, NEW-TR-keyed-order×1, T-AW3×1, T-AW6×1, T-OR2×1, T-RF3×6, T-SR2×3, T-TR2×3
+  L2F  (7): NEW-CMD-form×1, NEW-CS-intra-artifact×3, NEW-IS-issue-fidelity×3, NEW-RD-one-at-a-time×1, NEW-SEM-patch-contract×1, NEW-WD-exists-before×1, T-FM5×1
+  J    (1): NEW-Q-content (judge)×26
+
+E. scored items: layer × category
+  layer    P    F    E    C    R    Q    A  total
+  L1      27   78    7    7   11    4   25    159
+  L1C      2    0    0    0    3    0    0      5
+  L2M      3    0    3    5    1    1    5     18
+  L2F      2    5    1    3    0    4    0     15
+  J        0    0    0    0    0   25    0     25
+
+F. scored items: layer × stage
+  layer global      1      2      3      4      5
+  L1         7     34     18     29     27     44
+  L1C        2      0      0      0      2      1
+  L2M        3      1      0      1      7      6
+  L2F        1      5      2      1      3      3
+  J          0      3      9      5      1      7
+
+G. L1C / L2M / L2F / new-template methods in full:
+  L1C  T-AW4                              atom/G7c                                 template default (SKB rewards running each check at once before the edit; AOS and OSF write a c
+  L1C  T-AW4                              rule/r_repro_not_in_stage4               template default (SKB rewards running each check at once before the edit; AOS and OSF write a c
+  L1C  T-OR3                              atom/C2                                  template default (SKB rewards reading 02-fix.md again for each new round (order rounds 2-3); OS
+  L1C  T-PR5                              rule/r_targeted_tests                    stage-5 runs must name targets = no whole suite; AOS verify requires the whole suite (must)
+  L1C  T-RD6                              atom/B8                                  template default (training rewards reading the own artifacts (AOS read must x3, SKB 'in full', 
+  L2M  NEW-IS-issue-fidelity              atom/F3                                  quoting the issue's names verbatim: SKB FX:31 'copy every example the issue gives verbatim' sho
+  L2M  NEW-RF-record-after-observation    check/t1_baseline_before_write           training writes each report once at stage end after running its checks (SKB CW:47, FX:31-33): t
+  L2M  NEW-RF-record-after-observation    check/t4_repro_written_before_write      training writes each report once at stage end after running its checks (SKB CW:47, FX:31-33): t
+  L2M  NEW-TR-keyed-order                 atom/G1a                                 edits in plan-step order; AOS groups_in_order rewards ordered work units (NEW-PG-unit) on ticks
+  L2M  T-AW3                              check/t5_repro_run_after_last_edit       runs the script at the path A4 recorded; training rewards that element only per tick (ifeval re
+  L2M  T-AW6                              atom/H4a                                 template default (no training item; SKB fix report form shows 'after the change: <same ...>')
+  L2M  T-OR2                              atom/H1c                                 order among verifications (build failure before tests); extends T-OR2 branch-on-result, no trai
+  L2M  T-RF3                              check/c34_deviations_recorded            template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-RF3                              check/e4_created                         template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-RF3                              check/e4_modified                        template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-RF3                              check/e4_undisclosed                     template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-RF3                              check/e5_final_files_diff                template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-RF3                              run/fidelity                             template default (the SKB subset item is held out of training; SKB's fix report Changes table s
+  L2M  T-SR2                              atom/E10a                                template default (all three training documents say no one answers a question (AOS CW:66-67, OSF
+  L2M  T-SR2                              atom/E10b                                template default (all three training documents say no one answers a question (AOS CW:66-67, OSF
+  L2M  T-SR2                              atom/E10c                                template default (all three training documents say no one answers a question (AOS CW:66-67, OSF
+  L2M  T-TR2                              atom/G3c                                 template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only
+  L2M  T-TR2                              atom/H1a                                 template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only
+  L2M  T-TR2                              atom/H1b                                 template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only
+  L2F  NEW-CMD-form                       atom/D8                                  required command flags: no training item (OSF cli kinds check which command runs, not its flags
+  L2F  NEW-CS-intra-artifact              atom/D3b                                 no training item compares two fields of one artifact
+  L2F  NEW-CS-intra-artifact              atom/H15b                                no training item compares two fields of one artifact
+  L2F  NEW-CS-intra-artifact              atom/H15c                                no training item compares two fields of one artifact
+  L2F  NEW-IS-issue-fidelity              atom/D1b                                 no training item compares an artifact with the issue text
+  L2F  NEW-IS-issue-fidelity              atom/D4a                                 no training item compares an artifact with the issue text
+  L2F  NEW-IS-issue-fidelity              atom/E7b                                 no training item compares an artifact with the issue text
+  L2F  NEW-RD-one-at-a-time               proc/A3a                                 one rule document per read call: no training item or document
+  L2F  NEW-SEM-patch-contract             atom/G5                                  signature preservation judged on the patch: no training item
+  L2F  NEW-WD-exists-before               atom/G3a                                 existence check before a write: AI-DLC only (01: unimplemented candidate)
+  L2F  T-FM5                              form/B6a                                 template default (no training artifact has frontmatter)

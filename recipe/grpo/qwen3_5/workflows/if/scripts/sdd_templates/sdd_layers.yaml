@@ -1,0 +1,2876 @@
+- id: speckit_sdd.specify.spec.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: specify
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.user_scenarios_testing
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.assumptions
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.functional_requirements
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.measurable_outcomes
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.requirements
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.success_criteria
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.section_present.edge_cases
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.label_present.why_this_priority
+  kind: label_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.label_present.independent_test
+  kind: label_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.label_present.acceptance_scenarios
+  kind: label_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.field_filled.user_scenarios_testing
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM6
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.specify.spec.field_filled.why_this_priority
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM6
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.specify.spec.field_filled.independent_test
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM6
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.specify.spec.field_filled.functional_requirements
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.field_filled.measurable_outcomes
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.field_filled.assumptions
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.field_filled.edge_cases
+  kind: field_filled
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.line
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.line.2
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.created
+  kind: item_format
+  requirement: should
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.line.3
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.line.4
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.story_priority
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.user_scenarios_testing
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.user_scenarios_testing.2
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.clarifications_resolved
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM4
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.functional_requirements
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.measurable_outcomes
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.no_embedded_checklist
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.item_format.no_na_section
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1C
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: 'spec.md has no bare ''N/A'' line (01-specify.md:147 ''remove it entirely,
+    don''t leave as N/A''); opposite training: AOS implement-tasks.md:279,306 ''note
+    "None"'' as a section body (T-RF2 incomplete_listed / T-RF1 failed_listed reward
+    it), SKB fix ''Previous verification: none'' field_literal x9; weaker than the
+    other two (literal None vs N/A, field vs section), kept L1C by the 11 §3 BMAD
+    D40 precedent'
+- id: speckit_sdd.specify.spec.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: specify
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.no_template_residue.fill_marks
+  kind: no_template_residue
+  requirement: must
+  stage: specify
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.no_template_residue.examples
+  kind: no_template_residue
+  requirement: must
+  stage: specify
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.specify.spec.speckit_sdd_links.unverified
+  kind: speckit_sdd.links
+  requirement: must
+  stage: specify
+  template: T-FM8
+  basis: dict
+  layer: L1
+  trained_in:
+    OSF: 11
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: specify
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.section_present.content_quality
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.section_present.feature_readiness
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.section_present.notes
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.section_present.requirement_completeness
+  kind: section_present
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.line
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.line.2
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.line.3
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.purpose
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.content_quality
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.requirement_completeness
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.feature_readiness
+  kind: item_format
+  requirement: must
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.item_format.validated
+  kind: item_format
+  requirement: should
+  stage: specify
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.specify.req_checklist.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: specify
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.specify.feature_json.present
+  kind: artifact_exists
+  requirement: must
+  stage: specify
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.specify.feature_json.speckit_sdd_feature_json
+  kind: speckit_sdd.feature_json
+  requirement: must
+  stage: specify
+  template: T-RF4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+  layer_reason: ''
+- id: speckit_sdd.specify.run.doc_read.sy
+  kind: doc_read
+  requirement: must
+  stage: specify
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.specify.run.doc_read.spec_template
+  kind: doc_read
+  requirement: must
+  stage: specify
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.specify.run.doc_read.constitution
+  kind: doc_read
+  requirement: must
+  stage: specify
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.specify.run.prohibited_action.repo_write
+  kind: prohibited_action
+  requirement: must
+  stage: specify
+  template: T-AW1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: plan
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.constitution_check
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.documentation_this_feature
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.project_structure
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.source_code_repository_root
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.summary
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.section_present.technical_context
+  kind: section_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.structure_decision
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.constraints
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.language_version
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.performance_goals
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.primary_dependencies
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.project_type
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.scale_scope
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.storage
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.target_platform
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.label_present.testing
+  kind: label_present
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.constitution_check
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.summary
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.structure_decision
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.technical_context
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.constraints
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.language_version
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.performance_goals
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.primary_dependencies
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.project_type
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.scale_scope
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.storage
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.target_platform
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.field_filled.testing
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.item_format.line
+  kind: item_format
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.item_format.constitution_skipped
+  kind: item_format
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.item_format.date
+  kind: item_format
+  requirement: should
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.item_format.line.2
+  kind: item_format
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.no_template_residue.clarifications
+  kind: no_template_residue
+  requirement: must
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.no_template_residue.option_labels
+  kind: no_template_residue
+  requirement: must
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.plan.speckit_sdd_plan_docs.contracts
+  kind: speckit_sdd.plan_docs
+  requirement: must
+  stage: plan
+  template: T-RF3
+  basis: rule
+  layer: L2M
+  trained_in: {}
+  layer_reason: 'catalogue default L2M: the SKB subset item is held out of training
+    (relative to the training rubric, 10 §3.3: L1 against the step27 checkpoint)'
+- id: speckit_sdd.plan.research.present
+  kind: artifact_exists
+  requirement: must
+  stage: plan
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.research.field_filled.alternatives
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.field_filled.decision
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.field_filled.rationale
+  kind: field_filled
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.item_format.line
+  kind: item_format
+  requirement: should
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.item_format.line.2
+  kind: item_format
+  requirement: should
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.item_format.line.3
+  kind: item_format
+  requirement: should
+  stage: plan
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.research.no_template_residue.fill_marks
+  kind: no_template_residue
+  requirement: must
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.research.no_template_residue
+  kind: no_template_residue
+  requirement: should
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.research.no_template_residue.2
+  kind: no_template_residue
+  requirement: should
+  stage: plan
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.plan.data_model.present
+  kind: artifact_exists
+  requirement: must
+  stage: plan
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.data_model.speckit_sdd_plan_docs.na_body
+  kind: speckit_sdd.plan_docs
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.quickstart.present
+  kind: artifact_exists
+  requirement: must
+  stage: plan
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.quickstart.speckit_sdd_plan_docs.na_body
+  kind: speckit_sdd.plan_docs
+  requirement: must
+  stage: plan
+  template: T-FM2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.plan.run.doc_read.constitution
+  kind: doc_read
+  requirement: must
+  stage: plan
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.plan.run.doc_read.plan_template
+  kind: doc_read
+  requirement: must
+  stage: plan
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.plan.run.doc_read.pl
+  kind: doc_read
+  requirement: must
+  stage: plan
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.run.order.research_before_data_model
+  kind: order
+  requirement: must
+  stage: plan
+  template: T-OR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.plan.run.order.research_before_quickstart
+  kind: order
+  requirement: must
+  stage: plan
+  template: T-OR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.plan.run.prohibited_action.repo_write
+  kind: prohibited_action
+  requirement: must
+  stage: plan
+  template: T-AW1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.plan.run.speckit_sdd_script.setup_plan
+  kind: speckit_sdd.script
+  requirement: must
+  stage: plan
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.plan.run.speckit_read.spec
+  kind: speckit.read
+  requirement: must
+  stage: plan
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.plan.run.speckit_holds.no_tasks_yet
+  kind: speckit.holds
+  requirement: must
+  stage: plan
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: tasks
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.section_present.dependencies_execution_order
+  kind: section_present
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.section_present.parallel_opportunities
+  kind: section_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.section_present.phase_dependencies
+  kind: section_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.section_present.user_story_dependencies
+  kind: section_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.section_present.within_each_user_story
+  kind: section_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.label_present.foundational_phase_2
+  kind: label_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.label_present.polish_final_phase
+  kind: label_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.label_present.setup_phase_1
+  kind: label_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.label_present.user_stories_phase_3
+  kind: label_present
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.heading
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.line
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.line.2
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.phase_story
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.phase_foundational
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.phase_polish
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.phase_setup
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.format
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.user_story_dependencies
+  kind: item_format
+  requirement: should
+  stage: tasks
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.checkbox
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.unchecked_when_written
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-PG1
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 3
+    OSF: 3
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.sequential_ids
+  kind: item_format
+  requirement: must
+  stage: tasks
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.item_format.file_path
+  kind: item_format
+  requirement: should
+  stage: tasks
+  template: T-FM3
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.no_template_residue.header
+  kind: no_template_residue
+  requirement: must
+  stage: tasks
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: tasks
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.no_template_residue.sample_tasks
+  kind: no_template_residue
+  requirement: must
+  stage: tasks
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.no_template_residue.fill_marks
+  kind: no_template_residue
+  requirement: must
+  stage: tasks
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.no_template_residue.2
+  kind: no_template_residue
+  requirement: should
+  stage: tasks
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.cross_ref.one_phase_per_story
+  kind: cross_ref
+  requirement: should
+  stage: tasks
+  template: T-TR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 2
+  layer_reason: AOS 1 + OSF 2 cross_ref set relations are rewarded now; 01's 'AI-DLC
+    고유' was the 22 Oct rubric
+- id: speckit_sdd.tasks.tasks.cross_ref
+  kind: cross_ref
+  requirement: should
+  stage: tasks
+  template: T-TR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 2
+  layer_reason: AOS 1 + OSF 2 cross_ref set relations are rewarded now; 01's 'AI-DLC
+    고유' was the 22 Oct rubric
+- id: speckit_sdd.tasks.tasks.speckit_sdd_tasks.story_tests
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: tasks
+  template: T-FM6
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.tasks.tasks.speckit_task_lines.phase_order
+  kind: speckit.task_lines
+  requirement: must
+  stage: tasks
+  template: T-FM3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.speckit_task_lines.story_tasks
+  kind: speckit.task_lines
+  requirement: must
+  stage: tasks
+  template: T-FM6
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.tasks.tasks.speckit_sdd_tasks.empty_phases
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: tasks
+  template: T-FM2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.tasks.tasks.speckit_task_lines.parallel_files
+  kind: speckit.task_lines
+  requirement: should
+  stage: tasks
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.tasks.tasks.speckit_task_lines.story_label
+  kind: speckit.task_lines
+  requirement: must
+  stage: tasks
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.tasks.tasks.speckit_task_lines.no_story_label
+  kind: speckit.task_lines
+  requirement: must
+  stage: tasks
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.tasks.run.doc_read.constitution
+  kind: doc_read
+  requirement: must
+  stage: tasks
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.tasks.run.doc_read.tk
+  kind: doc_read
+  requirement: must
+  stage: tasks
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.tasks.run.prohibited_action.repo_write
+  kind: prohibited_action
+  requirement: must
+  stage: tasks
+  template: T-AW1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.tasks.run.speckit_sdd_script.setup_tasks
+  kind: speckit_sdd.script
+  requirement: must
+  stage: tasks
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.tasks.run.speckit_read.required
+  kind: speckit.read
+  requirement: must
+  stage: tasks
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.tasks.run.speckit_read.optional
+  kind: speckit.read
+  requirement: should
+  stage: tasks
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.implement.tasks.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: implement
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.implement.tasks.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: implement
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.implement.tasks.speckit_sdd_tasks.ticked_after_work
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: implement
+  template: T-PG1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    OSF: 3
+  layer_reason: ''
+- id: speckit_sdd.implement.tasks.speckit_sdd_tasks.ticked
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: implement
+  template: T-PG1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    OSF: 3
+  layer_reason: ''
+- id: speckit_sdd.implement.run.doc_read.im
+  kind: doc_read
+  requirement: must
+  stage: implement
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.implement.run.doc_read.constitution
+  kind: doc_read
+  requirement: must
+  stage: implement
+  template: T-RD5
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.implement.run.exec_evidence.baseline
+  kind: exec_evidence
+  requirement: must
+  stage: implement
+  template: T-AW2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    SKB: 4
+  layer_reason: ''
+- id: speckit_sdd.implement.run.exec_evidence.after_change
+  kind: exec_evidence
+  requirement: must
+  stage: implement
+  template: T-AW3
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 1
+    SKB: 10
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_sdd_script.prerequisites
+  kind: speckit_sdd.script
+  requirement: must
+  stage: implement
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.implement.run.speckit_read.checklists
+  kind: speckit.read
+  requirement: must
+  stage: implement
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.implement.run.code_change
+  kind: speckit.holds
+  requirement: must
+  stage: implement
+  template: T-AW1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_read.required
+  kind: speckit.read
+  requirement: must
+  stage: implement
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_read.if_exists
+  kind: speckit.read
+  requirement: must
+  stage: implement
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_sdd_checks.before_code
+  kind: speckit_sdd.checks
+  requirement: must
+  stage: implement
+  template: T-AW2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 1
+    SKB: 4
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_sdd_checks.written
+  kind: speckit_sdd.checks
+  requirement: must
+  stage: implement
+  template: T-WD3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 4
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_sdd_checks.red_green
+  kind: speckit_sdd.checks
+  requirement: must
+  stage: implement
+  template: T-AW2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 1
+    SKB: 4
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_sdd_checks.pass_last
+  kind: speckit_sdd.checks
+  requirement: must
+  stage: implement
+  template: T-AW3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 1
+    SKB: 10
+  layer_reason: ''
+- id: speckit_sdd.implement.run.speckit_holds.tests_pass
+  kind: speckit.holds
+  requirement: should
+  stage: implement
+  template: T-AW3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 1
+    SKB: 10
+  layer_reason: ''
+- id: speckit_sdd.converge.tasks.write_discipline.append_only
+  kind: write_discipline
+  requirement: must
+  stage: converge
+  template: T-WD2
+  basis: rule
+  layer: L1
+  trained_in:
+    OSF: 1
+  layer_reason: 'append_only is a variant of OSF''s no_rewrite (the earlier content
+    stays a prefix): same comparison, looser polarity'
+- id: speckit_sdd.converge.tasks.speckit_sdd_tasks.appended
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: converge
+  template: T-OR1
+  basis: rule
+  layer: L1C
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: 'a converge stage must append a `## Phase N: Convergence` to tasks.md
+    after its report (05-converge.md:17,155); opposite training rules: AOS agentos_v2.global.tasks.later_edits
+    (must; any non-checkbox write of tasks.md after create_tasks fails, _norm_box),
+    OSF openspec_ff.archive.run.paths_written.tasks_after_verify (must; no write of
+    tasks.md after verify.md), SKB order(invalidate=rewrite) + CW:47 ''Never rewrite
+    an earlier report''; opposite training docs: AOS CW:63 ''leave a file alone once
+    its command is over, except for the checkboxes in tasks.md'', OSF CW:105 ''do
+    not reopen tasks or apply'''
+- id: speckit_sdd.converge.tasks.speckit_sdd_tasks.convergence_phase
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: converge
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.converge.tasks.speckit_sdd_tasks.convergence_lines
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: converge
+  template: T-FM3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 11
+    OSF: 10
+    SKB: 11
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: converge
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.section_present.findings
+  kind: section_present
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.field_enum.outcome
+  kind: field_enum
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.field_enum.round
+  kind: field_enum
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.item_format.constitution_skipped
+  kind: item_format
+  requirement: should
+  stage: converge
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.item_format.table_header
+  kind: item_format
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.item_format.summary_metrics
+  kind: item_format
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.no_template_residue.2
+  kind: no_template_residue
+  requirement: should
+  stage: converge
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: converge
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.converge.convergence.speckit_sdd_report.findings
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge
+  template: T-FM6
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.converge.convergence.speckit_sdd_report.outcome_rows
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.converge.convergence.speckit_sdd_report.converged_line
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge
+  template: T-FM2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge.run.doc_read.cv
+  kind: doc_read
+  requirement: must
+  stage: converge
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge.run.prohibited_action.repo_write
+  kind: prohibited_action
+  requirement: must
+  stage: converge
+  template: T-AW1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge.run.speckit_read.intent
+  kind: speckit.read
+  requirement: must
+  stage: converge
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.converge.run.speckit_holds.tasks_unchanged_when_converged
+  kind: speckit.holds
+  requirement: must
+  stage: converge
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.converge.run.speckit_sdd_script.prerequisites
+  kind: speckit_sdd.script
+  requirement: must
+  stage: converge
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.implement_2.tasks.speckit_sdd_tasks.ticked
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: implement_2
+  template: T-PG1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    OSF: 3
+  layer_reason: ''
+- id: speckit_sdd.implement_2.tasks.speckit_sdd_tasks.ticked_after_work
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: implement_2
+  template: T-PG1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    OSF: 3
+  layer_reason: ''
+- id: speckit_sdd.implement_2.run.doc_read.im
+  kind: doc_read
+  requirement: must
+  stage: implement_2
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.implement_2.run.exec_evidence.after_change
+  kind: exec_evidence
+  requirement: must
+  stage: implement_2
+  template: T-AW3
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 1
+    SKB: 10
+  layer_reason: ''
+- id: speckit_sdd.implement_2.run.speckit_sdd_script.prerequisites
+  kind: speckit_sdd.script
+  requirement: must
+  stage: implement_2
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.implement_2.run.speckit_read.tasks
+  kind: speckit.read
+  requirement: must
+  stage: implement_2
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.implement_2.run.speckit_sdd_checks.pass_last
+  kind: speckit_sdd.checks
+  requirement: must
+  stage: implement_2
+  template: T-AW3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 1
+    SKB: 10
+  layer_reason: ''
+- id: speckit_sdd.implement_2.run.speckit_holds.code_change
+  kind: speckit.holds
+  requirement: should
+  stage: implement_2
+  template: T-AW1
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge_2.tasks.speckit_sdd_tasks.appended
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: converge_2
+  template: T-OR1
+  basis: rule
+  layer: L1C
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: same as converge.appended
+- id: speckit_sdd.converge_2.convergence_2.artifact_exists
+  kind: artifact_exists
+  requirement: must
+  stage: converge_2
+  template: T-FM1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 12
+    OSF: 6
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.section_present.findings
+  kind: section_present
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.field_enum.outcome
+  kind: field_enum
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.field_enum.round
+  kind: field_enum
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.item_format.table_header
+  kind: item_format
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.item_format.summary_metrics
+  kind: item_format
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: heur
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.no_template_residue.2
+  kind: no_template_residue
+  requirement: should
+  stage: converge_2
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.no_template_residue
+  kind: no_template_residue
+  requirement: must
+  stage: converge_2
+  template: T-FM4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 10
+    OSF: 12
+    SKB: 14
+  layer_reason: ''
+- id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.findings
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge_2
+  template: T-FM6
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+  layer_reason: AOS 4 + OSF 4 per-block items are rewarded now (01's table predates
+    them)
+- id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.outcome_rows
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge_2
+  template: NEW-FM-internal
+  basis: rule
+  layer: L2F
+  trained_in: {}
+  layer_reason: 'not in the catalogue; no training item compares two parts of one
+    artifact (09: 산출물 내부 일관성 in L2-먼)'
+- id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.converged_line
+  kind: speckit_sdd.report
+  requirement: must
+  stage: converge_2
+  template: T-FM2
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 63
+    OSF: 30
+    SKB: 191
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.doc_read.cv
+  kind: doc_read
+  requirement: must
+  stage: converge_2
+  template: T-RD2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 4
+    OSF: 4
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.prohibited_action.repo_write
+  kind: prohibited_action
+  requirement: must
+  stage: converge_2
+  template: T-AW1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 6
+    OSF: 5
+    SKB: 7
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.speckit_read.spec_plan
+  kind: speckit.read
+  requirement: should
+  stage: converge_2
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.speckit_read.tasks
+  kind: speckit.read
+  requirement: must
+  stage: converge_2
+  template: T-RD4
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 5
+    SKB: 6
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.speckit_holds.tasks_unchanged_when_converged
+  kind: speckit.holds
+  requirement: must
+  stage: converge_2
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.converge_2.run.speckit_sdd_script.prerequisites
+  kind: speckit_sdd.script
+  requirement: must
+  stage: converge_2
+  template: T-AW5
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 18
+  layer_reason: the shipped script ran in the window = T-AW5 (OSF cli x18); the argument-set
+    check inside the same item is 11's NEW-S3-command-format (09 puts 명령 형식 in L2F)
+    -- counted L1 by its main logic
+- id: speckit_sdd.global.tasks.speckit_sdd_tasks.later_edits
+  kind: speckit_sdd.tasks
+  requirement: must
+  stage: global
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.doc_read_first.cw
+  kind: doc_read_first
+  requirement: must
+  stage: global
+  template: T-RD1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.order.round_1
+  kind: order
+  requirement: must
+  stage: global
+  template: T-OR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.order.round_2
+  kind: order
+  requirement: must
+  stage: global
+  template: T-OR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.prohibited_action.git_branch
+  kind: prohibited_action
+  requirement: must
+  stage: global
+  template: T-PR6
+  basis: dict
+  layer: L1
+  trained_in:
+    OSF: 4
+  layer_reason: ''
+- id: speckit_sdd.global.run.prohibited_action.ignore_files
+  kind: prohibited_action
+  requirement: must
+  stage: global
+  template: T-PR2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.prohibited_action.install
+  kind: prohibited_action
+  requirement: must
+  stage: global
+  template: T-PR3
+  basis: dict
+  layer: L1
+  trained_in:
+    OSF: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.prohibited_action.test_file_write
+  kind: prohibited_action
+  requirement: must
+  stage: global
+  template: T-PR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 2
+    SKB: 2
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_sdd_no_fetch.issue_links
+  kind: speckit_sdd.no_fetch
+  requirement: must
+  stage: global
+  template: T-PR4
+  basis: dict
+  layer: L1
+  trained_in:
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_holds.spec_written_by_specify
+  kind: speckit.holds
+  requirement: must
+  stage: global
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_sdd_untouched.shipped
+  kind: speckit_sdd.untouched
+  requirement: must
+  stage: global
+  template: T-WD3
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 4
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_holds.plan_docs_written_by_plan
+  kind: speckit.holds
+  requirement: must
+  stage: global
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_holds.at_most_two_rounds
+  kind: speckit.holds
+  requirement: must
+  stage: global
+  template: T-OR2
+  basis: rule
+  layer: L1
+  trained_in:
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_holds.no_round_after_converged
+  kind: speckit.holds
+  requirement: must
+  stage: global
+  template: T-OR2
+  basis: rule
+  layer: L1
+  trained_in:
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_sdd_created_files.tests
+  kind: speckit_sdd.created_files
+  requirement: must
+  stage: global
+  template: T-PR1
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 2
+    OSF: 2
+    SKB: 2
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_holds.report_written_once_per_round
+  kind: speckit.holds
+  requirement: must
+  stage: global
+  template: T-WD4
+  basis: rule
+  layer: L1
+  trained_in:
+    AOS: 3
+    SKB: 3
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_sdd_created_files.scratch
+  kind: speckit_sdd.created_files
+  requirement: must
+  stage: global
+  template: T-PR2
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 1
+    OSF: 1
+    SKB: 1
+  layer_reason: ''
+- id: speckit_sdd.global.run.speckit_sdd_paths_written.scripts_outside_checks
+  kind: speckit_sdd.paths_written
+  requirement: must
+  stage: global
+  template: T-WD3
+  basis: dict
+  layer: L1
+  trained_in:
+    AOS: 5
+    OSF: 4
+    SKB: 1
+  layer_reason: ''

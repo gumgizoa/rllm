@@ -1,0 +1,1039 @@
+atom/B10:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR2
+atom/B11:
+  layer: L1
+  reason: 'one artifact per stage at the designated location: T-WD3 in all three training workflows'
+  stages: null
+  template: T-WD3
+atom/B3a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-WD1
+atom/B4a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-WD2
+atom/B5d:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 4
+  template: T-FM2
+atom/B6b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-FM2
+atom/B6c:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-FM2
+atom/B8:
+  layer: L1C
+  reason: template default (training rewards reading the own artifacts (AOS read must x3, SKB 'in full', OSF 're-read from disk' must x5))
+  stages: null
+  template: T-RD6
+atom/C2:
+  layer: L1C
+  reason: template default (SKB rewards reading 02-fix.md again for each new round (order rounds 2-3); OSF lets apply send the run back to ff (CW:26))
+  stages: null
+  template: T-OR3
+atom/D10a:
+  layer: L1
+  reason: 'read the covering test files: T-RD5 in all three training workflows'
+  stages: null
+  template: T-RD5
+atom/D12b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM3
+atom/D1b:
+  layer: L2F
+  reason: no training item compares an artifact with the issue text
+  stages: null
+  template: NEW-IS-issue-fidelity
+atom/D3b:
+  layer: L2F
+  reason: no training item compares two fields of one artifact
+  stages: null
+  template: NEW-CS-intra-artifact
+atom/D4a:
+  layer: L2F
+  reason: no training item compares an artifact with the issue text
+  stages: null
+  template: NEW-IS-issue-fidelity
+atom/D4b:
+  layer: L1
+  reason: a prohibited command class (survey listings); T-PR6 is rewarded in OSF/SKB with other commands
+  stages: null
+  template: T-PR6
+atom/D5:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/D5b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM3
+atom/D7b:
+  layer: L1
+  reason: shape of the recorded test command; training conflicts only on running the whole suite (ifeval test_selection)
+  stages: null
+  template: T-PR5
+atom/D8:
+  layer: L2F
+  reason: 'required command flags: no training item (OSF cli kinds check which command runs, not its flags)'
+  stages: null
+  template: NEW-CMD-form
+atom/E10a:
+  layer: L2M
+  reason: template default (all three training documents say no one answers a question (AOS CW:66-67, OSF CW:51, SKB CW:38-39); no training item checks it)
+  stages: null
+  template: T-SR2
+atom/E10b:
+  layer: L2M
+  reason: template default (all three training documents say no one answers a question (AOS CW:66-67, OSF CW:51, SKB CW:38-39); no training item checks it)
+  stages: null
+  template: T-SR2
+atom/E10c:
+  layer: L2M
+  reason: template default (all three training documents say no one answers a question (AOS CW:66-67, OSF CW:51, SKB CW:38-39); no training item checks it)
+  stages: null
+  template: T-SR2
+atom/E3a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/E4a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM3
+atom/E7b:
+  layer: L2F
+  reason: no training item compares an artifact with the issue text
+  stages: null
+  template: NEW-IS-issue-fidelity
+atom/E8c:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/F1b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM3
+atom/F2a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/F2b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/F3:
+  layer: L2M
+  reason: 'quoting the issue''s names verbatim: SKB FX:31 ''copy every example the issue gives verbatim'' shows it, no training item'
+  stages: null
+  template: NEW-IS-issue-fidelity
+atom/F4b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+atom/F7:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR1
+atom/F8a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF4
+atom/F8b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR2
+atom/F9b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF4
+atom/G1a:
+  layer: L2M
+  reason: edits in plan-step order; AOS groups_in_order rewards ordered work units (NEW-PG-unit) on ticks, not edits
+  stages: null
+  template: NEW-TR-keyed-order
+atom/G3a:
+  layer: L2F
+  reason: 'existence check before a write: AI-DLC only (01: unimplemented candidate)'
+  stages: null
+  template: NEW-WD-exists-before
+atom/G3c:
+  layer: L2M
+  reason: template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only; SKB fix shows 'stay within the files listed by the assessment')
+  stages: null
+  template: T-TR2
+atom/G4b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR1
+atom/G5:
+  layer: L2F
+  reason: 'signature preservation judged on the patch: no training item'
+  stages: null
+  template: NEW-SEM-patch-contract
+atom/G7c:
+  layer: L1C
+  reason: template default (SKB rewards running each check at once before the edit; AOS and OSF write a check and run it)
+  stages: null
+  template: T-AW4
+atom/G8b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/H10:
+  layer: L1
+  reason: 'retry cap: OSF archive retries / SKB rounds cap (T-OR2)'
+  stages: null
+  template: T-OR2
+atom/H11:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+atom/H15a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/H15b:
+  layer: L2F
+  reason: no training item compares two fields of one artifact
+  stages: null
+  template: NEW-CS-intra-artifact
+atom/H15c:
+  layer: L2F
+  reason: no training item compares two fields of one artifact
+  stages: null
+  template: NEW-CS-intra-artifact
+atom/H15d:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+atom/H17:
+  layer: L1
+  reason: 'branch on a passed result: SKB/OSF proceed when checks pass (T-OR2)'
+  stages: null
+  template: T-OR2
+atom/H1a:
+  layer: L2M
+  reason: template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only; SKB fix shows 'stay within the files listed by the assessment')
+  stages: null
+  template: T-TR2
+atom/H1b:
+  layer: L2M
+  reason: template default (AOS ticked_after_work and OSF tasks.verified reward the element per tick only; SKB fix shows 'stay within the files listed by the assessment')
+  stages: null
+  template: T-TR2
+atom/H1c:
+  layer: L2M
+  reason: order among verifications (build failure before tests); extends T-OR2 branch-on-result, no training item orders verifications
+  stages: null
+  template: T-OR2
+atom/H4a:
+  layer: L2M
+  reason: 'template default (no training item; SKB fix report form shows ''after the change: <same ...>'')'
+  stages: null
+  template: T-AW6
+atom/H7:
+  layer: L1
+  reason: a prohibited command (stash / reverse-apply); T-PR6
+  stages: null
+  template: T-PR6
+atom/H8a:
+  layer: L1
+  reason: 'branch on a failed result: SKB ''if a check fails, another fix round'' (T-OR2)'
+  stages: null
+  template: T-OR2
+atom/H8e:
+  layer: L1
+  reason: 'outcome form checks(pass_last): SKB local_verification requires the checks to pass at the last run'
+  stages: null
+  template: T-AW3
+atom/H9a:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-AW3
+atom/H9b:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+atom/S4.tags:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-FM2
+check/c14_scope_changed:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c15_preexisting_subset:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c23_coverage_refs:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c23_exercises_exist:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c23_requirements_covered:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c23_tags_exist:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c25_unmet_exist:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c34_deviations_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/c34_deviations_recorded:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+check/c34_plan_execution_steps:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c34_repro_path:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c34_targets_changed:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/c45_final_files:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-TR1
+check/e1_baseline_failing:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e1_baseline_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e1_baseline_passing:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e1_baseline_tests:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e1_build_command_run:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e1_scope_viewed:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e1_test_command_run:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e1_test_path_seen:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e4_created:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+check/e4_duplicates_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e4_modified:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+check/e4_tests_untouched:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e4_undisclosed:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+check/e5_build_result:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e5_command_run:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e5_final_files_diff:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+check/e5_outstanding_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e5_preexisting_listed:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e5_regressions:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e5_regressions_listed:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e5_repro_result:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF1
+check/e5_test_files_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/e5_unintended_none:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RF2
+check/t1_baseline_before_edit:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-AW2
+check/t1_baseline_before_write:
+  layer: L2M
+  reason: 'training writes each report once at stage end after running its checks (SKB CW:47, FX:31-33): the timing is shown, never rewarded; extends T-RF1'
+  stages: null
+  template: NEW-RF-record-after-observation
+check/t1_no_edit_before_write:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-AW1
+check/t4_repro_written_before_write:
+  layer: L2M
+  reason: 'training writes each report once at stage end after running its checks (SKB CW:47, FX:31-33): the timing is shown, never rewarded; extends T-RF1'
+  stages: null
+  template: NEW-RF-record-after-observation
+check/t5_regression_after_last_edit:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-AW3
+check/t5_repro_run_after_last_edit:
+  layer: L2M
+  reason: runs the script at the path A4 recorded; training rewards that element only per tick (ifeval reproduction_script_execution)
+  stages: null
+  template: T-AW3
+form/B1:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-FM1
+form/B5b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-FM2
+form/B6a:
+  layer: L2F
+  reason: template default (no training artifact has frontmatter)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-FM5
+form/E3c:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM3
+form/E4b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM3
+form/G9:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM6
+form/S1.build:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.contract:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.failing:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.files:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.lang:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.module:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.passing:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.test:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S1.tpath:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  template: T-FM2
+form/S2.assume:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM2
+form/S2.edge:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM2
+form/S2.fr:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM2
+form/S2.nfr:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  template: T-FM2
+form/S3.change:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.contract:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.coverage:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.exercises:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.rpath:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.tag:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.target:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S3.verify:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 3
+  template: T-FM2
+form/S4.created:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.deviations:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.dupcheck:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.executed:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.modified:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.rpath:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S4.testcheck:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 4
+  template: T-FM2
+form/S5.bcmd:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.bresult:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.cmd:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.final_files:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.final_tests:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.final_unintended:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.fixes:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.outstanding:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.pre:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.regress:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.rresult:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.unmet:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+form/S5.verdict:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 5
+  template: T-FM2
+judge/B7:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/D10b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/D3:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/D6:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E1a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E1c:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E3b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E6a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E6b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E7a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E7b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E8a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E8b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/E9:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/F2d:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/F2e:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/F2f:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/F6:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/F9a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/G8a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H3a:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H3b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H3c:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H8d:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H8g:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+judge/H9b:
+  layer: J
+  reason: LLM judge on content adequacy; no training workflow rewards or shows a judged content rule; kept on its own axis
+  stages: null
+  template: NEW-Q-content (judge)
+proc/A2:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-RD2
+proc/A3a:
+  layer: L2F
+  reason: 'one rule document per read call: no training item or document'
+  stages:
+  - 0
+  template: NEW-RD-one-at-a-time
+proc/A3b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-RD3
+proc/B3b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  template: T-OR1
+proc/C1a:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-OR1
+proc/C1b:
+  layer: L1
+  reason: template default (trained template)
+  stages:
+  - 2
+  - 3
+  - 4
+  - 5
+  template: T-OR1
+rule/r_artifacts_written_once:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-WD1
+rule/r_no_env_setup:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR3
+rule/r_repo_clean:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR2
+rule/r_repro_not_in_stage4:
+  layer: L1C
+  reason: template default (SKB rewards running each check at once before the edit; AOS and OSF write a check and run it)
+  stages: null
+  template: T-AW4
+rule/r_targeted_tests:
+  layer: L1C
+  reason: stage-5 runs must name targets = no whole suite; AOS verify requires the whole suite (must)
+  stages: null
+  template: T-PR5
+rule/r_tests_untouched:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-PR1
+run/entry:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-RD1
+run/fidelity:
+  layer: L2M
+  reason: template default (the SKB subset item is held out of training; SKB's fix report Changes table still shows the record side)
+  stages: null
+  template: T-RF3
+run/ran_real_test:
+  layer: L1
+  reason: template default (trained template)
+  stages: null
+  template: T-AW3

@@ -1,0 +1,6961 @@
+schema: wfrubric/1
+workflow: bmad_build_auto
+generated:
+  tool: bmad_build_auto.reward.build
+  at: '2026-11-10'
+  kinds: registry+plugin
+  stage_model: fixed
+  rules: porting/rules.yaml
+  decisions: workflows/if/scripts/bmad/decided_layers.py
+sources:
+- id: CW
+  path: docs/core-workflow.md
+  role: core
+  sha256: c725b7ab5646f6812705785f379c1cb65519404af92af4755034c72ff5d45733
+  container_path: /bmad-build-auto/core-workflow.md
+- id: S1
+  path: docs/stages/step-01-clarify-and-route.md
+  role: stage_rule
+  sha256: ff23a3ef2c20675824d8fdcf0871ee5529a99af6a8ee6e3ae8080292515b31a2
+  container_path: /bmad-build-auto/stages/step-01-clarify-and-route.md
+- id: S2
+  path: docs/stages/step-02-plan.md
+  role: stage_rule
+  sha256: c6747fbf7fabf41547427874114c24396b1bc4feb8d6ee71011618e196b8fd84
+  container_path: /bmad-build-auto/stages/step-02-plan.md
+- id: S3
+  path: docs/stages/step-03-implement.md
+  role: stage_rule
+  sha256: f7ae76d2d7903d3266a4d02376df1f73a767c2491a730fb57171b489505786c4
+  container_path: /bmad-build-auto/stages/step-03-implement.md
+- id: S4
+  path: docs/stages/step-04-review.md
+  role: stage_rule
+  sha256: 8b6bad2e0408add7612e0541ecd16b9f7092dc8987a78a93cdea753a739d7d84
+  container_path: /bmad-build-auto/stages/step-04-review.md
+- id: ST
+  path: docs/spec-template.md
+  role: template
+  sha256: 8aa8eabc5b6c3757389d7f7e66d93b046be483a12026bf81c964c1def18a570b
+  container_path: /bmad-build-auto/spec-template.md
+- id: EH
+  path: docs/review-prompts/edge-case-hunter.md
+  role: reference
+  sha256: 2eaf1e8e5f8461a4760b079c3488a7a1fcb71e5d24296355bc7fc4265fecfe24
+  container_path: /bmad-build-auto/review-prompts/edge-case-hunter.md
+- id: VG
+  path: docs/review-prompts/verification-gap.md
+  role: reference
+  sha256: 45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03
+  container_path: /bmad-build-auto/review-prompts/verification-gap.md
+- id: CC
+  path: docs/references/claims-check.md
+  role: reference
+  sha256: 50ea17cb89a78ef815286dde2dabfd09f1dc9841d07a10857f88b39ab7b9bd2a
+  container_path: /bmad-build-auto/references/claims-check.md
+- id: DC
+  path: docs/references/deletion-check.md
+  role: reference
+  sha256: 0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da
+  container_path: /bmad-build-auto/references/deletion-check.md
+- id: INS
+  path: instruction.md
+  role: instruction
+  sha256: b8ebef18395b4059e05b76fd3805e73d37a369f41d0f280ed1fc587047735bb3
+- id: SP
+  path: system-prompt.j2
+  role: system_prompt
+  sha256: 2c622ff38fcd6b34a5537db89db685dda2497f2cebe5dac4403b849ebfa53fdb
+  sections:
+    SOUL: harness_generic
+    ROLE: harness_generic
+    MEMORY: harness_generic
+    EFFICIENCY: harness_generic
+    FILE_SYSTEM_GUIDELINES: harness_generic
+    CODE_QUALITY: harness_generic
+    VERSION_CONTROL: harness_generic
+    PULL_REQUESTS: harness_generic
+    PROBLEM_SOLVING_WORKFLOW: workflow
+    SELF_DOCUMENTATION: harness_generic
+    SECURITY: harness_generic
+    SECURITY_RISK_ASSESSMENT: harness_generic
+    EXTERNAL_SERVICES: harness_generic
+    ENVIRONMENT_SETUP: harness_generic
+    TROUBLESHOOTING: harness_generic
+    PROCESS_MANAGEMENT: harness_generic
+roots:
+  artifact: /tmp/bmad
+  code: '{WORKDIR}'
+vars:
+  SPECFILE:
+    under: '{artifact}/implementation-artifacts'
+    regex: spec-[^/]+\.md
+    bind: single
+  DIFFFILE:
+    under: '{artifact}/diff'
+    regex: '[^/]+\.diff'
+    bind: single
+  RESULTFILE:
+    under: '{artifact}/implementation-artifacts'
+    regex: bmad-build-auto-result-[^/]+\.md
+    bind: single
+stages:
+- id: step01
+  doc: S1
+  artifacts: []
+- id: step02
+  doc: S2
+  artifacts:
+  - spec
+  order_artifact: spec
+- id: step03
+  doc: S3
+  artifacts:
+  - diff
+  order_artifact: diff
+  requires:
+  - spec
+- id: step04
+  doc: S4
+  artifacts: []
+  requires:
+  - spec
+  - diff
+artifacts:
+  spec:
+    locations:
+    - '{artifact}/implementation-artifacts/{SPECFILE}'
+    exclusive: false
+    template: ST
+    write_event: last_in_window
+    optional: false
+    kind: markdown
+  diff:
+    locations:
+    - '{artifact}/diff/{DIFFFILE}'
+    exclusive: false
+    template: null
+    write_event: last_in_window
+    optional: false
+    kind: text
+  result:
+    locations:
+    - '{artifact}/implementation-artifacts/{RESULTFILE}'
+    exclusive: false
+    template: null
+    write_event: last_in_window
+    optional: true
+    kind: markdown
+items:
+- id: bmad_build_auto.global.run.doc_read_first.a2
+  scope: common
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read_first
+    params:
+      doc: CW
+  requirement: must
+  modality_evidence: rules.yaml A2 (SK:12); decided env, T-RD1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: INS
+    lines:
+    - 5
+    - 5
+    quote: Your very first action, ahead of any command in the repository, is to read
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD1 (L1)
+- id: bmad_build_auto.step01.run.doc_read.a4.s1
+  scope: common
+  class: evidence
+  stage: step01
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S1
+      min_coverage: 0.9
+  requirement: must
+  modality_evidence: rules.yaml A4 (WF:5, S1:14); decided env, T-RD2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 72
+    - 72
+    quote: Follow the step files in order. Read one step fully, execute it, then load the next step only when directed
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.global.run.unimplemented.a5
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml A5 (WF:71); decided env, T-RD2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 45
+    - 45
+    quote: Every operational cross-file reference in this workflow is an absolute path under
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: absolute paths are the reads A4/A14 check'
+- id: bmad_build_auto.global.run.order.a10
+  scope: common
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: order
+    params:
+      chain:
+      - read:S1
+      - read:S2
+      - write:spec
+      - read:S3
+      - write:diff
+      - read:S4
+      invalidate:
+      - read_ahead
+  requirement: must
+  modality_evidence: rules.yaml A10 (WF:100); decided keep, T-OR1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 72
+    - 72
+    quote: Read one step fully, execute it, then load the next step only when directed.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-OR1 (L1)
+- id: bmad_build_auto.global.run.unimplemented.a11
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml A11 (WF:100, S1:13); decided keep, T-OR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 72
+    - 72
+    quote: Do not skip, reorder, or pre-load steps.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the order chain of A10'
+- id: bmad_build_auto.step02.run.doc_read.a12.s2
+  scope: common
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S2
+      no_read_ahead: true
+  requirement: must
+  modality_evidence: rules.yaml A12 (WF:100); decided keep, T-RD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: &id001
+  - doc: CW
+    lines:
+    - 72
+    - 72
+    quote: Do not skip, reorder, or pre-load steps.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD3 (L1)
+- id: bmad_build_auto.step03.run.doc_read.a12.s3
+  scope: common
+  class: evidence
+  stage: step03
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S3
+      no_read_ahead: true
+  requirement: must
+  modality_evidence: rules.yaml A12 (WF:100); decided keep, T-RD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: *id001
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD3 (L1)
+- id: bmad_build_auto.step04.run.doc_read.a12.s4
+  scope: common
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S4
+      no_read_ahead: true
+  requirement: must
+  modality_evidence: rules.yaml A12 (WF:100); decided keep, T-RD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: *id001
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD3 (L1)
+- id: bmad_build_auto.step02.run.doc_read.a14.s2
+  scope: common
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S2
+      min_coverage: 0.9
+  requirement: must
+  modality_evidence: rules.yaml A14 (WF:104, S1:84, S2:27, S3:48); decided env, T-RD2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: &id002
+  - doc: CW
+    lines:
+    - 72
+    - 72
+    quote: Follow the step files in order. Read one step fully, execute it, then load the next step only when directed
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.step03.run.doc_read.a14.s3
+  scope: common
+  class: evidence
+  stage: step03
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S3
+      min_coverage: 0.9
+  requirement: must
+  modality_evidence: rules.yaml A14 (WF:104, S1:84, S2:27, S3:48); decided env, T-RD2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: *id002
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.step04.run.doc_read.a14.s4
+  scope: common
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: S4
+      min_coverage: 0.9
+  requirement: must
+  modality_evidence: rules.yaml A14 (WF:104, S1:84, S2:27, S3:48); decided env, T-RD2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: *id002
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.global.run.unimplemented.b1
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml B1 (WF:73, S1:12, S2:5, S3:8, S4:5, MC:25-28); decided env, NEW-FM-language L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S1
+    lines:
+    - 5
+    - 5
+    quote: Write files in English
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: language detection of the artifacts'
+- id: bmad_build_auto.global.run.unimplemented.b2
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml B2 (WF:73, S1:12, MC:19-23); decided env, NEW-FM-language L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 47
+    - 47
+    quote: Write documents in English
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: language detection of the messages'
+- id: bmad_build_auto.global.run.unimplemented.b4
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml B4 (WF:74); decided keep, T-RF1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 48
+    - 48
+    quote: obtain the full canonical identifier directly from version control and preserve it verbatim
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: E1 checks the recorded revision'
+- id: bmad_build_auto.step03.spec.bmad_text_regex.b5
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      pattern: \]\(/
+      min: 0
+      max: 0
+  requirement: must
+  modality_evidence: rules.yaml B5 (S3:32); decided env, T-FM2 L2M
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 31
+    - 31
+    quote: Any markdown links written into `{spec_file}` must use paths relative to `{spec_file}`'s directory
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L2M)
+- id: bmad_build_auto.step03.run.unimplemented.b6
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml B6 (S3:32); decided env, T-FM2 L2M; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 31
+    - 31
+    quote: must use CWD-relative format with `:line` notation (e.g., `src/path/file.ts:42`)
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: path notation in conversation text'
+- id: bmad_build_auto.step02.spec.frontmatter.b7
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: frontmatter
+    params:
+      keys:
+      - title
+      - type
+      - created
+      - status
+      - review_loop_iteration
+      - followup_review_recommended
+      - context
+      - warnings
+      - deferred
+      exact: false
+  requirement: must
+  modality_evidence: rules.yaml B7 (ST:1-11); decided keep, T-FM5 L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 1
+    - 11
+    quote: 'status: ''draft'' # draft | ready-for-dev | in-progress | in-review | done | blocked'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM5 (L2F)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b8
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: type
+      values:
+      - feature
+      - bugfix
+      - refactor
+      - chore
+  requirement: must
+  modality_evidence: rules.yaml B8 (ST:3); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 3
+    - 3
+    quote: 'type: ''feature'' # feature | bugfix | refactor | chore'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b9
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: status
+      values:
+      - draft
+      - ready-for-dev
+      - in-progress
+      - in-review
+      - done
+      - blocked
+  requirement: must
+  modality_evidence: rules.yaml B9 (ST:5); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 5
+    - 5
+    quote: 'status: ''draft'' # draft | ready-for-dev | in-progress | in-review | done | blocked'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b10.loop
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: review_loop_iteration
+      pattern: ^\d+$
+  requirement: must
+  modality_evidence: rules.yaml B10 (ST:6-7); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id003
+  - doc: ST
+    lines:
+    - 6
+    - 7
+    quote: 'review_loop_iteration: 0 # incremented by step-04 before each review loopback'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b10.followup
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: followup_review_recommended
+      pattern: ^(true|false)$
+  requirement: must
+  modality_evidence: rules.yaml B10 (ST:6-7); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id003
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b11
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: context
+      tokens_pattern: ^/testbed/
+  requirement: must
+  modality_evidence: rules.yaml B11 (ST:8); decided keep, T-RF4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 8
+    - 8
+    quote: '`/testbed/`-prefixed paths to project-wide standards/docs'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RF4 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.b12
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: warnings
+      tokens:
+      - oversized
+      - multiple-goals
+  requirement: must
+  modality_evidence: rules.yaml B12 (ST:9); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 9
+    - 9
+    quote: 'warnings: [] # optional: machine-readable warnings for orchestration, e.g. oversized, multiple-goals'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.global.spec.bmad_block_unchanged.b13
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.block_unchanged
+    params:
+      open: <intent-contract>
+      close: </intent-contract>
+  requirement: must
+  modality_evidence: rules.yaml B13 (S3:10, S4:72); decided keep, T-WD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 7
+    - 7
+    quote: Content inside `<intent-contract>` in `{spec_file}` is read-only. Do not modify.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-WD4 (L1)
+- id: bmad_build_auto.global.spec.bmad_append_only.b14
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.append_only
+    params:
+      sections:
+      - Spec Change Log
+      - Review Triage Log
+  requirement: must
+  modality_evidence: rules.yaml B14 (ST:68, ST:75, ST:10); decided keep, T-WD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 68
+    - 68
+    quote: Append-only. Populated by step-04 during review loops. Do not modify or delete existing entries.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-WD4 (L1)
+- id: bmad_build_auto.global.spec.bmad_spec_count.b15
+  scope: specific
+  class: structure
+  stage: global
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.spec_count
+    params:
+      pattern: /implementation-artifacts/spec-[^/]+\.md$
+      min: 1
+      max: 1
+      under: /tmp/bmad/implementation-artifacts
+  requirement: must
+  modality_evidence: rules.yaml B15 (ST:15, S1:39); decided keep, T-WD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 15
+    - 15
+    quote: Cohesive cross-layer stories (DB+BE+UI) stay in ONE file.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-WD3 (L1)
+- id: bmad_build_auto.step01.run.bmad_command.c13
+  scope: specific
+  class: evidence
+  stage: step01
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.command
+    params:
+      pattern: ls\b[^\n|;&]*\/tmp\/bmad\/implementation-artifacts
+      window: stage:step01
+  requirement: must
+  modality_evidence: rules.yaml C13 (S1:47, MB:28-36, MC:30-33); decided env, T-RD5 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S1
+    lines:
+    - 17
+    - 17
+    quote: List files in `/tmp/bmad/implementation-artifacts/`
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD5 (L1)
+- id: bmad_build_auto.step01.run.unimplemented.c22
+  scope: specific
+  class: content
+  stage: step01
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml C22 (S1:73); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S1
+    lines:
+    - 20
+    - 20
+    quote: Resolve intent from the invocation prompt and loaded artifacts. Do not fantasize or leave open questions.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step01.run.unimplemented.c25
+  scope: specific
+  class: content
+  stage: step01
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml C25 (S1:75); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S1
+    lines:
+    - 21
+    - 21
+    quote: If the intent appears to contain multiple independently shippable goals, carry `multiple-goals` forward ... Do not split or block.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.path_match.c27
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: path_match
+    params:
+      pattern: ^(?:.*/)?spec-[a-z0-9]+(?:-[a-z0-9]+)*\.md$
+      artifact: spec
+  requirement: must
+  modality_evidence: rules.yaml C27 (S1:80); decided env, T-FM1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S1
+    lines:
+    - 24
+    - 24
+    quote: If the intent references a tracking identifier (story number, issue number, ticket ID), lead the slug with it (e.g. `3-2-digest-delivery`, `gh-47-fix-auth`).
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM1 (L1)
+- id: bmad_build_auto.step02.spec.artifact_exists.c29
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: artifact_exists
+    params:
+      artifact: spec
+  requirement: must
+  modality_evidence: rules.yaml C29 (S1:80, MB:33-36, MC:30-33); decided env, T-FM1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S1
+    lines:
+    - 24
+    - 24
+    quote: Set `spec_file` = `/tmp/bmad/implementation-artifacts/spec-{slug}.md`
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM1 (L1)
+- id: bmad_build_auto.step03.run.unimplemented.c31
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml C31 (S3:24); decided keep, T-AW1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 17
+    - 17
+    quote: Change `{spec_file}` status to `in-progress` in the frontmatter before starting implementation.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: status in-progress before the first code edit: needs the replayed spec at that step'
+- id: bmad_build_auto.step04.run.unimplemented.c32
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml C32 (S4:11); decided keep, T-OR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 11
+    - 11
+    quote: Change `{spec_file}` status to `in-review` in the frontmatter before continuing.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: status in-review before the review: needs the replayed spec at that step'
+- id: bmad_build_auto.step04.spec.bmad_frontmatter_value.c33
+  scope: specific
+  class: structure
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: status
+      values:
+      - done
+      - blocked
+  requirement: must
+  modality_evidence: rules.yaml C33 (WF:16, WF:31, S4:109-111); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 11
+    - 11
+    quote: If `{spec_file}` is known and exists, update `status` in frontmatter and append missing result details under `## Auto Run Result`.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.c34
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml C34 (S4:116); decided keep, T-FM2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 156
+    - 156
+    quote: 'Set `{spec_file}` frontmatter `status: done`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: done only on a normal completion: needs the blocking-condition record'
+- id: bmad_build_auto.global.run.bmad_last_message.d1
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.last_message
+    params: {}
+  requirement: must
+  modality_evidence: rules.yaml D1 (WF:3, S2:6, S3:9, S4:6); decided keep, T-SR2 L2M
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S3
+    lines:
+    - 6
+    - 6
+    quote: 'No human interaction: do not ask questions or wait for approval in this step.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-SR2 (L2M)
+- id: bmad_build_auto.step02.run.unimplemented.d3
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D3 (S2:11); decided keep, T-RD5 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 10
+    - 10
+    quote: Read the code yourself for narrow, localized tasks.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: reading the code oneself for narrow tasks'
+- id: bmad_build_auto.step02.run.unimplemented.d4
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D4 (S2:11); decided keep, NEW-AW-subagent L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 10
+    - 10
+    quote: 'Isolate deep exploration in synchronous subagents: instruct them to give you distilled summaries only, and plan from those summaries.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: whether an exploration was deep enough to delegate is a judgement; a narrow task is read directly'
+- id: bmad_build_auto.step02.run.unimplemented.d5a
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D5a (S2:11-12); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 10
+    - 11
+    quote: Decide which findings actually matter for execution — the specific files, symbols/lines, reuse points, and read-only constraints — and carry those forward for the Code Map.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.run.bmad_paths_read.d5b
+  scope: specific
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.paths_read
+    params:
+      artifact: spec
+      section: Code Map
+  requirement: must
+  modality_evidence: rules.yaml D5b (S2:11-12, ST:49); decided keep, T-RD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 48
+    - 49
+    quote: Agent-populated during planning. Annotated paths prevent blind codebase searching.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD4 (L1)
+- id: bmad_build_auto.step02.run.doc_read.d6
+  scope: common
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: ST
+      min_coverage: 0.9
+      window: stage:step02
+  requirement: must
+  modality_evidence: rules.yaml D6 (S2:12); decided env, T-RD2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S2
+    lines:
+    - 11
+    - 11
+    quote: Read `/bmad-build-auto/spec-template.md` fully
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.step02.spec.bmad_frontmatter_value.d7
+  scope: specific
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: created
+      pattern: ^\d{4}-\d{2}-\d{2}
+  requirement: must
+  modality_evidence: rules.yaml D7 (S2:12, ST:4); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 11
+    - 11
+    quote: resolving the template's `date` field to the current system date
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.item_format.d8
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Code Map
+      pattern: ^\s*[-*]\s+`[^`]+`\s+--\s+\S
+      of_pattern: ^\s*[-*]\s+
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml D8 (S2:12, ST:47-52); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 51
+    - 51
+    quote: '- `FILE` -- ROLE_OR_RELEVANCE'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step02.spec.cross_ref.d9
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: cross_ref
+    params:
+      left:
+        ids:
+          artifact: spec
+          section: Code Map
+          pattern: '`([^`\s()]+/[^`\s()]+|[^`\s()/]+\.[a-z]{1,5})`'
+          group: 1
+      right:
+        fact: base_paths
+      relation: subset
+      normalize: path
+  requirement: must
+  modality_evidence: rules.yaml D9 (S2:12, ST:51-52); decided keep, T-RF4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 11
+    - 11
+    quote: Drain the investigation into the `## Code Map` section — annotated paths, symbol/line anchors, reuse pointers, and read-only evidence
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RF4 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d11
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D11 (S2:12); decided env, T-FM1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 11
+    - 11
+    quote: Write the result to `{spec_file}`.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: C29 checks the spec exists'
+- id: bmad_build_auto.step02.spec.item_format.d13
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Tasks & Acceptance
+      pattern: ^\s*[-*]\s+`[^`]+`\s+--\s+.+\s+--\s+.+
+      of_pattern: ^\s*[-*]\s+`
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml D13 (WF:61, ST:56, ST:61); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 35
+    - 35
+    quote: '**Actionable**: Every task has a file path and specific action.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d14
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D14 (WF:62); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 36
+    - 36
+    quote: '**Logical**: Tasks ordered by dependency.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.item_format.d15
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Tasks & Acceptance
+      pattern: (?i)^\s*[-*]\s+given\b.*\bwhen\b.*\bthen\b
+      of_pattern: ^\s*[-*]\s+(?!`)\S
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml D15 (WF:63, ST:64); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 64
+    - 64
+    quote: '- Given PRECONDITION, when ACTION, then EXPECTED_RESULT'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d16
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D16 (WF:64); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 38
+    - 38
+    quote: '**Surface-anchored**: ACs observe the outermost surface the intent references — never a more internal proxy for it.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.no_template_residue.d17
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: no_template_residue
+    params:
+      patterns:
+      - ONE_TO_TWO_SENTENCES
+      - INVARIANT_RULES
+      - NON_GOALS_AND_FORBIDDEN_APPROACHES
+      - HAPPY_PATH
+      - ERROR_CASE
+      - ROLE_OR_RELEVANCE
+      - \bRATIONALE\b
+      - PRECONDITION
+      - EXPECTED_RESULT
+      - SUCCESS_CRITERIA
+      - WHAT_TO_INSPECT_AND_EXPECTED_STATE
+      - DESIGN_RATIONALE_AND_EXAMPLES
+      - \bTBD\b
+      - \{title\}
+      - \{date\}
+  requirement: must
+  modality_evidence: rules.yaml D17 (WF:65, ST:16); decided keep, T-FM4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 39
+    - 39
+    quote: '**Complete**: No placeholders or TBDs.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM4 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d18
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D18 (WF:66); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 40
+    - 40
+    quote: '**Sufficient**: No known requirement, acceptance, dependency, or implementation gaps remain unresolved.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.run.unimplemented.d19
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D19 (WF:67); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 41
+    - 41
+    quote: '**Coherent**: No unresolved ambiguities or internal contradictions.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.run.unimplemented.d21
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D21 (S2:15); decided keep, T-FM2 L1; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 13
+    - 13
+    quote: If step-01 carried `multiple-goals`, add it to `{spec_file}` frontmatter `warnings`.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.run.unimplemented.d22
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D22 (S2:15, ST:13); decided keep, NEW-FM-internal L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 13
+    - 13
+    quote: If `{spec_file}` exceeds 1600 tokens, add `oversized` to frontmatter `warnings`. Continue either way.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: oversized warning when over 1600 tokens'
+- id: bmad_build_auto.step02.run.doc_read.d23
+  scope: common
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: doc_read
+    params:
+      doc: CW
+      window: stage:step02
+  requirement: must
+  modality_evidence: rules.yaml D23 (S2:19); decided keep, T-RD2 L2M
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S2
+    lines:
+    - 17
+    - 17
+    quote: Re-read `/bmad-build-auto/core-workflow.md`, then re-read `{spec_file}` from disk
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD2 (L2M)
+- id: bmad_build_auto.step02.run.bmad_artifact_io.d24
+  scope: specific
+  class: evidence
+  stage: step02
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.artifact_io
+    params:
+      artifact: spec
+      mode: read
+      after_write: true
+      window: stage:step02
+  requirement: must
+  modality_evidence: rules.yaml D24 (S2:19, S2:23); decided keep, T-RD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 17
+    - 17
+    quote: re-read `{spec_file}` from disk and verify the spec meets the READY FOR DEVELOPMENT standard.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD4 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d26
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D26 (S2:22); decided keep, T-FM2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 19
+    - 19
+    quote: set `{spec_file}` frontmatter status to `ready-for-dev` and continue to step 3
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: status ready-for-dev after the gate: needs the replayed spec at that step'
+- id: bmad_build_auto.step02.run.unimplemented.d28
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D28 (S2:23); decided semantic, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S2
+    lines:
+    - 20
+    - 20
+    quote: repair it once, then re-read it from disk and verify again
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the recorded blocking condition when the gate fails twice'
+- id: bmad_build_auto.step02.run.unimplemented.d29
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D29 (ST:13); decided keep, T-FM3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 13
+    - 13
+    quote: Aim for 900–1600 tokens.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: an aim of 900-1600 tokens, not a bound; token counts are tokenizer-specific'
+- id: bmad_build_auto.step02.run.unimplemented.d30
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D30 (ST:14); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 14
+    - 14
+    quote: Never over-specify "how" — use boundaries + examples instead.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d31
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      pattern: <!--
+      min: 0
+      max: 0
+  requirement: must
+  modality_evidence: rules.yaml D31 (ST:16); decided keep, T-FM4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 16
+    - 16
+    quote: 'IMPORTANT: Remove all HTML comments when filling this template.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM4 (L1)
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d32
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      pattern: (?s)<intent-contract>.*?## Intent.*?## Boundaries & Constraints.*?</intent-contract>
+  requirement: must
+  modality_evidence: rules.yaml D32 (ST:18, ST:45); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 18
+    - 18
+    quote: <intent-contract>
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.section_present.d33.section
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Intent
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml D33 (ST:20-26); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id004
+  - doc: ST
+    lines:
+    - 20
+    - 26
+    quote: '**Problem:** ONE_TO_TWO_SENTENCES'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d33.problem
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Intent
+      label: Problem
+  requirement: must
+  modality_evidence: rules.yaml D33 (ST:20-26); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id004
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d33.approach
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Intent
+      label: Approach
+  requirement: must
+  modality_evidence: rules.yaml D33 (ST:20-26); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id004
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.field_filled.d33.problem_filled
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: field_filled
+    params:
+      section: Intent
+      label: Problem
+  requirement: must
+  modality_evidence: rules.yaml D33 (ST:20-26); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id004
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.field_filled.d33.approach_filled
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: field_filled
+    params:
+      section: Intent
+      label: Approach
+  requirement: must
+  modality_evidence: rules.yaml D33 (ST:20-26); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id004
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d34
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D34 (ST:24, ST:26); decided keep, T-FM3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 26
+    - 26
+    quote: '**Approach:** ONE_TO_TWO_SENTENCES'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: sentence count of Problem and Approach'
+- id: bmad_build_auto.step02.run.unimplemented.d35
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D35 (ST:22); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 22
+    - 22
+    quote: What is broken or missing, and why it matters. Then the high-level approach — the "what", not the "how".
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.section_present.d36.section
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Boundaries & Constraints
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml D36 (ST:28-34); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id005
+  - doc: ST
+    lines:
+    - 28
+    - 34
+    quote: '**Always:** INVARIANT_RULES'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d36.always
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Boundaries & Constraints
+      label: Always
+  requirement: must
+  modality_evidence: rules.yaml D36 (ST:28-34); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id005
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d36.never
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Boundaries & Constraints
+      label: Never
+  requirement: must
+  modality_evidence: rules.yaml D36 (ST:28-34); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id005
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.field_filled.d36.always_filled
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: field_filled
+    params:
+      section: Boundaries & Constraints
+      label: Always
+  requirement: must
+  modality_evidence: rules.yaml D36 (ST:28-34); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id005
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.field_filled.d36.never_filled
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: field_filled
+    params:
+      section: Boundaries & Constraints
+      label: Never
+  requirement: must
+  modality_evidence: rules.yaml D36 (ST:28-34); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id005
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d37
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D37 (ST:30); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 30
+    - 30
+    quote: 'Two tiers: Always = invariant rules. Never = out of scope + forbidden approaches.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d38
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      section: I/O & Edge-Case Matrix
+      pattern: ^\|(?!\s*Scenario\b)(?!\s*-)(?:[^|\n]*\|){4}\s*$
+      min: 1
+      optional_section: true
+  requirement: must
+  modality_evidence: rules.yaml D38 (ST:36-43); decided keep, T-FM6 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 36
+    - 43
+    quote: '| Scenario | Input / State | Expected Output / Behavior | Error Handling |'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM6 (L1)
+- id: bmad_build_auto.step02.spec.cross_ref.d39
+  scope: common
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: cross_ref
+    params:
+      left:
+        headings:
+          artifact: spec
+          level: 2
+          pattern: ^(.+?)\s*$
+          group: 1
+      right:
+        literal:
+        - Intent
+        - Boundaries & Constraints
+        - I/O & Edge-Case Matrix
+        - Code Map
+        - Tasks & Acceptance
+        - Spec Change Log
+        - Review Triage Log
+        - Design Notes
+        - Verification
+        - Auto Run Result
+      relation: subset
+      normalize: text
+  requirement: must
+  modality_evidence: rules.yaml D39 (ST:38, ST:82, ST:89); decided keep, T-FM7 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 38
+    - 38
+    quote: If no meaningful I/O scenarios exist, DELETE THIS ENTIRE SECTION.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM7 (L1)
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d40
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      pattern: (?mi)^\s*(N/A|None)\.?\s*$
+      min: 0
+      max: 0
+  requirement: must
+  modality_evidence: rules.yaml D40 (ST:38, ST:82, ST:89); decided keep, T-FM2 L1C
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 38
+    - 38
+    quote: Do not write "N/A" or "None".
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1C)
+- id: bmad_build_auto.step02.run.unimplemented.d41
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D41 (ST:56); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 56
+    - 56
+    quote: Prefer one task per file; group tightly-coupled changes when splitting would be artificial.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d42
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      section: Tasks & Acceptance
+      pattern: (?i)\b(unit[- ]?test|test(s|ing)?)\b
+      min: 1
+      requires_section: I/O & Edge-Case Matrix
+  requirement: must
+  modality_evidence: rules.yaml D42 (ST:57); decided keep, T-TR1 L1C
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 57
+    - 57
+    quote: If an I/O Matrix is present, include a task to unit-test its edge cases.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-TR1 (L1C)
+- id: bmad_build_auto.step02.run.unimplemented.d43
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D43 (ST:58); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 58
+    - 58
+    quote: AC covers system-level behaviors not captured by the I/O Matrix. Do not duplicate I/O scenarios here.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.section_present.d44.section
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Tasks & Acceptance
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml D44 (ST:54-64); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id006
+  - doc: ST
+    lines:
+    - 54
+    - 64
+    quote: '**Execution:**'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d44.execution
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Tasks & Acceptance
+      label: Execution
+  requirement: must
+  modality_evidence: rules.yaml D44 (ST:54-64); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id006
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.label_present.d44.acceptance
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: label_present
+    params:
+      section: Tasks & Acceptance
+      label: Acceptance Criteria
+  requirement: must
+  modality_evidence: rules.yaml D44 (ST:54-64); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id006
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.section_present.d45.change_log
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Spec Change Log
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml D45 (ST:66, ST:73); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id007
+  - doc: ST
+    lines:
+    - 73
+    - 73
+    quote: '## Review Triage Log'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.spec.section_present.d45.triage_log
+  scope: common
+  class: structure
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Review Triage Log
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml D45 (ST:66, ST:73); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id007
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d46
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D46 (ST:80-85); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 80
+    - 85
+    quote: Design rationale and golden examples only when non-obvious. Keep examples to 5–10 lines.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step02.spec.bmad_text_regex.d47
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.text_regex
+    params:
+      section: Verification
+      pattern: '^\s*[-*]\s+`[^`]+`\s+--\s+expected:'
+      min: 1
+      optional_section: true
+  requirement: must
+  modality_evidence: rules.yaml D47 (ST:87-96); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 87
+    - 96
+    quote: '- `COMMAND` -- expected: SUCCESS_CRITERIA'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step02.run.unimplemented.d48
+  scope: specific
+  class: content
+  stage: step02
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml D48 (ST:90); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: ST
+    lines:
+    - 90
+    - 90
+    quote: Prefer CLI commands. When no CLI check applies, state what to inspect manually.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.spec.bmad_frontmatter_value.e1
+  scope: specific
+  class: structure
+  stage: step03
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: baseline_revision
+      pattern: ^([0-9a-f]{40}|NO_VCS)$
+  requirement: must
+  modality_evidence: rules.yaml E1 (S3:20, WF:74); decided keep, T-RF1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 13
+    - 13
+    quote: Capture `baseline_revision` (current HEAD, or `NO_VCS` if version control is unavailable) into `{spec_file}` frontmatter
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RF1 (L1)
+- id: bmad_build_auto.step03.run.unimplemented.e2
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E2 (S3:20); decided keep, T-AW1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 13
+    - 13
+    quote: into `{spec_file}` frontmatter before making any changes.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: baseline_revision written before the first code edit'
+- id: bmad_build_auto.step03.run.unimplemented.e3
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E3 (S3:26); decided keep, NEW-AW-subagent L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 19
+    - 19
+    quote: Substitute the runtime placeholders (e.g. `{spec_file}`) into the implementation handoff below, then follow it verbatim.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.run.unimplemented.e4
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E4 (S3:26); decided keep, NEW-AW-subagent L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 19
+    - 19
+    quote: Do not add parent-authored goal restatements, file lists, ownership boundaries, or acceptance criteria to the handoff — the spec is the subagent's sole source of truth.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.run.unimplemented.e7
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E7 (CT:42); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 23
+    - 23
+    quote: Read {spec_file} fully and implement it — the spec is the sole source of truth.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the implementer sub-agent read the spec: needs the sub-agent run'
+- id: bmad_build_auto.step03.run.unimplemented.e9
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E9 (CT:44); decided keep, T-FM2 L1; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 25
+    - 25
+    quote: When done, report what you changed, how you verified it, and anything left incomplete or risky.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.run.bmad_task_calls.e11
+  scope: specific
+  class: evidence
+  stage: step03
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: launched
+      min: 1
+      pattern: implement it
+      window: stage:step03
+  requirement: must
+  modality_evidence: rules.yaml E11 (S3:30); decided keep, T-OR1 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S3
+    lines:
+    - 29
+    - 29
+    quote: Resume at "Verify" only after it returns.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-OR1 (L1)
+- id: bmad_build_auto.step03.run.unimplemented.e13
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E13 (S3:36); decided keep, None None; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 35
+    - 35
+    quote: 'After the implementation subagent returns: if it reported unfinished work, finish it before proceeding.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.diff.bmad_diff_file.e14a
+  scope: specific
+  class: structure
+  stage: step03
+  target:
+    type: artifact
+    ref: diff
+    state: final
+  check:
+    kind: bmad.diff_file
+    params: {}
+  requirement: must
+  modality_evidence: rules.yaml E14a (S3:38); decided env, T-AW5 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 37
+    - 37
+    quote: using the repository's version-control tooling, write a unified diff of all changes since `{baseline_revision}` (from `{spec_file}` frontmatter) — untracked files included
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-AW5 (L1)
+- id: bmad_build_auto.step03.diff.artifact_exists.e14b
+  scope: common
+  class: structure
+  stage: step03
+  target:
+    type: artifact
+    ref: diff
+    state: final
+  check:
+    kind: artifact_exists
+    params:
+      artifact: diff
+  requirement: must
+  modality_evidence: rules.yaml E14b (S3:38, S4:15); decided keep, T-WD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 37
+    - 37
+    quote: to `{diff_file}` (`/tmp/bmad/diff/{slug}.diff`
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-WD3 (L1)
+- id: bmad_build_auto.step03.run.bmad_artifact_io.e15
+  scope: specific
+  class: evidence
+  stage: step03
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.artifact_io
+    params:
+      artifact: diff
+      mode: read
+      after_write: true
+      window: stage:step03
+  requirement: must
+  modality_evidence: rules.yaml E15 (S3:38); decided keep, T-RD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 37
+    - 37
+    quote: and read that file into your own context.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD4 (L1)
+- id: bmad_build_auto.step03.run.unimplemented.e16
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml E16 (S3:38); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 37
+    - 37
+    quote: Judge against the diff, not against the implementation subagent's report.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.spec.cross_ref.f1
+  scope: common
+  class: content
+  stage: step03
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: cross_ref
+    params:
+      left:
+        ids:
+          artifact: spec
+          section: Verification
+          pattern: ^\s*[-*]\s+`([^`]+)`\s+--
+          group: 1
+      right:
+        fact: run_commands
+        window: stage:step03
+      relation: subset
+      normalize: command
+  requirement: must
+  modality_evidence: rules.yaml F1 (S3:40); decided keep, T-TR2 L2M
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 39
+    - 39
+    quote: Run the commands in `{spec_file}`'s `## Verification` section (or perform its manual checks).
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-TR2 (L2M)
+- id: bmad_build_auto.step03.run.unimplemented.f2
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F2 (S3:40); decided semantic, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 39
+    - 39
+    quote: 'If verification fails and the failure cannot be fixed, set `{spec_file}` frontmatter `status: blocked`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the recorded blocking condition on verification failure'
+- id: bmad_build_auto.step03.run.unimplemented.f3
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F3 (S3:40); decided env, T-AW3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 39
+    - 39
+    quote: When fixing a failure changes code, rewrite `{diff_file}` and re-read it.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: F11 checks the diff rewritten after the last change'
+- id: bmad_build_auto.step03.run.unimplemented.f4
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F4 (S3:44); decided keep, T-TR1 L1; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 43
+    - 43
+    quote: verify every matrix row is covered by at least one test that verifies its expected behavior
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step03.run.unimplemented.f5
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F5 (S3:44); decided keep, T-RF1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 43
+    - 43
+    quote: A covering test that exists but did not run — unregistered, filtered out, skipped, or disabled — counts as missing.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: matrix rows covered by tests that ran and passed'
+- id: bmad_build_auto.step03.run.unimplemented.f6
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F6 (S3:44); decided keep, T-PR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 43
+    - 43
+    quote: 'If a test disagrees with the matrix, never edit the expectation to match the code: fix the code'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: never editing a test expectation to match the code'
+- id: bmad_build_auto.step03.run.unimplemented.f8
+  scope: specific
+  class: content
+  stage: step03
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F8 (S3:44); decided semantic, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S3
+    lines:
+    - 43
+    - 43
+    quote: 'If the audit cannot otherwise be satisfied, set `{spec_file}` frontmatter `status: blocked`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the recorded blocking condition on matrix audit failure'
+- id: bmad_build_auto.step04.run.unimplemented.f9
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F9 (S4:83, S4:78); decided keep, T-AW3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 130
+    - 130
+    quote: Then re-run the commands in `{spec_file}`'s `## Verification` section (or perform its manual checks)
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: verification re-run after a patch: needs the patch event'
+- id: bmad_build_auto.step04.run.unimplemented.f10
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F10 (S4:83); decided semantic, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 130
+    - 130
+    quote: 'if verification fails and the failure cannot be fixed, set `{spec_file}` frontmatter `status: blocked`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the recorded blocking condition on patch verification failure'
+- id: bmad_build_auto.step04.run.bmad_artifact_io.f11
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.artifact_io
+    params:
+      artifact: diff
+      mode: write
+      window:
+      - last_change_write
+      - end
+  requirement: must
+  modality_evidence: rules.yaml F11 (S4:83); decided keep, T-AW3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 130
+    - 130
+    quote: Rewrite `{diff_file}` so it reflects the patched tree.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-AW3 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.f12
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml F12 (S4:78); decided keep, T-PR5 L1C; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 125
+    - 125
+    quote: Run only the tests that cover the files you edit — nothing wider. Full verification runs on my side after you return.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the patch sub-agent ran only covering tests: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.bmad_artifact_io.g1
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.artifact_io
+    params:
+      artifact: spec
+      mode: read
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G1 (S4:15); decided keep, T-RD4 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 15
+    - 15
+    quote: Read `{baseline_revision}` from `{spec_file}` frontmatter. If `{baseline_revision}` is missing or `NO_VCS`, use best effort to determine what changed.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD4 (L1)
+- id: bmad_build_auto.step04.run.bmad_artifact_io.g2
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.artifact_io
+    params:
+      artifact: diff
+      mode: write
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G2 (S4:15); decided env, T-AW5 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 15
+    - 15
+    quote: use the repository's version-control tooling to rewrite `{diff_file}` ... with a unified diff of all changes since `{baseline_revision}`, untracked files included.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-AW5 (L1)
+- id: bmad_build_auto.step04.run.bmad_task_calls.g3
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: prompt_pattern
+      lens: review
+      pattern: /tmp/bmad/diff/[^\s`'\"]+\.diff
+      forbid: ^(diff --git |@@ )
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G3 (S4:15, S4:23); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 15
+    - 15
+    quote: The review layers read that file; the diff text is never pasted into their prompts.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.bmad_task_calls.g4.edge_has_claims
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: prompt_pattern
+      lens: edge
+      pattern: claims_file[^\n]*spec-[^\s`]+\.md
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G4 (S4:17, CT:81); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: &id008
+  - doc: S4
+    lines:
+    - 17
+    - 17
+    quote: it goes to the edge-case layer alone — as a path, so that layer reads it only after its own tracing and the other layers never see it at all.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.bmad_task_calls.g4.others_without_claims
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: prompt_pattern
+      lens:
+      - blind
+      - gap
+      - intent
+      pattern: .
+      forbid: implementation-artifacts/spec-[^\s`]+\.md
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G4 (S4:17, CT:81); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources: *id008
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.prohibited_action.g5
+  scope: common
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: prohibited_action
+    params:
+      action: command
+      pattern: (^|[;&|]\s*)git\s+add\b
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G5 (S4:19); decided keep, T-PR6 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 19
+    - 19
+    quote: Writing `{diff_file}` is the only change this section makes. Do NOT `git add` anything.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-PR6 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g6
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G6 (S4:23, CT:109-111); decided keep, NEW-AW-subagent L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 23
+    - 23
+    quote: '`{verbatim_intent}` is the invocation intent exactly as this run received it at step-01'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the intent lens prompt carries the task text verbatim: needs the task text'
+- id: bmad_build_auto.step04.run.unimplemented.g8
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G8 (S4:25); decided keep, NEW-AW-subagent L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 25
+    - 25
+    quote: Spawn every reviewer subagent before reading or reacting to any of their output; begin collection and triage only once all are launched.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: I3 checks the lenses share one turn'
+- id: bmad_build_auto.step04.run.bmad_no_doc_read.g9
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.no_doc_read
+    params:
+      docs:
+      - EH
+      - VG
+  requirement: must
+  modality_evidence: rules.yaml G9 (S4:25); decided keep, T-RD3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 25
+    - 25
+    quote: launch that child with the prompt text after placeholder substitution; do not load the reviewer instruction file yourself.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RD3 (L1)
+- id: bmad_build_auto.step04.run.bmad_task_calls.g11
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: lenses
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G11 (CT:58, CT:77, CT:93, CT:107); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 56
+    - 56
+    quote: 'Launch a context-free subagent with this prompt:'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.unimplemented.g14
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G14 (CT:60-61, CT:67); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 32
+    - 33
+    quote: Look for what's missing, not only what's wrong.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g15
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: blind
+      rule: pattern
+      pattern: N\s*=\s*min\s*\(
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G15 (CT:62); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 33
+    - 33
+    quote: 'Compute your finding floor N from the diff file''s size: N = min(floor(sqrt(kB) + 1), 10) ... then find at least N issues to fix or improve.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step04.run.bmad_lens_output.g16
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens:
+      - blind
+      - edge
+      - gap
+      rule: no_pattern
+      pattern: (?i)\b(severity|priority|ranking|confidence)\s*[:=]
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G16 (CT:63, EH:17, VG:17, VG:80); decided keep, T-FM2 L1C
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 34
+    - 34
+    quote: Output a Markdown list of findings only — no severity, priority, or ranking.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1C)
+- id: bmad_build_auto.step04.run.bmad_lens_output.g17
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: blind
+      rule: pattern
+      pattern: (?mi)^\s*[-*]\s+\S|content is empty
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G17 (CT:64-65); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 36
+    - 37
+    quote: If you have zero findings, re-check and keep thinking; do not stop with an empty list.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g18
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G18 (CT:79); decided env, T-RD2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 46
+    - 46
+    quote: Read `/bmad-build-auto/review-prompts/edge-case-hunter.md` completely and follow it
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the edge lens read its instruction file: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g19
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G19 (CT:81, EH:13, CC:3); decided keep, T-RD3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 13
+    - 13
+    quote: 'Do NOT read it before Step 5: the path tracing in Steps 2–3 must finish before the claims are seen.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: claims file read only at the claims check: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g20
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G20 (CT:83, CT:97, CT:113, EH:24, EH:112, VG:112); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 109
+    - 109
+    quote: Read the file when it is a path; either way that is the content under review, and this instruction file never is.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the lens read the diff file: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g21
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G21 (EH:3, EH:17, EH:37-38); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 3
+    - 3
+    quote: You are a pure path tracer. Never comment on whether code is good or bad; only list missing handling.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g22
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G22 (EH:4, EH:6); decided keep, T-RD5 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 4
+    - 4
+    quote: scan only the diff hunks and list boundaries that are directly reachable from the changed lines and lack an explicit guard in the diff.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: what the edge lens inspected'
+- id: bmad_build_auto.step04.run.unimplemented.g24
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G24 (EH:15); decided keep, T-OR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 15
+    - 15
+    quote: Execute steps in the Execution section IN EXACT ORDER. DO NOT skip steps or change the sequence.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the edge lens steps in order: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g26
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G26 (EH:30-36, EH:42-43); decided keep, NEW-J-content L1C; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 29
+    - 35
+    quote: Walk every branching path and boundary condition within scope — report only unhandled ones.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g27
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G27 (EH:36); decided keep, T-RD5 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 35
+    - 35
+    quote: 'read the callee''s declaration and check the call against it: argument count, order, types, and defaults.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: callee declarations read: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g28
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G28 (EH:47, EH:51); decided env, T-RD2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 46
+    - 46
+    quote: 'If the diff removed or replaced meaningful code (ignore pure renames and whitespace): load `/bmad-build-auto/references/deletion-check.md` and follow it'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: deletion check read when code was deleted: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g29
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: edge
+      rule: json_array
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G29 (EH:55, EH:60, EH:71); decided keep, T-FM8 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: EH
+    lines:
+    - 58
+    - 69
+    quote: Return ONLY a valid JSON array of objects. ... No extra text, no explanations, no markdown wrapping. An empty array `[]` is valid when nothing is found.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM8 (L1)
+- id: bmad_build_auto.step04.run.bmad_lens_output.g30
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: edge
+      rule: json_keys
+      keys:
+      - location
+      - trigger_condition
+      - guard_snippet
+      - potential_consequence
+      optional:
+      - kind
+      - confidence
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G30 (EH:60-68, EH:71, DC:7-10, CC:7-10); decided keep, T-FM6 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: EH
+    lines:
+    - 58
+    - 66
+    quote: 'Each edge-case finding contains exactly these four fields:'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM6 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g31
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G31 (EH:64-67); decided keep, T-FM3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: EH
+    lines:
+    - 63
+    - 66
+    quote: '"trigger_condition": "one-line description (max 15 words)"'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: field formats of the edge findings'
+- id: bmad_build_auto.step04.run.unimplemented.g32
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G32 (DC:3-5, DC:14, EH:80-82); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: DC
+    lines:
+    - 3
+    - 5
+    quote: did it carry behavior or a contract that the change neither re-established nor intentionally retired?
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g33
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: edge
+      rule: json_keys
+      keys:
+      - location
+      - trigger_condition
+      - guard_snippet
+      - potential_consequence
+      - kind
+      - confidence
+      where:
+        kind: deletion
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G33 (DC:7-12, EH:84-89); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: DC
+    lines:
+    - 7
+    - 12
+    quote: '`confidence`: `"high"`, `"medium"`, or `"low"` — these are inferences; rate them'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g34
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G34 (CC:3, EH:96); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CC
+    lines:
+    - 3
+    - 3
+    quote: Read the claims file named in the message that launched you now, for the first time; the path tracing is finished
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: claims file read at step 5: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g36
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G36 (CC:5, CC:14, EH:98, EH:107); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CC
+    lines:
+    - 5
+    - 5
+    quote: 'The spec is the change''s own account of itself: testimony, not evidence'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g37
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: edge
+      rule: json_keys
+      keys:
+      - location
+      - trigger_condition
+      - guard_snippet
+      - potential_consequence
+      - kind
+      - confidence
+      where:
+        kind: claim
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G37 (CC:7-12, EH:100-105); decided keep, T-FM6 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CC
+    lines:
+    - 7
+    - 12
+    quote: Append one finding per falsified claim to the same JSON array
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM6 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g38
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G38 (CT:95); decided env, T-RD2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 58
+    - 58
+    quote: Read `/bmad-build-auto/review-prompts/verification-gap.md` completely and follow it
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the gap lens read its instruction file: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g39
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G39 (VG:3, VG:76); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 3
+    - 3
+    quote: Ask one question — "if the behavior this change is supposed to produce broke where it's actually used, would verification fail?"
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g40
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G40 (VG:13, VG:70); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 13
+    - 13
+    quote: Read a test before claiming what it covers, runs, asserts, or misses.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the gap lens read the tests it cites: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g41
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G41 (VG:14, VG:16); decided keep, T-RF2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 14
+    - 14
+    quote: Before claiming no test exists, search the whole repo by the symbol under test and by import references; expected file locations are not enough.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: repository search before claiming no test: needs the sub-agent run'
+- id: bmad_build_auto.step04.run.unimplemented.g42
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G42 (VG:15-16, VG:70); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 15
+    - 16
+    quote: Never assert what you did not verify. If a finding cannot be grounded, drop it.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g43
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G43 (VG:23, VG:27, VG:35); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 23
+    - 23
+    quote: Call a part non-behavioral only when the changed code does not alter return values, thrown errors, caller-visible side effects, or observable state
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g44
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G44 (VG:33, VG:39, VG:41); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 41
+    - 41
+    quote: Follow a path only while the changed behavior is reachable and unverified.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g45
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G45 (VG:45, VG:47); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 45
+    - 45
+    quote: If no such regression exists, drop the path; untested downstream code is not a finding.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g46
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G46 (VG:49-53); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 49
+    - 53
+    quote: Find and read the relevant test. Ask whether the Demonstration would make an assertion fail.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g47
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G47 (VG:55); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 55
+    - 55
+    quote: A test counts only if it runs normally and an assertion observes the changed output, branch, or contract.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g48
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G48 (VG:74); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 74
+    - 74
+    quote: 'Do not report: compiler/type-checker-enforced cases; behavior already verified by an integration, contract, or e2e test'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g49
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: gap
+      rule: pattern
+      pattern: (?m)^###\s+\S|No verification gaps found\.
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G49 (VG:78-96); decided keep, T-FM6 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VG
+    lines:
+    - 78
+    - 96
+    quote: Emit each verification-gap finding as one block. No general advice, no severity or confidence.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM6 (L1)
+- id: bmad_build_auto.step04.run.bmad_lens_output.g50
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: gap
+      rule: pattern
+      pattern: (?im)^\W*Disposition\W*\s*(patch|defer)\b
+      when: (?m)^###\s+\S
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G50 (VG:96); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VG
+    lines:
+    - 96
+    - 96
+    quote: '**Disposition:** `patch` — name the test to add, fit to the repo''s own way of verifying ... — or `defer` when the gap is real but not worth closing'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g51
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G51 (VG:76, VG:99-105); decided keep, T-FM3 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 104
+    - 104
+    quote: '- <description only; no severity, confidence, priority, or ranking>'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: Other findings as bullets'
+- id: bmad_build_auto.step04.run.bmad_lens_output.g52
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.lens_output
+    params:
+      lens: gap
+      rule: nonempty
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G52 (VG:29, VG:107-109); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VG
+    lines:
+    - 107
+    - 107
+    quote: 'When you find no verification gaps and no other findings, output exactly this single line, not an empty response:'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g53
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G53 (VG:113); decided keep, T-RF2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: VG
+    lines:
+    - 113
+    - 113
+    quote: never report a clean review for content you could not read.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the gap lens stops on unreadable content'
+- id: bmad_build_auto.step04.run.unimplemented.g54
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G54 (CT:115); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 74
+    - 74
+    quote: Your task is strictly descriptive — do not prescribe additional work.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g55
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G55 (CT:115); decided keep, T-FM2 L1; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 74
+    - 74
+    quote: 'Report: (1) the defensible readings of the intent, enumerated; (2) which reading this diff implements; (3) where the readings and the diff diverge'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g56
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G56 (S4:31); decided keep, T-OR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 80
+    - 80
+    quote: Once every layer has reported — and not before — render a verdict on each finding, ahead of any deduplication or grouping.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: verdicts after every layer reported'
+- id: bmad_build_auto.step04.run.unimplemented.g58
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G58 (S4:33); decided keep, T-TR1b L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 82
+    - 82
+    quote: keep the row's verdict and route, write the row again with `carried` in front of the evidence, skip verification, and never patch or defer it again.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: carried rows on a loopback'
+- id: bmad_build_auto.step04.run.unimplemented.g59
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G59 (S4:36); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 85
+    - 85
+    quote: A gap finding from the verification-gap layer arrives pre-verified ... Skip verification, render the verdict from the filed evidence
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g60
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G60 (S4:37); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 86
+    - 86
+    quote: At the cited file and line, does the bad outcome the reviewer describes actually occur? Read beyond the changed lines — follow callers, guards upstream, etc
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: verification of each finding beyond the changed lines'
+- id: bmad_build_auto.step04.run.unimplemented.g61
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G61 (S4:37); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 86
+    - 86
+    quote: Judge whether the problem is real, not whether the proposed fix is plausible. Code that loudly fails on a situation you never showed the program can reach is correct behavior, not a defect.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g62
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G62 (S4:38-41); decided keep, T-FM2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 84
+    - 87
+    quote: '**Render exactly one verdict** from what verification established — the verdict is the whole triage decision'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: G77 checks the verdict set'
+- id: bmad_build_auto.step04.run.unimplemented.g63
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G63 (S4:39); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 88
+    - 88
+    quote: A vague "this is messy" with no named harm is not a severity grade; use `false` or `maybe-false` instead. When the harm is real but you cannot tell how bad, pick the higher grade.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g64
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G64 (S4:40-41, S4:67); decided keep, T-FM6 L1; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 88
+    - 89
+    quote: '`false` — you checked, and the bad outcome does not happen at the cited location. Write what disproves this specific claim.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g65
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G65 (S4:43, S4:69); decided keep, T-TR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 92
+    - 92
+    quote: Every finding gets one row in the triage log below — verdict plus its evidence in a sentence or two; never drop, merge, or silently skip one.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: triage total equals the lenses'' finding count: needs finding counting per lens'
+- id: bmad_build_auto.step04.spec.bmad_triage_totals.g66
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.triage_totals
+    params:
+      rule: false_reject
+  requirement: must
+  modality_evidence: rules.yaml G66 (S4:45); decided keep, NEW-FM-internal L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 94
+    - 94
+    quote: Reject `false` findings on their refutation.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-FM-internal (L2F)
+- id: bmad_build_auto.step04.run.unimplemented.g67
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G67 (S4:47); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 96
+    - 96
+    quote: Reject `low` findings when it is unlikely that users or developers would meet the defect in everyday use ... and the fix is more than a direct correction or deletion
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g68
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G68 (S4:49); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 98
+    - 98
+    quote: reject or defer a finding as out of scope only when the intent itself excludes it — not because the spec's scope section, the plan, or the shape of the diff says so.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g69
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G69 (S4:51); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 100
+    - 100
+    quote: Reject any finding whose fix is to edit this build's spec.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g70
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G70 (S4:55); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 104
+    - 104
+    quote: two findings belong in one entry only when the same defect produced both. Same location alone is not a shared root cause, and neither is a shared fix.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g71
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G71 (S4:56); decided keep, T-FM2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 105
+    - 105
+    quote: Route each entry into exactly one triage category. A group that includes verified `high`, `medium`, or `low` members routes by its highest such verdict
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: G77 checks the route set'
+- id: bmad_build_auto.step04.run.unimplemented.g73
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G73 (S4:58); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 106
+    - 106
+    quote: When in doubt between bad_spec and patch, prefer bad_spec — a spec-level fix is more likely to produce coherent code.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g74
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G74 (S4:59); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 107
+    - 107
+    quote: '**patch** — caused by the change; its smallest fix is trivial, adds no public surface, and guards no state you did not demonstrate.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g75
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G75 (S4:60); decided keep, NEW-J-content L2M; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 108
+    - 108
+    quote: '**defer** — pre-existing issue not caused by this story; or an entry whose members are all `maybe-false` and the claim, if true, would be `medium` or `high`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.spec.item_format.g76.heading
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Review Triage Log
+      pattern: ^###\s+\S.*[—–-]+\s*Review pass
+      of_pattern: ^###
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml G76 (S4:62-68); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id009
+  - doc: S4
+    lines:
+    - 107
+    - 113
+    quote: '- verdicts: <total> findings — high <N>, medium <N>, low <N>, false <N>, maybe-false <N>'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.spec.item_format.g76.verdicts
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Review Triage Log
+      pattern: ^\s*-\s+verdicts:\s*\d+\s+findings?\s*[—–-]+\s*high\s+\d+,\s*medium\s+\d+,\s*low\s+\d+,\s*false\s+\d+,\s*maybe-false\s+\d+
+      of_pattern: '^\s*-\s+verdicts:'
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml G76 (S4:62-68); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id009
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.spec.item_format.g77
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Review Triage Log
+      pattern: ^\s*-\s+`\[(high|medium|low|false|maybe-false)\]`\s+`\[(bad_spec|patch|defer|reject)\]`\s+\S.*\s[—–-]+\s\S
+      of_pattern: ^\s*-\s+`\[
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml G77 (S4:67); decided keep, T-FM3 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 115
+    - 115
+    quote: '`[verdict]` `[bad_spec|patch|defer|reject]` <finding summary>'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM3 (L1)
+- id: bmad_build_auto.step04.spec.item_format.g78
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: item_format
+    params:
+      section: Review Triage Log
+      pattern: ^###\s+\d{4}-\d{2}-\d{2}\b
+      of_pattern: ^###
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml G78 (S4:69); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 117
+    - 117
+    quote: Where `{date}` is the current system date.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.g79
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G79 (S4:69); decided keep, T-RF1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 117
+    - 117
+    quote: One row per finding from every layer, in the order the layers reported them
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: rows in layer order'
+- id: bmad_build_auto.step04.spec.bmad_triage_totals.g80
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.triage_totals
+    params:
+      rule: totals
+  requirement: must
+  modality_evidence: rules.yaml G80 (S4:69); decided keep, NEW-FM-internal L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 117
+    - 117
+    quote: '`<total>` must equal the number of findings the layers reported — a finding missing from the log is a triage failure. Members of a grouped entry keep their own rows and share the route.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-FM-internal (L2F)
+- id: bmad_build_auto.step04.run.unimplemented.g81
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G81 (S4:70); decided keep, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 118
+    - 118
+    quote: If bad_spec exists, lower entries are moot since code will be re-derived
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: cascade order of the routes'
+- id: bmad_build_auto.step04.run.unimplemented.g82
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G82 (S4:70); decided keep, T-RF1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 118
+    - 118
+    quote: Before each bad_spec loopback, read `{spec_file}` frontmatter `review_loop_iteration` (missing means `0`), increment it by 1, and write it back.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: review_loop_iteration equals the loopback count'
+- id: bmad_build_auto.step04.run.unimplemented.g83
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G83 (S4:70); decided semantic, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 118
+    - 118
+    quote: 'If it exceeds 5, append the triage-log entry for this pass, set `{spec_file}` frontmatter `status: blocked`'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the recorded blocking condition after five loopbacks'
+- id: bmad_build_auto.step04.run.unimplemented.g85a
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85a (S4:72); decided keep, NEW-J-content L2F; measure judge
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: 'Before reverting code: extract KEEP instructions for positive preservation (what worked well and must survive re-derivation).'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
+- id: bmad_build_auto.step04.run.unimplemented.g85b
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85b (S4:72); decided keep, NEW-WD-revert L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: Revert code changes.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: code reverted before re-derivation'
+- id: bmad_build_auto.step04.run.unimplemented.g85c
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85c (S4:72); decided keep, T-RD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: Read the `## Spec Change Log` in `{spec_file}` and strictly respect all logged constraints when amending the sections outside `<intent-contract>` that contain the root cause.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the change log read before amending'
+- id: bmad_build_auto.step04.run.unimplemented.g85d
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85d (S4:72, ST:68-71); decided keep, T-FM6 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: 'Append a new change-log entry recording: the triggering finding, what was amended, the known-bad state avoided, and the KEEP instructions.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: change-log entry parts'
+- id: bmad_build_auto.step04.run.unimplemented.g85e
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85e (S4:72); decided keep, T-FM6 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: Append the triage-log entry for this pass, recording in each bad_spec row the amendment it triggered.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: triage rows name the amendment'
+- id: bmad_build_auto.step04.run.unimplemented.g85f
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G85f (S4:72); decided keep, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 119
+    - 119
+    quote: Read fully and follow `/bmad-build-auto/stages/step-03-implement.md` to re-derive the code
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: step 3 re-read on a loopback'
+- id: bmad_build_auto.step04.run.bmad_task_calls.g86a
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: resume_for_patch
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G86a (S4:73); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 120
+    - 120
+    quote: Re-engage the step-03 implementation subagent — the same one, addressed by the name or id its launch returned (a `task` call
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.bmad_task_calls.g86b
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: resume_prompt
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml G86b (S4:73-81); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: S4
+    lines:
+    - 112
+    - 120
+    quote: 'Send it one message, exactly this, with the findings filled in:'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.step04.run.unimplemented.g86c
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G86c (S4:83); decided keep, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 130
+    - 130
+    quote: If it cannot be continued, apply the patches yourself.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: patches applied by the orchestrator when resume fails'
+- id: bmad_build_auto.step04.run.unimplemented.g86d
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G86d (S4:83); decided keep, T-FM6 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 130
+    - 130
+    quote: Append the triage-log entry for this pass, recording in each patched row the fix applied.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: patched rows name the fix'
+- id: bmad_build_auto.step04.spec.bmad_frontmatter_value.g87a
+  scope: specific
+  class: structure
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: bmad.frontmatter_value
+    params:
+      key: deferred
+      required: true
+  requirement: must
+  modality_evidence: rules.yaml G87a (S4:84, ST:10); decided keep, T-FM5 L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 131
+    - 131
+    quote: Preserve every existing item, do not look for duplicates, and never add a second `deferred:` key.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM5 (L2F)
+- id: bmad_build_auto.step04.run.unimplemented.g87b
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G87b (S4:84); decided keep, T-WD4 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 131
+    - 131
+    quote: Preserve every existing item, do not look for duplicates
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: existing deferred items preserved'
+- id: bmad_build_auto.step04.run.unimplemented.g87c
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G87c (S4:84); decided keep, T-FM8 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 131
+    - 131
+    quote: Serialize free-form values as YAML block scalars so characters such as `:`, `#`, quotes, and line breaks remain data.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: block scalars in deferred items'
+- id: bmad_build_auto.step04.run.unimplemented.g87d
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G87d (S4:85-93); decided keep, T-FM6 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 132
+    - 140
+    quote: 'severity: medium # optional — high | medium | low; for a maybe-false entry, its if-true grade plus " (unverified)"'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: deferred item fields'
+- id: bmad_build_auto.step04.run.unimplemented.g87e
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml G87e (S4:95); decided keep, NEW-WD-exists-after L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 142
+    - 142
+    quote: After all appends, parse the complete frontmatter as YAML and verify that `deferred` is one list containing every prior item plus the new items with their intended text.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: frontmatter re-parsed after deferring'
+- id: bmad_build_auto.step04.spec.section_present.h1.section
+  scope: common
+  class: structure
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: section_present
+    params:
+      heading: Auto Run Result
+      level: 2
+  requirement: must
+  modality_evidence: rules.yaml H1 (S4:99-105); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: &id010
+  - doc: S4
+    lines:
+    - 140
+    - 146
+    quote: 'Write the following details to `{spec_file}` under `## Auto Run Result`:'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.spec.field_filled.h1.filled
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: field_filled
+    params:
+      section: Auto Run Result
+  requirement: must
+  modality_evidence: rules.yaml H1 (S4:99-105); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources: *id010
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.spec.cross_ref.h2
+  scope: common
+  class: content
+  stage: step04
+  target:
+    type: artifact
+    ref: spec
+    state: final
+  check:
+    kind: cross_ref
+    params:
+      left:
+        ids:
+          artifact: spec
+          section: Auto Run Result
+          pattern: '`([^`\s]+\.[A-Za-z0-9_]+)`'
+          group: 1
+      right:
+        fact: diff_paths
+      relation: superset
+      normalize: path
+  requirement: must
+  modality_evidence: rules.yaml H2 (S4:101); decided keep, T-RF3 L2M
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 148
+    - 148
+    quote: '- Files changed with one-line descriptions'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-RF3 (L2M)
+- id: bmad_build_auto.step04.run.unimplemented.h3
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H3 (S4:102); decided keep, NEW-FM-internal L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 149
+    - 149
+    quote: '- Review findings breakdown: patches applied, items deferred, and every rejected finding with its recorded reason'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: Auto Run Result counts equal the triage rows'
+- id: bmad_build_auto.step04.run.unimplemented.h4
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H4 (S4:103); decided env, NEW-FM-internal L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 150
+    - 150
+    quote: '`true` if any patched entry was `high`, or if two or more `medium` entries were patched'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: follow-up recommendation computed from the patched verdicts'
+- id: bmad_build_auto.step04.run.unimplemented.h5
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H5 (S4:107, ST:7); decided keep, NEW-FM-internal L2F; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 154
+    - 154
+    quote: Set `{spec_file}` frontmatter `followup_review_recommended` from the computation above.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: B10 checks the field type; H4 holds the computation'
+- id: bmad_build_auto.step04.run.unimplemented.h6
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H6 (S4:104); decided keep, T-RF1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: S4
+    lines:
+    - 151
+    - 151
+    quote: '- Verification performed, including command outcomes or manual inspection notes'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: recorded verification equals the executed commands'
+- id: bmad_build_auto.step04.result.artifact_exists.h11
+  scope: common
+  class: structure
+  stage: step04
+  target:
+    type: artifact
+    ref: result
+    state: final
+  check:
+    kind: artifact_exists
+    params:
+      artifact: result
+  requirement: must
+  modality_evidence: rules.yaml H11 (WF:32); decided env, T-FM1 L1
+  none_allowed: '-'
+  applies_when:
+    not:
+      artifact_exists: spec
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 12
+    - 12
+    quote: create `/tmp/bmad/implementation-artifacts/bmad-build-auto-result-<slug-or-timestamp>.md`
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM1 (L1)
+- id: bmad_build_auto.step04.result.frontmatter.h12
+  scope: common
+  class: structure
+  stage: step04
+  target:
+    type: artifact
+    ref: result
+    state: final
+  check:
+    kind: frontmatter
+    params:
+      keys:
+      - status
+      exact: false
+  requirement: must
+  modality_evidence: rules.yaml H12 (WF:18-29, WF:33-42); decided keep, T-FM2 L1
+  none_allowed: '-'
+  applies_when:
+    not:
+      artifact_exists: spec
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 18
+    - 29
+    quote: "Status: <final status>\n     Blocking condition: <blocking condition, if any>"
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template T-FM2 (L1)
+- id: bmad_build_auto.step04.run.unimplemented.h14
+  scope: specific
+  class: content
+  stage: step04
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H14 (WF:43, WF:47-49, CT:29-32); decided env, T-OR1 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 23
+    - 23
+    quote: Stop the workflow. Nothing follows a HALT except ending the session
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: nothing after the final write'
+- id: bmad_build_auto.global.run.unimplemented.h15
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml H15 (WF:55, WF:9); decided env, T-SR2 L2M; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 29
+    - 29
+    quote: The only sanctioned way to end a turn is the HALT protocol above with an explicit terminal `status`.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the run ends through HALT'
+- id: bmad_build_auto.global.run.bmad_task_calls.i1
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: launched
+      min: 1
+  requirement: must
+  modality_evidence: rules.yaml I1 (WF:53); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 27
+    - 27
+    quote: Using subagents when instructed is mandatory.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+- id: bmad_build_auto.global.run.unimplemented.i2
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: action
+    ref: unimplemented
+    state: final
+  check:
+    kind: unimplemented
+    params: {}
+  requirement: should
+  modality_evidence: rules.yaml I2 (WF:53); decided env, T-OR2 L1; measure code
+  none_allowed: '-'
+  applies_when: null
+  weight: 0.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: CW
+    lines:
+    - 27
+    - 27
+    quote: Using subagents when instructed is mandatory
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'code: the tool is present: the HALT never fires'
+- id: bmad_build_auto.step04.run.bmad_task_calls.i3
+  scope: specific
+  class: evidence
+  stage: step04
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: bmad.task_calls
+    params:
+      rule: same_turn
+      min: 4
+      window: stage:step04
+  requirement: must
+  modality_evidence: rules.yaml I3 (WF:55); decided keep, NEW-AW-subagent L2F
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 29
+    - 29
+    quote: Launch all the subagents a step calls for in **one message** — several **blocking** calls awaited together in the same turn
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: study template NEW-AW-subagent (L2F)
+scoring:
+  item_weight:
+    must: 1.0
+    should: 0.25
+  stage:
+    formula: sigma_kappa
+  substantive_threshold: 0.5
+  windows: reads
+  next_read: after_start
+  signals:
+  - order
+  - process
+  - stage:*
+  process_scale: stage_mean
+  compliance: mean
+conflicts: []
+appendix:
+  note: evaluation workflow of the SDLC instruction-following study; judge rules are unimplemented + log_only until a judge endpoint is wired

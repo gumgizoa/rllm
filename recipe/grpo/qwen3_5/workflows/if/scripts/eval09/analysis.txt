@@ -1,0 +1,224 @@
+paired tasks: 499 (base 499, step27 499); errors: base 0 step27 0
+
+==============================================================================================================
+1. 전체 (n=499): resolve, 옛 v4 compliance(live), 새 평가기 score, 범주, 층
+==============================================================================================================
+base    resolve 0.515  live_v4 0.434  score 0.545 | P 0.553 F 0.489 E 0.405 C 0.374 R 0.906 A 0.496 | L1 0.552 L1C 0.706 L2M 0.886 L2F 0.933 | rL1 0.689 rL1C 0.707 rL2M 0.886 rL2F 0.933 | 5arts 0.52 steps 80.8
+step27  resolve 0.519  live_v4 0.844  score 0.862 | P 0.924 F 0.912 E 0.696 C 0.853 R 0.900 A 0.869 | L1 0.907 L1C 0.786 L2M 0.886 L2F 0.941 | rL1 0.916 rL1C 0.786 rL2M 0.885 rL2F 0.941 | 5arts 0.94 steps 72.5
+
+-- paired Δ (step27 − base), mean ± 1.96·se --
+   layer/L1               n=499  Δ=+0.356 ± 0.029
+   layer_reached/L1       n=499  Δ=+0.227 ± 0.021
+   layer/L1C              n=341  Δ=+0.084 ± 0.030
+   layer_reached/L1C      n=341  Δ=+0.083 ± 0.030
+   layer/L2M              n=499  Δ=-0.000 ± 0.015
+   layer_reached/L2M      n=499  Δ=-0.001 ± 0.015
+   layer/L2F              n=439  Δ=+0.007 ± 0.009
+   layer_reached/L2F      n=439  Δ=+0.006 ± 0.009
+   score                  n=499  Δ=+0.317 ± 0.028
+   kind/P                 n=499  Δ=+0.371 ± 0.031
+   kind/F                 n=499  Δ=+0.424 ± 0.035
+   kind/E                 n=499  Δ=+0.290 ± 0.037
+   kind/C                 n=452  Δ=+0.476 ± 0.039
+   kind/R                 n=499  Δ=-0.006 ± 0.011
+   kind/A                 n=499  Δ=+0.373 ± 0.038
+
+   unavailable/run 26.0 (judge 항목; judge 미설정), engine errors: 0
+
+==============================================================================================================
+2. 템플릿별 통과율 (층, 전체 run / 두 run 모두 도달), method 수, 항목 수
+==============================================================================================================
+layer template                            #m  #it |   base    s27       Δ | r_base  r_s27      Δr      n  name
+L1    T-AW1                                1    1 |  0.797  0.945  +0.148 |  0.797  0.944  +0.148    305  no repository edit outside the allowed stage
+L1    T-AW2                                1    1 |  0.535  0.594  +0.059 |  0.537  0.606  +0.069    309  run (or write) tests/checks before the first sourc
+L1    T-AW3                                4    4 |  0.793  0.830  +0.037 |  0.786  0.810  +0.023    866  run tests/checks after the last source edit
+L1    T-FM1                                1    5 |  0.609  0.968  +0.359 |  0.918  0.989  +0.071   1636  artifact exists at its path
+L1    T-FM2                               54   66 |  0.555  0.925  +0.370 |  0.739  0.947  +0.207  19968  skeleton: headings, labels, fields present and fil
+L1    T-FM3                                6    6 |  0.637  0.817  +0.180 |  0.770  0.785  +0.015   1749  repeated-item format (numbering, count, uniqueness
+L1    T-FM6                                1    1 |  0.343  0.932  +0.589 |  0.601  0.975  +0.375    283  every block of a repeated structure has its fields
+L1    T-OR1                                3   13 |  0.666  0.965  +0.299 |  0.822  0.975  +0.153   3565  chain of stage-document reads and artifact writes 
+L1    T-OR2                                3    3 |  0.970  0.956  -0.014 |  0.970  0.972  +0.003    791  branch on a result
+L1    T-PR1                                3    3 |  0.912  0.955  +0.043 |  0.936  0.954  +0.018    802  no test file added or modified
+L1    T-PR2                                3    3 |  0.869  0.862  -0.007 |  0.877  0.874  -0.004   1026  no working file left in the repository
+L1    T-PR3                                1    1 |  0.890  0.910  +0.020 |  0.890  0.910  +0.020    499  no dependency install or environment setup
+L1    T-PR5                                1    1 |  0.953  0.974  +0.021 |  0.953  0.976  +0.023    299  no full test suite run
+L1    T-PR6                                2    2 |  0.988  0.978  -0.009 |  0.990  0.983  -0.007    594  a specific command is prohibited
+L1    T-RD1                                1    1 |  0.895  0.998  +0.103 |  0.895  0.998  +0.103    499  read the core document first
+L1    T-RD2                                1    5 |  0.686  0.948  +0.262 |  0.689  0.962  +0.273   1484  read a stage's document when the stage starts
+L1    T-RD3                                1    4 |  0.835  0.960  +0.125 |  0.833  0.964  +0.131    840  do not read a later stage's document early
+L1    T-RD5                                1    1 |  0.890  0.874  -0.016 |  0.889  0.882  -0.007    334  read specific repository files
+L1    T-RF1                               11   11 |  0.795  0.831  +0.037 |  0.795  0.835  +0.040   1527  a recorded command/result/test equals what was run
+L1    T-RF2                               11   11 |  0.885  0.903  +0.018 |  0.884  0.898  +0.013   1199  a recorded 'none/no' claim is not refuted by the r
+L1    T-RF4                                2    2 |  1.000  0.897  -0.103 |  1.000  0.897  -0.103     17  recorded paths exist in the base repository
+L1    T-TR1                               12   11 |  0.873  0.931  +0.059 |  0.872  0.930  +0.058   1901  ID coverage between artifacts (set relation)
+L1    T-WD1                                2    1 |  0.744  0.822  +0.078 |  0.744  0.822  +0.078    344  write an artifact in one write
+L1    T-WD2                                1    1 |  0.808  0.788  -0.020 |  0.808  0.788  -0.020    344  do not rewrite an earlier stage's artifact
+L1    T-WD3                                1    1 |  0.994  0.998  +0.004 |  0.994  0.998  +0.004    343  write artifacts and scripts only at designated loc
+L1C   T-AW4                                2    2 |  0.590  0.769  +0.179 |  0.594  0.766  +0.173    433  do not execute a given file inside a window (defer
+L1C   T-OR3                                1    1 |  1.000  1.000  +0.000 |  1.000  1.000  +0.000    343  never return to an earlier stage (no earlier stage
+L1C   T-PR5                                1    1 |  0.981  0.994  +0.014 |  0.987  1.000  +0.013    150  no full test suite run
+L1C   T-RD6                                1    1 |  0.414  0.461  +0.047 |  0.414  0.461  +0.047    343  do not re-read an own artifact that is still visib
+L2M   NEW-IS-issue-fidelity                1    1 |  1.000  1.000  +0.000 |  1.000  1.000  +0.000     62  
+L2M   NEW-RF-record-after-observation      2    2 |  0.659  0.723  +0.064 |  0.661  0.704  +0.043    548  
+L2M   NEW-TR-keyed-order                   1    1 |  0.969  0.993  +0.024 |  0.975  1.000  +0.025    120  
+L2M   T-AW3                                1    1 |  0.570  0.829  +0.259 |  0.579  0.840  +0.261    259  run tests/checks after the last source edit
+L2M   T-AW6                                1    1 |  0.899  0.878  -0.021 |  0.899  0.912  +0.013     99  re-run with the same test selection as the baselin
+L2M   T-OR2                                1    1 |  1.000  0.500  -0.500 |  1.000  0.500  -0.500      1  branch on a result
+L2M   T-RF3                                6    5 |  0.924  0.944  +0.021 |  0.923  0.948  +0.025    624  the recorded list of changed files against the fil
+L2M   T-SR2                                3    3 |  0.999  1.000  +0.001 |  0.999  1.000  +0.001   1495  do not ask the user: no question file, no request 
+L2M   T-TR2                                3    3 |  0.131  0.379  +0.248 |  0.137  0.421  +0.284    117  the planned or recorded target is what was execute
+L2F   NEW-CMD-form                         1    1 |  0.314  0.444  +0.131 |  0.315  0.418  +0.103    184  
+L2F   NEW-CS-intra-artifact                3    3 |  0.991  0.996  +0.004 |  0.991  0.995  +0.004    607  
+L2F   NEW-IS-issue-fidelity                3    3 |  0.771  0.821  +0.050 |  0.773  0.833  +0.060    595  
+L2F   NEW-RD-one-at-a-time                 1    1 |  0.999  1.000  +0.001 |  0.999  1.000  +0.001    437  
+L2F   NEW-SEM-patch-contract               1    1 |  1.000  0.500  -0.500 |  1.000  1.000  +0.000      1  
+L2F   NEW-WD-exists-before                 1    1 |  0.916  0.947  +0.032 |  0.920  0.972  +0.052    122  check whether a file exists before writing it
+L2F   T-FM5                                1    5 |  0.991  1.000  +0.009 |  0.991  0.999  +0.009   1502  frontmatter keys fixed
+
+==============================================================================================================
+3. L1C·L2M·L2F method별 (두 run 모두 도달한 task): base→s27, 유지 P(s27✓|base✓), 획득 P(s27✓|base✗), McNemar b/c
+==============================================================================================================
+layer template                       method                                     n |   base    s27 |    유지    획득 |    b    c  rule
+L1C   T-AW4                          atom/G7c                                 261 |  0.640  0.831 |  0.87  0.77 |   22   72  G7c: 4단계에서는 테스트 등으로 수정한 소스를 실행하지 않음
+L1C   T-AW4                          rule/r_repro_not_in_stage4               168 |  0.512  0.738 |  0.79  0.68 |   18   56  G7b: 4단계에서는 재현 스크립트를 실행하지 않음
+L1C   T-OR3                          atom/C2                                  339 |  1.000  1.000 |  1.00   nan |    0    0  C2: 이전 단계로 돌아가지 않음 (문제는 드러난 단계에서 처리)
+L1C   T-PR5                          rule/r_targeted_tests                    116 |  0.983  1.000 |  1.00  1.00 |    0    2  H6: 전체 테스트 suite를 돌리지 않음
+L1C   T-RD6                          atom/B8                                  339 |  0.416  0.454 |  0.48  0.44 |   74   87  B8: 보이는 산출물은 다시 읽지 않고, 내용이 안 보일 때만 복구용으로 읽음
+L2M   NEW-IS-issue-fidelity          atom/F3                                   59 |  1.000  1.000 |  1.00   nan |    0    0  F3: task가 지정한 이름·시그니처·경로를 그대로 씀
+L2M   NEW-RF-record-after-observation check/t1_baseline_before_write           330 |  0.555  0.576 |  0.62  0.52 |   69   76  D11c: baseline 테스트를 실행한 뒤 그 결과를 01에 적음 (실행 전에 쓰지 않음)
+L2M   NEW-RF-record-after-observation check/t4_repro_written_before_write      210 |  0.829  0.905 |  0.91  0.89 |   16   32  G7a: 재현 스크립트를 plan에 적은 경로에 씀
+L2M   NEW-TR-keyed-order             atom/G1a                                  83 |  0.988  1.000 |  1.00  1.00 |    0    1  G1a: plan 순서대로 step을 실행함
+L2M   T-AW3                          check/t5_repro_run_after_last_edit       255 |  0.576  0.839 |  0.86  0.81 |   20   87  H2: 재현 스크립트를 실행함 (마지막 수정 뒤)
+L2M   T-AW6                          atom/H4a                                  74 |  0.919  0.919 |  0.91  1.00 |    6    6  H4a: baseline과 같은 테스트 선택(1단계 Test 명령)으로 다시 실행함
+L2M   T-OR2                          atom/H1c                                   0 |    nan    nan |   nan   nan |    0    0  H1c: build 실패를 다른 검증보다 먼저 해결함
+L2M   T-RF3                          check/c34_deviations_recorded              3 |  0.000  1.000 |   nan  1.00 |    0    3  B4b: 이전 단계와 모순되면 지금 단계 산출물에 deviation·정정·pre-existing으로
+L2M   T-RF3                          check/e4_created                          21 |  1.000  1.000 |  1.00   nan |    0    0  S4.created: 04 필드 Created (없으면 none)
+L2M   T-RF3                          check/e4_modified                        164 |  0.985  0.991 |  0.99  1.00 |    2    3  S4.modified_real: 04 Modified에 적은 파일은 실제로 바뀜
+L2M   T-RF3                          check/e4_undisclosed                     239 |  0.941  0.983 |  0.98  0.93 |    4   25  S4.modified_all: 4단계에서 바꾼 파일은 모두 04에 적음
+L2M   T-RF3                          check/e5_final_files_diff                146 |  0.842  0.887 |  0.77  0.82 |   23   36  H13: 최종 변경 파일 = 4단계에 적은 수정·생성 파일
+L2M   T-RF3                          run/fidelity                               0 |    nan    nan |   nan   nan |    0    0  : 
+L2M   T-SR2                          atom/E10a                                499 |  1.000  1.000 |  1.00   nan |    0    0  E10a: 질문 파일을 만들지 않음
+L2M   T-SR2                          atom/E10b                                499 |  0.998  1.000 |  1.00  1.00 |    0    1  E10b: 입력을 기다리며 끝내지 않음 (마지막 응답이 질문·승인 요청이 아님)
+L2M   T-SR2                          atom/E10c                                497 |  1.000  1.000 |  1.00   nan |    0    0  E10c: 중간에도 사용자에게 승인을 묻지 않음
+L2M   T-TR2                          atom/G3c                                   2 |  1.000  1.000 |  1.00   nan |    0    0  G3c: plan이 create로 계획한 파일을 새로 만듦
+L2M   T-TR2                          atom/H1a                                  23 |  0.043  0.348 |  1.00  0.32 |    0    7  H1a: 1단계에 적은 build 명령을 실행함
+L2M   T-TR2                          atom/H1b                                  14 |  0.000  0.286 |   nan  0.29 |    0    4  H1b: build를 실행해 성공을 확인함
+L2F   NEW-CMD-form                   atom/D8                                  135 |  0.296  0.452 |  0.53  0.42 |   19   40  D8: 출력을 줄이는 옵션(-q, --tb=short)을 씀
+L2F   NEW-CS-intra-artifact          atom/D3b                                 310 |  0.996  0.998 |  1.00  0.67 |    1    2  D3b: Owning module에 저장소 안의 경계(디렉터리 등)를 적고, 그 경계가 Files를
+L2F   NEW-CS-intra-artifact          atom/H15b                                132 |  0.985  0.992 |  0.99  1.00 |    1    2  H15b: Verdict가 Regressions·Pre-existing failures와 모순되지 않
+L2F   NEW-CS-intra-artifact          atom/H15c                                139 |  0.986  1.000 |  1.00  1.00 |    0    2  H15c: Unmet requirements가 재현 결과와 모순되지 않음
+L2F   NEW-IS-issue-fidelity          atom/D1b                                  10 |  1.000  1.000 |  1.00   nan |    0    0  D1b: 이슈가 파일·심볼을 직접 지목하면 거기서 시작함
+L2F   NEW-IS-issue-fidelity          atom/D4a                                 324 |  0.997  1.000 |  1.00  1.00 |    0    1  D4a: 언어·프레임워크를 Files에서 판단해 기록함
+L2F   NEW-IS-issue-fidelity          atom/E7b                                 245 |  0.469  0.576 |  0.55  0.60 |   52   78  E7b: Non-Functional은 task에 적힌 것만, 없으면 none stated
+L2F   NEW-RD-one-at-a-time           proc/A3a                                 436 |  0.999  1.000 |  1.00  1.00 |    0    1  A3a: 규칙 문서는 한 번에 하나씩 읽음
+L2F   NEW-SEM-patch-contract         atom/G5                                    1 |  1.000  1.000 |  1.00   nan |    0    0  G5: plan이 보존한다고 적은 계약(시그니처·반환 형태)을 유지함
+L2F   NEW-WD-exists-before           atom/G3a                                  34 |  0.851  0.985 |  1.00  0.86 |    0    6  G3a: 쓰기 전에 파일이 있는지 확인함 (plan Target 파일; plan이 경로를 정한 재현
+L2F   T-FM5                          form/B6a                                1490 |  0.991  0.999 |  1.00  1.00 |    1   14  B6a: frontmatter는 stage, name 두 키만
+
+==============================================================================================================
+4. 층별 전이 (두 run 모두 도달): 유지 / 획득
+==============================================================================================================
+   L1   쌍  40399  base✓  31764 유지 0.96  base✗   8635 획득 0.83   통과율 0.79 → 0.93
+   L1C  쌍   1223  base✓    847 유지 0.87  base✗    376 획득 0.58   통과율 0.69 → 0.78
+   L2M  쌍   3118  base✓   2706 유지 0.95  base✗    412 획득 0.68   통과율 0.87 → 0.91
+   L2F  쌍   3256  base✓   3001 유지 0.98  base✗    255 획득 0.57   통과율 0.92 → 0.94
+
+==============================================================================================================
+5. 해결 묶음별 (전체 run 기준)
+==============================================================================================================
+-- both n=213
+base    resolve 1.000  live_v4 0.527  score 0.626 | P 0.632 F 0.591 E 0.502 C 0.502 R 0.889 A 0.613 | L1 0.632 L1C 0.685 L2M 0.890 L2F 0.926 | rL1 0.758 rL1C 0.685 rL2M 0.890 rL2F 0.926 | 5arts 0.66 steps 74.5
+step27  resolve 1.000  live_v4 0.870  score 0.884 | P 0.942 F 0.938 E 0.714 C 0.889 R 0.910 A 0.898 | L1 0.927 L1C 0.800 L2M 0.902 L2F 0.943 | rL1 0.932 rL1C 0.800 rL2M 0.902 rL2F 0.943 | 5arts 0.97 steps 60.6
+-- only_s27 n=46
+base    resolve 0.000  live_v4 0.261  score 0.395 | P 0.399 F 0.297 E 0.255 C 0.195 R 0.931 A 0.278 | L1 0.384 L1C 0.824 L2M 0.912 L2F 0.958 | rL1 0.526 rL1C 0.822 rL2M 0.913 rL2F 0.960 | 5arts 0.30 steps 71.3
+step27  resolve 1.000  live_v4 0.851  score 0.884 | P 0.930 F 0.924 E 0.760 C 0.876 R 0.895 A 0.908 | L1 0.917 L1C 0.790 L2M 0.888 L2F 0.933 | rL1 0.917 rL1C 0.790 rL2M 0.888 rL2F 0.933 | 5arts 0.96 steps 80.2
+-- only_base n=44
+base    resolve 1.000  live_v4 0.415  score 0.534 | P 0.557 F 0.474 E 0.399 C 0.311 R 0.926 A 0.450 | L1 0.565 L1C 0.789 L2M 0.900 L2F 0.931 | rL1 0.721 rL1C 0.789 rL2M 0.900 rL2F 0.932 | 5arts 0.43 steps 84.5
+step27  resolve 0.000  live_v4 0.834  score 0.839 | P 0.928 F 0.895 E 0.660 C 0.800 R 0.885 A 0.828 | L1 0.899 L1C 0.766 L2M 0.872 L2F 0.952 | rL1 0.911 rL1C 0.764 rL2M 0.872 rL2F 0.952 | 5arts 0.86 steps 74.4
+-- neither n=196
+base    resolve 0.000  live_v4 0.377  score 0.496 | P 0.504 F 0.426 E 0.337 C 0.286 R 0.914 A 0.430 | L1 0.500 L1C 0.689 L2M 0.871 L2F 0.933 | rL1 0.644 rL1C 0.691 rL2M 0.872 rL2F 0.933 | 5arts 0.44 steps 89.0
+step27  resolve 0.000  live_v4 0.817  score 0.839 | P 0.903 F 0.886 E 0.669 C 0.820 R 0.893 A 0.838 | L1 0.886 L1C 0.775 L2M 0.870 L2F 0.939 | rL1 0.898 rL1C 0.774 rL2M 0.870 rL2F 0.939 | 5arts 0.91 steps 83.1
+
+==============================================================================================================
+6. 진입·완주 run만
+==============================================================================================================
+-- 진입 (산출물 ≥1)
+base    resolve 0.567  live_v4 0.626  score 0.721 | P 0.740 F 0.709 E 0.588 C 0.567 R 0.887 A 0.719 | L1 0.744 L1C 0.705 L2M 0.834 L2F 0.914 | rL1 0.788 rL1C 0.706 rL2M 0.835 rL2F 0.914 | 5arts 0.75 steps 81.6
+step27  resolve 0.525  live_v4 0.858  score 0.874 | P 0.937 F 0.927 E 0.707 C 0.867 R 0.901 A 0.883 | L1 0.920 L1C 0.786 L2M 0.884 L2F 0.941 | rL1 0.926 rL1C 0.786 rL2M 0.884 rL2F 0.940 | 5arts 0.95 steps 72.0
+-- 완주 (산출물 = 5)
+base    resolve 0.614  live_v4 0.712  score 0.813 | P 0.826 F 0.806 E 0.665 C 0.755 R 0.870 A 0.879 | L1 0.805 L1C 0.702 L2M 0.829 L2F 0.920 | rL1 0.805 rL1C 0.702 rL2M 0.829 rL2F 0.920 | 5arts 1.00 steps 76.9
+step27  resolve 0.535  live_v4 0.872  score 0.889 | P 0.950 F 0.944 E 0.720 C 0.891 R 0.901 A 0.906 | L1 0.929 L1C 0.785 L2M 0.882 L2F 0.942 | rL1 0.929 rL1C 0.785 rL2M 0.882 rL2F 0.942 | 5arts 1.00 steps 71.2
+-- 둘 다 완주, 같은 task n=246
+base    resolve 0.606  live_v4 0.716  score 0.815 | P 0.828 F 0.810 E 0.669 C 0.750 R 0.871 A 0.883 | L1 0.808 L1C 0.702 L2M 0.831 L2F 0.923 | rL1 0.808 rL1C 0.702 rL2M 0.831 rL2F 0.923 | 5arts 1.00 steps 76.8
+step27  resolve 0.598  live_v4 0.878  score 0.895 | P 0.954 F 0.950 E 0.737 C 0.901 R 0.903 A 0.908 | L1 0.935 L1C 0.781 L2M 0.893 L2F 0.944 | rL1 0.935 rL1C 0.781 rL2M 0.893 rL2F 0.944 | 5arts 1.00 steps 65.2
+   paired Δ score = +0.080 ± 0.012
+
+==============================================================================================================
+7. 같은 task, 08(ifeval) 채점과 비교
+==============================================================================================================
+           ifeval new score |    if L1   new L1   if L1C  new L1C   if L2M  new L2M   if L2F  new L2F
+base        0.343     0.545 |    0.454    0.552    0.666    0.706    0.377    0.886    0.542    0.933
+step27      0.783     0.862 |    0.877    0.907    0.772    0.786    0.757    0.886    0.925    0.941
+   base: task별 상관 ifeval compliance vs new score r=0.876; L1 r=0.986; L1C r=0.644; L2M r=-0.055; L2F r=-0.269
+   step27: task별 상관 ifeval compliance vs new score r=0.855; L1 r=0.974; L1C r=0.793; L2M r=0.389; L2F r=0.003
+
+==============================================================================================================
+8. 공유 템플릿: ifeval(08) 항목 vs 새 평가기 method, 도달 기준 통과율 (base → s27)
+==============================================================================================================
+template   | ifeval base ifeval s27      Δ  #it |  new base  new s27      Δ  #it  name
+T-AW1      |       0.575      0.926  +0.35    1 |     0.797    0.945  +0.15    1  no repository edit outside the allowed stage
+T-AW2      |       0.330      0.422  +0.09    1 |     0.535    0.594  +0.06    1  run (or write) tests/checks before the first 
+T-AW3      |       0.419      0.670  +0.25    2 |     0.736    0.830  +0.09    5  run tests/checks after the last source edit
+T-AW4      |       0.551      0.660  +0.11    1 |     0.591    0.769  +0.18    2  do not execute a given file inside a window (
+T-AW6      |       0.310      0.401  +0.09    1 |     0.899    0.878  -0.02    1  re-run with the same test selection as the ba
+T-FM1      |       0.880      0.976  +0.10   10 |     0.919    0.990  +0.07    5  artifact exists at its path
+T-FM2      |       0.668      0.953  +0.28   76 |     0.737    0.939  +0.20   66  skeleton: headings, labels, fields present an
+T-FM3      |       0.713      0.963  +0.25   12 |     0.770    0.823  +0.05    6  repeated-item format (numbering, count, uniqu
+T-FM5      |       0.910      0.990  +0.08    5 |     0.991    1.000  +0.01    5  frontmatter keys fixed
+T-FM6      |       0.747      0.962  +0.21    4 |     0.596    0.959  +0.36    1  every block of a repeated structure has its f
+T-OR1      |       0.310      0.706  +0.40    2 |     0.822    0.974  +0.15   13  chain of stage-document reads and artifact wr
+T-OR3      |       0.994      0.998  +0.00    1 |     1.000    1.000  +0.00    1  never return to an earlier stage (no earlier 
+T-PR1      |       0.846      0.943  +0.10    3 |     0.934    0.958  +0.02    3  no test file added or modified
+T-PR2      |       0.944      0.997  +0.05    3 |     0.876    0.864  -0.01    3  no working file left in the repository
+T-PR3      |       0.888      0.910  +0.02    1 |     0.890    0.910  +0.02    1  no dependency install or environment setup
+T-PR5      |       0.727      0.951  +0.22    3 |     0.965    0.983  +0.02    2  no full test suite run
+T-RD1      |       0.884      0.998  +0.11    1 |     0.895    0.998  +0.10    1  read the core document first
+T-RD3      |       0.519      0.579  +0.06    5 |     0.835    0.960  +0.12    4  do not read a later stage's document early
+T-RD6      |       0.597      0.590  -0.01    1 |     0.414    0.461  +0.05    1  do not re-read an own artifact that is still 
+T-RF1      |       0.148      0.359  +0.21    6 |     0.795    0.831  +0.04   11  a recorded command/result/test equals what wa
+T-RF2      |       0.491      0.770  +0.28   11 |     0.885    0.903  +0.02   11  a recorded 'none/no' claim is not refuted by 
+T-RF3      |       0.453      0.834  +0.38    3 |     0.924    0.944  +0.02    5  the recorded list of changed files against th
+T-RF4      |       0.551      0.724  +0.17    9 |     1.000    0.897  -0.10    2  recorded paths exist in the base repository
+T-SR2      |       1.000      1.000  +0.00    2 |     0.999    1.000  +0.00    3  do not ask the user: no question file, no req
+T-TR1      |       0.647      0.887  +0.24    6 |     0.873    0.931  +0.06   11  ID coverage between artifacts (set relation)
+T-TR2      |       0.398      0.752  +0.35    5 |     0.133    0.379  +0.25    3  the planned or recorded target is what was ex
+T-WD1      |       0.634      0.856  +0.22    5 |     0.744    0.822  +0.08    1  write an artifact in one write
+T-WD2      |       0.530      0.915  +0.39    4 |     0.808    0.788  -0.02    1  do not rewrite an earlier stage's artifact
+NEW-CMD-form |         -          -     +nan    0 |     0.314    0.444  +0.13    1  
+NEW-CS-intra-artifact |         -          -     +nan    0 |     0.991    0.996  +0.00    3  
+NEW-IS-issue-fidelity |         -          -     +nan    0 |     0.793    0.840  +0.05    4  
+NEW-Q-content (judge) |         -          -     +nan    0 |       -        -     +nan   25  
+NEW-RD-one-at-a-time |         -          -     +nan    0 |     0.999    1.000  +0.00    1  
+NEW-RF-record-after-observation |         -          -     +nan    0 |     0.659    0.723  +0.06    2  
+NEW-SEM-patch-contract |         -          -     +nan    0 |     1.000    0.500  -0.50    1  
+NEW-TR-keyed-order |         -          -     +nan    0 |     0.975    0.993  +0.02    1  
+NEW-WD-exists-before |         -          -     +nan    0 |     0.921    0.947  +0.03    1  check whether a file exists before writing it
+T-FM4      |       0.919      0.990  +0.07    5 |       -        -     +nan    0  no template placeholder residue
+T-OR2      |         -          -     +nan    0 |     0.970    0.956  -0.01    4  branch on a result
+T-PR6      |         -          -     +nan    0 |     0.990    0.979  -0.01    2  a specific command is prohibited
+T-RD2      |         -          -     +nan    0 |     0.686    0.948  +0.26    5  read a stage's document when the stage starts
+T-RD4      |       0.696      0.914  +0.22    1 |       -        -     +nan    0  read an earlier artifact or a recorded input 
+T-RD5      |         -          -     +nan    0 |     0.890    0.874  -0.02    1  read specific repository files
+T-TR1b     |       0.415      0.732  +0.32    1 |       -        -     +nan    0  keyed per-element mapping between artifacts
+T-WD3      |         -          -     +nan    0 |     0.994    0.998  +0.00    1  write artifacts and scripts only at designate
+
+==============================================================================================================
+9. 층별 '정보 있는' method 수 (두 run 모두 도달 n≥50, base 통과율 0.1~0.9)
+==============================================================================================================
+   L1   methods 128, informative  72, informative templates 18: T-AW1, T-AW2, T-AW3, T-FM2, T-FM3, T-FM6, T-OR1, T-PR2, T-PR3, T-RD1, T-RD2, T-RD3, T-RD5, T-RF1, T-RF2, T-TR1, T-WD1, T-WD2
+   L1C  methods   5, informative   3, informative templates  2: T-AW4, T-RD6
+        atom/B8(0.42,n=339); atom/G7c(0.64,n=261); rule/r_repro_not_in_stage4(0.51,n=168)
+   L2M  methods  19, informative   5, informative templates  3: NEW-RF-record-after-observation, T-AW3, T-RF3
+        check/e4_undisclosed(0.89,n=239); check/e5_final_files_diff(0.70,n=146); check/t1_baseline_before_write(0.55,n=330); check/t4_repro_written_before_write(0.83,n=210); check/t5_repro_run_after_last_edit(0.58,n=255)
+   L2F  methods  11, informative   2, informative templates  2: NEW-CMD-form, NEW-IS-issue-fidelity
+        atom/D8(0.30,n=135); atom/E7b(0.47,n=245)

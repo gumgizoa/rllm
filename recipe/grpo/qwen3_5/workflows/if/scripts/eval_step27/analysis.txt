@@ -1,0 +1,109 @@
+====================================================================================================
+1. 전체: resolve, compliance, 층별 must 통과율  (n=499 each; SWE-bench Verified, AI-DLC v4)
+====================================================================================================
+            resolve  live v4  ifeval |     L1    L1C    L2M    L2F |    rL1   rL1C   rL2M   rL2F |  steps
+base          0.515    0.434   0.343 |  0.454  0.666  0.377  0.542 |  0.534  0.661  0.678  0.695 |   80.8
+step27        0.519    0.844   0.783 |  0.877  0.772  0.757  0.925 |  0.886  0.775  0.778  0.935 |   72.5
+
+-- paired delta (step27 - base), same task, mean ± 1.96·se --
+   layer/L1             n=499  Δ=+0.423 ± 0.032
+   layer/L1C            n=499  Δ=+0.106 ± 0.021
+   layer/L2M            n=499  Δ=+0.380 ± 0.025
+   layer/L2F            n=499  Δ=+0.382 ± 0.037
+   layer_reached/L1     n=499  Δ=+0.351 ± 0.028
+   layer_reached/L1C    n=343  Δ=+0.114 ± 0.031
+   layer_reached/L2M    n=499  Δ=+0.100 ± 0.029
+   layer_reached/L2F    n=439  Δ=+0.240 ± 0.037
+   compliance           n=499  Δ=+0.439 ± 0.030
+   resolve              n=499  Δ=+0.004   (both fixed 213, only step27 46, only base 44)
+
+====================================================================================================
+2. 진입/진행: 단계 산출물을 쓴 비율, 종료 사유
+====================================================================================================
+base     reached: a1=1.00  a2=1.00  a3=1.00  a4=1.00  a5=0.60   termination: {'env_done': 497, 'max_turns_exceeded': 2}
+step27   reached: a1=1.00  a2=1.00  a3=1.00  a4=1.00  a5=0.96   termination: {'env_done': 499}
+
+====================================================================================================
+3. 템플릿별 must 통과율 (전체 run 기준 / 도달한 run만), 항목 수, Δ
+====================================================================================================
+layer template  #it   base step27       Δ | r_base  r_s27      Δr  name
+L2F   T-FM5       5  0.603  0.968  +0.364 |  0.910  0.990  +0.080  frontmatter keys fixed
+L2F   T-TR1b      1  0.239  0.711  +0.473 |  0.415  0.732  +0.317  keyed per-element mapping between artifacts
+L1C   T-AW4       1  0.741  0.669  -0.072 |  0.551  0.660  +0.109  do not execute a given file inside a window (deferred execut
+L1C   T-OR3       1  0.994  0.998  +0.003 |  0.994  0.998  +0.003  never return to an earlier stage (no earlier stage document 
+L1/L1C T-PR5       3  0.632  0.936  +0.305 |  0.727  0.951  +0.224  no full test suite run
+L1C   T-RD6       1  0.597  0.590  -0.006 |  0.597  0.590  -0.006  do not re-read an own artifact that is still visible
+L1/L1C T-RF2      11  0.314  0.747  +0.433 |  0.491  0.770  +0.278  a recorded 'none/no' claim is not refuted by the run
+L1/L2M T-AW3       2  0.255  0.646  +0.392 |  0.419  0.670  +0.251  run tests/checks after the last source edit
+L2M   T-AW6       1  0.188  0.389  +0.200 |  0.310  0.401  +0.091  re-run with the same test selection as the baseline
+L1/L2M T-OR1       2  0.249  0.695  +0.446 |  0.310  0.706  +0.397  chain of stage-document reads and artifact writes in order
+L2M   T-RF3       3  0.263  0.807  +0.544 |  0.453  0.834  +0.381  the recorded list of changed files against the files actuall
+L2M   T-SR2       2  1.000  1.000  +0.000 |  1.000  1.000  +0.000  do not ask the user: no question file, no request for input
+L2M   T-TR2       5  0.258  0.738  +0.480 |  0.410  0.754  +0.344  the planned or recorded target is what was executed (plan ad
+L1    T-AW1       1  0.575  0.926  +0.351 |  0.575  0.926  +0.351  no repository edit outside the allowed stage
+L1    T-AW2       1  0.293  0.421  +0.128 |  0.330  0.422  +0.092  run (or write) tests/checks before the first source edit
+L1    T-FM1      10  0.587  0.954  +0.367 |  0.880  0.976  +0.096  artifact exists at its path
+L1    T-FM2      76  0.450  0.930  +0.480 |  0.668  0.953  +0.285  skeleton: headings, labels, fields present and filled, allow
+L1    T-FM3      12  0.458  0.943  +0.485 |  0.713  0.963  +0.251  repeated-item format (numbering, count, uniqueness)
+L1    T-FM4       5  0.609  0.968  +0.359 |  0.919  0.990  +0.071  no template placeholder residue
+L1    T-FM6       4  0.472  0.941  +0.469 |  0.747  0.962  +0.215  every block of a repeated structure has its fields
+L1    T-PR1       3  0.638  0.929  +0.291 |  0.846  0.943  +0.097  no test file added or modified
+L1    T-PR2       3  0.797  0.990  +0.193 |  0.944  0.997  +0.053  no working file left in the repository
+L1    T-PR3       1  0.888  0.910  +0.022 |  0.888  0.910  +0.022  no dependency install or environment setup
+L1    T-RD1       1  0.884  0.998  +0.114 |  0.884  0.998  +0.114  read the core document first
+L1    T-RD3       5  0.344  0.566  +0.221 |  0.519  0.579  +0.059  do not read a later stage's document early
+L1    T-RD4       1  0.605  0.912  +0.306 |  0.696  0.914  +0.217  read an earlier artifact or a recorded input inside a window
+L1    T-RF1       6  0.100  0.347  +0.247 |  0.148  0.359  +0.211  a recorded command/result/test equals what was run or read
+L1    T-RF4       9  0.380  0.711  +0.332 |  0.551  0.724  +0.174  recorded paths exist in the base repository
+L1    T-TR1       6  0.408  0.868  +0.460 |  0.647  0.887  +0.241  ID coverage between artifacts (set relation)
+L1    T-WD1       5  0.420  0.837  +0.416 |  0.634  0.856  +0.222  write an artifact in one write
+L1    T-WD2       4  0.530  0.915  +0.385 |  0.530  0.915  +0.385  do not rewrite an earlier stage's artifact
+
+====================================================================================================
+4. L1C / L2F / L2M 항목별 (must) — 도달한 run만, 통과율
+====================================================================================================
+layer tmpl      base step27       Δ  n_b  n_s  item
+L2F   T-FM5    0.970  0.998  +0.028  297  479  build_and_test.a5.frontmatter
+L2F   T-FM5    0.934  0.990  +0.056  287  485  code_generation_generation.a4.frontmatter
+L2F   T-FM5    0.968  0.996  +0.028  315  488  code_generation_planning.a3.frontmatter
+L2F   T-FM5    0.978  0.994  +0.016  315  489  requirements_analysis.a2.frontmatter
+L2F   T-FM5    0.764  0.972  +0.208  440  498  reverse_engineering.a1.frontmatter
+L2F   T-TR1b   0.415  0.732  +0.317  287  485  code_generation_generation.a4.cross_ref.plan_execution_tags
+L1C   T-AW4    0.551  0.660  +0.109  287  485  code_generation_generation.run.prohibited_action.execute
+L1C   T-OR3    0.994  0.998  +0.003  257  484  global.run.no_return
+L1C   T-PR5    1.000  0.998  -0.002  297  479  build_and_test.run.prohibited_action.full_suite
+L1C   T-RD6    0.597  0.590  -0.006  343  490  global.run.no_reread
+L1C   T-RF2    0.254  0.631  +0.377  287  485  code_generation_generation.a4.field_literal.executed
+L2M   T-AW3    0.354  0.756  +0.402  297  479  build_and_test.reproduction_script_execution.aidlc_executed
+L2M   T-AW6    0.310  0.401  +0.091  297  479  build_and_test.run.aidlc_executed.same_selection
+L2M   T-OR1    0.364  0.614  +0.250  297  479  build_and_test.run.aidlc_executed.sequence
+L2M   T-RF3    0.373  0.697  +0.325  297  479  build_and_test.a5.cross_ref
+L2M   T-RF3    0.435  0.889  +0.454  287  485  code_generation_generation.a4.cross_ref.4
+L2M   T-RF3    0.554  0.915  +0.361  287  485  code_generation_generation.a4.cross_ref.changed_files
+L2M   T-SR2    1.000  1.000  +0.000  499  499  global.run.no_question_file
+L2M   T-SR2    1.000  1.000  +0.000  499  499  global.run.no_request_for_input
+L2M   T-TR2    0.025  0.240  +0.215  162  167  build_and_test.a1.field_type.build_run
+L2M   T-TR2    0.076  0.323  +0.247  132  161  build_and_test.a5.cross_ref.build_command
+L2M   T-TR2    0.599  0.844  +0.246  175  402  code_generation_generation.a3.cross_ref
+L2M   T-TR2    0.703  0.958  +0.255  175  402  code_generation_generation.a4.cross_ref.repro_path
+L2M   T-TR2    0.488  0.831  +0.343  287  485  code_generation_generation.run.aidlc_executed.repro_written
+
+====================================================================================================
+5. compliance와 resolve의 관계
+====================================================================================================
+base     resolve all=0.515 | reached a5: n=297 resolve=0.603 | not reached a5: n=202 resolve=0.386
+         compliance>=0.8: n=53 resolve=0.717 | <0.8: n=446 resolve=0.491
+step27   resolve all=0.519 | reached a5: n=479 resolve=0.534 | not reached a5: n=20 resolve=0.150
+         compliance>=0.8: n=302 resolve=0.583 | <0.8: n=197 resolve=0.421
+
+====================================================================================================
+6. 산출물 개수 분포(실제 저장된 파일 수), live v4 docs_read / artifacts_written, 단계별 ifeval 점수
+====================================================================================================
+base     n_outputs hist: {0: 155, 1: 24, 2: 9, 3: 23, 4: 29, 5: 253, 6: 5, 7: 1}  docs_read=2.58/5  artifacts_written=3.05/5  ran_real_test=0.62
+         stage: {'reverse_engineering': 0.414, 'requirements_analysis': 0.469, 'code_generation_planning': 0.448, 'code_generation_generation': 0.256, 'build_and_test': 0.213}  order: 0.277  must_rate: 0.464
+step27   n_outputs hist: {0: 8, 1: 3, 2: 1, 3: 5, 4: 15, 5: 463, 6: 3, 13: 1}  docs_read=4.76/5  artifacts_written=4.84/5  ran_real_test=0.62
+         stage: {'reverse_engineering': 0.655, 'requirements_analysis': 0.939, 'code_generation_planning': 0.926, 'code_generation_generation': 0.769, 'build_and_test': 0.645}  order: 0.795  must_rate: 0.87
+base     no_reread score dist (1=no artifact re-read):  {0.0: 75, 0.2: 24, 0.25: 4, 0.33: 5, 0.4: 23, 0.5: 6, 0.6: 21, 0.67: 6, 0.75: 5, 0.8: 47, 1.0: 127}
+step27   no_reread score dist (1=no artifact re-read):  {0.0: 120, 0.2: 40, 0.25: 4, 0.4: 53, 0.5: 1, 0.6: 15, 0.75: 2, 0.8: 35, 1.0: 220}
+
+wrote /tmp/claude-6025/-vast-ib-MMI-home-kyuminkim-project-if-rllm/f07c07ab-b634-40a5-9927-dbb066a1b29d/scratchpad/eval_out/per_task.csv

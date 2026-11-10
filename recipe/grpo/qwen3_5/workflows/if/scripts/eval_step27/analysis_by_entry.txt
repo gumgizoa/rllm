@@ -1,0 +1,26 @@
+산출물 수 분포 (n_outputs): base [(0, 155), (1, 24), (2, 9), (3, 23), (4, 29), (5, 253), (6, 5), (7, 1)]  step27 [(0, 8), (1, 3), (2, 1), (3, 5), (4, 15), (5, 463), (6, 3), (13, 1)]
+
+1. 전체 run
+   base    n=499  resolve 0.515  live_v4 0.434  ifeval 0.343 | L1 0.454 L1C 0.666 L2M 0.377 L2F 0.542 | rL1 0.534 rL1C 0.661 rL2M 0.678 rL2F 0.695 | steps 80.8
+   step27  n=499  resolve 0.519  live_v4 0.844  ifeval 0.783 | L1 0.877 L1C 0.772 L2M 0.757 L2F 0.925 | rL1 0.886 rL1C 0.775 rL2M 0.778 rL2F 0.935 | steps 72.5
+
+2. 진입한 run (산출물 ≥1)
+   base    n=344  resolve 0.567  live_v4 0.626  ifeval 0.498 | L1 0.646 L1C 0.666 L2M 0.465 L2F 0.787 | rL1 0.699 rL1C 0.660 rL2M 0.538 rL2F 0.889 | steps 81.6
+   step27  n=491  resolve 0.525  live_v4 0.858  ifeval 0.795 | L1 0.891 L1C 0.774 L2M 0.766 L2F 0.940 | rL1 0.898 rL1C 0.775 rL2M 0.774 rL2F 0.948 | steps 72.0
+
+3. 완주한 run (산출물 = 5)
+   base    n=259  resolve 0.614  live_v4 0.712  ifeval 0.573 | L1 0.735 L1C 0.671 L2M 0.539 L2F 0.900 | rL1 0.735 rL1C 0.671 rL2M 0.539 rL2F 0.900 | steps 76.9
+   step27  n=467  resolve 0.535  live_v4 0.872  ifeval 0.810 | L1 0.907 L1C 0.773 L2M 0.784 L2F 0.957 | rL1 0.907 rL1C 0.773 rL2M 0.784 rL2F 0.957 | steps 71.2
+
+4. 미완주 run (1 ≤ 산출물 < 5)
+   base    n= 85  resolve 0.424  live_v4 0.363  ifeval 0.271 | L1 0.374 L1C 0.649 L2M 0.237 L2F 0.442 | rL1 0.587 rL1C 0.627 rL2M 0.534 rL2F 0.854 | steps 95.6
+   step27  n= 24  resolve 0.333  live_v4 0.585  ifeval 0.514 | L1 0.581 L1C 0.787 L2M 0.412 L2F 0.617 | rL1 0.735 rL1C 0.816 rL2M 0.575 rL2F 0.792 | steps 87.3
+
+5. 같은 task, 두 모델 모두 완주 (paired)
+   base    n=246  resolve 0.606  live_v4 0.716  ifeval 0.577 | L1 0.739 L1C 0.672 L2M 0.544 L2F 0.901 | rL1 0.739 rL1C 0.672 rL2M 0.544 rL2F 0.901 | steps 76.8
+   step27  n=246  resolve 0.598  live_v4 0.878  ifeval 0.821 | L1 0.913 L1C 0.770 L2M 0.791 L2F 0.965 | rL1 0.913 rL1C 0.770 rL2M 0.791 rL2F 0.965 | steps 65.2
+   paired Δ ifeval = +0.244 ± 0.032
+
+6. 완주 run의 ifeval compliance 분포
+   base    n=259  p10 0.13  p25 0.41  median 0.63  p75 0.79  p90 0.85   ≥0.8: 0.20  ≥0.9: 0.03
+   step27  n=467  p10 0.69  p25 0.77  median 0.83  p75 0.88  p90 0.92   ≥0.8: 0.65  ≥0.9: 0.18

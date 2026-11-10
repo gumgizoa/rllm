@@ -119,6 +119,10 @@ SPEC = WorkflowSpec(
 - 키가 없는 harness에서 이 워크플로우를 쓰면 경고만 남기고 진행함.
   - system prompt 없음 → harness 기본 프롬프트 유지.
   - 채점기 없음 → resolve rate만 측정.
+- 선택 항목 `runner_env={"이름": "값"}`: sandbox 안 agent 프로세스(harness runner)의 환경 변수에 더해짐.
+  harness가 기본으로 켜지 않는 도구를 워크플로우가 요구할 때 씀. 예: `{"OPENHANDS_SDK_EXTRA_TOOLS": "task"}`는
+  openhands-sdk agent에 서브에이전트 도구 `task`를 더함(`rllm/harnesses/tools/openhands_sdk_runner.py`).
+  fingerprint에 포함되며, 선언하지 않은 워크플로우는 전과 같이 동작함.
 
 ## 5. 등록: `workflows/__init__.py`
 

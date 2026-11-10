@@ -1,0 +1,891 @@
+rubric_sha256: 6a86ca97e71b74f308c4a15f568883f8fe9ee486b887f533a8327d610453f67a
+source: scratchpad eval_method_layers.py (draft)
+items:
+  run/entry:
+    layer: L1
+    requirement: must
+    template: T-RD1
+  proc/A2@1:
+    layer: L1
+    requirement: must
+    template: T-RD2
+  proc/A2@2:
+    layer: L1
+    requirement: must
+    template: T-RD2
+  proc/A2@3:
+    layer: L1
+    requirement: must
+    template: T-RD2
+  proc/A2@4:
+    layer: L1
+    requirement: must
+    template: T-RD2
+  proc/A2@5:
+    layer: L1
+    requirement: must
+    template: T-RD2
+  proc/A3a@0:
+    layer: L2F
+    requirement: must
+    template: NEW-RD-one-at-a-time
+  proc/A3b@2:
+    layer: L1
+    requirement: must
+    template: T-RD3
+  proc/A3b@3:
+    layer: L1
+    requirement: must
+    template: T-RD3
+  proc/A3b@4:
+    layer: L1
+    requirement: must
+    template: T-RD3
+  proc/A3b@5:
+    layer: L1
+    requirement: must
+    template: T-RD3
+  form/B1@1:
+    layer: L1
+    requirement: must
+    template: T-FM1
+  form/B1@2:
+    layer: L1
+    requirement: must
+    template: T-FM1
+  form/B1@3:
+    layer: L1
+    requirement: must
+    template: T-FM1
+  form/B1@4:
+    layer: L1
+    requirement: must
+    template: T-FM1
+  form/B1@5:
+    layer: L1
+    requirement: must
+    template: T-FM1
+  atom/B3a:
+    layer: L1
+    requirement: must
+    template: T-WD1
+  proc/B3b@1:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/B3b@2:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/B3b@3:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/B3b@4:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  atom/B4a:
+    layer: L1
+    requirement: must
+    template: T-WD2
+  check/c34_deviations_recorded:
+    layer: L2M
+    requirement: must
+    template: T-RF3
+  form/B5b@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/B5b@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/B5b@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/B5b@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/B5b@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/B6a@1:
+    layer: L2F
+    requirement: must
+    template: T-FM5
+  form/B6a@2:
+    layer: L2F
+    requirement: must
+    template: T-FM5
+  form/B6a@3:
+    layer: L2F
+    requirement: must
+    template: T-FM5
+  form/B6a@4:
+    layer: L2F
+    requirement: must
+    template: T-FM5
+  form/B6a@5:
+    layer: L2F
+    requirement: must
+    template: T-FM5
+  atom/B6b@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6b@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6b@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6b@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6b@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6c@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6c@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6c@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6c@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B6c@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  judge/B7:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/B8:
+    layer: L1C
+    requirement: must
+    template: T-RD6
+  atom/B10:
+    layer: L1
+    requirement: must
+    template: T-PR2
+  atom/B11:
+    layer: L1
+    requirement: must
+    template: T-WD3
+  proc/C1a@1:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1a@2:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1a@3:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1a@4:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1a@5:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1b@2:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1b@3:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1b@4:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  proc/C1b@5:
+    layer: L1
+    requirement: must
+    template: T-OR1
+  atom/C2:
+    layer: L1C
+    requirement: must
+    template: T-OR3
+  atom/E10a:
+    layer: L2M
+    requirement: must
+    template: T-SR2
+  atom/E10b:
+    layer: L2M
+    requirement: must
+    template: T-SR2
+  atom/E10c:
+    layer: L2M
+    requirement: must
+    template: T-SR2
+  rule/r_no_env_setup:
+    layer: L1
+    requirement: must
+    template: T-PR3
+  run/ran_real_test:
+    layer: L1
+    requirement: must
+    template: T-AW3
+  check/e1_scope_viewed:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/D1b:
+    layer: L2F
+    requirement: must
+    template: NEW-IS-issue-fidelity
+  judge/D3:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/D3b:
+    layer: L2F
+    requirement: must
+    template: NEW-CS-intra-artifact
+  atom/D4a:
+    layer: L2F
+    requirement: must
+    template: NEW-IS-issue-fidelity
+  atom/D4b:
+    layer: L1
+    requirement: must
+    template: T-PR6
+  atom/D5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/D5b:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  check/e1_build_command_run:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  judge/D6:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  check/e1_test_command_run:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/D7b:
+    layer: L1
+    requirement: must
+    template: T-PR5
+  atom/D8:
+    layer: L2F
+    requirement: must
+    template: NEW-CMD-form
+  check/e1_test_path_seen:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/D10a:
+    layer: L1
+    requirement: must
+    template: T-RD5
+  judge/D10b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  check/t1_baseline_before_edit:
+    layer: L1
+    requirement: must
+    template: T-AW2
+  check/t1_baseline_before_write:
+    layer: L2M
+    requirement: must
+    template: NEW-RF-record-after-observation
+  check/t1_no_edit_before_write:
+    layer: L1
+    requirement: must
+    template: T-AW1
+  check/e1_baseline_tests:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  check/e1_baseline_failing:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  check/e1_baseline_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  check/e1_baseline_passing:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/D12b:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  form/S1.files@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.module@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.lang@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.build@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.test@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.tpath@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.contract@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.passing@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S1.failing@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B5d@1:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  judge/E1a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/E1c:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/E3a:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  judge/E3b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  form/E3c@2:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  atom/E4a:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  form/E4b@2:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  judge/E6a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/E6b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/E7a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/E7b:
+    layer: L2F
+    requirement: must
+    template: NEW-IS-issue-fidelity
+  judge/E8a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/E8b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/E8c:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  judge/E9:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  form/S2.fr@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S2.nfr@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S2.edge@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S2.assume@2:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/c23_requirements_covered:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  atom/F1b:
+    layer: L1
+    requirement: must
+    template: T-FM3
+  atom/F2a:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/F2b:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  judge/F2d:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/F2f:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/F2e:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/F3:
+    layer: L2M
+    requirement: must
+    template: NEW-IS-issue-fidelity
+  atom/F4b:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  check/c23_coverage_refs:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  judge/F6:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/F7:
+    layer: L1
+    requirement: must
+    template: T-PR1
+  atom/F8a:
+    layer: L1
+    requirement: must
+    template: T-RF4
+  atom/F8b:
+    layer: L1
+    requirement: must
+    template: T-PR2
+  judge/F9a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/F9b:
+    layer: L1
+    requirement: must
+    template: T-RF4
+  form/S3.target@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S3.change@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S3.contract@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S3.verify@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/c23_tags_exist:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  form/S3.tag@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S3.rpath@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/c23_exercises_exist:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  form/S3.exercises@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S3.coverage@3:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/G1a:
+    layer: L2M
+    requirement: must
+    template: NEW-TR-keyed-order
+  check/c34_targets_changed:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  atom/G3a:
+    layer: L2F
+    requirement: must
+    template: NEW-WD-exists-before
+  atom/G3c:
+    layer: L2M
+    requirement: must
+    template: T-TR2
+  atom/G4b:
+    layer: L1
+    requirement: must
+    template: T-PR1
+  rule/r_tests_untouched:
+    layer: L1
+    requirement: must
+    template: T-PR1
+  atom/G5:
+    layer: L2F
+    requirement: must
+    template: NEW-SEM-patch-contract
+  check/c34_repro_path:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  check/t4_repro_written_before_write:
+    layer: L2M
+    requirement: must
+    template: NEW-RF-record-after-observation
+  rule/r_repro_not_in_stage4:
+    layer: L1C
+    requirement: must
+    template: T-AW4
+  atom/G7c:
+    layer: L1C
+    requirement: must
+    template: T-AW4
+  check/c34_deviations_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  judge/G8a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/G8b:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/c34_plan_execution_steps:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  form/G9@4:
+    layer: L1
+    requirement: must
+    template: T-FM6
+  form/S4.modified@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/e4_modified:
+    layer: L2M
+    requirement: must
+    template: T-RF3
+  check/e4_undisclosed:
+    layer: L2M
+    requirement: must
+    template: T-RF3
+  check/e4_created:
+    layer: L2M
+    requirement: must
+    template: T-RF3
+  form/S4.created@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/S4.tags:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S4.rpath@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/B5d@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S4.deviations@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/e4_duplicates_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  form/S4.dupcheck@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  check/e4_tests_untouched:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  form/S4.testcheck@4:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/H1a:
+    layer: L2M
+    requirement: must
+    template: T-TR2
+  check/e5_build_result:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/H1b:
+    layer: L2M
+    requirement: must
+    template: T-TR2
+  atom/H1c:
+    layer: L2M
+    requirement: must
+    template: T-OR2
+  check/t5_repro_run_after_last_edit:
+    layer: L2M
+    requirement: must
+    template: T-AW3
+  check/e5_repro_result:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  judge/H3a:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/H3b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/H3c:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/H4a:
+    layer: L2M
+    requirement: must
+    template: T-AW6
+  check/t5_regression_after_last_edit:
+    layer: L1
+    requirement: must
+    template: T-AW3
+  check/e5_command_run:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  check/e5_regressions:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  check/c15_preexisting_subset:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  rule/r_targeted_tests:
+    layer: L1C
+    requirement: must
+    template: T-PR5
+  atom/H7:
+    layer: L1
+    requirement: must
+    template: T-PR6
+  atom/H8a:
+    layer: L1
+    requirement: must
+    template: T-OR2
+  check/e5_regressions_listed:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  judge/H8g:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  judge/H8d:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  check/e5_preexisting_listed:
+    layer: L1
+    requirement: must
+    template: T-RF1
+  atom/H8e:
+    layer: L1
+    requirement: must
+    template: T-AW3
+  atom/H9a:
+    layer: L1
+    requirement: must
+    template: T-AW3
+  judge/H9b:
+    layer: J
+    requirement: must
+    template: NEW-Q-content (judge)
+  atom/H9b:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  atom/H10:
+    layer: L1
+    requirement: must
+    template: T-OR2
+  check/e5_outstanding_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  atom/H11:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  rule/r_repo_clean:
+    layer: L1
+    requirement: must
+    template: T-PR2
+  check/e5_unintended_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  check/c45_final_files:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  check/e5_final_files_diff:
+    layer: L2M
+    requirement: must
+    template: T-RF3
+  check/e5_test_files_none:
+    layer: L1
+    requirement: must
+    template: T-RF2
+  atom/H15a:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/H15b:
+    layer: L2F
+    requirement: must
+    template: NEW-CS-intra-artifact
+  check/c25_unmet_exist:
+    layer: L1
+    requirement: must
+    template: T-TR1
+  atom/H15c:
+    layer: L2F
+    requirement: must
+    template: NEW-CS-intra-artifact
+  atom/H15d:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  atom/H17:
+    layer: L1
+    requirement: must
+    template: T-OR2
+  form/S5.bresult@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.bcmd@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.rresult@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.unmet@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.cmd@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.verdict@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.regress@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.pre@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.fixes@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.outstanding@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.final_files@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.final_unintended@5:
+    layer: L1
+    requirement: must
+    template: T-FM2
+  form/S5.final_tests@5:
+    layer: L1
+    requirement: must
+    template: T-FM2

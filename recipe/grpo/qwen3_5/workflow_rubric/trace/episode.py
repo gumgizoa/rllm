@@ -20,6 +20,14 @@ plus the response message in ``chat_completions``:
 
 Message bodies may be a content-part list (``[{"type": "text", "text": ...}]``) -- openhands-sdk
 sends every body that way -- and are flattened with ``"\\n"`` as the gateway does.
+
+Sub-agents (openhands-tools ``task`` tool): the gateway captures a sub-agent's LLM calls as steps of the
+same episode, interleaved with the parent's. A step belongs to the parent when its request carried the
+``task`` tool (``Step.metadata["request_tools"]``, ``trace_converter.REQUEST_TOOLS_KEY``); the
+general-purpose sub-agent has terminal, file_editor and task_tracker only. When any step carries it, the
+``Run`` holds the parent's steps (renumbered) and ``Run.meta["subagent_runs"]`` the sub-agents' steps as
+one ``Run`` per conversation, keyed by the conversation's first user message (the delegated prompt), in
+order of first appearance. A run without the tool is unchanged.
 """
 
 from __future__ import annotations
@@ -82,11 +90,30 @@ def frontend_for(episode: Any):
     raise ValueError(f"no rubric front end for harness {sorted(map(str, names))}; known: {known}")
 
 
-def episode_to_run(episode: Any, instance_id: str = "") -> Run:
-    """The episode as a ``Run``; ``ValueError`` when no front end knows its harness."""
-    parse = frontend_for(episode).parse
-    steps = _steps(episode)
-    results = _tool_results(steps)
+SUBAGENT_TOOL = "task"
+REQUEST_TOOLS_KEY = "request_tools"
+
+
+def _request_tool_names(step: Any) -> set[str]:
+    md = getattr(step, "metadata", None) or {}
+    tools = md.get(REQUEST_TOOLS_KEY) if isinstance(md, dict) else None
+    out = set()
+    for t in tools or []:
+        if isinstance(t, dict):
+            name = (t.get("function") or {}).get("name") or t.get("name")
+            if isinstance(name, str):
+                out.add(name)
+    return out
+
+
+def _first_user_text(step: Any) -> str:
+    for m in step.chat_completions or []:
+        if isinstance(m, dict) and m.get("role") == "user":
+            return _text(m.get("content"))
+    return ""
+
+
+def _convert(steps: list[Any], parse, results: dict[str, str]) -> list[Step]:
     run_steps: list[Step] = []
     for i, s in enumerate(steps, start=1):
         response = (s.chat_completions or [{}])[-1] or {}
@@ -99,4 +126,33 @@ def episode_to_run(episode: Any, instance_id: str = "") -> Run:
             fn = tc.get("function") or {}
             step.actions.append(parse(fn.get("name") or "", _args(fn.get("arguments")), results.get(tc.get("id") or "", "")))
         run_steps.append(step)
-    return Run(instance_id=instance_id, steps=run_steps, meta={"api_calls": len(steps)})
+    return run_steps
+
+
+def split_subagents(steps: list[Any]) -> tuple[list[Any], list[tuple[str, list[Any]]]]:
+    """(parent steps, [(conversation key, steps)]) -- or (all steps, []) when no step carried the sub-agent tool."""
+    if not any(SUBAGENT_TOOL in _request_tool_names(s) for s in steps):
+        return steps, []
+    parent, subs = [], {}
+    for s in steps:
+        if SUBAGENT_TOOL in _request_tool_names(s):
+            parent.append(s)
+        else:
+            subs.setdefault(_first_user_text(s), []).append(s)
+    return parent, list(subs.items())
+
+
+def episode_to_run(episode: Any, instance_id: str = "") -> Run:
+    """The episode as a ``Run``; ``ValueError`` when no front end knows its harness."""
+    parse = frontend_for(episode).parse
+    steps = _steps(episode)
+    results = _tool_results(steps)
+    parent, subs = split_subagents(steps)
+    meta: dict[str, Any] = {"api_calls": len(steps)}
+    if subs:
+        meta["subagent_steps"] = sum(len(ss) for _, ss in subs)
+        meta["subagent_runs"] = [
+            Run(instance_id=f"{instance_id}#sub{k}", steps=_convert(ss, parse, results), meta={"api_calls": len(ss), "prompt_head": key[:200]})
+            for k, (key, ss) in enumerate(subs, start=1)
+        ]
+    return Run(instance_id=instance_id, steps=_convert(parent, parse, results), meta=meta)

@@ -104,3 +104,16 @@ templates:
   NEW-WD-exists-after: {skill: S5, name: check an artifact exists after writing it, status: candidate}
   NEW-WD-exists-before: {skill: S5, name: check whether a file exists before writing it, status: candidate}
   NEW-PG-tracker: {skill: S7, name: use the task-tracker tool, status: candidate}
+  NEW-AW-subagent:
+    skill: S3
+    name: sub-agent launch and hand-off rules (what is delegated, with which prompt, in one turn, re-engaged by id)
+    kinds: [bmad.task_calls]
+    eval: {layer: L2F, reason: "no training workflow uses sub-agents (BMAD D-7); the training harness exposes no sub-agent tool"}
+  NEW-FM-internal:
+    skill: S10
+    name: internal consistency between parts of one artifact (counts, totals, a field equal to a computation)
+    kinds: [bmad.triage_totals]
+    eval: {layer: L2F, reason: "no training item compares two parts of one artifact (09: 산출물 내부 일관성 in L2-먼)"}
+  NEW-FM-language: {skill: S10, name: documents written in a given language, status: candidate, eval: {layer: L2F, reason: "no training document states a language"}}
+  NEW-WD-revert: {skill: S5, name: revert the code to the baseline before re-deriving it, status: candidate, eval: {layer: L2F, reason: "no training workflow reverts code (BMAD bad_spec loopback, D-4)"}}
+  NEW-J-content: {skill: S10, name: content appropriateness judged by an LLM (BMAD judge rules), status: candidate}

@@ -1,0 +1,3446 @@
+# Pre-port rule inventory of BMAD-METHOD `bmad-build-auto` (stage 1b of the port).
+# Every rule cites the upstream file:line it was read from (doc ids below); nothing is from memory.
+# Rendered to 01b-rules.md by the scratchpad script render_rules.py; edit this file, not the markdown.
+schema: port.rules/1
+workflow: bmad_build_auto
+upstream: BMAD-METHOD @ 10db8f35bba515e4fbf0388c5bd59a6cc7a3e9c8 (v6.12.2)
+process: bmad-build-auto (src/bmm-skills/ship/bmad-build-auto, rendered chain SKILL.md -> workflow.md -> step-01..04 -> HALT)
+docs:
+  SK: {path: src/bmm-skills/ship/bmad-build-auto/SKILL.md, role: skill}
+  WF: {path: src/bmm-skills/ship/bmad-build-auto/workflow.md, role: skill}
+  S1: {path: src/bmm-skills/ship/bmad-build-auto/step-01-clarify-and-route.md, role: step}
+  S2: {path: src/bmm-skills/ship/bmad-build-auto/step-02-plan.md, role: step}
+  S3: {path: src/bmm-skills/ship/bmad-build-auto/step-03-implement.md, role: step}
+  S4: {path: src/bmm-skills/ship/bmad-build-auto/step-04-review.md, role: step}
+  ST: {path: src/bmm-skills/ship/bmad-build-auto/spec-template.md, role: template}
+  CT: {path: src/bmm-skills/ship/bmad-build-auto/customize.toml, role: prompt}
+  EH: {path: src/bmm-skills/ship/bmad-build-auto/review-prompts/edge-case-hunter.md, role: prompt}
+  VG: {path: src/bmm-skills/ship/bmad-build-auto/review-prompts/verification-gap.md, role: prompt}
+  CC: {path: src/bmm-skills/ship/bmad-build-auto/references/claims-check.md, role: prompt}
+  DC: {path: src/bmm-skills/ship/bmad-build-auto/references/deletion-check.md, role: prompt}
+  CE: {path: src/bmm-skills/ship/bmad-build-auto/compile-epic-context.md, role: prompt}
+  MB: {path: src/bmm-skills/module.yaml, role: code}
+  MC: {path: src/core-skills/module.yaml, role: code}
+# Stages: 0 global/activation, 1 clarify-and-route, 2 plan, 3 implement, 4 review, halt = HALT/finalize.
+# Blocks: A activation/reading, B artifact discipline, C routing/status, D planning/spec content,
+#         E implementation, F verification, G review, H finalization/HALT, I subagent machinery, J epic context compile.
+rules:
+
+# ---------------------------------------------------------------- A. activation / reading
+- id: A1
+  stage: 0
+  category: P
+  text: "첫 행동으로 render_skill.py 명령을 정확히 한 번, cwd를 바꾸지 않고, {project-root}·{skill-root}를 절대경로로 치환해 실행한다"
+  source: ["SK:6", "SK:9"]
+  quote: "Run the following command exactly once without changing the current working directory."
+  logic: {compares: trace-doc, form: count, window: whole-run, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff.*.openspec_ff_cli.* (CLI command in a stage window, 18 items)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "renderer emulated at build time; no uv in the sandbox (survey, Fit)"}
+- id: A2
+  stage: 0
+  category: P
+  text: "렌더 성공 시 stdout에 찍힌 workflow.md 절대경로 하나를 읽고 따른다 (가장 먼저 읽는 문서)"
+  source: ["SK:12"]
+  quote: "On success, read and follow the one absolute `workflow.md` instruction printed to stdout."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-RD1
+  skill: S1
+  train: {relation: rewarded, note: "doc_read_first.cw in AOS/OSF/SKB", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "path fixed by the port instead of stdout"}
+- id: A3a
+  stage: 0
+  category: P
+  text: "렌더 실패(uv 없음 포함) 시 명령 출력을 보고하고 HALT한다"
+  source: ["SK:13"]
+  quote: "On failure (including `uv` being unavailable), report the command output and HALT."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "OSF archive.retries, SKB no_round_after_verified (branch on a result)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "no renderer in the port"}
+- id: A3b
+  stage: 0
+  category: R
+  text: "렌더 실패 시 원본 workflow 소스 파일을 직접 실행하지 않는다"
+  source: ["SK:13"]
+  quote: "Do not run any workflow source directly."
+  logic: {compares: trace-doc, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-PR6
+  skill: S4
+  train: {relation: rewarded, note: "OSF openspec_ff.global.run.openspec_ff_cli.no_init (a named action is prohibited)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "no src/rendered split in the port"}
+- id: A4
+  stage: 0
+  category: P
+  text: "단계 파일이 다른 snapshot 파일을 가리키면 그 파일을 끝까지 읽고 따른다"
+  source: ["WF:5", "S1:14"]
+  quote: "If a step directs you to another snapshot file, read it fully and follow it. No exceptions."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* items in AOS/OSF/SKB; AOS CW:14 'Open each command document when you reach it'", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "snapshot paths become the port's doc paths"}
+- id: A5
+  stage: 0
+  category: P
+  text: "파일 간 참조는 모두 절대 snapshot 경로다: 그 경로를 바로 열고 skill 디렉터리 기준으로 해석하지 않는다"
+  source: ["WF:71"]
+  quote: "Every operational cross-file reference in this workflow is an absolute snapshot path. Open it directly"
+  logic: {compares: trace-doc, form: equal, window: whole-run, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* check the given path was read (instance: which path)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "one copy of the docs; the distinction disappears"}
+- id: A6
+  stage: 0
+  category: P
+  text: "활성화 1단계: prepend 단계를 순서대로 실행한다 (`_None._`이면 건너뜀; 기본값 빈 목록)"
+  source: ["WF:80-82", "CT:17"]
+  quote: "Execute each of these steps in order before proceeding (`_None._` means skip):"
+  logic: {compares: none, form: order, window: whole-run, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "hook machinery; empty by default", layer_candidate: null}
+  measure: enforced
+  port: {fate: drop, gap: G7, note: "renders to `_None._`; nothing to do"}
+- id: A7
+  stage: 0
+  category: P
+  text: "활성화 2단계: persistent_facts 항목을 실행 내내 기본 맥락으로 삼고 `file:` 항목은 내용을 로드한다 (기본값 빈 목록)"
+  source: ["WF:86-88", "CT:23-27"]
+  quote: "Entries prefixed `file:` are paths or globs under `{project-root}` -- load the referenced contents as facts."
+  logic: {compares: none, form: exists, window: whole-run, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "hook machinery; empty by default", layer_candidate: null}
+  measure: enforced
+  port: {fate: drop, gap: G7, note: "renders to `_None._`"}
+- id: A8
+  stage: 0
+  category: P
+  text: "활성화 3단계: append 단계를 순서대로 실행한다 (`_None._`이면 건너뜀; 기본값 빈 목록)"
+  source: ["WF:92-94", "CT:21"]
+  quote: "Execute each of these steps in order (`_None._` means skip):"
+  logic: {compares: none, form: order, window: whole-run, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "hook machinery; empty by default", layer_candidate: null}
+  measure: enforced
+  port: {fate: drop, gap: G7, note: "renders to `_None._`"}
+- id: A10
+  stage: 0
+  category: P
+  text: "단계 파일을 순서대로 따른다: 한 단계를 끝까지 읽고 실행한 뒤, 지시받을 때만 다음 단계를 연다"
+  source: ["WF:100"]
+  quote: "Read one step fully, execute it, then load the next step only when directed."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "agentos_v2.global.run.order.commands, openspec_ff.global.run.order.actions, speckit_bug.global.run.order.round_1", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "the same chain, four steps"}
+- id: A11
+  stage: 0
+  category: P
+  text: "단계를 건너뛰거나 순서를 바꾸지 않는다 (의도가 상세해도 step-02 조사·spec 작성은 생략하지 않음)"
+  source: ["WF:100", "S1:13"]
+  quote: "Do not skip, reorder, or pre-load steps."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: dont}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "same items as A10; SKB CW:11-25 one round = assess, fix, test in order", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: A12
+  stage: 0
+  category: P
+  text: "다음 단계 파일을 미리 읽지 않는다"
+  source: ["WF:100"]
+  quote: "Do not skip, reorder, or pre-load steps."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-RD3
+  skill: S1
+  train: {relation: rewarded, note: "training implements it as order(invalidate=read_ahead) in the three order items (01_template_layer table, T-RD3 row)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: A14
+  stage: 0
+  category: P
+  text: "각 단계 파일 끝의 NEXT가 가리키는 다음 단계 파일을 끝까지 읽고 따른다 (workflow.md→step-01→02→03→04)"
+  source: ["WF:104", "S1:84", "S2:27", "S3:48"]
+  quote: "Read fully and follow `[[bmad-snapshot:step-02-plan.md]]`"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* per stage in AOS(4)/OSF(4)/SKB(7)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "paths only"}
+
+# ---------------------------------------------------------------- B. artifact discipline (language, paths, frontmatter, frozen regions)
+- id: B1
+  stage: 0
+  category: F
+  text: "문서(spec 등 파일)는 {{.document_output_language}}(기본 English)로 쓴다"
+  source: ["WF:73", "S1:12", "S2:5", "S3:8", "S4:5", "MC:25-28"]
+  quote: "write documents in `{{.document_output_language}}`"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: NEW-FM-language
+  skill: S10
+  train: {relation: none, note: "no language rule in the three training workflows (grep English|language: none)", layer_candidate: L2F}
+  measure: code
+  port: {fate: env, gap: G10, note: "token resolved to English at build time"}
+- id: B2
+  stage: 0
+  category: F
+  text: "대화(메시지)는 {{.communication_language}}(기본 English)로 한다"
+  source: ["WF:73", "S1:12", "MC:19-23"]
+  quote: "Speak in `{{.communication_language}}`"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: NEW-FM-language
+  skill: S10
+  train: {relation: none, note: "as B1 (target: messages instead of files)", layer_candidate: L2F}
+  measure: code
+  port: {fate: env, gap: G10, note: ""}
+- id: B3
+  stage: 0
+  category: Q
+  text: "설명 수준을 {{.user_skill_level}}(기본 intermediate)에 맞춘다"
+  source: ["WF:73", "S1:12", "MB:13-18"]
+  quote: "tailor communication to `{{.user_skill_level}}`"
+  logic: {compares: none, form: judgement, window: whole-run, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G2, note: "no reader"}
+- id: B4
+  stage: 0
+  category: A
+  text: "버전관리 리비전을 기록할 때는 VCS에서 직접 얻은 전체 정식 식별자를 그대로 적는다"
+  source: ["WF:74"]
+  quote: "obtain the full canonical identifier directly from version control and preserve it verbatim"
+  logic: {compares: artifact-trace, form: equal, window: whole-run, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "speckit_bug.fix.fix.field_type.commands_run; agentos_v2 ...report.test_counts (recorded value equals the run)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "`git rev-parse HEAD` is read-only; allowed"}
+- id: B5
+  stage: 3
+  category: F
+  text: "spec 안의 markdown 링크는 spec 파일 디렉터리 기준 상대경로로 쓴다 (앞에 `/` 없음)"
+  source: ["S3:32"]
+  quote: "Any markdown links written into `{spec_file}` must use paths relative to `{spec_file}`'s directory"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: none, note: "no link-form rule in training (SKB links item T-FM8 is about report links, not relative form)", layer_candidate: L2M}
+  measure: code
+  port: {fate: env, gap: G5, note: "artifact dir outside the repo; the rule still applies"}
+- id: B6
+  stage: 3
+  category: F
+  text: "터미널·대화에 쓰는 파일 경로는 CWD 기준 상대경로에 `:line`을 붙인다 (앞에 `/` 없음)"
+  source: ["S3:32"]
+  quote: "must use CWD-relative format with `:line` notation (e.g., `src/path/file.ts:42`)"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: shown, note: "SKB AS:79 '`path/to/file.py:42` — <why>' (report, not messages)", layer_candidate: L2M}
+  measure: code
+  port: {fate: env, gap: G10, note: "messages are not graded; harmless"}
+- id: B7
+  stage: 0
+  category: F
+  text: "spec frontmatter 키는 title, type, created, status, review_loop_iteration, followup_review_recommended, context, warnings, deferred다"
+  source: ["ST:1-11"]
+  quote: "status: 'draft' # draft | ready-for-dev | in-progress | in-review | done | blocked"
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM5
+  skill: S10
+  train: {relation: none, note: "no training artifact has frontmatter (templates.yaml T-FM5 reason); grep frontmatter in docs: none", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B8
+  stage: 0
+  category: F
+  text: "frontmatter `type`은 feature | bugfix | refactor | chore 중 하나다"
+  source: ["ST:3"]
+  quote: "type: 'feature' # feature | bugfix | refactor | chore"
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "SKB field_enum items (T-FM2), e.g. severity at AS:40", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B9
+  stage: 0
+  category: F
+  text: "frontmatter `status`는 draft | ready-for-dev | in-progress | in-review | done | blocked 중 하나다"
+  source: ["ST:5"]
+  quote: "status: 'draft' # draft | ready-for-dev | in-progress | in-review | done | blocked"
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "SKB TS:43-45 result enum verified|partial|failed (field_enum, T-FM2)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B10
+  stage: 0
+  category: F
+  text: "`review_loop_iteration`은 0에서 시작하는 정수, `followup_review_recommended`는 false에서 시작하는 불리언이다"
+  source: ["ST:6-7"]
+  quote: "review_loop_iteration: 0 # incremented by step-04 before each review loopback"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_filled/field_type items (T-FM2) in all three", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B11
+  stage: 0
+  category: F
+  text: "`context:`에는 `{project-root}/` 접두 경로만, 짧게, spec 본문에 녹지 않은 것만 적는다"
+  source: ["ST:8"]
+  quote: "context: [] # optional: `{project-root}/`-prefixed paths to project-wide standards/docs the implementation agent should load."
+  logic: {compares: artifact-diff, form: set, window: whole-run, polarity: do}
+  template: T-RF4
+  skill: S6
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.requirements.cross_ref.existing_code_paths (recorded paths exist)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "usually empty on SWE tasks"}
+- id: B12
+  stage: 0
+  category: F
+  text: "`warnings:`에는 기계가 읽는 값(oversized, multiple-goals)만 넣는다"
+  source: ["ST:9"]
+  quote: "warnings: [] # optional: machine-readable warnings for orchestration, e.g. oversized, multiple-goals"
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_enum items (T-FM2)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B13
+  stage: 0
+  category: R
+  text: "spec의 `<intent-contract>` 안 내용은 계획 후 읽기 전용이다: 구현·리뷰 중 수정하지 않는다"
+  source: ["S3:10", "S4:72"]
+  quote: "Content inside `<intent-contract>` in `{spec_file}` is read-only. Do not modify."
+  logic: {compares: artifact-artifact, form: equal, window: between-writes, polarity: dont}
+  template: T-WD4
+  skill: S5
+  train: {relation: rewarded, note: "agentos_v2.global.run.agentos_v2_holds.spec_left_alone (AOS CW:63 'leave a file alone once its command is over'); speckit_bug.fix.run.speckit_bug_check_scripts.unchanged. Counter-direction exists: OSF AP:103/151 'update the affected artifact yourself'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B14
+  stage: 0
+  category: R
+  text: "`## Spec Change Log`과 `## Review Triage Log`은 append-only다: 기존 항목을 고치거나 지우지 않는다"
+  source: ["ST:68", "ST:75", "ST:10"]
+  quote: "Append-only. Populated by step-04 during review loops. Do not modify or delete existing entries."
+  logic: {compares: artifact-artifact, form: equal, window: between-writes, polarity: dont}
+  template: T-WD4
+  skill: S5
+  train: {relation: rewarded, note: "SKB CW:47 'Never rewrite an earlier report'; T-WD4 items as B13 (instance: a section, append allowed)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: B15
+  stage: 0
+  category: F
+  text: "한 실행은 하나의 spec 파일만 만든다: 교차 레이어 스토리도 한 파일에 두고, 다른 story spec을 만들거나 건드리지 않는다"
+  source: ["ST:15", "S1:39"]
+  quote: "Cohesive cross-layer stories (DB+BE+UI) stay in ONE file."
+  logic: {compares: artifact-trace, form: set, window: whole-run, polarity: do}
+  template: T-WD3
+  skill: S5
+  train: {relation: rewarded, note: "agentos_v2.global.run.agentos_v2_paths_written.*, openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts (writes only at designated paths)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- C. routing and status (step-01, HALT routing)
+- id: C1
+  stage: 1
+  category: P
+  text: "호출 프롬프트를 의도로 삼는다 (story id, ticket id, 파일 경로, 짧은 설명, 자유 서술 모두 가능)"
+  source: ["S1:18", "S1:41"]
+  quote: "Use the invocation prompt as the intent."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "input definition; AOS CW:37-38 and SKB CW:33 define the issue text as the input the same way", layer_candidate: null}
+  measure: none
+  port: {fate: env, gap: G1, note: "intent = the SWE issue text"}
+- id: C2
+  stage: 1
+  category: P
+  text: "EARLY EXIT 뒤에는 나중 단계가 명시적으로 되돌리라고 할 때만 step-01로 돌아온다"
+  source: ["S1:14"]
+  quote: "Return here only if a later step explicitly says to loop back."
+  logic: {compares: trace-doc, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-OR3
+  skill: S2
+  train: {relation: opposite, note: "SKB rewards reading 02-fix.md again each round (order round_2/round_3); OSF lets apply send the run back to ff (templates.yaml T-OR3 reason)", layer_candidate: L1C}
+  measure: code
+  port: {fate: drop, gap: G1, note: "no early-exit routing without existing specs"}
+- id: C3a
+  stage: 1
+  category: P
+  text: "프롬프트가 status frontmatter가 있는 기존 spec을 가리키면 status로 바로 분기한다: draft→step-02, ready-for-dev/in-progress→step-03, in-review→step-04"
+  source: ["S1:20-23"]
+  quote: "If the invocation prompt explicitly points to an existing spec file with recognized `status` frontmatter, set `spec_file`, then **EARLY EXIT**"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "OSF archive.retries, SKB no_round_after_verified (branch on a recorded result)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: "every rollout starts from a fresh intent"}
+- id: C3b
+  stage: 1
+  category: P
+  text: "기존 spec의 status가 blocked면 HALT blocked, 차단 조건 `blocked spec supplied`"
+  source: ["S1:24"]
+  quote: "`blocked` → HALT with status `blocked` and blocking condition `blocked spec supplied`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C3c
+  stage: 1
+  category: P
+  text: "기존 spec의 status가 done이면 review_loop_iteration을 0으로, followup_pass를 true로 놓고 step-04로 간다 (후속 리뷰, 재개 아님)"
+  source: ["S1:25"]
+  quote: "`done` → set `review_loop_iteration` to `0` in the frontmatter and set `followup_pass` to `true`, then **EARLY EXIT**"
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field value items (T-FM2)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C4
+  stage: 1
+  category: P
+  text: "folder+id 디스패치: spec 폴더와 story id를 프롬프트에서 받고, 그 외 프롬프트 문구는 경쟁 설명이 아니라 step-02의 추가 맥락으로만 쓴다"
+  source: ["S1:27"]
+  quote: "Any further prompt text (e.g. `invoke_dev_with` guidance the caller appended) is additional planning context to carry into step-02"
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G1, note: "no stories.yaml dispatch"}
+- id: C5a
+  stage: 1
+  category: P
+  text: "folder+id: `{spec_folder}/stories.yaml`을 읽고 `id == story_id` 항목을 찾는다"
+  source: ["S1:29"]
+  quote: "Read `{spec_folder}/stories.yaml`. ... Find the entry whose `id` equals `{story_id}`"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items (read a recorded input in a window)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C5b
+  stage: 1
+  category: P
+  text: "stories.yaml이 없거나 파싱 실패면 `no stories.yaml found`, 항목이 없으면 `story id not found in stories.yaml`로 HALT blocked"
+  source: ["S1:29"]
+  quote: "If the file does not exist or fails to parse, HALT with status `blocked` and blocking condition `no stories.yaml found`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C5c
+  stage: 1
+  category: R
+  text: "stories.yaml 항목에서 title과 description만 쓴다: checkpoint 필드와 invoke_dev_with는 읽지 않는다"
+  source: ["S1:29"]
+  quote: "Take only that entry's `title` and `description` — never read the checkpoint fields or `invoke_dev_with`"
+  logic: {compares: none, form: judgement, window: in-stage, polarity: dont}
+  template: null
+  skill: null
+  train: {relation: none, note: "a file read is whole-file; field-level reading is unobservable", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G1, note: ""}
+- id: C6
+  stage: 1
+  category: P
+  text: "folder+id: `{spec_folder}/stories/{story_id}-*.md`를 찾아 둘 이상이면 `ambiguous story file match`로 HALT blocked, 하나면 spec_file로 삼는다"
+  source: ["S1:31-33"]
+  quote: "**If more than one matches**, HALT with status `blocked` and blocking condition `ambiguous story file match`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C7
+  stage: 1
+  category: P
+  text: "folder+id의 draft story: 다른 `stories/*.md`를 status와 무관하게 모두 읽어 Code Map·Design Notes·Spec Change Log·Tasks 체크 상태·Auto Run Result를 step-02 맥락으로 가져간 뒤 step-02로 간다"
+  source: ["S1:34"]
+  quote: "load every other file matching `{spec_folder}/stories/*.md` (every match except `{spec_file}` itself), regardless of `status`"
+  logic: {compares: trace-doc, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C8
+  stage: 1
+  category: P
+  text: "folder+id의 다른 status는 C3과 같이 분기하되 blocked story는 `story already blocked`로, status가 없거나 모르는 값이면 `unrecognized status in existing story file`로 HALT blocked"
+  source: ["S1:35-36"]
+  quote: "`status` missing or unrecognized: HALT with status `blocked` and blocking condition `unrecognized status in existing story file`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C9a
+  stage: 1
+  category: P
+  text: "folder+id 첫 디스패치: `{spec_folder}/SPEC.md`가 없으면 `no epic spec found`로 HALT blocked"
+  source: ["S1:37"]
+  quote: "If `{spec_folder}/SPEC.md` does not exist, HALT with status `blocked` and blocking condition `no epic spec found`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C9b
+  stage: 1
+  category: P
+  text: "folder+id 첫 디스패치: SPEC.md와 그 `companions:` 파일, 모든 `stories/*.md`를 계획 맥락으로 읽는다"
+  source: ["S1:37"]
+  quote: "Otherwise load it and the files listed in its `companions:` frontmatter as planning context"
+  logic: {compares: trace-doc, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C9c
+  stage: 1
+  category: P
+  text: "folder+id 첫 디스패치: INSTRUCTIONS 1·2항을 건너뛰고 3항(VCS 점검)부터 계속한다"
+  source: ["S1:37"]
+  quote: "Then continue to INSTRUCTIONS item 3 below — not `step-03-implement.md`"
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C10
+  stage: 1
+  category: R
+  text: "호출당 stories.yaml 항목 하나만 다룬다: 다른 항목을 읽지 않고 결과와 무관하게 다른 story로 넘어가지 않는다"
+  source: ["S1:39"]
+  quote: "One `stories.yaml` entry per invocation: never read another entry, and never advance to a different story id regardless of outcome."
+  logic: {compares: artifact-trace, form: set, window: whole-run, polarity: dont}
+  template: T-WD3
+  skill: S5
+  train: {relation: rewarded, note: "paths_written items (no write outside the designated artifact)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C11
+  stage: 1
+  category: R
+  text: "spec이 아닌 파일에서 workflow 상태를 추론하지 않는다"
+  source: ["S1:41"]
+  quote: "Do not infer workflow state from non-spec files."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: dont}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: judge
+  port: {fate: drop, gap: G1, note: "no state files exist"}
+- id: C12
+  stage: 1
+  category: P
+  text: "프롬프트만으로 무엇을 구현할지 알 수 없으면 `unclear intent`로 HALT blocked"
+  source: ["S1:42"]
+  quote: "If the invocation prompt does not contain enough intent to identify what to implement, HALT with status `blocked` and blocking condition `unclear intent`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "training rewards assuming and continuing: agentos_v2.shape_spec.requirements.agentos_v2_requirements.answers, openspec_ff.explore.run.openspec_ff_note.summary (T-SR1); SKB CW:38-40 'take the most plausible reading, record it in the current report, and continue'", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "a blocked end leaves no patch; speckit precedent: assume, record, continue"}
+- id: C13
+  stage: 1
+  category: P
+  text: "맥락 로드: `{{.planning_artifacts}}`와 `{{.implementation_artifacts}}` 디렉터리의 파일 목록을 본다 (기본 `{project-root}/_bmad-output/planning-artifacts`, `.../implementation-artifacts`)"
+  source: ["S1:47", "MB:28-36", "MC:30-33"]
+  quote: "List files in `{{.planning_artifacts}}` and `{{.implementation_artifacts}}`."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD5
+  skill: S1
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.run.agentos_v2_repo_read.readme / docs_index / packaging (read specific locations)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "directories outside the repo, normally empty"}
+- id: C14
+  stage: 1
+  category: P
+  text: "프롬프트가 비정형 spec/intent 파일을 가리키면 그 파일만 읽고, 관련 없는 intent 파일을 뒤지지 않는다"
+  source: ["S1:48"]
+  quote: "If the invocation prompt points to an unformatted spec or intent file, ingest that file. Do not scan for unrelated intent files."
+  logic: {compares: trace-doc, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: "the issue is inline"}
+- id: C15
+  stage: 1
+  category: Q
+  text: "epic 스토리인지는 의도·목록·epics 파일 내용을 함께 추론해 정하고, 파일명 패턴이나 정규식으로 정하지 않는다"
+  source: ["S1:49"]
+  quote: "Do not rely on filename patterns or regex — reason about the intent, the listing, and any epics file content together."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G3, note: "no planning artifacts; always the freeform path"}
+- id: C16
+  stage: 1
+  category: P
+  text: "epic 경로: epic 번호(와 story 번호)를 알아내고, epic 번호를 못 찾으면 freeform 경로(B)로 간다"
+  source: ["S1:51-53"]
+  quote: "If you can't identify an epic number, use path B."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: C17
+  stage: 1
+  category: P
+  text: "epic 경로: 쓰기 전에 `IA/epic-<N>-context.md` 캐시가 유효한지(존재·비어 있지 않음·`# Epic <N> Context:`로 시작·planning 파일보다 새것) 확인하고, 유효하면 그것만 읽고 원본 계획 문서는 읽지 않는다"
+  source: ["S1:55-57"]
+  quote: "A file is **valid** when it exists, is non-empty, starts with `# Epic <N> Context:` (with the correct epic number), and no file in `{{.planning_artifacts}}` is newer."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-before
+  skill: S5
+  train: {relation: none, note: "catalogue candidate without an implemented item", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: C18
+  stage: 1
+  category: P
+  text: "epic 경로: 캐시가 없거나 무효면 compile-epic-context.md를 프롬프트로 한 동기 서브에이전트로 `IA/epic-<N>-context.md`를 만든다 (epic 번호·epics 파일·PA·출력 경로 전달)"
+  source: ["S1:59"]
+  quote: "produce `{{.implementation_artifacts}}/epic-<N>-context.md` by spawning a subagent synchronously with `[[bmad-snapshot:compile-epic-context.md]]` as its prompt."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "no delegation in training (grep subagent: only OSF FF:61 'delegates creation to a specific skill', a CLI)", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: "no subagents; no epics"}
+- id: C19
+  stage: 1
+  category: P
+  text: "epic 경로: 컴파일했으면 출력 파일이 존재하고 비어 있지 않고 `# Epic <N> Context:`로 시작하는지 확인하고, 아니면 `context compilation verification failed`로 HALT blocked"
+  source: ["S1:61"]
+  quote: "If epic context was compiled, verify the output file exists, is non-empty, and starts with `# Epic <N> Context:`."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-after
+  skill: S5
+  train: {relation: none, note: "catalogue candidate", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: C20
+  stage: 1
+  category: P
+  text: "epic 경로: 같은 epic의 `status: done`이고 story 번호가 낮은 spec 중 가장 최근 것을 읽어 Code Map·Design Notes·Spec Change Log·task list를 연속성 맥락으로 삼는다; done은 없고 in-review만 있으면 `missing previous-story continuity decision`으로 HALT blocked"
+  source: ["S1:63"]
+  quote: "scan `{{.implementation_artifacts}}` for specs from the same epic with `status: done` and a lower story number. Load the most recent one"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: C21
+  stage: 1
+  category: P
+  text: "freeform 경로: 목록에서 PRD(*prd*)·Architecture·UX·Epics·Brief 패턴 파일을 찾아 의도와 관련된 것만 골라 읽는다 (전부 읽지 않아도 되지만 코드만 보고 추측하지 않음)"
+  source: ["S1:66-72"]
+  quote: "If any look relevant to the current intent, load them selectively — you don't need all of them, but you need the right constraints and requirements rather than guessing from code alone."
+  logic: {compares: trace-doc, form: set, window: in-stage, polarity: do}
+  template: T-RD5
+  skill: S1
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.run.agentos_v2_repo_read.* (read docs/README/packaging)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: "no planning documents exist; the listing is empty"}
+- id: C22
+  stage: 1
+  category: Q
+  text: "프롬프트와 읽은 산출물로 의도를 확정한다: 지어내지 않고 열린 질문을 남기지 않는다"
+  source: ["S1:73"]
+  quote: "Resolve intent from the invocation prompt and loaded artifacts. Do not fantasize or leave open questions."
+  logic: {compares: issue-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "AOS CW:70 'answer each one yourself'; OSF CW:51-55; SKB CW:38-40 (assume and record)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: C23
+  stage: 1
+  category: P
+  text: "의도를 확정할 수 없으면 미해결 질문을 차단 조건으로 HALT blocked"
+  source: ["S1:73"]
+  quote: "If the intent cannot be resolved, HALT with status `blocked` and the unresolved questions as blocking condition."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "as C12 (T-SR1 items; SKB CW:38-40, AOS CW:70)", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G4, note: "replace by assume-and-record"}
+- id: C24a
+  stage: 1
+  category: E
+  text: "VCS 점검: Git이면 계획 전에 `git add --refresh -- .`를 실행하고 트리가 여전히 깨끗한지 확인한다 (VCS가 없으면 생략)"
+  source: ["S1:74"]
+  quote: "For Git, run `git add --refresh -- .`, then confirm the tree is still clean"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff_cli.* (a named command in a stage window)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "git index writes and branch checks are out of scope; the sandbox tree is clean by construction"}
+- id: C24b
+  stage: 1
+  category: P
+  text: "작업 트리가 더럽거나 브랜치가 의도와 맞지 않거나 메타데이터를 쓸 수 없으면 HALT blocked (`version-control metadata not writable`)"
+  source: ["S1:74"]
+  quote: "on failure or change, HALT with status `blocked` and blocking condition `version-control metadata not writable`. ... HALT on a dirty tree or obvious branch mismatch."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: C24c
+  stage: 1
+  category: P
+  text: "folder+id에서는 브랜치를 story가 아니라 epic에 맞춰 판단한다"
+  source: ["S1:74"]
+  quote: "Under folder+id dispatch, judge the branch against the epic, not the story."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G1, note: ""}
+- id: C25
+  stage: 1
+  category: Q
+  text: "의도에 독립적으로 출시 가능한 목표가 여럿이면 `multiple-goals`를 step-02로 넘겨 warnings에 넣게 하고, 쪼개거나 막지 않는다"
+  source: ["S1:75"]
+  quote: "If the intent appears to contain multiple independently shippable goals, carry `multiple-goals` forward ... Do not split or block."
+  logic: {compares: issue-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: "rarely fires on one issue"}
+- id: C26
+  stage: 1
+  category: F
+  text: "folder+id의 spec 경로는 `{spec_folder}/stories/{story_id}-{slug}.md` (title에서 kebab-case slug, id 접두 없음, IA fallback·-2 접미 없음)"
+  source: ["S1:78", "WF:13-15"]
+  quote: "Set `spec_file` = `{spec_folder}/stories/{story_id}-{slug}.md`. The id already disambiguates"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.spec_dir.path_match.dated (path pattern)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: C27
+  stage: 1
+  category: F
+  text: "spec 파일명 slug는 의도에서 만든 kebab-case이며, 추적 식별자(story/issue/ticket)가 있으면 그것으로 시작한다 (예 `gh-47-fix-auth`)"
+  source: ["S1:80"]
+  quote: "If the intent references a tracking identifier (story number, issue number, ticket ID), lead the slug with it (e.g. `3-2-digest-delivery`, `gh-47-fix-auth`)."
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.spec_dir.path_match.dated", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "slug from the instance id"}
+- id: C28
+  stage: 1
+  category: P
+  text: "`IA/spec-{slug}.md`가 이미 있으면 draft일 때만 같은 작업으로 재개하고, 아니면 `-2`, `-3`을 붙인다"
+  source: ["S1:80"]
+  quote: "if its status is `draft`, treat it as the same work and resume it ...; otherwise append `-2`, `-3`, etc."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-before
+  skill: S5
+  train: {relation: none, note: "catalogue candidate", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G5, note: "fresh artifact dir per rollout; cannot trigger"}
+- id: C29
+  stage: 1
+  category: F
+  text: "spec은 `{{.implementation_artifacts}}/spec-{slug}.md`에 있다 (기본 `{project-root}/_bmad-output/implementation-artifacts/`)"
+  source: ["S1:80", "MB:33-36", "MC:30-33"]
+  quote: "Set `spec_file` = `{{.implementation_artifacts}}/spec-{slug}.md`."
+  logic: {compares: artifact-trace, form: exists, window: whole-run, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "artifact_exists items in all three", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "artifact dir moves outside /testbed"}
+- id: C30
+  stage: 3
+  category: P
+  text: "step-03 전제: spec_file이 비어 있지 않은 경로이고 디스크에 존재해야 한다; 아니면 `missing spec_file before implementation`으로 HALT blocked"
+  source: ["S3:14"]
+  quote: "Verify `{spec_file}` resolves to a non-empty path and the file exists on disk."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-after
+  skill: S5
+  train: {relation: none, note: "catalogue candidate (no item)", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: "trivially satisfiable; harmless"}
+- id: C31
+  stage: 3
+  category: P
+  text: "구현을 시작하기 전에 spec status를 `in-progress`로 바꾼다 (첫 코드 수정 이전)"
+  source: ["S3:24"]
+  quote: "Change `{spec_file}` status to `in-progress` in the frontmatter before starting implementation."
+  logic: {compares: artifact-trace, form: window-forbid, window: before-first-edit, polarity: do}
+  template: T-AW1
+  skill: S3
+  train: {relation: rewarded, note: "speckit_bug.fix.run.prohibited_action.edit_before_doc (no repo edit before the stage's record exists)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: C32
+  stage: 4
+  category: P
+  text: "리뷰를 시작하기 전에 spec status를 `in-review`로 바꾼다"
+  source: ["S4:11"]
+  quote: "Change `{spec_file}` status to `in-review` in the frontmatter before continuing."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items (a write precedes the next stage's actions)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: C33
+  stage: halt
+  category: F
+  text: "HALT 시 spec_file이 있으면 frontmatter status를 최종 상태(done | blocked | ready-for-dev)로 갱신한다"
+  source: ["WF:16", "WF:31", "S4:109-111"]
+  quote: "If `{spec_file}` is known and exists, update `status` in frontmatter and append missing result details under `## Auto Run Result`."
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "SKB TS:43-45 result enum (field_enum)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: C34
+  stage: halt
+  category: F
+  text: "정상 완료의 최종 status는 `done`이다"
+  source: ["S4:116"]
+  quote: "HALT with status `done`."
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_literal items (T-FM2)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- D. planning / spec content (step-02, spec-template, READY standard)
+- id: D1
+  stage: 0
+  category: P
+  text: "사람과 상호작용하지 않는다: 질문하거나 승인을 기다리지 않는다 (step-02·03·04 공통)"
+  source: ["WF:3", "S2:6", "S3:9", "S4:6"]
+  quote: "No human interaction: do not ask questions or wait for approval in this step."
+  logic: {compares: artifact-trace, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-SR2
+  skill: S9
+  train: {relation: shown, note: "AOS CW:65-70, OSF CW:48-51, SKB CW:36-40 say nobody answers; no training item checks it (templates.yaml T-SR2 reason); already an AI-DLC ifeval template (aidlc_v4_ifeval.global.run.no_request_for_input)", layer_candidate: L2M}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D2
+  stage: 2
+  category: P
+  text: "draft 재개: spec_file이 `status: draft`로 있으면 읽고 `<intent-contract>` 블록을 그대로 preserved_intent_contract로 보관한다"
+  source: ["S2:10"]
+  quote: "If `{spec_file}` exists with `status: draft`, read it and capture the verbatim `<intent-contract>...</intent-contract>` block"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: "no draft to resume"}
+- id: D3
+  stage: 2
+  category: E
+  text: "코드베이스를 조사한다: 좁은 작업은 코드를 직접 읽는다"
+  source: ["S2:11"]
+  quote: "Read the code yourself for narrow, localized tasks."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD5
+  skill: S1
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.run.agentos_v2_holds.reuse_search, agentos_v2_repo_read.* (repo reads before the spec)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D4
+  stage: 2
+  category: P
+  text: "깊은 탐색은 동기 서브에이전트에 맡기고 요약만 받아 그 요약으로 계획한다"
+  source: ["S2:11"]
+  quote: "Isolate deep exploration in synchronous subagents: instruct them to give you distilled summaries only, and plan from those summaries."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "no delegation in training", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: "the agent explores itself"}
+- id: D5a
+  stage: 2
+  category: Q
+  text: "조사 결과 중 실행에 실제로 필요한 것(파일, 심볼/라인, 재사용 지점, 읽기 전용 제약)만 골라 Code Map으로 가져간다"
+  source: ["S2:11-12"]
+  quote: "Decide which findings actually matter for execution — the specific files, symbols/lines, reuse points, and read-only constraints — and carry those forward for the Code Map."
+  logic: {compares: issue-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "AOS SS:175-177 record similar features as paths; SKB AS:79-80 suspected code paths with why", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D5b
+  stage: 2
+  category: E
+  text: "Code Map에 적은 파일은 spec을 쓰기 전에 실제로 열어 본 파일이다"
+  source: ["S2:11-12", "ST:49"]
+  quote: "Agent-populated during planning. Annotated paths prevent blind codebase searching."
+  logic: {compares: artifact-trace, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "aidlc.executed(read_of) logic; training <wf>.read items check a recorded input was read in the window", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D6
+  stage: 2
+  category: P
+  text: "spec-template.md를 끝까지 읽은 뒤 채운다 (spec 쓰기 전)"
+  source: ["S2:12"]
+  quote: "Read `[[bmad-snapshot:spec-template.md]]` fully. Fill it out based on the intent and investigation"
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* items; OSF ff reads schema instructions before each artifact (openspec_ff_cli.instructions_*)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: ""}
+- id: D7
+  stage: 2
+  category: F
+  text: "frontmatter `created`는 현재 시스템 날짜다"
+  source: ["S2:12", "ST:4"]
+  quote: "resolving the template's `date` field to the current system date"
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "speckit_bug constraints:244 'Created holds an ISO 8601 date (AS:56)' (T-FM2)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D8
+  stage: 2
+  category: F
+  text: "`## Code Map` 항목은 `` `FILE` -- ROLE_OR_RELEVANCE `` 형식(주석 단 경로, 심볼/라인 anchor, 재사용 포인터)이다"
+  source: ["S2:12", "ST:47-52"]
+  quote: "- `FILE` -- ROLE_OR_RELEVANCE"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "speckit_bug.assess.assessment.item_format.suspected_code_paths (`path:line` — why)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D9
+  stage: 2
+  category: A
+  text: "Code Map의 경로는 저장소에 실제로 존재한다"
+  source: ["S2:12", "ST:51-52"]
+  quote: "Drain the investigation into the `## Code Map` section — annotated paths, symbol/line anchors, reuse pointers, and read-only evidence"
+  logic: {compares: artifact-diff, form: set, window: whole-run, polarity: do}
+  template: T-RF4
+  skill: S6
+  train: {relation: rewarded, note: "agentos_v2.shape_spec.requirements.cross_ref.existing_code_paths", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D10
+  stage: 2
+  category: P
+  text: "preserved_intent_contract가 있으면 쓰기 전에 채운 spec의 `<intent-contract>` 블록을 그것으로 바꾼다 (이전 계약 보존)"
+  source: ["S2:12"]
+  quote: "If `{preserved_intent_contract}` is non-empty, substitute it for the `<intent-contract>` block in your filled spec before writing."
+  logic: {compares: artifact-artifact, form: equal, window: between-writes, polarity: do}
+  template: T-WD4
+  skill: S5
+  train: {relation: rewarded, note: "T-WD4 items (B13)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: D11
+  stage: 2
+  category: F
+  text: "채운 spec을 spec_file에 쓴다"
+  source: ["S2:12"]
+  quote: "Write the result to `{spec_file}`."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "artifact_exists items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: ""}
+- id: D12
+  stage: 2
+  category: P
+  text: "READY FOR DEVELOPMENT 기준으로 스스로 점검한다"
+  source: ["S2:13"]
+  quote: "Self-review against READY FOR DEVELOPMENT standard."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "a mental step; its outcome is D13-D19", layer_candidate: null}
+  measure: none
+  port: {fate: keep, gap: null, note: ""}
+- id: D13
+  stage: 2
+  category: F
+  text: "Actionable: 모든 task에 파일 경로와 구체적 행동이 있다 (`` `FILE` -- ACTION -- RATIONALE ``)"
+  source: ["WF:61", "ST:56", "ST:61"]
+  quote: "**Actionable**: Every task has a file path and specific action."
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "agentos_v2.create_tasks.tasks.agentos_v2_tasks.group_parts; speckit_bug.fix.fix.item_format.changes", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D14
+  stage: 2
+  category: Q
+  text: "Logical: task는 의존 순서로 배열된다"
+  source: ["WF:62"]
+  quote: "**Logical**: Tasks ordered by dependency."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF FF:41 'Loop through artifacts in dependency order'; AOS CT task groups in order (NEW-PG-unit)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D15
+  stage: 2
+  category: F
+  text: "Testable: 모든 Acceptance Criteria는 Given/When/Then 형식이다"
+  source: ["WF:63", "ST:64"]
+  quote: "- Given PRECONDITION, when ACTION, then EXPECTED_RESULT"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "openspec_ff.ff.spec.delta.when_then (WHEN/THEN scenario lines, T-FM6) — per-line format", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D16
+  stage: 2
+  category: Q
+  text: "Surface-anchored: AC는 의도가 가리키는 가장 바깥 표면을 관찰하고, 더 안쪽 대리물을 쓰지 않는다"
+  source: ["WF:64"]
+  quote: "**Surface-anchored**: ACs observe the outermost surface the intent references — never a more internal proxy for it."
+  logic: {compares: issue-artifact, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D17
+  stage: 2
+  category: F
+  text: "Complete: placeholder나 TBD가 없다"
+  source: ["WF:65", "ST:16"]
+  quote: "**Complete**: No placeholders or TBDs."
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: dont}
+  template: T-FM4
+  skill: S10
+  train: {relation: rewarded, note: "no_template_residue.* in AOS(10)/OSF(12)/SKB(14)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D18
+  stage: 2
+  category: Q
+  text: "Sufficient: 알려진 요구사항·수용·의존·구현 공백이 미해결로 남지 않는다"
+  source: ["WF:66"]
+  quote: "**Sufficient**: No known requirement, acceptance, dependency, or implementation gaps remain unresolved."
+  logic: {compares: issue-artifact, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D19
+  stage: 2
+  category: Q
+  text: "Coherent: 미해결 모호함이나 내부 모순이 없다"
+  source: ["WF:67"]
+  quote: "**Coherent**: No unresolved ambiguities or internal contradictions."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D20
+  stage: 2
+  category: P
+  text: "intent gap(의도로 고를 수 없고 관찰 가능한 결과가 다른 복수 해석)이 있으면 하나를 골라 해소하지 않고 `intent gap`으로 HALT blocked, 미답 질문과 수집한 증거를 포함한다"
+  source: ["S2:14"]
+  quote: "Multiple defensible readings of the intent that lead to observably different outcomes, with nothing in the intent to select between them, are an intent gap — do not resolve one by picking a reading."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "T-SR1 rewarded (agentos_v2.shape_spec.requirements.agentos_v2_requirements.answers; openspec_ff.explore.run.openspec_ff_note.summary); SKB CW:38-40 and AOS CW:70 instruct picking the most plausible reading and recording it", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G4, note: "the central conflict: upstream stops, training assumes"}
+- id: D21
+  stage: 2
+  category: F
+  text: "step-01이 `multiple-goals`를 넘겼으면 frontmatter warnings에 넣는다"
+  source: ["S2:15"]
+  quote: "If step-01 carried `multiple-goals`, add it to `{spec_file}` frontmatter `warnings`."
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field value items", layer_candidate: L1}
+  measure: judge
+  port: {fate: keep, gap: null, note: "the judgement (C25) is the hard part"}
+- id: D22
+  stage: 2
+  category: F
+  text: "spec이 1600 토큰을 넘으면 warnings에 `oversized`를 넣고 계속한다 (막지 않음)"
+  source: ["S2:15", "ST:13"]
+  quote: "If `{spec_file}` exceeds 1600 tokens, add `oversized` to frontmatter `warnings`. Continue either way."
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "no field in training depends on another property of the same artifact", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D23
+  stage: 2
+  category: P
+  text: "READY 게이트: workflow.md를 다시 읽는다"
+  source: ["S2:19"]
+  quote: "Re-read `[[bmad-snapshot:workflow.md]]`, then re-read `{spec_file}` from disk"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: none, note: "no training item requires a second read of a workflow document; extends T-RD2 (a doc read inside a later window)", layer_candidate: L2M}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D24
+  stage: 2
+  category: P
+  text: "READY 게이트: spec_file을 디스크에서 다시 읽고 기준 충족을 확인한다"
+  source: ["S2:19", "S2:23"]
+  quote: "re-read `{spec_file}` from disk and verify the spec meets the READY FOR DEVELOPMENT standard."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "openspec_ff.ff.*.read_files.dependencies 'always re-read them from disk, even if you saw them earlier' (FF:56, FF:107). Opposite of the AI-DLC eval item T-RD6 (no_reread)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D25
+  stage: 2
+  category: P
+  text: "게이트에서 spec 파일이 사라졌으면 `planned spec file disappeared before implementation`으로 HALT blocked"
+  source: ["S2:21"]
+  quote: "**If the file is missing:** HALT with status `blocked` and blocking condition `planned spec file disappeared before implementation`."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-after
+  skill: S5
+  train: {relation: none, note: "catalogue candidate", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: "cannot fire without an external actor"}
+- id: D26
+  stage: 2
+  category: F
+  text: "spec이 기준을 충족하면 frontmatter status를 `ready-for-dev`로 놓는다 (step-03으로 넘어가기 전)"
+  source: ["S2:22"]
+  quote: "**If the spec meets the standard:** set `{spec_file}` frontmatter status to `ready-for-dev`."
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_literal items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D27
+  stage: 2
+  category: P
+  text: "호출 프롬프트가 계획 후 정지를 지시하면(`Halt after planning.` 또는 동등 표현) status ready-for-dev로 HALT한다"
+  source: ["S2:22"]
+  quote: "If the invocation prompt directs a halt after planning (standard phrasing: `Halt after planning.` — accept any clear equivalent), HALT with status `ready-for-dev`"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: "the task prompt never says it"}
+- id: D28
+  stage: 2
+  category: P
+  text: "기준 미달이면 한 번만 수선하고 디스크에서 다시 읽어 재확인한다; 그래도 미달이면 `spec failed ready-for-development standard`로 HALT blocked, 미달 기준과 증거를 포함한다"
+  source: ["S2:23"]
+  quote: "repair it once, then re-read it from disk and verify again. ... If it still does not meet the standard, HALT with status `blocked`"
+  logic: {compares: artifact-trace, form: count, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "openspec_ff.archive.run.openspec_ff_archive.retries 'run the archive once; on failure correct and run it one more time, then finish' (retry cap)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "blocked end -> continue with the best spec"}
+# spec-template content
+- id: D29
+  stage: 2
+  category: F
+  text: "spec 길이는 900–1600 토큰을 목표로 한다"
+  source: ["ST:13"]
+  quote: "Aim for 900–1600 tokens."
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "count caps are rewarded as T-FM3 (agentos_v2.write_spec.spec.item_format.user_stories_max; AOS WS:72 'Up to 8 CONCISE sub-bullet points'); here the count is tokens, not items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D30
+  stage: 2
+  category: Q
+  text: "'어떻게'를 과하게 지정하지 않는다: 경계와 예시로 쓴다"
+  source: ["ST:14"]
+  quote: "Never over-specify \"how\" — use boundaries + examples instead."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "AOS WS:53 'DO NOT write actual code in the spec.md document. Just describe the requirements' (agentos_v2.write_spec.spec.code_free, T-FM4)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D31
+  stage: 2
+  category: F
+  text: "채울 때 template의 HTML 주석을 모두 지운다"
+  source: ["ST:16"]
+  quote: "IMPORTANT: Remove all HTML comments when filling this template."
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: dont}
+  template: T-FM4
+  skill: S10
+  train: {relation: rewarded, note: "no_template_residue.fill_marks items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D32
+  stage: 2
+  category: F
+  text: "`<intent-contract>`…`</intent-contract>` 태그가 Intent, Boundaries & Constraints, I/O & Edge-Case Matrix를 감싼다"
+  source: ["ST:18", "ST:45"]
+  quote: "<intent-contract>"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present/label_present items (T-FM2); the tag pair is a marker like a heading", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D33
+  stage: 2
+  category: F
+  text: "`## Intent`에 **Problem:**과 **Approach:** 라벨이 있고 채워져 있다"
+  source: ["ST:20-26"]
+  quote: "**Problem:** ONE_TO_TWO_SENTENCES"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "label_present/field_filled items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D34
+  stage: 2
+  category: F
+  text: "Problem과 Approach는 각각 한두 문장이다"
+  source: ["ST:24", "ST:26"]
+  quote: "**Approach:** ONE_TO_TWO_SENTENCES"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "SKB FX:60 '<One or two sentences describing what was changed and why.>' (item_format)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D35
+  stage: 2
+  category: Q
+  text: "Problem은 무엇이 깨졌거나 없는지와 왜 중요한지, Approach는 '무엇'(how가 아님)을 적는다"
+  source: ["ST:22"]
+  quote: "What is broken or missing, and why it matters. Then the high-level approach — the \"what\", not the \"how\"."
+  logic: {compares: issue-artifact, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF CW:64 proposal Why; SKB AS:82 Root Cause Hypothesis", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D36
+  stage: 2
+  category: F
+  text: "`## Boundaries & Constraints`에 **Always:**(불변 규칙)와 **Never:**(비목표·금지 접근) 라벨이 있고 채워져 있다"
+  source: ["ST:28-34"]
+  quote: "**Always:** INVARIANT_RULES"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "label_present items; AOS WS:92 out-of-scope list", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D37
+  stage: 2
+  category: Q
+  text: "Always에는 불변 규칙만, Never에는 범위 밖과 금지 접근만 적는다"
+  source: ["ST:30"]
+  quote: "Two tiers: Always = invariant rules. Never = out of scope + forbidden approaches."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "AOS WS:92 'features that are out of scope and MUST NOT be built'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D38
+  stage: 2
+  category: F
+  text: "`## I/O & Edge-Case Matrix`는 Scenario | Input / State | Expected Output / Behavior | Error Handling 4열 표이고 행마다 네 칸이 채워져 있다"
+  source: ["ST:36-43"]
+  quote: "| Scenario | Input / State | Expected Output / Behavior | Error Handling |"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "speckit_bug.test.test.speckit_bug_checks_table.* (table rows with fixed columns); agentos_v2.create_tasks.tasks.agentos_v2_tasks.group_parts", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D39
+  stage: 2
+  category: F
+  text: "해당 내용이 없는 선택 섹션(I/O Matrix, Design Notes, Verification)은 통째로 지운다: 제목 집합은 template 제목의 부분집합이다"
+  source: ["ST:38", "ST:82", "ST:89"]
+  quote: "If no meaningful I/O scenarios exist, DELETE THIS ENTIRE SECTION."
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-FM7
+  skill: S10
+  train: {relation: rewarded, note: "agentos_v2.write_spec.spec.cross_ref.no_extra_sections (heading set within the allowed list)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D40
+  stage: 2
+  category: R
+  text: "비어 있는 섹션에 \"N/A\"나 \"None\"을 쓰지 않는다 (섹션을 지운다)"
+  source: ["ST:38", "ST:82", "ST:89"]
+  quote: "Do not write \"N/A\" or \"None\"."
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: dont}
+  template: T-FM2
+  skill: S10
+  train: {relation: opposite, note: "training requires a none literal in empty fields: SKB FX:55 'Previous verification: none | ./test.md', FX:90 '<Empty if none. ...>', AOS IT:279 'note \"None\" if all complete', IT:306 'None - all tests passing' (agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed, T-RF2; SKB field_filled none_allowed items)", layer_candidate: L1C}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D41
+  stage: 2
+  category: Q
+  text: "task는 파일당 하나를 선호하고, 쪼개면 부자연스러운 밀접한 변경만 묶는다"
+  source: ["ST:56"]
+  quote: "Prefer one task per file; group tightly-coupled changes when splitting would be artificial."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "grep 'one task per|per file' in training docs: none", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D42
+  stage: 2
+  category: F
+  text: "I/O Matrix가 있으면 그 edge case를 단위 테스트하는 task를 포함한다"
+  source: ["ST:57"]
+  quote: "If an I/O Matrix is present, include a task to unit-test its edge cases."
+  logic: {compares: artifact-internal, form: set, window: whole-run, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: opposite, note: "training forbids test files: agentos_v2.global.run.prohibited_action.test_file_write (CW:84-85), openspec_ff ... test_file_write (CW:79), speckit_bug ... test_file_write (CW:53, FX:36); AOS CT:382-384 'Do NOT test edge cases'", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G9, note: "hidden tests; the task becomes a verification command over existing tests or an out-of-repo check"}
+- id: D43
+  stage: 2
+  category: Q
+  text: "AC는 I/O Matrix에 없는 시스템 수준 행동만 다루고 I/O 시나리오를 중복하지 않는다"
+  source: ["ST:58"]
+  quote: "AC covers system-level behaviors not captured by the I/O Matrix. Do not duplicate I/O scenarios here."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D44
+  stage: 2
+  category: F
+  text: "`## Tasks & Acceptance`에 **Execution:** 목록과 **Acceptance Criteria:** 목록이 있다"
+  source: ["ST:54-64"]
+  quote: "**Execution:**"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present/label_present items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D45
+  stage: 2
+  category: F
+  text: "`## Spec Change Log`과 `## Review Triage Log` 섹션이 있다 (처음에는 비어 있음)"
+  source: ["ST:66", "ST:73"]
+  quote: "## Review Triage Log"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D46
+  stage: 2
+  category: Q
+  text: "`## Design Notes`는 접근이 뻔하면 지우고, 비자명할 때만 근거와 5–10줄 golden example을 쓴다"
+  source: ["ST:80-85"]
+  quote: "Design rationale and golden examples only when non-obvious. Keep examples to 5–10 lines."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF CW:64 design Decisions (choice, rationale, alternatives)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: D47
+  stage: 2
+  category: F
+  text: "`## Verification`에 **Commands:** 목록이 `` `COMMAND` -- expected: SUCCESS_CRITERIA `` 형식으로 있고, CLI가 없을 때만 **Manual checks (if no CLI):**를 쓴다"
+  source: ["ST:87-96"]
+  quote: "- `COMMAND` -- expected: SUCCESS_CRITERIA"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "speckit_bug.fix.fix.item_format.checks_added; SKB AS:45 'Checks to run'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: D48
+  stage: 2
+  category: Q
+  text: "Verification은 CLI 명령을 우선하고, CLI 점검이 없을 때만 수동 점검 대상과 기대 상태를 적는다"
+  source: ["ST:90"]
+  quote: "Prefer CLI commands. When no CLI check applies, state what to inspect manually."
+  logic: {compares: artifact-internal, form: judgement, window: whole-run, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "SKB FX:41 'If the project has obvious test commands (e.g., pytest, npm test, cargo test), run the tests'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- E. implementation (step-03, implementation handoff)
+- id: E1
+  stage: 3
+  category: A
+  text: "frontmatter `baseline_revision`은 실제 HEAD의 전체 식별자다 (VCS가 없으면 `NO_VCS`)"
+  source: ["S3:20", "WF:74"]
+  quote: "Capture `baseline_revision` (current HEAD, or `NO_VCS` if version control is unavailable) into `{spec_file}` frontmatter"
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "speckit_bug.fix.fix.field_type.commands_run (recorded equals run)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "`git rev-parse HEAD` reads only"}
+- id: E2
+  stage: 3
+  category: P
+  text: "`baseline_revision`은 어떤 코드 변경보다 먼저 기록한다"
+  source: ["S3:20"]
+  quote: "into `{spec_file}` frontmatter before making any changes."
+  logic: {compares: artifact-trace, form: window-forbid, window: before-first-edit, polarity: do}
+  template: T-AW1
+  skill: S3
+  train: {relation: rewarded, note: "speckit_bug.fix.run.prohibited_action.edit_before_doc", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: E3
+  stage: 3
+  category: P
+  text: "구현 핸드오프 텍스트에 런타임 자리표시자(`{spec_file}`)를 치환해 그대로 따른다"
+  source: ["S3:26"]
+  quote: "Substitute the runtime placeholders (e.g. `{spec_file}`) into the implementation handoff below, then follow it verbatim."
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: drop, gap: G7, note: "no handoff; the agent implements from its own spec"}
+- id: E4
+  stage: 3
+  category: R
+  text: "핸드오프에 부모가 쓴 목표 재진술·파일 목록·소유 경계·수용 기준을 덧붙이지 않는다: spec이 유일한 진실원이다"
+  source: ["S3:26"]
+  quote: "Do not add parent-authored goal restatements, file lists, ownership boundaries, or acceptance criteria to the handoff — the spec is the subagent's sole source of truth."
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: dont}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: drop, gap: G7, note: ""}
+- id: E5
+  stage: 3
+  category: P
+  text: "핸드오프가 spec과 충돌하면 두 구절을 포함해 `handoff conflicts with spec`으로 HALT blocked"
+  source: ["S3:26"]
+  quote: "If the handoff conflicts with the spec, HALT with status `blocked` and blocking condition `handoff conflicts with spec`"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: E6
+  stage: 3
+  category: P
+  text: "구현 서브에이전트는 이전 대화 맥락 없이 띄운다"
+  source: ["CT:40"]
+  quote: "Launch a subagent with no prior conversation context, with this prompt:"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: E7
+  stage: 3
+  category: P
+  text: "(구현자) 구현 전에 spec_file을 끝까지 읽고 spec만을 진실원으로 삼아 구현한다"
+  source: ["CT:42"]
+  quote: "Read {spec_file} fully and implement it — the spec is the sole source of truth."
+  logic: {compares: trace-doc, form: window-require, window: before-first-edit, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "agentos_v2.implement_tasks.run.agentos_v2_read.tasks; speckit_bug.fix.run.speckit_bug_read.reports (SKB FX:20 'Read BUG_DIR/assessment.md in full')", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: "the same agent wrote the spec; a re-read before the first edit is what remains (conflicts with eval T-RD6)"}
+- id: E8
+  stage: 3
+  category: P
+  text: "(구현자) 시작 전에 frontmatter `context:`의 파일을 모두 읽는다"
+  source: ["CT:42", "ST:8"]
+  quote: "Load every file listed in its frontmatter `context:` before you start."
+  logic: {compares: artifact-trace, form: set, window: before-first-edit, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: "context is empty without project standards docs"}
+- id: E9
+  stage: 3
+  category: A
+  text: "(구현자) 끝나면 무엇을 바꿨고 어떻게 검증했고 무엇이 미완·위험한지 보고한다"
+  source: ["CT:44"]
+  quote: "When done, report what you changed, how you verified it, and anything left incomplete or risky."
+  logic: {compares: artifact-internal, form: exists, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "AOS final-verification report fields (agentos_v2_report.*); SKB fix report Changes/Checks", layer_candidate: L1}
+  measure: judge
+  port: {fate: drop, gap: G7, note: "folded into Auto Run Result (H1)"}
+- id: E10
+  stage: 3
+  category: P
+  text: "구현 서브에이전트는 동기로 호출해 같은 턴에서 기다린다; 백그라운드·분리·알림 대기 금지"
+  source: ["S3:30", "WF:55"]
+  quote: "Invoke the subagent **synchronously** and wait for it to return in this same turn — do not background/detach it"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: E11
+  stage: 3
+  category: P
+  text: "서브에이전트가 돌아온 뒤에만 Verify로 넘어간다"
+  source: ["S3:30"]
+  quote: "Resume at \"Verify\" only after it returns."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: E12
+  stage: 3
+  category: P
+  text: "플랫폼이 허용하면 구현 서브에이전트를 재호출 가능하게 유지한다 (step-04의 patch 전달용)"
+  source: ["S3:30"]
+  quote: "If the platform allows, keep the subagent available for re-engagement after it returns — step-04 may send it review fixes."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G7, note: ""}
+- id: E13
+  stage: 3
+  category: E
+  text: "서브에이전트가 미완 작업을 보고했으면 진행 전에 직접 마무리한다"
+  source: ["S3:36"]
+  quote: "After the implementation subagent returns: if it reported unfinished work, finish it before proceeding."
+  logic: {compares: artifact-trace, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: judge
+  port: {fate: drop, gap: G7, note: "no report to react to"}
+- id: E14a
+  stage: 3
+  category: E
+  text: "구현 후 VCS 도구로 baseline_revision 이후의 모든 변경(미추적 파일 포함)을 unified diff로 만든다"
+  source: ["S3:38"]
+  quote: "using the repository's version-control tooling, write a unified diff of all changes since `{baseline_revision}` (from `{spec_file}` frontmatter) — untracked files included"
+  logic: {compares: trace-doc, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff_cli.* (named command in a window); grep 'git diff|unified diff' in training docs: none", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: "`git diff` plus untracked listing without touching the index"}
+- id: E14b
+  stage: 3
+  category: F
+  text: "diff 파일은 시스템 임시 디렉터리의 고유 이름 파일에 쓰고 그 절대경로를 diff_file로 삼는다 (저장소 안이 아님)"
+  source: ["S3:38", "S4:15"]
+  quote: "to a uniquely-named file in the system temp directory, set `{diff_file}` to its absolute path"
+  logic: {compares: artifact-trace, form: set, window: whole-run, polarity: do}
+  template: T-WD3
+  skill: S5
+  train: {relation: rewarded, note: "agentos_v2.global.run.agentos_v2_paths_written.scratch_outside_checks; openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: E15
+  stage: 3
+  category: P
+  text: "diff 파일을 자기 맥락으로 읽는다"
+  source: ["S3:38"]
+  quote: "and read that file into your own context."
+  logic: {compares: trace-doc, form: window-require, window: after-last-edit, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "openspec_ff.ff.*.read_files.dependencies (re-read own output from disk)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: E16
+  stage: 3
+  category: Q
+  text: "판단은 서브에이전트의 보고가 아니라 diff에 대해 한다"
+  source: ["S3:38"]
+  quote: "Judge against the diff, not against the implementation subagent's report."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: "becomes 'judge against the diff, not memory'"}
+
+# ---------------------------------------------------------------- F. verification (Verification commands, matrix audit, re-verification)
+- id: F1
+  stage: 3
+  category: E
+  text: "spec의 `## Verification` 명령을 실행한다 (또는 수동 점검을 수행한다)"
+  source: ["S3:40"]
+  quote: "Run the commands in `{spec_file}`'s `## Verification` section (or perform its manual checks)."
+  logic: {compares: artifact-trace, form: set, window: after-last-edit, polarity: do}
+  template: T-TR2
+  skill: S8
+  train: {relation: shown, note: "SKB FX:20 'Treat its Proposed Remediation, Files likely to change, Checks to run ... as' the plan; no training item compares a plan field with runs (templates.yaml T-TR2 reason)", layer_candidate: L2M}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: F2
+  stage: 3
+  category: P
+  text: "검증이 실패하고 고칠 수 없으면 실패한 명령·이유를 포함해 `implementation verification failed`로 HALT blocked"
+  source: ["S3:40"]
+  quote: "If verification fails and the failure cannot be fixed, HALT with status `blocked`, blocking condition `implementation verification failed`"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "speckit_bug.global.run.speckit_bug_holds.no_round_after_verified (rounds end on a result; SKB CW:25 at most three rounds)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "record the failure and continue to the final report instead of ending without a patch"}
+- id: F3
+  stage: 3
+  category: E
+  text: "실패 수정으로 코드가 바뀌면 diff_file을 다시 만들고 다시 읽는다 (마지막 수정 이후)"
+  source: ["S3:40"]
+  quote: "When fixing a failure changes code, rewrite `{diff_file}` and re-read it."
+  logic: {compares: trace-doc, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW3
+  skill: S3
+  train: {relation: rewarded, note: "speckit_bug.fix.run.exec_evidence.local_tests, agentos_v2.implement_tasks.run.agentos_v2_checks.pass_last (an action re-run after the last edit; instance: the diff command)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: ""}
+- id: F4
+  stage: 3
+  category: C
+  text: "I/O Matrix가 있으면 모든 행이 그 기대 행동을 검증하는 테스트 하나 이상으로 덮인다"
+  source: ["S3:44"]
+  quote: "verify every matrix row is covered by at least one test that verifies its expected behavior"
+  logic: {compares: artifact-artifact, form: set, window: whole-run, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: rewarded, note: "openspec_ff.ff.proposal.capabilities.listed_have_specs; agentos_v2 ... requirements.initial_description (set coverage between artifacts); instance far: rows vs test ids", layer_candidate: L1}
+  measure: judge
+  port: {fate: semantic, gap: G9, note: "rows map to existing tests or verification commands, not new tests"}
+- id: F5
+  stage: 3
+  category: A
+  text: "행을 덮는 테스트는 검증 출력에서 실제로 실행되어 통과했다; 존재하지만 미실행(미등록·필터·skip·disabled)이면 없는 것으로 친다"
+  source: ["S3:44"]
+  quote: "A covering test that exists but did not run — unregistered, filtered out, skipped, or disabled — counts as missing."
+  logic: {compares: artifact-trace, form: equal, window: after-last-edit, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "speckit_bug.test.test.speckit_bug_checks_table.test_run / consistent (recorded test equals the run)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G9, note: ""}
+- id: F6
+  stage: 3
+  category: R
+  text: "테스트가 matrix와 어긋나도 기대값을 코드에 맞춰 고치지 않는다: 코드를 고친다"
+  source: ["S3:44"]
+  quote: "If a test disagrees with the matrix, never edit the expectation to match the code: fix the code"
+  logic: {compares: artifact-diff, form: exists, window: whole-run, polarity: dont}
+  template: T-PR1
+  skill: S4
+  train: {relation: rewarded, note: "prohibited_action.test_file_write in AOS/OSF/SKB; SKB FX:36 'The checks written before the change stay as they are; the change has to make them pass'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: F7
+  stage: 3
+  category: P
+  text: "matrix 행 자체가 모호하면 `matrix ambiguity`로 HALT blocked"
+  source: ["S3:44"]
+  quote: "or if the matrix row itself is ambiguous, HALT with status `blocked` and blocking condition `matrix ambiguity`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "as C12 (training assumes and records, T-SR1)", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G4, note: ""}
+- id: F8
+  stage: 3
+  category: P
+  text: "그 밖에 감사를 만족시킬 수 없으면 `matrix test audit failed`로 HALT blocked"
+  source: ["S3:44"]
+  quote: "If the audit cannot otherwise be satisfied, HALT with status `blocked` and blocking condition `matrix test audit failed`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as F2", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G9, note: ""}
+- id: F9
+  stage: 4
+  category: E
+  text: "patch 적용 후 `## Verification` 명령을 다시 실행한다 (마지막 수정 이후)"
+  source: ["S4:83", "S4:78"]
+  quote: "Then re-run the commands in `{spec_file}`'s `## Verification` section (or perform its manual checks)"
+  logic: {compares: artifact-trace, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW3
+  skill: S3
+  train: {relation: rewarded, note: "speckit_bug.fix.run.exec_evidence.local_tests; agentos_v2 ... checks.pass_last; openspec_ff.apply.run.openspec_ff_evidence.test_or_check", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: F10
+  stage: 4
+  category: P
+  text: "patch 후 검증이 실패하고 고칠 수 없으면 `patch verification failed`로 HALT blocked"
+  source: ["S4:83"]
+  quote: "if verification fails and the failure cannot be fixed, HALT with status `blocked` and blocking condition `patch verification failed`."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as F2", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: F11
+  stage: 4
+  category: E
+  text: "patch 후 diff_file을 패치된 트리에 맞게 다시 쓴다"
+  source: ["S4:83"]
+  quote: "Rewrite `{diff_file}` so it reflects the patched tree."
+  logic: {compares: trace-doc, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW3
+  skill: S3
+  train: {relation: rewarded, note: "as F3", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: ""}
+- id: F12
+  stage: 4
+  category: R
+  text: "(patch 구현자) 편집한 파일을 덮는 테스트만 실행하고 더 넓게 돌리지 않는다; 전체 검증은 부모가 한다"
+  source: ["S4:78"]
+  quote: "Run only the tests that cover the files you edit — nothing wider. Full verification runs on my side after you return."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-PR5
+  skill: S4
+  train: {relation: opposite, note: "agentos_v2.implement_tasks.run.agentos_v2_verify.whole_suite 'run the entire tests suite so that ALL tests run' (IT:237-239, must); the same direction is rewarded in phase 2 (agentos_v2.implement_tasks.run.prohibited_action.full_suite_phase2, IT:39) and SKB FX:41 'run the tests that exercise the changed paths'", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "the agent patches itself; keep the narrow-then-full order"}
+
+# ---------------------------------------------------------------- G. review (step-04 staging, layer prompts, classify, route, loops)
+- id: G1
+  stage: 4
+  category: P
+  text: "리뷰 전에 spec frontmatter에서 baseline_revision을 읽는다; 없거나 NO_VCS면 최선으로 변경을 파악한다"
+  source: ["S4:15"]
+  quote: "Read `{baseline_revision}` from `{spec_file}` frontmatter. If `{baseline_revision}` is missing or `NO_VCS`, use best effort to determine what changed."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G2
+  stage: 4
+  category: E
+  text: "리뷰 전에 diff_file을 baseline 이후 모든 변경(미추적 포함)의 unified diff로 다시 쓴다"
+  source: ["S4:15"]
+  quote: "use the repository's version-control tooling to rewrite `{diff_file}` ... with a unified diff of all changes since `{baseline_revision}`, untracked files included."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "as E14a", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: ""}
+- id: G3
+  stage: 4
+  category: R
+  text: "리뷰 레이어는 diff 파일을 읽는다; diff 본문을 프롬프트에 붙여 넣지 않는다"
+  source: ["S4:15", "S4:23"]
+  quote: "The review layers read that file; the diff text is never pasted into their prompts."
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: dont}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: G4
+  stage: 4
+  category: P
+  text: "claims_file = spec_file이며 edge-case 레이어에만 경로로 넘긴다; 그 레이어는 추적을 마친 뒤에만 읽고 다른 레이어는 보지 않는다"
+  source: ["S4:17", "CT:81"]
+  quote: "it goes to the edge-case layer alone — as a path, so that layer reads it only after its own tracing and the other layers never see it at all."
+  logic: {compares: trace-doc, form: set, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "an inline reviewer cannot be blind to the spec it wrote"}
+- id: G5
+  stage: 4
+  category: R
+  text: "diff 스테이징에서 바꾸는 것은 diff_file뿐이다: `git add`를 하지 않는다"
+  source: ["S4:19"]
+  quote: "Writing `{diff_file}` is the only change this section makes. Do NOT `git add` anything."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-PR6
+  skill: S4
+  train: {relation: rewarded, note: "openspec_ff.global.run.openspec_ff_cli.no_init (a named command is prohibited)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "matches the no-commit convention"}
+- id: G6
+  stage: 4
+  category: P
+  text: "verbatim_intent는 step-01에서 받은 호출 의도 원문이다 (기존 spec에서 시작했으면 그 `<intent-contract>` 블록)"
+  source: ["S4:23", "CT:109-111"]
+  quote: "`{verbatim_intent}` is the invocation intent exactly as this run received it at step-01"
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "inline: compare the diff against the issue text itself"}
+- id: G7
+  stage: 4
+  category: F
+  text: "레이어를 띄우기 전에 skill-root 자리표시자를 설치 디렉터리 절대경로로 바꾼다; 자식 프롬프트에 자리표시자를 남기지 않는다"
+  source: ["S4:23"]
+  quote: "Before launching a layer, expand its skill-root placeholder to this skill's absolute installed directory; never leave that placeholder unresolved in a child prompt."
+  logic: {compares: artifact-internal, form: exists, window: in-stage, polarity: dont}
+  template: T-FM4
+  skill: S10
+  train: {relation: rewarded, note: "no_template_residue items (instance: a prompt, not an artifact)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: G8
+  stage: 4
+  category: P
+  text: "건너뛰는 레이어를 먼저 알린 뒤, 활성 레이어 전부를 어느 결과도 처리하기 전에 동시에(블로킹, 같은 턴) 띄운다; 모두 띄운 뒤에야 수집·분류한다"
+  source: ["S4:25"]
+  quote: "Spawn every reviewer subagent before reading or reacting to any of their output; begin collection and triage only once all are launched."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "four lenses run one after another inline; the 'all before triage' order can survive"}
+- id: G9
+  stage: 4
+  category: R
+  text: "리뷰어 서브에이전트에는 치환된 프롬프트 텍스트만 넘기고, 리뷰어 지시 파일을 부모가 직접 읽지 않는다"
+  source: ["S4:25"]
+  quote: "launch that child with the prompt text after placeholder substitution; do not load the reviewer instruction file yourself."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-RD3
+  skill: S1
+  train: {relation: rewarded, note: "a given document must not be read in a window (order invalidate=read_ahead logic); instance: the reviewer file", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "inverted in a single-agent port: the agent must read the lens instructions itself"}
+- id: G10
+  stage: 4
+  category: P
+  text: "서브에이전트를 띄우지 않는 커스텀 레이어 지시는 적힌 대로 실행한다"
+  source: ["S4:25"]
+  quote: "For any other customized instruction, execute it as written."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G7, note: "no custom layers"}
+- id: G11
+  stage: 4
+  category: P
+  text: "각 리뷰 레이어는 맥락 없는 서브에이전트(intent-alignment는 서브에이전트)를 주어진 프롬프트로 띄운다"
+  source: ["CT:58", "CT:77", "CT:93", "CT:107"]
+  quote: "Launch a context-free subagent with this prompt:"
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "each lens becomes an inline pass"}
+- id: G12
+  stage: 4
+  category: R
+  text: "(리뷰어) skill을 호출하거나 자기 서브에이전트를 띄우지 않고, 결과를 마지막 메시지의 텍스트로 돌려주며 호스트의 findings 보고 도구로 보내지 않는다"
+  source: ["CT:69", "CT:85", "CT:99", "CT:117"]
+  quote: "Do not invoke any skill, and do not spawn subagents of your own — you are the reviewer. Return your findings as text in your final message"
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: G13
+  stage: 4
+  category: P
+  text: "(리뷰어) 지시 파일을 읽을 수 없으면 그 실패를 그대로 보고하고 멈춘다"
+  source: ["CT:85", "CT:99"]
+  quote: "If the instruction file is unreadable, report that exact failure and stop."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+# Blind Hunter
+- id: G14
+  stage: 4
+  category: Q
+  text: "(Blind Hunter) diff를 리뷰하되 틀린 것만이 아니라 빠진 것을 찾는다"
+  source: ["CT:60-61", "CT:67"]
+  quote: "Look for what's missing, not only what's wrong."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF VF:137 'review new code for consistency with project patterns'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: "inline lens"}
+- id: G15
+  stage: 4
+  category: F
+  text: "(Blind Hunter) diff 파일 크기로 하한 N = min(floor(sqrt(kB)+1), 10)을 계산해 한 줄로 산식을 적고, 최소 N개 finding을 낸다"
+  source: ["CT:62"]
+  quote: "Compute your finding floor N from the diff file's size: N = min(floor(sqrt(kB) + 1), 10) ... then find at least N issues to fix or improve."
+  logic: {compares: artifact-diff, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "count items (T-FM3); the threshold here is computed from the diff size", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G16
+  stage: 4
+  category: F
+  text: "리뷰어 출력에 severity·priority·ranking·confidence를 달지 않는다 (Blind Hunter 목록, Edge Case Hunter, Verification Gap 공통)"
+  source: ["CT:63", "EH:17", "VG:17", "VG:80"]
+  quote: "Output a Markdown list of findings only — no severity, priority, or ranking."
+  logic: {compares: artifact-internal, form: exists, window: in-stage, polarity: dont}
+  template: T-FM2
+  skill: S10
+  train: {relation: opposite, note: "SKB AS:40 requires a severity per finding (critical|high|medium|low with rationale)", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "the parent grades later (G29); inline the split is artificial"}
+- id: G17
+  stage: 4
+  category: P
+  text: "(Blind Hunter) 내용이 비어 있으면 멈추고 그렇게 말한다; finding이 0개면 다시 점검하고 빈 목록으로 끝내지 않는다"
+  source: ["CT:64-65"]
+  quote: "If you have zero findings, re-check and keep thinking; do not stop with an empty list."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "count items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+# Edge Case Hunter
+- id: G18
+  stage: 4
+  category: P
+  text: "(Edge Case Hunter) `{skill-root}/review-prompts/edge-case-hunter.md`를 끝까지 읽고 리뷰 지시로 따른다"
+  source: ["CT:79"]
+  quote: "Read `{skill-root}/review-prompts/edge-case-hunter.md` completely and follow it as your review instructions."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "the main agent reads it as a stage document"}
+- id: G19
+  stage: 4
+  category: R
+  text: "(Edge Case Hunter) claims_file(spec)은 5단계 Claims Check 전에는 읽지 않는다: 경로 추적이 먼저 끝나야 한다"
+  source: ["CT:81", "EH:13", "CC:3"]
+  quote: "Do NOT read it before Step 5: the path tracing in Steps 2–3 must finish before the claims are seen."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-RD3
+  skill: S1
+  train: {relation: rewarded, note: "order(invalidate=read_ahead) logic; instance: the spec during the review pass", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "the author already knows the claims"}
+- id: G20
+  stage: 4
+  category: P
+  text: "(리뷰어) 리뷰 대상은 띄운 메시지의 'Review content:'가 주는 diff 파일이다: 경로면 읽고, 지시 파일 자체는 대상이 아니다"
+  source: ["CT:83", "CT:97", "CT:113", "EH:24", "EH:112", "VG:112"]
+  quote: "Read the file when it is a path; either way that is the content under review, and this instruction file never is."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "read the diff file before the review pass"}
+- id: G21
+  stage: 4
+  category: Q
+  text: "(Edge Case Hunter) 순수 경로 추적자로서 코드의 좋고 나쁨을 말하지 않고, 처리가 빠진 경로·조건만 나열한다; 처리된 것은 조용히 버린다"
+  source: ["EH:3", "EH:17", "EH:37-38"]
+  quote: "You are a pure path tracer. Never comment on whether code is good or bad; only list missing handling."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G22
+  stage: 4
+  category: R
+  text: "(Edge Case Hunter) diff hunk만 훑고, 바뀐 줄에서 직접 닿는 경계 중 diff에 명시적 가드가 없는 것만 적는다; 나머지 코드베이스는 외부 함수를 참조할 때만 본다"
+  source: ["EH:4", "EH:6"]
+  quote: "scan only the diff hunks and list boundaries that are directly reachable from the changed lines and lack an explicit guard in the diff."
+  logic: {compares: trace-doc, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-RD5
+  skill: S1
+  train: {relation: rewarded, note: "repo_read items (polarity inverted: reads limited to referenced files)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G23
+  stage: 4
+  category: P
+  text: "(Edge Case Hunter) diff가 없으면 주어진 내용 전체가 범위다"
+  source: ["EH:5"]
+  quote: "When no diff is provided (full file or function), treat the entire provided content as the scope."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G7, note: "a diff is always given"}
+- id: G24
+  stage: 4
+  category: P
+  text: "(Edge Case Hunter) 1~6단계를 정확히 그 순서로 모두 실행한다; 정지 조건이 걸리면 그 지시를 그대로 따른다"
+  source: ["EH:15"]
+  quote: "Execute steps in the Execution section IN EXACT ORDER. DO NOT skip steps or change the sequence."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G25
+  stage: 4
+  category: F
+  text: "(Edge Case Hunter) 내용이 없거나 비었거나 읽을 수 없으면 정해진 한 원소 JSON 배열(location N/A, 'Input empty or undecodable' …)을 돌려주고 멈춘다"
+  source: ["EH:25", "EH:76"]
+  quote: "return `[{\"location\":\"N/A\",\"trigger_condition\":\"Input empty or undecodable\",...}]` and stop"
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_literal items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: G26
+  stage: 4
+  category: Q
+  text: "(Edge Case Hunter) 모든 분기 경로와 경계 조건을 기계적으로 전부 걷는다: 제어 흐름과 도메인 경계, 고정 집합의 암묵 분기(나머지 enum 값 등), 재확인이 있는 핸들 수명, 추가·변경된 모든 호출부의 인자 수·순서·타입·기본값(테스트 파일 포함)"
+  source: ["EH:30-36", "EH:42-43"]
+  quote: "Walk every branching path and boundary condition within scope — report only unhandled ones."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: opposite, note: "AOS CT:382-384 / IT:206-208 'Defer Edge Case Testing: Do NOT test edge cases, error states, or validation logic unless business-critical' (a test rule, not a review rule; direction differs)", layer_candidate: L1C}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G27
+  stage: 4
+  category: E
+  text: "(Edge Case Hunter) 호출부를 점검할 때 피호출자의 선언을 실제로 읽는다"
+  source: ["EH:36"]
+  quote: "read the callee's declaration and check the call against it: argument count, order, types, and defaults."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD5
+  skill: S1
+  train: {relation: rewarded, note: "repo_read items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G28
+  stage: 4
+  category: P
+  text: "(Edge Case Hunter) diff가 의미 있는 코드를 지우거나 바꿨으면(이름 변경·공백 제외) references/deletion-check.md를 읽고 따르고, 5단계에서 references/claims-check.md를 읽고 따른다"
+  source: ["EH:47", "EH:51"]
+  quote: "If the diff removed or replaced meaningful code (ignore pure renames and whitespace): load `references/deletion-check.md` and follow it."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: ""}
+- id: G29
+  stage: 4
+  category: F
+  text: "(Edge Case Hunter) 출력은 유효한 JSON 배열 하나뿐이다: 추가 텍스트·설명·markdown 감싸기 없음; 아무것도 없으면 `[]`"
+  source: ["EH:55", "EH:60", "EH:71"]
+  quote: "Return ONLY a valid JSON array of objects. ... No extra text, no explanations, no markdown wrapping. An empty array `[]` is valid when nothing is found."
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM8
+  skill: S10
+  train: {relation: rewarded, note: "openspec_ff.ff.spec.delta.layout etc. (a domain grammar; instance: JSON)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "if the port keeps a review record, JSON becomes a markdown list"}
+- id: G30
+  stage: 4
+  category: F
+  text: "(Edge Case Hunter) finding마다 정확히 네 필드 location, trigger_condition, guard_snippet, potential_consequence가 있다 (deletion/claim finding은 kind, confidence 추가)"
+  source: ["EH:60-68", "EH:71", "DC:7-10", "CC:7-10"]
+  quote: "Each edge-case finding contains exactly these four fields:"
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "openspec_ff.ff.spec.delta.* per-block fields; agentos_v2 tasks group_parts", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G31
+  stage: 4
+  category: F
+  text: "(Edge Case Hunter) 필드 형식: location은 file:start-end(또는 file:line, file:hunk), trigger_condition·potential_consequence는 15단어 이하, guard_snippet은 줄바꿈·비이스케이프 따옴표 없는 한 줄 문자열"
+  source: ["EH:64-67"]
+  quote: "\"trigger_condition\": \"one-line description (max 15 words)\""
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "item_format items with length caps", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G32
+  stage: 4
+  category: Q
+  text: "(Deletion Check) 지워지거나 바뀐 코드 덩어리마다 그것이 지닌 행동·계약이 재확립되지도 의도적으로 폐기되지도 않았는지 묻고, 회귀·고아 참조·새 dead code만 finding으로 추가한다; 이미 edge-case finding에 있는 것은 건너뛴다"
+  source: ["DC:3-5", "DC:14", "EH:80-82"]
+  quote: "did it carry behavior or a contract that the change neither re-established nor intentionally retired?"
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF VF:87 REMOVED requirements: 'Finding no implementation is the expected result'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G33
+  stage: 4
+  category: F
+  text: "(Deletion Check) deletion finding은 kind \"deletion\", confidence high|medium|low를 더하고, 표준 필드는 지워진 항목·그것이 강제하던 계약·재확립 방법·회귀로 읽는다"
+  source: ["DC:7-12", "EH:84-89"]
+  quote: "`confidence`: `\"high\"`, `\"medium\"`, or `\"low\"` — these are inferences; rate them"
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_enum items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G34
+  stage: 4
+  category: P
+  text: "(Claims Check) 경로 추적이 끝난 5단계에서 처음으로 claims 파일을 읽는다"
+  source: ["CC:3", "EH:96"]
+  quote: "Read the claims file named in the message that launched you now, for the first time; the path tracing is finished"
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items (read a recorded input in a window)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G35
+  stage: 4
+  category: R
+  text: "(Claims Check) spec에서 `## Intent`와 `## Tasks & Acceptance`만 읽고 나머지는 무시한다"
+  source: ["CC:5", "EH:98"]
+  quote: "Read only its `## Intent` and `## Tasks & Acceptance` sections — the claims live there; ignore the rest of the file."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: dont}
+  template: null
+  skill: null
+  train: {relation: none, note: "section-level reading is unobservable", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G7, note: ""}
+- id: G36
+  stage: 4
+  category: Q
+  text: "(Claims Check) spec은 증언이지 증거가 아니다(주석에 반복된 주장도 확인이 아님); 검증 가능한 주장(하는 것, 보존하는 것, 순서, 산술, 기존 코드와의 동등성)을 뽑아 추적한 코드로 반증을 시도하고, 부족하면 결정하는 코드를 더 읽는다; 검증된 주장은 아무것도 내지 않는다"
+  source: ["CC:5", "CC:14", "EH:98", "EH:107"]
+  quote: "The spec is the change's own account of itself: testimony, not evidence"
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF VF:80-112 verify requirements against code (Spec Coverage)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: "self-check of own claims; weaker than a blind check"}
+- id: G37
+  stage: 4
+  category: F
+  text: "(Claims Check) 반증된 주장마다 finding 하나: kind \"claim\", confidence, location=모순 위치, trigger_condition=주장, guard_snippet=코드가 실제로 하는 일, potential_consequence=주장을 믿은 사람에게 생기는 문제"
+  source: ["CC:7-12", "EH:100-105"]
+  quote: "Append one finding per falsified claim to the same JSON array"
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+# Verification Gap Reviewer
+- id: G38
+  stage: 4
+  category: P
+  text: "(Verification Gap) `{skill-root}/review-prompts/verification-gap.md`를 끝까지 읽고 따른다"
+  source: ["CT:95"]
+  quote: "Read `{skill-root}/review-prompts/verification-gap.md` completely and follow it as your review instructions."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "doc_read.* items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: ""}
+- id: G39
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 한 질문만 묻는다: 이 변경이 내야 할 행동이 실제 쓰이는 곳에서 깨지면 검증이 실패하는가; 정확성 버그를 사냥하지 않되 추적 중 본 진짜 문제는 보고한다"
+  source: ["VG:3", "VG:76"]
+  quote: "Ask one question — \"if the behavior this change is supposed to produce broke where it's actually used, would verification fail?\""
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "AOS CT:160-175 'Test Review & Gap Analysis' (fill critical gaps only); SKB TS:43 verified only when every check passes", layer_candidate: L2M}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G40
+  stage: 4
+  category: E
+  text: "(Verification Gap) 테스트가 무엇을 덮고 실행하고 단언하고 놓치는지 주장하기 전에 그 테스트를 읽는다; finding을 쓰기 직전에 근거 테스트·검색 결과를 다시 연다"
+  source: ["VG:13", "VG:70"]
+  quote: "Read a test before claiming what it covers, runs, asserts, or misses."
+  logic: {compares: artifact-trace, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "aidlc check/e1_test_path_seen logic; training <wf>.read items; SKB FX:33 'Find the existing repository tests for each file you will change'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G41
+  stage: 4
+  category: A
+  text: "(Verification Gap) 테스트가 없다고 주장하기 전에 대상 심볼과 import 참조로 저장소 전체를 검색한다; 예상 위치만으로는 부족하다"
+  source: ["VG:14", "VG:16"]
+  quote: "Before claiming no test exists, search the whole repo by the symbol under test and by import references; expected file locations are not enough."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: T-RF2
+  skill: S6
+  train: {relation: rewarded, note: "agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed (a 'none' claim against run facts)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G42
+  stage: 4
+  category: A
+  text: "(Verification Gap) 확인하지 않은 것을 단언하지 않는다; 근거 없는 finding은 버린다; finding에 실제로 무엇을 어디까지 확인했는지 적는다"
+  source: ["VG:15-16", "VG:70"]
+  quote: "Never assert what you did not verify. If a finding cannot be grounded, drop it."
+  logic: {compares: artifact-trace, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "OSF VF:205 'No vague suggestions like \"consider reviewing\"'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G43
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 변경을 부분별로 선별한다: 반환값·예외·호출자 가시 부작용·관찰 가능 상태(반복 순서·메시지 포함)를 바꾸지 않는 부분만 비행동적으로 보고 건너뛴다; 정적 텍스트·LLM 출력은 건너뛴다; 의존성·툴체인·빌드/설정·데이터 파일 변경은 행동적으로 본다"
+  source: ["VG:23", "VG:27", "VG:35"]
+  quote: "Call a part non-behavioral only when the changed code does not alter return values, thrown errors, caller-visible side effects, or observable state"
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G44
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 바뀐 행동마다 그것을 관찰하는 곳(직접 호출자, 등록 진입점, 계약 소비자)으로 추적한다; 도달 가능하고 미검증인 동안만 따라가고 1–3 hop의 가장 가까운 관찰 경계를 택하며, 비슷한 소비자가 5개를 넘으면 대표만 본다"
+  source: ["VG:33", "VG:39", "VG:41"]
+  quote: "Follow a path only while the changed behavior is reachable and unverified."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G45
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 소비자마다 가장 작은 현실적 회귀(Demonstration)를 지명한다; 없으면 경로를 버린다 — 미검증 하류 코드 자체는 finding이 아니다; Missing-adoption은 대체 신호와 공유 계약이 있을 때만 성립한다"
+  source: ["VG:45", "VG:47"]
+  quote: "If no such regression exists, drop the path; untested downstream code is not a finding."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G46
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 관련 테스트를 읽고 Demonstration이 단언을 실패시키는지 묻는다; 그렇다면 finding 없음; 경로를 도는 테스트가 없거나 skip/flaky/비정상 경로이거나 바뀐 결과를 확인하지 않으면 Regression 또는 Broken-verification gap; 적응을 단언하는 테스트가 없으면 Missing-adoption gap"
+  source: ["VG:49-53"]
+  quote: "Find and read the relevant test. Ask whether the Demonstration would make an assertion fail."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G47
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 테스트는 정상 실행되고 단언이 바뀐 출력·분기·계약을 관찰할 때만 인정한다; 미실행, 소스 텍스트 단언, 성공/no-throw/snapshot만 확인, mock/log 호출 확인, 사람만 하는 점검, 통합을 mock한 테스트, 확인 없이 통과하는 e2e, 오래된 단언은 인정하지 않는다"
+  source: ["VG:55"]
+  quote: "A test counts only if it runs normally and an assertion observes the changed output, branch, or contract."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G48
+  stage: 4
+  category: Q
+  text: "(Verification Gap) 보고하지 않는 것: 컴파일러·타입체커가 강제하는 경우, 통합·계약·e2e 테스트가 이미 검증한 행동, 구현 세부·mock 전용 테스트, 낮은 커버리지나 테스트 파일 부재 자체, 변경이 건드리지 않은 레거시 미테스트 코드"
+  source: ["VG:74"]
+  quote: "Do not report: compiler/type-checker-enforced cases; behavior already verified by an integration, contract, or e2e test"
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G49
+  stage: 4
+  category: F
+  text: "(Verification Gap) gap finding마다 한 블록: `### 제목`, Changed surface(file:line), Impacted consumer or site(file:line, 구체적), Existing test evidence(gap 종류별), Missing verification, Demonstration, Consequence, Disposition 필드; 일반 조언 없음; 각 블록은 자체 증거로 선다"
+  source: ["VG:78-96"]
+  quote: "Emit each verification-gap finding as one block. No general advice, no severity or confidence."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items; OSF VF:112 'Recommendation: Review <file>:<lines> against requirement X'", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G50
+  stage: 4
+  category: F
+  text: "(Verification Gap) Disposition은 `patch`(추가할 테스트를 저장소 방식에 맞게 지명) 또는 `defer`(한 문장 이유) 중 하나다"
+  source: ["VG:96"]
+  quote: "**Disposition:** `patch` — name the test to add, fit to the repo's own way of verifying ... — or `defer` when the gap is real but not worth closing"
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_enum items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G9, note: "'name the test to add' conflicts with no test edits"}
+- id: G51
+  stage: 4
+  category: F
+  text: "(Verification Gap) gap이 아닌 진짜 문제는 `## Other findings` 아래 설명만 있는 불릿으로 적는다"
+  source: ["VG:76", "VG:99-105"]
+  quote: "- <description only; no severity, confidence, priority, or ranking>"
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "item_format items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G52
+  stage: 4
+  category: F
+  text: "(Verification Gap) gap도 other finding도 없으면 정확히 `No verification gaps found.` 한 줄을 낸다 (빈 응답 금지)"
+  source: ["VG:29", "VG:107-109"]
+  quote: "When you find no verification gaps and no other findings, output exactly this single line, not an empty response:"
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_literal items; AOS IT:306 'None - all tests passing' literal", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G53
+  stage: 4
+  category: A
+  text: "(Verification Gap) 내용이 없거나 파일이 없거나 비었거나 읽을 수 없으면 그렇게 말하고 멈춘다; 읽지 못한 내용에 대해 깨끗한 리뷰를 보고하지 않는다"
+  source: ["VG:113"]
+  quote: "never report a clean review for content you could not read."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: dont}
+  template: T-RF2
+  skill: S6
+  train: {relation: rewarded, note: "T-RF2 (a clean claim refuted by the run: the diff was never read)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+# Intent Alignment Auditor
+- id: G54
+  stage: 4
+  category: Q
+  text: "(Intent Alignment) 엄격히 기술적으로만 보고하고 추가 작업을 처방하지 않는다"
+  source: ["CT:115"]
+  quote: "Your task is strictly descriptive — do not prescribe additional work."
+  logic: {compares: artifact-internal, form: judgement, window: in-stage, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G55
+  stage: 4
+  category: F
+  text: "(Intent Alignment) 보고는 (1) 의도의 방어 가능한 해석들 열거, (2) diff가 구현한 해석, (3) 해석과 diff가 갈리는 곳 — 의도의 기대가 사는 표면 대 diff와 그 테스트가 행사하는 표면 — 세 부분이다"
+  source: ["CT:115"]
+  quote: "Report: (1) the defensible readings of the intent, enumerated; (2) which reading this diff implements; (3) where the readings and the diff diverge"
+  logic: {compares: issue-artifact, form: count, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section/label items; content side is judge", layer_candidate: L1}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: "inline: compare the diff against the issue; same three parts"}
+# Classify
+- id: G56
+  stage: 4
+  category: P
+  text: "모든 레이어가 보고한 뒤에야, 중복 제거나 묶기 전에, finding마다 verdict를 낸다"
+  source: ["S4:31"]
+  quote: "Once every layer has reported — and not before — render a verdict on each finding, ahead of any deduplication or grouping."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "with inline lenses: all four passes before triage"}
+- id: G57
+  stage: 4
+  category: R
+  text: "리뷰 서브에이전트가 매긴 severity는 무시한다 (맥락이 없어 등급을 못 매김)"
+  source: ["S4:31"]
+  quote: "Disregard any severity a reviewing subagent assigned — they lack the context to grade."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: dont}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: enforced
+  port: {fate: drop, gap: G7, note: "the prompts already forbid severity (G16); nothing to disregard"}
+- id: G58
+  stage: 4
+  category: P
+  text: "Triage Log에 이미 행이 있으면(루프백·재개·후속) finding을 먼저 그 행과 대조한다: 같은 위치·같은 주장이고 코드가 행대로면 그 verdict·route를 유지해 증거 앞에 `carried`를 붙여 다시 쓰고, 검증·patch·defer를 반복하지 않는다"
+  source: ["S4:33"]
+  quote: "keep the row's verdict and route, write the row again with `carried` in front of the evidence, skip verification, and never patch or defer it again."
+  logic: {compares: artifact-artifact, form: keyed, window: in-stage, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "keyed per-element mapping between an earlier and a later entry; no keyed mapping is rewarded or shown (templates.yaml T-TR1b reason)", layer_candidate: L2F}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "only if loopbacks survive"}
+- id: G59
+  stage: 4
+  category: P
+  text: "verification-gap 레이어의 gap finding은 사전 검증된 것으로 받아 검증을 건너뛰고 제출된 증거로 verdict를 내며 라우팅 때 그 disposition을 참작한다; 그 레이어의 Other findings는 보통처럼 검증한다"
+  source: ["S4:36"]
+  quote: "A gap finding from the verification-gap layer arrives pre-verified ... Skip verification, render the verdict from the filed evidence"
+  logic: {compares: artifact-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G60
+  stage: 4
+  category: E
+  text: "finding의 주장을 인용된 파일·줄에서 검증한다: 바뀐 줄 너머(호출자, 상류 가드)를 읽어 예/아니오를 낼 때까지 본다"
+  source: ["S4:37"]
+  quote: "At the cited file and line, does the bad outcome the reviewer describes actually occur? Read beyond the changed lines — follow callers, guards upstream, etc"
+  logic: {compares: artifact-trace, form: set, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "a recorded path (the finding's location) was opened before the verdict was written (<wf>.read logic)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G61
+  stage: 4
+  category: Q
+  text: "근처 코드에 대한 다른 finding이 이 finding을 결정하지 않는다; 수정안이 그럴듯한지가 아니라 문제가 실재하는지를 판단한다; 도달 가능함을 보이지 못한 상황에서 크게 실패하는 코드는 결함이 아니라 올바른 행동이다"
+  source: ["S4:37"]
+  quote: "Judge whether the problem is real, not whether the proposed fix is plausible. Code that loudly fails on a situation you never showed the program can reach is correct behavior, not a defect."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G62
+  stage: 4
+  category: F
+  text: "finding마다 verdict는 정확히 하나, high | medium | low | false | maybe-false 중 하나다 (verdict가 triage 결정 전부; 별도 keep/dismiss 없음)"
+  source: ["S4:38-41"]
+  quote: "**Render exactly one verdict** from what verification established — the verdict is the whole triage decision"
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "SKB AS:40 severity enum critical|high|medium|low with rationale (field_enum)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G63
+  stage: 4
+  category: Q
+  text: "high/medium/low는 실재하는 나쁜 결과에 대해 사용자·개발자 피해로 매긴다; 개발자 전용 문제는 어디서 탈이 날지 지명해야 하고, 피해를 못 대는 '지저분함'은 false/maybe-false로 한다; 피해는 실재하나 정도를 모르면 높은 등급을 고른다"
+  source: ["S4:39"]
+  quote: "A vague \"this is messy\" with no named harm is not a severity grade; use `false` or `maybe-false` instead. When the harm is real but you cannot tell how bad, pick the higher grade."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "SKB AS:40 'a short rationale (user impact, blast radius, data risk, regression ...)'", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G64
+  stage: 4
+  category: F
+  text: "`false`에는 이 주장을 반증하는 내용을, `maybe-false`에는 알아내려면 무엇을 확인해야 하는지를 증거로 적는다; maybe-false는 diff와 주변 코드로 결정할 수 없을 때만 쓴다"
+  source: ["S4:40-41", "S4:67"]
+  quote: "`false` — you checked, and the bad outcome does not happen at the cited location. Write what disproves this specific claim."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items (evidence per row)", layer_candidate: L1}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G65
+  stage: 4
+  category: C
+  text: "모든 finding은 triage log에 행 하나를 갖는다: 하나도 버리거나 합치거나 조용히 건너뛰지 않는다; `<total>`은 레이어가 보고한 finding 수와 같다"
+  source: ["S4:43", "S4:69"]
+  quote: "Every finding gets one row in the triage log below — verdict plus its evidence in a sentence or two; never drop, merge, or silently skip one."
+  logic: {compares: artifact-artifact, form: set, window: in-stage, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: rewarded, note: "openspec_ff.ff.spec.capabilities.specs_listed (set coverage between artifacts); here lens output vs log rows", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "lens outputs must be written down (artifact) for a function to count them"}
+- id: G66
+  stage: 4
+  category: C
+  text: "`false` finding은 반증을 근거로 reject한다 (verdict false ↔ route reject)"
+  source: ["S4:45"]
+  quote: "Reject `false` findings on their refutation."
+  logic: {compares: artifact-internal, form: keyed, window: in-stage, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G67
+  stage: 4
+  category: Q
+  text: "`low` finding은 일상 사용에서 만나기 어렵고 수정이 직접 교정·삭제 이상(가드·분기·매개변수·복잡도 추가)이면 reject한다"
+  source: ["S4:47"]
+  quote: "Reject `low` findings when it is unlikely that users or developers would meet the defect in everyday use ... and the fix is more than a direct correction or deletion"
+  logic: {compares: artifact-internal, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G68
+  stage: 4
+  category: Q
+  text: "범위 밖 판단은 의도 자체가 배제할 때만 한다; spec의 범위 절·계획·diff 모양만 배제하면 finding을 남겨 intent_gap/bad_spec으로 보내고 patch/defer로 보내지 않는다"
+  source: ["S4:49"]
+  quote: "reject or defer a finding as out of scope only when the intent itself excludes it — not because the spec's scope section, the plan, or the shape of the diff says so."
+  logic: {compares: issue-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G69
+  stage: 4
+  category: R
+  text: "수정이 이 빌드의 spec을 고치는 것인 finding은 reject한다"
+  source: ["S4:51"]
+  quote: "Reject any finding whose fix is to edit this build's spec."
+  logic: {compares: artifact-internal, form: judgement, window: in-stage, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G70
+  stage: 4
+  category: Q
+  text: "살아남은 finding을 같은 결함이 만든 것끼리만 묶는다 (같은 위치나 같은 수정만으로는 안 됨); 묶음은 모든 구성원의 나쁜 결과와 최고 verdict(high>medium>low>maybe-false)를 지닌다"
+  source: ["S4:55"]
+  quote: "two findings belong in one entry only when the same defect produced both. Same location alone is not a shared root cause, and neither is a shared fix."
+  logic: {compares: artifact-internal, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G71
+  stage: 4
+  category: F
+  text: "묶음마다 intent_gap | bad_spec | patch | defer 중 정확히 하나로 라우팅한다; 검증된 high/medium/low 구성원이 있으면 그 최고 verdict로 라우팅하고 maybe-false 구성원 때문에 defer하지 않는다"
+  source: ["S4:56"]
+  quote: "Route each entry into exactly one triage category. A group that includes verified `high`, `medium`, or `low` members routes by its highest such verdict"
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_enum items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G72
+  stage: 4
+  category: Q
+  text: "intent_gap: 변경이 야기했고 captured intent가 불완전해 spec으로 풀 수 없는 것; 가능한 해석이 정확히 하나일 때 외에는 의도를 추론하지 않는다"
+  source: ["S4:57"]
+  quote: "**intent_gap** — caused by the change; cannot be resolved from the spec because the captured intent is incomplete. Do not infer intent unless there is exactly one possible reading."
+  logic: {compares: issue-artifact, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: opposite, note: "training rewards inferring and recording the most plausible reading (T-SR1 items; SKB CW:38-40)", layer_candidate: L1C}
+  measure: judge
+  port: {fate: semantic, gap: G4, note: "with assume-and-record, intent_gap collapses into bad_spec/patch"}
+- id: G73
+  stage: 4
+  category: Q
+  text: "bad_spec: 변경이 야기했고(spec 이탈 포함) spec이 충분히 명확했어야 하는 것; bad_spec과 patch 사이에서 망설이면 bad_spec을 택한다"
+  source: ["S4:58"]
+  quote: "When in doubt between bad_spec and patch, prefer bad_spec — a spec-level fix is more likely to produce coherent code."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "SKB FX:38 'If you discover the assessment was wrong ..., document the new finding' (amend the record)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: semantic, gap: G8, note: "depends on whether the re-derivation loop survives"}
+- id: G74
+  stage: 4
+  category: Q
+  text: "patch: 변경이 야기했고 최소 수정이 사소하며 공개 표면을 늘리지 않고 입증하지 않은 상태를 가드하지 않는 것; 하나라도 어기면 spec이 그 수정을 정하지 않을 때 intent_gap, 정하면 bad_spec"
+  source: ["S4:59"]
+  quote: "**patch** — caused by the change; its smallest fix is trivial, adds no public surface, and guards no state you did not demonstrate."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G75
+  stage: 4
+  category: Q
+  text: "defer: 이 스토리가 만들지 않은 기존 문제; 또는 구성원이 모두 maybe-false이고 참이면 medium/high인 것(미검증 표시한 severity와 해결 조건 기록; low면 같은 메모로 reject); 또는 수정이 agent 맥락 파일(CLAUDE.md, AGENTS.md, rules)을 고치는 것"
+  source: ["S4:60"]
+  quote: "**defer** — pre-existing issue not caused by this story; or an entry whose members are all `maybe-false` and the claim, if true, would be `medium` or `high`"
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: shown, note: "SKB FX:90 deviations 'Empty if none'; AOS IT:279 list incomplete tasks (recording what is left)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: ""}
+- id: G76
+  stage: 4
+  category: F
+  text: "`## Review Triage Log`에 새 항목을 붙인다: `### {date} — Review pass` 제목, `- verdicts: <total> findings — high <N>, medium <N>, low <N>, false <N>, maybe-false <N>` 줄, `- findings:` 목록"
+  source: ["S4:62-68"]
+  quote: "- verdicts: <total> findings — high <N>, medium <N>, low <N>, false <N>, maybe-false <N>"
+  logic: {compares: artifact-internal, form: exists, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present/label_present items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G77
+  stage: 4
+  category: F
+  text: "finding 행은 `` `[verdict]` `[intent_gap|bad_spec|patch|defer|reject]` <요약> — <증거> `` 형식이다 (false의 반증, maybe-false의 해결 조건, patch의 조치, reject된 low의 이유)"
+  source: ["S4:67"]
+  quote: "- `[verdict]` `[intent_gap|bad_spec|patch|defer|reject]` <finding summary> — <evidence: ...>"
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "item_format items; SKB AS:79 '`path:line` — <why>'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G78
+  stage: 4
+  category: F
+  text: "Triage Log 항목의 {date}는 현재 시스템 날짜다"
+  source: ["S4:69"]
+  quote: "Where `{date}` is the current system date."
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "SKB ISO date items (constraints:244, 728, 1236)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G79
+  stage: 4
+  category: A
+  text: "행은 레이어가 보고한 순서대로 모든 레이어의 finding마다 하나다"
+  source: ["S4:69"]
+  quote: "One row per finding from every layer, in the order the layers reported them"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "recorded sequence equals the run (T-RF1 logic; the catalogue has no separate ordered-record template — 09 proposed '키별 순서')", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: ""}
+- id: G80
+  stage: 4
+  category: C
+  text: "`<total>`은 행 수와 같고 다섯 verdict 수의 합과 같다; 묶인 항목의 구성원도 각자 행을 가지며 route를 공유한다"
+  source: ["S4:69"]
+  quote: "`<total>` must equal the number of findings the layers reported — a finding missing from the log is a triage failure. Members of a grouped entry keep their own rows and share the route."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G81
+  stage: 4
+  category: P
+  text: "항목을 폭포식으로 처리한다: intent_gap이 있으면 나머지는 무의미, bad_spec이 있으면 코드가 재도출되므로 나머지는 무의미, 둘 다 없으면 patch와 defer를 처리한다"
+  source: ["S4:70"]
+  quote: "If intent_gap exists, lower entries are moot; follow the intent_gap branch below. If bad_spec exists, lower entries are moot since code will be re-derived."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "branch on a result (OSF retries, SKB rounds)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G82
+  stage: 4
+  category: A
+  text: "bad_spec 루프백 전에 frontmatter `review_loop_iteration`(없으면 0)을 읽어 1 올려 쓴다 (값 = 지금까지의 루프백 수)"
+  source: ["S4:70"]
+  quote: "Before each bad_spec loopback, read `{spec_file}` frontmatter `review_loop_iteration` (missing means `0`), increment it by 1, and write it back."
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "recorded count equals the run (AOS report.test_counts logic)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G83
+  stage: 4
+  category: P
+  text: "review_loop_iteration이 5를 넘으면 이번 패스의 triage 항목을 붙인 뒤 `review repair loop exceeded 5 iterations (non-convergence)`로 HALT blocked"
+  source: ["S4:70"]
+  quote: "If it exceeds 5, append the triage-log entry for this pass, then HALT with status `blocked` and blocking condition `review repair loop exceeded 5 iterations (non-convergence)`."
+  logic: {compares: artifact-trace, form: count, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "openspec_ff.archive.run.openspec_ff_archive.retries (cap 2); SKB CW:25 at most three rounds (no_round_after_verified)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "a smaller cap, and the end is a report rather than blocked"}
+- id: G84a
+  stage: 4
+  category: F
+  text: "intent_gap: 시도한 변경을 `{{.implementation_artifacts}}`에 patch 파일로 저장하고 triage 항목에서 참조한다"
+  source: ["S4:71"]
+  quote: "Save the attempted change as a patch file in `{{.implementation_artifacts}}` and reference it from the triage-log entry"
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "artifact_exists items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "artifact dir outside the repo"}
+- id: G84b
+  stage: 4
+  category: E
+  text: "intent_gap: 코드 변경을 되돌린다 (작업 트리를 baseline으로)"
+  source: ["S4:71"]
+  quote: "then revert code changes."
+  logic: {compares: artifact-diff, form: equal, window: after-last-edit, polarity: do}
+  template: NEW-WD-revert
+  skill: S5
+  train: {relation: none, note: "grep revert|undo|roll back|stash in training docs: none", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G8, note: "a reverted tree is a failed task; the port keeps the attempt and records the gap"}
+- id: G84c
+  stage: 4
+  category: P
+  text: "intent_gap: 이번 패스의 triage 항목을 붙인 뒤 미해결 질문과 patch 경로를 포함해 `intent gap`으로 HALT blocked"
+  source: ["S4:71"]
+  quote: "Append the triage-log entry for this pass, then HALT with status `blocked`, blocking condition `intent gap`, and include the unresolved questions and the saved patch path."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "as D20 (T-SR1)", layer_candidate: L1C}
+  measure: code
+  port: {fate: semantic, gap: G4, note: ""}
+- id: G85a
+  stage: 4
+  category: P
+  text: "bad_spec: 되돌리기 전에 KEEP 지시(잘 된 것, 재도출에서 살아남아야 할 것)를 뽑아 둔다"
+  source: ["S4:72"]
+  quote: "Before reverting code: extract KEEP instructions for positive preservation (what worked well and must survive re-derivation)."
+  logic: {compares: artifact-diff, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G85b
+  stage: 4
+  category: E
+  text: "bad_spec: 코드 변경을 되돌린다"
+  source: ["S4:72"]
+  quote: "Revert code changes."
+  logic: {compares: artifact-diff, form: equal, window: after-last-edit, polarity: do}
+  template: NEW-WD-revert
+  skill: S5
+  train: {relation: none, note: "as G84b", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G8, note: "the port amends the spec and patches forward instead of re-deriving from a clean tree"}
+- id: G85c
+  stage: 4
+  category: P
+  text: "bad_spec: `## Spec Change Log`을 읽고 기록된 제약을 엄격히 지키며 `<intent-contract>` 밖의 근본 원인 절만 고친다"
+  source: ["S4:72"]
+  quote: "Read the `## Spec Change Log` in `{spec_file}` and strictly respect all logged constraints when amending the sections outside `<intent-contract>` that contain the root cause."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items; SKB FX:21 'In rounds 2 and 3, also read the previous round's fix report and verification report in full'", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G85d
+  stage: 4
+  category: F
+  text: "bad_spec: change-log 항목을 붙인다 — 촉발 finding, 고친 것, 피한 known-bad 상태, KEEP 지시"
+  source: ["S4:72", "ST:68-71"]
+  quote: "Append a new change-log entry recording: the triggering finding, what was amended, the known-bad state avoided, and the KEEP instructions."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items; SKB FX:38 'document the new finding'", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G85e
+  stage: 4
+  category: F
+  text: "bad_spec: 이번 패스의 triage 항목을 붙이고 각 bad_spec 행에 그것이 촉발한 수정을 적는다"
+  source: ["S4:72"]
+  quote: "Append the triage-log entry for this pass, recording in each bad_spec row the amendment it triggered."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: ""}
+- id: G85f
+  stage: 4
+  category: P
+  text: "bad_spec: step-03을 다시 읽고 따라 코드를 재도출한 뒤 step-04가 다시 돈다 (루프백)"
+  source: ["S4:72"]
+  quote: "Read fully and follow `[[bmad-snapshot:step-03-implement.md]]` to re-derive the code, then this step will run again."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "SKB rounds re-read 02-fix.md (order round_2/round_3); OSF apply may return to ff. Opposite of the AI-DLC eval item T-OR3 (no_return)", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G8, note: "a bounded re-implementation loop may survive; the clean-tree re-derivation does not"}
+- id: G86a
+  stage: 4
+  category: P
+  text: "patch: step-03의 같은 구현 서브에이전트를 이름/id로 재호출한다 (새로 띄우면 재호출이 아님)"
+  source: ["S4:73"]
+  quote: "Re-engage the step-03 implementation subagent — the same one, addressed by the name or id its launch returned; a fresh launch is not re-engagement."
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: G86b
+  stage: 4
+  category: F
+  text: "patch: 정해진 메시지 한 통을 보낸다 — 'Review of your implementation found problems. Fix each one below with the smallest change ...' 와 `- <file> — <what is wrong> — <what the smallest fix must do>` 행"
+  source: ["S4:73-81"]
+  quote: "Send it one message, exactly this, with the findings filled in:"
+  logic: {compares: trace-doc, form: equal, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: "the row format can become the agent's own patch list"}
+- id: G86c
+  stage: 4
+  category: P
+  text: "patch: 서브에이전트를 이어 쓸 수 없으면 patch를 직접 적용한다"
+  source: ["S4:83"]
+  quote: "If it cannot be continued, apply the patches yourself."
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G7, note: "always yourself"}
+- id: G86d
+  stage: 4
+  category: F
+  text: "patch: 이번 패스의 triage 항목을 붙이고 patch된 각 행에 적용한 수정을 적는다"
+  source: ["S4:83"]
+  quote: "Append the triage-log entry for this pass, recording in each patched row the fix applied."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G87a
+  stage: 4
+  category: F
+  text: "defer: frontmatter의 `deferred` 키는 하나뿐인 리스트다 — 없으면 빈 리스트로 한 번 추가, `[]`면 첫 항목으로 대체, 있으면 뒤에 붙임; 두 번째 `deferred:` 키를 만들지 않는다"
+  source: ["S4:84", "ST:10"]
+  quote: "Preserve every existing item, do not look for duplicates, and never add a second `deferred:` key."
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM5
+  skill: S10
+  train: {relation: none, note: "no frontmatter in training", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G87b
+  stage: 4
+  category: R
+  text: "defer: 기존 deferred 항목을 모두 보존하고(중복 검사 없이) 새 항목만 뒤에 붙인다"
+  source: ["S4:84"]
+  quote: "Preserve every existing item, do not look for duplicates"
+  logic: {compares: artifact-artifact, form: equal, window: between-writes, polarity: dont}
+  template: T-WD4
+  skill: S5
+  train: {relation: rewarded, note: "T-WD4 items (B13)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G87c
+  stage: 4
+  category: F
+  text: "defer: 자유 서술 값은 YAML block scalar로 직렬화해 `:`, `#`, 따옴표, 줄바꿈이 데이터로 남게 한다"
+  source: ["S4:84"]
+  quote: "Serialize free-form values as YAML block scalars so characters such as `:`, `#`, quotes, and line breaks remain data."
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM8
+  skill: S10
+  train: {relation: rewarded, note: "domain grammar items (OSF delta layout); instance: YAML", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G87d
+  stage: 4
+  category: F
+  text: "defer: 항목마다 summary(>-, 한 문장), evidence(|-), 선택 location(file:line/component), 선택 severity(high|medium|low; maybe-false는 if-true 등급 + \" (unverified)\")"
+  source: ["S4:85-93"]
+  quote: "severity: medium # optional — high | medium | low; for a maybe-false entry, its if-true grade plus \" (unverified)\""
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "per-block field items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: G87e
+  stage: 4
+  category: P
+  text: "defer: 모두 붙인 뒤 frontmatter 전체를 YAML로 파싱해 `deferred`가 기존+새 항목을 모두 담은 하나의 리스트인지 확인하고 직렬화 오류를 고친다"
+  source: ["S4:95"]
+  quote: "After all appends, parse the complete frontmatter as YAML and verify that `deferred` is one list containing every prior item plus the new items with their intended text."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: NEW-WD-exists-after
+  skill: S5
+  train: {relation: none, note: "catalogue candidate (check own artifact after writing); here a parse, not an existence check", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- H. finalization / HALT
+- id: H1
+  stage: halt
+  category: F
+  text: "`## Auto Run Result`에 여섯 가지를 쓴다: 구현 요약, 바뀐 파일과 한 줄 설명, 리뷰 finding 내역(적용한 patch, defer한 것, reject한 finding 전부와 이유), 후속 리뷰 권고, 수행한 검증(명령 결과·수동 점검 메모), 잔여 위험"
+  source: ["S4:99-105"]
+  quote: "Write the following details to `{spec_file}` under `## Auto Run Result`:"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "AOS IT:255-306 final-verification report fields (agentos_v2_report.*); SKB fix/test report sections", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: H2
+  stage: halt
+  category: A
+  text: "Auto Run Result의 '바뀐 파일' 목록은 최종 diff의 파일 집합과 같다"
+  source: ["S4:101"]
+  quote: "- Files changed with one-line descriptions"
+  logic: {compares: artifact-diff, form: set, window: whole-run, polarity: do}
+  template: T-RF3
+  skill: S6
+  train: {relation: shown, note: "SKB FX:60-90 fix report Changes section shows the record side; the SKB subset item is held out of training (templates.yaml T-RF3 reason)", layer_candidate: L2M}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: H3
+  stage: halt
+  category: C
+  text: "Auto Run Result의 finding 내역(patch/defer/reject 수와 reject 이유)은 Review Triage Log의 행과 일치한다"
+  source: ["S4:102"]
+  quote: "- Review findings breakdown: patches applied, items deferred, and every rejected finding with its recorded reason"
+  logic: {compares: artifact-internal, form: count, window: whole-run, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: H4
+  stage: halt
+  category: C
+  text: "후속 리뷰 권고는 기본 false; 이번 패스의 patch 항목만 항목 verdict로 센다(defer·false 제외); 첫 패스는 high patch가 있거나 medium patch가 둘 이상이면 true, 후속 패스는 high patch가 있을 때만 true; true면 구체적 미검증 위험을 지명하고 못 하면 false; verdict별 patch 수를 적는다"
+  source: ["S4:103"]
+  quote: "On a first pass, `true` if any patched entry was `high`, or if two or more `medium` entries were patched. On a follow-up pass ... `true` only if this pass patched a `high`"
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: env, gap: G8, note: "first pass only"}
+- id: H5
+  stage: halt
+  category: C
+  text: "frontmatter `followup_review_recommended`는 H4의 계산값과 같다"
+  source: ["S4:107", "ST:7"]
+  quote: "Set `{spec_file}` frontmatter `followup_review_recommended` from the computation above."
+  logic: {compares: artifact-internal, form: equal, window: whole-run, polarity: do}
+  template: NEW-FM-internal
+  skill: S10
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: H6
+  stage: halt
+  category: A
+  text: "'수행한 검증'에 적은 명령과 결과는 실제 실행과 일치한다"
+  source: ["S4:104"]
+  quote: "- Verification performed, including command outcomes or manual inspection notes"
+  logic: {compares: artifact-trace, form: equal, window: after-last-edit, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "speckit_bug.test.test.speckit_bug_checks_table.commands_run; agentos_v2 ...report.suite_status", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: ""}
+- id: H7
+  stage: halt
+  category: E
+  text: "VCS가 있으면 status done을 쓴 뒤 미커밋 상태인 리뷰된 diff 파일을 모두(추적 중이면 spec도) 로컬 커밋한다; 이번 실행의 기존 커밋은 유지한다"
+  source: ["S4:111-113"]
+  quote: "Commit any reviewed-diff files that remain uncommitted, including `{spec_file}` when it is tracked in that working copy. Keep commits already created during this run."
+  logic: {compares: trace-doc, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: none, note: "grep commit|push in training docs: only 'never commit secrets' (AOS CT:350)", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: "no commits; the harness diffs the working tree"}
+- id: H8
+  stage: halt
+  category: A
+  text: "리뷰된 diff 파일 전부가 baseline 이후 변경 집합에 있고 미커밋으로 남은 것이 없음을 확인한다"
+  source: ["S4:113"]
+  quote: "Verify every reviewed-diff file appears in the change set after `{baseline_revision}` and none remains uncommitted."
+  logic: {compares: artifact-diff, form: set, window: after-last-edit, polarity: do}
+  template: T-RF3
+  skill: S6
+  train: {relation: shown, note: "as H2", layer_candidate: L2M}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: H9
+  stage: halt
+  category: R
+  text: "push하지 않는다"
+  source: ["S4:113"]
+  quote: "Do not push."
+  logic: {compares: trace-doc, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-PR6
+  skill: S4
+  train: {relation: rewarded, note: "openspec_ff.global.run.openspec_ff_cli.no_init (a named command is prohibited; instance: git push)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G6, note: "no network, no remote; moot"}
+- id: H10
+  stage: halt
+  category: P
+  text: "커밋 후 작업 사본이 깨끗한지 확인하고, 아니면 `finalization left repository dirty`로 HALT blocked"
+  source: ["S4:114"]
+  quote: "Verify the version-controlled working copy is clean. Otherwise HALT with status `blocked` and blocking condition `finalization left repository dirty`."
+  logic: {compares: artifact-diff, form: exists, window: after-last-edit, polarity: dont}
+  template: T-PR2
+  skill: S4
+  train: {relation: rewarded, note: "speckit_bug.global.run.speckit_bug_created_files.scratch etc. (no working file left); here 'clean' means committed, which the port forbids", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "the uncommitted patch is the deliverable; the opposite is required"}
+- id: H11
+  stage: halt
+  category: F
+  text: "spec_file을 모르거나 없을 때는 `{{.implementation_artifacts}}/bmad-build-auto-result-<slug-or-timestamp>.md`를 만든다"
+  source: ["WF:32"]
+  quote: "If `{spec_file}` is unknown or missing, create `{{.implementation_artifacts}}/bmad-build-auto-result-<slug-or-timestamp>.md`"
+  logic: {compares: artifact-trace, form: exists, window: whole-run, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "artifact_exists / path_match items", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "only reachable on a halt before the spec exists"}
+- id: H12
+  stage: halt
+  category: F
+  text: "결과 파일(또는 folder+id의 골격 story spec)은 frontmatter `status: <final status>`, `# BMad Build Auto Result`(또는 `# <entry title>`), `## Auto Run Result`, `Status:` 줄, `Blocking condition:` 줄로 이루어진다"
+  source: ["WF:18-29", "WF:33-42"]
+  quote: "Status: <final status>\n     Blocking condition: <blocking condition, if any>"
+  logic: {compares: artifact-internal, form: exists, window: whole-run, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present/label_present items", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "the blocked-path skeleton; rarely reached"}
+- id: H13
+  stage: halt
+  category: F
+  text: "folder+id HALT: 쓰기 되돌림은 항상 id 키 story spec에 간다 — 미해결 항목이면 `{story_id}-unresolved.md`, 모호한 일치면 `{story_id}-ambiguous.md`, 그 외 `{story_id}-{slug}.md`; IA fallback은 쓰지 않는다"
+  source: ["WF:11-15"]
+  quote: "the write-back always lands at the id-keyed story spec. The `{{.implementation_artifacts}}` fallback in step 2 below is never used in this mode"
+  logic: {compares: artifact-trace, form: exists, window: whole-run, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "path_match items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G1, note: ""}
+- id: H14
+  stage: halt
+  category: P
+  text: "결과를 쓴 뒤 On Complete를 따르고(기본 빈 값) workflow를 멈춘다: 마지막 결과 쓰기 뒤에 다른 행동이 없다"
+  source: ["WF:43", "WF:47-49", "CT:29-32"]
+  quote: "Follow **On Complete** below, then stop the workflow."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "order items (the terminal write is last); on_complete itself is an empty hook", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G8, note: "the rollout ends with the agent's final message after the result write"}
+- id: H15
+  stage: 0
+  category: P
+  text: "턴을 끝내는 유일한 허용 방식은 명시적 최종 status를 쓰는 HALT 프로토콜이다 (알림 대기나 질문으로 끝내지 않음)"
+  source: ["WF:55", "WF:9"]
+  quote: "The only sanctioned way to end a turn is the HALT protocol above with an explicit terminal `status`."
+  logic: {compares: artifact-trace, form: exists, window: whole-run, polarity: do}
+  template: T-SR2
+  skill: S9
+  train: {relation: shown, note: "AOS CW:67-68 'a reply that calls no tool ends the session at once'; OSF CW:48-49; SKB CW:40 'A stage ends by moving on to the next stage, not by replying'; aidlc_v4_ifeval.global.run.no_request_for_input (eval T-SR2)", layer_candidate: L2M}
+  measure: code
+  port: {fate: env, gap: G8, note: "the final message states the terminal status"}
+
+# ---------------------------------------------------------------- I. subagent machinery (workflow.md Subagents)
+- id: I1
+  stage: 0
+  category: P
+  text: "단계가 서브에이전트를 지시하면 반드시 쓴다"
+  source: ["WF:53"]
+  quote: "Using subagents when instructed is mandatory."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "no delegation in training (OSF FF:61 'delegates creation to a specific skill' is a CLI call)", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: "one agent, one session"}
+- id: I2
+  stage: 0
+  category: P
+  text: "서브에이전트를 쓸 수 없으면 `no subagents`로 HALT blocked"
+  source: ["WF:53"]
+  quote: "If you cannot, HALT with status `blocked` and blocking condition `no subagents`."
+  logic: {compares: trace-doc, form: order, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G7, note: "would end every rollout at once"}
+- id: I3
+  stage: 0
+  category: P
+  text: "한 단계가 요구하는 서브에이전트는 모두 한 메시지에서 블로킹 호출로 함께 띄우고 결과를 모두 기다린 뒤 계속한다; 한 단계의 호출을 여러 메시지로 나누지 않는다"
+  source: ["WF:55"]
+  quote: "Launch all the subagents a step calls for in **one message** — several **blocking** calls awaited together in the same turn"
+  logic: {compares: trace-doc, form: count, window: in-stage, polarity: do}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: I4
+  stage: 0
+  category: R
+  text: "서브에이전트를 백그라운드·분리·비동기로 돌리지 않고(`run_in_background: true` 금지) 완료 알림을 기다리려고 턴을 끝내지 않는다"
+  source: ["WF:55", "S3:30", "S4:25"]
+  quote: "Never run a subagent in the background / detached / async (e.g. `run_in_background: true`), and never end your turn to \"await a completion notification.\""
+  logic: {compares: trace-doc, form: window-forbid, window: whole-run, polarity: dont}
+  template: NEW-AW-subagent
+  skill: S3
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: code
+  port: {fate: drop, gap: G7, note: ""}
+- id: I5
+  stage: 4
+  category: P
+  text: "리뷰 서브에이전트는 모두 현재 세션과 같은 모델 능력으로 돌린다"
+  source: ["S4:7"]
+  quote: "All review subagents must run at the same model capability as the current session."
+  logic: {compares: none, form: judgement, window: in-stage, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: G7, note: ""}
+
+# ---------------------------------------------------------------- J. epic context compile (compile-epic-context.md; epic path only)
+- id: J1
+  stage: 1
+  category: P
+  text: "(epic 컴파일) epics 파일을 읽어 대상 epic의 제목·목표·스토리 목록을 뽑고, planning 디렉터리의 표준 파일(PRD, architecture, UX, brief)을 훑는다"
+  source: ["CE:8-9"]
+  quote: "Read the epics file and extract the target epic's title, goal, and list of stories."
+  logic: {compares: trace-doc, form: window-require, window: in-stage, polarity: do}
+  template: T-RD4
+  skill: S1
+  train: {relation: rewarded, note: "<wf>.read items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: "no epics file"}
+- id: J2
+  stage: 1
+  category: Q
+  text: "(epic 컴파일) 이 epic에 관련된 정보만 뽑는다; 공격적으로 범위를 줄이고 의심스러우면 뺀다; 스토리 수준 세부와 코드베이스에서 알 수 있는 것은 쓰지 않는다"
+  source: ["CE:10", "CE:50", "CE:53-54"]
+  quote: "**Scope aggressively.** Include only what a developer working on any story in this epic actually needs. When in doubt, leave it out"
+  logic: {compares: artifact-internal, form: judgement, window: in-stage, polarity: do}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: drop, gap: G3, note: ""}
+- id: J3
+  stage: 1
+  category: F
+  text: "(epic 컴파일) 정확히 지정된 출력 경로 `IA/epic-<N>-context.md`에 쓴다"
+  source: ["CE:11", "S1:59"]
+  quote: "Write the compiled context to the exact output path using the format below."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "artifact_exists items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J4
+  stage: 1
+  category: F
+  text: "(epic 컴파일) 제목은 `# Epic {N} Context: {Epic Title}`, 생성 주석, 그리고 ## Goal, ## Stories, ## Requirements & Constraints, ## Technical Decisions, ## UX & Interaction Patterns, ## Cross-Story Dependencies 순이다"
+  source: ["CE:15-46"]
+  quote: "# Epic {N} Context: {Epic Title}"
+  logic: {compares: artifact-internal, form: exists, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "section_present items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J5
+  stage: 1
+  category: F
+  text: "(epic 컴파일) Stories는 `- Story X.Y: Brief title only` 형식이다"
+  source: ["CE:28"]
+  quote: "- Story X.Y: Brief title only"
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "item_format items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J6
+  stage: 1
+  category: Q
+  text: "(epic 컴파일) 출처가 아니라 목적으로 기술한다; 원문·절 번호·큰 블록을 그대로 옮기지 않고 늘 요약한다"
+  source: ["CE:51-52"]
+  quote: "**No full copies.** Never quote source documents, section numbers, or paste large blocks verbatim. Always distill."
+  logic: {compares: artifact-artifact, form: judgement, window: in-stage, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: drop, gap: G3, note: ""}
+- id: J7
+  stage: 1
+  category: F
+  text: "(epic 컴파일) 전체 800–1500 토큰을 목표로 한다"
+  source: ["CE:55"]
+  quote: "Target 800–1500 tokens total."
+  logic: {compares: artifact-internal, form: count, window: in-stage, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "count caps (T-FM3)", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J8
+  stage: 1
+  category: Q
+  text: "(epic 컴파일) 내용을 지어내지 않는다: 출처에 없으면 쓰지 않는다"
+  source: ["CE:56", "CE:62"]
+  quote: "**Never hallucinate content.** If source material doesn't say something, don't invent it."
+  logic: {compares: artifact-artifact, form: judgement, window: in-stage, polarity: dont}
+  template: NEW-J-content
+  skill: J
+  train: {relation: none, note: "", layer_candidate: L2F}
+  measure: judge
+  port: {fate: drop, gap: G3, note: ""}
+- id: J9
+  stage: 1
+  category: F
+  text: "(epic 컴파일) 빈 섹션은 통째로 생략한다; Goal과 Stories는 항상 있다"
+  source: ["CE:57"]
+  quote: "**Omit empty sections entirely**, except Goal and Stories, which are always required."
+  logic: {compares: artifact-internal, form: set, window: in-stage, polarity: do}
+  template: T-FM7
+  skill: S10
+  train: {relation: rewarded, note: "agentos_v2.write_spec.spec.cross_ref.no_extra_sections", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J10
+  stage: 1
+  category: P
+  text: "(epic 컴파일) epics 파일이 없거나 epic을 못 찾으면 아무것도 쓰지 않고 호출한 에이전트에 문제를 보고한다"
+  source: ["CE:61"]
+  quote: "**If the epics file is missing or the target epic is not found:** write nothing and report the problem to the calling agent."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "as C3a", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+- id: J11
+  stage: 1
+  category: F
+  text: "(epic 컴파일) planning 산출물이 없거나 비면 Goal·Stories만 채운 파일을 만들고 Requirements & Constraints에 정확히 \"Planning artifacts were unavailable; only epics-file context was used.\"를 쓴다"
+  source: ["CE:62"]
+  quote: "Under Requirements & Constraints, write: \"Planning artifacts were unavailable; only epics-file context was used.\""
+  logic: {compares: artifact-internal, form: equal, window: in-stage, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "field_literal items", layer_candidate: L1}
+  measure: code
+  port: {fate: drop, gap: G3, note: ""}
+
+# ---------------------------------------------------------------- new templates (defined once; status candidate until an item implements them)
+new_templates:
+  NEW-J-content:
+    skill: J
+    name: content judged by an LLM judge over the artifact and the issue/diff (outside S1-S10)
+    compares: issue-artifact or artifact-diff or artifact-internal, form judgement; the judge sees the artifact, the issue and the diff, not the trajectory
+    nearest: none in the catalogue; 10_handover 2.5 keeps judge items outside S1-S10 and reports them on a separate axis (J); defined here so every judge-checkable rule carries a template id
+    status: candidate
+  NEW-AW-subagent:
+    skill: S3
+    name: a delegation call (subagent launch) required or forbidden inside a window, with its launch parameters
+    compares: trace vs document — the tool call that launches a child agent, its count per message, blocking/background flag and prompt text, inside the stage window
+    nearest: T-AW5 (run a CLI command inside a window); differs in the compared object (a child-agent call with a prescribed prompt, not a shell command) and in the parameters judged (one message, blocking, prompt verbatim)
+    status: candidate
+  NEW-FM-internal:
+    skill: S10
+    name: artifact-internal consistency — a field equals a value derived from other parts of the same artifact
+    compares: artifact-internal, form equal/count/keyed — e.g. `<total>` equals the row count, `followup_review_recommended` equals the triage-derived value, verdict false implies route reject, `oversized` present iff the body exceeds 1600 tokens
+    nearest: T-FM3 (count against a fixed number) and T-RF1 (record against the run); differs because both sides are inside the artifact (09 named it '산출물 내부 일관성')
+    status: candidate
+  NEW-FM-language:
+    skill: S10
+    name: artifact (or message) language equals the configured language
+    compares: artifact-internal, form equal — language detection over the whole text
+    nearest: T-FM2 (allowed values of a field); differs because it is a property of the whole text, not of a field
+    status: candidate
+  NEW-WD-revert:
+    skill: S5
+    name: after a decision the working tree is restored to the baseline (the attempt is saved elsewhere)
+    compares: artifact-diff, form equal — the repository state after the revert equals the baseline revision; the saved patch file equals the discarded diff
+    nearest: T-AW1 (no repository edit outside the allowed stage); differs because it compares an end state with the baseline rather than forbidding edit events
+    status: candidate

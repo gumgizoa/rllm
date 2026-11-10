@@ -1,0 +1,1024 @@
+# Pre-port rule inventory of SPARC (ruvnet) 1.0, process A: the five-phase evidence-gated run driven through the `sparc` CLI.
+# Every rule cites the upstream file:line it was read from (checkout at /vast-ib/MMI/home/kyuminkim/project/if/workflows/sparc).
+# Most rules live in code (gates.ts, store.ts, cli.ts, domain.ts); those files are treated as rule documents (role: code).
+# Rule counts: 72 rules; enforced (the CLI refuses the violation) 42, code 24, judge 5, none 1.
+schema: port.rules/1
+workflow: sparc_run
+upstream: https://github.com/ruvnet/sparc.git @ 3af6c696be3e713d885cead7f84d07a7fac25ade
+process: "A. 1.0 CLI five-phase evidence-gated run: start -> Specification -> Pseudocode -> Architecture -> Refinement (implement + test + signed evidence) -> Completion -> status/trace"
+docs:
+  SK:  {path: skills/sparc/SKILL.md, role: skill}
+  SKR: {path: skills/sparc-resume/SKILL.md, role: skill}
+  SKV: {path: skills/sparc-review/SKILL.md, role: skill}
+  TR:  {path: templates/README.md, role: template}
+  TD:  {path: templates/definition.example.json, role: template}
+  TS:  {path: templates/specification.json, role: template}
+  TP:  {path: templates/pseudocode.json, role: template}
+  TA:  {path: templates/architecture.json, role: template}
+  TF:  {path: templates/refinement.json, role: template}
+  TC:  {path: templates/completion.json, role: template}
+  CLI: {path: src/cli.ts, role: code}
+  GT:  {path: src/gates.ts, role: code}
+  ST:  {path: src/store.ts, role: code}
+  DM:  {path: src/domain.ts, role: code}
+  MH:  {path: src/metaharness.ts, role: code}
+  EA:  {path: docs/EVIDENCE_ATTESTATION.md, role: readme}
+  TU:  {path: docs/tutorial.md, role: readme}
+  RM:  {path: README.md, role: readme}
+
+# Stage names: 0 = global; Start = `sparc start` with definition.json; the five SPARC phases by name; Trace = after finalization.
+# Training evidence (train.note) cites constraints.yaml item ids of agentos_v2 (AOS) / openspec_ff (OSF) / speckit_bug (SKB), status implemented,
+# or lines of their docs/ (AOS CW = agentos_v2/docs/core-workflow.md, OSF CW = openspec_ff/docs/core-workflow.md, SKB CW = speckit_bug/docs/core-workflow.md, SKB FX = speckit_bug/docs/stages/02-fix.md).
+
+rules:
+
+# ---------------------------------------------------------------- A. activation and order of operations
+- id: A1
+  stage: 0
+  category: Q
+  text: 시작 전에 목표·제약·요구사항·관찰 가능한 인수 증거를 (메시지나 definition에) 밝힌다
+  source: ["SK:22", "MH:59"]
+  quote: "1. State the goal, constraints, requirements, and observable acceptance evidence."
+  logic: {compares: issue-artifact, form: judgement, window: none, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "내용 적절성 항목; 카탈로그 밖 (10_handover §2.5). 학습 항목 없음", layer_candidate: null}
+  measure: judge
+  port: {fate: semantic, gap: G3, note: "skill 문장을 entry 문서의 '이슈에서 REQ/TEST를 끌어내라'로 다시 쓴다; judge 항목"}
+
+- id: A2
+  stage: Start
+  category: P
+  text: "`sparc start`는 run마다 한 번만 호출한다 (같은 run-id로 두 번째 start는 RUN_EXISTS)"
+  source: ["SK:23", "ST:349-366", "TU:39"]
+  quote: "Call `sparc_run_start` once."
+  logic: {compares: artifact-trace, form: count, window: whole-run, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff.ff.run.openspec_ff_cli.new_change ('ff starts from openspec new change'), T-AW5 OSF 18건", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "CLI가 sandbox에 있어야 한다 (Node 20 + dist/). 두 번째 start는 CLI가 거부하므로 천장 항목"}
+
+- id: A3
+  stage: Start
+  category: P
+  text: "start 직후 `sparc status`(요약)를 읽고, 다음 변경 명령에 그 요약의 revision을 쓴다"
+  source: ["SK:24", "TU:50", "RM:74"]
+  quote: "Read the bounded summary with `sparc_run_get`. ... use the summary revision for the next mutation."
+  logic: {compares: artifact-trace, form: window-require, window: in-stage, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff.ff.run.openspec_ff_cli.instructions_design ('get openspec instructions before writing'); OSF FF:67 re-run status after each artifact", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G7, note: "trace에서 start와 첫 submit 사이의 status 호출을 센다; revision 자체는 start 출력에도 있어 생략 가능성 높음"}
+
+- id: A4
+  stage: 0
+  category: P
+  text: "단계를 Specification → Pseudocode → Architecture → Refinement → Completion 순서로만 밟는다 (submit은 현재 단계만, advance는 바로 다음 단계만)"
+  source: ["SK:25", "DM:3-9", "ST:522-527", "ST:773-793", "RM:13", "MH:44-50"]
+  quote: "Only Specification to Pseudocode to Architecture to Refinement to Completion is legal"
+  logic: {compares: artifact-trace, form: order, window: whole-run, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "AOS agentos_v2.global.run.order.commands; OSF openspec_ff.global.run.order.actions; SKB speckit_bug.global.run.order.round_1", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "CLI가 순서를 강제한다 (다른 단계 submit은 VALIDATION, 건너뛰는 advance는 PHASE_SKIP). 완료된 run은 위반할 수 없다"}
+
+- id: A5
+  stage: 0
+  category: P
+  text: "다섯 단계를 하나도 건너뛰지 않고 모두 지난다 (phaseHistory가 다섯 단계 전부를 순서대로 담는다)"
+  source: ["SK:41", "ST:1829-1843", "MH:107"]
+  quote: "Never skip phases, rewrite prior artifacts, ..."
+  logic: {compares: artifact-trace, form: count, window: whole-run, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "AOS CW:27-28 'Each command runs once, in this order'; 위 T-OR1 항목들", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "완료 상태(status completed)에 이르면 자동으로 참. 미완료 run에서는 '어디까지 갔나'가 평가 신호"}
+
+- id: A6
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: F
+  text: "단계마다 그 단계의 정식 산출물(artifactId = 단계 이름 소문자)을 `sparc submit --phase <단계> --file <json>`으로 제출한다"
+  source: ["SK:25", "ST:531-534", "DM:368-370", "GT:82-87", "GT:918-926"]
+  quote: "Submit each phase artifact with `sparc_phase_submit`."
+  logic: {compares: artifact-trace, form: exists, window: in-stage, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.spec_dir.artifact_exists; SKB speckit_bug.assess.assessment.artifact_exists; T-FM1 세 workflow 모두", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "gate가 MISSING_PHASE_ARTIFACT를 내므로 advance 전에 반드시 있다; 산출물은 run JSON 안에 쌓인다 (G5: 파일이 아니라 state 안)"}
+
+- id: A7a
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: P
+  text: "advance 전에 `sparc gate`를 호출해 blocker를 확인한다"
+  source: ["SK:27", "TU:65-68", "RM:84"]
+  quote: "6. Call `sparc_gate_validate`. Call `sparc_phase_advance` only when the current gate passes."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "OSF openspec_ff.apply.tasks.openspec_ff_tasks.rerun_after_tick (도구로 상태 확인 후 진행), T-OR1 사슬 항목", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G7, note: "CLI는 gate 호출 자체를 강제하지 않는다 (advance가 내부에서 다시 평가). trace에서 submit→gate→advance 순서를 센다"}
+
+- id: A7b
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: P
+  text: "gate가 통과할 때만 advance한다 (blocker가 있으면 advance는 GATE_BLOCKED, 종료코드 2)"
+  source: ["SK:27", "ST:794-795", "ST:819-820", "CLI:342", "RM:104"]
+  quote: "const gate = evaluatePhaseGate(this.toPublic(state), state.phase); if (!gate.ok) return this.blockedByGate(state, gate);"
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "OSF openspec_ff.archive.run.openspec_ff_archive.retries (결과 분기); SKB speckit_bug.global.run.speckit_bug_holds.no_round_after_verified", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "천장 항목: 통과 못 한 advance는 상태를 바꾸지 않는다"}
+
+- id: A8
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: P
+  text: "gate blocker가 나오면 산출물을 고쳐 새 버전으로 다시 submit하고(새 idempotency key) 다시 gate한다; blocker를 무시하거나 숨기지 않는다"
+  source: ["TU:68", "SK:41", "ST:532-534"]
+  quote: "Correct the artifact, submit a new immutable version with a new idempotency key, and validate again."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "OSF CW:102-105 archive 실패 시 지적된 것만 고쳐 한 번 더 실행; openspec_ff.archive.run.openspec_ff_archive.retries", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G8, note: "재시도 상한이 upstream에 없다 (G8 loops): port가 상한을 정해야 한다. trace에서 gate(exit 2) 뒤 submit이 따르는지 센다"}
+
+- id: A9
+  stage: Trace
+  category: P
+  text: "완료를 보고하기 전에 `sparc trace` 페이지를 끝까지 읽고 run 요약(`sparc status`)을 다시 읽는다"
+  source: ["SK:29", "TU:110-115", "SKV:28"]
+  quote: "8. Before reporting completion, traverse every `sparc_trace_get` page, then reread the run summary."
+  logic: {compares: artifact-trace, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff.apply.tasks.openspec_ff_tasks.rerun_after_tick (T-PG2) 와 T-AW5 status 재호출 항목이 가까움", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G7, note: "마지막 응답 전 trace+status 호출 존재. SWE run은 12~15 revision이라 페이지 하나"}
+
+- id: A10
+  stage: Trace
+  category: A
+  text: "마지막 보고에 run ID, 최종 revision, 남은 exception을 적고, 그 값이 state와 같다"
+  source: ["SK:29"]
+  quote: "Report the run ID, final revision, and remaining exceptions."
+  logic: {compares: artifact-trace, form: equal, window: after-last-edit, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "SKB speckit_bug.fix.fix.field_type.commands_run (기록한 값 = 실행 값); T-RF1 세 workflow 모두", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "마지막 메시지의 revision 숫자를 state 파일과 대조"}
+
+- id: A11
+  stage: 0
+  category: P
+  text: "페이지 cursor는 불투명하게 다루고 nextCursor가 없어질 때까지 이어 읽는다; cursor가 stale하거나 revision이 바뀌면 모은 페이지를 버리고 첫 페이지부터 다시 읽는다 (스냅샷을 섞지 않음)"
+  source: ["SK:39", "SK:24", "TU:115"]
+  quote: "If a cursor is rejected as stale or the run revision changes, discard all pages from that traversal and restart at the first page; never mix snapshots."
+  logic: {compares: artifact-trace, form: order, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "T-OR2 (결과 분기·재시도) OSF/SKB 각 1건; 페이지 루프 자체는 학습에 없음", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G8, note: "단일 agent·작은 run에서는 페이지가 하나이고 stale cursor가 생기지 않는다; 규칙은 남지만 거의 발동하지 않음"}
+
+- id: A12
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: P
+  text: "단계 산출물을 쓰기 전에 그 단계의 템플릿(templates/<phase>.json)을 읽고 복사해 채운다"
+  source: ["TU:54", "TU:78", "RM:92", "TR:3"]
+  quote: "Copy `templates/specification.json`, replace its example identifiers and content, then submit it with the current revision"
+  logic: {compares: trace-doc, form: order, window: in-stage, polarity: do}
+  template: T-RD2
+  skill: S1
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.run.doc_read.ss; OSF openspec_ff.ff.run.doc_read.ff; SKB speckit_bug.assess.run.doc_read.as", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "템플릿 파일을 port의 문서 디렉터리에 두고 경로를 entry 문서에 적는다; 읽기 시점(submit 전)을 trace에서 본다"}
+
+# ---------------------------------------------------------------- B. run start / definition
+- id: B1
+  stage: Start
+  category: F
+  text: "definition.json: requirements ≥1개, 각 요구사항에 id·statement(비어있지 않은 텍스트)·inScope(boolean)·acceptanceTestIds(배열); 각 acceptanceTest에 id·description(·선택 command 텍스트)"
+  source: ["ST:1146-1178", "ST:1156-1160", "TD:1-16", "DM:39-51"]
+  quote: "if (!Array.isArray(requirementsInput) || requirementsInput.length === 0) { throw new SparcError('VALIDATION', 'at least one stable requirement is required'); }"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.write_spec.spec.agentos_v2_blocks.specific_requirements; OSF openspec_ff.ff.spec.delta.when_then (블록마다 필드)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G1, note: "start가 거부한다. 이슈 → REQ/TEST 변환(G1 입력)은 B7의 내용 문제"}
+
+- id: B2
+  stage: Start
+  category: F
+  text: "REQ/TEST/run/evidence 식별자는 128자 이내의 이식 가능한 식별자 패턴 ^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$ 을 따른다"
+  source: ["DM:361", "DM:372-375", "ST:1158", "ST:1169", "ST:563-565", "TU:39"]
+  quote: "export const SPARC_IDENTIFIER_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._:@-]{0,127})$/;"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.requirements.item_format.questions (번호 형식); SKB speckit_bug.assess.assessment.item_format.suspected_code_paths", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "형식 위반은 start/evidence가 거부"}
+
+- id: B3
+  stage: Start
+  category: F
+  text: "요구사항 id와 인수테스트 id는 중복이 없고, 한 요구사항의 acceptanceTestIds 안에서도 같은 TEST를 반복하지 않는다"
+  source: ["ST:1161", "ST:1171", "ST:1182"]
+  quote: "if (requirements.has(requirement.id)) throw new SparcError('VALIDATION', `duplicate requirement ${requirement.id}`);"
+  logic: {compares: artifact-internal, form: count, window: none, polarity: dont}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "T-FM3 고유성 항목 (AOS 11, OSF 10, SKB 11 implemented)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: B4
+  stage: Start
+  category: C
+  text: "요구사항이 인용하는 모든 TEST id가 같은 definition의 acceptanceTests에 등록되어 있다 (인용 ⊆ 등록)"
+  source: ["ST:1183"]
+  quote: "if (!tests.has(testId)) throw new SparcError('VALIDATION', `requirement ${requirement.id} references unknown ${testId}`);"
+  logic: {compares: artifact-internal, form: set, window: none, polarity: do}
+  template: NEW-S8-intra-set
+  skill: S8
+  train: {relation: none, note: "학습 cross_ref는 모두 산출물 간 집합 관계(T-TR1); 한 산출물 안의 두 섹션 사이 집합 관계는 항목·문서 모두 없음. T-TR1의 구조 확장", layer_candidate: L2M}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: B5
+  stage: Start
+  category: F
+  text: "inScope=true인 요구사항은 인수테스트가 1개 이상이고 nonGoalReason이 없다; inScope=false인 요구사항은 인수테스트가 없고 nonGoalReason 텍스트가 있다"
+  source: ["ST:1186-1198", "DM:45-51"]
+  quote: "if (ids.size === 0) { throw new SparcError('VALIDATION', `in-scope requirement ${requirement.id} requires an acceptance test`); }"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 조건부 채움(field_filled when) 항목이 세 workflow에 다수; 예 SKB speckit_bug.assess.assessment.section_present.proposed_remediation", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "SWE 과제에서 out-of-scope REQ는 거의 쓰이지 않을 것"}
+
+- id: B6
+  stage: Start
+  category: F
+  text: "`sparc start --run-id --title --definition --idempotency-key`로 run을 만들어 state root 아래 run JSON(revision 1, phase Specification)이 생긴다"
+  source: ["CLI:212-231", "ST:320-347", "TU:41-50", "RM:66-72"]
+  quote: "sparc start --run-id ID --title TEXT --definition FILE [mutation options]"
+  logic: {compares: artifact-trace, form: exists, window: none, polarity: do}
+  template: T-FM1
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.spec_dir.artifact_exists (지정 경로에 산출물 생성)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G5, note: "state root는 저장소 밖 절대경로여야 한다 (I4). run JSON 경로는 sha256(principal)/sha256(run-id)라 평가기는 CLI나 glob으로 찾는다"}
+
+- id: B7
+  stage: Start
+  category: Q
+  text: "요구사항 statement는 관찰 가능한 요구 하나를, 인수테스트 description은 그것을 증명하는 객관적 증거를 적는다; 식별자는 라벨이 아니라 안정된 trace 키다"
+  source: ["TD:5", "TD:13", "TU:39", "MH:59"]
+  quote: "\"statement\": \"State one observable requirement\" ... \"description\": \"State objective evidence that proves REQ-1\""
+  logic: {compares: issue-artifact, form: judgement, window: none, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "내용 적절성; 카탈로그 밖", layer_candidate: null}
+  measure: judge
+  port: {fate: semantic, gap: G1, note: "입력이 이슈(hidden tests)라 인수테스트는 agent가 스스로 정하는 재현·회귀 테스트가 된다; judge가 이슈 대비 적절성을 본다"}
+
+# ---------------------------------------------------------------- C. per-phase artifact fields (form)
+- id: C1
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: F
+  text: "단계 산출물의 텍스트 필드는 비어있지 않은 문자열, 목록 필드는 비어있지 않은 문자열만 담은 배열(또는 문자열)이다 — Spec: outcome, businessValue, actors, inputs, outputs, assumptions, constraints, exclusions, securityBoundaries, measurableSuccessCriteria; Pseudo: controlFlow, dataTransformations, invariants, walkthroughs.success/.failure, walkthroughs.invariantChecks.success/.failure; Arch: dataLifecycle, deploymentModel, observability, migrationPath, rollbackPath, selectedDesign; Refinement: verification, preservedBehavior; Completion: finalDiff, documentation, observability, rollback, residualRisks"
+  source: ["GT:23-35", "GT:54-80", "GT:274-287", "GT:293-299", "GT:362-393", "GT:486-495", "GT:544-545", "GT:743-746", "RM:98-102"]
+  quote: "add(blockers, phase, 'MISSING_COLLECTION', `artifact.${field}`, `${field} must contain at least one explicit item`);"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 AOS 63 / OSF 30 / SKB 191 implemented (골격 필드 채움)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G9, note: "gate가 강제하므로 천장. 다만 deploymentModel·observability·rollback·migrationPath·businessValue·securityBoundaries는 SWE 버그 수정에 자연스러운 내용이 없어 상투어로 채워질 것 (survey 열린 질문 3)"}
+
+- id: C2
+  stage: Pseudocode|Architecture|Refinement
+  category: F
+  text: "구조화 레코드 목록은 비어있지 않고 레코드마다 필수 텍스트 필드가 있다 — Pseudo: stateTransitions{from,event,to,onFailure}, failurePaths{condition,error,stateEffect}, idempotencyRules{scope,keyBinding,replay,mismatch}; Arch: components{name,responsibility}, interfaces{name,contract}, ownership{component,owner}, trustBoundaries{boundary,control}, alternatives{name,rejectedBecause, tradeoffs.deliveryCost/runtimeCost/latency/accuracy/security/operationalRisk}; Refinement: increments{id,description,requirementIds}"
+  source: ["GT:300-330", "GT:412-445", "GT:497-537", "GT:548-581", "TP:3-34", "TA:1-45", "TF:9-23"]
+  quote: "add(blockers, phase, 'INCOMPLETE_PSEUDOCODE_RECORD', `artifact.${field}[${index}].${requiredField}`, `${field} records require ${requiredField}`);"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.write_spec.spec.agentos_v2_blocks.specific_requirements; OSF openspec_ff.ff.spec.delta.requirement_text", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G9, note: "6개 tradeoff 차원·idempotencyRules 등은 버그 수정과 무관한 항목이 많다; 형식은 유지되고 내용은 상투어가 될 것"}
+
+- id: C3
+  stage: Pseudocode
+  category: F
+  text: "retries 레코드마다 condition·backoff·exhaustion 텍스트와 0..100 범위의 정수 maxAttempts가 있다"
+  source: ["GT:331-361", "TP:19-26"]
+  quote: "retry records require condition, maxAttempts 0..100, backoff, and exhaustion"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "T-FM6 블록별 필드 (AOS 4, OSF 4); 숫자 범위는 T-FM2 field_enum과 같은 인스턴스 차이(개수 값)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: G9, note: "버그 수정에서 재시도 결정은 보통 'maxAttempts 0'의 상투어"}
+
+- id: C4
+  stage: Refinement
+  category: F
+  text: "increments[].preservesBehavior는 boolean으로 명시한다"
+  source: ["GT:690-697", "TF:21"]
+  quote: "each increment must explicitly state whether existing behavior is preserved"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 허용값(field_enum) 항목들", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "값의 진실성은 G4"}
+
+- id: C5
+  stage: Refinement
+  category: F
+  text: "preservesBehavior=false인 increment에는 migrationApproval 텍스트(승인된 migration 참조)가 있다"
+  source: ["GT:698-705", "RM:101"]
+  quote: "behavior-changing increments require an approved migration reference"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 조건부 채움", layer_candidate: L1}
+  measure: enforced
+  port: {fate: semantic, gap: G4, note: "승인자가 없다; port는 '이슈가 동작 변경을 요구하면 이슈를 migrationApproval로 인용'처럼 뜻을 바꿔야 한다"}
+
+- id: C6
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: F
+  text: "산출물 파일은 JSON 객체이고 입력 파일 512 KiB·content 256 KiB·텍스트 32768자·깊이 32 이내다"
+  source: ["GT:928-935", "CLI:33", "CLI:178-189", "DM:13-27", "DM:445-452"]
+  quote: "the canonical phase artifact must contain an object"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 골격", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: C7
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: F
+  text: "템플릿의 자리표시자(예문 문장, REQ-1/TEST-1/EVIDENCE-1 예시 id, REPLACE_WITH_EXACT_EVIDENCE_DIGEST)를 모두 실제 내용과 run의 식별자로 바꾼다"
+  source: ["TR:3", "TU:54", "RM:92", "TF:18", "TC:14"]
+  quote: "Replace every placeholder and align `REQ-1`, `TEST-1`, and `EVIDENCE-1` with the run created through the CLI or MCP server."
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: dont}
+  template: T-FM4
+  skill: S10
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.requirements.no_template_residue.fill_marks; OSF openspec_ff.ff.proposal.no_template_residue.fill_marks; SKB speckit_bug.assess.assessment.no_template_residue", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "gate는 예문 문장을 못 본다(비어있지만 않으면 통과); digest 자리표시자만 INVALID_EVIDENCE_REFERENCE로 잡힌다. 자리표시자 잔존은 평가기 몫"}
+
+- id: C8
+  stage: Specification|Pseudocode|Architecture|Refinement|Completion
+  category: Q
+  text: "단계 산출물의 내용이 그 단계의 목적에 맞는다 — Spec: 검증 가능한 요구·제약·위험·인수 기준; Pseudo: 구현 전 결정적 동작·실패 경로·데이터 흐름; Arch: 컴포넌트 경계·계약·신뢰 경계·되돌릴 수 있는 결정; Refinement: 승인된 산출물에 맞춘 구현·테스트·검토; Completion: 추적성과 검증 증거"
+  source: ["MH:58-64", "TU:78", "TS:2-11", "TC:2-6"]
+  quote: "refinement: 'Implement, test, review, and correct against the approved artifacts.'"
+  logic: {compares: issue-artifact, form: judgement, window: none, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "내용 적절성; 카탈로그 밖", layer_candidate: null}
+  measure: judge
+  port: {fate: semantic, gap: G3, note: "upstream에 단계별 한 줄뿐; port의 entry 문서가 각 단계 내용을 SWE 맥락으로 다시 써야 한다"}
+
+- id: C9
+  stage: Refinement|Completion
+  category: F
+  text: "evidenceRefs의 각 항목은 evidenceId 텍스트, 양의 정수 version, 64자 소문자 16진 digest를 갖는다"
+  source: ["GT:89-119", "EA:236-244", "TF:14-20", "TC:10-16"]
+  quote: "evidence references require evidenceId, positive version, and SHA-256 digest"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM6
+  skill: S10
+  train: {relation: rewarded, note: "T-FM6 블록별 필드", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: C10
+  stage: Refinement|Completion
+  category: F
+  text: "한 evidenceRefs 목록 안에서 같은 (evidenceId, version, digest) 참조를 반복하지 않는다"
+  source: ["GT:120-131"]
+  quote: "evidence reference ${evidenceId} version ${version} is repeated"
+  logic: {compares: artifact-internal, form: count, window: none, polarity: dont}
+  template: T-FM3
+  skill: S10
+  train: {relation: rewarded, note: "T-FM3 고유성", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- D. gate blockers: cross-reference logic
+- id: D1
+  stage: Specification|Pseudocode|Architecture|Refinement
+  category: C
+  text: "requirementCoverage는 등록된 모든 요구사항(in/out-of-scope 모두)을 정확히 한 번씩 담고, 등록되지 않은 요구사항을 담지 않는다 (coverage의 id 집합 = definition의 REQ 집합)"
+  source: ["GT:147-219", "TS:12-17", "TP:44-48", "TA:46-50", "TF:4-8"]
+  quote: "add(blockers, phase, 'UNCOVERED_REQUIREMENT', 'artifact.requirementCoverage', `requirement ${requirement.id} has no phase coverage`, ...)"
+  logic: {compares: artifact-artifact, form: set, window: none, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: rewarded, note: "OSF openspec_ff.ff.proposal.capabilities.listed_have_specs, openspec_ff.ff.spec.capabilities.specs_listed (산출물 간 집합 동일성)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "definition은 run state 안에 있다 (산출물↔state)"}
+
+- id: D2
+  stage: Specification
+  category: C
+  text: "Specification의 requirementCoverage에서 in-scope 요구사항마다 acceptanceTestIds 집합이 definition에 등록된 그 요구사항의 인수테스트 집합과 정확히 같다 (빠진 TEST도, 등록 안 된 TEST도 없음)"
+  source: ["GT:220-258", "RM:98"]
+  quote: "for (const testId of requirement.acceptanceTestIds) { if (!actual.has(testId)) { add(blockers, phase, 'INCOMPLETE_ACCEPTANCE_MAPPING', ..."
+  logic: {compares: artifact-artifact, form: keyed, window: none, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "학습 cross_ref는 모두 집합 관계; 키별 1:1 대응은 보상·노출 없음 (templates.yaml T-TR1b reason)", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "T-TR1b의 드문 실례; gate가 강제하므로 천장"}
+
+- id: D3
+  stage: Specification
+  category: F
+  text: "Specification의 requirementCoverage에서 out-of-scope 요구사항 항목에는 nonGoalReason 텍스트가 있다"
+  source: ["GT:259-267"]
+  quote: "out-of-scope requirement ${requirement.id} needs an explicit non-goal reason"
+  logic: {compares: artifact-artifact, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 조건부 채움", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "SWE에서 out-of-scope REQ가 드물어 거의 발동 안 함"}
+
+- id: D4
+  stage: Pseudocode
+  category: C
+  text: "walkthroughs.invariantChecks.success/.failure가 인용하는 invariant 문자열은 모두 invariants 목록에 선언된 것이다 (인용 ⊆ 선언, 문자열 동일)"
+  source: ["GT:381-406", "TP:35-42"]
+  quote: "walkthrough cites undeclared invariant: ${invariant}"
+  logic: {compares: artifact-internal, form: set, window: none, polarity: do}
+  template: NEW-S8-intra-set
+  skill: S8
+  train: {relation: none, note: "산출물 내부 두 섹션의 집합 관계; 학습 항목·문서 없음 (B4와 같은 템플릿)", layer_candidate: L2M}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "문자열 완전 일치라 agent가 invariant 문장을 그대로 복사해야 한다"}
+
+- id: D5
+  stage: Architecture
+  category: C
+  text: "components의 모든 name에 ownership 레코드가 정확히 하나 있고, ownership.component는 선언된 component만 가리킨다 (1:1 keyed)"
+  source: ["GT:446-484", "TA:2-19"]
+  quote: "component ${component} has no explicit owner"
+  logic: {compares: artifact-internal, form: keyed, window: none, polarity: do}
+  template: NEW-S8-intra-keyed
+  skill: S8
+  train: {relation: none, note: "산출물 내부 키별 1:1 대응; 학습에 키별 대응 자체가 없다 (T-TR1b L2F 와 같은 이유)", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: D6
+  stage: Refinement
+  category: C
+  text: "increments의 requirementIds는 모두 in-scope로 등록된 요구사항이고, 모든 in-scope 요구사항은 적어도 한 increment에 나타난다 (합집합 = in-scope 집합)"
+  source: ["GT:572-598", "GT:709-719", "TF:13"]
+  quote: "increment references unknown or out-of-scope requirement ${id} ... no increment implements requirement ${requirement.id}"
+  logic: {compares: artifact-artifact, form: set, window: none, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: rewarded, note: "OSF T-TR1 2건 (위 D1 참조)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: D7
+  stage: Refinement|Completion
+  category: C
+  text: "인용한 evidence 참조 {evidenceId, version, digest}는 run에 기록된 evidence 버전과 세 값이 모두 정확히 일치한다 (bare id나 다른 버전·다른 digest는 불인정)"
+  source: ["GT:138-145", "GT:615-627", "GT:817-828", "SK:28", "SK:41", "TR:5", "EA:234-244", "RM:170"]
+  quote: "Copy each accepted evidence record's exact `{ evidenceId, version, digest }` reference into Refinement and Completion artifacts."
+  logic: {compares: artifact-artifact, form: keyed, window: none, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "키별 동일성 대응; 학습에 없음. 학습은 'exact path' 복사(OSF listed_have_specs 'using the exact path')를 집합으로만 잰다", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "digest는 `sparc evidence` 출력에서만 얻을 수 있어 agent가 출력값을 그대로 옮겨야 한다 (F 블록과 같은 '출력→입력 운반' 행동)"}
+
+- id: D8
+  stage: Refinement|Completion
+  category: C
+  text: "인용한 evidence는 status가 pass(Completion에서는 승인된 exception도 가능)이고 verifier 서명이 verified이며, Refinement 단계에서 기록된 것이다 (Completion은 Refinement 또는 Completion 단계)"
+  source: ["GT:618-650", "GT:736-739", "GT:840-861", "SK:26", "RM:17"]
+  quote: "if (evidence.attestation?.verified !== true) { add(blockers, phase, 'UNATTESTED_INCREMENT_EVIDENCE', ..."
+  logic: {compares: artifact-artifact, form: keyed, window: in-stage, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "키별 참조 대상의 속성(상태·서명·단계) 검사; 학습에 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: env, gap: G7, note: "verified 서명은 port가 signer를 실어야만 가능하다 (survey 열린 질문 1). 규칙은 그대로지만 '독립 verifier'의 뜻은 E6에서 바뀐다"}
+
+- id: D9
+  stage: Refinement|Completion
+  category: C
+  text: "인용한 evidence의 requirementId는 그것을 인용한 increment의 requirementIds(Refinement) 또는 trace 항목의 requirementId(Completion)와 일치한다"
+  source: ["GT:651-661", "GT:829-839"]
+  quote: "evidence ${evidenceId} belongs to ${evidence.requirementId}, which this increment does not implement"
+  logic: {compares: artifact-artifact, form: keyed, window: none, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "키별 대응의 교차 일관성; 학습에 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: D10
+  stage: Refinement|Completion
+  category: C
+  text: "in-scope 요구사항마다 등록된 모든 인수테스트에 대해, 그 TEST를 testId로 갖는 (서명된 pass) evidence가 인용되어 있다 (REQ→{TEST} 키별 완전 커버; testId 없는 evidence나 그 REQ에 등록되지 않은 testId는 불인정)"
+  source: ["GT:662-688", "GT:720-732", "GT:862-897", "SK:28", "TU:104", "RM:17", "RM:102"]
+  quote: "requirement ${requirement.id} lacks verifier-attested passing evidence for acceptance test ${testId}"
+  logic: {compares: artifact-artifact, form: keyed, window: none, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "키별 완전 대응 (REQ마다 TEST 집합 = 등록 집합); 학습 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: env, gap: G7, note: "SPARC의 중심 gate. 완료된 run에서는 항상 참이라 천장; 평가기에 남는 것은 그 evidence가 진짜인가(E10·E11)"}
+
+- id: D11
+  stage: Completion
+  category: C
+  text: "requirementTrace는 모든 in-scope 요구사항을 정확히 한 번씩 담고 등록되지 않은 요구사항은 담지 않는다; 각 항목은 evidenceRefs가 1개 이상이다"
+  source: ["GT:748-813", "GT:900-912", "TC:7-17"]
+  quote: "in-scope requirement ${requirement.id} is absent from the final trace"
+  logic: {compares: artifact-artifact, form: set, window: none, polarity: do}
+  template: T-TR1
+  skill: S8
+  train: {relation: rewarded, note: "OSF T-TR1 2건", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+# ---------------------------------------------------------------- E. evidence and attestation
+- id: E1
+  stage: Refinement
+  category: F
+  text: "evidence.json은 evidenceId·requirementId(식별자), 선택 testId(식별자), status ∈ {pass, fail, exception}, summary(텍스트), 선택 details(JSON), 선택 authorization, 선택 attestation을 갖는다"
+  source: ["ST:561-578", "CLI:284-303", "EA:169-190", "RM:145-166"]
+  quote: "if (!['pass', 'fail', 'exception'].includes(input.status)) { throw new SparcError('VALIDATION', 'status must be pass, fail, or exception'); }"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 골격·허용값", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: E2
+  stage: Refinement
+  category: C
+  text: "evidence.requirementId는 in-scope로 등록된 요구사항이고, testId가 있으면 그 요구사항에 등록된 인수테스트다"
+  source: ["ST:614-630"]
+  quote: "testId is not registered for the requirement"
+  logic: {compares: artifact-artifact, form: keyed, window: none, polarity: do}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "키별(REQ→TEST) 등록 관계 검사; 학습 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: ""}
+
+- id: E3
+  stage: Refinement
+  category: C
+  text: "같은 evidenceId의 새 버전은 이전 버전과 같은 requirementId·testId를 가진다 (id를 다른 요구사항·테스트에 다시 묶지 않음)"
+  source: ["ST:631-644", "EA:244"]
+  quote: "an evidenceId cannot be rebound to another requirement or test"
+  logic: {compares: artifact-artifact, form: keyed, window: whole-run, polarity: dont}
+  template: T-TR1b
+  skill: S8
+  train: {relation: none, note: "버전 간 키 고정; 학습 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "단일 agent run에서는 evidence 재기록이 드물다"}
+
+- id: E4
+  stage: Refinement
+  category: E
+  text: "status가 pass 또는 exception인 evidence는 attestation을 반드시 가진다; fail은 서명 없이 기록할 수 있다 (모델의 주장만으로는 증거가 아니다)"
+  source: ["ST:593-597", "SK:26", "EA:3", "RM:132", "RM:303"]
+  quote: "`pass` and `exception` require an Ed25519 attestation from a configured independent verifier; `fail` may be unsigned. A claim made only by the model is not evidence."
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 조건부 채움 (형식상). 뜻(제3자 서명)은 학습에 없음", layer_candidate: L1}
+  measure: enforced
+  port: {fate: env, gap: G7, note: "attestation을 만들 signer가 sandbox에 있어야 한다; 없으면 pass evidence 자체가 불가능해 Refinement를 못 넘는다"}
+
+- id: E5
+  stage: Refinement
+  category: F
+  text: "attestation은 keyId(식별자)·algorithm='Ed25519'·issuedAt(밀리초 정밀도의 정규 UTC ISO 8601)·signature(패딩 없는 base64url, 정확히 64바이트)를 갖는다; genesisDigest·requirementsDigest는 attestation 객체에 넣지 않는다"
+  source: ["ST:966-999", "EA:183-192", "RM:145-165"]
+  quote: "attestation.issuedAt must be canonical UTC ISO 8601 with millisecond precision"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 허용값", layer_candidate: L1}
+  measure: enforced
+  port: {fate: env, gap: G7, note: "signer 스크립트가 형식을 만들므로 agent가 손으로 쓰지 않는다"}
+
+- id: E6
+  stage: Refinement
+  category: E
+  text: "attestation.signature는 SPARC_EVIDENCE_VERIFIER_KEYS에 등록된 keyId의 Ed25519 공개키로, evidenceAttestationBytes가 만든 정확한 subject(schema, principalId, runId, 현재 genesisDigest·requirementsDigest, 변경 전 expectedRevision, 현재 phase, evidence 전체 필드, authorization, keyId·issuedAt·algorithm) 위에서 검증된다; 서명 당시 필드와 제출 필드·revision이 동일해야 한다"
+  source: ["ST:1040-1082", "ST:1001-1038", "DM:471-504", "EA:32-73", "EA:75", "SK:33", "TU:82-87", "RM:168"]
+  quote: "The verifier must include both digests and sign the exact bytes produced by the package's exported `evidenceAttestationBytes` helper ... Submit the identical fields and revision."
+  logic: {compares: artifact-artifact, form: equal, window: none, polarity: do}
+  template: NEW-S6-attested-record
+  skill: S6
+  train: {relation: none, note: "기록의 사실성을 trace가 아니라 제3자 서명 검증으로 재는 로직; 학습에 서명·검증 개념이 없다", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: semantic, gap: G2, note: "독립 verifier가 없다 (ADR-001 'self-asserted passing evidence'는 거부). port는 (a) 명령을 실제로 실행한 뒤에만 서명하는 signer를 싣거나 (b) agent가 자기 evidence에 서명하게 해야 한다; 어느 쪽이든 '독립'의 뜻이 바뀐다"}
+
+- id: E7
+  stage: Refinement
+  category: P
+  text: "서명을 요청하기 직전에 run을 다시 읽어(`sparc status`) 최신 genesisDigest·requirementsDigest·revision·phase를 verifier에 준다; 메모리의 값을 쓰지 않는다"
+  source: ["SK:33", "EA:41", "EA:75", "EA:150", "TU:82", "SKR:32"]
+  quote: "Read the run immediately before requesting a signature and give the verifier the fresh `genesisDigest` and `requirementsDigest` returned by `sparc_run_start` or `sparc_run_get`."
+  logic: {compares: artifact-trace, form: window-require, window: in-stage, polarity: do}
+  template: T-AW5
+  skill: S3
+  train: {relation: rewarded, note: "OSF openspec_ff.ff.run.openspec_ff_cli.instructions_design (쓰기 전 도구로 최신 지시를 받음); OSF AP:96 '편집 전 checkbox가 아직 맞는지 확인'", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G7, note: "stale 값이면 서명 검증이 실패하므로 부분적으로 강제됨; 단일 agent에서는 revision이 저절로 바뀌지 않아 거의 발동 안 함"}
+
+- id: E8
+  stage: Refinement
+  category: R
+  text: "서명을 지어내거나 verifier 개인키를 요청하지 않으며, 서명키에 접근할 수 있다는 것을 권한으로 여기지 않는다"
+  source: ["SK:33", "SKR:32", "SKV:32", "EA:20", "TU:100"]
+  quote: "Never invent a signature, request the private key, or treat access to a signing key as implied authority."
+  logic: {compares: artifact-trace, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-PR6
+  skill: S4
+  train: {relation: rewarded, note: "T-PR6 OSF 4건 (openspec init 금지, python -c 금지) — 같은 템플릿이나 인스턴스(서명 위조)는 멀다", layer_candidate: L2M}
+  measure: enforced
+  port: {fate: semantic, gap: G2, note: "upstream에서는 위조 서명이 검증에 걸려 천장. port가 agent에게 개인키를 주면 '키 접근 ≠ 권한'이 무너지고, signer를 분리하면 'signer를 직접 돌리지 말라'는 trace 규칙으로 바뀐다"}
+
+- id: E9
+  stage: Refinement
+  category: P
+  text: "독립 verifier를 쓸 수 없으면 evidence gate를 blocked로 보고하고 멈춘다 (pass를 꾸며 내지 않음)"
+  source: ["SK:33", "SKR:34"]
+  quote: "If an independent verifier is unavailable, report the evidence gate as blocked."
+  logic: {compares: artifact-trace, form: order, window: in-stage, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: opposite, note: "학습 문서는 멈추지 말라고 한다: OSF CW:51 'never ask a question and never stop to report'; SKB CW:38-40 'Never stop to ask or to report'; AOS CW:67-68 (보고 없이 다음 명령). SKB T-OR2 no_round_after_verified는 '끝내기'를 보상하지만 '막힘 보고 후 중단'은 반대", layer_candidate: L1C}
+  measure: code
+  port: {fate: drop, gap: G4, note: "보고를 받을 사람이 없고 (G4), signer를 실으면 조건이 발생하지 않는다 (G7). 남긴다면 '서명 불가 시 fail evidence만 기록하고 Refinement에서 끝낸다'로 뜻이 바뀐다"}
+
+- id: E10
+  stage: Refinement
+  category: A
+  text: "evidence의 details.command·details.exitCode(·tests 수)는 실제로 실행한 명령과 그 종료코드·결과와 같다 (명령 문자열은 SPARC가 실행하지 않는 감사 데이터)"
+  source: ["EA:59-63", "EA:123", "RM:154-158", "RM:168", "SK:35", "CLI:76"]
+  quote: "\"details\": { \"command\": \"npm test\", \"exitCode\": 0, \"tests\": 48 }"
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "SKB speckit_bug.fix.fix.field_type.commands_run ('Local Verification records the commands run and their result'); SKB FX:81 '`<command>` before the change: ... after the change'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "CLI는 이 값을 검사하지 않는다. CLI가 나머지를 강제한 뒤 평가기에 남는 핵심 항목. 단일 agent라면 agent가 쓴 details가 자기 trace와 맞는지 잰다"}
+
+- id: E11
+  stage: Refinement
+  category: A
+  text: "status=pass인 evidence는 그 명령의 마지막 실제 실행이 성공(exit 0, 실패 0)이었을 때만 쓴다; 실행이 실패했거나 실행이 없었으면 pass가 아니다"
+  source: ["SK:26", "SK:35", "EA:3", "EA:250"]
+  quote: "A signature does not by itself prove the underlying claim, so identify the verifier and retained validation result."
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: dont}
+  template: T-RF2
+  skill: S6
+  train: {relation: rewarded, note: "AOS agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed (완료 주장이 실행 사실로 반박되지 않음); SKB FX:32 '통과하는 check는 버그를 못 잡는다'", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "E10과 함께 '증거의 진실성'을 재는 평가기 항목. signer가 명령을 직접 실행하는 설계라면 천장으로 올라간다"}
+
+- id: E12
+  stage: Refinement
+  category: F
+  text: "status=exception인 evidence는 authorization{authorizedBy, reason, 선택 reference}을 갖고, authorizedBy는 쓰는 principal과 같으며 SPARC_EXCEPTION_APPROVERS에 들어 있다; exception이 아닌 evidence에는 authorization을 넣지 않는다"
+  source: ["ST:571-592", "SK:35", "EA:208-220", "CLI:148-151", "RM:302"]
+  quote: "exception evidence requires the authenticated principal to be an explicitly configured approver"
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: do}
+  template: T-FM2
+  skill: S10
+  train: {relation: rewarded, note: "T-FM2 조건부 채움 (형식상)", layer_candidate: L1}
+  measure: enforced
+  port: {fate: drop, gap: G7, note: "승인자 환경변수를 비워 두면 exception 경로 전체가 사라진다; SWE 과제에 exception은 필요 없다"}
+
+# ---------------------------------------------------------------- F. revision / idempotency protocol
+- id: F1
+  stage: 0
+  category: P
+  text: "모든 변경 명령(submit, evidence, advance, correct)에 `--expected-revision`을 현재 run revision(직전 응답의 revision)과 같게 준다; 다르면 CAS_MISMATCH로 거부된다"
+  source: ["CLI:73", "CLI:160-166", "ST:859-865", "RM:14", "RM:74", "SK:24", "TU:62"]
+  quote: "--expected-revision N Current revision, required except start"
+  logic: {compares: artifact-trace, form: equal, window: whole-run, polarity: do}
+  template: NEW-S2-carried-revision
+  skill: S2
+  train: {relation: none, note: "직전 도구 응답의 값을 다음 호출 인자로 운반하는 로직; 학습에 없음. 가장 가까운 것은 OSF T-PG2(체크 후 도구 재실행)와 OSF AP:96(sourcePath·line을 받아 그 위치를 편집)", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "survey 열린 질문 5: 그대로 두면 학습 행동이 되고, 래퍼가 채우면 사라진다. 천장 항목(틀리면 거부)이지만 '몇 번 틀렸나'는 평가 신호"}
+
+- id: F2
+  stage: 0
+  category: P
+  text: "모든 변경 명령에 안정된 `--idempotency-key`를 주되 요청마다 새 키를 쓴다; 같은 키는 완전히 같은 요청(같은 operation·payload)에만 재사용한다 (다르면 IDEMPOTENCY_MISMATCH)"
+  source: ["CLI:74", "ST:916-932", "SK:23", "SK:41", "SKR:34", "TU:68", "RM:15", "EA:224"]
+  quote: "Reuse an idempotency key only for the exact same request."
+  logic: {compares: artifact-trace, form: keyed, window: whole-run, polarity: do}
+  template: NEW-S2-idempotency-key
+  skill: S2
+  train: {relation: none, note: "요청↔키 1:1 결속; 학습에 없음", layer_candidate: L2F}
+  measure: enforced
+  port: {fate: keep, gap: G7, note: "F1과 같은 결정. 재제출(A8)마다 새 키가 필요하다는 점이 agent가 틀리기 쉬운 곳"}
+
+- id: F3
+  stage: 0
+  category: P
+  text: "revision이 stale해 거부되면(CAS_MISMATCH) 상태를 다시 읽고 맞춘 뒤 진행하며, evidence가 바뀌었으면 새 revision으로 다시 서명한다; 같은 요청을 그대로 재시도하지 않는다"
+  source: ["SK:41", "SKR:32", "SKR:34", "EA:224", "TU:100"]
+  quote: "On a stale mutation revision, reload state, reconcile, and obtain a new revision-bound signature when evidence changed; do not blind-retry."
+  logic: {compares: artifact-trace, form: order, window: whole-run, polarity: do}
+  template: T-OR2
+  skill: S2
+  train: {relation: rewarded, note: "OSF openspec_ff.archive.run.openspec_ff_archive.retries (실패 후 고쳐서 한 번 더); 단 '그대로 재시도 금지'는 OSF CW:103 '지적된 것만 고쳐 같은 명령을 한 번 더'와 같은 방향", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G8, note: "단일 agent에서 stale revision은 agent 자신의 셈 오류에서만 생긴다; trace에서 CAS_MISMATCH 뒤 status 호출이 오는지 센다"}
+
+- id: F4
+  stage: 0
+  category: F
+  text: "CLI 명령은 문서화된 옵션만으로 부른다 (strict parseArgs, 위치 인자 없음, 필수 옵션 누락·모르는 옵션·정수 아닌 revision은 오류); `--phase`는 다섯 정식 단계 이름 중 하나"
+  source: ["CLI:46-77", "CLI:90-116", "CLI:271", "SK:41"]
+  quote: "Follow each MCP tool's declared input schema."
+  logic: {compares: artifact-trace, form: exists, window: none, polarity: do}
+  template: NEW-S3-command-format
+  skill: S3
+  train: {relation: shown, note: "OSF 문서가 정확한 명령형(`openspec list --json`, `--change \"issue\"`)을 보여 주고 T-AW5 항목이 특정 명령 실행을 보상하지만 '형식 자체'를 재는 항목은 없음 (10_handover §2.3 '명령 형식'을 09가 새 템플릿으로 필요로 했음)", layer_candidate: L2M}
+  measure: enforced
+  port: {fate: env, gap: G7, note: "오류는 종료코드 1과 메시지로 돌아온다; 실패 호출 횟수가 평가 신호"}
+
+# ---------------------------------------------------------------- G. Refinement = the code work
+- id: G1
+  stage: Refinement
+  category: E
+  text: "저장소 코드 변경은 Refinement 단계 안에서만 한다 (Specification·Pseudocode·Architecture를 지나기 전에 소스를 고치지 않음; Completion에서는 고치지 않음)"
+  source: ["MH:62", "MH:60", "RM:24", "CLI:76"]
+  quote: "pseudocode: 'Describe deterministic behavior, failure paths, data flow, and tests before implementation.' ... refinement: 'Implement, test, review, and correct against the approved artifacts.'"
+  logic: {compares: artifact-trace, form: window-forbid, window: in-stage, polarity: dont}
+  template: T-AW1
+  skill: S3
+  train: {relation: rewarded, note: "AOS agentos_v2.shape_spec.run.prohibited_action.repo_write; OSF openspec_ff.ff.run.prohibited_action.repo_write; SKB speckit_bug.assess.run.prohibited_action.repo_write", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G3, note: "SPARC는 저장소를 보지 않으므로 코드 판정: 편집 시각을 phaseHistory의 Refinement 진입 revision(receipt 시각)과 대조. upstream 문구는 한 줄뿐이라 entry 문서가 명시해야 한다"}
+
+- id: G2
+  stage: Refinement
+  category: E
+  text: "구현 뒤 인수테스트(검증 명령)를 실제로 실행하고, 그 결과로 evidence와 refinement.verification을 만든다 (SPARC는 명령을 실행하지 않으므로 agent가 돌려야 한다)"
+  source: ["MH:62", "TF:2", "EA:59-63", "TU:82", "TR:5", "RM:24"]
+  quote: "\"verification\": [\"List the validation command and result\"]"
+  logic: {compares: artifact-trace, form: window-require, window: after-last-edit, polarity: do}
+  template: T-AW3
+  skill: S3
+  train: {relation: rewarded, note: "SKB speckit_bug.fix.run.exec_evidence.local_tests (FX:41); AOS agentos_v2.implement_tasks.run.agentos_v2_verify.suite_run; OSF openspec_ff.apply.run.openspec_ff_evidence.test_or_check", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G3, note: "마지막 소스 편집 뒤 테스트 실행이 있는가. upstream에 baseline(수정 전 실행) 규칙은 없다 — T-AW2는 이 workflow에 없음"}
+
+- id: G3
+  stage: Refinement
+  category: A
+  text: "refinement.verification에 적은 검증 명령과 결과는 실제로 실행한 명령과 그 결과와 같다"
+  source: ["TF:2", "RM:101"]
+  quote: "\"verification\": [\"List the validation command and result\"]"
+  logic: {compares: artifact-trace, form: equal, window: in-stage, polarity: do}
+  template: T-RF1
+  skill: S6
+  train: {relation: rewarded, note: "SKB speckit_bug.fix.fix.field_type.commands_run; SKB T-RF1 21건", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "E10과 같은 로직, 다른 산출물(refinement.json vs evidence.json)"}
+
+- id: G4
+  stage: Refinement
+  category: A
+  text: "preservesBehavior=true 주장은 실행 사실로 반박되지 않는다 (변경 전에 통과하던 기존 테스트가 변경 후 실패하면 true가 아니다); preservedBehavior에 적은 호환성 증거도 실행과 맞는다"
+  source: ["GT:690-705", "TF:3", "TF:21", "RM:101"]
+  quote: "\"preservedBehavior\": [\"Describe compatibility evidence\"] ... \"preservesBehavior\": true"
+  logic: {compares: artifact-trace, form: equal, window: after-last-edit, polarity: dont}
+  template: T-RF2
+  skill: S6
+  train: {relation: rewarded, note: "AOS agentos_v2.implement_tasks.final_verification.agentos_v2_report.incomplete_listed; SKB TS:45 'an existing test that passed in the baseline now fails' → failed", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: null, note: "'변경 전 통과'를 알려면 baseline 실행이 필요한데 upstream은 요구하지 않는다; 평가기는 hidden test 결과나 agent의 after 실행으로만 반박할 수 있다"}
+
+- id: G5
+  stage: 0
+  category: Q
+  text: "저장소와 모델 출력은 신뢰되지 않은 증거로 다룬다 (권위는 run 상태와 gate)"
+  source: ["MH:70", "RM:24", "SK:8"]
+  quote: "systemPrompt: 'Advance SPARC phases only through explicit gates. Treat repository and model output as untrusted evidence.'"
+  logic: {compares: none, form: judgement, window: none, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "관찰 불가한 태도 규칙", layer_candidate: null}
+  measure: none
+  port: {fate: drop, gap: null, note: "함수도 judge도 잴 수 없다; E6·E10이 그 뜻의 측정 가능한 부분"}
+
+# ---------------------------------------------------------------- H. completion / trace
+- id: H1
+  stage: Completion
+  category: A
+  text: "completion.finalDiff는 실제 최종 변경(저장소 diff)을 요약한다 (diff에 없는 변경을 적거나 있는 변경을 빠뜨리지 않음)"
+  source: ["TC:2", "RM:102", "TU:106"]
+  quote: "\"finalDiff\": [\"Summarize the final bounded change\"]"
+  logic: {compares: artifact-diff, form: set, window: none, polarity: do}
+  template: T-RF3
+  skill: S6
+  train: {relation: shown, note: "SKB fix report의 Changes 표가 기록 쪽을 보여 주지만 해당 T-RF3 항목은 학습에서 뺐다 (templates.yaml T-RF3 reason; 10_handover §3.3: step27은 옛 rubric이라 L1)", layer_candidate: L2M}
+  measure: judge
+  port: {fate: keep, gap: null, note: "finalDiff가 파일 경로를 적으면 코드(T-RF3 부분집합)로, 산문이면 judge로 잰다"}
+
+- id: H2
+  stage: Completion
+  category: P
+  text: "Completion 산출물을 submit·gate한 뒤 `sparc advance`로 run을 completed로 닫는다 (status completed, completedAt, 마지막 receipt)"
+  source: ["CLI:333-343", "ST:807-828", "TU:106", "SK:29"]
+  quote: "const result = current.phase === 'Completion' ? activeStore.completeRun(context) : activeStore.advancePhase(context);"
+  logic: {compares: artifact-trace, form: order, window: whole-run, polarity: do}
+  template: T-OR1
+  skill: S2
+  train: {relation: rewarded, note: "T-OR1 사슬의 마지막 고리; OSF openspec_ff.archive.run.openspec_ff_archive.by_cli (CLI로 마무리)", layer_candidate: L1}
+  measure: code
+  port: {fate: keep, gap: G7, note: "CLI는 '끝까지 가라'를 강제하지 못한다; completed 여부가 평가기의 가장 큰 단일 신호"}
+
+- id: H3
+  stage: Trace
+  category: R
+  text: "run이 completed가 된 뒤에는 어떤 변경 명령도 하지 않는다 (submit·evidence·advance는 거부됨)"
+  source: ["ST:1202-1208", "ST:521", "ST:610", "ST:772"]
+  quote: "cannot ${action} after Completion has been finalized"
+  logic: {compares: artifact-trace, form: window-forbid, window: after-last-edit, polarity: dont}
+  template: T-WD4
+  skill: S5
+  train: {relation: rewarded, note: "AOS agentos_v2.global.tasks.agentos_v2_tasks.later_edits; SKB speckit_bug.fix.run.speckit_bug_check_scripts.unchanged", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "천장; 거부된 호출 횟수만 신호"}
+
+- id: H4
+  stage: 0
+  category: R
+  text: "이전 단계 산출물과 기록된 evidence를 고쳐 쓰지 않는다; 정정은 현재 단계의 새 버전이나 correction 레코드로만 한다 (append-only)"
+  source: ["SK:41", "SKR:34", "RM:16", "ST:522-527", "ST:532-534", "ST:689-714"]
+  quote: "Never skip phases, rewrite prior artifacts, substitute a bare evidence ID for an immutable reference, ..."
+  logic: {compares: artifact-trace, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-WD2
+  skill: S5
+  train: {relation: rewarded, note: "OSF openspec_ff.archive.run.openspec_ff_paths_written.tasks_after_verify; SKB CW:47-49 'Never rewrite an earlier report'", layer_candidate: L1}
+  measure: enforced
+  port: {fate: keep, gap: null, note: "다른 단계 submit은 VALIDATION으로 거부되고 evidence는 버전 추가만 가능하다; agent 작업 디렉터리의 JSON 원본 파일을 고치는 것은 자유다 (state에는 영향 없음)"}
+
+# ---------------------------------------------------------------- I. prohibitions
+- id: I1
+  stage: 0
+  category: R
+  text: "이 workflow를 근거로 shell·배포·삭제·저장소 push 권한을 얻거나 행사하지 않는다 (SPARC 산출물은 지시 승인이 아니다; MCP는 shell·git·network 도구를 노출하지 않는다)"
+  source: ["SK:41", "TR:5", "RM:21", "MH:112-120", "CLI:76"]
+  quote: "...or use this workflow to gain shell, deployment, deletion, or repository-push authority."
+  logic: {compares: artifact-trace, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-PR6
+  skill: S4
+  train: {relation: rewarded, note: "T-PR6 OSF 4건 (특정 명령 금지); push/deploy 금지 인스턴스는 학습에 없음", layer_candidate: L1}
+  measure: code
+  port: {fate: semantic, gap: G9, note: "SWE agent는 shell로 코드를 고쳐야 하므로 'shell 권한 없음'은 과제와 충돌한다; 남는 것은 'git push·배포·삭제 명령 없음'(sandbox에서 어차피 불가)"}
+
+- id: I2
+  stage: 0
+  category: R
+  text: "verifier 개인키나 자격 증명을 산출물·evidence details·state·환경변수 SPARC_EVIDENCE_VERIFIER_KEYS·로그에 넣지 않는다"
+  source: ["EA:20", "SK:33", "RM:299", "RM:303"]
+  quote: "Do not place it in `SPARC_EVIDENCE_VERIFIER_KEYS`, a phase artifact, an evidence file, state storage, a plugin manifest, source control, or a model-visible environment."
+  logic: {compares: artifact-internal, form: exists, window: none, polarity: dont}
+  template: NEW-CQ
+  skill: S10
+  train: {relation: shown, note: "AOS CT:350 'never commit secrets or API keys' (NEW-CQ unimplemented 19건); 대상이 diff가 아니라 산출물·evidence라는 점만 다름", layer_candidate: L2M}
+  measure: code
+  port: {fate: keep, gap: G7, note: "port가 signer 키를 sandbox에 싣는 경우에만 뜻이 있다; PEM 블록 정규식으로 산출물·state를 검사"}
+
+- id: I3
+  stage: 0
+  category: R
+  text: "호스트 MCP 설정(.mcp.json, .openai.mcp.json, 사용자 설정)을 몰래 고치지 않고, 고정 태그 @ruvnet/sparc@1.0.0 대신 floating 태그를 쓰지 않으며, 서버가 보이기 전에 skill이 동작한다고 주장하지 않는다"
+  source: ["SK:18", "SK:15", "TU:119"]
+  quote: "Do not substitute a floating package tag, silently edit `.mcp.json`, `.openai.mcp.json`, or user-level host configuration, or claim the skill is operational until the server is visible."
+  logic: {compares: artifact-trace, form: window-forbid, window: whole-run, polarity: dont}
+  template: T-PR1
+  skill: S4
+  train: {relation: rewarded, note: "T-PR1(금지된 파일류 쓰기 금지)이 가장 가까운 로직이나 인스턴스(호스트 설정 파일)는 학습과 멀다; AOS/OSF/SKB T-PR1 각 2건", layer_candidate: L2M}
+  measure: code
+  port: {fate: drop, gap: G7, note: "CLI 경로의 port에는 MCP 서버가 없다; 설정 파일도 없다"}
+
+- id: I4
+  stage: 0
+  category: R
+  text: "state root는 저장소 밖의 비공개 전용 디렉터리(절대경로, 0700, 심볼릭링크 없음)로 둔다; 기본값 .sparc은 cwd 안에 생기므로 /testbed에서 돌리면 저장소에 남는다"
+  source: ["RM:298", "CLI:118-120", "RM:128", "ST:255-278", "ST:1343-1345", "RM:19"]
+  quote: "1. Keep the state root private and outside a served repository."
+  logic: {compares: artifact-trace, form: exists, window: none, polarity: do}
+  template: T-WD3
+  skill: S5
+  train: {relation: rewarded, note: "SKB CW:44-46 보고서 디렉터리는 저장소 밖 (speckit_bug.global.run.speckit_bug_created_files.scratch, T-PR2); AOS agentos_v2.shape_spec.verifications_dir.agentos_v2_paths_written (T-WD3)", layer_candidate: L1}
+  measure: code
+  port: {fate: env, gap: G5, note: "SPARC_STATE_ROOT를 harness가 /testbed 밖으로 고정하면 사라지고, agent가 --root를 고르게 두면 T-PR2(저장소에 작업 파일 남기지 않기)로 남는다"}
+
+# ---------------------------------------------------------------- J. skill-level rules
+- id: J1
+  stage: 0
+  category: P
+  text: "첫 도구 호출 전에 호스트에 `sparc` MCP 서버(sparc_* 도구 8개)가 있는지 확인하고, 없으면 멈추고 사용자에게 플러그인 설치나 고정 stdio 런처 등록을 요청한다"
+  source: ["SK:12", "SK:15", "SKR:12", "SKV:12"]
+  quote: "If the server is missing, stop and ask the user either to install the SPARC plugin or explicitly register this exact pinned stdio launcher"
+  logic: {compares: artifact-trace, form: order, window: whole-run, polarity: do}
+  template: T-SR2
+  skill: S9
+  train: {relation: opposite, note: "T-SR2는 '묻지 않기'; 학습 문서 세 편이 모두 질문·보고 금지를 지시한다 (AOS CW:67-72 'Never wait for a reply', OSF CW:51, SKB CW:38). 학습 항목은 없고 문서 지시만 있어 반대 방향", layer_candidate: L1C}
+  measure: code
+  port: {fate: drop, gap: G4, note: "사람이 없고(G4) CLI port에는 MCP도 없다(G7); 뒤집어 '도구가 없으면 묻지 말고 ...'로 쓰면 T-SR2 그대로가 된다"}
+
+- id: J2
+  stage: 0
+  category: Q
+  text: "run 상태의 권위는 `sparc`(CLI/MCP)이며 대화 기억이 아니다; 사용자의 목표·제약·승인 경계를 바꾸지 않고 지킨다"
+  source: ["SK:8", "SKR:8", "SKR:34"]
+  quote: "Use the `sparc` MCP server as the authority for run state. Keep the user's goal, constraints, and authorization boundaries intact."
+  logic: {compares: issue-artifact, form: judgement, window: none, polarity: do}
+  template: null
+  skill: null
+  train: {relation: none, note: "태도·내용 규칙; 카탈로그 밖", layer_candidate: null}
+  measure: judge
+  port: {fate: semantic, gap: G3, note: "'사용자의 목표' = 이슈; judge가 definition·산출물이 이슈 범위를 벗어나지 않았는지 본다"}
+
+# ---------------------------------------------------------------- new template candidates (defined once)
+new_templates:
+  NEW-S8-intra-set:
+    skill: S8
+    name: set relation between two sections of one artifact (cited ⊆ declared)
+    compares: "artifact-internal: the id/text set one section cites against the set another section of the same artifact declares; form set"
+    nearest: "T-TR1 (set relation between artifacts). Differs in the object compared: both sides are inside one artifact, and the elements may be literal strings (invariant sentences), not ids. 10_handover §2.3 lists '산출물 내부 일관성' as a template 09 needed"
+    instances: [B4, D4]
+    status: candidate
+  NEW-S8-intra-keyed:
+    skill: S8
+    name: keyed 1:1 mapping between two sections of one artifact
+    compares: "artifact-internal: every element of section A has exactly one record in section B and B points only at A's elements; form keyed"
+    nearest: "T-TR1b (keyed mapping between artifacts); same difference as NEW-S8-intra-set vs T-TR1 (inside one artifact)"
+    instances: [D5]
+    status: candidate
+  NEW-S6-attested-record:
+    skill: S6
+    name: a recorded result carries a signature from a configured verifier over the exact run-bound subject
+    compares: "artifact (evidence record + attestation) against run state (digests, revision, phase) and the configured public keys; form equal (signature verification over canonical bytes)"
+    nearest: "T-RF1 (recorded result equals what was run). Differs in what fidelity is checked against: not the trace but a second party's signature bound to the run; the trace is never consulted"
+    instances: [E6]
+    status: candidate
+  NEW-S2-carried-revision:
+    skill: S2
+    name: a value returned by the previous tool call is carried into the next mutating call (compare-and-set revision)
+    compares: "trace against trace: the --expected-revision argument of each mutating call against the revision the previous response returned (equivalently the state file's revision); form equal, per call"
+    nearest: "T-PG2 (re-run the tool after ticking) and T-TR2 (plan adherence) touch 'use the tool's output', but neither compares an argument value with a previous output. T-RF1 compares a record with the trace, not two calls"
+    instances: [F1]
+    status: candidate
+  NEW-S2-idempotency-key:
+    skill: S2
+    name: one fresh key per distinct mutating request; a key reused only with an identical request
+    compares: "trace-internal: the idempotency key of each mutating call against the (operation, payload) of every earlier call with the same key; form keyed"
+    nearest: "NEW-S2-carried-revision (same protocol family) but keyed uniqueness rather than carried equality; T-FM3 uniqueness is artifact-internal, not across calls"
+    instances: [F2]
+    status: candidate
+  NEW-S3-command-format:
+    skill: S3
+    name: a CLI command is invoked with the documented option set and value types
+    compares: "trace: the argument vector of each CLI call against the documented option schema (required options present, no positional/unknown options, value types); form exists per call"
+    nearest: "T-AW5 (run a CLI command inside a window) judges presence/absence of a command, not its argument form; 10_handover §2.3 lists '명령 형식' among the templates 09 needed"
+    instances: [F4]
+    status: candidate

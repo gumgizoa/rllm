@@ -413,6 +413,10 @@ class WorkflowMixin(AgentKwargsMixin):
         env = super().build_env(task, config)
         if self.system_prompt_file is not None:
             env.update(self._system_prompt_env())
+        if self.workflow_spec is not None:
+            # The spec's own variables last: a workflow that needs the runner configured
+            # differently (an extra tool, say) states it here, and it wins over the defaults.
+            env.update({str(k): str(v) for k, v in self.workflow_spec.runner_env.items()})
         return env
 
     def write_configs(
