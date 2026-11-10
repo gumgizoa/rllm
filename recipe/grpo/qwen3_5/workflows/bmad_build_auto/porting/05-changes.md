@@ -151,4 +151,24 @@ aidlc_v4 평가 verifier와 같은 방식(규칙 → 항목 → 범용 엔진, �
 
 항목 분포 (결정 198 → 구현 98; D-8 전 200 → 99): L1 139→78, L1C 5→3 (D40 빈 절 None 금지, D42 matrix→테스트 task, G16 리뷰어 출력 severity 없음), L2M 23→5, L2F 49→12. 미구현 119 중 judge 48 은 `log_only`, 나머지 72 의 사유는 `constraints.yaml` 의 `class_note`(서브 대화가 필요한 것 15, 루프백·patch 경로 13, 기록된 차단 조건 6, 중복 9, 모호 7 …).
 
-아직 안 한 것(aidlc verifier 절차 기준): 재료 검수(실데이터 대조), 꼼수·정직 변형과 단조성(golden 은 1개), 실데이터 감사, judge. 서브에이전트 대화 안의 규칙(E7, F12, G18~G41 …)은 `subagent_runs` 가 생겼으니 다음 판에서 구현 가능.
+아직 안 한 것(aidlc verifier 절차 기준, v1 시점): 재료 검수(실데이터 대조), 꼼수·정직 변형과 단조성(golden 은 1개), 실데이터 감사, judge. 서브에이전트 대화 안의 규칙(E7, F12, G18~G41 …)은 `subagent_runs` 가 생겼으니 다음 판에서 구현 가능. → 4c 에서 judge 를 뺀 나머지를 진행.
+
+## 4c: 채점기 v2 (2026-11-10, 조정자; judge 제외 — 사용자 결정)
+
+aidlc_v4_eval(feat/aidlc-openhands-sdk-recipe, 05-01 PDF)의 나머지 절차를 같은 틀로 채웠다: 서브에이전트 대화 항목, 둘째 정직 run, 꼼수·정직 변형과 하한, 항목마다 깨는 케이스. 실데이터 스냅샷·감사는 정식 smoke 뒤(gateway trace 필요), judge 는 보류.
+
+| 파일 | 내용 |
+|---|---|
+| `reward/checks.py` | 새 kind `bmad.subagent` (rule read / not_before / order / cited_read / search_before_claim): `Run.meta["subagent_runs"]` 의 대화를 프롬프트 서명(`LENSES`)으로 렌즈별로 찾아 그 안의 읽기·순서·검색을 잰다. trace 에 서브 대화가 없으면 not_applicable, 부모가 렌즈를 띄웠는데 대화가 없으면 fail. 서브 대화의 첫 사용자 메시지가 프롬프트 그대로임은 SDK 1.42.1 `task/manager.py` `send_message(prompt, …)` 로 확인 |
+| `reward/build.py` | 서브에이전트 항목 10개: E7(구현자가 첫 편집 전 spec 읽음), G18·G38(edge·gap 렌즈가 지시 파일 읽음), G20(리뷰 렌즈마다 diff 파일 읽음, 4개 중 비율), G34(claims-check 읽음), G28(최종 diff 에 삭제 줄이 있을 때 deletion-check 읽음), G19(spec 을 claims-check 전에 읽지 않음), G24(지시→diff→claims-check 순), G40(gap 렌즈가 인용한 test 파일을 열었음), G41(테스트 없다는 주장 전에 grep/rg/find). 남은 서브 대화 미구현: F12(patch 구현자의 테스트 범위 — resume 뒤 구간 분리 필요), G27(피호출자 선언 읽기 — 무엇이 피호출자인지 trace 로 모름) |
+| `tests/test_bmad_build_auto_reward.py` | golden 에 서브 대화 5개(`_subagents`), 둘째 정직 run `honest2`(sed 읽기, diff 에 삭제 줄, gap 렌즈 finding → `[patch]` → 구현자 `resume` + step-04 의 문장 그대로 → 재검증 → diff 재작성, deferred 1건, review pass 1회), 서브 대화가 없을 때 전부 not_applicable·fail 0, 서브 대화에서 읽기를 빼면 해당 항목 fail, 서브에이전트 항목 10개 각각을 깨는 케이스(`SUBAGENT_CASES`)와 커버 검사 |
+| `tests/test_bmad_build_auto_hacks.py` (새, fork 작성) | 꼼수 40종(`HACKS`: core 미독, step-04 선독, spec 2개, intent-contract 사후 수정, triage log 덮어쓰기, 합계 불일치, false→patch, 렌즈 턴마다 하나, 렌즈 3개, edge 에 claims_file 누락, blind 에 diff 본문 inline, edge 출력 prose, finding 키 누락, severity 라벨, 마지막 변경 뒤 diff 미재작성, `git add`, 부모가 리뷰 지시문 읽음, 마지막 메시지가 질문, Auto Run Result 에 파일 누락, Code Map 에 없는 경로, 템플릿 placeholder 잔존, status enum 밖, N/A 줄, 빈 diff, 제목 변경 …) 모두 잡힘 — 명시 항목이 fail 로 바뀌고 compliance 가 0.005 이상 하락; 못 잡는 구멍(xfail) **0**. 정직 변형 11종(sed/head·tail 읽기, 렌즈 순서 바꿈, `git diff <sha> -- .`, review pass 2회 추가, 저장소 파일 추가 열람, 추적 id 없는 spec 이름, deferred 기록, 문서를 view 로 읽음, intent-contract 줄바꿈 재배치, 렌즈 전 spec grep) 모두 headline 신호 변화 0.02 이하. robust 7종(빈 run, finish 만, YAML 아닌 spec, `task` 관찰이 상한 초과 오류, 액션 없는 step, 디렉터리 목록 spec, 잡음 diff) 예외 없음. 케이스 표 `CASES` 98개: `bmad.subagent` 외 구현 항목마다 하나씩, 정직 run 은 유지·케이스는 깨뜨림; `UNCOVERED` **비어 있음** |
+
+구현 항목 98 → **108** (L1 78→88, L1C 3, L2M 5, L2F 12; 새 항목은 모두 L1 템플릿 T-RD2/RD3/RD4/RD5/OR1/RF2). 정직 run 두 개 모두 compliance 1.0, 층 신호 1.0, 엔진 오류 0. `build --check`, `constraints.check` 통과. 테스트: 세 파일 197 passed.
+
+하한은 생성 rubric 의 self-test(`workflow_rubric/generator/mutations.py`)와 같다: 꼼수는 must 항목 반 개(0.005) 이상, 정직 변형은 0.02 이하. 비율 채점 항목(D39 제목 11개, D17 placeholder 15개, 렌즈 프롬프트·출력 비율)은 한 곳만 바꿔서는 0.005 에 못 미쳐 꼼수 표에서는 전부를 바꾸고(제목 3개 변경, 템플릿 통째 붙이기, 4개 프롬프트 모두 diff inline …) 한 곳 변형은 `CASES` 에만 둔다.
+
+관찰(채점기 설계에 반영됨): 부모가 리뷰 지시문을 `cat` 해도 관찰 텍스트가 실제 문서(지문 coverage)가 아니면 읽기로 안 센다(G9). 단계 재정렬 변형은 `Step.n` 을 다시 매겨야 순서 검사가 본다.
+
+남은 것: 정식 smoke 의 gateway trace 로 실데이터 스냅샷(aidlc 의 `snapshot/audited.json` + `_snapshot.py check` 방식)과 재료 검수, F12·G27, judge(보류). 저쪽 kind_matrix 집계를 쓰려면 항목에 `category` 를 붙이는 작업이 필요(현재는 compliance 평균 + layers.yaml).
+

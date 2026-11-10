@@ -63,7 +63,7 @@ DOCS = {
 # upstream source ids of rules.yaml -> the ported document that now holds the text (None: search all)
 DOC_MAP = {"WF": "CW", "SK": "CW", "MB": "CW", "MC": "CW", "CT": None}
 STAGE_OF = {"0": "global", "1": "step01", "2": "step02", "3": "step03", "4": "step04", "halt": "step04"}
-TRACE_KINDS = {"doc_read", "doc_read_first", "order", "prohibited_action", "exec_evidence", "bmad.command", "bmad.task_calls", "bmad.lens_output", "bmad.no_doc_read", "bmad.last_message"}
+TRACE_KINDS = {"doc_read", "doc_read_first", "order", "prohibited_action", "exec_evidence", "bmad.command", "bmad.task_calls", "bmad.lens_output", "bmad.no_doc_read", "bmad.last_message", "bmad.subagent"}
 BOTH_KINDS = {"write_discipline", "bmad.artifact_io", "bmad.paths_read"}
 STRUCTURE_KINDS = {"artifact_exists", "path_match", "frontmatter", "section_present", "label_present", "field_literal", "bmad.frontmatter_value", "bmad.spec_count", "bmad.diff_file"}
 EVIDENCE_KINDS = TRACE_KINDS | BOTH_KINDS | {"bmad.block_unchanged", "bmad.append_only"}
@@ -179,6 +179,20 @@ ITEMS: dict[str, list[dict]] = {
     # ---- recorded commands ----
     "F1": [I(kind="cross_ref", params={"left": {"ids": {"artifact": "spec", "section": "Verification", "pattern": r"^\s*[-*]\s+`([^`]+)`\s+--", "group": 1}}, "right": {"fact": "run_commands", "window": "stage:step03"}, "relation": "subset", "normalize": "command"}, target="spec", stage="step03", fidelity="narrower", fidelity_note="each recorded command ran in step 3; manual checks are not judged")],
 }
+# ---- inside the sub-agents' conversations (Run.meta["subagent_runs"]; not_applicable when the trace has none) ----
+SPECFILE_RX = r"(?:^|/)spec-[^/\s`]+\.md$"
+SPECFILE_IN = r"spec-[^/\s`]+\.md"
+DIFFFILE_IN = r"/diff/[^\s`]+\.diff"
+ITEMS["E7"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "implementer", "pattern": SPECFILE_IN, "before": "edit"}, target="run", stage="step03", fidelity="narrower", fidelity_note="the implementer opened the spec file before its first edit; 'fully' and 'sole source of truth' are not measured")]
+ITEMS["G18"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "edge", "pattern": r"review-prompts/edge-case-hunter\.md"}, target="run", stage="step04")]
+ITEMS["G38"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "gap", "pattern": r"review-prompts/verification-gap\.md"}, target="run", stage="step04")]
+ITEMS["G20"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "review", "pattern": DIFFFILE_IN}, target="run", stage="step04", fidelity="narrower", fidelity_note="each launched review lens opened the diff file; that it reviewed nothing else is not measured")]
+ITEMS["G34"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "edge", "pattern": r"references/claims-check\.md"}, target="run", stage="step04", fidelity="narrower", fidelity_note="the claims-check reference was opened; that it was step 5 is G24's order")]
+ITEMS["G28"] = [I(kind="bmad.subagent", params={"rule": "read", "lens": "edge", "pattern": r"references/deletion-check\.md", "when": "diff_deletes"}, target="run", stage="step04", fidelity="narrower", fidelity_note="when the final diff removes any line of code the edge lens opened deletion-check.md; renames and whitespace are not told apart")]
+ITEMS["G19"] = [I(kind="bmad.subagent", params={"rule": "not_before", "lens": "edge", "pattern": SPECFILE_IN, "anchor": r"references/claims-check\.md"}, target="run", stage="step04")]
+ITEMS["G24"] = [I(kind="bmad.subagent", params={"rule": "order", "lens": "edge", "chain": [r"review-prompts/edge-case-hunter\.md", DIFFFILE_IN, r"references/claims-check\.md"]}, target="run", stage="step04", fidelity="narrower", fidelity_note="instructions, then the diff, then the claims check: the three reads the trace can see, in that order")]
+ITEMS["G40"] = [I(kind="bmad.subagent", params={"rule": "cited_read", "lens": "gap", "cite_pattern": r"`?((?:[\w.-]+/)*test[\w-]*\.py)\b"}, target="run", stage="step04", fidelity="narrower", fidelity_note="every test file the reply names was opened in the conversation")]
+ITEMS["G41"] = [I(kind="bmad.subagent", params={"rule": "search_before_claim", "lens": "gap", "claim_pattern": r"(?i)\b(?:no (?:existing |such )?(?:unit |regression )?tests?\b|not (?:covered|tested|exercised)|untested|no (?:test )?coverage|lacks? (?:a )?tests?)"}, target="run", stage="step04", fidelity="narrower", fidelity_note="a reply claiming a missing test is preceded by grep/rg/find/git grep in that conversation")]
 ITEMS["E11"] = [I(kind="bmad.task_calls", params={"rule": "launched", "min": 1, "pattern": r"implement it", "window": "stage:step03"}, target="run", stage="step03", fidelity="narrower", fidelity_note="the implementation hand-off was launched in step 3; waiting is enforced by the blocking tool")]
 
 # Why a scored rule has no implemented item yet (rule -> class, note). Anything else unlisted: candidate.
@@ -201,7 +215,6 @@ UNIMPLEMENTED_NOTE = {
     "D28": ("candidate", "the recorded blocking condition when the gate fails twice"),
     "D34": ("vague", "sentence count of Problem and Approach"),
     "E2": ("candidate", "baseline_revision written before the first code edit"),
-    "E7": ("candidate", "the implementer sub-agent read the spec: needs the sub-agent run"),
     "F2": ("candidate", "the recorded blocking condition on verification failure"),
     "F3": ("duplicate", "F11 checks the diff rewritten after the last change"),
     "F5": ("candidate", "matrix rows covered by tests that ran and passed"),
@@ -212,18 +225,9 @@ UNIMPLEMENTED_NOTE = {
     "F12": ("candidate", "the patch sub-agent ran only covering tests: needs the sub-agent run"),
     "G6": ("candidate", "the intent lens prompt carries the task text verbatim: needs the task text"),
     "G8": ("duplicate", "I3 checks the lenses share one turn"),
-    "G18": ("candidate", "the edge lens read its instruction file: needs the sub-agent run"),
-    "G19": ("candidate", "claims file read only at the claims check: needs the sub-agent run"),
-    "G20": ("candidate", "the lens read the diff file: needs the sub-agent run"),
     "G22": ("vague", "what the edge lens inspected"),
-    "G24": ("candidate", "the edge lens steps in order: needs the sub-agent run"),
     "G27": ("candidate", "callee declarations read: needs the sub-agent run"),
-    "G28": ("candidate", "deletion check read when code was deleted: needs the sub-agent run"),
     "G31": ("candidate", "field formats of the edge findings"),
-    "G34": ("candidate", "claims file read at step 5: needs the sub-agent run"),
-    "G38": ("candidate", "the gap lens read its instruction file: needs the sub-agent run"),
-    "G40": ("candidate", "the gap lens read the tests it cites: needs the sub-agent run"),
-    "G41": ("candidate", "repository search before claiming no test: needs the sub-agent run"),
     "G51": ("candidate", "Other findings as bullets"),
     "G53": ("candidate", "the gap lens stops on unreadable content"),
     "G56": ("candidate", "verdicts after every layer reported"),

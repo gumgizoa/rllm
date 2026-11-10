@@ -3061,25 +3061,29 @@ items:
   template: ''
   log_only: true
   note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
-- id: bmad_build_auto.step03.run.unimplemented.e7
+- id: bmad_build_auto.step03.run.bmad_subagent.e7
   scope: specific
-  class: content
+  class: evidence
   stage: step03
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml E7 (CT:42); decided keep, T-RD4 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: implementer
+      pattern: spec-[^/\s`]+\.md
+      before: edit
+  requirement: must
+  modality_evidence: rules.yaml E7 (CT:42); decided keep, T-RD4 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: S3
     lines:
@@ -3090,7 +3094,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the implementer sub-agent read the spec: needs the sub-agent run'
+  note: study template T-RD4 (L1)
 - id: bmad_build_auto.step03.run.unimplemented.e9
   scope: specific
   class: content
@@ -4121,25 +4125,28 @@ items:
   template: ''
   log_only: false
   note: study template T-FM3 (L1)
-- id: bmad_build_auto.step04.run.unimplemented.g18
+- id: bmad_build_auto.step04.run.bmad_subagent.g18
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G18 (CT:79); decided env, T-RD2 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: edge
+      pattern: review-prompts/edge-case-hunter\.md
+  requirement: must
+  modality_evidence: rules.yaml G18 (CT:79); decided env, T-RD2 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: S4
     lines:
@@ -4150,26 +4157,30 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the edge lens read its instruction file: needs the sub-agent run'
-- id: bmad_build_auto.step04.run.unimplemented.g19
+  note: study template T-RD2 (L1)
+- id: bmad_build_auto.step04.run.bmad_subagent.g19
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G19 (CT:81, EH:13, CC:3); decided keep, T-RD3 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: not_before
+      lens: edge
+      pattern: spec-[^/\s`]+\.md
+      anchor: references/claims-check\.md
+  requirement: must
+  modality_evidence: rules.yaml G19 (CT:81, EH:13, CC:3); decided keep, T-RD3 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: EH
     lines:
@@ -4180,26 +4191,29 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: claims file read only at the claims check: needs the sub-agent run'
-- id: bmad_build_auto.step04.run.unimplemented.g20
+  note: study template T-RD3 (L1)
+- id: bmad_build_auto.step04.run.bmad_subagent.g20
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G20 (CT:83, CT:97, CT:113, EH:24, EH:112, VG:112); decided keep, T-RD4 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: review
+      pattern: /diff/[^\s`]+\.diff
+  requirement: must
+  modality_evidence: rules.yaml G20 (CT:83, CT:97, CT:113, EH:24, EH:112, VG:112); decided keep, T-RD4 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: EH
     lines:
@@ -4210,7 +4224,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the lens read the diff file: needs the sub-agent run'
+  note: study template T-RD4 (L1)
 - id: bmad_build_auto.step04.run.unimplemented.g21
   scope: specific
   class: content
@@ -4271,25 +4285,31 @@ items:
   template: ''
   log_only: false
   note: 'code: what the edge lens inspected'
-- id: bmad_build_auto.step04.run.unimplemented.g24
+- id: bmad_build_auto.step04.run.bmad_subagent.g24
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G24 (EH:15); decided keep, T-OR1 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: order
+      lens: edge
+      chain:
+      - review-prompts/edge-case-hunter\.md
+      - /diff/[^\s`]+\.diff
+      - references/claims-check\.md
+  requirement: must
+  modality_evidence: rules.yaml G24 (EH:15); decided keep, T-OR1 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: EH
     lines:
@@ -4300,7 +4320,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the edge lens steps in order: needs the sub-agent run'
+  note: study template T-OR1 (L1)
 - id: bmad_build_auto.step04.run.unimplemented.g26
   scope: specific
   class: content
@@ -4361,25 +4381,29 @@ items:
   template: ''
   log_only: false
   note: 'code: callee declarations read: needs the sub-agent run'
-- id: bmad_build_auto.step04.run.unimplemented.g28
+- id: bmad_build_auto.step04.run.bmad_subagent.g28
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G28 (EH:47, EH:51); decided env, T-RD2 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: edge
+      pattern: references/deletion-check\.md
+      when: diff_deletes
+  requirement: must
+  modality_evidence: rules.yaml G28 (EH:47, EH:51); decided env, T-RD2 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: EH
     lines:
@@ -4390,7 +4414,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: deletion check read when code was deleted: needs the sub-agent run'
+  note: study template T-RD2 (L1)
 - id: bmad_build_auto.step04.run.bmad_lens_output.g29
   scope: specific
   class: evidence
@@ -4567,25 +4591,28 @@ items:
   template: ''
   log_only: false
   note: study template T-FM2 (L1)
-- id: bmad_build_auto.step04.run.unimplemented.g34
+- id: bmad_build_auto.step04.run.bmad_subagent.g34
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G34 (CC:3, EH:96); decided keep, T-RD4 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: edge
+      pattern: references/claims-check\.md
+  requirement: must
+  modality_evidence: rules.yaml G34 (CC:3, EH:96); decided keep, T-RD4 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: CC
     lines:
@@ -4596,7 +4623,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: claims file read at step 5: needs the sub-agent run'
+  note: study template T-RD4 (L1)
 - id: bmad_build_auto.step04.run.unimplemented.g36
   scope: specific
   class: content
@@ -4669,25 +4696,28 @@ items:
   template: ''
   log_only: false
   note: study template T-FM6 (L1)
-- id: bmad_build_auto.step04.run.unimplemented.g38
+- id: bmad_build_auto.step04.run.bmad_subagent.g38
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G38 (CT:95); decided env, T-RD2 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: read
+      lens: gap
+      pattern: review-prompts/verification-gap\.md
+  requirement: must
+  modality_evidence: rules.yaml G38 (CT:95); decided env, T-RD2 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: S4
     lines:
@@ -4698,7 +4728,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the gap lens read its instruction file: needs the sub-agent run'
+  note: study template T-RD2 (L1)
 - id: bmad_build_auto.step04.run.unimplemented.g39
   scope: specific
   class: content
@@ -4729,25 +4759,28 @@ items:
   template: ''
   log_only: true
   note: 'judge: judge rule (LLM judgement); log_only until a judge endpoint is wired'
-- id: bmad_build_auto.step04.run.unimplemented.g40
+- id: bmad_build_auto.step04.run.bmad_subagent.g40
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G40 (VG:13, VG:70); decided keep, T-RD4 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: cited_read
+      lens: gap
+      cite_pattern: '`?((?:[\w.-]+/)*test[\w-]*\.py)\b'
+  requirement: must
+  modality_evidence: rules.yaml G40 (VG:13, VG:70); decided keep, T-RD4 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: VG
     lines:
@@ -4758,26 +4791,29 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: the gap lens read the tests it cites: needs the sub-agent run'
-- id: bmad_build_auto.step04.run.unimplemented.g41
+  note: study template T-RD4 (L1)
+- id: bmad_build_auto.step04.run.bmad_subagent.g41
   scope: specific
-  class: content
+  class: evidence
   stage: step04
   target:
     type: action
-    ref: unimplemented
+    ref: run
     state: final
   check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: rules.yaml G41 (VG:14, VG:16); decided keep, T-RF2 L1; measure code
+    kind: bmad.subagent
+    params:
+      rule: search_before_claim
+      lens: gap
+      claim_pattern: (?i)\b(?:no (?:existing |such )?(?:unit |regression )?tests?\b|not (?:covered|tested|exercised)|untested|no (?:test )?coverage|lacks? (?:a )?tests?)
+  requirement: must
+  modality_evidence: rules.yaml G41 (VG:14, VG:16); decided keep, T-RF2 L1
   none_allowed: '-'
   applies_when: null
-  weight: 0.0
+  weight: 1.0
   gate: null
   availability:
-  - sandbox_file
+  - trace
   sources:
   - doc: VG
     lines:
@@ -4788,7 +4824,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'code: repository search before claiming no test: needs the sub-agent run'
+  note: study template T-RF2 (L1)
 - id: bmad_build_auto.step04.run.unimplemented.g42
   scope: specific
   class: content

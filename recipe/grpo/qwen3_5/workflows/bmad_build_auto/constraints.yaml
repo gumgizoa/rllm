@@ -1374,10 +1374,10 @@ constraints:
   eval:
     layer: L2F
     requirement: must
-- id: bmad_build_auto.step03.run.unimplemented.e7
+- id: bmad_build_auto.step03.run.bmad_subagent.e7
   template: T-RD4
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (구현자) 구현 전에 spec_file을 끝까지 읽고 spec만을 진실원으로 삼아 구현한다 (CT:42)
   source:
     doc: S3
@@ -1385,8 +1385,8 @@ constraints:
     - 23
     - 23
     quote: Read {spec_file} fully and implement it — the spec is the sole source of truth.
-  class: candidate
-  class_note: 'the implementer sub-agent read the spec: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: the implementer opened the spec file before its first edit; 'fully' and 'sole source of truth' are not measured
   eval:
     layer: L1
     requirement: must
@@ -1890,10 +1890,10 @@ constraints:
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g18
+- id: bmad_build_auto.step04.run.bmad_subagent.g18
   template: T-RD2
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Edge Case Hunter) `{skill-root}/review-prompts/edge-case-hunter.md`를 끝까지 읽고 리뷰 지시로 따른다 (CT:79)
   source:
     doc: S4
@@ -1901,15 +1901,14 @@ constraints:
     - 46
     - 46
     quote: Read `/bmad-build-auto/review-prompts/edge-case-hunter.md` completely and follow it
-  class: candidate
-  class_note: 'the edge lens read its instruction file: needs the sub-agent run'
+  fidelity: faithful
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g19
+- id: bmad_build_auto.step04.run.bmad_subagent.g19
   template: T-RD3
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: '(Edge Case Hunter) claims_file(spec)은 5단계 Claims Check 전에는 읽지 않는다: 경로 추적이 먼저 끝나야 한다 (CT:81, EH:13, CC:3)'
   source:
     doc: EH
@@ -1917,15 +1916,14 @@ constraints:
     - 13
     - 13
     quote: 'Do NOT read it before Step 5: the path tracing in Steps 2–3 must finish before the claims are seen.'
-  class: candidate
-  class_note: 'claims file read only at the claims check: needs the sub-agent run'
+  fidelity: faithful
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g20
+- id: bmad_build_auto.step04.run.bmad_subagent.g20
   template: T-RD4
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: '(리뷰어) 리뷰 대상은 띄운 메시지의 ''Review content:''가 주는 diff 파일이다: 경로면 읽고, 지시 파일 자체는 대상이 아니다 (CT:83, CT:97, CT:113, EH:24, EH:112, VG:112)'
   source:
     doc: EH
@@ -1933,8 +1931,8 @@ constraints:
     - 109
     - 109
     quote: Read the file when it is a path; either way that is the content under review, and this instruction file never is.
-  class: candidate
-  class_note: 'the lens read the diff file: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: each launched review lens opened the diff file; that it reviewed nothing else is not measured
   eval:
     layer: L1
     requirement: must
@@ -1970,10 +1968,10 @@ constraints:
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g24
+- id: bmad_build_auto.step04.run.bmad_subagent.g24
   template: T-OR1
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Edge Case Hunter) 1~6단계를 정확히 그 순서로 모두 실행한다; 정지 조건이 걸리면 그 지시를 그대로 따른다 (EH:15)
   source:
     doc: EH
@@ -1981,8 +1979,8 @@ constraints:
     - 15
     - 15
     quote: Execute steps in the Execution section IN EXACT ORDER. DO NOT skip steps or change the sequence.
-  class: candidate
-  class_note: 'the edge lens steps in order: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: 'instructions, then the diff, then the claims check: the three reads the trace can see, in that order'
   eval:
     layer: L1
     requirement: must
@@ -2018,10 +2016,10 @@ constraints:
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g28
+- id: bmad_build_auto.step04.run.bmad_subagent.g28
   template: T-RD2
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Edge Case Hunter) diff가 의미 있는 코드를 지우거나 바꿨으면(이름 변경·공백 제외) references/deletion-check.md를 읽고 따르고, 5단계에서 references/claims-check.md를 읽고 따른다 (EH:47, EH:51)
   source:
     doc: EH
@@ -2029,8 +2027,8 @@ constraints:
     - 46
     - 46
     quote: 'If the diff removed or replaced meaningful code (ignore pure renames and whitespace): load `/bmad-build-auto/references/deletion-check.md` and follow it'
-  class: candidate
-  class_note: 'deletion check read when code was deleted: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: when the final diff removes any line of code the edge lens opened deletion-check.md; renames and whitespace are not told apart
   eval:
     layer: L1
     requirement: must
@@ -2112,10 +2110,10 @@ constraints:
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g34
+- id: bmad_build_auto.step04.run.bmad_subagent.g34
   template: T-RD4
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Claims Check) 경로 추적이 끝난 5단계에서 처음으로 claims 파일을 읽는다 (CC:3, EH:96)
   source:
     doc: CC
@@ -2123,8 +2121,8 @@ constraints:
     - 3
     - 3
     quote: Read the claims file named in the message that launched you now, for the first time; the path tracing is finished
-  class: candidate
-  class_note: 'claims file read at step 5: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: the claims-check reference was opened; that it was step 5 is G24's order
   eval:
     layer: L1
     requirement: must
@@ -2159,10 +2157,10 @@ constraints:
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g38
+- id: bmad_build_auto.step04.run.bmad_subagent.g38
   template: T-RD2
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Verification Gap) `{skill-root}/review-prompts/verification-gap.md`를 끝까지 읽고 따른다 (CT:95)
   source:
     doc: S4
@@ -2170,8 +2168,7 @@ constraints:
     - 58
     - 58
     quote: Read `/bmad-build-auto/review-prompts/verification-gap.md` completely and follow it
-  class: candidate
-  class_note: 'the gap lens read its instruction file: needs the sub-agent run'
+  fidelity: faithful
   eval:
     layer: L1
     requirement: must
@@ -2191,10 +2188,10 @@ constraints:
   eval:
     layer: L2M
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g40
+- id: bmad_build_auto.step04.run.bmad_subagent.g40
   template: T-RD4
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Verification Gap) 테스트가 무엇을 덮고 실행하고 단언하고 놓치는지 주장하기 전에 그 테스트를 읽는다; finding을 쓰기 직전에 근거 테스트·검색 결과를 다시 연다 (VG:13, VG:70)
   source:
     doc: VG
@@ -2202,15 +2199,15 @@ constraints:
     - 13
     - 13
     quote: Read a test before claiming what it covers, runs, asserts, or misses.
-  class: candidate
-  class_note: 'the gap lens read the tests it cites: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: every test file the reply names was opened in the conversation
   eval:
     layer: L1
     requirement: must
-- id: bmad_build_auto.step04.run.unimplemented.g41
+- id: bmad_build_auto.step04.run.bmad_subagent.g41
   template: T-RF2
-  status: unimplemented
-  requirement: should
+  status: implemented
+  requirement: must
   rule: (Verification Gap) 테스트가 없다고 주장하기 전에 대상 심볼과 import 참조로 저장소 전체를 검색한다; 예상 위치만으로는 부족하다 (VG:14, VG:16)
   source:
     doc: VG
@@ -2218,8 +2215,8 @@ constraints:
     - 14
     - 14
     quote: Before claiming no test exists, search the whole repo by the symbol under test and by import references; expected file locations are not enough.
-  class: candidate
-  class_note: 'repository search before claiming no test: needs the sub-agent run'
+  fidelity: narrower
+  fidelity_note: a reply claiming a missing test is preceded by grep/rg/find/git grep in that conversation
   eval:
     layer: L1
     requirement: must

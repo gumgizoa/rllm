@@ -38,6 +38,15 @@ lens_output         the final message a lens sub-agent returned: ``pattern`` / `
 triage_totals       ``totals``: each Review Triage Log entry's ``<total>`` equals its row count and the sum
                     of its five verdict counts; ``false_reject``: every ``[false]`` row routes to reject
 last_message        the run's last message does not ask the user or wait for input
+subagent            what a sub-agent did inside its own conversation (``Run.meta["subagent_runs"]``, one run per
+                    delegated prompt, matched to a ``lens`` by the prompt's signature): ``read`` (a read of a
+                    path matching ``pattern``; ``before: edit`` = before the conversation's first file edit;
+                    ``when: diff_deletes`` = only when the final diff removes code), ``not_before`` (no read of
+                    ``pattern`` before the first read of ``anchor``), ``order`` (the first reads of ``chain``
+                    come in that order), ``cited_read`` (every path matching ``cite_pattern`` in the lens's
+                    reply was read in the conversation), ``search_before_claim`` (a reply matching
+                    ``claim_pattern`` is preceded by a repository search). Share over the lens's launches;
+                    not_applicable when the trace holds no sub-agent conversations or the lens was not launched
 """
 
 from __future__ import annotations
@@ -52,6 +61,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.context import EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
+from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Run
 
 TASK = "task"
 LENSES = {
@@ -520,3 +530,134 @@ def last_message(item: Item, ctx: EvalContext) -> Result:
     last = next((s.message for s in reversed(ctx.run.steps) if (s.message or "").strip()), "")
     m = _ASKS_USER.search(last)
     return Result.no(item, f"last message asks the user: {m.group(0)!r}") if m else Result.ok(item, "no request for input")
+
+
+# --------------------------------------------------------------------------------------------
+# sub-agent conversations
+# --------------------------------------------------------------------------------------------
+_SUB_RULES = ("read", "not_before", "order", "cited_read", "search_before_claim")
+_EDIT_KINDS = ("create", "str_replace", "insert", "write", "undo")
+_SEARCH = re.compile(r"(?:^|[;&|]\s*)(?:grep|rg|ag|ack|find|git\s+grep)\b")
+
+
+def _sub_runs(ctx: EvalContext) -> list[Run] | None:
+    subs = (ctx.run.meta or {}).get("subagent_runs")
+    return None if subs is None else [r for r in subs if isinstance(r, Run)]
+
+
+def _subs_of(ctx: EvalContext, lens) -> list[Run]:
+    """The sub-agent conversations whose delegated prompt carries the lens signature, in order of appearance."""
+    want = set(REVIEW_LENSES) if lens in (None, "review", "all_lenses") else set(lens if isinstance(lens, (list, tuple)) else [lens])
+    return [r for r in _sub_runs(ctx) or [] if _lens_of(str((r.meta or {}).get("prompt_head") or "")) in want]
+
+
+def _reads_in(steps, rx: re.Pattern) -> list[int]:
+    """Steps whose actions read a path matching ``rx``: a view of it, or a shell segment with a read verb naming it."""
+    out = []
+    for s in steps:
+        for a in s.actions:
+            if a.kind == "view" and a.path and rx.search(a.path):
+                out.append(s.n)
+                break
+            if a.kind == "shell" and a.command and rx.search(a.command):
+                hit = False
+                for seg in re.split(r"&&|\|\||;|\|", a.command.replace("\n", " ")):
+                    if not rx.search(seg) or re.search(r">\s*\S*(?:" + rx.pattern + ")", seg):
+                        continue
+                    try:
+                        words = shlex.split(seg)
+                    except ValueError:
+                        words = seg.split()
+                    if any(w in _READ_VERBS for w in words):
+                        hit = True
+                        break
+                if hit:
+                    out.append(s.n)
+                    break
+    return out
+
+
+def _first_edit(steps) -> int | None:
+    for s in steps:
+        for a in s.actions:
+            if a.kind in _EDIT_KINDS or (a.kind == "shell" and a.command and re.search(r"(?<![<>])>(?!>)|>>|\bsed\s+-i\b|\btee\b|\bmv\b|\bcp\b", a.command)):
+                return s.n
+    return None
+
+
+def _reply_of(ctx: EvalContext, lens: str, k: int, sub: Run) -> str:
+    """The k-th launch's reply: the orchestrator's observation of that lens call, else the conversation's last message."""
+    calls = _lens_calls(ctx, lens)
+    if k < len(calls):
+        text = _result_text(calls[k][1].observation)
+        if text:
+            return text
+    return next((s.message for s in reversed(sub.steps) if (s.message or "").strip()), "")
+
+
+def _diff_deletes(ctx: EvalContext) -> bool:
+    text = ctx.artifact_text("diff", "final") or ""
+    return re.search(r"(?m)^-(?!-- )(?=.*\S)", text) is not None
+
+
+@register("bmad.subagent", params={"rule": True, "lens": True, "pattern": False, "before": False, "when": False, "anchor": False, "chain": False, "cite_pattern": False, "claim_pattern": False, "command_pattern": False}, availability=("trace",), common=False, choices={"rule": _SUB_RULES})
+def subagent(item: Item, ctx: EvalContext) -> Result:
+    """What the sub-agents of one lens did inside their own conversations (see the module docstring)."""
+    p = _p(item)
+    rule, lens = str(p["rule"]), p["lens"]
+    if _sub_runs(ctx) is None:
+        return Result.not_applicable(item, "no sub-agent conversations in the trace")
+    if p.get("when") == "diff_deletes" and not _diff_deletes(ctx):
+        return Result.not_applicable(item, "the diff removes no code")
+    subs = _subs_of(ctx, lens)
+    launched = _lens_calls(ctx, lens) if lens != "implementer" else [(n, a) for n, a in _task_calls(ctx) if _lens_of(a.text or "") == "implementer"]
+    if not subs:
+        return Result.not_applicable(item, "lens not launched") if not launched else Result.no(item, "lens launched but its conversation is not in the trace")
+    rx = re.compile(str(p["pattern"])) if p.get("pattern") else None
+    good, total, notes = 0, 0, []
+    for k, sub in enumerate(subs):
+        steps = sub.steps
+        if rule == "read":
+            reads = _reads_in(steps, rx)
+            if p.get("before") == "edit":
+                edit = _first_edit(steps)
+                reads = [n for n in reads if edit is None or n < edit]
+            total += 1
+            good += bool(reads)
+            notes.append(f"read at {reads[:2]}" if reads else "not read")
+        elif rule == "not_before":
+            anchor = _reads_in(steps, re.compile(str(p["anchor"])))
+            reads = _reads_in(steps, rx)
+            early = [n for n in reads if not anchor or n < anchor[0]]
+            total += 1
+            good += not early
+            notes.append(f"read before the anchor at {early[:2]}" if early else "ok")
+        elif rule == "order":
+            firsts = [min(_reads_in(steps, re.compile(str(c))), default=None) for c in p["chain"]]
+            for a, b in zip(firsts, firsts[1:]):
+                total += 1
+                good += a is not None and b is not None and a < b
+            notes.append(f"first reads {firsts}")
+        elif rule in ("cited_read", "search_before_claim"):
+            reply = _reply_of(ctx, lens if isinstance(lens, str) else "gap", k, sub)
+            if rule == "cited_read":
+                cited = sorted({m.group(1) for m in re.finditer(str(p["cite_pattern"]), reply)})
+                for path in cited:
+                    total += 1
+                    hit = bool(_reads_in(steps, re.compile(r"(?:^|/)" + re.escape(path.split("/")[-1]) + r"\b|" + re.escape(path))))
+                    good += hit
+                    if not hit:
+                        notes.append(f"cited, not read: {path}")
+            else:
+                if re.search(str(p["claim_pattern"]), reply) is None:
+                    continue
+                total += 1
+                srx = re.compile(str(p.get("command_pattern") or _SEARCH.pattern), re.M)
+                hit = any(a.kind == "shell" and a.command and srx.search(a.command) for s in steps for a in s.actions)
+                good += hit
+                notes.append("claim with a search" if hit else "claim without a repository search")
+        else:
+            return Result.no(item, f"unknown rule {rule!r}")
+    if total == 0:
+        return Result.not_applicable(item, "no reply the rule applies to")
+    return _ratio(item, good, total, "; ".join(notes)[:160])
