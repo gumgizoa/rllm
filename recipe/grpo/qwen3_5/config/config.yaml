@@ -17,14 +17,14 @@ defaults:
 
 # Recipe-level knobs read by train.py (not part of rLLM's schema).
 recipe:
-  train_dataset: swe_mix_train
+  train_dataset: <YOUR_DATASET>
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split
-  val_dataset: swebenchpro_v2_strat50
+  val_dataset: <YOUR_DATASET>
   val_split: test
   val_limit: -1
   sandbox_backend: docker  # SANDBOX_BACKEND env var wins
-  sandbox_concurrency: 8      # caps live sandboxes AND the warm-queue prefetch depth; = rllm.workflow.n_parallel_tasks
+  sandbox_concurrency: 48     # caps live sandboxes AND the warm-queue prefetch depth; = rllm.workflow.n_parallel_tasks
   # Which agent runs inside the task sandbox: mini-swe-agent | openhands-sdk
   # (rllm/harnesses/mini_swe_agent.py, rllm/harnesses/openhands_sdk.py). Both
   # call the model through the gateway and are graded by the task's tests/test.sh,

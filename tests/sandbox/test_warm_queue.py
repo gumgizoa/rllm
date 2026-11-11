@@ -314,3 +314,60 @@ def test_prefetch_gives_up_then_pop_inline_without_credit(monkeypatch):
         assert not queue._credits  # ...instead of crediting a skip
     finally:
         queue.shutdown()
+
+
+def test_slow_env_key_does_not_block_other_fillers(monkeypatch):
+    """Resolving an entry's env_key can build its image (docker). One slow
+    resolution must not hold the queue's lock: the other fillers resolve the
+    upcoming entries in parallel, and pops are served meanwhile."""
+    fake = _FakeGetSandbox()
+    _patch(monkeypatch, fake)
+    release = threading.Event()
+    resolved: list[str] = []
+
+    def slow_env_key_for(task, backend, install_script=""):
+        if task.id == "t0":
+            release.wait(5.0)  # an image build in flight
+        resolved.append(task.id)
+        return env_key_for(task, backend, install_script)
+
+    monkeypatch.setattr("rllm.sandbox.warm_queue.env_key_for", slow_env_key_for)
+    schedule = _distinct(4)
+    queue = WarmQueue(schedule, "modal", None, size=4)
+    queue.start()
+    try:
+        # t1..t3 resolve while t0 is still building.
+        assert _wait_until(lambda: {"t1", "t2", "t3"} <= set(resolved), timeout=2.0)
+        assert "t0" not in resolved
+        # The lock is free: an unscheduled pop is served inline right away.
+        start = time.monotonic()
+        assert queue.pop(_task("other", "img-other:latest")).task.id == "other"
+        assert time.monotonic() - start < 1.0
+        release.set()
+        for task in schedule:
+            assert _env(queue.pop(task).task) == _env(task)
+        assert len(fake.made) == 5  # 4 prefetched + the one inline pop
+        assert sorted(s.task.id for s in fake.made) == ["other", "t0", "t1", "t2", "t3"]
+    finally:
+        release.set()
+        queue.shutdown()
+
+
+def test_unresolvable_entry_is_skipped(monkeypatch):
+    fake = _FakeGetSandbox()
+    _patch(monkeypatch, fake)
+
+    def failing_env_key_for(task, backend, install_script=""):
+        if task.id == "t1":
+            raise RuntimeError("Docker build failed for t1")
+        return env_key_for(task, backend, install_script)
+
+    monkeypatch.setattr("rllm.sandbox.warm_queue.env_key_for", failing_env_key_for)
+    schedule = _distinct(3)
+    queue = WarmQueue(schedule, "modal", None, size=3)
+    queue.start()
+    try:
+        assert _wait_until(lambda: queue._cursor == 3)
+        assert sorted(s.task.id for s in fake.made) == ["t0", "t2"]  # t1 skipped, the rest still prefetched
+    finally:
+        queue.shutdown()

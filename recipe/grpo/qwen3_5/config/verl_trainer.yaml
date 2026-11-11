@@ -52,10 +52,8 @@ actor_rollout_ref:
     use_dynamic_bsz: false
     ppo_micro_batch_size_per_gpu: 1
 
-    # Counted in prompts: 8 prompts x rollout.n (8) = 64 trajectories per
-    # optimizer update. rllm.data.train_batch_size (32) x 8 = 256 trajectories
-    # per step, so each step makes 4 updates; only the first is strictly on-policy.
-    ppo_mini_batch_size: 8
+
+    ppo_mini_batch_size: 16
 
     optim:
       lr: 1e-6
@@ -76,7 +74,7 @@ actor_rollout_ref:
     name: vllm
     mode: async                      # required by the AgentFlow/gateway path
     tensor_model_parallel_size: 1    # -> one vLLM server per GPU
-    gpu_memory_utilization: 0.50
+    gpu_memory_utilization: 0.70
     enforce_eager: false             # keep torch.compile + CUDA graphs
     free_cache_engine: true
     log_prob_micro_batch_size_per_gpu: 1
@@ -105,7 +103,7 @@ trainer:
   # max_ckpt_to_keep. An FSDP checkpoint here is bf16 weights plus fp32 Adam
   # state and master copy over 9.41B params -- on the order of 130 GB each -- so
   # an unbounded run fills a volume quickly.
-  max_actor_ckpt_to_keep: 5
+  max_actor_ckpt_to_keep: 10
   # verl's default is relative to the cwd, i.e. inside the repo (network storage
   # on some nodes). RLLM_CKPT_DIR (.env) points it at local disk.
   default_local_dir: ${oc.env:RLLM_CKPT_DIR,${oc.env:RLLM_HOME}/checkpoints}/${rllm.trainer.project_name}/${rllm.trainer.experiment_name}

@@ -1,35 +1,35 @@
-# rLLM evaluation (ref. harbor)
+# rLLM evaluation (native)
 
-`rllm eval` -> SWE-bench Verified와 SWE-bench Pro 평가 방법
+A guide to evaluating SWE-bench Verified, SWE-bench Pro and SWE-bench Pro V2 with `rllm eval`.
 
-실행 방식은 두 가지:
+**Evaluate with the rLLM native path.** rLLM starts the sandbox itself, runs an rLLM harness (`--agent openhands-sdk` and others) in it, and grades with the task's `tests/test.sh`. Furthermore, rLLM itself supports the agent network block, the hidden git history and the detailed timeouts functions.
 
-| Way | `--agent` | Runtime |
+| Path | `--agent` | Status |
 | --- | --- | --- |
-| **harbor** | `harbor:mini-swe-agent` 처럼 `harbor:` 접두어 | Harbor `Trial.run()` — 환경 build, agent, verifier를 Harbor가 모두 담당 |
-| **native** | `mini-swe-agent`, `oracle` 처럼 접두어 없음 | rLLM `SandboxTaskHooks` + rLLM harness + `ShellScriptEvaluator` |
+| **native** | no prefix, e.g. `openhands-sdk`, `mini-swe-agent`, `oracle` | **In use.** rLLM `SandboxTaskHooks` + rLLM harness + `ShellScriptEvaluator` |
+| harbor | `harbor:` prefix, e.g. `harbor:mini-swe-agent` | **Deprecated.** No longer used for evaluation; kept for reference in [Appendix B](#appendix-b-deprecated-harbor-path) |
 
-두 방식 모두 `--sandbox-backend docker`(local Docker daemon) 사용
+Every evaluation uses `--sandbox-backend docker` (the local Docker daemon).
+
+**Before running an evaluation, go through the [checklist in section 1](#1-pre-evaluation-checklist).** If any of the agent network block, hidden git history, agent kwargs, timeouts or model generation kwargs is missing, the score is not comparable with runs under other conditions, or the answer leaks and the score is inflated.
 
 ---
 
-## 0. 환경 구성 및 rLLM 배경 지식
+## 0. Environment and rLLM background
 
 ### 0.1 Container
 
-- base image: `pytorch/pytorch:2.12.1-cuda13.0-cudnn9-devel`. 
-- 평가 시 agent sandbox/verifier sandbox는 이 container 안에서 host Docker daemon을 빌려 dood (docker out of docker)로 launch 
-- 이에 따라 rllm을 사용할 Container를 launch할 때 세 가지 option 설정 필요:
+- Base image: `pytorch/pytorch:2.12.1-cuda13.0-cudnn9-devel`.
+- During evaluation the agent and verifier sandboxes are launched from inside this container through the host Docker daemon (docker out of docker, dood).
+- So the container that runs rLLM needs three options:
 
-  * `-v /var/run/docker.sock:/var/run/docker.sock` — 호스트 Docker daemon 공유
-  * `--network host` — host 주소로 rLLM model gateway에 접속 
-      - native는 `host.docker.internal`, harbor는 docker0 gateway IP `172.17.0.1`
-      - gateway는 rLLM process(=Container) 안에서 `0.0.0.0`에 바인드되므로, 이 Container가 host network에 있어야 그 주소를 gateway로 활용 가능. bridge network로 띄우면 agent container/verifier container에서 접근 불가.
-  * `-v /path/to/shared:/path/to/shared` — Host shared directory volume mount. rLLM integrated harbor를 통한 평가 수행 시, Harbor가 `$RLLM_HOME/harbor_trials/{trial}/verifier`를 task container에 bind-mount하고, 이는 host docker daemon이 resolve하므로 해당 경로가 host에도 **반드시 같은 위치**에 존재해야 접근 가능.
+  * `-v /var/run/docker.sock:/var/run/docker.sock`: share the host Docker daemon.
+  * `--network host`: sandboxes reach the rLLM model gateway at `host.docker.internal`. The gateway binds `0.0.0.0` inside the rLLM process (= this container), so the container must be on the host network for sandboxes to reach it. On a bridge network the sandboxes cannot reach the gateway.
+  * `-v /path/to/shared:/path/to/shared`: mount a shared host directory, and keep `$RLLM_HOME` (datasets, results) at the same path as on the host (0.3).
 
 ```bash
-# Host 
-docker run -d --name {CONTAINER_NAME} 
+# Host
+docker run -d --name {CONTAINER_NAME}
   --gpus all \
   --network host \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -41,9 +41,9 @@ docker run -d --name {CONTAINER_NAME}
 docker exec -it {CONTAINER_NAME} bash
 ```
 
-### 0.2 환경 설치
+### 0.2 Installation
 
-Container 안에는 Docker CLI와 compose plugin 설치 필수 (Harbor는 `docker compose`를 호출).
+The container needs the Docker CLI.
 ```
 apt-get update && apt-get install curl
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -52,733 +52,594 @@ cd /workspace/rllm
 uv venv --python 3.12
 source .venv/bin/activate
 
+# [harbor] extra: the client that downloads Harbor Registry datasets such as harbor:swebench-verified (needed by native eval too)
 uv pip install -e ".[harbor]"
 
 apt-get update && apt-get install -y docker.io docker-compose-v2
 # docker is included in [project].dependencies -> no need to install
 ```
 
-`harbor:openhands-sdk`로 평가할 때만 추가로 설치된 harbor에 patch를 적용한다(3.4). 다른 harness에는 영향이 없다.
+### 0.3 Storage location
 
-```bash
-bash recipe/eval/scripts/apply_harbor_patches.sh
-```
+rLLM keeps datasets and evaluation results under `$RLLM_HOME` (default `~/.rllm`). In this setup, where rLLM runs dood-style inside a container rather than on the host, point it at **a large volume mounted at the same path as on the host** (`/raid/rllm-work` in the example above). Hundreds of task directories and episode JSONs pile up there, and anything under the container root disappears with the container.
 
-### 0.3 저장 위치
-
-rLLM은 dataset, 평가 결과, Harbor trial log를 `$RLLM_HOME`(기본 `~/.rllm`) 아래에 둔다. Host가 아닌 Container 내부에서 dood 형태로 실행하는 본 환경에서는 두 이유로 **host와 같은 경로로 mount된 큰 volume**(위 예시의 `/raid/rllm-work`) 아래를 가리키게 한다.
-
-1. 용량. task directory 수백 개와 Episode JSON이 쌓이고, Container Root에 두면 Container와 함께 사라진다.
-2. Harbor 방식은 `$RLLM_HOME/harbor_trials/...`를 task container에 bind-mount하는데, 이 mount는 host docker daemon이 해석한다. Container 안에만 있는 경로(`~/.rllm`, `/workspace/rllm`)를 주면 verifier의 reward 파일이 host에만 남아 모든 task가 `RewardFileNotFoundError`로 끝난다. 이 위치를 따로 바꾸는 설정은 없고, `RLLM_HOME`을 host와 공유하는 directory 경로로 바꾸는 방법이 있다.
-
-아래는 이 문서 전체에서 가정하는 값이다. 바꾸면 이전에 pull한 dataset과 결과가 다른 위치에 있어 없는 것처럼 보인다. 
-프로젝트 내부에서 해당 경로를 고정해서 사용하면, rLLM 설정 (config.json), 프로젝트 내부 인원이 특정 벤치마크를 평가한 결과, SWE-Bench Verified Subset, rLLM을 통해 build한 학습 데이터 등 모든 것을 공유해서 사용할 수 있다.
+The value below is assumed throughout this document. If you change it, datasets and results pulled earlier live elsewhere and look missing.
+Fixing this path within the project lets everyone share the rLLM settings (`config.json`), each other's benchmark results, the SWE-bench Verified subset, training data built with rLLM, and so on.
 
 ```bash
 export RLLM_HOME=/raid/rllm-work/rllm-home
 ```
 
-### 0.3.1 환경변수
+### 0.3.1 Environment variables
 
 | Var | Default | Why |
 | --- | --- | --- |
-| `RLLM_HOME` | `~/.rllm` | dataset, 결과, `config.json`(model setup), Harbor Trial 등
-| `RLLM_HARBOR_SESSION_TIMEOUT_S` | `900` | Harbor 방식 전용. Trial 1개(agent + verifier)의 상한. SWE-bench Pro의 Go 저장소는 verifier 단계만 15분 넘게 걸리므로, 기본값이면 oracle test조차 timeout으로 0점. `3000` 이상으로 설정 권장 |
-| `RLLM_AGENT_IMAGE` | `auto` | native 방식 전용. `--agent-image` flag와 같은 값(`auto` / `skip` / `repo:tag`) |
-| `HF_HOME` | `~/.cache/huggingface` | `swebench_pro` 빌더가 HF dataset을 받는 곳 |
-| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` 등 | 없으면 `empty` | proxy를 사용할 경우 실제 값 필요 X. export되어 있으면 task container 안으로 전달되므로, 신뢰하지 않는 task(agent가 임의 명령을 실행함)를 평가할 때는 shell에 실제 키 설정 X |
-| `RLLM_API_KEY` | 없음 | `rllm login`을 했거나 이 변수가 있으면 평가 결과와 Episode가 rLLM UI 서버로 upload. 외부로 나가면 안 되는 결과라면 `--no-ui` 명시 |
+| `RLLM_HOME` | `~/.rllm` | Datasets, results, `config.json` (model setup) |
+| `RLLM_ROLLOUT_TIMEOUT_S` | unset (no limit) | Budget for one whole rollout (agent + verifier). The verifier's share is set aside first and what is left is the agent's limit. See 1.3 |
+| `RLLM_HARNESS_RUN_TIMEOUT_S` | `1800` | Agent limit. **Ignored when `task.toml` sets `[agent].timeout_sec`**, which takes precedence. See 1.3 |
+| `RLLM_VERIFIER_TIMEOUT_S` | `600` | Verifier limit. **Ignored when `task.toml` sets `[verifier].timeout_sec`**, which takes precedence. See 1.3 |
+| `RLLM_AGENT_IMAGE` | `auto` | Same values as the `--agent-image` flag (`auto` / `skip` / `repo:tag`) |
+| `HF_HOME` | `~/.cache/huggingface` | Where the `swebench_pro` builder downloads the HF dataset |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ... | `empty` when unset | Real values are not needed with the proxy. If exported, they are passed into the task container, so do not keep real keys in the shell when evaluating untrusted tasks (the agent runs arbitrary commands) |
+| `RLLM_API_KEY` | unset | After `rllm login`, or with this variable set, results and episodes are uploaded to the rLLM UI server. Pass `--no-ui` for results that must not leave the machine |
 
-※ Harbor Registry에서 받은 task directory는 `RLLM_HOME`이 아니라 **`~/.cache/harbor/tasks`**에 들어가고, `$RLLM_HOME/datasets/<name>/default.parquet`의 `task_path`가 그곳을 가리킨다. Container를 새로 만들면 이 cache가 사라져 parquet은 있는데 task directory가 없는 상태가 된다. 그때는 `rllm dataset pull harbor:<name>`을 다시 실행해야한다.
+Note: task directories downloaded from the Harbor Registry (`harbor:swebench-verified` and others) go to **`~/.cache/harbor/tasks`**, not `RLLM_HOME`, and the `task_path` in `$RLLM_HOME/datasets/<name>/default.parquet` points there. A new container loses that cache, leaving the parquet without its task directories. Run `rllm dataset pull harbor:<name>` again in that case.
 
-### 0.3.2 dataset 용어 정리: catalog, parquet, task directory
+### 0.3.2 Dataset terms: catalog, parquet, task directory
 
-세 개념이 서로 연관되어 있다.
+The three concepts are related.
 
-| 개념 | 실체 | 역할 |
+| Concept | What it is | Role |
 | --- | --- | --- |
-| **catalog** | `rllm/registry/datasets.json` (코드에 포함) | dataset 이름 → 어디서 어떻게 받는지. `rllm dataset list`가 보여주는 것. `harbor:<이름>`은 이 파일에 없고 호출 시 Harbor registry에 물어 항목을 즉석에서 만든다 |
-| **parquet (DatasetRegistry)** | `$RLLM_HOME/datasets/<이름>/<split>.parquet` + `registry.json` | rLLM의 표 형식 Dataset. **task당 한 행.** `rllm eval`/`rllm train`은 항상 이걸 통해 task 목록을 얻는다 |
-| **task directory (Harbor 형식)** | `task.toml`, `instruction.md`, `environment/Dockerfile`, `tests/test.sh`, `solution/solve.sh` | **실제로 실행되는 것.** Harbor가 정한 형식이고 rLLM도 그대로 쓴다. directory 묶음 위에 `dataset.toml`(이름, split, 기본 agent)이 붙는다 |
+| **catalog** | `rllm/registry/datasets.json` (in the code) | Dataset name -> where and how to get it. What `rllm dataset list` shows. `harbor:<name>` is not in this file; the entry is built on the fly by asking the Harbor registry |
+| **parquet (DatasetRegistry)** | `$RLLM_HOME/datasets/<name>/<split>.parquet` + `registry.json` | rLLM's tabular dataset, **one row per task**. `rllm eval` / `rllm train` always get the task list from it |
+| **task directory (Harbor format)** | `task.toml`, `instruction.md`, `environment/Dockerfile`, `tests/test.sh`, `solution/solve.sh` | **What actually runs.** The format is Harbor's and rLLM native uses it as is. A `dataset.toml` (name, split, default agent) sits on top of the set of directories |
 
-parquet과 task directory의 관계가 핵심: 수학 문제(e.g. gsm8k)처럼 텍스트만 있는 dataset은 parquet 행 자체가 model 입력으로 사용되는 instruction. SWE task처럼 container가 필요한 dataset은 parquet 행이 포인터. 행의 `task_path`가 가리키는 directory가 진짜 내용.
+The key is how parquet and task directories relate: for a text-only dataset such as math problems (e.g. gsm8k), the parquet row itself is the instruction given to the model. For datasets that need a container, such as SWE tasks, the parquet row is a pointer, and the directory its `task_path` points to holds the real content.
 
-`rllm dataset pull`이 종류별로 하는 일:
-- `rllm dataset pull`: CLI 명령으로, catalog 항목을 읽어 실제로 데이터를 받아오는 동작. 항목 종류에 따라 하는 일이 다르다.
+What `rllm dataset pull` does per kind:
+- `rllm dataset pull` is the CLI command that reads a catalog entry and actually fetches the data. What it does depends on the kind of entry.
 
 | type | ex | pull | task directory | parquet row |
 | --- | --- | --- | --- | --- |
-| HF dataset | `gsm8k` | HF에서 행을 받아 transform 후 등록 | 없음 (eval 시 즉석 materialise) | Instruction 자체 |
-| **builder** | `swebench_pro`, `rllm-swesmith`, `deepswe` | `builder` 함수를 `out_dir=$RLLM_HOME/datasets/<이름>`으로 호출. 원본에서 directory **생성** + `dataset.toml` + 등록 | `$RLLM_HOME/datasets/<이름>/<task_id>/` | 포인터 |
-| **`harbor:<이름>`** | `harbor:swebench-verified`, `harbor:swebenchpro` | Harbor Registry Client로 완성된 directory를 download + 등록 | `~/.cache/harbor/tasks/<해시>/<task_id>/` (`RLLM_HOME` 무관) | 포인터 |
+| HF dataset | `gsm8k` | Fetch rows from HF, transform, register | none (materialised at eval time) | The instruction itself |
+| **builder** | `swebench_pro`, `rllm-swesmith`, `deepswe` | Call the `builder` function with `out_dir=$RLLM_HOME/datasets/<name>`. **Builds** directories from the source + `dataset.toml` + registers | `$RLLM_HOME/datasets/<name>/<task_id>/` | Pointer |
+| **`harbor:<name>`** | `harbor:swebench-verified` | Download finished directories with the Harbor Registry client + register. Used as the **data source** of native eval (the harness is native) | `~/.cache/harbor/tasks/<hash>/<task_id>/` (independent of `RLLM_HOME`) | Pointer |
+| **recipe script** | `swebenchpro_v2_full` | `recipe/eval/<benchmark>/prepare_*.py` fetches the source, makes copies and registers them | `$RLLM_HOME/datasets/<name>/<task_id>/` | Pointer |
 
-`rllm dataset pull swebench_pro`와 `python -m rllm.data.swebench_pro_builder ...`는 **같은 함수**(`build_benchmark`)를 호출하고 결과물 형식도 같다. pull은 출력 위치가 `$RLLM_HOME/datasets/swebench_pro`로 고정되고 731개 전체를 만들며 parquet도 등록한다. 모듈 직접 호출은 `--out-dir`, `--task-ids`, `--limit`을 받고 parquet은 등록하지 않는다. 그래서 subset은 직접 호출로 만든다.
+`rllm dataset pull swebench_pro` and `python -m rllm.data.swebench_pro_builder ...` call **the same function** (`build_benchmark`) and produce the same format. `pull` always writes to `$RLLM_HOME/datasets/swebench_pro`, builds all 731 tasks and registers the parquet. Calling the module directly takes `--out-dir`, `--task-ids`, `--limit` and does not register a parquet, so subsets are built with the direct call.
 
-`rllm eval <X>`가 X를 해석하는 순서:
+How `rllm eval <X>` resolves X:
 
-1. 경로(`./`, `/`로 시작) → 그 directory의 `dataset.toml`/`task.toml`을 `BenchmarkLoader`가 읽는다. parquet 사용 X.
-2. `harbor:<이름>` → registry에 물어 catalog 항목 합성 → parquet 없으면 pull → 행의 `task_path`로 Task 생성.
-3. Pure 이름 → `$RLLM_HOME/datasets/<X>/dataset.toml`이 있고 agent가 `harbor:*`가 아니면 1번처럼 directory를 직접 읽는다. 아니면 catalog → parquet(없으면 pull).
+1. A path (starting with `./` or `/`) -> `BenchmarkLoader` reads that directory's `dataset.toml` / `task.toml`. No parquet.
+2. `harbor:<name>` -> ask the registry and build a catalog entry -> pull if there is no parquet -> build Tasks from the rows' `task_path`.
+3. A plain name -> if `$RLLM_HOME/datasets/<X>/dataset.toml` exists and the agent is not `harbor:*`, read the directory directly as in 1. Otherwise catalog -> parquet (pull if missing).
 
 ```
-catalog (datasets.json)           "이름 → 받는 방법"
-        │  rllm dataset pull
+catalog (datasets.json)           "name -> how to get it"
+        │  rllm dataset pull / recipe prepare script
         ▼
-task directory                     실제 내용 (task.toml, Dockerfile, test.sh ...)
+task directory                     the actual content (task.toml, Dockerfile, test.sh ...)
    ├─ harbor:*  → ~/.cache/harbor/tasks/...
-   └─ builder      → $RLLM_HOME/datasets/<이름>/...
-        │  등록
+   └─ builder, recipe script → $RLLM_HOME/datasets/<name>/...
+        │  register
         ▼
-parquet ($RLLM_HOME/datasets/<이름>/default.parquet)   task당 한 행, task_path 포인터
+parquet ($RLLM_HOME/datasets/<name>/<split>.parquet)   one row per task, task_path pointer
         │  rllm eval / rllm train
         ▼
-실행 결과
-   ├─ $RLLM_HOME/eval_results/<실행>/       
-   └─ $RLLM_HOME/harbor_trials/<트라이얼>/  
+results   $RLLM_HOME/eval_results/<run>/
 ```
 
-`default_verl.parquet`는 같은 행을 verl 학습기 형식으로 한 번 더 저장한 사본이다. 평가에서는 무관하다.
+`default_verl.parquet` is a second copy of the same rows in the verl trainer's format. It does not matter for evaluation.
 
-### 0.4 model 연결 — 두 가지
+### 0.4 Connecting a model: two ways
 
-`rllm eval`은 model 호출을 항상 **rLLM model gateway**를 거쳐 보낸다. gateway 뒤에 무엇을 두느냐에 따라 두 가지로 나뉜다.
+`rllm eval` always sends model calls through the **rLLM model gateway**. There are two cases depending on what sits behind the gateway.
 
-**(A) Proprietary model (OpenAI, Anthropic, Gemini 등)**
+**(A) Proprietary models (OpenAI, Anthropic, Gemini, ...)**
 
-provider & API 키를 등록한다. 이후 `rllm eval`이 LiteLLM proxy를 자동으로 띄워 routing한다.
+Register the provider and API key. `rllm eval` then starts a LiteLLM proxy on its own and routes through it.
 
 ```bash
-rllm model setup            # provider(openai / anthropic / gemini / openrouter / ...), API key, model 선택
-rllm model show             # 현재 설정 확인
+rllm model setup            # choose provider (openai / anthropic / gemini / openrouter / ...), API key, model
+rllm model show             # show the current settings
 ```
 
-이후 명령에서는 `--model`만 바꾸면 된다. 생략하면 setup에서 고른 model을 사용한다.
+After that only `--model` needs to change. Without it the model chosen in setup is used.
+
+**How the API key is used during eval.** The key given to setup is stored in `$RLLM_HOME/config.json`. `rllm eval` starts a local LiteLLM
+proxy with that key, and the gateway forwards requests to the proxy. The agent in the task container gets a placeholder (`sk-rllm-gateway` or `empty`), not the real key. In other words **the real key never leaves the rLLM process during evaluation.**
+
+```
+container(agent, placeholder key) → gateway → LiteLLM proxy(real key) → api.openai.com
+```
+
+So give the key only to setup and do not export it in the shell. If `OPENAI_API_KEY` is exported, setup conveniently picks it up as the default, but `rllm eval` run from that shell **puts the real key into the task container** instead of the placeholder (it works the same, but the key is exposed in a container where the agent runs arbitrary commands).
+
+Run `unset OPENAI_API_KEY` after setup. `config.json` is plain text, so on a shared volume use `chmod 600 $RLLM_HOME/config.json`.
+
+One exception: when the provider is `custom` (an OpenAI-compatible endpoint) and a key is entered, no proxy is started and `rllm eval` puts the key into its own `OPENAI_API_KEY` env var (`rllm/cli/eval.py`). rLLM then reads that value and **the real key goes into the task container.** This applies when evaluating a vLLM server with a key configured, as `custom`.
+
+If the proxy fails to start: `uv pip install "litellm[proxy]"`.
+
+**(B) A local model served with vLLM / SGLang**
+
+Give the OpenAI-compatible endpoint with `--base-url`. `--model` is then required and must exactly match the server's `served-model-name`.
 
 ```bash
-rllm eval <benchmark> --agent <agent> --sandbox-backend docker --model gpt-5.5
+# vLLM. SWE agent evaluation needs tool calling and a reasoning parser (1.1)
+vllm serve Qwen/Qwen3.5-9B --port 8000 --served-model-name Qwen/Qwen3.5-9B --max-model-len 262144 \
+    --reasoning-parser qwen3 --enable-auto-tool-choice --tool-call-parser qwen3_xml --enable-prefix-caching
+
+rllm eval <benchmark> --agent openhands-sdk --sandbox-backend docker ... \
+    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-9B
 ```
 
-**How the API KEY is used during eval** setup이 받은 키는 `$RLLM_HOME/config.json`에 저장된다. `rllm eval`은 그 키로 local LiteLLM
-proxy를 띄우고, gateway가 proxy로 요청을 넘긴다. task container 안의 agent에는 실제 키가 아니라 placeholder(`sk-rllm-gateway` 또는 `empty`)가 들어간다. 즉 **평가 중 실제 키는 rLLM process 밖으로 나가지 않는다.**
+With `--network host`, the server is reachable at `127.0.0.1:<port>` whether it runs on the host or in another container.
 
-```
-container(agent, placeholder 키) → gateway → LiteLLM proxy(실제 키) → api.openai.com
-```
+- **Tool calling**: harnesses that use native tool calling, such as openhands-sdk, get unparsed tool calls without `--enable-auto-tool-choice --tool-call-parser <parser>` (Qwen3/3.5: `qwen3_xml`).
+- **Reasoning**: thinking models need `--reasoning-parser` (Qwen3/3.5: `qwen3`) to split reasoning from the content.
+- **Prefix caching**: Qwen3.5 is a hybrid architecture, so vLLM turns prefix caching off by default. Agent evaluation resends the same prefix every turn, and `--enable-prefix-caching` cuts task time a lot. Outputs then differ at floating-point noise level, so runs that are compared should use the same setting.
+- **Context**: use the same `--max-model-len` as training (`recipe/grpo/qwen3_5`: 262144).
+- **Multiple GPUs**: serve 9B-class models with `--data-parallel-size <number of GPUs>` to take concurrent rollouts.
 
-그래서 키는 setup에만 주고, shell에는 export하지 않는 것을 권장한다. `OPENAI_API_KEY`가 shell에 export되어 있으면 setup이 그 값을 기본값으로 읽어 편하지만, 그 상태로 `rllm eval`을 실행하면 placeholder 대신 **실제 키를 task container에 넣는다**(동작에는 차이가 없지만 agent가 임의 명령을 실행하는 container에 키가 노출된다).
+Model names: mini-swe-agent style agents require the `provider/model` form, so rLLM adds a prefix. `qwen`, `deepseek`, `gpt-*` and unknown names get `openai/` and go the OpenAI-compatible way; names containing `claude` get `anthropic/`. Names that start with an HF organisation, such as `Qwen/Qwen3-8B`, also get `openai/` (`openai/Qwen/Qwen3-8B`). litellm strips `openai/` before sending, so the server receives `Qwen/Qwen3-8B` unchanged.
 
-setup을 마친 뒤 `unset OPENAI_API_KEY` 하면 된다. `config.json`은 평문이므로 공유 volume에 둘 때는 `chmod 600 $RLLM_HOME/config.json`.
+### 0.5 Results
 
-예외가 하나 있다. provider를 `custom`(OpenAI compatible endpoint)으로 잡고 키를 입력하면 proxy를 띄우지 않고 `rllm eval`이 그 키를 자기 환경변수 `OPENAI_API_KEY`에 넣는다(`rllm/cli/eval.py`). 그러면 rLLM이 그 값을 읽어 **실제 키가 task container에 들어간다.** 키를 설정한 vLLM을 `custom`으로 평가할 때 해당한다.
-
-proxy 시작에 실패하면 `uv pip install "litellm[proxy]"`.
-
-**(B) vLLM / SGLang으로 서빙한 로컬 model**
-
-OpenAI compatible endpoint를 `--base-url`로 직접 준다. 이때 `--model`은 필수이며, 서버의 `served-model-name`과 정확히 같아야 한다.
+Results are kept in `$RLLM_HOME/eval_results/<benchmark>_<model>_<timestamp>/` as `meta.json`, `results.json` and `episodes/`.
+The console prints Accuracy, Errors and, with `--attempts`, pass@k.
 
 ```bash
-# vLLM
-vllm serve Qwen/Qwen3-8B --port 8000 --served-model-name Qwen/Qwen3-8B --max-model-len 65536
-
-# SGLang
-python -m sglang.launch_server --model-path Qwen/Qwen3-8B --port 30000 --served-model-name Qwen/Qwen3-8B
-
-rllm eval <benchmark> --agent <agent> --sandbox-backend docker \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B
+rllm view <run-id>
 ```
 
-`--network host`로 띄웠으므로 서빙 서버가 호스트나 다른 container에 있어도 `127.0.0.1:<port>`로 닿는다.
+`Errors` are not tasks the model failed but **infrastructure failures** (image build failure, verifier timeout, gateway unreachable, ...). If it is not 0, find the cause first. The console prints the first five; the rest are in `results.json`.
 
-model명 규칙: mini-swe-agent 계열 agent는 `provider/model` 형식을 요구해서 rLLM이 접두어를 자동으로 붙인다. `qwen`, `deepseek`, `gpt-*`, 알 수 없는 이름은 `openai/`가 붙어 OpenAI 호환 경로로 나가고, `claude`가 들어간 이름은 `anthropic/`이 붙는다. `Qwen/Qwen3-8B`처럼 HF 조직명이 앞에 오는 이름도 `openai/` 접두어가 붙는다(`openai/Qwen/Qwen3-8B`). litellm이 `openai/`를 떼고 보내므로 서버에는 `Qwen/Qwen3-8B` 그대로 도착한다.
+Episodes with zero LLM calls (`No traces found`) count as 0 points, not as Errors. An episode with 0 steps is an infrastructure failure (the harness never started); run it again.
 
-### 0.5 결과 확인
+### 0.6 `rllm eval` options
 
-결과는 `$RLLM_HOME/eval_results/<benchmark>_<model>_<timestamp>/`에 `meta.json`, `results.json`, `episodes/`로
-남는다. 콘솔에는 Accuracy, Errors, `--attempts`를 썼다면 pass@k가 찍힌다.
+`rllm eval <benchmark> [option]`. Full list: `rllm eval --help`.
 
-```bash
-rllm view <run-id> 
-```
+**Sampling (enforced by the gateway per session)**
 
-`Errors`는 model이 못 푼 것이 아니라 **인프라 실패**(image build 실패, timeout, gateway 접속 불가 등)다. 0이 아니면 먼저 원인을 잡는다. Console에 처음 다섯 개가 찍히고 나머지는 `results.json`에 있다.
-
-### 0.6 `rllm eval` option 정리
-
-`rllm eval <benchmark> [option]`. 전체는 `rllm eval --help`.
-
-**sampling (gateway가 session 단위로 강제)**
-
-| option | 설명 |
+| option | description |
 | --- | --- |
-| `--temperature FLOAT` | 온도. `--sampling-params temperature=...`의 단축 |
-| `--top-p FLOAT` | nucleus sampling |
-| `--max-tokens INT` | 호출당 최대 생성 token |
-| `--sampling-params TEXT` | `"temperature=0.6,top_p=0.95,top_k=20,presence_penalty=0.1"` 형식 또는 `@file.yaml` / `@file.json`. 핵심 키 `temperature`, `top_p`, `top_k`, `max_tokens` 외의 키(`presence_penalty`, `min_p`, `repetition_penalty` ...)는 backend(vLLM 등)에 그대로 전달 |
+| `--temperature FLOAT` | Temperature. Shorthand for `--sampling-params temperature=...` |
+| `--top-p FLOAT` | Nucleus sampling |
+| `--max-tokens INT` | Max generated tokens per call |
+| `--sampling-params TEXT` | `"temperature=0.6,top_p=0.95,top_k=20,presence_penalty=0.1"` or `@file.yaml` / `@file.json`. Keys other than the core `temperature`, `top_p`, `top_k`, `max_tokens` (`presence_penalty`, `min_p`, `repetition_penalty` ...) are passed to the backend (vLLM, ...) as is |
 
-`@file`은 sampling 파라미터를 담은 YAML/JSON 파일이다. 키는 `key=value`로 줄 때와 같다. `--sampling-params`에는 문자열과 `@file` 중 하나만 줄 수 있고, `--temperature` 같은 단축 option이 파일 값을 덮는다.
-그래서 팀 공통 파일을 두고 실험별로 `--temperature`만 바꾸는 식으로 쓴다.
+`@file` is a YAML/JSON file of sampling parameters, with the same keys as the `key=value` form. `--sampling-params` takes either a string or an `@file`, not both, and shorthand options such as `--temperature` override the file.
+So keep a shared file per model and change only `--temperature` per experiment. Per-model files live in `recipe/eval/config/` (generation kwargs in 1.1).
 
 ```yaml
-# sampling.yaml
-temperature: 0.7
+# recipe/eval/config/qwen3_5.yaml
+temperature: 1.0
 top_p: 0.95
 top_k: 20
-max_tokens: 8192
+min_p: 0.0
+presence_penalty: 0.0
+repetition_penalty: 1.0
+max_tokens: 16384
 ```
 
 ```bash
-rllm eval ... --sampling-params @/path/to/sampling.yaml                     
-rllm eval ... --sampling-params @/path/to/sampling.yaml --temperature 1.0  
+rllm eval ... --sampling-params @recipe/eval/config/qwen3_5.yaml
+rllm eval ... --sampling-params @recipe/eval/config/qwen3_5.yaml --temperature 0.6
 ```
 
-파일에 적을 수 있는 키는 핵심 4개(`temperature`, `top_p`, `top_k`, `max_tokens`)에 한정되지 않는다. gateway가 키들을 요청 JSON의 최상위에 그대로 합치므로(`payload.update`), vLLM/SGLang의 `extra_body`에 넣을 수 있는 키(`min_p`, `repetition_penalty`, `presence_penalty`, `seed`, `stop`, `chat_template_kwargs` ...)는 전부 쓸 수 있다. proprietary model 경로의 LiteLLM proxy는 `drop_params`로 띄워져 provider가 모르는 키를 **조용히 버린다**(OpenAI model에 `top_k`를 주면 오류 없이 무시됨). `model`, `logprobs`, `return_token_ids`는 gateway가 관리하므로 적지 않는다.
+The file is not limited to the four core keys. The gateway merges the keys into the top level of the request JSON (`payload.update`), so any key that vLLM/SGLang accept in `extra_body` works (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`, `stop`, `chat_template_kwargs`, `reasoning_effort` ...). On the proprietary-model path, the LiteLLM proxy runs with `drop_params` and **silently drops** keys the provider does not know (`top_k` for an OpenAI model is ignored without an error). Do not set `model`, `logprobs` or `return_token_ids`; the gateway manages them.
 
-예시 파일이 `recipe/eval/sampling_qwen3_5_4b.yaml`에 있다. Qwen3.5-4B model 카드의 "thinking mode, precise coding
-tasks" 프리셋(`temperature=0.6, top_p=0.95, top_k=20, min_p=0, presence_penalty=0, repetition_penalty=1.0`)에
-recipe의 val과 같은 턴당 `max_tokens: 8192`를 붙인 것이다. Qwen3.5-4B는 chat template이 기본으로 thinking을 켜므로
-thinking 프리셋이 맞다. 반복 루프가 보이면 `presence_penalty`를 0~2 사이로 올린다(model 카드 권고).
+These values are applied by **the rLLM gateway overwriting the request payload**. Whatever temperature a harness sends on its own, these values win. Precedence (lowest first): config file defaults < `@file` < `key=value` < shorthand options such as `--temperature`. **When nothing is given, whatever the harness sends is used** (it differs per harness, so runs are not comparable; always set it).
 
-```bash
-# vLLM. Qwen3.5는 128K context를 권하므로 recipe와 같은 131072로 띄운다 (8192 prompt + 122880 response)
-vllm serve Qwen/Qwen3.5-4B --port 8000 --served-model-name Qwen/Qwen3.5-4B \
-    --max-model-len 131072 --reasoning-parser qwen3
+**Repetitions and samples**
 
-rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend docker --agent-image auto \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-4B \
-    --sampling-params @recipe/eval/sampling_qwen3_5_4b.yaml \
-    --task-indices 0-9 --attempts 4 --sandbox-concurrency 8 --no-ui
-```
-
-이 값들은 **rLLM gateway가 요청 payload을 덮어써서** 적용한다. harness(mini-swe-agent 등)가 자체 설정으로 보내는 temperature가 있어도 여기서 설정한 값이 이긴다. 우선순위(낮은 쪽부터): 설정 파일 기본값 < `@file` < `key=value` < `--temperature` 같은 단축 option. 아무것도 주지 않으면 harness가 보낸 값이 그대로 사용된다.
-
-**반복·표본 수**
-
-| option | 설명 |
+| option | description |
 | --- | --- |
-| `--attempts INT` | task당 독립 rollout 수. `k=1..N`의 pass@k를 보고 (기본 1). 온도 0이면 시도가 같아지므로 `--temperature 0.7`처럼 함께 준다 |
-| `--max-examples INT` | 앞에서 N개만 |
-| `--task-indices TEXT` | `'0'`, `'3,7,12'`, `'0-9'`, 조합 가능 |
-| `--split TEXT` | dataset split. 기본은 catalog의 eval_split (Harbor 소스는 `default`, 등록한 사본은 등록 시 이름) |
+| `--attempts INT` | Independent rollouts per task. Reports pass@k for `k=1..N` (default 1). At temperature 0 the attempts are identical, so use a temperature above 0. Rollouts of the same task share the task image |
+| `--max-examples INT` | Only the first N |
+| `--task-indices TEXT` | `'0'`, `'3,7,12'`, `'0-9'`, combinable |
+| `--split TEXT` | Dataset split. Default is the catalog's eval_split (`default` for Harbor sources, the registered name for registered copies) |
 
-**model 연결**
+**Model connection**
 
-| option | 설명 |
+| option | description |
 | --- | --- |
-| `--model TEXT` | model명. `--base-url`을 주면 필수(서빙 이름과 일치), 아니면 `rllm model setup` 값 |
-| `--base-url TEXT` | OpenAI 호환 endpoint. 생략하면 setup 설정으로 LiteLLM proxy 자동 시작 |
+| `--model TEXT` | Model name. Required with `--base-url` (must match the served name), otherwise the `rllm model setup` value |
+| `--base-url TEXT` | OpenAI-compatible endpoint. Without it a LiteLLM proxy is started from the setup |
 
-**agent·채점**
+**Agent and grading**
 
-| option | 설명 |
+| option | description |
 | --- | --- |
-| `--agent TEXT` | harness 이름(`mini-swe-agent`, `oracle`, `harbor:mini-swe-agent` ...) 또는 `module:object` |
-| `--evaluator TEXT` | 채점기 강제 지정. 등록한 사본을 Harbor harness로 돌릴 때 `harbor_reward_fn` (1.2.1절) |
+| `--agent TEXT` | Harness name (`openhands-sdk`, `mini-swe-agent`, `oracle` ...) or `module:object` |
+| `--agent-kwargs TEXT` | Harness settings, `"key=value,..."` or `@file.yaml`. For openhands-sdk: `@recipe/eval/config/openhands-sdk.yaml` (3.2) |
+| `--evaluator TEXT` | Force a grader. Leave it out for native (the task's `tests/test.sh`) |
 
-**sandbox**
+**Sandbox**
 
-| option | 설명 |
+| option | description |
 | --- | --- |
 | `--sandbox-backend` | `docker`, `local`, `modal`, `daytona`, `e2b`, `runloop`, `gke`, `apple-container` |
-| `--sandbox-concurrency INT` | 동시에 뜨는 sandbox 수 (기본 64). 로컬 Docker에서는 8 안팎부터 |
-| `--concurrency INT` | LLM 호출 동시성 (기본 64). sandbox 수와 별개 |
-| `--agent-image TEXT` | native 전용. `auto`(기본) / `skip` / `repo:tag`. mini-swe-agent, opencode, claude-code 지원 |
-| `--snapshot / --no-snapshot` | modal, daytona snapshot 사용 여부. docker에는 영향 없음 |
-| `--warm-queue-size INT` | sandbox N개 선생성. `-1`이면 `--concurrency`와 동일 |
-| `--agent-network / --no-agent-network` | native docker 전용. agent 실행 중 sandbox의 인터넷 허용 여부. 꺼져 있으면 LLM gateway만 접근 가능. 기본값 OFF (2.4) |
-| `--verify-network / --no-verify-network` | native docker 전용. verifier 실행 직전에 sandbox의 인터넷을 연다. 기본값 ON (2.4) |
-| `--hide-git-history / --no-hide-git-history` | native와 harbor(`--agent harbor:*`) 모두 적용. agent가 실행되는 동안 task workdir의 `.git`을 sandbox 밖(host)에 두고 commit 1개짜리 저장소로 바꿔 둔다. verifier 직전에 원래 `.git`을 되돌린다. native는 docker backend만 지원하고, 다른 backend에서는 활성화 시 오류. 기본값 OFF (2.4) |
+| `--sandbox-concurrency INT` | Concurrent sandboxes (default 64). Concurrency × per-task resources (CPU, memory) must fit on the host |
+| `--concurrency INT` | LLM call concurrency (default 64), separate from the sandbox count |
+| `--agent-image TEXT` | `auto` (default) / `skip` / `repo:tag`. Bakes the harness into an image once and mounts it. Supports mini-swe-agent, opencode, claude-code, openhands-sdk (1.1) |
+| `--snapshot / --no-snapshot` | Use modal/daytona snapshots. No effect on docker |
+| `--warm-queue-size INT` | Pre-create N sandboxes. `-1` means the same as `--concurrency` |
+| `--agent-network / --no-agent-network` | Docker only. Whether the sandbox has internet access while the agent runs. When off, only the LLM gateway is reachable. **Default OFF** (1.4). Write `--no-agent-network` explicitly |
+| `--verify-network / --no-verify-network` | Docker only. Opens the sandbox's internet access right before the verifier runs. Default ON (1.4) |
+| `--hide-git-history / --no-hide-git-history` | While the agent runs, keeps the task workdir's `.git` outside the sandbox (on the host) and replaces it with a one-commit repository; puts the original `.git` back right before the verifier. Docker backend only; enabling it on other backends is an error. **Default OFF, so always turn it on** (1.4) |
 
-**출력**
+**Output**
 
-| option | 설명 |
+| option | description |
 | --- | --- |
-| `--output TEXT` | 결과 JSON 경로 (기본 run directory의 `results.json`) |
-| `--episodes-dir TEXT` | run directory 위치 (기본 `$RLLM_HOME/eval_results/<bench>_<model>_<timestamp>/`) |
-| `--save-episodes / --no-save-episodes` | episode JSON 저장 (기본 저장) |
-| `--ui / --no-ui` | rLLM UI 서버로 실시간 upload. 로그인 상태면 자동 켜짐. 외부로 나가면 안 되는 결과는 `--no-ui` 명시 |
-
-자주 쓰는 조합:
-
-```bash
-# ex. local vLLM, 10 task, 4 runs/task, pass@k
-rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend docker --agent-image auto \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B \
-    --task-indices 0-9 --attempts 4 --temperature 0.7 --top-p 0.95 --max-tokens 8192 \
-    --sandbox-concurrency 8 --no-ui
-```
+| `--output TEXT` | Result JSON path (default `results.json` in the run directory) |
+| `--episodes-dir TEXT` | Run directory (default `$RLLM_HOME/eval_results/<bench>_<model>_<timestamp>/`) |
+| `--save-episodes / --no-save-episodes` | Save episode JSONs (default on) |
+| `--ui / --no-ui` | Live upload to the rLLM UI server; on automatically when logged in. Pass `--no-ui` for results that must not leave the machine |
 
 ---
 
-## 1. Harbor 방식
+## 1. Pre-evaluation checklist
 
-| 벤치마크 | 이름 | task 수 | base image |
+Run SWE evaluations with **every** item below set. Left to defaults, the conditions differ per harness and environment and results are not comparable, and some of them (network, git history) let the answer leak and inflate the score.
+
+### 1.1 Checklist
+
+| # | Item | Setting | If missing |
 | --- | --- | --- | --- |
-| SWE-bench Verified | `harbor:swebench-verified` | 500 | `swebench/sweb.eval.x86_64.<repo>_1776_<instance>` |
-| SWE-bench Pro | `harbor:swebenchpro` | 731 | task별 사전 build image |
+| 1 | **Agent image mount** | `--agent-image auto` | The harness is installed inside every sandbox. Installing needs the internet, so it cannot be combined with the agent network block (item 2) |
+| 2 | **Agent network block** | `--no-agent-network` | The agent fetches the answer from the task repo's upstream (the next release, `git clone`). Off by default, but write it in the command anyway |
+| 3 | **Verifier network** | `--verify-network` | Tasks whose tests download packages or modules (some Go tasks) fail. On by default |
+| 4 | **Hidden git history** | `--hide-git-history` | The agent finds the answer in later commits left in the SWE image's `.git` (`git log --all --grep=<issue>`). **Off by default** |
+| 5 | **Timeouts** | the dataset `task.toml`'s `[agent]` / `[verifier]` `timeout_sec` + `RLLM_ROLLOUT_TIMEOUT_S` | Runs with the `task.toml` values (they differ per benchmark). Env vars alone do not change the agent and verifier limits (1.3) |
+| 6 | **Agent kwargs** | openhands-sdk: `--agent-kwargs @recipe/eval/config/openhands-sdk.yaml` | Runs with the SDK defaults (500 steps, ThinkTool included), a different step limit and tool set from training and earlier results (3.2) |
+| 7 | **Model generation kwargs** | `--sampling-params @recipe/eval/config/<model>.yaml` | Whatever the harness sends (differs per harness) is used. **Check the file before evaluating** (below) |
+| 8 | **vLLM serving options** | `--enable-auto-tool-choice --tool-call-parser ... --reasoning-parser ...`, the same `--max-model-len` as training | Tool calls are not parsed and rollouts end after 1 step with 0 points (0.4) |
+| 9 | **Oracle check** | `--agent oracle` on the same dataset under the same sandbox conditions | Tasks that do not score 1.0 even with the gold patch (environment problems) get mixed into the model score |
+| 10 | **Resources** | `--sandbox-concurrency` × the task's cpus/memory ≤ host | OOM or CPU contention makes verifiers time out and Errors grow |
 
-첫 실행 때 task directory(only text, not image)를 자동으로 내려받아 `$RLLM_HOME/datasets/<name>/`에 등록한다. 미리 받아두려면:
+**Check the model generation kwargs.** Open the per-model file in `recipe/eval/config/` before evaluating.
+- Does it match the sampling values the model card recommends (temperature, top_p, top_k, min_p, presence_penalty)? E.g. `qwen3_5.yaml` holds Qwen3.5's thinking-mode recommendation.
+- Is `max_tokens` enough for one turn? Thinking models write long reasoning every turn. For the same conditions as training, follow the training config.
+- Does the server accept what the harness sends by default? E.g. openhands-sdk sends `reasoning_effort: "high"`, but Qwen3.8 serving accepts only `xhigh` / `medium` / `low`. Unless the file overrides it, the first LLM call fails with 400 and the rollout looks like a normal 1-step, 0-point finish (`qwen3_8-flash-next.yaml` pins `reasoning_effort: xhigh`).
+- Is `chat_template_kwargs` (e.g. `enable_thinking`) what you intend? The dict is replaced as a whole, not merged key by key.
+- To use other values, do not edit an existing file; make a new yaml and point to it (reproducibility of earlier results).
+
+When a run starts, the table at the top of the console shows the applied conditions (Git history, Network, Sampling). Stop right away if they are not what you intended.
+
+### 1.2 Standard command
+
+```bash
+export RLLM_HOME=/raid/rllm-work/rllm-home
+# Budget for the whole rollout (agent + verifier). Same value as training (recipe/grpo/qwen3_5)
+export RLLM_ROLLOUT_TIMEOUT_S=4800
+# Used only for tasks whose task.toml has no timeout (1.3)
+export RLLM_HARNESS_RUN_TIMEOUT_S=3600 RLLM_VERIFIER_TIMEOUT_S=1000
+
+rllm eval <dataset> \
+    --split test \
+    --agent openhands-sdk \
+    --agent-image auto \
+    --agent-kwargs @recipe/eval/config/openhands-sdk.yaml \
+    --sampling-params @recipe/eval/config/qwen3_5.yaml \
+    --attempts 2 \
+    --concurrency 48 \
+    --sandbox-concurrency 48 \
+    --hide-git-history \
+    --no-agent-network \
+    --verify-network \
+    --sandbox-backend docker \
+    --no-ui \
+    --base-url http://127.0.0.1:8000/v1 \
+    --model <served-model-name>
+```
+
+Follow section 2 for each benchmark's dataset preparation and oracle. SWE-bench Pro V2 is covered end to end, from dataset preparation to results, in [`swebench-pro-v2/README.md`](swebench-pro-v2/README.md).
+
+### 1.3 Timeouts
+
+A rollout has three limits, and each uses **the first value that is set** in the order below (`rllm/timeouts.py`, PR #31).
+
+| Limit | Covers | `rllm eval` | Training (`rllm train`, verl recipe) | Default |
+| --- | --- | --- | --- | --- |
+| rollout | agent + verifier | `$RLLM_ROLLOUT_TIMEOUT_S` | `rllm.timeouts.rollout` → env | none (no limit) |
+| agent | the harness run | `task.toml [agent].timeout_sec` → `$RLLM_HARNESS_RUN_TIMEOUT_S` | `rllm.timeouts.agent` → task.toml → env | 1800 s |
+| verifier | `tests/test.sh` | `task.toml [verifier].timeout_sec` → `$RLLM_VERIFIER_TIMEOUT_S` | `rllm.timeouts.verifier` → task.toml → env | 600 s |
+
+- **In eval, `task.toml` comes before the env vars.** `rllm eval` has no experiment config, so the config step in the table does not exist. For benchmarks whose `task.toml` sets `timeout_sec`, such as SWE-bench Verified and Pro, `RLLM_HARNESS_RUN_TIMEOUT_S` and `RLLM_VERIFIER_TIMEOUT_S` **do not apply.** The env vars are used only for tasks whose `task.toml` has no value.
+- **To change the agent and verifier limits, edit `task.toml` in a dataset copy.** For SWE-bench Pro V2, `prepare_swebenchpro_v2.py --agent-timeout --verifier-timeout` writes them. For other benchmarks, make a copy (2.4) and edit it.
+- **The rollout limit is a budget.** Its clock starts when the agent flow starts (sandbox creation and image build are not counted). The verifier's limit is set aside first, so the agent runs under `min(agent limit, rollout - verifier limit)` and the verifier under `min(verifier limit, remaining)`. If the agent uses up its share (`AGENT_TIMEOUT`), the verifier still grades that state in its reserved time. A verifier that runs over is `VERIFIER_TIMEOUT` (an infrastructure failure).
+- A budget smaller than the verifier limit, which leaves the agent no time, is a configuration error (`ValueError`). Zero or negative values are errors too, not "no limit".
+- **Caution**: on a benchmark whose `task.toml` gives the verifier 3000 s (the original SWE-bench Pro V2), setting only `RLLM_ROLLOUT_TIMEOUT_S=4800` leaves the agent `4800 - 3000 = 1800` s.
+- **Same conditions as training**: `recipe/grpo/qwen3_5` uses rollout 4800 / agent 3600 / verifier 1000 s (`rllm.timeouts` in `config/rllm_grpo.yaml`, which beats `task.toml`). To evaluate with the same values, write agent 3600 and verifier 1000 into `task.toml` and set `RLLM_ROLLOUT_TIMEOUT_S=4800`. The agent then gets `min(3600, 4800 - 1000) = 3600` s.
+
+### 1.4 Network and git history
+
+* **Network**: the sandbox starts on the `rllm-sandbox-isolated` network, which has no route out. The only exit, a relay container (`rllm-egress-relay`), forwards only the LLM gateway port to the host, so the agent can call the model and nothing else. With the internet open, the agent could fetch the task repo's upstream (the next release, `git clone`) and copy the fix. `--verify-network` (default ON) attaches the sandbox to a regular bridge (`rllm-sandbox-verify`) after the agent finishes, so the verifier can download datasets, models and build backends. `--agent-network` opens the internet from the start. The implementation is in `rllm/sandbox/backends/egress.py`. Installing the agent inside the sandbox (`--agent-image skip` and the like) needs `--agent-network`, so evaluation uses `--agent-image auto`.
+* **The answer leaks through git history**: the `.git` of SWE task images often holds commits later than the base commit. SWE-rebench, SWE-Gym and R2E-Gym keep the upstream fix commit in a branch or tag, and in SWE-smith HEAD is the commit that introduced the bug, so `git show HEAD` alone shows the answer. In practice 16% of 7,200 SWE-Master SWE-rebench rollouts looked through that history with commands such as `git log --all --grep=<issue>`. Hence `--hide-git-history`. Verifiers rely on the history (`git checkout <base_commit> -- tests`, `git checkout HEAD~1 -- <tests>`), so it is moved away and put back, not deleted. The repository location comes from `[environment].workdir` in `task.toml` (or the Dockerfile's `WORKDIR` when absent); with neither, the run stops with an error rather than pretending the history is hidden. The implementation is `rllm/sandbox/git_history.py`, driven by `SandboxTaskHooks`.
+* **Sources in the agent venv**: the site-packages of the openhands-sdk agent image hold only `.pyc` files, no `.py` (`rllm/sandbox/strip_py_sources.py`). For tasks on the same repositories as packages the SDK depends on (fastmcp, starlette, uvicorn, websockets, filelock, cyclopts, ...), this keeps the agent from grepping the mounted venv and reading the newer release of that package (the answer).
+
+---
+
+## 2. Per-benchmark evaluation
+
+On the native path rLLM creates the container itself, runs the harness in it, then runs the task directory's `tests/test.sh` and reads the reward file. `ShellScriptEvaluator` looks for `/tmp/rllm/reward.json` (the rLLM convention) first and otherwise reads `/logs/verifier/reward.json|txt` (the Harbor task convention).
+
+```
+SandboxTaskHooks      docker build -t rllm-task-<task_id> --rm . && docker run (+ harness image mount)
+OpenHandsSdkHarness   runs the openhands-sdk runner inside the container
+  └─ LLM calls ─────► rLLM model gateway (host.docker.internal) ──► vLLM / LiteLLM proxy
+ShellScriptEvaluator  /tests/test.sh
+                        ├─ /tmp/rllm/reward.json          (rLLM builder convention, first)
+                        └─ /logs/verifier/reward.json|txt (Harbor task convention)
+                      → reward
+```
+
+Harnesses are the rLLM harnesses listed by `rllm agent list`. The validated harness is openhands-sdk (section 3).
+
+`<common options>` in the commands below means everything from `--agent` to `--model` in the 1.2 standard command. Run the oracle under the same sandbox conditions with `--agent oracle --base-url http://127.0.0.1:1/v1 --model oracle-dummy` (it calls no LLM, but the CLI requires a provider setting, so give it a dead port).
+
+### 2.1 SWE-bench Verified
+
+The data source is `harbor:swebench-verified` from the Harbor Registry (500 tasks). Without the `harbor:` prefix on `--agent`, rLLM skips the Harbor grader and grades with each task's `tests/test.sh`.
 
 ```bash
 rllm dataset pull harbor:swebench-verified
-rllm dataset pull harbor:swebenchpro
+
+# Environment check: apply the gold patch and run only the verifier
+# Tasks that do not score 1.0 in the oracle check can never be solved by the model; exclude them (known example: `astropy__astropy-7606`)
+rllm eval harbor:swebench-verified --agent oracle --sandbox-backend docker \
+    --hide-git-history --no-agent-network --verify-network \
+    --concurrency 8 --sandbox-concurrency 8 --no-ui \
+    --base-url http://127.0.0.1:1/v1 --model oracle-dummy
+
+rllm eval harbor:swebench-verified <common options>
 ```
 
-Docker image는 task가 실행될 때 Harbor가 `environment/Dockerfile`을 build하면서 `FROM` image를 pull한다.
-Verified 500개 전체의 base image는 약 2TB다. 전체 평가 전에 disk를 확인한다.
+- Verified's `task.toml` gives 1 CPU and 4 GB of memory. To change resources or timeouts, make a copy as for the subset (2.4, `swebench-verified/`).
+- The base images of all 500 Verified tasks take about 2 TB. Check the disk before a full run.
 
-### 1.1 전체 평가
+### 2.2 SWE-bench Pro (v1)
+
+The `swebench_pro` entry in the rLLM catalog has its own builder. It combines HuggingFace `ScaleAI/SWE-bench_Pro` with the per-instance `run_script.sh` / `parser.py` of `scaleapi/SWE-bench_Pro-os` into task directories.
+The verifier reproduces the upstream `swe_bench_pro_eval.py` flow (agent diff → reset to base_commit → apply the diff → check out the gold tests → F2P/P2P eval) in `tests/test.sh`.
 
 ```bash
-export RLLM_HARBOR_SESSION_TIMEOUT_S=3600   
+rllm dataset pull swebench_pro          # creates 731 task directories in $RLLM_HOME/datasets/swebench_pro/
 
-# (A) proprietary
-rllm eval harbor:swebench-verified --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --model gpt-5.5 --sandbox-concurrency 8
-rllm eval harbor:swebenchpro       --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --model gpt-5.5 --sandbox-concurrency 8
+rllm eval swebench_pro --agent oracle --sandbox-backend docker \
+    --hide-git-history --no-agent-network --verify-network \
+    --concurrency 8 --sandbox-concurrency 8 --no-ui \
+    --base-url http://127.0.0.1:1/v1 --model oracle-dummy
 
-# (B) vLLM / SGLang
-rllm eval harbor:swebench-verified --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B --sandbox-concurrency 8
-rllm eval harbor:swebenchpro       --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B --sandbox-concurrency 8
+rllm eval swebench_pro <common options>
 ```
 
-`--agent`를 생략하면 Harbor dataset의 기본값인 `harbor:mini-swe-agent`가 쓰인다. 다른 Harbor scaffold도 같은 형식으로 고른다: `harbor:terminus-2`, `harbor:swe-agent`, `harbor:codex`, `harbor:claude-code`, `harbor:oracle`(정답 patch만 적용, LLM 미호출) 등.
+The image is `jefzda/sweap-images:<tag>`, different per task, pulled at `docker run` time when missing. The builder writes 4 CPUs and 16 GB of memory into `task.toml`, and the Docker backend limits the container to that. The JS/Go test suites are large, so too high a `--sandbox-concurrency` runs the host out of memory first. The HF dataset has no CPU or memory information; 4 / 16384 is the builder author's choice, based on the upstream evaluation script using 1-4 CPUs and 5-30 GiB (see the builder comments).
 
-### 1.2 Subset 평가
+For the v1 subset see `swebench-pro/`. The Harbor Registry's `harbor:swebenchpro` (the same 731 tasks, built by the Harbor adapter) has 1 CPU and 4 GB, so the verifiers of the Go repositories do not finish in time. Use `swebench_pro` as the source for native evaluation (Appendix B.4).
 
-Harbor 경로에서 task를 고르는 수단은 **Index**다. Index는 `$RLLM_HOME/datasets/<name>/default.parquet`의 행 순서다.
+### 2.3 SWE-bench Pro V2
+
+The curated release Scale published on 2026-09-22 (642 tasks). It is not in the Harbor Registry; dataset preparation, oracle, evaluation and results are covered in [`swebench-pro-v2/README.md`](swebench-pro-v2/README.md).
 
 ```bash
-# 앞에서 10개
-rllm eval harbor:swebench-verified --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --max-examples 10 --model gpt-5.5
-
-# 특정 Index. '0', '3,7,12', '0-9' 형식
-rllm eval harbor:swebench-verified --agent harbor:mini-swe-agent --sandbox-backend docker \
-    --task-indices 0-4,17,42 --model gpt-5.5
+python recipe/eval/swebench-pro-v2/prepare_swebenchpro_v2.py --agent-timeout 3600 --verifier-timeout 1000   # -> swebenchpro_v2_full
+rllm eval swebenchpro_v2_full <common options>
 ```
 
-instance_id로 고르고 싶으면 id → Index를 먼저 뽑는다.
+### 2.4 Evaluating a subset
+
+- **By index**: `--max-examples N` (the first N), `--task-indices 0-4,17,42`. The index is the row order of `$RLLM_HOME/datasets/<name>/<split>.parquet`.
+- **A subset pinned by instance_id**: **copy** the task directories under `$RLLM_HOME/datasets/<subset name>/` and register them as a separate dataset. Being a copy, its `task.toml` (timeouts, resources) can be edited without touching the original, and the evaluated tasks do not change with whatever images were pulled. Per-benchmark scripts: `swebench-verified/prepare_swebench_verified_subset.py`, `swebench-pro/prepare_swebenchpro_subset.py`, `swebench-pro-v2/prepare_swebenchpro_v2.py --ids`.
+
+instance_id → index:
 
 ```bash
 python - <<'PY'
 import os, pandas as pd
-name = "swebench-verified"                     #  or "swebenchpro"
+name = "swebench-verified"
 want = {"django__django-11265", "sympy__sympy-16792"}
 df = pd.read_parquet(f"{os.environ['RLLM_HOME']}/datasets/{name}/default.parquet")
 print(",".join(str(i) for i, t in enumerate(df["task_id"]) if t in want))
 PY
 ```
 
-출력값을 `--task-indices`에 그대로 넣는다. Index는 dataset을 다시 pull해도 바뀌지 않는다 (registry manifest 순서).
+### 2.5 Other notes
 
-같은 task를 여러 번 평가해 pass@k를 보려면 `--attempts 4`처럼 준다. 이때는 온도를 0보다 크게 주는 것을 권장한다(`--temperature 0.7`).
-
-#### 1.2.1 subset을 Harbor harness로 평가
-
-Harbor harness(`harbor:*`)가 필요로 하는 것은 dataset 이름이 `harbor:`로 시작하는 것이 아니라, **parquet 행에 `task_path`가 있는 것**이다(`HarborRuntime`은 `task.metadata["task_path"]`로 trial을 만든다). 그래서 native와 같은 방법으로 task directory를 `$RLLM_HOME` 아래에 복사해 등록한 subset도 Harbor harness로 실행할 수 있다.
-단, 1.2 방법으로 충분히 같은 일을 할 수 있기에 권장하지 않는다. 별도의 이유로 subset을 분리하고 싶은 경우에만 참고로 사용한다.
-
-조건:
-- **소스는 `harbor:swebenchpro`(Harbor cache)에서 복사한다.** rLLM builder(`swebench_pro`)의 task directory는 Harbor harness로 채점되지 않는다. 이유는 아래와 같다: 
-  - builder의 `tests/test.sh`가 결과를 `/tmp/rllm/reward.json`에만 쓰는데(rLLM 규약), Harbor verifier는 `/logs/verifier/reward.txt|json`만 읽기 때문이다(`RewardFileNotFoundError`). 
-  - builder `task.toml`의 `docker_image` 때문에 Harbor가 Dockerfile을 건너뛰어 Container가 `exit 126`으로 죽는다. 
-- **parquet 행에 `task_path` 추가**: 사본 경로를 가리키는 행으로 `DatasetRegistry.register_dataset` 한다.
-- **`--evaluator harbor_reward_fn` 명시**: `harbor:` 이름이 아니면 CLI가 catalog에서 Evaluator를 찾지 못해 멈추는데, 이 flag가 그 분기를 지나게 한다.
-
-<harbor:swebenchpro subset 100 예시> 
-
-```bash
-export RLLM_HOME=/raid/rllm-work/rllm-home
-rllm dataset pull harbor:swebenchpro
-```
-
-`$RLLM_HOME/datasets/swebench_pro_100/<task_id>/` 100개 복사 + registry 등록
-
-```python
-import json
-import re
-import shutil
-import sys
-from pathlib import Path
-
-from rllm import paths
-from rllm.data import DatasetRegistry
-
-src = DatasetRegistry.load_dataset(src_name, src_split)
-if src is None:
-    sys.exit(f"source dataset '{src_name}/{src_split}' is not registered. Run: rllm dataset pull " + ("swebench_pro" if args.source == "builder" else "harbor:swebenchpro"))
-# Harbor lower-cases some ids (instance_NodeBB__NodeBB-... -> instance_nodebb__nodebb-...).
-by_id = {row[id_col].lower(): row for row in src}
-
-out = Path(paths.rllm_path("datasets", name))
-out.mkdir(parents=True, exist_ok=True)
-rows, missing = [], []
-for iid in want:
-    row = by_id.get(iid.lower())
-    if row is None:
-        missing.append(iid)
-        continue
-    src_dir = Path(row["task_path"])
-    dst = out / src_dir.name
-    if dst.exists() and args.force:
-        shutil.rmtree(dst)
-    if not dst.exists():
-        shutil.copytree(src_dir, dst)
-    toml = dst / "task.toml"
-    if not args.keep_docker_image:
-        toml.write_text(re.sub(r"^docker_image\s*=.*\n", "", toml.read_text(), flags=re.M))
-    instruction = row.get("instruction") or (dst / "instruction.md").read_text()
-    rows.append({"id": src_dir.name, "task_id": src_dir.name, "instruction": instruction, "question": instruction, "task_path": str(dst), "design_id": iid})
-
-if missing:
-    sys.exit(f"{len(missing)} ids not found in source '{src_name}': {missing[:5]}")
-
-DatasetRegistry.register_dataset(
-    name=name,
-    data=rows,
-    split=args.split,
-    source=f"{src_name} subset from {Path(args.design).name}",
-    description=f"SWE-bench Pro subset '{design.get('name', '')}' ({len(rows)} tasks) from {args.source} source",
-    category="agentic",
-)
-print(f"{name}/{args.split}: {len(rows)} tasks -> {out}")
-print("harbor harness :", f"rllm eval {name} --split {args.split} --agent harbor:mini-swe-agent --evaluator harbor_reward_fn --sandbox-backend docker ...")
-```
-
-평가 수행
-```bash
-export RLLM_HARBOR_SESSION_TIMEOUT_S=3300
-rllm eval swebench_pro_100 --split test \
-    --agent harbor:oracle --evaluator harbor_reward_fn \
-    --sandbox-backend docker --concurrency 8 --sandbox-concurrency 8 --no-ui \
-    --base-url http://127.0.0.1:1/v1 --model oracle-dummy         # oracle 점검
-rllm eval swebench_pro_100 --split test \
-    --agent harbor:mini-swe-agent --evaluator harbor_reward_fn \
-    --sandbox-backend docker --concurrency 8 --sandbox-concurrency 8 --no-ui \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-4B \
-    --sampling-params @recipe/eval/config/qwen3_5.yaml            # model 평가
-```
-
-### 1.3 Harbor 경로에서 알아둘 것
-
-* **timeout**: Harbor trial 하나에 rLLM이 거는 상한은 `RLLM_HARBOR_SESSION_TIMEOUT_S`(기본 900초)다. SWE-bench task의 `task.toml`은 Agent와 Verifier에 각 3000초를 주므로 기본값이면 긴 rollout이 먼저 잘린다. 3600 이상으로 올리는 것을 권장한다. 단, harbor와 동일한 평가 결과를 재현하고자 할 경우, task.toml 설정을 따른다.
-  - `[agent].timeout_sec`와 `[verifier].timeout_sec`(두 벤치마크 모두 3000초)를 Harbor가 그대로 적용하고, 그 위에 rLLM의 `RLLM_HARBOR_SESSION_TIMEOUT_S`가 Trial 전체 상한으로 한 번 더 걸린다. 둘 중 짧은 쪽이 이긴다. 단, Harbor는 Verifier timeout을 **한 번 재시도**한다(`stop_after_attempt(2)`).
-  - session 상한에 걸린 trial은 0점이 아니라 **Errors**로 집계되고, container·network·derived image는 rLLM이 직접 정리한다(`run_harbor_trial`).
-* **concurrency**: `--sandbox-concurrency`가 동시에 뜨는 sandbox 수(default 64)이며, 로컬 Docker에서는 CPU, memory, disk I/O를 보고 8 안팎에서 시작한다. `--concurrency`는 LLM 호출 동시성으로 별도다.
-* **자원 제한**: `task.toml` 그대로. Harbor는 `[environment]`의 cpus/memory를 compose `deploy.resources.limits`로 적용하고, rLLM은 이를 바꾸지 않는다. registry의 `swebenchpro`는 CPU 1개, 4GB라서 Go 저장소의 Verifier가 시간 안에 끝나지 않는다(task instance: flipt). 이 task들을 Harbor 방식으로 채점하려면 자원 상한을 올릴 방법이 필요하다.
-* **task마다 harness 설치**: Harbor의 mini-swe-agent는 container 안에서 `apt-get install build-essential` 후 `uv tool install mini-swe-agent`를 매번 실행한다. native 방식의 `--agent-image`에 해당하는 cache가 없어 task당 1~2분이 추가된다.
-* **gateway 주소**: Harbor의 compose 파일은 task container에 `host.docker.internal`을 넣어주지 않고, Linux Docker Engine은 그 이름을 기본으로 모른다(cf. Docker Desktop). 그래서 rLLM은 Linux에서 `docker network inspect bridge`로 얻은 docker0 gateway IP(보통 `172.17.0.1`)로 URL을 바꿔 넘긴다. rLLM container가 `--network host`라는 전제 위에서만 성립한다.
-* **image download 시점**: 실행 중에 task별로 받는다. 사전 download는 필요 없다. Harbor는 `environment/Dockerfile`을 build해 task별 derived image `<trial>-main:latest`(Verified 기준 약 7.5 GB)를 만들고, 정상 종료 시 `compose down --rmi all`로 지운다. 비정상 종료 시에는 남는다. base image(`swebench/sweb.eval...`, `jefzda/sweap-images:...`, 개당 약 4 GB)는 어느 방식도 지우지 않는다. 
+* **Image resource limits**: the `[environment]` cpus/memory of `task.toml` are applied to the Docker container. Verified is small: 1 CPU, 4 GB.
+* **Images**: each task's `environment/Dockerfile` is built into an `rllm-task-<task_id>` image, which is **not deleted** (a cache for reruns). Base images are left too. Cleanup is in Appendix A.
+* **Repeats of a task**: the rollouts of `--attempts N` build the task image once and share it.
 
 ---
 
-## 2. Native 방식
+## 3. Per-harness settings
 
-native 방식은 Harbor runtime 없이 rLLM이 직접 container를 만들고, 그 안에서 harness(예: mini-swe-agent CLI)를 실행하여 추론을 진행한 뒤, task directory의 `tests/test.sh`를 실행해 reward 파일을 읽는다. `ShellScriptEvaluator`는 `/tmp/rllm/reward.json`(rLLM 규약)을 먼저 찾고, 없으면 Harbor 규약인 `/logs/verifier/reward.json|txt`를 읽는다.
+In principle only `--agent` changes, but harnesses differ in how they are installed and how they connect to the model, so use only validated combinations.
 
-```
-SandboxTaskHooks      docker build -t rllm-task-<task_id> --rm . && docker run (+ harness CLI image mount)
-MiniSweAgentHarness   mini-swe-agent CLI를 Container 안에서 실행
-  └─ litellm ───────► rLLM model gateway (host.docker.internal) ──► LiteLLM proxy
-ShellScriptEvaluator  /tests/test.sh
-                        ├─ /tmp/rllm/reward.json          (rLLM builder 규약, 우선)
-                        └─ /logs/verifier/reward.json|txt (Harbor task 규약)
-                      → reward
-```
+### 3.1 Support table
 
-harness는 `rllm agent list`에 나오는 rLLM harness를 사용한다.
+| harness | native (`--agent <name>`) |
+| --- | --- |
+| openhands-sdk | **Reference.** `--agent openhands-sdk --agent-image auto --agent-kwargs @recipe/eval/config/openhands-sdk.yaml` (3.2) |
+| mini-swe-agent | Yes. `--agent mini-swe-agent --agent-image auto` |
+| opencode | Yes. `--agent opencode --agent-image auto` (3.3) |
+| openhands (openhands-ai) | None (not implemented: TODO) |
+| claude-code, codex, aider, ... | Not validated |
 
-### 2.1 SWE-bench Verified
+`--agent-kwargs` uses the same format as `--sampling-params`: `"key=value,..."` or `@file.yaml` / `@file.json`. Nested dictionaries only via `@file`, and CLI values win key by key. Among native harnesses only `openhands-sdk` takes them; others ignore them with a warning.
 
-데이터 소스는 Harbor 방식과 **같은** `harbor:swebench-verified`다. `--agent`에 `harbor:` 접두어가 없으면 rLLM이 Harbor 채점기(`harbor_reward_fn`)를 건너뛰고 task별 `tests/test.sh`로 채점한다.
+### 3.2 openhands-sdk
 
-```bash
-rllm dataset pull harbor:swebench-verified
+Runs the SDK as an rLLM harness. Three files make it up.
 
-# 환경 점검: 정답 patch를 적용하고 verifier만 돌린다. LLM 미호출 (LLM을 호출하지 않지만 CLI가 Provider 설정을 요구하므로 죽은 port를 준다)
-# oracle 점검에서 1.0이 안 나오는 task는 model도 절대 풀 수 없으니 제외한다 (알려진 예: `astropy__astropy-7606`).
-rllm eval harbor:swebench-verified --agent oracle --sandbox-backend docker \
-    --max-examples 5 --concurrency 3 --no-ui \
-    --base-url http://127.0.0.1:1/v1 --model oracle-dummy
+| File | Role |
+| --- | --- |
+| `rllm/harnesses/openhands_sdk.py` | `OpenHandsSdkHarness`. Install script, env, placing the runner, the run command |
+| `rllm/harnesses/tools/openhands_sdk_runner.py` | The script that drives the SDK. openhands-sdk is a library, not a CLI, so the harness writes this script into the sandbox and runs it with the SDK's interpreter |
+| `rllm/registry/agents.json` | Registers `openhands-sdk` (listed by `rllm agent list`) |
 
-# (A) proprietary
-rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend docker \
-    --agent-image auto --sandbox-concurrency 8 --model gpt-5.5
+* **Trajectory**: the gateway captures every LLM call and the engine builds the episode. `tool_calls` stay in native form, the same path as training (`recipe/grpo/qwen3_5`). The runner writes no trajectory file.
+* **Grading**: rLLM runs the task's `tests/test.sh` itself.
 
-# (B) vLLM / SGLang
-rllm eval harbor:swebench-verified --agent mini-swe-agent --sandbox-backend docker \
-    --agent-image auto --sandbox-concurrency 8 \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B
-```
+**`--agent-kwargs` (always set it).** `recipe/eval/config/openhands-sdk.yaml`:
 
-`--agent-image auto`는 mini-swe-agent CLI를 한 번 Docker image로 구워 두고 모든 task container에 read only로 mount한다. 없으면 task마다 `uv tool install`을 반복한다. 
+| key | Meaning | Value | When omitted |
+| --- | --- | --- | --- |
+| `max_iterations` | Agent step limit per rollout (`Conversation(max_iteration_per_run=...)`) | 250 (same as training's `agent_step_limit`) | SDK default 500 |
+| `include_default_tools` | Which SDK built-in tools to include (`Agent(include_default_tools=...)`). `[]` includes none | `[FinishTool]` | `[FinishTool, ThinkTool]` |
+| `strict_tool_calls` | When `true`, tool calls the model got wrong (`str_replace` → `file_editor`, ...) come back as errors instead of being repaired by the SDK | `false` (SDK default; earlier results were measured with it) | `false` |
 
-### 2.2 SWE-bench Pro
+- ThinkTool only records thoughts, so for a model with reasoning on (the runner resends the previous turns' reasoning) it only spends steps. FinishTool is how the agent signals it is done, so it stays.
+- Training runs with `strict_tool_calls: true` (`openhands_strict_tool_calls` in `recipe/grpo/qwen3_5/config/config.yaml`). For the same conditions as validation during training, make a separate yaml with `strict_tool_calls: true`. Runs that are compared should use the same value.
+- The harness passes the values to the runner as env vars, and the runner's first log line (`default_tools=... max_iterations=...`) shows what was applied. Unknown keys are logged as WARNING.
 
-rLLM catalog의 `swebench_pro` 항목이 전용 builder를 갖고 있다. HuggingFace `ScaleAI/SWE-bench_Pro`와 `scaleapi/SWE-bench_Pro-os`의 인스턴스별 `run_script.sh`/`parser.py`를 합쳐 task directory를 만든다.
-verifier는 upstream `swe_bench_pro_eval.py` 흐름(agent diff → base_commit으로 reset → diff apply → gold test checkout → F2P/P2P eval)을 `tests/test.sh`로 재현한다.
+**Set reasoning options with `--sampling-params`.** The gateway writes the session's sampling params over every request body (`payload.update`), so `reasoning_effort` and `chat_template_kwargs` are fixed by one model file, whatever the harness. If the server does not accept the SDK's default `reasoning_effort: "high"`, the first call fails (1.1). Keys whose value is `null` are dropped from the sampling params, so "do not send" cannot be expressed; set an accepted value.
 
-```bash
-rllm dataset pull swebench_pro          # $RLLM_HOME/datasets/swebench_pro/ 에 731개 task directory 생성
+**Thinking models need their past reasoning resent.** openhands-sdk resends the previous turns' reasoning only for kimi, deepseek and minimax. For Qwen3.x and GLM the previous turns then render as an empty `<think></think>`, the model writes tool calls inside an unclosed think block, and the calls are not parsed. The runner (`ReasoningReplayLLM`) makes up for it, sending the reasoning in both `reasoning_content` and `reasoning` (vLLM below 0.22 reads only the latter).
 
-rllm eval swebench_pro --agent oracle --sandbox-backend docker \
-    --max-examples 5 --concurrency 3 --no-ui \
-    --base-url http://127.0.0.1:1/v1 --model oracle-dummy
-
-# (A) proprietary
-rllm eval swebench_pro --agent mini-swe-agent --sandbox-backend docker \
-    --agent-image auto --sandbox-concurrency 8 --model gpt-5.5
-
-# (B) vLLM / SGLang
-rllm eval swebench_pro --agent mini-swe-agent --sandbox-backend docker \
-    --agent-image auto --sandbox-concurrency 8 \
-    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B
-```
-
-image는 `jefzda/sweap-images:<tag>`이며 task마다 다르다. 없으면 `docker run` 시점에 pull한다. builder는 `task.toml`에 CPU 4개, memory 16 GB를 적어 두는데, Docker backend는 이 값으로 container 자원을 제한한다. JS/Go test 스위트가 커서 `--sandbox-concurrency`를 너무 올리면 호스트 memory가 먼저 마른다.
-
-### 2.2.1 harbor:swebenchpro vs swebench_pro
-
-`harbor:swebenchpro`와 `swebench_pro`는 같은 벤치마크, 같은 Docker image에 대해 **독립적으로 만들어진 두 벌의 task directory**다. rLLM builder는 Harbor task를 변환하는 것이 아니라 원본 데이터에서 처음부터 만든다.
-
-| | `harbor:swebenchpro` | `swebench_pro` |
-| --- | --- | --- |
-| 만드는 쪽 | Harbor adapter가 만들어 registry에 올린 것 | `rllm/data/swebench_pro_builder.py` (`rllm dataset pull swebench_pro`) |
-| 입력 | 완성된 task directory 731개를 download | HF `ScaleAI/SWE-bench_Pro` 행 + `scaleapi/SWE-bench_Pro-os`의 `run_script.sh`, `parser.py` |
-| `task.toml` 자원 | `cpus = 1`, `memory_mb = 4096` | `cpus = 4`, `memory_mb = 16384` (builder `_DEFAULT_RESOURCES`) |
-| `tests/test.sh` | adapter의 래퍼 | builder가 합성한 래퍼 |
-| Docker image | `jefzda/sweap-images:<tag>` | 같은 image |
-| 저장 위치 | `~/.cache/harbor/tasks/...` | `$RLLM_HOME/datasets/swebench_pro/<instance_id>/` |
-
-HF dataset에는 CPU·memory 정보가 없다. 4 / 16384는 업스트림 평가 script가 1–4 CPU, 5–30 GiB를 쓴다는 점을 근거로 builder 작성자가 설정한 값이다(ref. builder 주석).
-
-어느 명령이 어느 소스를 쓰는지:
-
-| 명령 | 소스 | container 자원 |
-| --- | --- | --- |
-| `rllm eval harbor:swebenchpro --agent harbor:mini-swe-agent` | Harbor | CPU 1, 4 GB |
-| `rllm eval harbor:swebenchpro --agent mini-swe-agent` | **Harbor** (native harness라도 task directory는 Harbor) | CPU 1, 4 GB. native 경로도 `task.toml` 값을 그대로 적용한다 |
-| `rllm eval swebench_pro --agent mini-swe-agent` | rLLM builder | CPU 4, 16 GB |
-| `rllm eval swebench_pro --agent harbor:*` | — | **불가.** builder의 `test.sh`는 `/tmp/rllm/reward.json`에만 쓰고 Harbor verifier는 `/logs/verifier/`만 읽는다. Harbor harness로 subset을 돌리려면 1.2.1절대로 `harbor:swebenchpro`에서 복사한다 |
-
-### 2.3 Subset만 평가
-
-- **Index로 고르기**: Harbor 방식과 같다 (`--max-examples`, `--task-indices`). 
-- **instance_id로 고정한 subset 만들기**: task directory를 `$RLLM_HOME/datasets/<subset명>/` 아래에 **복사**해 별도 dataset으로 만든다. 사본이므로 `task.toml`(timeout, 자원)을 고쳐도 원본에 영향이 없고, 어떤 image가 pull됐든 평가 대상이 바뀌지 않는다.
-
-### 2.4 Native 경로에서 알아둘 것
-
-* **image 자원 제한**: `task.toml`의 `[environment]` cpus/memory를 Docker container에 적용한다. Verified는 CPU 1, memory 4 GB로 작다.
-* **network**: sandbox는 외부로 나가는 경로가 없는 `rllm-sandbox-isolated` network에서 시작한다. 유일한 출구인 relay container(`rllm-egress-relay`)가 LLM gateway port만 host로 넘기므로, agent는 model만 호출할 수 있다. 인터넷이 열려 있으면 agent가 task 저장소의 upstream(다음 release, `git clone`)을 받아 정답을 베낄 수 있기 때문이다. `--verify-network`(기본 ON)는 agent가 끝난 뒤 sandbox를 일반 bridge(`rllm-sandbox-verify`)에도 붙여 verifier가 dataset, model, build backend를 받을 수 있게 한다. `--agent-network`는 처음부터 인터넷을 연다. 구현은 `rllm/sandbox/backends/egress.py`에 있다. agent를 sandbox 안에서 설치하는 경우(`--agent-image skip` 등)에는 `--agent-network`가 필요하다.
-* **git 기록으로 정답이 샌다**: SWE task image의 `/testbed/.git`에는 base commit보다 나중의 commit이 남아 있는 경우가 많다. SWE-rebench, SWE-Gym, R2E-Gym은 upstream fix commit이 branch나 tag에 남아 있고, SWE-smith는 HEAD가 bug를 넣은 commit이라 `git show HEAD`만 해도 정답이 보인다. 실제로 SWE-Master SWE-rebench rollout 7,200개 중 16%가 `git log --all --grep=<issue>` 같은 명령으로 그 기록을 찾아봤다. 그래서 `--hide-git-history`를 켠다. verifier는 `git checkout <base_commit> -- tests`, `git checkout HEAD~1 -- <tests>`처럼 git 기록에 의존하므로 기록을 지우지 않고 옮겨 두었다가 되돌린다. 구현은 `rllm/sandbox/git_history.py`에 있다. native는 `SandboxTaskHooks`가, harbor는 Harbor Trial hook(`AGENT_START`에서 숨기고, `VERIFICATION_START`에서 되돌리고, `END`/`CANCEL`에서 정리)이 처리한다. harbor 쪽은 Harbor docker environment의 `download_dir`이 원본의 소유자를 host 사용자로 바꾸기 때문에, container 안에서 tar로 묶은 파일 하나만 주고받는다.
-
----
-
-## 3. 다른 harness로 평가 (mini-swe-agent 외)
-
-원칙은 `--agent`만 바꾸는 것이지만, harness마다 설치 방식과 model 연결 방식이 달라 확인된 조합만 사용한다. 
-
-### 3.1 지원 표
-
-| harness | native (`--agent <이름>`) | Harbor (`--agent harbor:<이름>`) |
-| --- | --- | --- |
-| mini-swe-agent | O  | O  |
-| opencode | O. `--agent opencode --agent-image auto` | O. `--agent-kwargs @recipe/eval/config/harbor-opencode-vllm.yaml` **필수** (3.3) |
-| openhands-sdk | O. `--agent openhands-sdk --agent-image auto --agent-kwargs @recipe/eval/config/openhands-sdk.yaml` (3.5) | O. `recipe/eval/patches` 적용 **필수** (3.4) |
-| openhands (openhands-ai) | 없음 (미구현: TODO) | 미확인 |
-| claude-code, codex, aider, ... | 미확인 | 미확인 |
-
-### 3.2 `--agent-kwargs`
-
-- Harbor harness 생성자에 넘길 kwargs.
-- 형식은 `--sampling-params`와 같다: `"key=value,..."` 또는 `@file.yaml` / `@file.json`. 
-- nested dictionary는 `@file`로만 주며, CLI 값이 키 단위로 우선한다. 
-- native harness는 `openhands-sdk`만 받는다(`max_iterations`, `include_default_tools`, 3.5). 다른 native harness에는 효과가 없고 경고만 발생한다.
+**`--agent-image auto` removes the install cost.** uv + Python 3.12 + the SDK are baked once into `/opt/rllm/agent` and mounted read-only into the task container, so nothing is installed per task (measured: a qutebrowser task went from 163 s to 47 s overall, `env_install` from 112 s to 0 s). The bake turns the site-packages' `.py` files into `.pyc` (1.4).
+- **The mount does not cover every image.** The harness runs `import openhands.sdk` with the mounted python first and, if that fails, falls back to a per-task install, logging `openhands-sdk: agent mount cannot serve <task>; installed the SDK per task instead` as WARNING. **The fallback install needs the internet and therefore fails under `--no-agent-network`.** Its time is counted in `agentflow`, not `env_install`.
+  - The SDK must not import from the task repo. The harness command runs in the task workdir, so when the repo has a package named like an SDK dependency (`/testbed/aiohttp`, `/testbed/pydantic`, `/testbed/tornado`, ...), **both** the mount probe and the fallback install check fail and the agent never runs. There are two ways in: `python -c` putting the cwd first on `sys.path`, stopped with `-I` (which also ignores the image's `PYTHONPATH` / `PYTHONHOME`), and litellm running `sys.path.append(os.getcwd())` on import, stopped by importing from an empty temporary directory (both probe and runner).
+  - musl (Alpine) images cannot run a glibc interpreter. The SWE-bench Pro V2 prepare script adds a glibc runtime to those images so the mount works (`swebench-pro-v2/README.md`).
+  - glibc images depend on the glibc generation of the bake. Baking on `debian:bullseye-slim` (2.31) covers images with 2.31-2.36. Baking on `ubuntu:22.04` (2.35) makes uv pick manylinux_2_34 wheels, and `cryptography` then needs `GLIBC_2.33` and breaks imports on 2.31 images.
+  - The bake stage does not use apt. bullseye is EOL, so that version is 404 in the security pool (`apt-get install curl` exits 100); the uv binary is copied from the official uv image. uv ships its own TLS roots, so ca-certificates is not needed either.
+- **The bake image tag** (`rllm-agent-<hash>`) is a hash of the install script and the build context (Dockerfile and the files copied with it) (`agent_image_tag`). Changing the bake recipe changes the tag, and the image is baked again. The same holds for the other harnesses (mini-swe-agent, opencode, claude-code).
+- **The version** is pinned by `SDK_VERSION` in `rllm/harnesses/openhands_sdk.py` (default `1.42.1`) and can be overridden with `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`. The bake recipe reads the same constants, so the mounted and per-task installs cannot drift apart.
+- The SDK log is tee'd to `/tmp/openhands-sdk.log` in the container. On images without tmux the SDK warns that it falls back to a subprocess terminal; it works fine.
 
 ### 3.3 opencode
 
-- **native.** 추가 option 없다. rLLM harness가 gateway를 openai-compatible custom provider(`rllm-gateway`)로 등록하고 Chat Completions로 호출한다.
+No extra options. The rLLM harness registers the gateway as an openai-compatible custom provider (`rllm-gateway`) and calls it through Chat Completions.
 
 ```bash
-rllm eval swebenchpro_100 --split test --agent opencode --agent-image auto \
+rllm eval <dataset> --split test --agent opencode --agent-image auto \
+    --hide-git-history --no-agent-network --verify-network \
     --sandbox-backend docker --concurrency 8 --sandbox-concurrency 8 --no-ui \
     --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-4B \
     --sampling-params @recipe/eval/config/qwen3_5.yaml
 ```
 
-- **Harbor.** `--agent-kwargs`가 없으면 모든 task가 LLM 1회 호출 후 0점으로 끝난다. Harbor의 opencode는 model을 `openai/<model>`로 받아 provider `openai`로 등록하고, opencode는 provider id가 `openai`이면 SDK와 무관하게 **Responses API**(`/v1/responses`)를 쓴다. vLLM의 Responses API는 두 번째 턴의 assistant 메시지를 거부해 400이 난다. 그래서 다른 provider id에 Chat Completions SDK(`@ai-sdk/openai-compatible`)를 붙인 설정을 넘긴다.
+---
+
+## Appendix A. Image cleanup
+
+On a shared host other people's runs are mixed in, so list first.
 
 ```bash
-rllm eval swebenchpro_100 --split test --agent harbor:opencode --evaluator harbor_reward_fn \
+docker images --format '{{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}' | grep '^rllm-task-'       # native task images
+docker images --format '{{.Repository}}:{{.Tag}}' | grep '^rllm-task-' | xargs -r docker rmi             # delete, for example
+docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^rllm-agent-'                       # harness bake images
+docker image prune                                                                                       # dangling layers
+```
+
+`docker rmi` refuses images used by running containers, so it does not break an evaluation in progress. Deleted base images are pulled again on the next run.
+
+---
+
+## Appendix B. (deprecated) Harbor path
+
+> **Deprecated.** Evaluate with the native path. The Harbor path does not support the agent network block (Harbor 0.3.0 ignores the per-phase `network_mode` in `task.toml`), the agent image mount or the rollout timeout budget, and it is a different execution path from training. What follows is kept for reproducing or interpreting earlier results.
+
+The Harbor path is chosen with `--agent harbor:<scaffold>`. Harbor's `Trial.run()` handles the environment build, the agent and the verifier.
+
+### B.1 Environment
+
+- **Shared volume**: Harbor bind-mounts `$RLLM_HOME/harbor_trials/{trial}/verifier` into the task container, and the host Docker daemon resolves that mount. So `$RLLM_HOME` must exist on the host **at the same path**. With a path that exists only inside the container (`~/.rllm`, `/workspace/rllm`), the verifier's reward file ends up only on the host and every task ends with `RewardFileNotFoundError`.
+- **docker compose**: Harbor calls `docker compose`, so the container needs the compose plugin (`docker-compose-v2`).
+- **Gateway address**: Harbor's compose file does not add `host.docker.internal` to the task container, and the Linux Docker Engine does not know that name by default (cf. Docker Desktop). On Linux rLLM therefore rewrites the URL to the docker0 gateway IP from `docker network inspect bridge` (usually `172.17.0.1`). This only works when the rLLM container uses `--network host`.
+- **Env var** `RLLM_HARBOR_SESSION_TIMEOUT_S` (default `900`): limit for one trial (agent + verifier). The verifier phase alone takes over 15 minutes on SWE-bench Pro's Go repositories, so with the default even the oracle test scores 0 on timeout. Set `3000` or more.
+
+### B.2 Evaluation
+
+| Benchmark | Name | Tasks | Base image |
+| --- | --- | --- | --- |
+| SWE-bench Verified | `harbor:swebench-verified` | 500 | `swebench/sweb.eval.x86_64.<repo>_1776_<instance>` |
+| SWE-bench Pro | `harbor:swebenchpro` | 731 | Pre-built image per task |
+
+```bash
+export RLLM_HARBOR_SESSION_TIMEOUT_S=3600
+
+rllm eval harbor:swebench-verified --agent harbor:mini-swe-agent --sandbox-backend docker \
+    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B --sandbox-concurrency 8
+rllm eval harbor:swebenchpro       --agent harbor:mini-swe-agent --sandbox-backend docker \
+    --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3-8B --sandbox-concurrency 8
+```
+
+- Without `--agent`, the Harbor dataset's default `harbor:mini-swe-agent` is used. Other scaffolds: `harbor:terminus-2`, `harbor:swe-agent`, `harbor:codex`, `harbor:claude-code`, `harbor:oracle` (applies the gold patch only, no LLM calls), and so on.
+- Subsets are chosen by index (`--max-examples`, `--task-indices`). To run a registered copy of task directories with a Harbor harness, its parquet rows need `task_path` and `--evaluator harbor_reward_fn` must be given; when the name does not start with `harbor:`, the CLI cannot find the evaluator by itself. Copy from `harbor:swebenchpro` (the Harbor cache). The rLLM builder's (`swebench_pro`) `tests/test.sh` writes only `/tmp/rllm/reward.json` while the Harbor verifier reads only `/logs/verifier/reward.txt|json` (`RewardFileNotFoundError`), and the `docker_image` in the builder's `task.toml` makes Harbor skip the Dockerfile so the container dies with `exit 126`.
+
+### B.3 Notes
+
+* **Timeouts**: Harbor applies `[agent].timeout_sec` and `[verifier].timeout_sec` (3000 s each for SWE-bench) as given, and rLLM's `RLLM_HARBOR_SESSION_TIMEOUT_S` caps the whole trial on top; the shorter one wins. Harbor **retries a verifier timeout once** (`stop_after_attempt(2)`). Trials that hit the session limit count as **Errors**, not 0 points, and rLLM cleans up their containers, networks and derived images itself (`run_harbor_trial`).
+* **Resource limits**: `task.toml` as is. Harbor applies the `[environment]` cpus/memory as compose `deploy.resources.limits`. The registry's `swebenchpro` has 1 CPU and 4 GB, so the verifiers of the Go repositories do not finish in time (task instance: flipt).
+* **Harness install per task**: Harbor's mini-swe-agent runs `apt-get install build-essential` and then `uv tool install mini-swe-agent` in the container every time. It adds 1-2 minutes per task and needs the internet.
+* **Git history**: `--hide-git-history` also applies through Harbor trial hooks (hide at `AGENT_START`, restore at `VERIFICATION_START`, clean up at `END` / `CANCEL`). Harbor's docker environment `download_dir` changes the owner of the source to the host user, so only a single tar file made inside the container crosses.
+* **Images**: Harbor builds `environment/Dockerfile` into a derived image per task, `<trial>-main:latest` (about 7.5 GB for Verified), and deletes it with `compose down --rmi all` on a normal exit. After an abnormal exit it remains.
+
+```bash
+docker images --format '{{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}' | grep -- '-main:latest'   # Harbor leftovers
+docker images --format '{{.Repository}}:{{.Tag}}' | grep -- '-main:latest' | xargs -r docker rmi
+docker network ls --format '{{.Name}}' | grep '_default$' | grep -E 'instance_|__' | xargs -r docker network rm  # Harbor leftover networks
+```
+
+### B.4 `harbor:swebenchpro` vs `swebench_pro`
+
+**Two independently built sets of task directories** for the same benchmark and the same Docker images. The rLLM builder does not convert Harbor tasks; it builds from the source data.
+
+| | `harbor:swebenchpro` | `swebench_pro` |
+| --- | --- | --- |
+| Built by | The Harbor adapter, uploaded to the registry | `rllm/data/swebench_pro_builder.py` (`rllm dataset pull swebench_pro`) |
+| Input | Downloads 731 finished task directories | HF `ScaleAI/SWE-bench_Pro` rows + `run_script.sh`, `parser.py` from `scaleapi/SWE-bench_Pro-os` |
+| `task.toml` resources | `cpus = 1`, `memory_mb = 4096` | `cpus = 4`, `memory_mb = 16384` (builder `_DEFAULT_RESOURCES`) |
+| `tests/test.sh` | The adapter's wrapper | A wrapper the builder synthesises |
+| Docker image | `jefzda/sweap-images:<tag>` | The same image |
+| Location | `~/.cache/harbor/tasks/...` | `$RLLM_HOME/datasets/swebench_pro/<instance_id>/` |
+
+| Command | Source | Container resources |
+| --- | --- | --- |
+| `rllm eval harbor:swebenchpro --agent harbor:mini-swe-agent` | Harbor | 1 CPU, 4 GB |
+| `rllm eval harbor:swebenchpro --agent mini-swe-agent` | **Harbor** (native harness, but the task directories are Harbor's) | 1 CPU, 4 GB. The native path also applies the `task.toml` values as is |
+| `rllm eval swebench_pro --agent mini-swe-agent` | rLLM builder | 4 CPUs, 16 GB |
+| `rllm eval swebench_pro --agent harbor:*` | - | **Not possible.** The builder's `test.sh` writes only `/tmp/rllm/reward.json` and the Harbor verifier reads only `/logs/verifier/` |
+
+### B.5 Per-harness settings on Harbor
+
+**opencode (`harbor:opencode`).** Without `--agent-kwargs @recipe/eval/config/harbor-opencode-vllm.yaml` every task ends with 0 points after one LLM call. Harbor's opencode takes the model as `openai/<model>` and registers it under provider `openai`, and opencode uses the **Responses API** (`/v1/responses`) whenever the provider id is `openai`, regardless of the SDK. vLLM's Responses API rejects the second turn's assistant message with 400. So the config attaches the Chat Completions SDK (`@ai-sdk/openai-compatible`) to another provider id (`openrouter`). Keep `--model` as the served name. rLLM fills in `options.baseURL` (the gateway session URL), `options.apiKey` and the model_name prefix per trial (`trial_helper._apply_opencode_provider_config`).
+
+**openhands-sdk (`harbor:openhands-sdk`).** The harbor 0.3.0 scaffold creates a venv with **the task image's system Python** and runs `pip install openhands-sdk`, and **all** 100 tasks of the SWE-bench Pro subset failed (Python < 3.12, a `pip.conf` pointing at an unresponsive pip index, no `apt-get` / `stdbuf` on Alpine, no `curl`). `recipe/eval/patches/harbor-0.3.0-openhands-sdk.patch` fixes the installed harbor: Python 3.12 via uv, `uv pip install` (ignores the pip config), `curl` and `coreutils` per package manager, uv installed separately in `/opt/openhands-sdk-uv`, 3 download retries, the gateway URL read from the trial's `AgentConfig.env`, and resending previous turns' reasoning.
+
+```bash
+bash recipe/eval/scripts/apply_harbor_patches.sh            # --check to inspect, --revert to undo
+export RLLM_HARBOR_SESSION_TIMEOUT_S=4200
+rllm eval swebenchpro_100 --split test \
+    --agent harbor:openhands-sdk --evaluator harbor_reward_fn \
     --sandbox-backend docker --concurrency 8 --sandbox-concurrency 8 --no-ui \
     --base-url http://127.0.0.1:8000/v1 --model Qwen/Qwen3.5-4B \
-    --sampling-params @recipe/eval/config/qwen3_5.yaml \
-    --agent-kwargs @recipe/eval/config/harbor-opencode-vllm.yaml
-```
-
-```yaml
-# recipe/eval/config/harbor-opencode-vllm.yaml
-opencode_config:
-  provider:
-    openrouter:
-      npm: "@ai-sdk/openai-compatible"
-```
-
-- `--model`은 서빙 이름 그대로 둔다. gateway가 요청의 `model`을 `--model` 값으로 고정하므로 `--model openrouter/...`로 주면 vLLM이 404를 낸다.
-- provider id는 Harbor가 아는 이름이어야 한다(`openai`, `anthropic`, `deepseek`, `openrouter`, `huggingface`, ... `harbor/agents/installed/opencode.py`). 이름만 빌리는 것이고 해당 서비스와는 무관하다. `openai`는 위 이유로 쓸 수 없다.
-- 나머지는 rLLM이 trial마다 채운다(`trial_helper._apply_opencode_provider_config`): `options.baseURL`을 그 trial의 gateway session URL로, `options.apiKey`를 `OPENAI_API_KEY`(없으면 `empty`)로, Harbor에 넘기는 model_name의 접두어를 선언된 provider id로(`openai/Qwen/X` → `openrouter/Qwen/X`). 파일에 `options`를 직접 적으면 그 값이 우선한다.
-
-### 3.4 openhands-sdk
-
-Harbor의 OpenHands scaffold는 두 개다. `harbor:openhands`는 제품 전체(`openhands-ai`)를, `harbor:openhands-sdk`는 container 내부에서 직접 실행되는 경량 Software Agent SDK를 설치한다. 아래는 **openhands-sdk** 기준이며 버전은 `1.42.1`로 고정한다(`openhands-sdk`와 `openhands-tools`는 동일한 버전으로 함께 설치된다).
-
-- harbor patch 적용: harbor 0.3.0의 openhands-sdk scaffold는 **task image의 system Python**으로 venv를 생성하고 `pip install openhands-sdk`를 실행한다. SWE-bench Pro subset에서는 이 조합이 100개 **전부** 실패한다. 원인은 네 가지가 중첩되어 있다.
-
-| 원인 | 증상 | 해당 task |
-| --- | --- | --- |
-| `openhands-sdk`/`openhands-tools`는 `requires-python >=3.12`인데 image Python이 그보다 낮다(3.8~3.11) | `ERROR: Could not find a version that satisfies the requirement openhands-sdk` | 88개 (openlibrary 12개 제외) |
-| 8개 저장소 image에 `/root/.config/pip/pip.conf`가 있고 `index-url = http://127.0.0.1:9876/`(build 시점의 로컬 mirror)를 가리킨다. runtime에는 응답하지 않는 주소이므로 pip이 index를 읽지 못한다 | `Connection refused ... /openhands-sdk/` → `No matching distribution found` | 78개 (teleport·protonmail·tutanota 제외). Python 3.12인 openlibrary 12개는 이 원인만으로 실패 |
-| teleport image는 Alpine(musl)이라 `apt-get`이 없고 coreutils(`stdbuf`)도 없다. scaffold의 `python3-venv` 설치와 `run()`의 `\| stdbuf -oL tee` pipeline이 모두 실패한다 | `apt-get: not found`, 이어서 `stdbuf: not found` (exit 127) | teleport 10개 |
-| qutebrowser image에는 `curl`이 없다. 설치 경로를 uv로 변경하면 uv 설치 script부터 download할 수 없다 | `curl: not found` | qutebrowser 11개 |
-
-subset 11개 저장소의 base image(각 저장소 대표 1개 확인):
-
-| 저장소 (task 수) | OS | system python3 | curl | stdbuf | 응답 없는 pip index |
-| --- | --- | --- | --- | --- | --- |
-| ansible (13) | Ubuntu 20.04 | 3.9.5 | O | O | O |
-| internetarchive/openlibrary (12) | Debian 12 | 3.12.2 | O | O | O |
-| flipt (12) | Debian 12 | 3.11.2 | O | O | O |
-| qutebrowser (11) | Debian 12 | 3.11.13 | **X** | O | O |
-| gravitational/teleport (10) | **Alpine 3.17 (musl)** | 3.10.15 | O | **X** | - |
-| protonmail/webclients (9) | Ubuntu 20.04 | 3.8.10 | O | O | - |
-| navidrome (8) | Debian 12 | 3.11.2 | O | O | O |
-| vuls (8) | Debian 12 | 3.11.2 | O | O | O |
-| element-web (8) | Debian 11 | 3.9.2 | O | O | O |
-| nodebb (6) | Debian 11 | 3.9.2 | O | O | O |
-| tutanota (3) | Debian 11 | 3.9.2 | O | O | - |
-
-`recipe/eval/patches/harbor-0.3.0-openhands-sdk.patch`가 설치된 harbor의 `agents/installed/openhands_sdk.py`(설치·실행)와 `openhands_sdk_runner.py`(reasoning 재전송)를 수정한다.
-
-* interpreter를 **uv로 확보**한다(`uv python install 3.12` → `uv venv --python 3.12`). image의 Python 버전과 무관하며, `python_version` kwarg로 변경할 수 있다.
-* `uv pip install`은 pip의 설정 파일을 읽지 않으므로 응답하지 않는 `index-url`을 무시한다. musl(Alpine)에서도 uv가 musl build Python을 download한다.
-* system 의존성(`curl`, `coreutils`)을 package manager에 맞춰 설치한다(`apt-get`/`apk`/`dnf`/`yum`). `curl`은 uv 설치 script용, `coreutils`는 `run()`의 `stdbuf`에 필요하다.
-* uv를 `/opt/openhands-sdk-uv`에 따로 설치한다. subset 100개의 `environment/Dockerfile`에는 전부 `RUN curl -LsSf https://astral.sh/uv/0.7.13/install.sh | sh || true`가 있어서, PATH의 uv를 그대로 사용하면 scaffold가 task image에 고정된 버전(0.7.13)을 따라가게 된다.
-* uv download 단계(`curl`, `uv python install`, `uv pip install`)를 3회까지 재시도한다. task마다 약 180개 package(510 MB)를 download하며 100개 실행 기준 PyPI 전송량은 약 50 GB에 이른다. 그중 하나라도 중단되면 trial 전체가 `NonZeroAgentExitCodeError`로 실패한다(Harbor 0.3.0은 agent setup을 재시도하지 않는다).
-* 버전 조회를 `pip show`에서 `python -c "import openhands.sdk; print(openhands.sdk.__version__)"`로 변경했다. uv venv에는 pip이 없다(SDK banner는 stderr로 출력되므로 stdout에는 버전만 남는다).
-* `run()`이 `LLM_API_KEY`/`LLM_BASE_URL`/`LLM_MODEL`을 host의 `os.environ`뿐 아니라 그 trial의 `AgentConfig.env`에서도 읽는다. rLLM이 trial마다 gateway session URL을 이 경로로 전달한다.
-* runner가 이전 turn의 reasoning을 다음 요청에 다시 넣는다. SDK는 kimi/deepseek/minimax 모델에만 이를 보내므로, Qwen3.x·GLM에서는 이전 turn이 빈 `<think></think>`로 렌더링되어 몇 step 뒤 thinking이 사라진다. `reasoning_content`와 `reasoning`(vLLM 0.22 미만은 이것만 읽음)에 모두 담는다. native harness(3.5)의 `ReasoningReplayLLM`과 같은 코드다.
-
-```bash
-# patch 적용 (ref: --check 로 상태 확인; --revert 로 상태 되돌리기)
-bash recipe/eval/scripts/apply_harbor_patches.sh
-```
-
-`uv pip install -e ".[harbor]"`를 재실행하면 harbor가 새로 설치되어 patch가 사라지므로 재적용한다.
-
-이전 이름(`harbor-0.3.0-openhands-sdk-uv-install.patch`)으로 적용한 환경에서는 새 patch가 적용되지 않는다. `uv pip install --reinstall harbor==0.3.0`으로 harbor를 원상태로 되돌린 뒤 재적용한다.
-
-```bash
-export RLLM_HOME=/path/to/rllm-home RLLM_HARBOR_SESSION_TIMEOUT_S=4200
-rllm eval swebenchpro_100 \
-    --split test \
-    --agent harbor:openhands-sdk \
-    --evaluator harbor_reward_fn \
-    --sandbox-backend docker \
-    --concurrency 8 --sandbox-concurrency 8 --no-ui \
-    --base-url http://127.0.0.1:8000/v1 \
-    --model Qwen/Qwen3.5-4B \
     --sampling-params @recipe/eval/config/qwen3_5.yaml \
     --agent-kwargs @recipe/eval/config/harbor-openhands-sdk.yaml
 ```
 
-- `--agent-kwargs`의 `version`을 생략하면 실행 시점의 최신 openhands-sdk가 설치된다. 재현성을 위해 `recipe/eval/config/harbor-openhands-sdk.yaml`(= `1.42.1`)을 그대로 사용한다.
-- task마다 container 내부에 uv + Python 3.12 + SDK를 새로 설치한다(venv 510 MB, package 약 180개). PyPI 트래픽이 100개 실행 기준 약 50 GB이므로 동시 실행 수를 늘릴 때는 대역폭도 함께 확인해야 한다. H200 호스트에서 측정한 설치 시간은 task당 16~19초(`result.json`의 `agent_setup`→`agent_execution` 간격)이다.
-- SDK는 native tool calling을 사용한다. vLLM은 `--enable-auto-tool-choice --tool-call-parser ... --reasoning-parser ...`로 서빙해야 한다(mini-swe-agent와 같은 조건).
-- trajectory는 `$RLLM_HOME/harbor_trials/<trial>/agent/trajectory.json`(ATIF)에 기록되고 rLLM Episode로 변환된다. scaffold log는 같은 directory의 `openhands_sdk.txt`이다.
+- Rerunning `uv pip install -e ".[harbor]"` reinstalls harbor and drops the patch; apply it again. Environments patched under the old name (`harbor-0.3.0-openhands-sdk-uv-install.patch`) need `uv pip install --reinstall harbor==0.3.0` before reapplying.
+- Without `version` in `--agent-kwargs`, the latest openhands-sdk at run time is installed. Use `harbor-openhands-sdk.yaml` (= `1.42.1`) as is.
+- Every task installs uv + Python 3.12 + the SDK inside the container (510 MB venv, about 180 packages, about 50 GB of PyPI traffic per 100 tasks, 16-19 s per task). Slow downloads exceed Harbor's agent setup limit (360 s) with `AgentSetupTimeoutError`.
+- The trajectory is written to `$RLLM_HOME/harbor_trials/<trial>/agent/trajectory.json` (ATIF) and converted into an rLLM episode. The scaffold log is `openhands_sdk.txt` in the same directory.
 
-### 3.5 openhands-sdk (native)
+### B.6 Native vs Harbor
 
-같은 SDK를 rLLM harness로 실행한다. harbor patch와 무관하며, 구성은 세 파일이다.
-
-| 파일 | 역할 |
-| --- | --- |
-| `rllm/harnesses/openhands_sdk.py` | `OpenHandsSdkHarness`. 설치 script, env, runner 배치, 실행 명령 |
-| `rllm/harnesses/tools/openhands_sdk_runner.py` | SDK를 구동하는 script. openhands-sdk는 CLI가 아니라 library이므로 harness가 이 script를 sandbox에 기록하고 SDK의 interpreter로 실행한다 |
-| `rllm/registry/agents.json` | `openhands-sdk` 등록 (`rllm agent list`에 노출) |
-
-Harbor 경로와의 차이는 두 가지다.
-
-* **trajectory**: gateway가 모든 LLM 호출을 capture하고 engine이 Episode를 구성한다. ATIF 변환이 없고 `tool_calls`가 native 형식으로 남아 학습(`recipe/grpo/qwen3_5`)과 같은 경로다. runner는 trajectory 파일을 쓰지 않는다.
-* **채점**: task의 `tests/test.sh`를 rLLM이 직접 실행한다. `--evaluator harbor_reward_fn`이 필요 없다.
-
-```bash
-export RLLM_HOME=/path/to/rllm-home
-rllm eval swebenchpro_100 \
-    --split test \
-    --agent openhands-sdk \
-    --agent-image auto \
-    --sandbox-backend docker \
-    --concurrency 8 --sandbox-concurrency 8 --no-ui \
-    --base-url http://127.0.0.1:8000/v1 \
-    --model Qwen/Qwen3.5-4B \
-    --sampling-params @recipe/eval/config/qwen3_5.yaml \
-    --agent-kwargs @recipe/eval/config/openhands-sdk.yaml
-```
-
-- **`--agent-kwargs`로 step cap과 SDK 기본 tool을 정한다.** `recipe/eval/config/openhands-sdk.yaml`:
-
-  | key | 의미 | 생략 시 |
-  | --- | --- | --- |
-  | `max_iterations` | rollout당 agent step 상한 (`Conversation(max_iteration_per_run=...)`) | SDK 기본 500 |
-  | `include_default_tools` | SDK 내장 tool 중 포함할 것 (`Agent(include_default_tools=...)`). `[]`이면 하나도 넣지 않는다 | `[FinishTool, ThinkTool]` |
-
-  recipe 값은 `max_iterations: 150`, `include_default_tools: [FinishTool]`이다. ThinkTool은 생각을 기록만 하는 tool이라, reasoning을 켠 model(runner가 이전 turn의 reasoning을 다시 보낸다)에게는 step만 쓴다. FinishTool은 agent가 종료를 알리는 수단이므로 남긴다. harness가 두 값을 `OPENHANDS_MAX_ITERATIONS`, `OPENHANDS_DEFAULT_TOOLS`로 runner에 넘기고, runner 첫 줄 log(`default_tools=... max_iterations=...`)에 적용된 값이 찍힌다. 모르는 key는 WARNING으로 남는다.
-- **reasoning 설정은 `--sampling-params`로 준다.** gateway가 session의 sampling params를 모든 요청 body에 덮어쓰므로(`payload.update`), `reasoning_effort`·`chat_template_kwargs`도 harness와 관계없이 model 파일 하나로 정해진다. SDK는 기본으로 `reasoning_effort: "high"`를 보내는데, Qwen3.8 서빙은 `xhigh`(기본)/`medium`/`low`만 받는다. sampling params로 덮지 않으면 첫 LLM 호출이 `BadRequestError: Unexpected reasoning effort high`로 실패하고 runner가 종료되어, rollout은 1 step·reward 0의 정상 종료처럼 보인다(오류는 container의 `/tmp/openhands-sdk.log`에만 남는다). `recipe/eval/config/qwen3_8-flash-next.yaml`이 `reasoning_effort: xhigh`와 `chat_template_kwargs.enable_thinking: true`를 고정한다. 값이 `null`인 key는 sampling params에서 버려지므로 "보내지 않음"은 표현할 수 없고, 허용되는 값을 명시해야 한다. `chat_template_kwargs`는 key 단위로 합쳐지지 않고 dict 전체가 교체된다.
-- **`--agent-image auto`가 설치 비용을 없앤다.** uv + Python 3.12 + SDK를 `/opt/rllm/agent`에 한 번 구워 task container에 read-only로 mount하므로 task당 설치가 사라진다(측정: qutebrowser task 전체 시간이 163초 → 47초, `env_install` 112초 → 0초). Harbor 경로는 task마다 510 MB를 새로 설치한다.
-- **mount가 모든 image를 덮지는 못한다.** harness는 mount된 python으로 `import openhands.sdk`를 실행해 보고 실패하면 task별 설치로 fallback하며, 그때 `openhands-sdk: agent mount cannot serve <task>; installed the SDK per task instead`를 WARNING으로 남긴다. mount가 있으면 rLLM이 설치 hook을 건너뛰므로(`hooks.py`의 `baked_install`) 이 fallback이 없으면 해당 task는 interpreter 없이 실행된다. fallback 설치 시간은 `env_install`이 아니라 `agentflow`에 잡힌다.
-  - SDK는 task 저장소에서 import하면 안 된다. harness 명령은 task workdir(`/testbed`)에서 돌기 때문에, 저장소가 SDK 의존성과 같은 이름의 package를 가지면(`/testbed/aiohttp`, `/testbed/pydantic`, `/testbed/tornado` 등) mount probe와 fallback 설치 검증이 **둘 다** 실패하고 agent가 한 번도 실행되지 않는다. 경로는 두 개다. `python -c`가 cwd를 `sys.path` 맨 앞에 넣는 것은 `-I`로 막고(image의 `PYTHONPATH`/`PYTHONHOME`도 무시), litellm이 import 시 `sys.path.append(os.getcwd())`를 하는 것은 빈 임시 directory로 chdir한 뒤 import해서 막는다(probe와 runner 모두).
-  - musl(Alpine) image는 glibc interpreter를 실행할 수 없어 구조적으로 fallback이다(teleport 10개).
-  - glibc image는 bake의 glibc 세대에 달려 있다. bake를 `debian:bullseye-slim`(2.31)에서 하면 subset의 2.31~2.36 image를 모두 덮는다(11개 image에 직접 mount해 확인: 10개 import OK, teleport만 musl로 실패). `ubuntu:22.04`(2.35)에서 구우면 uv가 manylinux_2_34 wheel을 고르고 `cryptography`가 `GLIBC_2.33`을 요구해 2.31 image 5개(ansible, element-web, nodebb, protonmail, tutanota)에서 import가 깨진다.
-  - bake stage에서는 apt를 쓰지 않는다. bullseye는 EOL이라 security pool의 해당 version이 404이고(`apt-get install curl`이 exit 100), uv binary는 공식 uv image에서 복사한다. uv가 TLS root를 내장하므로 ca-certificates도 필요 없다.
-- **bake image의 tag는 install script hash다**(`agent_image_tag(install_script)`). bake Dockerfile만 바꾸면 tag가 그대로여서 기존 image가 재사용되고 변경이 반영되지 않는다. Dockerfile을 고쳤으면 `docker rmi rllm-agent-<hash>`로 지워 다시 굽게 한다. 다른 harness(mini-swe-agent, opencode, claude-code)도 같다.
-- **버전 고정**은 `rllm/harnesses/openhands_sdk.py`의 `SDK_VERSION`(기본 `1.42.1`)이며 `RLLM_OPENHANDS_SDK_VERSION`, `RLLM_OPENHANDS_PYTHON_VERSION`으로 덮어쓸 수 있다. bake 레시피가 같은 상수를 읽으므로 mount본과 task별 설치본이 어긋나지 않는다.
-- SDK log는 container의 `/tmp/openhands-sdk.log`에 tee된다. tmux가 없는 image에서는 SDK가 subprocess 터미널로 fallback한다는 경고를 남기지만 동작에는 문제가 없다.
-
----
-
-## Appendix
-
-### 1. derived image 정리(공유 호스트라면 다른 사람의 실행분이 섞여 있으니 목록을 먼저 본다):
-
-```bash
-docker images --format '{{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}' | grep -- '-main:latest'   # Harbor 잔여
-docker images --format '{{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}' | grep '^rllm-task-'       # native rllm 잔여
-docker images --format '{{.Repository}}:{{.Tag}}' | grep '^rllm-task-' | xargs -r docker rmi             # 삭제 예
-docker images --format '{{.Repository}}:{{.Tag}}' | grep -- '-main:latest' | xargs -r docker rmi
-docker network ls --format '{{.Name}}' | grep '_default$' | grep -E 'instance_|__' | xargs -r docker network rm  # Harbor 잔여 network
-docker image prune                                                                                       # dangling layer
-```
-
-`docker rmi`는 실행 중인 container가 쓰는 image는 거부하므로 진행 중인 평가를 깨뜨리지 않는다. base image를 지우면 다음 실행 때 다시 받는다.
-
----
-
-### 2. Native 방식과 Harbor 방식의 차이
-
-| | Harbor | native |
+| | Harbor (deprecated) | native |
 | --- | --- | --- |
-| container | Harbor가 `docker compose`로 task별 `environment/Dockerfile`을 **build**해서 띄움 (`<trial>-main:latest`) | rLLM도 docker backend에서는 `docker build`로 task별 image(`rllm-task-<task_id>`)를 만들어 띄움. RUN 단계를 container 안에서 재생하는 것은 modal/daytona backend만 |
-| derived image per task | 정상 종료 시 `compose down --rmi all`로 삭제. 비정상 종료 시 남음 | **삭제하지 않음** (재실행 cache로 남김) |
-| harness | Harbor scaffold (`harbor/agents/`). 20종, `harbor:<이름>` | rLLM harness (`rllm/harnesses/`). `rllm agent list` |
-| harness install | task마다 container 안에서 설치 | `--agent-image auto`로 한 번 구워 mount |
-| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | task의 `tests/test.sh`를 rLLM이 직접 실행 → `/tmp/rllm/reward.json`(우선) 또는 `/logs/verifier/reward.json\|txt` |
-| trajectory | Harbor ATIF trajectory를 rLLM Episode로 변환 | gateway가 모든 LLM 호출을 capture해 Step/Episode 구성 (학습과 동일 경로) |
-| timeout | `task.toml` 값 + `RLLM_HARBOR_SESSION_TIMEOUT_S` 상한 | `task.toml` 값만 |
-| log | `$RLLM_HOME/harbor_trials/<trial>/` (Harbor 형식) | `$RLLM_HOME/eval_results/<run>/episodes/` |
+| container | Harbor **builds** each task's `environment/Dockerfile` with `docker compose` and starts it (`<trial>-main:latest`) | rLLM builds a per-task image (`rllm-task-<task_id>`) with `docker build` and starts it. Replaying RUN steps inside the container is only for the modal/daytona backends |
+| derived image per task | Deleted with `compose down --rmi all` on a normal exit; left after an abnormal exit | **Not deleted** (kept as a rerun cache) |
+| harness | Harbor scaffold (`harbor/agents/`), 20 kinds, `harbor:<name>` | rLLM harness (`rllm/harnesses/`), `rllm agent list` |
+| harness install | Installed in the container per task (needs the internet) | Baked once with `--agent-image auto` and mounted |
+| agent network | Open | Blocked with `--no-agent-network` (LLM gateway only) |
+| verifier | Harbor verifier → `TrialResult.verifier_result` → `harbor_reward_fn` | rLLM runs the task's `tests/test.sh` itself → `/tmp/rllm/reward.json` (first) or `/logs/verifier/reward.json\|txt` |
+| trajectory | Harbor ATIF trajectory converted into an rLLM episode | The gateway captures every LLM call and builds steps/episodes (same path as training) |
+| timeout | `task.toml` values + the `RLLM_HARBOR_SESSION_TIMEOUT_S` cap | agent and verifier: the `task.toml` values, else `RLLM_HARNESS_RUN_TIMEOUT_S` / `RLLM_VERIFIER_TIMEOUT_S`; the rollout budget `RLLM_ROLLOUT_TIMEOUT_S` on top (1.3) |
+| log | `$RLLM_HOME/harbor_trials/<trial>/` (Harbor format) | `$RLLM_HOME/eval_results/<run>/episodes/` |
 | train | `examples/harbor_swe` (RemoteAgentFlowEngine + tinker) | `recipe/grpo/qwen3_5` (AgentFlowEngine + verl) |
-
-

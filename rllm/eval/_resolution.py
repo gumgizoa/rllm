@@ -17,10 +17,13 @@ Module is private (``_resolution``) — external callers should go through
 from __future__ import annotations
 
 import base64
+import hashlib
 import importlib
 import inspect
 import logging
+import os
 import re
+import threading
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -379,20 +382,71 @@ def _resolve_image(task: Task, backend: str) -> str:
     return configured
 
 
+def _docker_context_fingerprint(context_dir: Path) -> str:
+    """Hash of every file's path, size and mtime under the build context.
+
+    Cheap enough to take on every resolution (task contexts hold a Dockerfile
+    and a few scripts) and changes whenever a file the build reads changes.
+    """
+    digest = hashlib.sha256()
+    for root, dirs, files in os.walk(context_dir):
+        dirs.sort()
+        for name in sorted(files):
+            path = os.path.join(root, name)
+            st = os.stat(path)
+            digest.update(f"{os.path.relpath(path, context_dir)}\0{st.st_size}\0{st.st_mtime_ns}\n".encode())
+    return digest.hexdigest()
+
+
+def _docker_image_id(tag: str) -> str | None:
+    """The local image id ``tag`` points at, ``None`` when there is no such image."""
+    import subprocess
+
+    result = subprocess.run(["docker", "image", "inspect", "-f", "{{.Id}}", tag], capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+# Images this process has built: (tag, context fingerprint) -> image id. One
+# rollout resolves its image several times (env_key_for in the warm queue's
+# claim and pop, get_sandbox, the sandbox create), so without this every call
+# reran `docker build` -- 10-70 s even when every layer is cached, and the
+# warm queue takes one of those calls under its lock.
+_built_images: dict[tuple[str, str], str] = {}
+_build_locks: dict[str, threading.Lock] = {}
+_build_locks_guard = threading.Lock()
+
+
 def _build_docker_image(context_dir: Path, task_id: str) -> str:
-    """Build via subprocess (avoids docker-py credential helper issues on macOS)."""
+    """Build via subprocess (avoids docker-py credential helper issues on macOS).
+
+    Builds at most once per process for a given tag and build context; later
+    calls only confirm the image is still the one built. Concurrent calls for
+    the same tag wait for one build, other tags build in parallel.
+    """
     import subprocess
 
     tag = "rllm-task-" + re.sub(r"[^a-zA-Z0-9_.-]", "-", task_id).lower()
-    logger.info("Building Docker image '%s' from %s", tag, context_dir)
-    result = subprocess.run(
-        ["docker", "build", "-t", tag, "--rm", "."],
-        cwd=str(context_dir),
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"Docker build failed for {task_id}:\n{result.stderr[:1000]}")
+    key = (tag, _docker_context_fingerprint(context_dir))
+    with _build_locks_guard:
+        lock = _build_locks.setdefault(tag, threading.Lock())
+    with lock:
+        built = _built_images.get(key)
+        if built is not None and _docker_image_id(tag) == built:
+            return tag
+        logger.info("Building Docker image '%s' from %s", tag, context_dir)
+        result = subprocess.run(
+            ["docker", "build", "-t", tag, "--rm", "."],
+            cwd=str(context_dir),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Docker build failed for {task_id}:\n{result.stderr[:1000]}")
+        image_id = _docker_image_id(tag)
+        if image_id is not None:
+            _built_images[key] = image_id
     return tag
 
 
