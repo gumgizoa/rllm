@@ -4,10 +4,10 @@
 Pulls ``harbor:swebench-verified`` if it is not registered yet, copies the task
 directories listed in ``subset-ids.txt`` (one instance id per line; blank lines
 and ``#`` comments ignored) into ``$RLLM_HOME/datasets/<name>/``, applies the
-fixes below, and registers the rows so the subset runs under either harness::
+fixes below, and registers the rows for the native path::
 
-    rllm eval swebench_verified_100 --split test --agent harbor:mini-swe-agent --evaluator harbor_reward_fn ...
-    rllm eval swebench_verified_100 --split test --agent mini-swe-agent ...
+    rllm eval swebench_verified_100 --split test --agent openhands-sdk --agent-image auto \\
+        --hide-git-history --no-agent-network --verify-network --sandbox-backend docker ...
 
 Fixes applied to the copies (the Harbor cache itself is left untouched):
 
@@ -45,7 +45,14 @@ Fixes applied to the copies (the Harbor cache itself is left untouched):
     pytest prints no per-test ``PASSED`` lines and the SWE-bench parser finds
     nothing although the test passes. ``-rA`` is passed via tox posargs.
 
+* optionally ``[agent]`` / ``[verifier]`` ``timeout_sec`` (``--agent-timeout``,
+  ``--verifier-timeout``): ``rllm eval`` reads these before the env vars, and the
+  registry ships 3000 s for both (``set_timeout``).
 * ids: matched case-insensitively against the registry ids.
+
+The workdir comes from each Dockerfile's ``WORKDIR /testbed``, which
+``--hide-git-history`` needs. The ``swebench/sweb.eval.*`` images are Ubuntu
+(glibc), so the openhands-sdk agent mount runs on them as is.
 """
 
 from __future__ import annotations
@@ -58,6 +65,8 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import tomllib
 
 from rllm import paths
 from rllm.data import DatasetRegistry
@@ -155,6 +164,34 @@ TASK_FIXES = {
 }
 
 
+def set_timeout(task_toml: Path, section: str, seconds: float) -> None:
+    """Set ``timeout_sec`` in the ``[section]`` table (``agent`` or ``verifier``), replacing any value there."""
+    if seconds <= 0:
+        raise ValueError(f"--{section}-timeout must be more than 0 seconds, got {seconds!r}")
+    lines = task_toml.read_text().splitlines(keepends=True)
+    start = next((i for i, line in enumerate(lines) if line.strip() == f"[{section}]"), None)
+    if start is None:
+        raise ValueError(f"{task_toml}: no [{section}] table")
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+    body = [line for line in lines[start + 1 : end] if not re.match(r"\s*timeout_sec\s*=", line)]
+    task_toml.write_text("".join([*lines[: start + 1], f"timeout_sec = {float(seconds)}\n", *body, *lines[end:]]))
+    if tomllib.loads(task_toml.read_text())[section]["timeout_sec"] != float(seconds):
+        raise RuntimeError(f"{task_toml}: [{section}] timeout_sec did not take")
+
+
+def set_timeouts(task_toml: Path, agent: float | None, verifier: float | None) -> None:
+    """Apply ``--agent-timeout`` / ``--verifier-timeout``; ``None`` keeps the value already there."""
+    if agent is not None:
+        set_timeout(task_toml, "agent", agent)
+    if verifier is not None:
+        set_timeout(task_toml, "verifier", verifier)
+
+
+def timeouts_note(agent: float | None, verifier: float | None) -> str:
+    """`` agent_timeout=... verifier_timeout=...`` for the registry source string (empty when unchanged)."""
+    return "".join(f" {k}_timeout={v:g}" for k, v in (("agent", agent), ("verifier", verifier)) if v is not None)
+
+
 def main() -> None:
     here = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -163,6 +200,8 @@ def main() -> None:
     ap.add_argument("--split", default="test")
     ap.add_argument("--cpus", type=int, default=4)
     ap.add_argument("--memory-mb", type=int, default=16384)
+    ap.add_argument("--agent-timeout", type=float, help="Write [agent].timeout_sec, seconds (default: keep the registry's 3000)")
+    ap.add_argument("--verifier-timeout", type=float, help="Write [verifier].timeout_sec, seconds (default: keep the registry's 3000)")
     ap.add_argument("--force", action="store_true", help="Re-copy task dirs that already exist")
     args = ap.parse_args()
 
@@ -187,6 +226,7 @@ def main() -> None:
         if not dst.exists():
             shutil.copytree(src_dir, dst)
         set_resources(dst / "task.toml", args.cpus, args.memory_mb)
+        set_timeouts(dst / "task.toml", args.agent_timeout, args.verifier_timeout)
         patch_dockerfile(dst / "environment" / "Dockerfile")
         limit_threads(dst / "environment" / "Dockerfile", args.cpus)
         narrow_git_clean(dst / "tests" / "test.sh")
@@ -199,22 +239,22 @@ def main() -> None:
     if missing:
         sys.exit(f"{len(missing)} ids not found in '{HARBOR_DATASET}': {missing[:5]}")
 
+    timeouts = timeouts_note(args.agent_timeout, args.verifier_timeout)
     DatasetRegistry.register_dataset(
         name=args.name,
         data=rows,
         split=args.split,
         source=(
-            f"harbor:{HARBOR_DATASET} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}; "
+            f"harbor:{HARBOR_DATASET} subset from {Path(args.ids).name}; cpus={args.cpus} memory_mb={args.memory_mb}{timeouts}; "
             f"OMP_NUM_THREADS={args.cpus}; git clean narrowed; task fixes: {', '.join(fixed) or 'none'}"
         ),
         description=f"SWE-bench Verified subset ({len(rows)} tasks) from the Harbor registry with resource and verifier fixes",
         category="agentic",
     )
     print(f"{args.name}/{args.split}: {len(rows)} tasks -> {out}")
-    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb}; Dockerfile apt Check-Valid-Until off, OMP_NUM_THREADS={args.cpus}")
+    print(f"  task.toml: cpus={args.cpus} memory_mb={args.memory_mb}{timeouts}; Dockerfile apt Check-Valid-Until off, OMP_NUM_THREADS={args.cpus}")
     print(f"  tests/test.sh: git clean -fd limited to test patch paths; task fixes: {', '.join(fixed) or 'none'}")
-    print(f"  harbor harness: rllm eval {args.name} --split {args.split} --agent harbor:mini-swe-agent --evaluator harbor_reward_fn --sandbox-backend docker ...")
-    print(f"  native harness: rllm eval {args.name} --split {args.split} --agent mini-swe-agent --sandbox-backend docker --agent-image auto ...")
+    print(f"  rllm eval {args.name} --split {args.split} --agent openhands-sdk --agent-image auto --hide-git-history --no-agent-network --verify-network --sandbox-backend docker ...")
 
 
 if __name__ == "__main__":
