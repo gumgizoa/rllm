@@ -76,8 +76,12 @@ def tooled(tmp_path, monkeypatch):
 
 def test_extra_changes_the_tag_and_empty_keeps_it():
     script = "install things"
-    assert agent_image.agent_image_tag(script) == agent_image.agent_image_tag(script, "")
-    assert agent_image.agent_image_tag(script, "RUN x") != agent_image.agent_image_tag(script)
+
+    def tag(*extra):
+        return agent_image.agent_image_tag(script, agent_image._build_context(script, "openhands-sdk", *extra))
+
+    assert tag() == tag("")
+    assert tag("RUN x") != tag()
     base = agent_image.dockerfile_for_install(script, "openhands-sdk")
     assert agent_image.dockerfile_for_install(script, "openhands-sdk", "") == base
     with_extra = agent_image.dockerfile_for_install(script, "openhands-sdk", "RUN echo extra")
