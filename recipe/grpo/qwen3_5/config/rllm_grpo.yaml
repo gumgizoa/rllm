@@ -14,8 +14,8 @@ rllm:
     # prompt is the first turn's prompt and the response accumulates every
     # later turn's observation + action deltas. Response length therefore
     # has to cover a whole multi-turn episode, not a single completion.
-    # 32 tasks x rollout.n=8 = 256 trajectories per step. verl requires
-    # train_batch_size * rollout.n to be divisible by n_gpus (256 % 8 = 0).
+    # 32 tasks x rollout.n=4 = 128 trajectories per step. verl requires
+    # train_batch_size * rollout.n to be divisible by n_gpus (128 % 8 = 0).
     train_batch_size: 32
     val_batch_size: 32
     # Only max_prompt_length is a real choice here: it is the padded width of
@@ -50,7 +50,7 @@ rllm:
     loss_agg_mode: seq-mean-token-sum
 
   rollout:
-    n: 8        # GRPO group size
+    n: 4        # GRPO group size
     n_val: 2
     train:
       temperature: 1.0
@@ -104,9 +104,8 @@ rllm:
   workflow:
     # One Docker sandbox per in-flight rollout, and -- since the agent makes one
     # LLM call at a time -- also the cap on concurrent requests to the 8 vLLM
-    # servers (8 -> 1 sequence per GPU). Keep equal to recipe.sandbox_concurrency.
-    # Host side: 8 x (4 CPU quota, 16 GB), plus as many prefetched sandboxes.
-    n_parallel_tasks: 8
+    # servers (48 -> 6 sequences per GPU). Keep equal to recipe.sandbox_concurrency.
+    n_parallel_tasks: 48
     retry_limit: 3
     raise_on_error: false
 
@@ -123,12 +122,12 @@ rllm:
     enabled: false   # explicitly not Harbor
 
   trainer:
-    project_name: qwen3_5-swe-grpo
-    experiment_name: qwen3_5_9b-openhands_sdk-swefeat-aws
+    project_name: <YOUR_PROJECT_NAME>
+    experiment_name: <YOUR_EXPERIMENT_NAME>
     logger: ['console', 'wandb']
     val_before_train: true
-    test_freq: 3
-    save_freq: 3
+    test_freq: 6 # adjust it according to your dataset
+    save_freq: 6 # adjust it according to your dataset
     total_epochs: 3
 
   episode_logging:
