@@ -21,6 +21,9 @@ AGENT_MOUNT_TARGET = "/opt/rllm/agent"
 
 _IMAGE_PREFIX = "rllm-agent"
 
+# Copied into the openhands-sdk build context (see _openhands_sdk_dockerfile).
+_STRIP_SCRIPT = Path(__file__).with_name("strip_py_sources.py")
+
 # Harnesses with a dedicated bake recipe + invocation PATH wiring.
 SUPPORTED_AGENT_IMAGE_HARNESSES = frozenset({"mini-swe-agent", "opencode", "claude-code", "openhands-sdk"})
 
@@ -43,10 +46,27 @@ def _mode_disabled(mode: str) -> bool:
     return mode.lower() in {"", "skip", "0", "false", "no", "off", "none"}
 
 
-def agent_image_tag(install_script: str) -> str:
-    """Content-addressed local tag for *install_script*."""
-    digest = hashlib.sha256(install_script.encode("utf-8")).hexdigest()[:12]
-    return f"{_IMAGE_PREFIX}-{digest}"
+def agent_image_tag(install_script: str, context_files: dict[str, str] | None = None) -> str:
+    """Content-addressed local tag for *install_script* and the build context.
+
+    The context (Dockerfile and the files it copies) is part of the digest so a
+    change to the bake recipe builds a new image instead of reusing a stale one.
+    """
+    h = hashlib.sha256(install_script.encode("utf-8"))
+    for name in sorted(context_files or {}):
+        h.update(b"\0" + name.encode("utf-8") + b"\0" + context_files[name].encode("utf-8"))
+    return f"{_IMAGE_PREFIX}-{h.hexdigest()[:12]}"
+
+
+def _build_context(install_script: str, harness_name: str) -> dict[str, str] | None:
+    """Files of the bake build context, Dockerfile included; ``None`` if no recipe."""
+    dockerfile_text = dockerfile_for_install(install_script, harness_name)
+    if dockerfile_text is None:
+        return None
+    files = {"Dockerfile": dockerfile_text}
+    if harness_name == "openhands-sdk":
+        files[_STRIP_SCRIPT.name] = _STRIP_SCRIPT.read_text(encoding="utf-8")
+    return files
 
 
 def _image_exists(tag: str) -> bool:
@@ -136,16 +156,24 @@ COPY --from=uvsrc /uv /usr/local/bin/uv
 # UV_PYTHON_INSTALL_DIR puts it there instead of under /root, which the task
 # container never sees.
 ENV UV_PYTHON_INSTALL_DIR={AGENT_MOUNT_TARGET}/python
-# --compile-bytecode: the mount is read-only at run time, so the .pyc files
-# have to exist by then or every task pays the compile cost again.
+COPY {_STRIP_SCRIPT.name} /tmp/{_STRIP_SCRIPT.name}
+# The mount is read-only at run time, so bytecode has to exist by then or every
+# task pays the compile cost again. strip_py_sources.py provides it: it swaps
+# each site-packages .py for a sourceless .pyc, so the agent cannot grep the
+# newer release of a task repo that the SDK depends on (fastmcp, starlette, ...).
+# The import probe runs from an empty cwd with -I, as the harness does.
 RUN mkdir -p {AGENT_MOUNT_TARGET} && \\
     uv python install {PYTHON_VERSION} && \\
     uv venv {AGENT_MOUNT_TARGET}/openhands-sdk-venv --python {PYTHON_VERSION} && \\
-    uv pip install --compile-bytecode \\
+    uv pip install \\
         --python {AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python \\
         openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION} && \\
-    {AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python \\
-        -c "import openhands.sdk; print(openhands.sdk.__version__)"
+    PY={AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python && \\
+    "$PY" /tmp/{_STRIP_SCRIPT.name} \\
+        "$("$PY" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')" && \\
+    rm /tmp/{_STRIP_SCRIPT.name} && \\
+    cd "$(mktemp -d)" && \\
+    "$PY" -I -c "import openhands.sdk, openhands.tools; print(openhands.sdk.__version__)"
 """
 
 
@@ -167,18 +195,19 @@ def build_agent_image(install_script: str, harness_name: str, *, force: bool = F
     if harness_name not in SUPPORTED_AGENT_IMAGE_HARNESSES:
         raise RuntimeError(f"No agent-image bake recipe for harness {harness_name!r}")
 
-    tag = agent_image_tag(install_script)
+    files = _build_context(install_script, harness_name)
+    if files is None:
+        raise RuntimeError(f"No agent-image bake recipe for harness {harness_name!r}")
+
+    tag = agent_image_tag(install_script, files)
     if not force and _image_exists(tag):
         logger.info("agent image %s already present — reusing", tag)
         return tag
 
-    dockerfile_text = dockerfile_for_install(install_script, harness_name)
-    if dockerfile_text is None:
-        raise RuntimeError(f"No agent-image bake recipe for harness {harness_name!r}")
-
     with tempfile.TemporaryDirectory(prefix="rllm-agent-image-") as tmp:
         context = Path(tmp)
-        (context / "Dockerfile").write_text(dockerfile_text, encoding="utf-8")
+        for name, text in files.items():
+            (context / name).write_text(text, encoding="utf-8")
         logger.info("Building agent image %s for harness %s ...", tag, harness_name)
         result = subprocess.run(
             ["docker", "build", "-t", tag, "--rm", "."],
