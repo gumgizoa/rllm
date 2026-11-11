@@ -10,16 +10,16 @@ How it is put together:
 2. `https://github.com/gumgizoa/rllm` (`main`) is cloned into **`/workspace/rllm`**.
 3. The dependencies are installed from that checkout into a uv venv at **`/opt/venv`**, the same
    way `recipe/grpo/qwen3_5/README.md` installs them: `uv pip install -e ".[verl,harbor]"`,
-   flash-linear-attention, the verl patches.
+   flash-linear-attention, the verl and harbor patches.
 4. Users **mount their own rllm checkout over `/workspace/rllm`**. rllm and rllm-model-gateway are
    installed editable at that path, so the mounted code is what runs, on the baked dependencies.
 
 ## Build
 
-The build context is `docker/` (the source comes from GitHub, not from the context):
+The build context is `recipe/docker/` (the source comes from GitHub, not from the context):
 
 ```bash
-docker build -t rllm:latest docker/
+docker build -t rllm:latest recipe/docker/
 ```
 
 | Build arg | Default | What it sets |
@@ -48,10 +48,11 @@ docker build -t rllm:latest docker/
 | --- | --- | --- |
 | Python venv | `/opt/venv` (first on `PATH`, `VIRTUAL_ENV` set) | torch 2.11.0 (cu130), vllm 0.22.1, verl 0.8.0, transformers 5.5.3, flash-attn 2.8.3, flash-linear-attention 0.5.2, litellm 1.83.0, harbor |
 | rLLM checkout | `/workspace/rllm` (with `.git`) | rllm and rllm-model-gateway installed editable. `/workspace/rllm/.venv` links to `/opt/venv` |
-| verl patches | applied in `/opt/venv` | `recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh` (verl PR #6660 backport) |
+| verl patch | applied in `/opt/venv` | `recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh` (`patches/verl-pr6660-qwen3_5-ulysses-sp.patch`, verl PR #6660 backport) |
+| harbor patch | applied in `/opt/venv` | `recipe/eval/scripts/apply_harbor_patches.sh` (`patches/harbor-0.3.0-openhands-sdk.patch`). Only `--agent harbor:openhands-sdk` (deprecated Harbor path) uses it |
 | Docker CLI, buildx, compose | `docker` | Talks to the **host** daemon through the mounted socket; no daemon in the image |
 | AWS CLI v2 | `aws` | No credentials baked in |
-| Smoke test | `rllm-smoke-test` | Packages, versions, verl patches, CLIs; with a GPU and the socket, also CUDA and the daemon |
+| Smoke test | `rllm-smoke-test` | Packages, versions, verl and harbor patches, CLIs; with a GPU and the socket, also CUDA and the daemon |
 
 The base image's own python and torch 2.12.1 stay in the image but are not used: vllm 0.22.1
 pins torch 2.11.0, so the venv has its own. `python` on `PATH` is `/opt/venv/bin/python`;
@@ -90,7 +91,7 @@ rllm-smoke-test          # your checkout, GPUs visible, docker daemon reachable
   without reinstalling.
 - If your checkout changes dependencies (`pyproject.toml`, `rllm-model-gateway/pyproject.toml`) or
   the verl patches, update the venv inside the container:
-  `uv pip install -e ".[verl,harbor]" && bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh`.
+  `uv pip install -e ".[verl,harbor]" && bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh && bash recipe/eval/scripts/apply_harbor_patches.sh`.
   That change lives in the container's writable layer; rebuild the image to keep it.
 - Your checkout hides the baked `.venv` link. `VIRTUAL_ENV` and `PATH` still point at `/opt/venv`,
   which is what `train_verl.sh` checks. If your checkout has its own `.venv`, it is ignored as long
@@ -103,7 +104,7 @@ With docker out of docker, `-v` source paths are resolved on the host.
 ## Training and evaluation
 
 Inside the container, follow the recipes as written; the environment steps they list (venv, extras,
-flash-linear-attention, verl patches) are already done:
+flash-linear-attention, verl and harbor patches) are already done:
 
 - Training: `recipe/grpo/qwen3_5/README.md` from step 2 (`.env`, datasets), then
   `bash recipe/grpo/qwen3_5/train_verl.sh`.

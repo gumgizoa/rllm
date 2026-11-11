@@ -3,11 +3,11 @@
 # rLLM image for both training (recipe/grpo/qwen3_5: verl + vLLM + FSDP2) and evaluation
 # (rllm eval, native harnesses in Docker sandboxes). The build context is this directory:
 #
-#   docker build -t rllm:latest docker/
+#   docker build -t rllm:latest recipe/docker/
 #
 # The repo is cloned from GitHub into /workspace/rllm and the dependencies are installed from it
 # into /opt/venv. Users mount their own checkout over /workspace/rllm; the editable install then
-# runs their code with the dependencies baked here. See docker/README.md.
+# runs their code with the dependencies baked here. See recipe/docker/README.md.
 
 # The same base the training and evaluation containers run on (recipe/eval/README.md 0.1), with
 # the same setup on top: a uv venv with its own torch. The image's system torch (2.12.1) is not
@@ -82,11 +82,14 @@ RUN git config --system --add safe.directory /workspace/rllm
 # editable at /workspace/rllm (the repo's [tool.uv] sources and overrides apply), flash-attn
 # compiled against the venv's torch ([tool.uv.extra-build-dependencies]). The uv cache mount keeps
 # the built flash-attn wheel, so a rebuild for a new commit does not compile it again.
+# Patches to installed packages: verl (recipe/grpo/qwen3_5/patches, PR #6660 backport) and
+# harbor (recipe/eval/patches, harbor:openhands-sdk install and reasoning replay).
 RUN --mount=type=cache,target=/root/.cache/uv \
     FLASH_ATTN_CUDA_ARCHS="${FLASH_ATTN_CUDA_ARCHS}" MAX_JOBS="${MAX_JOBS}" NVCC_THREADS=2 \
     uv pip install -e ".[$(echo ${RLLM_EXTRAS} | tr ' ' ',')]" \
     && uv pip install "flash-linear-attention==${FLA_VERSION}" \
     && bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh \
+    && bash recipe/eval/scripts/apply_harbor_patches.sh \
     && ln -sfn /opt/venv /workspace/rllm/.venv \
     && git -C /workspace/rllm log -1 --format='rllm %H %s' > /opt/rllm-build-commit.txt
 

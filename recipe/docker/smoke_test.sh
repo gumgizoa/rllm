@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check that an rLLM image (docker/Dockerfile) has what training and evaluation need.
+# Check that an rLLM image (recipe/docker/Dockerfile) has what training and evaluation need.
 #
 #   rllm-smoke-test            # inside a container started with --gpus all and the docker socket
 #   rllm-smoke-test --no-gpu   # at build time (no GPU, no docker socket)
@@ -46,13 +46,15 @@ if bad:
     sys.exit("version mismatch: " + ", ".join(bad))
 PY
 
-echo "== verl patches"
-check=$(bash recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh --check)
-echo "$check" | sed 's/^/  /'
-if echo "$check" | grep -q "NOT APPLIED"; then
-    echo "verl patch missing" >&2
-    exit 1
-fi
+echo "== patches"
+for script in recipe/grpo/qwen3_5/scripts/apply_verl_patches.sh recipe/eval/scripts/apply_harbor_patches.sh; do
+    check=$(bash "$script" --check)
+    echo "$check" | sed 's/^/  /'
+    if echo "$check" | grep -q "NOT APPLIED"; then
+        echo "patch missing ($script)" >&2
+        exit 1
+    fi
+done
 
 echo "== CLIs"
 rllm --help >/dev/null && echo "  rllm ok"
