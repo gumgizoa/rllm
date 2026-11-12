@@ -136,7 +136,7 @@ def _openhands_sdk_dockerfile() -> str:
     """Dockerfile that installs openhands-sdk under ``/opt/rllm/agent``."""
     # Imported here, not at module scope: the harness imports this module for
     # the mount target, so a top-level import would be circular.
-    from rllm.harnesses.openhands_sdk import PYTHON_VERSION, SDK_VERSION
+    from rllm.harnesses.openhands_sdk import DEPS_EXCLUDE_NEWER, PYTHON_VERSION, SDK_VERSION
 
     # bullseye (glibc 2.31) rather than ubuntu:22.04 (2.35): uv resolves wheels
     # for the glibc it builds on, and the SWE-bench Pro images run 2.31-2.36.
@@ -167,6 +167,7 @@ RUN mkdir -p {AGENT_MOUNT_TARGET} && \\
     uv venv {AGENT_MOUNT_TARGET}/openhands-sdk-venv --python {PYTHON_VERSION} && \\
     uv pip install \\
         --python {AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python \\
+        --exclude-newer {DEPS_EXCLUDE_NEWER} \\
         openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION} && \\
     PY={AGENT_MOUNT_TARGET}/openhands-sdk-venv/bin/python && \\
     "$PY" /tmp/{_STRIP_SCRIPT.name} \\
