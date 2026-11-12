@@ -32,4 +32,10 @@ recipe:
 
 rllm:
   trainer:
-    experiment_name: qwen3_5-9b-openhands-sdk-swegym293-think-nowf
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-nowf-topp1
+
+actor_rollout_ref:
+  rollout:
+    # Base is 0.50 (verl_trainer.yaml). FSDP params/optimizer are offloaded and
+    # free_cache_engine is on, so rollout and update_actor do not hold memory at once.
+    gpu_memory_utilization: 0.7
