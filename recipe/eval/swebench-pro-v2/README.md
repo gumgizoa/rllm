@@ -168,32 +168,6 @@ rllm eval swebenchpro_v2_full \
 - LLM 호출이 0번인 에피소드(`No traces found`)는 Errors가 아닌 0점으로 집계된다. 에피소드의 step 수가 0이면 인프라 실패로 보고 다시 돌린다.
 - 같은 태스크의 rollout 2개는 `<instance_id>:0`, `<instance_id>:1`로 구분된다.
 
-**참고 결과.**
-
-Qwen3.5-9B GRPO checkpoint(`recipe/grpo/qwen3_5`, `swe_mix_go_train` step 24, HF 변환본), 3.2 명령 그대로(`--attempts 2`, 동시 48), vLLM 0.22.1(data parallel 8, H200 8장, `--enable-prefix-caching`), openhands-sdk 1.42.1:
-
-| pass@1 | pass@2 | Errors | 소요 시간 |
-| --- | --- | --- | --- |
-| 56.3% (723 / 1284) | 68.7% (441 / 642) | 1 | 약 6시간 |
-
-| 저장소 | pass@1 |
-| --- | --- |
-| qutebrowser/qutebrowser | 93 / 146 (0.64) |
-| protonmail/webclients | 68 / 110 (0.62) |
-| internetarchive/openlibrary | 100 / 164 (0.61) |
-| ansible/ansible | 96 / 164 (0.59) |
-| flipt-io/flipt | 86 / 156 (0.55) |
-| NodeBB/NodeBB | 41 / 76 (0.54) |
-| navidrome/navidrome | 56 / 104 (0.54) |
-| future-architect/vuls | 60 / 116 (0.52) |
-| gravitational/teleport | 68 / 136 (0.50) |
-| element-hq/element-web | 52 / 104 (0.50) |
-| tutao/tutanota | 3 / 8 (0.38) |
-
-- 종료 사유: 정상 1256, prompt 길이 초과 14, step 상한(250) 9, verifier timeout 2, error 2, agent timeout 1.
-- Errors 1건은 `--hide-git-history`의 stand-in 저장소 확인 실패다(`stand-in repository in /app is not a single commit`, 출력 없음). 같은 task의 다른 rollout과, 같은 이미지에서 같은 명령을 다시 실행한 것은 정상이었다. 평가 초반 이미지 빌드가 몰린 시점의 일시 실패로 보고 해당 task만 다시 돌린다.
-- verifier timeout 2건은 reward 1.0으로 집계됐다. 두 task 모두 정답 patch의 verifier는 8초, 48초에 끝나므로 agent가 바꾼 코드가 테스트를 오래 끌게 한 경우다.
-- 같은 조건으로 측정한 base model 결과가 있어야 학습 효과를 비교할 수 있다. 이 결과에서 100개 subset만 떼면 pass@1 0.49, `swebenchpro_v2_strat50`만 떼면 0.51이다.
 
 ## Appendix. 자원과 시간
 
