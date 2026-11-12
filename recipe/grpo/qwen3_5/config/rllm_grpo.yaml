@@ -112,7 +112,7 @@ rllm:
     # LLM call at a time -- also the cap on concurrent requests to the 8 vLLM
     # servers (8 -> 1 sequence per GPU). Keep equal to recipe.sandbox_concurrency.
     # Host side: 8 x (4 CPU quota, 16 GB), plus as many prefetched sandboxes.
-    n_parallel_tasks: 8
+    n_parallel_tasks: 24
     retry_limit: 3
     raise_on_error: false
 
