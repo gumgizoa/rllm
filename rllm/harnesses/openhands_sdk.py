@@ -27,7 +27,7 @@ from rllm.env import env_str
 from rllm.harnesses.cli_harness import BaseCliHarness
 from rllm.sandbox.agent_image import agent_mount_target
 from rllm.sandbox.protocol import Sandbox
-from rllm.types import AgentConfig, Task
+from rllm.types import AgentConfig, Episode, Task, Trajectory
 
 # openhands-sdk and openhands-tools are released together and must match.
 # The agent-image bake recipe in :mod:`rllm.sandbox.agent_image` reads these
@@ -150,6 +150,12 @@ class OpenHandsSdkHarness(BaseCliHarness):
     # Off keeps the SDK's tool-call repairs; on reports wrong calls to the model
     # instead (openhands_sdk_runner.strict_tool_calls).
     strict_tool_calls: bool = False
+    # On ends the episode at the first tool call the SDK rejects (unknown tool,
+    # failed argument validation) instead of reporting it for a retry
+    # (openhands_sdk_runner.end_on_invalid_tool_call). Requires strict_tool_calls.
+    # Backstop for the gateway's tool_call_validation: drop.
+    end_on_invalid_tool_call: bool = False
+    invalid_tool_call_marker = "/tmp/openhands-sdk-invalid-tool-call.json"
 
     def configure(self, overrides: dict) -> dict:
         """Take ``max_iterations`` / ``include_default_tools`` / ``strict_tool_calls`` from ``--agent-kwargs``.
@@ -169,6 +175,10 @@ class OpenHandsSdkHarness(BaseCliHarness):
             self.include_default_tools = [t for t in re.split(r"[,;\s]+", tools) if t] if isinstance(tools, str) else [str(t) for t in tools]
         if "strict_tool_calls" in kwargs:
             self.strict_tool_calls = _flag(kwargs.pop("strict_tool_calls"), "strict_tool_calls")
+        if "end_on_invalid_tool_call" in kwargs:
+            self.end_on_invalid_tool_call = _flag(kwargs.pop("end_on_invalid_tool_call"), "end_on_invalid_tool_call")
+        if self.end_on_invalid_tool_call and not self.strict_tool_calls:
+            raise ValueError("--agent-kwargs end_on_invalid_tool_call requires strict_tool_calls: the SDK repairs most wrong calls before validating them")
         if kwargs:
             leftovers["agent_kwargs"] = kwargs
         return leftovers
@@ -271,5 +281,29 @@ class OpenHandsSdkHarness(BaseCliHarness):
             f'"$OH_PY" {_PY_FLAGS} {shlex.quote(_RUNNER_PATH)} '
             f"--instruction={shlex.quote(instruction)} "
             f"{'--strict-tool-calls ' if self.strict_tool_calls else ''}"
+            f"{'--end-on-invalid-tool-call ' if self.end_on_invalid_tool_call else ''}"
             f"2>&1 | tee {shlex.quote(self.stdout_log_path)}"
         )
+
+    def run(self, task: Task, config: AgentConfig, *, env: Sandbox) -> Episode | None:
+        """The CLI run, plus ``format/backstop`` when ``end_on_invalid_tool_call`` is on.
+
+        ``format/backstop`` is 1 when the runner ended the conversation at a
+        call the SDK rejected, i.e. one the gateway's validation let through.
+        """
+        episode = super().run(task, config, env=env)
+        if not self.end_on_invalid_tool_call:
+            return episode
+        fired = 0.0
+        try:
+            out = env.exec(f"cat {shlex.quote(self.invalid_tool_call_marker)} 2>/dev/null || true", timeout=60, user="root")
+            lines = [ln for ln in str(out or "").splitlines() if ln.strip()]
+            if lines:
+                fired = 1.0
+                logger.info("%s: runner ended the episode at an SDK-rejected tool call: %s", type(self).__name__, lines[0][:300])
+        except Exception as e:
+            logger.warning("%s: reading the invalid-tool-call marker failed: %s", type(self).__name__, e)
+        if episode is None:
+            episode = Episode(task=task.metadata, trajectories=[Trajectory(name=self.name, steps=[])])
+        episode.metrics["format/backstop"] = fired
+        return episode

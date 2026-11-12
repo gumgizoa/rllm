@@ -133,6 +133,71 @@ def strict_tool_calls(agent_module) -> None:
     agent_module.parse_tool_call_arguments = parse_tool_call_arguments
 
 
+# Written by end_on_invalid_tool_call, read back by the harness (OpenHandsSdkHarness.run).
+INVALID_TOOL_CALL_MARKER = "/tmp/openhands-sdk-invalid-tool-call.json"
+
+
+def end_on_invalid_tool_call(agent_module, marker_path: str = INVALID_TOOL_CALL_MARKER) -> None:
+    """End the conversation at the first tool call the SDK rejects.
+
+    Backstop for the gateway's ``tool_call_validation: drop``, which ends the
+    episode at a malformed call by handing the turn back as text. Anything the
+    gateway lets through but the SDK still rejects -- an unknown tool or a
+    failed argument validation (types, nested fields) -- lands in
+    ``Agent._emit_tool_error``, the only place the SDK reports those two (tool
+    *execution* errors take another path and are left alone). The wrapper keeps
+    the SDK's error event, marks the conversation FINISHED so the run loop stops
+    after this step, skips the turn's remaining actions, and appends a line to
+    ``marker_path`` so the harness can report the backstop firing.
+    Use together with :func:`strict_tool_calls`, or the SDK repairs most such
+    calls before they ever reach validation.
+    """
+    import json
+
+    agent_cls = getattr(agent_module, "Agent", None)
+    status_cls = getattr(agent_module, "ConversationExecutionStatus", None)
+    names = ("_emit_tool_error", "_execute_actions", "_aexecute_actions")
+    missing = [n for n in names if agent_cls is None or not hasattr(agent_cls, n)]
+    if agent_cls is None or status_cls is None or missing:
+        raise RuntimeError(f"openhands-sdk runner: end_on_invalid_tool_call cannot patch {missing or ['Agent/ConversationExecutionStatus']}; the SDK changed")
+    try:
+        os.remove(marker_path)
+    except FileNotFoundError:
+        pass
+
+    orig_emit = agent_cls._emit_tool_error
+    orig_exec = agent_cls._execute_actions
+    orig_aexec = agent_cls._aexecute_actions
+    # Conversations that hit an invalid call (by id: no attribute is set on the
+    # SDK's objects, whatever their model config allows).
+    ended: set[int] = set()
+
+    def _emit_tool_error(self, *args, **kwargs):
+        orig_emit(self, *args, **kwargs)
+        conversation = kwargs.get("conversation")
+        if conversation is not None:
+            conversation.state.execution_status = status_cls.FINISHED
+            ended.add(id(conversation))
+        record = {"tool_name": kwargs.get("tool_name"), "error": str(kwargs.get("error", ""))[:500]}
+        with open(marker_path, "a") as f:
+            f.write(json.dumps(record) + "\n")
+        print(f"openhands-sdk runner: invalid tool call, ending the episode: {record['error'][:200]}", flush=True)
+
+    def _execute_actions(self, conversation, *args, **kwargs):
+        if id(conversation) in ended:
+            return None
+        return orig_exec(self, conversation, *args, **kwargs)
+
+    async def _aexecute_actions(self, conversation, *args, **kwargs):
+        if id(conversation) in ended:
+            return None
+        return await orig_aexec(self, conversation, *args, **kwargs)
+
+    agent_cls._emit_tool_error = _emit_tool_error
+    agent_cls._execute_actions = _execute_actions
+    agent_cls._aexecute_actions = _aexecute_actions
+
+
 def agent_kwargs_from_env(environ) -> dict:
     """Extra ``Agent`` kwargs from the environment (``include_default_tools``)."""
     tools = environ.get("OPENHANDS_DEFAULT_TOOLS")
@@ -145,6 +210,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run an openhands-sdk agent on one task")
     parser.add_argument("--instruction", required=True, help="Task instruction")
     parser.add_argument("--strict-tool-calls", action="store_true", help="Do not repair tool calls; report wrong ones to the model (strict_tool_calls)")
+    parser.add_argument("--end-on-invalid-tool-call", action="store_true", help="End the conversation at the first tool call the SDK rejects (end_on_invalid_tool_call)")
     args = parser.parse_args()
 
     # The task's repo is the cwd: the harness cd's into ``[environment].workdir``
@@ -159,10 +225,13 @@ def main() -> int:
     from openhands.tools.task_tracker import TaskTrackerTool
     from openhands.tools.terminal import TerminalTool
 
-    if args.strict_tool_calls:
+    if args.strict_tool_calls or args.end_on_invalid_tool_call:
         import openhands.sdk.agent.agent as agent_module
 
-        strict_tool_calls(agent_module)
+        if args.strict_tool_calls:
+            strict_tool_calls(agent_module)
+        if args.end_on_invalid_tool_call:
+            end_on_invalid_tool_call(agent_module)
     os.chdir(workspace)
 
     model = os.environ.get("LLM_MODEL")
@@ -214,7 +283,8 @@ def main() -> int:
         f"system_prompt={system_prompt_path or 'sdk default'} "
         f"default_tools={extra.get('include_default_tools', 'sdk default')} "
         f"max_iterations={conversation_kwargs.get('max_iteration_per_run', 'sdk default')} "
-        f"strict_tool_calls={args.strict_tool_calls}",
+        f"strict_tool_calls={args.strict_tool_calls} "
+        f"end_on_invalid_tool_call={args.end_on_invalid_tool_call}",
         flush=True,
     )
     conversation.send_message(args.instruction)

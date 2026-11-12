@@ -1,0 +1,33 @@
+# @package _global_
+#
+# openhands_9b_speckit_openspec_agentos_swegym_reward_floor, with a malformed tool call
+# ending the episode:
+#
+#   * rllm.gateway.tool_call_validation=drop -- the gateway checks every turn's tool
+#     calls (name in the request's tools, one well-formed <function=...> block, required /
+#     declared / enum arguments) and hands a turn with any violation back as text, which
+#     openhands-sdk takes as the final answer: the verifier grades the repo as it stands.
+#   * recipe.openhands_end_on_invalid_tool_call=true -- the runner ends the conversation
+#     at any call the SDK still rejects (argument types, nested fields); its rate,
+#     batch/format/backstop, is what the gateway missed.
+#
+# Why: in the floor run (20261108_171417) calls with the parameter tag written as a
+# function tag (<function=terminal> then <function=command>) went from 0.1% to 64% of
+# calls by step 22. Each one only cost a retry, KL is 0, and the broken tokens stayed in
+# the cumulative context to be copied, so reward and solve rate collapsed at step 21.
+# Everything else is the floor variant unchanged.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward_floor
+
+recipe:
+  openhands_end_on_invalid_tool_call: true
+
+rllm:
+  gateway:
+    tool_call_validation: drop
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-speckit-openspec-agentos-floor07-fmtcut-topp1

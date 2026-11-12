@@ -100,6 +100,13 @@ recipe:
   # more; rllm/harnesses/tools/openhands_sdk_runner.py), so the policy is rewarded for
   # them: 24% of the file edits in the first 9B run were `str_replace` calls.
   openhands_strict_tool_calls: true
+  # openhands-sdk only, `--agent-kwargs` end_on_invalid_tool_call: the episode ends at the
+  # first tool call the SDK rejects instead of reporting it for a retry. Backstop for
+  # rllm.gateway.tool_call_validation=drop, which ends it at a malformed call earlier; this
+  # one catches whatever the gateway lets through (argument types, nested fields) and its
+  # rate is batch/format/backstop. A retry costs nothing, so without an end the format
+  # drifted with no KL to hold it (floor-0.7 run 20261108_171417).
+  openhands_end_on_invalid_tool_call: false
   agent_image: auto        # auto | skip | repo:tag  (RLLM_AGENT_IMAGE env var wins)
   # Keep each task workdir's .git out of the sandbox while the agent runs and
   # put it back for the verifier (rllm/sandbox/git_history.py). SWE task images

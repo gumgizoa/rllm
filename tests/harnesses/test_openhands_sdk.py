@@ -246,3 +246,110 @@ def test_strict_tool_calls_refuses_an_sdk_without_the_helpers():
 
     with pytest.raises(RuntimeError, match="the SDK changed"):
         runner.strict_tool_calls(types.SimpleNamespace(normalize_tool_call=None))
+
+
+# ---------------------------------------------------------------------------
+# end_on_invalid_tool_call: the runner backstop for gateway tool_call_validation
+# ---------------------------------------------------------------------------
+
+
+def _sdk_agent_with_error_paths():
+    """Stand-in for ``openhands.sdk.agent.agent`` with Agent's error/execute methods."""
+    import enum
+    import types
+
+    class Status(enum.Enum):
+        RUNNING = "running"
+        FINISHED = "finished"
+
+    calls = []
+
+    class Agent:
+        def _emit_tool_error(self, *, error, tool_name, span_name, conversation, tool_call, llm_response_id, on_event, **_):
+            calls.append(("error", tool_name))
+
+        def _execute_actions(self, conversation, action_events, on_event):
+            calls.append(("execute", len(action_events)))
+
+        async def _aexecute_actions(self, conversation, action_events, on_event):
+            calls.append(("aexecute", len(action_events)))
+
+    return types.SimpleNamespace(Agent=Agent, ConversationExecutionStatus=Status), calls
+
+
+def _conversation(status):
+    import types
+
+    return types.SimpleNamespace(state=types.SimpleNamespace(execution_status=status.RUNNING))
+
+
+def test_end_on_invalid_tool_call_finishes_and_skips_the_turn(tmp_path):
+    import asyncio
+    import json
+
+    mod, calls = _sdk_agent_with_error_paths()
+    marker = tmp_path / "marker.json"
+    marker.write_text("stale\n")
+    runner.end_on_invalid_tool_call(mod, marker_path=str(marker))
+    assert not marker.exists()  # a stale marker from a reused sandbox is cleared
+
+    agent = mod.Agent()
+    clean = _conversation(mod.ConversationExecutionStatus)
+    agent._execute_actions(clean, [1, 2], None)
+    assert calls == [("execute", 2)]
+    assert clean.state.execution_status is mod.ConversationExecutionStatus.RUNNING
+
+    conv = _conversation(mod.ConversationExecutionStatus)
+    kw = dict(span_name="X", tool_call=None, llm_response_id="r", on_event=None)
+    agent._emit_tool_error(error="Error validating tool 'terminal': command Field required", tool_name="terminal", conversation=conv, **kw)
+    assert conv.state.execution_status is mod.ConversationExecutionStatus.FINISHED
+    agent._execute_actions(conv, [1], None)
+    asyncio.run(agent._aexecute_actions(conv, [1], None))
+    assert calls == [("execute", 2), ("error", "terminal")]  # the turn's other actions did not run
+    (line,) = marker.read_text().splitlines()
+    assert json.loads(line)["tool_name"] == "terminal"
+
+
+def test_end_on_invalid_tool_call_refuses_an_sdk_without_the_methods():
+    import types
+
+    with pytest.raises(RuntimeError, match="the SDK changed"):
+        runner.end_on_invalid_tool_call(types.SimpleNamespace(Agent=object, ConversationExecutionStatus=object))
+
+
+def test_end_on_invalid_tool_call_patches_the_real_sdk_names():
+    """The names patched exist in the pinned SDK (skipped where it is not installed)."""
+    agent_mod = pytest.importorskip("openhands.sdk.agent.agent")
+    for name in ("_emit_tool_error", "_execute_actions", "_aexecute_actions"):
+        assert hasattr(agent_mod.Agent, name)
+    assert hasattr(agent_mod, "ConversationExecutionStatus")
+
+
+def test_end_on_invalid_tool_call_kwarg_requires_strict():
+    h = OpenHandsSdkHarness()
+    with pytest.raises(ValueError, match="requires strict_tool_calls"):
+        h.configure({"agent_kwargs": {"end_on_invalid_tool_call": True}})
+    h = OpenHandsSdkHarness()
+    assert h.configure({"agent_kwargs": {"strict_tool_calls": True, "end_on_invalid_tool_call": "on"}}) == {}
+    cmd = h.build_invocation("fix", _task(), _config())
+    assert "--strict-tool-calls" in cmd and "--end-on-invalid-tool-call" in cmd
+    assert "--end-on-invalid-tool-call" not in OpenHandsSdkHarness().build_invocation("fix", _task(), _config())
+
+
+@pytest.mark.parametrize(("marker", "fired"), [("", 0.0), ('{"tool_name": "terminal", "error": "x"}\n', 1.0)])
+def test_run_reports_the_backstop(monkeypatch, marker, fired):
+    from rllm.harnesses.cli_harness import BaseCliHarness
+
+    monkeypatch.setattr(BaseCliHarness, "run", lambda self, task, config, *, env: None)
+    h = OpenHandsSdkHarness(strict_tool_calls=True, end_on_invalid_tool_call=True)
+    episode = h.run(_task(), _config(), env=FakeSandbox(stdout=marker))
+    assert episode.metrics["format/backstop"] == fired
+
+
+def test_run_without_backstop_is_unchanged(monkeypatch):
+    from rllm.harnesses.cli_harness import BaseCliHarness
+
+    monkeypatch.setattr(BaseCliHarness, "run", lambda self, task, config, *, env: None)
+    sandbox = FakeSandbox()
+    assert OpenHandsSdkHarness().run(_task(), _config(), env=sandbox) is None
+    assert sandbox.calls == []

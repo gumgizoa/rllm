@@ -342,6 +342,7 @@ def make_agent_flow(recipe: DictConfig, config: DictConfig | None = None):
             # main이 추가한 SDK 옵션 (config.yaml openhands_default_tools / openhands_strict_tool_calls)
             include_default_tools=[str(t) for t in recipe.openhands_default_tools],
             strict_tool_calls=bool(recipe.openhands_strict_tool_calls),
+            end_on_invalid_tool_call=bool(recipe.get("openhands_end_on_invalid_tool_call", False)),
         )
 
     raise SystemExit(f"recipe.harness must be 'mini-swe-agent' or 'openhands-sdk', got {harness!r}")
