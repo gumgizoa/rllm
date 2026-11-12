@@ -20,6 +20,7 @@ import base64
 import importlib
 import inspect
 import logging
+import os
 import re
 import uuid
 from collections.abc import Callable
@@ -388,6 +389,11 @@ def _build_docker_image(context_dir: Path, task_id: str) -> str:
     import subprocess
 
     tag = "rllm-task-" + re.sub(r"[^a-zA-Z0-9_.-]", "-", task_id).lower()
+    # Opt-in: reuse a prebuilt image with this tag instead of rebuilding (e.g. when the
+    # Dockerfile's network steps are flaky and the images were prebuilt out of band).
+    if os.environ.get("RLLM_REUSE_TASK_IMAGES") == "1":
+        if subprocess.run(["docker", "image", "inspect", tag], capture_output=True).returncode == 0:
+            return tag
     logger.info("Building Docker image '%s' from %s", tag, context_dir)
     result = subprocess.run(
         ["docker", "build", "-t", tag, "--rm", "."],
