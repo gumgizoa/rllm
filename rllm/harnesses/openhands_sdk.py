@@ -35,6 +35,13 @@ from rllm.types import AgentConfig, Task
 SDK_VERSION = env_str("RLLM_OPENHANDS_SDK_VERSION", "1.42.1")
 # Interpreter uv fetches for the SDK venv, independent of the task's python.
 PYTHON_VERSION = env_str("RLLM_OPENHANDS_PYTHON_VERSION", "3.12")
+# Upload-date cutoff for resolving the SDK's dependency tree (uv --exclude-newer).
+# The SDK only sets lower bounds on its ~180 dependencies, so without a cutoff
+# every bake resolves whatever was released since: agent-client-protocol 1.0.0
+# dropped ``acp.helpers``, which openhands-sdk 1.42.1 imports at startup. The
+# cutoff freezes the tree the 1.42.1 runs were measured with; move it together
+# with SDK_VERSION.
+DEPS_EXCLUDE_NEWER = env_str("RLLM_OPENHANDS_DEPS_EXCLUDE_NEWER", "2026-10-27T06:00:00Z")
 
 _VENV = "/opt/openhands-sdk-venv"
 _UV_DIR = "/opt/openhands-sdk-uv"
@@ -112,6 +119,7 @@ uv venv {shlex.quote(_VENV)} --python {PYTHON_VERSION}
 # newest release with a usable wheel; on current images that is the same version.
 retry uv pip install --python {shlex.quote(_VENV)}/bin/python \
     {" ".join("--only-binary " + p for p in _WHEEL_ONLY)} \
+    --exclude-newer {shlex.quote(DEPS_EXCLUDE_NEWER)} \
     openhands-sdk=={SDK_VERSION} openhands-tools=={SDK_VERSION}
 {shlex.quote(_VENV)}/bin/python {_PY_FLAGS} -c {shlex.quote(_IMPORT_PROBE + "; print(openhands.sdk.__version__)")}
 """
