@@ -75,6 +75,12 @@ rllm:
     # O(T^2), prefix-extension chain broken into one batch row per turn).
     renderer_kwargs:
       preserve_thinking: true
+    # off | log | drop (rllm_model_gateway/tool_call_validation.py). drop: a turn
+    # with any malformed tool call (undeclared/spliced name, broken XML block,
+    # missing required / undeclared / out-of-enum argument) goes back as a text
+    # reply, which ends the openhands-sdk episode, so the format pays for itself.
+    # Rates: batch/format/{cut,flagged,code/*}.
+    tool_call_validation: "off"
 
   # Despite the `mask_*` names these DROP the episode (transform.py:120 does a
   # `continue`), before TrajectoryGroups are built -- so a filtered rollout also

@@ -16,6 +16,7 @@ import httpx
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
+from rllm_model_gateway import tool_call_validation as tcv
 from rllm_model_gateway.data_process import (
     build_trace_record,
     build_trace_record_from_chunks,
@@ -149,6 +150,9 @@ def _forwardable(tc: Any) -> bool:
     reports the error and the model can correct itself. Calls whose whole
     argument body failed to parse (``arguments`` is a raw string or missing)
     are still dropped, as vLLM drops them too.
+
+    This is the ``tool_call_validation: off`` rule. ``drop`` validates names,
+    block structure and arguments as well (``tool_call_validation``).
     """
     from renderers.base import ToolCallParseStatus
 
@@ -157,6 +161,24 @@ def _forwardable(tc: Any) -> bool:
     if tc.status == ToolCallParseStatus.OK:
         return True
     return tc.status == ToolCallParseStatus.INVALID_JSON and isinstance(tc.arguments, dict)
+
+
+def _merge_metadata(*parts: dict | None) -> dict | None:
+    merged: dict[str, Any] = {}
+    for part in parts:
+        if part:
+            merged.update(part)
+    return merged or None
+
+
+def _dedupe(violations: list[tcv.Violation]) -> list[tcv.Violation]:
+    seen: set[tuple[str, str | None]] = set()
+    out = []
+    for v in violations:
+        if (v.code, v.tool) not in seen:
+            seen.add((v.code, v.tool))
+            out.append(v)
+    return out
 
 
 def _upstream_error_metadata(status_code: int, response_body: dict | None) -> dict | None:
@@ -193,7 +215,10 @@ class ReverseProxy:
         local_handler: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         cumulative_token_mode: bool = False,
         renderer: Any = None,
+        tool_call_validation: str = "off",
     ) -> None:
+        if tool_call_validation not in tcv.MODES:
+            raise ValueError(f"tool_call_validation must be one of {tcv.MODES}, got {tool_call_validation!r}")
         self.router = router
         self.store = store
         self.strip_vllm = strip_vllm
@@ -202,6 +227,11 @@ class ReverseProxy:
         self.local_handler = local_handler
         self.cumulative_token_mode = cumulative_token_mode
         self.renderer = renderer
+        # off: legacy forwarding (_forwardable). log: same forwarding, violations
+        # recorded on the trace. drop: a turn with any invalid call goes back as
+        # a plain text reply, which ends an openhands-sdk episode.
+        self.tool_call_validation = tool_call_validation
+        self._warned_stream_validation = False
         self.weight_version: int | None = None
         self._http: httpx.AsyncClient | None = None
         self._pending_traces: set[asyncio.Task[None]] = set()
@@ -311,6 +341,66 @@ class ReverseProxy:
         return await self._handle_non_streaming(request, body, request_body, session_id, originally_requested_logprobs)
 
     # ------------------------------------------------------------------
+    # Tool-call validation (tool_call_validation: log / drop)
+    # ------------------------------------------------------------------
+
+    def _validation_marker(self) -> dict | None:
+        """``tool_call_validation: <mode>`` on every validated trace, so the engine
+        can tell "validated, no violation" from "not validated"."""
+        return {"tool_call_validation": self.tool_call_validation} if self.tool_call_validation != "off" else None
+
+    def _validate_chat_response(self, request_body: dict[str, Any], response_body: dict[str, Any]) -> dict | None:
+        """Check the tool calls of a ``/v1/chat/completions`` reply (vLLM parsed them).
+
+        Runs on every chat-path turn: the first one, and any later turn the
+        accumulator fell back to the chat path for. vLLM's parsed ``tool_calls``
+        get the name and argument checks; when the completion's token ids and a
+        renderer are available, the raw blocks are re-parsed so the structure
+        checks run too, exactly as on cumulative turns. In ``drop`` mode a turn
+        with any violation loses all its tool calls and becomes a text reply.
+        Returns the ``tool_call_violation`` trace metadata, or None.
+        """
+        choices = response_body.get("choices") or []
+        if not choices or not isinstance(choices[0], dict):
+            return None
+        message = choices[0].get("message")
+        if not isinstance(message, dict):
+            return None
+        tools = request_body.get("tools")
+        index = tcv.tool_index(tools)
+        chat_calls = message.get("tool_calls") or []
+        violations: list[tcv.Violation] = []
+        for call in chat_calls:
+            violations += tcv.check_chat_tool_call(call, index)
+        raw_blocks: list[str] = []
+        n_parsed = 0
+        completion_ids = extract_completion_token_ids(response_body)
+        if self.renderer is not None and completion_ids:
+            try:
+                parsed = self.renderer.parse_response(list(completion_ids), tools=_tool_specs(tools))
+            except Exception:
+                logger.warning("tool_call_validation: renderer could not re-parse a chat-path completion", exc_info=True)
+                parsed = None
+            if parsed is not None:
+                n_parsed = len(parsed.tool_calls)
+                for tc in parsed.tool_calls:
+                    violations += tcv.check_parsed_call(tc, index)
+                    raw_blocks.append(f"<tool_call>{tc.raw}</tool_call>")
+        if not violations:
+            return None
+        violations = _dedupe(violations)
+        action = "logged"
+        if self.tool_call_validation == "drop" and chat_calls:
+            action = "dropped"
+            message.pop("tool_calls", None)
+            content = message.get("content")
+            if not (isinstance(content, str) and content.strip()):
+                message["content"] = "\n".join(raw_blocks) or json.dumps(chat_calls, ensure_ascii=False)
+            choices[0]["finish_reason"] = "stop"
+        logger.info("tool_call_validation (%s, chat path): %s", action, [(v.code, v.tool) for v in violations])
+        return {"tool_call_violation": tcv.summarize(violations, turn="chat", action=action, n_calls=max(len(chat_calls), n_parsed))}
+
+    # ------------------------------------------------------------------
     # Non-streaming
     # ------------------------------------------------------------------
 
@@ -353,6 +443,10 @@ class ReverseProxy:
 
         latency_ms = (time.perf_counter() - t0) * 1000
 
+        violation_meta = None
+        if self.tool_call_validation != "off" and status_code == 200 and isinstance(response_body, dict) and request.url.path.endswith("/chat/completions"):
+            violation_meta = self._validate_chat_response(request_body, response_body)
+
         # Persist trace
         if session_id and response_body:
             trace = build_trace_record(
@@ -360,7 +454,7 @@ class ReverseProxy:
                 request_body,
                 response_body,
                 latency_ms,
-                metadata=_upstream_error_metadata(status_code, response_body),
+                metadata=_merge_metadata(_upstream_error_metadata(status_code, response_body), self._validation_marker(), violation_meta),
                 weight_version=request.state.weight_version,
             )
             await self._persist(trace)
@@ -440,6 +534,7 @@ class ReverseProxy:
         text: str,
         completion_token_ids: list[int] | None,
         tools: list[dict[str, Any]] | None,
+        meta_out: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Structure a ``/v1/completions`` result as an OpenAI chat message.
 
@@ -450,6 +545,11 @@ class ReverseProxy:
         turn past the first and stalls. The renderer that builds the cumulative
         prompt also knows how to parse that model family's completion, so use
         it here to recover ``content`` / ``reasoning_content`` / ``tool_calls``.
+
+        With ``tool_call_validation`` on, every parsed call is checked
+        (``tool_call_validation`` module) and the result lands in ``meta_out``
+        as ``tool_call_violation``. ``drop`` forwards a turn's calls only when
+        all of them pass; otherwise none, and the turn is a text reply.
         """
         fallback = {"role": "assistant", "content": text}
         if self.renderer is None or not completion_token_ids:
@@ -459,8 +559,25 @@ class ReverseProxy:
             parsed = self.renderer.parse_response(list(completion_token_ids), tools=_tool_specs(tools))
         except Exception:
             logger.warning("Renderer could not parse a cumulative-turn completion; forwarding raw text", exc_info=True)
+            if self.tool_call_validation != "off" and meta_out is not None and "<tool_call>" in text:
+                meta_out["tool_call_violation"] = tcv.summarize(
+                    [tcv.Violation("S1", None, "renderer could not parse the completion")],
+                    turn="cumulative",
+                    action="dropped" if self.tool_call_validation == "drop" else "logged",
+                    n_calls=text.count("<tool_call>"),
+                )
             return fallback
 
+        violations: list[tcv.Violation] = []
+        if self.tool_call_validation != "off":
+            index = tcv.tool_index(tools)
+            for tc in parsed.tool_calls:
+                violations += tcv.check_parsed_call(tc, index)
+            violations = _dedupe(violations)
+        if self.tool_call_validation == "drop":
+            forward = [] if violations else list(parsed.tool_calls)
+        else:
+            forward = [tc for tc in parsed.tool_calls if _forwardable(tc)]
         tool_calls = [
             {
                 "id": tc.id or f"call_{uuid.uuid4().hex[:16]}",
@@ -470,18 +587,23 @@ class ReverseProxy:
                     "arguments": tc.arguments if isinstance(tc.arguments, str) else json.dumps(tc.arguments or {}, ensure_ascii=False),
                 },
             }
-            for tc in parsed.tool_calls
-            if _forwardable(tc)
+            for tc in forward
         ]
+        if violations:
+            action = "dropped" if self.tool_call_validation == "drop" else "logged"
+            logger.info("tool_call_validation (%s, cumulative turn): %s", action, [(v.code, v.tool) for v in violations])
+            if meta_out is not None:
+                meta_out["tool_call_violation"] = tcv.summarize(violations, turn="cumulative", action=action, n_calls=len(parsed.tool_calls))
 
         message: dict[str, Any] = {"role": "assistant", "content": parsed.content or None}
         if parsed.reasoning_content:
             message["reasoning_content"] = parsed.reasoning_content
         if tool_calls:
             message["tool_calls"] = tool_calls
-        elif message["content"] is None:
+        elif not (message["content"] or "").strip():
             # Nothing recovered at all — better to hand back the raw text than
-            # an empty message the agent cannot act on.
+            # an empty message the agent cannot act on (openhands-sdk retries a
+            # blank reply instead of ending, which a dropped turn must not do).
             message["content"] = text
         return message
 
@@ -538,15 +660,19 @@ class ReverseProxy:
 
         # Translate to chat format
         choices = response_body.get("choices") or []
+        violation_meta: dict[str, Any] = {}
         if choices:
             first_choice = choices[0]
             first_choice["message"] = self._completion_to_chat_message(
                 first_choice.pop("text", ""),
                 completion_token_ids,
                 request_body.get("tools"),
+                meta_out=violation_meta,
             )
             if first_choice["message"].get("tool_calls") and first_choice.get("finish_reason") in (None, "stop"):
                 first_choice["finish_reason"] = "tool_calls"
+            elif violation_meta.get("tool_call_violation", {}).get("action") == "dropped":
+                first_choice["finish_reason"] = "stop"
         response_body["object"] = "chat.completion"
 
         if session_id and response_body:
@@ -555,7 +681,7 @@ class ReverseProxy:
                 request_body,
                 response_body,
                 latency_ms,
-                metadata=_upstream_error_metadata(status_code, response_body),
+                metadata=_merge_metadata(_upstream_error_metadata(status_code, response_body), self._validation_marker(), violation_meta),
                 weight_version=request.state.weight_version,
             )
             await self._persist(trace)
@@ -826,6 +952,12 @@ class ReverseProxy:
         session_id: str | None,
         originally_requested_logprobs: bool = False,
     ) -> StreamingResponse:
+        if self.tool_call_validation != "off" and request_body.get("tools") and not self._warned_stream_validation:
+            # Chunks are relayed as they arrive, so a turn cannot be rewritten
+            # here. openhands-sdk does not stream (LLM.stream=False); its runner's
+            # end_on_invalid_tool_call backstop covers this path if one does.
+            self._warned_stream_validation = True
+            logger.warning("tool_call_validation=%s does not apply to streamed chat-path turns", self.tool_call_validation)
         if self.local_handler is not None:
             return await self._handle_streaming_local(request_body, session_id, originally_requested_logprobs, request.state.weight_version)
 

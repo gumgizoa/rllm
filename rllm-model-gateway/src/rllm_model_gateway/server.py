@@ -222,6 +222,7 @@ def create_app(
         local_handler=local_handler,
         cumulative_token_mode=config.cumulative_token_mode,
         renderer=renderer,
+        tool_call_validation=config.tool_call_validation,
     )
     sessions = SessionManager(store)
 
@@ -525,6 +526,8 @@ def _load_config(args: argparse.Namespace) -> GatewayConfig:
         data["renderer_family"] = args.renderer_family
     if getattr(args, "renderer_kwargs", None):
         data["renderer_kwargs"] = json.loads(args.renderer_kwargs)
+    if getattr(args, "tool_call_validation", None) is not None:
+        data["tool_call_validation"] = args.tool_call_validation
 
     # Workers from CLI --worker flags (WorkerConfig validator auto-splits URLs)
     worker_urls = getattr(args, "worker", None) or []
@@ -568,6 +571,15 @@ def main() -> None:
             'config, e.g. \'{"preserve_thinking": true}\' for qwen3.6. Requires an explicit '
             "--renderer-family."
         ),
+    )
+    parser.add_argument(
+        "--tool-call-validation",
+        type=str,
+        choices=["off", "log", "drop"],
+        default=None,
+        help="Validate tool calls (name, block structure, required/declared/enum arguments). "
+        "'log' records violations on the trace; 'drop' also turns a turn with any invalid call "
+        "into a text reply (ends an openhands-sdk episode). Default 'off'.",
     )
     parser.add_argument(
         "--cumulative-token-mode",

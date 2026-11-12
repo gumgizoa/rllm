@@ -1,6 +1,6 @@
 """Pydantic data models for the rllm-model-gateway."""
 
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, model_validator
@@ -130,3 +130,7 @@ class GatewayConfig(BaseModel):
     # {"preserve_thinking": true} for qwen3.6. Keys must be fields of that
     # family's config class; unknown keys are rejected at startup.
     renderer_kwargs: dict[str, Any] = Field(default_factory=dict)
+    # Tool-call validation (tool_call_validation.py): "off" keeps the legacy
+    # forwarding, "log" records violations on the trace, "drop" also turns a
+    # turn with any invalid call into a text reply.
+    tool_call_validation: Literal["off", "log", "drop"] = "off"

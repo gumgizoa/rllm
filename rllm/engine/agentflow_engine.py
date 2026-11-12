@@ -126,6 +126,33 @@ def _upstream_termination_reason(traces: list[TraceRecord]) -> TerminationReason
     return None
 
 
+# Codes of rllm_model_gateway.tool_call_validation; one 0/1 metric each.
+_TOOL_CALL_VIOLATION_CODES = ("N1", "N2", "S1", "S2", "S3", "S4", "A1", "A2", "A3")
+
+
+def _tool_call_violation_metrics(traces: list[TraceRecord]) -> dict[str, float]:
+    """``format/*`` episode metrics from the gateway's tool-call validation markers.
+
+    Empty unless the gateway validated these traces (``tool_call_validation``
+    log/drop stamps every trace it checks), so runs without validation carry no
+    ``format/*`` keys. ``format/cut`` is 1 when a turn was dropped, i.e. the
+    episode ended at an invalid call; ``format/flagged`` also counts ``log`` mode.
+    """
+    metas = [getattr(t, "metadata", None) or {} for t in traces]
+    if not any("tool_call_validation" in m for m in metas):
+        return {}
+    found = [m["tool_call_violation"] for m in metas if isinstance(m.get("tool_call_violation"), dict)]
+    codes = {c for v in found for c in v.get("codes", ())}
+    out = {
+        "format/flagged": float(bool(found)),
+        "format/cut": float(any(v.get("action") == "dropped" for v in found)),
+        "format/flagged_turns": float(len(found)),
+    }
+    for code in _TOOL_CALL_VIOLATION_CODES:
+        out[f"format/code/{code}"] = float(code in codes)
+    return out
+
+
 def _count_turns(traces: list[TraceRecord]) -> int:
     """Calls the agent got an answer to. A failed call is not a turn: litellm
     and the SDKs resend a rejected request, and each resend leaves a trace."""
@@ -826,6 +853,7 @@ class AgentFlowEngine:
         enriched.metrics.update(eval_output.metadata)
         for signal in eval_output.signals:
             enriched.metrics[signal.name] = signal.value
+        enriched.metrics.update(_tool_call_violation_metrics(traces))
 
         # Order matters, and it is "infrastructure beats budget beats default".
         # The evaluator's own failures (verifier timeout, no reward file) win

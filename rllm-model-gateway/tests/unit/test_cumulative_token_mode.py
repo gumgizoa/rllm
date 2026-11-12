@@ -472,7 +472,7 @@ class TestCumulativeToolCallForwarding:
     ]
 
     @staticmethod
-    def _message(parsed_tool_calls):
+    def _message(parsed_tool_calls, tools=None):
         base = pytest.importorskip("renderers.base")
 
         class _ParsingRenderer:
@@ -482,7 +482,9 @@ class TestCumulativeToolCallForwarding:
         app = create_app(GatewayConfig(store_worker="memory", health_check_interval=999))
         proxy = app.state.proxy
         proxy.renderer = _ParsingRenderer()
-        return proxy._completion_to_chat_message("RAW", [1, 2, 3], TestCumulativeToolCallForwarding.TOOLS)
+        if tools is None:
+            tools = TestCumulativeToolCallForwarding.TOOLS
+        return proxy._completion_to_chat_message("RAW", [1, 2, 3], tools)
 
     def test_ok_call_is_forwarded(self):
         base = pytest.importorskip("renderers.base")
@@ -525,3 +527,12 @@ class TestCumulativeToolCallForwarding:
         message = self._message([tc])
         assert "tool_calls" not in message
         assert message["content"] == "RAW"
+
+    def test_off_mode_keeps_legacy_forwarding(self):
+        """``tool_call_validation: off`` (the default) forwards by parse status
+        only, as before: names and arguments are the agent's business."""
+        base = pytest.importorskip("renderers.base")
+        spliced = base.ParsedToolCall(raw="", name="terminal=command", arguments={})
+        good = base.ParsedToolCall(raw="", name="terminal", arguments={"command": "ls"})
+        message = self._message([spliced, good])
+        assert [tc["function"]["name"] for tc in message["tool_calls"]] == ["terminal=command", "terminal"]
