@@ -17,6 +17,7 @@
 | B5 | 사용자 스토리 | spec.md의 User Stories 절 | 기능 기획용 칸 |
 | B6 | `implementation/` 폴더 | shape-spec PHASE 1 Step 3 (verifications/ 폴더만 만듦) | 아무도 쓰지 않는 폴더 |
 | B7 | 웹앱 tasks 예시 | create-tasks의 DB·API·UI group 예시 → 같은 뼈대의 group 1개 + 테스트 검토 group | 예시의 내용이 웹앱 전용. 뼈대(테스트 2–8개 작성 → 변경 → 그 테스트만 실행)는 유지 |
+| B8 | 후속 질문 | shape-spec PHASE 2의 후속 질문 Step, requirements.md의 Follow-up Questions 절, "후속 질문은 1–3개" 제약 | 답할 사람이 없어 되물을 일이 없음. 실제로 후속 질문을 쓴 런은 평가 4–7%, 학습 5–8% (`tasks/2026-11-13-agentos-v2-resolve-review/analysis/q2_q4_q5.csv`) |
 
 ## 문구 일반화 (G)
 

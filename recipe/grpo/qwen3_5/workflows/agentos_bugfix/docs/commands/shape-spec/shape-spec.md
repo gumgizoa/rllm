@@ -76,8 +76,7 @@ Follow these instructions for researching this spec's requirements:
 1. **Read Initial Idea**: Load the raw idea from initialization.md
 2. **Ask Clarifying Questions**: Generate targeted questions WITH a reusability check, and answer them yourself
 3. **Process Answers**: Analyze responses
-4. **Ask Follow-ups**: Based on answers if needed
-5. **Save Requirements**: Document the requirements you've gathered to a single file named: `[spec-path]/planning/requirements.md`
+4. **Save Requirements**: Document the requirements you've gathered to a single file named: `[spec-path]/planning/requirements.md`
 
 ## Workflow
 
@@ -130,28 +129,7 @@ After answering the questions yourself:
    - Make note of these paths/names for the write-spec stage to reference
    - Record each as `(assumed) <path> — <basis>`; if you find none, record "No similar existing features identified for reference."
 
-### Step 4: Generate Follow-up Questions (if needed)
-
-Determine if follow-up questions are needed based on:
-
-**User's Answers-triggered follow-ups:**
-- Vague requirements need clarification
-- Missing technical details
-- Unclear scope boundaries
-
-**If follow-ups needed, write them down in this format:**
-```
-Based on your answers, I have a few follow-up questions:
-
-1. [Specific follow-up question]
-2. [Another follow-up if needed]
-
-Please provide these additional details.
-```
-
-**Then answer them yourself the same way, without sending them as a message.**
-
-### Step 5: Save Complete Requirements
+### Step 4: Save Complete Requirements
 
 After all questions are answered, record ALL gathered information to ONE FILE at this location with this name: `[spec-path]/planning/requirements.md`
 
@@ -186,12 +164,6 @@ Use the following structure and do not deviate from this structure when writing 
 [If your search found no similar features]
 No similar existing features identified for reference.
 
-### Follow-up Questions
-[If any were asked]
-
-**Follow-up 1:** [Question]
-**Answer:** (assumed) [your answer] — [its basis]
-
 ## Requirements Summary
 
 ### Functional Requirements
@@ -223,7 +195,6 @@ No similar existing features identified for reference.
 
 - DO NOT write technical specifications for development. Just record your findings from information gathering to this single file: `[spec-path]/planning/requirements.md`.
 - Ask about existing similar features to promote code reuse
-- Keep follow-ups minimal (1-3 questions max)
 - Record each assumed answer and its basis
 - Document paths to similar features for the write-spec stage to reference
 

@@ -4,11 +4,11 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c"
  },
- "rubric_sha256": "d9436ed4b860f149de15b4d6a5caac373ceea7c3c3da9b7bb9978bb96b1c6656",
+ "rubric_sha256": "a8f10292662766a41f69a72ffbae720ba23cb334c25b5f5df139ef724d8953eb",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "a9c757b184384f24722e7e5e4dcdde23908133588ff8e4f891ed89f31bfb8696",
   "docs/commands/implement-tasks/implement-tasks.md": "229b2ce99b74f7545fc50be4163be2495cc05ffc13d0ca53c0d9a2c71d510969",
-  "docs/commands/shape-spec/shape-spec.md": "3c4338cd01e1e9080ec5d81cfddcabad3470df6802df848d5ba87c6a447ea84a",
+  "docs/commands/shape-spec/shape-spec.md": "86caaff63502da11d36d75b8dc18b85a17d178aa38a0be53819066c3374cd219",
   "docs/commands/write-spec/write-spec.md": "8fa273693196296f598f6be595269a456cbdecbc567ea9f30926b2e2200c7dad",
   "docs/core-workflow.md": "71d9bf8d19fa227b30f671f9a865a78fbd150f4bb2dd2c0a8d266489460e639d",
   "instruction.md": "76787ecfcadab74198d959a430485f8588a18c460bdaf0cb4f659c0f5678a4e4",
@@ -20,6 +20,7 @@
    "agentos_bugfix.shape_spec.implementation_dir.artifact_exists",
    "agentos_bugfix.shape_spec.requirements.section_present.visual_assets",
    "agentos_bugfix.shape_spec.requirements.item_format.no_visuals",
+   "agentos_bugfix.shape_spec.requirements.item_format.followups",
    "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.readme",
    "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.docs_index",
    "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.packaging",
@@ -53,6 +54,21 @@
    "agentos_bugfix.global.run.agentos_bugfix_paths_written.no_roadmap"
   ],
   "dropped_sources": [
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "[If any were asked]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "**Follow-up 1:** [Question]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "**Answer:** (assumed) [your answer] — [its basis]"
+   },
    {
     "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
     "doc": "SS",
@@ -246,6 +262,6 @@
   ],
   "items_without_source": [],
   "reworded_quotes": 35,
-  "residue_patterns_dropped": 37
+  "residue_patterns_dropped": 40
  }
 }

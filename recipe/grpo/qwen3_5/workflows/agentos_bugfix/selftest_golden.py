@@ -23,7 +23,7 @@ TODAY = "2026-10-16"
 NAME = "slugify-edge-hyphens"
 S = f"{SPECS}/{TODAY}-{NAME}"
 CHECKS = f"{S}/checks"
-VARIANTS = ("review_group", "followups", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task")
+VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task")  # no follow-up questions in this workflow
 
 ISSUE = """slugify() leaves hyphens at the edges: slugify("Hello, World!") returns "hello-world-" and
 slugify("  --Draft-- ") returns "-draft-". A slug should never start or end with a hyphen.

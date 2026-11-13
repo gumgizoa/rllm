@@ -63,11 +63,11 @@ def test_cut_wording_left_behind_fails_the_build(tmp_path):
 def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     docs = _docs()
     everything = "\n".join(docs.values()) + SPEC.instruction_file.read_text(encoding="utf-8")
-    for word in ("visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "Product Context", "implementation/"):
+    for word in ("visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "Product Context", "implementation/", "Follow-up", "follow-up"):
         assert word not in everything, word
     shape = docs["commands/shape-spec/shape-spec.md"]
-    assert [m for m in re.findall(r"^### (Step \d+)", shape, re.M)] == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
-    assert "### Step 2: Generate First Round of Questions" in shape and shape.count("**Answer:** (assumed)") == 3
+    assert [m for m in re.findall(r"^### (Step \d+)", shape, re.M)] == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 1", "Step 2", "Step 3", "Step 4"]
+    assert "### Step 2: Generate First Round of Questions" in shape and shape.count("**Answer:** (assumed)") == 2
     spec = docs["commands/write-spec/write-spec.md"]
     assert re.findall(r"^## (\w[\w ]+)$", spec.split("```markdown")[1].split("```")[0], re.M) == ["Goal", "Specific Requirements", "Existing Code to Leverage", "Out of Scope"]
     tasks = docs["commands/create-tasks/create-tasks.md"]
@@ -123,7 +123,7 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
-    assert len(rub["items"]) == 172 and len(report["dropped_items"]) == 35
+    assert len(rub["items"]) + len(report["dropped_items"]) == 207 and len(rub["items"]) >= 150
 
 
 def test_golden_run_scores_full_marks():

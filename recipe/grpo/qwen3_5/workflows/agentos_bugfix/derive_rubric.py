@@ -55,6 +55,8 @@ DROP = {
     "write_spec.spec.field_filled.user_stories",
     "write_spec.spec.item_format.user_stories",
     "write_spec.spec.item_format.user_stories_max",
+    # B8 follow-up questions
+    "shape_spec.requirements.item_format.followups",
     # B6 implementation/ folder (and B2: the two folders that had to stay empty)
     "shape_spec.implementation_dir.artifact_exists",
     "global.run.agentos_bugfix_paths_written.empty_folders",

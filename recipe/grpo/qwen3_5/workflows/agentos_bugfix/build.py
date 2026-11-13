@@ -19,7 +19,9 @@ What is cut (user decisions 2026-11-13, ``CHANGES.md``):
 * B5 user stories: the spec.md section;
 * B6 the empty ``implementation/`` folder;
 * B7 the web-application tasks example (database / API / UI groups) -> one group in the same shape plus the
-  test-review group.
+  test-review group;
+* B8 follow-up questions: shape-spec's follow-up step and the Follow-up Questions section of requirements.md
+  (4-7% of runs wrote one; nobody answers, so there is nothing to follow up on).
 
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
 issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
@@ -120,7 +122,7 @@ Recommended implementation sequence:
 
 # source key -> cuts applied after agentos_v2's edits, in order. ("sub", old, new, note): ``old`` occurs exactly
 # once ("all": every occurrence). ("span", start, end, new, note): the text from ``start`` up to (not including)
-# ``end`` -> ``new``.
+# ``end`` (``"$"``: the end of the source) -> ``new``.
 CUTS: dict[str, tuple[tuple, ...]] = {
     "wf/initialize-spec": (
         ("sub", "Take it from the issue in `<issue_description>`", "Take it from the task description in the task message", "G: dataset-neutral input"),
@@ -156,6 +158,12 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "- Visual check is based on actual file(s) found via bash, NOT user statements\n", "", "B2"),
         ("sub", "- Check filenames for low-fidelity indicators and clarify design intent if found\n", "", "B2"),
         ("sub", "- Document all visual findings including fidelity level\n", "", "B2"),
+        ("sub", "4. **Ask Follow-ups**: Based on answers if needed\n", "", "B8: responsibility line"),
+        ("sub", "5. **Save Requirements**", "4. **Save Requirements**", "B8: renumbered"),
+        ("span", "### Step 4: Generate Follow-up Questions (if needed)", "### Step 5: Save Complete Requirements", "", "B8: the follow-up step"),
+        ("sub", "### Step 5: Save Complete Requirements", "### Step 4: Save Complete Requirements", "B8: renumbered"),
+        ("span", "### Follow-up Questions", "## Requirements Summary", "", "B8: the Follow-up Questions section of requirements.md"),
+        ("sub", "- Keep follow-ups minimal (1-3 questions max)\n", "", "B8"),
     ),
     "wf/write-spec": (
         ("sub", "Load and analyze requirements and visual assets thoroughly", "Load and analyze requirements thoroughly", "B2"),
@@ -209,7 +217,7 @@ def convert(key: str, upstream: str) -> str:
         else:
             _, start, end, new, _note = cut
             a = _once(key, text, start)
-            b = text.index(end, a + len(start))
+            b = len(text) if end == "$" else text.index(end, a + len(start))
             text = text[:a] + new + text[b:]
     return text
 

@@ -61,10 +61,6 @@ generated:
       kind: honest
       status: ok
       compliance: 0.9913
-    - mutation: variant:followups
-      kind: honest
-      status: ok
-      compliance: 1.0
     - mutation: variant:suite_failures
       kind: honest
       status: ok
@@ -88,7 +84,7 @@ generated:
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
-      compliance: 0.0491
+      compliance: 0.0469
     - mutation: x_fill
       kind: exploit
       status: ok
@@ -100,11 +96,11 @@ generated:
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9062
+      compliance: 0.9042
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9062
+      compliance: 0.9042
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -144,11 +140,11 @@ generated:
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.709
+      compliance: 0.708
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6833
+      compliance: 0.6819
     - mutation: no_artifacts
       kind: exploit
       status: ok
@@ -176,7 +172,7 @@ generated:
     - mutation: early_edit
       kind: exploit
       status: ok
-      compliance: 0.7631
+      compliance: 0.7626
     - mutation: repro_left_in_repo
       kind: exploit
       status: n/a
@@ -212,19 +208,19 @@ generated:
     - mutation: honest_reformat
       kind: honest
       status: fail
-      compliance: 0.9799
+      compliance: 0.9789
     - mutation: honest_view
       kind: honest
       status: ok
       compliance: 1.0
     failures:
-    - 'honest_reformat: honest run penalised: compliance 0.9799 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
+    - 'honest_reformat: honest run penalised: compliance 0.9789 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
       1.00->0.00 (In Scope: placeholder '''')'
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
-    dropped_items: 35
-    kept_items: 172
+    dropped_items: 36
+    kept_items: 171
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -239,7 +235,7 @@ sources:
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
   role: command
-  sha256: 3c4338cd01e1e9080ec5d81cfddcabad3470df6802df848d5ba87c6a447ea84a
+  sha256: 86caaff63502da11d36d75b8dc18b85a17d178aa38a0be53819066c3374cd219
   container_path: /agent-os/commands/shape-spec/shape-spec.md
 - id: WS
   path: docs/commands/write-spec/write-spec.md
@@ -631,8 +627,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 156
-    - 156
+    - 134
+    - 134
     quote: 'After all questions are answered, record ALL gathered information to ONE FILE at this location with this name:
       `[spec-path]/planning/requirements.md`'
   impl_refs: []
@@ -665,13 +661,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 197
-    - 197
+    - 169
+    - 169
     quote: '### Functional Requirements'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -703,13 +699,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 163
-    - 163
+    - 141
+    - 141
     quote: '## Initial Description'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -741,13 +737,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 166
-    - 166
+    - 144
+    - 144
     quote: '## Requirements Discussion'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -779,13 +775,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 195
-    - 195
+    - 167
+    - 167
     quote: '## Requirements Summary'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -817,13 +813,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 202
-    - 202
+    - 174
+    - 174
     quote: '### Reusability Opportunities'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -855,13 +851,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 207
-    - 207
+    - 179
+    - 179
     quote: '### Scope Boundaries'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -893,13 +889,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 215
-    - 215
+    - 187
+    - 187
     quote: '### Technical Considerations'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -930,13 +926,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 178
-    - 178
+    - 156
+    - 156
     quote: '### Existing Code to Reference'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: manual
@@ -968,13 +964,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 208
-    - 208
+    - 180
+    - 180
     quote: '**In Scope:**'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1006,13 +1002,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 211
-    - 211
+    - 183
+    - 183
     quote: '**Out of Scope:**'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1043,23 +1039,23 @@ items:
   sources:
   - doc: SS
     lines:
-    - 198
-    - 198
+    - 170
+    - 170
     quote: '- [Core functionality based on answers]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   - doc: SS
     lines:
-    - 199
-    - 199
+    - 171
+    - 171
     quote: '- [User actions enabled]'
   - doc: SS
     lines:
-    - 200
-    - 200
+    - 172
+    - 172
     quote: '- [Data to be managed]'
   impl_refs: []
   derived_by: template_compiler
@@ -1090,13 +1086,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 164
-    - 164
+    - 142
+    - 142
     quote: '[User''s original spec description from initialization.md]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1127,18 +1123,18 @@ items:
   sources:
   - doc: SS
     lines:
-    - 204
-    - 204
+    - 176
+    - 176
     quote: '- [Backend patterns to investigate]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   - doc: SS
     lines:
-    - 205
-    - 205
+    - 177
+    - 177
     quote: '- [Similar features to model after]'
   impl_refs: []
   derived_by: template_compiler
@@ -1169,23 +1165,23 @@ items:
   sources:
   - doc: SS
     lines:
-    - 209
-    - 209
+    - 181
+    - 181
     quote: '- [What will be built]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   - doc: SS
     lines:
-    - 212
-    - 212
+    - 184
+    - 184
     quote: '- [What won''t be built]'
   - doc: SS
     lines:
-    - 213
-    - 213
+    - 185
+    - 185
     quote: '- [Future enhancements mentioned]'
   impl_refs: []
   derived_by: template_compiler
@@ -1217,13 +1213,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 208
-    - 208
+    - 180
+    - 180
     quote: '**In Scope:**'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1255,13 +1251,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 211
-    - 211
+    - 183
+    - 183
     quote: '**Out of Scope:**'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1292,28 +1288,28 @@ items:
   sources:
   - doc: SS
     lines:
-    - 216
-    - 216
+    - 188
+    - 188
     quote: '- [Integration points mentioned]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   - doc: SS
     lines:
-    - 217
-    - 217
+    - 189
+    - 189
     quote: '- [Existing system constraints]'
   - doc: SS
     lines:
-    - 218
-    - 218
+    - 190
+    - 190
     quote: '- [Technology preferences stated]'
   - doc: SS
     lines:
-    - 219
-    - 219
+    - 191
+    - 191
     quote: '- [Similar code patterns to follow]'
   impl_refs: []
   derived_by: template_compiler
@@ -1350,19 +1346,19 @@ items:
   sources:
   - doc: SS
     lines:
-    - 90
-    - 90
+    - 89
+    - 89
     quote: Based on the initial idea, generate 4-8 targeted, NUMBERED questions that explore requirements while suggesting
       reasonable defaults.
   - doc: SS
     lines:
-    - 92
-    - 92
+    - 91
+    - 91
     quote: '**CRITICAL: Always include the reusability question at the END of your questions.**'
   - doc: SS
     lines:
-    - 170
-    - 176
+    - 148
+    - 154
     quote: '**Q1:** [First question asked] **Answer:** (assumed) [your answer] — [its basis in the task description or the
       repository] **Q2:** [Second question asked] **Answer:** (assumed) [your answer] — [its basis in the task description
       or the repository] [Continue for all questions]'
@@ -1397,14 +1393,14 @@ items:
   sources:
   - doc: SS
     lines:
-    - 131
-    - 131
+    - 130
+    - 130
     quote: '- Record each as `(assumed) <path> — <basis>`; if you find none, record "No similar existing features identified
       for reference."'
   - doc: SS
     lines:
-    - 182
-    - 182
+    - 160
+    - 160
     quote: '- Feature: [Name] - Path: (assumed) `[path]` — [basis]'
   impl_refs: []
   derived_by: manual
@@ -1436,13 +1432,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 161
-    - 161
+    - 139
+    - 139
     quote: '# Spec Requirements: [Spec Name]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1475,51 +1471,19 @@ items:
   sources:
   - doc: SS
     lines:
-    - 203
-    - 203
+    - 175
+    - 175
     quote: '- (assumed) `[path]` — [Components that might exist already, based on your repository search]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
   template: C-F10
   log_only: false
   note: template requirements
-- id: agentos_bugfix.shape_spec.requirements.item_format.followups
-  scope: common
-  class: content
-  stage: shape_spec
-  target:
-    type: artifact
-    ref: requirements
-    state: final
-  check:
-    kind: item_format
-    params:
-      pattern: ^\s*(?:[-*+]\s+)?\*\*Follow-?up\s+\d+:?\*\*
-      max: 3
-  requirement: must
-  modality_evidence: imperative (SS:297 'Keep follow-ups minimal (1-3 questions max)')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - sandbox_file
-  sources:
-  - doc: SS
-    lines:
-    - 226
-    - 226
-    quote: '- Keep follow-ups minimal (1-3 questions max)'
-  impl_refs: []
-  derived_by: manual
-  template: C-F10
-  log_only: false
-  note: at most three follow-up questions
 - id: agentos_bugfix.shape_spec.requirements.no_template_residue.fill_marks
   scope: common
   class: content
@@ -1547,8 +1511,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: manual
@@ -1579,9 +1543,6 @@ items:
       - \[basis\]
       - \[what\ you\ found\]
       - \[If\ your\ search\ found\ no\ similar\ features\]
-      - \[If\ any\ were\ asked\]
-      - \[Question\]
-      - \[its\ basis\]
       - \[Core\ functionality\ based\ on\ answers\]
       - \[User\ actions\ enabled\]
       - \[Data\ to\ be\ managed\]
@@ -1608,148 +1569,133 @@ items:
   sources:
   - doc: SS
     lines:
-    - 161
-    - 161
+    - 139
+    - 139
     quote: '# Spec Requirements: [Spec Name]'
   - doc: SS
     lines:
-    - 164
-    - 164
+    - 142
+    - 142
     quote: '[User''s original spec description from initialization.md]'
   - doc: SS
     lines:
-    - 170
-    - 170
+    - 148
+    - 148
     quote: '**Q1:** [First question asked]'
   - doc: SS
     lines:
-    - 171
-    - 171
+    - 149
+    - 149
     quote: '**Answer:** (assumed) [your answer] — [its basis in the task description or the repository]'
   - doc: SS
     lines:
-    - 173
-    - 173
+    - 151
+    - 151
     quote: '**Q2:** [Second question asked]'
   - doc: SS
     lines:
-    - 171
-    - 171
+    - 149
+    - 149
     quote: '**Answer:** (assumed) [your answer] — [its basis in the task description or the repository]'
   - doc: SS
     lines:
-    - 176
-    - 176
+    - 154
+    - 154
     quote: '[Continue for all questions]'
   - doc: SS
     lines:
-    - 179
-    - 179
+    - 157
+    - 157
     quote: '[Based on your search of the repository for similar features]'
   - doc: SS
     lines:
-    - 182
-    - 182
+    - 160
+    - 160
     quote: '- Feature: [Name] - Path: (assumed) `[path]` — [basis]'
   - doc: SS
     lines:
-    - 183
-    - 183
+    - 161
+    - 161
     quote: '- Components to potentially reuse: [what you found]'
   - doc: SS
     lines:
-    - 184
-    - 184
+    - 162
+    - 162
     quote: '- Backend logic to reference: [what you found]'
   - doc: SS
     lines:
-    - 186
-    - 186
+    - 164
+    - 164
     quote: '[If your search found no similar features]'
   - doc: SS
     lines:
-    - 190
-    - 190
-    quote: '[If any were asked]'
-  - doc: SS
-    lines:
-    - 192
-    - 192
-    quote: '**Follow-up 1:** [Question]'
-  - doc: SS
-    lines:
-    - 193
-    - 193
-    quote: '**Answer:** (assumed) [your answer] — [its basis]'
-  - doc: SS
-    lines:
-    - 198
-    - 198
+    - 170
+    - 170
     quote: '- [Core functionality based on answers]'
   - doc: SS
     lines:
-    - 199
-    - 199
+    - 171
+    - 171
     quote: '- [User actions enabled]'
   - doc: SS
     lines:
-    - 200
-    - 200
+    - 172
+    - 172
     quote: '- [Data to be managed]'
   - doc: SS
     lines:
-    - 203
-    - 203
+    - 175
+    - 175
     quote: '- (assumed) `[path]` — [Components that might exist already, based on your repository search]'
   - doc: SS
     lines:
-    - 204
-    - 204
+    - 176
+    - 176
     quote: '- [Backend patterns to investigate]'
   - doc: SS
     lines:
-    - 205
-    - 205
+    - 177
+    - 177
     quote: '- [Similar features to model after]'
   - doc: SS
     lines:
-    - 209
-    - 209
+    - 181
+    - 181
     quote: '- [What will be built]'
   - doc: SS
     lines:
-    - 212
-    - 212
+    - 184
+    - 184
     quote: '- [What won''t be built]'
   - doc: SS
     lines:
-    - 213
-    - 213
+    - 185
+    - 185
     quote: '- [Future enhancements mentioned]'
   - doc: SS
     lines:
-    - 216
-    - 216
+    - 188
+    - 188
     quote: '- [Integration points mentioned]'
   - doc: SS
     lines:
-    - 217
-    - 217
+    - 189
+    - 189
     quote: '- [Existing system constraints]'
   - doc: SS
     lines:
-    - 218
-    - 218
+    - 190
+    - 190
     quote: '- [Technology preferences stated]'
   - doc: SS
     lines:
-    - 219
-    - 219
+    - 191
+    - 191
     quote: '- [Similar code patterns to follow]'
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
   impl_refs: []
   derived_by: template_compiler
@@ -1790,8 +1736,8 @@ items:
   sources:
   - doc: SS
     lines:
+    - 128
     - 129
-    - 130
     quote: '2. Answer the reusability question by looking in the repository for similar features, components and backend logic:
       - Make note of these paths/names for the write-spec stage to reference'
   impl_refs: []
@@ -1832,8 +1778,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 129
-    - 131
+    - 128
+    - 130
     quote: 'Answer the reusability question by looking in the repository for similar features, components and backend logic:
       - Make note of these paths/names for the write-spec stage to reference - Record each as `(assumed) <path> — <basis>`'
   impl_refs: []
@@ -1877,8 +1823,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: 'Include ONLY the items specified in the following structure:'
   impl_refs: []
   derived_by: llm_extract
@@ -1916,13 +1862,13 @@ items:
       <answer> — <basis>` in `requirements.md`).
   - doc: SS
     lines:
-    - 171
-    - 171
+    - 149
+    - 149
     quote: '**Answer:** (assumed) [your answer] — [its basis in the task description or the repository]'
   - doc: SS
     lines:
-    - 227
-    - 227
+    - 198
+    - 198
     quote: '- Record each assumed answer and its basis'
   impl_refs: []
   derived_by: manual
@@ -1953,8 +1899,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 163
-    - 164
+    - 141
+    - 142
     quote: '## Initial Description [User''s original spec description from initialization.md]'
   impl_refs: []
   derived_by: manual
@@ -1988,8 +1934,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 224
-    - 224
+    - 196
+    - 196
     quote: DO NOT write technical specifications for development.
   impl_refs: []
   derived_by: llm_extract
@@ -2091,8 +2037,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 86
-    - 86
+    - 85
+    - 85
     quote: Read the raw idea from `[spec-path]/planning/initialization.md` to understand what the user wants to build.
   - doc: SS
     lines:
@@ -2164,13 +2110,13 @@ items:
   sources:
   - doc: SS
     lines:
-    - 121
-    - 121
+    - 120
+    - 120
     quote: Answer the reusability question by looking in the repository yourself (Step 3).
   - doc: SS
     lines:
-    - 129
-    - 129
+    - 128
+    - 128
     quote: '2. Answer the reusability question by looking in the repository for similar features, components and backend logic:'
   impl_refs: []
   derived_by: manual
@@ -2837,8 +2783,8 @@ items:
     quote: '2. **write-spec**: `/agent-os/commands/write-spec/write-spec.md`'
   - doc: SS
     lines:
-    - 232
-    - 232
+    - 203
+    - 203
     quote: Once you've completed your research and documented it in `planning/requirements.md`, open `/agent-os/commands/write-spec/write-spec.md`
       and continue with that command.
   impl_refs: []
@@ -6867,8 +6813,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 243
-    - 243
+    - 214
+    - 214
     quote: Maintain consistent code style (indenting, line breaks, etc.)
   impl_refs: []
   derived_by: llm_extract
@@ -6897,8 +6843,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 244
-    - 244
+    - 215
+    - 215
     quote: avoid abbreviations and single-letter variables except in narrow contexts
   impl_refs: []
   derived_by: llm_extract
@@ -6927,8 +6873,8 @@ items:
   sources:
   - doc: SS
     lines:
-    - 261
-    - 261
+    - 232
+    - 232
     quote: never commit secrets or API keys to version control
   impl_refs: []
   derived_by: llm_extract
@@ -7105,24 +7051,17 @@ appendix:
   may_items:
   - doc: SS
     lines:
-    - 168
-    - 168
+    - 146
+    - 146
     quote: '### First Round Questions'
     reason: section 'First Round Questions' skipped by config
     template: requirements
   - doc: SS
     lines:
-    - 178
-    - 178
+    - 156
+    - 156
     quote: '### Existing Code to Reference'
     reason: section 'Existing Code to Reference' skipped by config
-    template: requirements
-  - doc: SS
-    lines:
-    - 189
-    - 189
-    quote: '### Follow-up Questions'
-    reason: section 'Follow-up Questions' skipped by config
     template: requirements
   - doc: WS
     lines:
@@ -8353,120 +8292,72 @@ appendix:
   - statement: ss-035
     doc: SS
     lines:
-    - 96
-    - 96
+    - 95
+    - 95
     quote: Propose sensible assumptions based on best practices
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-037
     doc: SS
     lines:
-    - 98
-    - 98
+    - 97
+    - 97
     quote: Make it easy for users to confirm or provide alternatives
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: ss-038
     doc: SS
     lines:
-    - 99
-    - 99
+    - 98
+    - 98
     quote: Include specific suggestions they can say yes/no to
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-042
     doc: SS
     lines:
-    - 121
-    - 121
+    - 120
+    - 120
     quote: Answer each one yourself with the most plausible reading of the task description and the repository
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-044
     doc: SS
     lines:
-    - 121
-    - 121
+    - 120
+    - 120
     quote: Answer the reusability question by looking in the repository yourself (Step 3).
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-051
     doc: SS
     lines:
-    - 129
-    - 129
+    - 128
+    - 128
     quote: Answer the reusability question by looking in the repository for similar features, components and backend logic
     modality: must
     reason: 'G4: not checkable by rule ()'
-  - statement: ss-055
-    doc: SS
-    lines:
-    - 135
-    - 135
-    quote: 'Determine if follow-up questions are needed based on:'
-    modality: must
-    reason: 'G4: not checkable by rule (Follow-ups are conditional (Step 5 ''if needed'').)'
-  - statement: ss-060
-    doc: SS
-    lines:
-    - 138
-    - 138
-    quote: Vague requirements need clarification
-    modality: implicit
-    reason: 'G4: not checkable by rule (Trigger for a follow-up based on the user''s answers.)'
-  - statement: ss-061
-    doc: SS
-    lines:
-    - 139
-    - 139
-    quote: Missing technical details
-    modality: implicit
-    reason: 'G4: not checkable by rule (Trigger for a follow-up based on the user''s answers.)'
-  - statement: ss-062
-    doc: SS
-    lines:
-    - 140
-    - 140
-    quote: Unclear scope boundaries
-    modality: implicit
-    reason: 'G4: not checkable by rule (Trigger for a follow-up based on the user''s answers.)'
-  - statement: ss-064
-    doc: SS
-    lines:
-    - 152
-    - 152
-    quote: '**Then answer them yourself the same way...'
-    modality: must
-    reason: 'G4: not checkable by rule (The agent answers its own follow-ups as assumptions.)'
-  - statement: ss-065
-    doc: SS
-    lines:
-    - 152
-    - 152
-    quote: '...without sending them as a message.**'
-    modality: prohibition
-    reason: 'G4: not checkable by rule (Follow-ups are not sent to the user.)'
   - statement: ss-066
     doc: SS
     lines:
-    - 156
-    - 156
+    - 134
+    - 134
     quote: After all questions are answered, record ALL gathered information
     modality: must
     reason: 'G4: not checkable by rule (Step 6 comes after Step 5.)'
   - statement: ss-077
     doc: SS
     lines:
-    - 225
-    - 225
+    - 197
+    - 197
     quote: Ask about existing similar features to promote code reuse
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-083
     doc: SS
     lines:
-    - 236
-    - 236
+    - 207
+    - 207
     quote: Ensure that your research questions and insights are ALIGNED and DOES NOT CONFLICT with the user's preferences
       and standards
     modality: must
@@ -8474,160 +8365,160 @@ appendix:
   - statement: ss-084
     doc: SS
     lines:
-    - 242
-    - 242
+    - 213
+    - 213
     quote: Establish and follow naming conventions for variables, functions, classes, and files across the codebase
     modality: must
     reason: 'G4: not checkable by rule (Coding standard)'
   - statement: ss-086
     doc: SS
     lines:
-    - 244
-    - 244
+    - 215
+    - 215
     quote: Choose descriptive names that reveal intent
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-088
     doc: SS
     lines:
-    - 245
-    - 245
+    - 216
+    - 216
     quote: Keep functions small and focused on a single task
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-091
     doc: SS
     lines:
-    - 252
-    - 252
+    - 223
+    - 223
     quote: Write code that explains itself through clear structure and naming
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-092
     doc: SS
     lines:
-    - 253
-    - 253
+    - 224
+    - 224
     quote: Add concise, minimal comments to explain large sections of code logic.
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-094
     doc: SS
     lines:
-    - 254
-    - 254
+    - 225
+    - 225
     quote: Comments should be evergreen informational texts that are relevant far into the future.
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: ss-095
     doc: SS
     lines:
-    - 260
-    - 260
+    - 231
+    - 231
     quote: Organize files and directories in a predictable, logical structure
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-098
     doc: SS
     lines:
-    - 267
-    - 267
+    - 238
+    - 238
     quote: Provide clear, actionable error messages to users without exposing technical details or security information
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-099
     doc: SS
     lines:
-    - 268
-    - 268
+    - 239
+    - 239
     quote: Validate input and check preconditions early; fail with clear error messages rather than allowing invalid state
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-101
     doc: SS
     lines:
-    - 270
-    - 270
+    - 241
+    - 241
     quote: Handle errors at appropriate boundaries (controllers, API layers) rather than scattering try-catch blocks everywhere
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-102
     doc: SS
     lines:
-    - 271
-    - 271
+    - 242
+    - 242
     quote: Design systems to degrade gracefully when non-critical services fail
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-105
     doc: SS
     lines:
-    - 279
-    - 279
+    - 250
+    - 250
     quote: Always validate on the server
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-106
     doc: SS
     lines:
-    - 279
-    - 279
+    - 250
+    - 250
     quote: never trust client-side validation alone for security or data integrity
     modality: prohibition
     reason: 'G4: not checkable by rule ()'
   - statement: ss-107
     doc: SS
     lines:
-    - 280
-    - 280
+    - 251
+    - 251
     quote: Use client-side validation to provide immediate user feedback, but duplicate checks server-side
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-108
     doc: SS
     lines:
-    - 281
-    - 281
+    - 252
+    - 252
     quote: Validate input as early as possible and reject invalid data before processing
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-109
     doc: SS
     lines:
-    - 282
-    - 282
+    - 253
+    - 253
     quote: Provide clear, field-specific error messages that help users correct their input
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-110
     doc: SS
     lines:
-    - 283
-    - 283
+    - 254
+    - 254
     quote: When possible, define what is allowed rather than trying to block everything that's not
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: ss-111
     doc: SS
     lines:
-    - 284
-    - 284
+    - 255
+    - 255
     quote: Check data types, formats, ranges, and required fields systematically
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-113
     doc: SS
     lines:
-    - 286
-    - 286
+    - 257
+    - 257
     quote: Validate business rules (e.g., sufficient balance, valid dates) at the appropriate application layer
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: ss-114
     doc: SS
     lines:
-    - 287
-    - 287
+    - 258
+    - 258
     quote: Apply validation consistently across all entry points (web forms, API endpoints, background jobs)
     modality: must
     reason: 'G4: not checkable by rule ()'
@@ -9138,8 +9029,8 @@ appendix:
   - statement: ss-033
     doc: SS
     lines:
-    - 92
-    - 92
+    - 91
+    - 91
     quote: '**CRITICAL: Always include the reusability question at the END of your questions.**'
     modality: must
     reason: The question list is answered internally and not saved in a template section, so where the reusability question
@@ -9147,8 +9038,8 @@ appendix:
   - statement: ss-034
     doc: SS
     lines:
-    - 95
-    - 95
+    - 94
+    - 94
     quote: Start each question with a number
     modality: must
     reason: Question numbering is part of the internal question list, which isn't saved in a fixed artifact section. It is
@@ -9156,8 +9047,8 @@ appendix:
   - statement: ss-036
     doc: SS
     lines:
-    - 97
-    - 97
+    - 96
+    - 96
     quote: Frame questions as "I'm assuming X, is that correct?"
     modality: must
     reason: How each question is worded ("I'm assuming X, is that correct?") is a style rule for internal questions that are
@@ -9165,8 +9056,8 @@ appendix:
   - statement: ss-039
     doc: SS
     lines:
-    - 100
-    - 100
+    - 99
+    - 99
     quote: Always end with an open question about exclusions
     modality: must
     reason: Whether the exclusions question comes last applies to the internal question list, which isn't saved in a fixed
@@ -9174,8 +9065,8 @@ appendix:
   - statement: ss-040
     doc: SS
     lines:
-    - 102
-    - 102
+    - 101
+    - 101
     quote: '**Required format:**'
     modality: must
     reason: The required format is a skeleton for a message that the workflow itself says not to send (ss-041), so there is
@@ -9183,26 +9074,17 @@ appendix:
   - statement: ss-045
     doc: SS
     lines:
-    - 127
-    - 127
+    - 126
+    - 126
     quote: Store your answers, each with its basis, for later documentation
     modality: must
     reason: This is the same requirement as ss-043 (answers with their basis, written up in requirements.md). It is covered
       by the agentos_bugfix.requirements answers item.
-  - statement: ss-063
-    doc: SS
-    lines:
-    - 142
-    - 142
-    quote: '**If follow-ups needed, write them down in this format:**'
-    modality: must
-    reason: The rule only applies 'if follow-ups needed', a condition no predicate can express. The format is for questions
-      put to the user in conversation, not for a template section.
   - statement: ss-069
     doc: SS
     lines:
-    - 158
-    - 158
+    - 136
+    - 136
     quote: Use the following structure and do not deviate from this structure when writing your gathered information to `requirements.md`.
     modality: prohibition
     reason: The requirements.md template structure (headings, labels, fallback text) is already compiled from the skeleton.
@@ -9210,8 +9092,8 @@ appendix:
   - statement: ss-090
     doc: SS
     lines:
-    - 246
-    - 246
+    - 217
+    - 217
     quote: configure your editor/linter to enforce it
     modality: must
     reason: Configuring an editor/linter is a project-setup recommendation inside a quoted standards file. It does not apply
@@ -9219,8 +9101,8 @@ appendix:
   - statement: ss-096
     doc: SS
     lines:
-    - 261
-    - 261
+    - 232
+    - 232
     quote: Use environment variables for configuration
     modality: must
     reason: Using environment variables applies only when the change adds configuration, which cannot be expressed as an observable
@@ -9228,16 +9110,16 @@ appendix:
   - statement: ss-100
     doc: SS
     lines:
-    - 269
-    - 269
+    - 240
+    - 240
     quote: Use specific exception/error types rather than generic ones
     modality: must
     reason: Whether an exception type is specific enough is a subjective code-quality judgment, with no deterministic check.
   - statement: ss-103
     doc: SS
     lines:
-    - 272
-    - 272
+    - 243
+    - 243
     quote: Implement exponential backoff for transient failures in external service calls
     modality: must
     reason: Applies only when the change adds external service calls, a condition that cannot be expressed as a predicate.
@@ -9245,16 +9127,16 @@ appendix:
   - statement: ss-104
     doc: SS
     lines:
-    - 273
-    - 273
+    - 244
+    - 244
     quote: Always clean up resources (file handles, connections) in finally blocks or equivalent mechanisms
     modality: must
     reason: Resource-cleanup correctness depends on what the code means, and no kind covers it.
   - statement: ss-112
     doc: SS
     lines:
-    - 285
-    - 285
+    - 256
+    - 256
     quote: Sanitize user input to prevent injection attacks (SQL, XSS, command injection)
     modality: must
     reason: Applies only when code handles user input, a condition that cannot be expressed as an observable predicate. Whether
