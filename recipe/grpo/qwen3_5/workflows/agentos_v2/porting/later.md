@@ -57,3 +57,29 @@ only after the user said yes to recording it.
   rarely fired — speckit_bug fix↔test 7/499, openspec_ff verify→apply 0/60 (dropped) — so measure firing rate
   first; upstream's intent is likely to keep pre-existing failures out of scope.
 - **Origin**: `03-decisions.md` G8-3 (option b, not chosen).
+
+## Dataset-neutral wording of the task conditions (2026-11-13)
+
+- **What**: rewrite every sentence that assumes one dataset's task conditions so it holds for any SWE task
+  source (SWE-Gym, SWE-bench Verified, SWE-Factory, SWE-rebench, feature-development tasks). The user's
+  decision: all of them are to be generalized; this is separate from any effect on resolve rate.
+- **Where** (rows of `rllm/tasks/2026-11-13-agentos-v2-resolve-review/review/`, column 비고):
+  - the `<issue_description>` tag of the SWE-Gym task message: `core-workflow.md:36-38`, `shape-spec.md:15,25,61`
+  - "the issue" as the form of the input: system prompt line 62, `core-workflow.md:16,51,70`,
+    `shape-spec.md:152,223`
+  - "The issue is your only input from outside": `core-workflow.md:39`
+  - the repository at `/testbed`: `instruction.md:4-6`, system prompt line 68, `core-workflow.md:9-10,81,87`
+  - Python packaging files as the example: `shape-spec.md:108`
+  - the test rule that assumes hidden-test grading: `core-workflow.md:84-86`, `create-tasks.md:215`,
+    `implement-tasks.md:39`
+- **Why**: the port was written against the SWE-Gym message (`scripts/prepare_swegym.py`
+  `INSTRUCTION_TEMPLATE_AIDLC`: tagged issue plus four condition lines). The SWE-bench Verified evaluation
+  message is the bare issue text with no tag and none of those lines (checked in one episode each of
+  `swebv499_agentosv2_262k-150_think_t1` and `wf_floor_tcx/…_swebv_agentos-v2_x1`), so the documents already
+  point at a tag the evaluation does not have. speckit_bug, speckit_sdd and openspec_ff refer to the same tag
+  (4 / 3 / 4 lines); aidlc_v4 and aidlc_v5 do not.
+- **Open points when picked up**: one neutral wording for all datasets ("the task description in the task
+  message") versus one paragraph of task conditions swapped per dataset (needs a slot in `workflows/spec.py`,
+  which today only swaps the system prompt per harness); what feature-development tasks give as input; whether
+  the test rule belongs to the workflow or to the dataset's conditions; the same change in the other three ports.
+- **Origin**: review of 2026-11-13 (task `2026-11-13-agentos-v2-resolve-review`, LOG 16:05 and 16:40).
