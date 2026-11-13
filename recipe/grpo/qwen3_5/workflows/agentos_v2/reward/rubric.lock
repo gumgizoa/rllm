@@ -10,18 +10,18 @@
   "cli": "2.1.283",
   "model": "claude-opus-5-5"
  },
- "rubric_sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c",
+ "manual_edit": {
+  "date": "2026-11-13",
+  "what": "test_file_write->test_file_modify on the prohibited_action item; created_files.tests log_only; sources re-hashed after v5 test-rule docs rebuild (2026-11-07); source quotes, line numbers and document hashes brought up to the documents after the add-only test rule, core-workflow.md:56 and the create-tasks.md:215 heading, no check changed (2026-11-13)"
+ },
+ "rubric_sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50",
  "sources": {
-  "docs/commands/create-tasks/create-tasks.md": "21c3ee5d5f3fec5d920a55d5ee10d185a5a20aab926877ac383170023af48dbc",
+  "docs/commands/create-tasks/create-tasks.md": "156a5fadec4ebce371b1aa182ebabbeac2042b1dfbacecde3c4c3a277a9428c8",
   "docs/commands/implement-tasks/implement-tasks.md": "de6c13ec1324c39b4ae558dd7a4cebdc45ea77f344cca3e6172b3a14f52ed539",
   "docs/commands/shape-spec/shape-spec.md": "9cce0198e07d56b924780a31359f827c6a3d4f1ef52a2ba8511c2f769b2b6db5",
   "docs/commands/write-spec/write-spec.md": "dab24a7971bb3dbcd0c8a69b0ccbef61f159011b54cb16389ecb30a478d65d0e",
-  "docs/core-workflow.md": "78b13fb466b4c80e9a8f4d05db4304d99ba8ce3dba2504840ab3fbf87c1abbe1",
+  "docs/core-workflow.md": "6a3a0eff3f1d5bda5830ea587ea31272d0cd2f86a7cc7a7fca0faa4fde28989c",
   "instruction.md": "f9225eebd5c041b8c83f520ed6e071368fe00e112fdec4c222564cf16d30c643",
   "system-prompt.j2": "9bc2fe5eddfa007f8742b812ade98c8d9d3aa23fe01ebc43d9b440cdd481ada3"
- },
- "manual_edit": {
-  "date": "2026-11-07",
-  "what": "test_file_write->test_file_modify on the prohibited_action item; created_files.tests log_only; sources re-hashed after v5 test-rule docs rebuild"
  }
 }
