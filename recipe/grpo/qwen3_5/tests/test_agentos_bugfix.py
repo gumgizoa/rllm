@@ -72,10 +72,15 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     assert re.findall(r"^## (\w[\w ]+)$", spec.split("```markdown")[1].split("```")[0], re.M) == ["Goal", "Specific Requirements", "Existing Code to Leverage", "Out of Scope"]
     tasks = docs["commands/create-tasks/create-tasks.md"]
     assert re.findall(r"^#### (Task Group \d+)", tasks, re.M) == ["Task Group 1", "Task Group 2"]
-    assert "Run ONLY the 2-8 tests written in 1.1" in tasks and "never change or remove an existing test line" in tasks
+    assert "never change or remove an existing test line" in tasks
+    # T1: while implementing and at the end, the tests written plus the existing tests of the changed code
+    assert "Run the 2-8 tests written in 1.1 and the existing tests of the changed code" in tasks and "running ONLY those tests" not in tasks
+    assert "Do NOT run the entire test suite at this stage" in tasks
     impl = docs["commands/implement-tasks/implement-tasks.md"]
     assert "## 1. Tasks Verification" in impl and "## 2. Test Suite Results" in impl and "## 3." not in impl
-    assert "### Step 2: Run entire tests suite" in impl and "### Step 3: Create final verification report" in impl
+    assert "### Step 2: Run the tests of the changed code" in impl and "### Step 3: Create final verification report" in impl
+    assert "and the existing tests of the code you changed, and ensuring they pass" in impl and "Running ONLY the tests" not in impl
+    assert "Run the entire tests suite as well only if it finishes within a few minutes." in impl and "so that ALL tests run" not in impl
     assert "DO NOT attempt to fix any failing tests." in impl  # kept verbatim, as in agentos_v2
     for cmd in build.COMMANDS:
         labels = re.findall(r"^\*\*`agent-os/standards/([\w/-]+)\.md`\*\*$", docs[f"commands/{cmd}/{cmd}.md"], re.M)

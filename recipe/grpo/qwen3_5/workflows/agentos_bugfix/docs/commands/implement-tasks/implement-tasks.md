@@ -36,7 +36,7 @@ Implement all tasks assigned to you and ONLY those task(s) that have been assign
 - **User Standards & Preferences** which are defined below.
 
 ## Self-verify and test your work by:
-- Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and ensuring those tests pass.
+- Running the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.
 
 ## Next step
 
@@ -128,9 +128,9 @@ IF you have concluded that this task has been completed, then mark it's checkbox
 
 IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness in your verification report.
 
-### Step 2: Run entire tests suite
+### Step 2: Run the tests of the changed code
 
-Run the entire tests suite for the application so that ALL tests run.  Verify how many tests are passing and how many have failed or produced errors.
+Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. Run the entire tests suite as well only if it finishes within a few minutes.  Verify how many tests are passing and how many have failed or produced errors.
 
 Include these counts and the list of failed tests in your final verification report.
 

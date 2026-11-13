@@ -4,10 +4,10 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c"
  },
- "rubric_sha256": "a96a83a90e4eb9eda175af238dbc9736c878025888e15c268358b527cf95d61d",
+ "rubric_sha256": "91e6e8f4737bb124a69139c43d32567e378b5434fed262276cbabf0d5f56f14c",
  "sources": {
-  "docs/commands/create-tasks/create-tasks.md": "382f5a69d55030e1fc075083d6e3e25c6e99072161b1626ed911bf4a36b6ea9f",
-  "docs/commands/implement-tasks/implement-tasks.md": "229b2ce99b74f7545fc50be4163be2495cc05ffc13d0ca53c0d9a2c71d510969",
+  "docs/commands/create-tasks/create-tasks.md": "316ce07078eb84e2e73d26ecbfb05dd7a69cf3e4257b5b9c8ea1e5ee043e079f",
+  "docs/commands/implement-tasks/implement-tasks.md": "71ce93813963481e522b158a7a94effac787d51c0fd090e5cb62799ec2e89a54",
   "docs/commands/shape-spec/shape-spec.md": "0301c3615e50cfb4460fe1e2dbb5d1bb60e63edcc4eb8c22c12052e571d96d76",
   "docs/commands/write-spec/write-spec.md": "9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10",
   "docs/core-workflow.md": "15445a2c27cc1b5208b6f834ad4edf0fa5556cb21b0f7afee9ea87e6c93cfb22",
@@ -54,6 +54,7 @@
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.15",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.16",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.17",
+   "agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.whole_suite",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.18",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.19",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.20",
@@ -321,7 +322,7 @@
    }
   ],
   "items_without_source": [],
-  "reworded_quotes": 35,
+  "reworded_quotes": 40,
   "residue_patterns_dropped": 40
  }
 }

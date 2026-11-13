@@ -55,6 +55,8 @@ DROP = {
     "write_spec.spec.field_filled.user_stories",
     "write_spec.spec.item_format.user_stories",
     "write_spec.spec.item_format.user_stories_max",
+    # T1 test scope: the final verification no longer asks for the whole suite
+    "implement_tasks.run.agentos_bugfix_verify.whole_suite",
     # B8 follow-up questions
     "shape_spec.requirements.item_format.followups",
     # B6 implementation/ folder (and B2: the two folders that had to stay empty)
@@ -94,7 +96,13 @@ REWORD = (
     # quotes agentos_v2's rubric still carries from before its 2026-11-07 / 11-13 wording fixes
     ("The tests the task groups call for are scripts in `S/checks/`.", "The tests the task groups call for are scripts in `S/checks/`"),
     ("the tests the task groups call for, as scripts; any scratch file", "the task groups' tests that are written as scripts; any scratch file"),
-    ("checks/`, not repository test files) and ensuring those tests pass.", "checks/` ... and ensuring those tests pass."),
+    ("checks/`, not repository test files) and ensuring those tests pass.", "checks/` ... and ensuring they pass."),
+    # T1 test scope
+    ("- Running ONLY the tests you've written", "- Running the tests you've written"),
+    ("Test verification should run ONLY the newly written tests, not the entire suite", "Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite"),
+    ("and ends with running ONLY those tests (fin", "and ends with running those tests and the existing tests of the changed code (fin"),
+    ("ends with running ONLY those tests (final sub-task)", "ends with running those tests and the existing tests of the changed code (final sub-task)"),
+    ("Run the entire tests suite for the application so that ALL tests run.", "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. ..."),
     ("**Write these tests as check scripts outside the repository**", "**Write these tests as check scripts or as additions to an existing test module**"),
 )
 # The placeholders of the one-group tasks example (build.py _TASKS_EXAMPLE), for the tasks.md residue item.

@@ -65,11 +65,11 @@ Total Tasks: [count]
   - [ ] 1.3 [Next change to make]
     - [details]
   - [ ] 1.4 Ensure the tests of this group pass
-    - Run ONLY the 2-8 tests written in 1.1
+    - Run the 2-8 tests written in 1.1 and the existing tests of the changed code
     - Do NOT run the entire test suite at this stage
 
 **Acceptance Criteria:**
-- The 2-8 tests written in 1.1 pass
+- The 2-8 tests written in 1.1 and the existing tests of the changed code pass
 - [what works once this group is done]
 
 ### Testing
@@ -91,7 +91,7 @@ Total Tasks: [count]
     - Do NOT write comprehensive coverage for all scenarios
     - Skip edge cases and performance tests unless business-critical
   - [ ] 2.4 Run feature-specific tests only
-    - Run ONLY tests related to this spec's feature (tests from 1.1 and 2.3)
+    - Run ONLY tests related to this spec's feature (tests from 1.1 and 2.3, and the existing tests of the changed code)
     - Do NOT run the entire application test suite
     - Verify critical workflows pass
 
@@ -120,9 +120,9 @@ Recommended implementation sequence:
 - **Limit test writing during development**:
   - Each implementation task group should write 2-8 focused tests maximum
   - Tests should cover only critical behaviors, not exhaustive coverage
-  - Test verification should run ONLY the newly written tests, not the entire suite
+  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite
   - If there is a dedicated test coverage group for filling in gaps in test coverage, this group should add only a maximum of 10 additional tests IF NECESSARY to fill critical gaps
-- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running ONLY those tests (final sub-task)
+- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running those tests and the existing tests of the changed code (final sub-task)
 - **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own, or a new test function added to the existing repository test module that covers the changed code; never change or remove an existing test line. The test-writing standard applies to these tests.
 - **Include acceptance criteria** for each task group
 

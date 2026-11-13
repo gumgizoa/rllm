@@ -571,6 +571,10 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
             else:
                 s.replace(tasks_path, f"- [ ] {tid} ", f"- [x] {tid} ")
 
+    def run_existing() -> None:
+        # the existing tests of the changed code (tests/test_slug.py covers textkit/slug.py)
+        s.sh(f"cd {WORKDIR} && python -m pytest tests/test_slug.py -q", ".....                                                                    [100%]\n5 passed in 0.03s")
+
     def run_check(name: str, ok: bool, fail_obs: str = "", pass_obs: str = "") -> None:
         s.sh(f"cd {WORKDIR} && python {CHECKS}/{name}", pass_obs if ok else fail_obs, code=0 if ok else 1)
 
@@ -582,6 +586,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     s.replace(f"{WORKDIR}/textkit/slug.py", OLD_BODY, G1_BODY)
     tick("1.2")
     run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")
+    run_existing()
     tick("1.3", "1.0")
     # Task Group 2
     s.create(f"{CHECKS}/check_sep.py", CHECK_SEP)
@@ -593,6 +598,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     tick("2.2")
     run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
     run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")  # the tests written so far, on the changed code
+    run_existing()
     tick("2.3", "2.0")
     if review:
         s.sh(f"cat {CHECKS}/check_edges.py {CHECKS}/check_sep.py", (CHECK_EDGES + CHECK_SEP).rstrip("\n"))
@@ -609,6 +615,11 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     if warn:
         # Step 1's spot check: the README still documents slugify without sep, so 2.2 is found incomplete and marked
         s.replace(tasks_path, "- [x] 2.2 ", "- [⚠️] 2.2 ")
+    # the tests of the changed code once more: the tests written, then the suite (small here), which holds the covering module
+    run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")
+    run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
+    if review:
+        run_check("check_review.py", True, pass_obs="PASS: punctuation only gives an empty slug")
     s.sh(f"cd {WORKDIR} && python -m pytest", pytest_two_failures() if failures else pytest_ok(), code=1 if failures else 0)
     s.create(f"{S}/verifications/final-verification.md", report_md(failures=failures, review=review, warned=warn))
     s.add(Action("other", "finish"), "Final verification report written.")

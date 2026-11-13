@@ -25,6 +25,13 @@ What is cut (user decisions 2026-11-13, ``CHANGES.md``):
 * B9 the standards in shape-spec, write-spec and create-tasks: they are coding standards, kept where code is
   written (implement-tasks).
 
+And one rule is changed rather than cut:
+
+* T1 test scope: "run ONLY the tests you've written" (while implementing) and "run the entire tests suite" (final
+  verification) both become the tests written plus the existing tests of the changed code. Upstream's two ends
+  left the existing tests unrun while the code changed and asked for a run at the end that seldom happened
+  (6.8% of evaluation runs, a third of them timing out).
+
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
 issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
 ``system-prompt.j2`` are hand-written copies of agentos_v2's with the same cuts and wording.
@@ -79,11 +86,11 @@ _TASKS_EXAMPLE = """\
   - [ ] 1.3 [Next change to make]
     - [details]
   - [ ] 1.4 Ensure the tests of this group pass
-    - Run ONLY the 2-8 tests written in 1.1
+    - Run the 2-8 tests written in 1.1 and the existing tests of the changed code
     - Do NOT run the entire test suite at this stage
 
 **Acceptance Criteria:**
-- The 2-8 tests written in 1.1 pass
+- The 2-8 tests written in 1.1 and the existing tests of the changed code pass
 - [what works once this group is done]
 
 ### Testing
@@ -105,7 +112,7 @@ _TASKS_EXAMPLE = """\
     - Do NOT write comprehensive coverage for all scenarios
     - Skip edge cases and performance tests unless business-critical
   - [ ] 2.4 Run feature-specific tests only
-    - Run ONLY tests related to this spec's feature (tests from 1.1 and 2.3)
+    - Run ONLY tests related to this spec's feature (tests from 1.1 and 2.3, and the existing tests of the changed code)
     - Do NOT run the entire application test suite
     - Verify critical workflows pass
 
@@ -185,13 +192,26 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("span", "### Database Layer", "```\n\n**Note**: Adapt this structure", _TASKS_EXAMPLE, "B7: one group in the upstream shape plus the test-review group"),
         ("sub", "  - Each task group (1-3) should write 2-8 focused tests maximum", "  - Each implementation task group should write 2-8 focused tests maximum", "B7: the example has one such group"),
         ("sub", "- **Reference visual assets** if visuals are available\n", "", "B2"),
+        ("sub", "  - Test verification should run ONLY the newly written tests, not the entire suite",
+         "  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite", "T1: test scope"),
+        ("sub", "and ends with running ONLY those tests (final sub-task)", "and ends with running those tests and the existing tests of the changed code (final sub-task)", "T1: test scope"),
+    ),
+    "wf/run-all-tests": (
+        ("sub", "Run the entire tests suite for the application so that ALL tests run.",
+         "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. "
+         "Run the entire tests suite as well only if it finishes within a few minutes.", "T1: test scope of the final verification"),
     ),
     "wf/implement-tasks": (
         ("sub", "1. Analyze the provided spec.md, requirements.md, and visuals (if any)", "1. Analyze the provided spec.md and requirements.md", "B2"),
+        ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (if any;", "T1: test scope"),
+        ("sub", "run through that module with the test runner) and ensuring those tests pass.",
+         "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "
+         "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.",
+         "T1: test scope; an existing test of the old behavior is not a reason to undo the change"),
     ),
     "impl-3": (
         ("span", "### Step 2: Update roadmap (if applicable)", "### Step 3: Run entire tests suite", "", "B3: the roadmap step"),
-        ("sub", "### Step 3: Run entire tests suite", "### Step 2: Run entire tests suite", "B3: renumbered"),
+        ("sub", "### Step 3: Run entire tests suite", "### Step 2: Run the tests of the changed code", "B3: renumbered; T1: test scope"),
         ("sub", "### Step 4: Create final verification report", "### Step 3: Create final verification report", "B3: renumbered"),
     ),
     "wf/verification-report": (

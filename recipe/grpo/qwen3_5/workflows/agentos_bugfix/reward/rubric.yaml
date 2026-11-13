@@ -96,11 +96,11 @@ generated:
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9042
+      compliance: 0.9024
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9042
+      compliance: 0.9024
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -116,15 +116,15 @@ generated:
     - mutation: echo_evidence
       kind: exploit
       status: ok
-      compliance: 0.9444
+      compliance: 0.9531
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.9391
+      compliance: 0.9476
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9222
+      compliance: 0.9531
     - mutation: glob_read
       kind: exploit
       status: ok
@@ -136,15 +136,15 @@ generated:
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.8699
+      compliance: 0.8772
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.708
+      compliance: 0.705
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6819
+      compliance: 0.6796
     - mutation: no_artifacts
       kind: exploit
       status: ok
@@ -159,12 +159,12 @@ generated:
       compliance: null
     - mutation: full_suite_rerun
       kind: exploit
-      status: n/a
-      compliance: null
+      status: fail
+      compliance: 0.9969
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9707
+      compliance: 0.9689
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -192,11 +192,11 @@ generated:
     - mutation: hidden_failure
       kind: exploit
       status: ok
-      compliance: 0.9889
+      compliance: 0.9883
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.9781
+      compliance: 0.9772
     - mutation: archive_cp
       kind: exploit
       status: n/a
@@ -214,23 +214,25 @@ generated:
       status: ok
       compliance: 1.0
     failures:
+    - 'full_suite_rerun: exploit not caught: compliance 0.9969 (bound <= 0.9950, full_suite_rerun_min_drop); highest signals:
+      order 1.00, stage.shape_spec 1.00, stage.write_spec 1.00'
     - 'honest_reformat: honest run penalised: compliance 0.9789 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
       1.00->0.00 (In Scope: placeholder '''')'
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
-    dropped_items: 46
-    kept_items: 161
+    dropped_items: 47
+    kept_items: 160
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
   role: command
-  sha256: 382f5a69d55030e1fc075083d6e3e25c6e99072161b1626ed911bf4a36b6ea9f
+  sha256: 316ce07078eb84e2e73d26ecbfb05dd7a69cf3e4257b5b9c8ea1e5ee043e079f
   container_path: /agent-os/commands/create-tasks/create-tasks.md
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 229b2ce99b74f7545fc50be4163be2495cc05ffc13d0ca53c0d9a2c71d510969
+  sha256: 71ce93813963481e522b158a7a94effac787d51c0fd090e5cb62799ec2e89a54
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -3432,7 +3434,7 @@ items:
     - 125
     - 125
     quote: '- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and
-      ends with running ONLY those tests (final sub-task)'
+      ends with running those tests and the existing tests of the changed code (final sub-task)'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5296,12 +5298,13 @@ items:
     lines:
     - 39
     - 39
-    quote: '- Running ONLY the tests you''ve written'
+    quote: '- Running the tests you''ve written'
   - doc: CT
     lines:
     - 123
     - 123
-    quote: '- Test verification should run ONLY the newly written tests, not the entire suite'
+    quote: '- Test verification should run the newly written tests and the existing tests of the changed code, not the entire
+      suite'
   impl_refs: []
   derived_by: manual
   template: C-A6
@@ -5509,8 +5512,8 @@ items:
     lines:
     - 38
     - 39
-    quote: '## Self-verify and test your work by: - Running ONLY the tests you''ve written (if any; they are check scripts
-      under `/tmp/agent-os/specs/[this-spec]/checks/` ... and ensuring those tests pass.'
+    quote: '## Self-verify and test your work by: - Running the tests you''ve written (if any; they are check scripts under
+      `/tmp/agent-os/specs/[this-spec]/checks/` ... and ensuring they pass.'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5661,8 +5664,8 @@ items:
     lines:
     - 125
     - 125
-    quote: where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running ONLY those tests (final
-      sub-task)
+    quote: where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running those tests and the existing
+      tests of the changed code (final sub-task)
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5731,45 +5734,13 @@ items:
     lines:
     - 133
     - 133
-    quote: Run the entire tests suite for the application so that ALL tests run.  Verify how many tests are passing and how
-      many have failed or produced errors.
+    quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
+      you wrote. ...  Verify how many tests are passing and how many have failed or produced errors.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
   note: a valid test run between the last tick and the report
-- id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.whole_suite
-  scope: specific
-  class: evidence
-  stage: implement_tasks
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: agentos_bugfix.verify
-    params:
-      rule: whole_suite
-  requirement: must
-  modality_evidence: imperative (IT:239 'so that ALL tests run')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: IT
-    lines:
-    - 133
-    - 133
-    quote: Run the entire tests suite for the application so that ALL tests run.
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'one PHASE 3 run is the whole suite: a runner at the repository root selecting nothing, or only the top-level test
-    directory'
 - id: agentos_bugfix.global.tasks.agentos_bugfix_tasks.later_edits
   scope: specific
   class: evidence
