@@ -4,7 +4,7 @@
   (`tasks/2026-11-13-agentos-v2-resolve-review/`, 사용자 결정 2026-11-13).
 - 방침: agentos_v2는 그대로 두고, 버그 수정에 필요 없는 단계만 뺀 워크플로우를 따로 둠. 뺀 것과 문구
   일반화 외에는 agentos_v2와 같음 (같은 upstream v2.1.1, 같은 편집, 같은 렌더 방식).
-- 문서 분량: 명령 문서 4개 1,329줄 → 832줄, 진입 문서 93줄 → 91줄.
+- 문서 분량: 명령 문서 4개 1,329줄 → 614줄, 진입 문서 93줄 → 91줄.
 
 ## 뺀 것
 
@@ -18,6 +18,7 @@
 | B6 | `implementation/` 폴더 | shape-spec PHASE 1 Step 3 (verifications/ 폴더만 만듦) | 아무도 쓰지 않는 폴더 |
 | B7 | 웹앱 tasks 예시 | create-tasks의 DB·API·UI group 예시 → 같은 뼈대의 group 1개 + 테스트 검토 group | 예시의 내용이 웹앱 전용. 뼈대(테스트 2–8개 작성 → 변경 → 그 테스트만 실행)는 유지 |
 | B8 | 후속 질문 | shape-spec PHASE 2의 후속 질문 Step, requirements.md의 Follow-up Questions 절, "후속 질문은 1–3개" 제약 | 답할 사람이 없어 되물을 일이 없음. 실제로 후속 질문을 쓴 런은 평가 4–7%, 학습 5–8% (`tasks/2026-11-13-agentos-v2-resolve-review/analysis/q2_q4_q5.csv`) |
+| B9 | shape-spec·write-spec·create-tasks의 standards | 세 문서 끝의 "User Standards & Preferences Compliance" 블록(문서마다 54–66줄). implement-tasks에는 그대로 둠 | 코딩 기준이라 코드를 쓰는 단계에서만 쓰임. 파일로 따로 배포하지 않음("필요하면 읽어라"는 모델 판단에 맡기는 지시라 넣지 않음) |
 
 ## 문구 일반화 (G)
 
@@ -43,16 +44,17 @@
 
 - `derive_rubric.py`가 agentos_v2의 `reward/rubric.yaml`에서 만듦. 모델 호출 없음. agentos_v2 채점기나 이 워크플로우 문서가
   바뀌면 다시 돌림 (`--check`로 낡았는지 확인).
-- 항목 207개 → 172개. 지운 35개 = 뺀 단계의 항목 18개(제품 맥락 읽기 4, 시안 5, roadmap 3, 사용자 스토리 4,
-  `implementation/` 폴더와 빈 폴더 규칙 2) + 검사 없이 문장만 기록하던 항목 중 그 문장이 문서에서 빠진 17개.
-- 고친 설정값: requirements.md·spec.md의 허용 절 목록, 양식 자리표시 목록(빠진 것 37개 제거, 새 tasks 예시의 자리표시 9개 추가),
+- 항목 207개 → 161개. 지운 46개 = 뺀 단계의 항목 19개(제품 맥락 읽기 4, 시안 5, roadmap 3, 사용자 스토리 4,
+  `implementation/` 폴더와 빈 폴더 규칙 2, 후속 질문 1) + 검사 없이 문장만 기록하던 항목 중 그 문장이 문서에서 빠진 27개
+  (standards 문장이 많음).
+- 고친 설정값: requirements.md·spec.md의 허용 절 목록, 양식 자리표시 목록(빠진 것 40개 제거, 새 tasks 예시의 자리표시 9개 추가),
   보고서의 테스트 결과 절 이름(`3.` → `2.`).
 - 나머지 항목은 검사 내용 그대로. 출처의 줄 번호와 인용문만 이 워크플로우 문서에 맞춤 (인용문 35개는 바뀐 문구로 다시 찾음,
-  찾지 못한 출처 38개는 지움, 출처가 하나도 안 남은 항목은 없음).
+  찾지 못한 출처 51개는 지움, 출처가 하나도 안 남은 항목은 없음).
 - 전용 검사는 agentos_v2의 함수를 `agentos_bugfix.*` 이름으로 등록해 씀 (`reward/checks.py`). 이를 위해 agentos_v2의 보고서
   검사에 테스트 결과 절 이름을 받는 선택 설정값(`suite_section`)을 추가함 (agentos_v2 동작은 그대로).
-- 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 6개도 통과. 속임수 변형은 모두 걸러짐.
-- 알려진 미달 1건: "정직한 런의 서식을 바꾼 변형"이 0.9799로 기준 0.98에 0.0001 모자람 (agentos_v2는 0.9833).
+- 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 5개도 통과. 속임수 변형은 모두 걸러짐.
+- 알려진 미달 1건: "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자람 (agentos_v2는 0.9833).
   같은 항목(requirements.md의 In Scope 칸)에서 잃는 것은 agentos_v2와 같고, 항목 수가 줄어 한 항목의 비중이 커진 결과. 기준은 바꾸지 않음.
 - 없는 것: `rubric.md`(사람이 읽는 항목 표), 실제 런으로의 확인.
 

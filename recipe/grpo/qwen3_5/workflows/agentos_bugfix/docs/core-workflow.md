@@ -27,9 +27,9 @@ Open each command document when you reach it, and work from that document rather
 Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends
 with its report. There are no repeat rounds.
 
-Each command document already contains the coding standards it applies, written out under "User
-Standards & Preferences Compliance". The bold `agent-os/standards/...` lines there only name each
-standard; there are no separate standards files to open.
+The coding standards apply where code is written: the implement-tasks document contains them, written
+out under "User Standards & Preferences Compliance". The bold `agent-os/standards/...` lines there only
+name each standard; there are no separate standards files to open.
 
 ## What "the feature" is
 

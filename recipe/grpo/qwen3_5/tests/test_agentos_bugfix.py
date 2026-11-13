@@ -79,7 +79,8 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     assert "DO NOT attempt to fix any failing tests." in impl  # kept verbatim, as in agentos_v2
     for cmd in build.COMMANDS:
         labels = re.findall(r"^\*\*`agent-os/standards/([\w/-]+)\.md`\*\*$", docs[f"commands/{cmd}/{cmd}.md"], re.M)
-        assert labels == list(KEPT_STANDARDS[:5] if cmd == "shape-spec" else sorted(KEPT_STANDARDS)), (cmd, labels)
+        assert labels == (sorted(KEPT_STANDARDS) if cmd == "implement-tasks" else []), (cmd, labels)  # B9: where code is written
+        assert ("User Standards & Preferences Compliance" in docs[f"commands/{cmd}/{cmd}.md"]) == (cmd == "implement-tasks")
 
 
 def test_documents_point_only_at_documents_that_exist():

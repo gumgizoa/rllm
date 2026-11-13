@@ -21,7 +21,9 @@ What is cut (user decisions 2026-11-13, ``CHANGES.md``):
 * B7 the web-application tasks example (database / API / UI groups) -> one group in the same shape plus the
   test-review group;
 * B8 follow-up questions: shape-spec's follow-up step and the Follow-up Questions section of requirements.md
-  (4-7% of runs wrote one; nobody answers, so there is nothing to follow up on).
+  (4-7% of runs wrote one; nobody answers, so there is nothing to follow up on);
+* B9 the standards in shape-spec, write-spec and create-tasks: they are coding standards, kept where code is
+  written (implement-tasks).
 
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
 issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
@@ -165,6 +167,9 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("span", "### Follow-up Questions", "## Requirements Summary", "", "B8: the Follow-up Questions section of requirements.md"),
         ("sub", "- Keep follow-ups minimal (1-3 questions max)\n", "", "B8"),
     ),
+    "shape-2": (("span", "{{UNLESS standards_as_claude_code_skills}}", "$", "", "B9: no standards in shape-spec"),),
+    "write": (("span", "{{UNLESS standards_as_claude_code_skills}}", "$", "", "B9: no standards in write-spec"),),
+    "tasks-2": (("span", "{{UNLESS standards_as_claude_code_skills}}", "$", "", "B9: no standards in create-tasks"),),
     "wf/write-spec": (
         ("sub", "Load and analyze requirements and visual assets thoroughly", "Load and analyze requirements thoroughly", "B2"),
         ("span", "\n# Check for visual assets\n", "```\n\nParse and analyze:", "", "B2: the visuals ls"),
