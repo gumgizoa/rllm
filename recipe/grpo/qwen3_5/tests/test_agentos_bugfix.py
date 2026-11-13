@@ -106,3 +106,37 @@ def test_harness_uploads_every_document_and_the_text_is_its_own():
     assert SECTION.search(v2.system_prompt["openhands-sdk"].read_text(encoding="utf-8")).group(0) != ours_sec
     # resolve rate only until reward/rubric.yaml exists, then its scorer
     assert (h.evaluation_policy is None) == (not (RECIPE / "workflows" / NAME / "reward" / "rubric.yaml").is_file())
+
+
+# ---- the verifier: agentos_v2's rubric without the items of the cut steps (derive_rubric.py)
+
+
+def test_rubric_is_the_one_derived_from_agentos_v2():
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import compile as C
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D
+
+    assert D.main(["--check"]) == 0, "rerun derive_rubric.py"
+    path = RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"
+    assert [p for p in C.check(path, None) if "lock" not in p] == []  # schema, kinds and params; the lock is this workflow's own format
+    rub, report = D.derive()
+    assert report["items_without_source"] == []
+    items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
+    for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
+        assert word not in items, word
+    assert len(rub["items"]) == 172 and len(report["dropped_items"]) == 35
+
+
+def test_golden_run_scores_full_marks():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    for variant in (None, *golden.VARIANTS):
+        run, col = golden.golden(rub, variant=variant)
+        rep = engine.evaluate(rub, run, col)
+        assert not rep.engine_errors, (variant, rep.errors[:2])
+        assert rep.scores.compliance >= 0.98, (variant, rep.scores.compliance)
+

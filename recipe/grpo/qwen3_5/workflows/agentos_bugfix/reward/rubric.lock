@@ -1,0 +1,251 @@
+{
+ "generator": "agentos_bugfix.derive_rubric (no model)",
+ "derived_from": {
+  "path": "../agentos_v2/reward/rubric.yaml",
+  "sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c"
+ },
+ "rubric_sha256": "d9436ed4b860f149de15b4d6a5caac373ceea7c3c3da9b7bb9978bb96b1c6656",
+ "sources": {
+  "docs/commands/create-tasks/create-tasks.md": "a9c757b184384f24722e7e5e4dcdde23908133588ff8e4f891ed89f31bfb8696",
+  "docs/commands/implement-tasks/implement-tasks.md": "229b2ce99b74f7545fc50be4163be2495cc05ffc13d0ca53c0d9a2c71d510969",
+  "docs/commands/shape-spec/shape-spec.md": "3c4338cd01e1e9080ec5d81cfddcabad3470df6802df848d5ba87c6a447ea84a",
+  "docs/commands/write-spec/write-spec.md": "8fa273693196296f598f6be595269a456cbdecbc567ea9f30926b2e2200c7dad",
+  "docs/core-workflow.md": "71d9bf8d19fa227b30f671f9a865a78fbd150f4bb2dd2c0a8d266489460e639d",
+  "instruction.md": "76787ecfcadab74198d959a430485f8588a18c460bdaf0cb4f659c0f5678a4e4",
+  "system-prompt.j2": "f686018786480a1ee24b1a5a426a321b67fbaf80a584b409240d3b6b282f5e7e"
+ },
+ "report": {
+  "dropped_items": [
+   "agentos_bugfix.shape_spec.visuals_dir.artifact_exists",
+   "agentos_bugfix.shape_spec.implementation_dir.artifact_exists",
+   "agentos_bugfix.shape_spec.requirements.section_present.visual_assets",
+   "agentos_bugfix.shape_spec.requirements.item_format.no_visuals",
+   "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.readme",
+   "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.docs_index",
+   "agentos_bugfix.shape_spec.run.agentos_bugfix_repo_read.packaging",
+   "agentos_bugfix.shape_spec.unimplemented.unimplemented.2",
+   "agentos_bugfix.shape_spec.unimplemented.unimplemented.3",
+   "agentos_bugfix.shape_spec.unimplemented.unimplemented.4",
+   "agentos_bugfix.shape_spec.run.agentos_bugfix_holds.visuals_checked",
+   "agentos_bugfix.shape_spec.unimplemented.unimplemented.5",
+   "agentos_bugfix.shape_spec.unimplemented.unimplemented.6",
+   "agentos_bugfix.write_spec.spec.section_present.user_stories",
+   "agentos_bugfix.write_spec.spec.field_filled.user_stories",
+   "agentos_bugfix.write_spec.spec.item_format.user_stories",
+   "agentos_bugfix.write_spec.spec.item_format.user_stories_max",
+   "agentos_bugfix.write_spec.unimplemented.unimplemented",
+   "agentos_bugfix.write_spec.run.agentos_bugfix_holds.visuals_checked",
+   "agentos_bugfix.write_spec.unimplemented.unimplemented.2",
+   "agentos_bugfix.create_tasks.unimplemented.unimplemented.5",
+   "agentos_bugfix.implement_tasks.final_verification.item_format.roadmap_reason",
+   "agentos_bugfix.implement_tasks.final_verification.item_format.roadmap_status",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.3",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.4",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.5",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.6",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.7",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.9",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.10",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.11",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.12",
+   "agentos_bugfix.implement_tasks.unimplemented.unimplemented.13",
+   "agentos_bugfix.global.run.agentos_bugfix_paths_written.empty_folders",
+   "agentos_bugfix.global.run.agentos_bugfix_paths_written.no_roadmap"
+  ],
+  "dropped_sources": [
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "[Based on actual bash check, not user statement]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- `filename.png`: [Description of what it shows from your analysis]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- `filename2.jpg`: [Key elements observed from your analysis]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- [Design patterns identified]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- [User flow implications]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- [UI components shown]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "- [Fidelity level: high-fidelity mockup / low-fidelity wireframe]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.requirements.no_template_residue",
+    "doc": "SS",
+    "quote": "[If bash check found no files]"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.unimplemented.unimplemented.3",
+    "doc": "SS",
+    "quote": "### Step 4: Process Answers and MANDATORY Visual Check"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.unimplemented.unimplemented.4",
+    "doc": "SS",
+    "quote": "**CRITICAL**: You MUST run the following bash command even if the user says \"no visuals\" or doesn't mention visuals"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.unimplemented.unimplemented.5",
+    "doc": "SS",
+    "quote": "Visual check is based on actual file(s) found via bash, NOT user statements"
+   },
+   {
+    "item": "agentos_bugfix.shape_spec.unimplemented.unimplemented.6",
+    "doc": "SS",
+    "quote": "Document all visual findings including fidelity level"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "- As a [user type], I want to [action] so that [benefit]"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "- [repeat for up to 2 max additional user stories]"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "[If mockups provided]"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "**`planning/visuals/[filename]`**"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "- [up to 8 CONCISE bullets describing specific UI elements found in this visual to address when building]"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.spec.no_template_residue",
+    "doc": "WS",
+    "quote": "[repeat for each file in the `planning/visuals` folder]"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.unimplemented.unimplemented",
+    "doc": "WS",
+    "quote": "**Analyze Requirements**: Load and analyze requirements and visual assets thoroughly"
+   },
+   {
+    "item": "agentos_bugfix.write_spec.unimplemented.unimplemented.2",
+    "doc": "WS",
+    "quote": "Parse and analyze: ... - Visual mockups or screenshots (if present)"
+   },
+   {
+    "item": "agentos_bugfix.create_tasks.tasks.no_template_residue",
+    "doc": "CT",
+    "quote": "- [ ] 1.2 Create [Model] with validations - Fields: [list] - Validations: [list] - Reuse pattern from: [existing model i"
+   },
+   {
+    "item": "agentos_bugfix.create_tasks.unimplemented.unimplemented.5",
+    "doc": "CT",
+    "quote": "**Reference visual assets** if visuals are available"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.field_filled.notes",
+    "doc": "IT",
+    "quote": "[Any relevant notes about roadmap updates, or note if no updates were needed]"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.item_format.line",
+    "doc": "IT",
+    "quote": "## 2. Roadmap Updates"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.item_format.line.5",
+    "doc": "IT",
+    "quote": "**Status:** ✅ Updated | ⚠️ No Updates Needed | ❌ Issues Found"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.no_template_residue",
+    "doc": "IT",
+    "quote": "**Status:** ✅ Updated | ⚠️ No Updates Needed | ❌ Issues Found"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.no_template_residue",
+    "doc": "IT",
+    "quote": "- [x] [Roadmap item that was marked complete]"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.final_verification.no_template_residue",
+    "doc": "IT",
+    "quote": "[Any relevant notes about roadmap updates, or note if no updates were needed]"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.3",
+    "doc": "IT",
+    "quote": "**Consistent Naming**: Use consistent, lowercase, hyphenated or underscored naming conventions for endpoints across the "
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.4",
+    "doc": "IT",
+    "quote": "**Versioning**: Implement API versioning strategy (URL path or headers) to manage breaking changes"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.5",
+    "doc": "IT",
+    "quote": "**Plural Nouns**: Use plural nouns for resource endpoints (e.g., `/users`, `/products`) for consistency"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.6",
+    "doc": "IT",
+    "quote": "**Nested Resources**: Limit nesting depth to 2-3 levels maximum"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.7",
+    "doc": "IT",
+    "quote": "**Rate Limiting Headers**: Include rate limit information in response headers"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.9",
+    "doc": "IT",
+    "quote": "**Reversible Migrations**: Always implement rollback/down methods to enable safe migration reversals"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.10",
+    "doc": "IT",
+    "quote": "**Clear Naming**: Use singular names for models and plural for tables following your framework's conventions"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.11",
+    "doc": "IT",
+    "quote": "**Timestamps**: Include created and updated timestamps on all tables"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.12",
+    "doc": "IT",
+    "quote": "**Indexes on Foreign Keys**: Index foreign key columns and other frequently queried fields"
+   },
+   {
+    "item": "agentos_bugfix.implement_tasks.unimplemented.unimplemented.13",
+    "doc": "IT",
+    "quote": "meaningful labels for all form inputs"
+   }
+  ],
+  "items_without_source": [],
+  "reworded_quotes": 35,
+  "residue_patterns_dropped": 37
+ }
+}

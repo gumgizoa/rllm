@@ -38,14 +38,29 @@
 - 남긴 standards 6개(global 5개, testing 1개)와 그 안의 웹 관련 줄(예: 서버·클라이언트 검증).
 - 질문 양식의 "UI components", "page layouts" 같은 upstream 문구.
 
+## 채점기 (1차, 2026-11-13)
+
+- `derive_rubric.py`가 agentos_v2의 `reward/rubric.yaml`에서 만듦. 모델 호출 없음. agentos_v2 채점기나 이 워크플로우 문서가
+  바뀌면 다시 돌림 (`--check`로 낡았는지 확인).
+- 항목 207개 → 172개. 지운 35개 = 뺀 단계의 항목 18개(제품 맥락 읽기 4, 시안 5, roadmap 3, 사용자 스토리 4,
+  `implementation/` 폴더와 빈 폴더 규칙 2) + 검사 없이 문장만 기록하던 항목 중 그 문장이 문서에서 빠진 17개.
+- 고친 설정값: requirements.md·spec.md의 허용 절 목록, 양식 자리표시 목록(빠진 것 37개 제거, 새 tasks 예시의 자리표시 9개 추가),
+  보고서의 테스트 결과 절 이름(`3.` → `2.`).
+- 나머지 항목은 검사 내용 그대로. 출처의 줄 번호와 인용문만 이 워크플로우 문서에 맞춤 (인용문 35개는 바뀐 문구로 다시 찾음,
+  찾지 못한 출처 38개는 지움, 출처가 하나도 안 남은 항목은 없음).
+- 전용 검사는 agentos_v2의 함수를 `agentos_bugfix.*` 이름으로 등록해 씀 (`reward/checks.py`). 이를 위해 agentos_v2의 보고서
+  검사에 테스트 결과 절 이름을 받는 선택 설정값(`suite_section`)을 추가함 (agentos_v2 동작은 그대로).
+- 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 6개도 통과. 속임수 변형은 모두 걸러짐.
+- 알려진 미달 1건: "정직한 런의 서식을 바꾼 변형"이 0.9799로 기준 0.98에 0.0001 모자람 (agentos_v2는 0.9833).
+  같은 항목(requirements.md의 In Scope 칸)에서 잃는 것은 agentos_v2와 같고, 항목 수가 줄어 한 항목의 비중이 커진 결과. 기준은 바꾸지 않음.
+- 없는 것: `rubric.md`(사람이 읽는 항목 표), 실제 런으로의 확인.
+
 ## 아직 없는 것
 
-- 채점기(`reward/`): agentos_v2의 채점기를 복사해 뺀 단계의 항목을 지우고 고치는 방식으로 만들 예정.
-  그때까지 이 워크플로우는 해결률만 보고함.
-- 평가 결과: 아직 한 번도 돌리지 않음.
+- 평가 결과: 아직 한 번도 돌리지 않음. 채점기도 기준 런으로만 확인했고 실제 런에 적용해 보지 않음.
 
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
 - `pytest recipe/grpo/qwen3_5/tests/test_agentos_bugfix.py` (뺀 단계의 단어가 문서에 남지 않았는지, Step·절
-  번호, 남긴 standards 목록, 문서 5개 업로드)
+  번호, 남긴 standards 목록, 문서 5개 업로드, 채점기가 derive 결과와 같은지, 기준 런 점수)
