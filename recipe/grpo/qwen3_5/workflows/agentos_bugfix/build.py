@@ -31,6 +31,8 @@ And one rule is changed rather than cut:
   verification) both become the tests written plus the existing tests of the changed code. Upstream's two ends
   left the existing tests unrun while the code changed and asked for a run at the end that seldom happened
   (6.8% of evaluation runs, a third of them timing out).
+* T3 tasks found while implementing: a task the change needs and tasks.md lacks is added to tasks.md and then
+  implemented. "ONLY the tasks assigned to you" stays; tasks.md is the one file a later command may add to.
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -210,6 +212,10 @@ CUTS: dict[str, tuple[tuple, ...]] = {
     ),
     "wf/implement-tasks": (
         ("sub", "1. Analyze the provided spec.md, requirements.md, and visuals (if any)", "1. Analyze the provided spec.md and requirements.md", "B2"),
+        ("sub", "one task group per pass of PHASE 2.",
+         "one task group per pass of PHASE 2. If, while implementing, you find work the change needs that no task covers (another file to change, a case the tasks miss), "
+         "add it to `agent-os/specs/[this-spec]/tasks.md` first, as a new sub-task of the current task group or as a new task group at the end, and implement it as an assigned task. "
+         "Add lines only: do not reword or remove the tasks that are there.", "T3: a missing task is added to tasks.md, then implemented"),
         ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (if any;", "T1: test scope"),
         ("sub", "run through that module with the test runner) and ensuring those tests pass.",
          "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "

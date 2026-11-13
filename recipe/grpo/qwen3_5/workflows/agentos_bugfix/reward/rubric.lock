@@ -4,13 +4,13 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c"
  },
- "rubric_sha256": "14f5aadffc5e2a0ba12fd3f9923e5dad91f62d50fb7a728ae43c42a65266b872",
+ "rubric_sha256": "938c037b9a27043cb0da834207be3607d3b7b5a895aa4660a6e7a78486692598",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "316ce07078eb84e2e73d26ecbfb05dd7a69cf3e4257b5b9c8ea1e5ee043e079f",
-  "docs/commands/implement-tasks/implement-tasks.md": "d3b4395abe64e14cb0507dbe04d00bacc47970d29ad60689f0d89131be189071",
+  "docs/commands/implement-tasks/implement-tasks.md": "65913695285087a4db2cf168b3c6b9c6a84b1f3077e12a1a7bda87284d63eabf",
   "docs/commands/shape-spec/shape-spec.md": "0301c3615e50cfb4460fe1e2dbb5d1bb60e63edcc4eb8c22c12052e571d96d76",
   "docs/commands/write-spec/write-spec.md": "9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10",
-  "docs/core-workflow.md": "15445a2c27cc1b5208b6f834ad4edf0fa5556cb21b0f7afee9ea87e6c93cfb22",
+  "docs/core-workflow.md": "f62dc6c1b9bf6ad24a885cc731a0dae0ed5ac4556b26437be6fb602309fd1e70",
   "instruction.md": "76787ecfcadab74198d959a430485f8588a18c460bdaf0cb4f659c0f5678a4e4",
   "system-prompt.j2": "f686018786480a1ee24b1a5a426a321b67fbaf80a584b409240d3b6b282f5e7e"
  },
@@ -322,7 +322,7 @@
    }
   ],
   "items_without_source": [],
-  "reworded_quotes": 40,
+  "reworded_quotes": 43,
   "residue_patterns_dropped": 40
  }
 }

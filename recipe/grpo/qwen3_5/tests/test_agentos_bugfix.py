@@ -82,6 +82,9 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     assert "and the existing tests of the code you changed, and ensuring they pass" in impl and "Running ONLY the tests" not in impl
     assert "Run the entire tests suite as well only if it finishes within a few minutes." in impl and "so that ALL tests run" not in impl
     assert "DO NOT attempt to fix any failing tests." in impl  # kept verbatim, as in agentos_v2
+    # T3: a task the tasks miss is added to tasks.md, then implemented; the one file a later command adds to
+    assert "ONLY those task(s) that have been assigned to you" in impl and "add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first" in impl
+    assert "`tasks.md` is the one exception" in docs["core-workflow.md"]
     # T2: the test-writing standard without the three lines that hold tests back
     for gone in ("Write Minimal Tests During Development", "Test Only Core User Flows", "Defer Edge Case Testing"):
         assert gone not in impl, gone
@@ -134,6 +137,25 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
     assert len(rub["items"]) + len(report["dropped_items"]) == 207 and len(rub["items"]) >= 150
+
+
+def test_adding_a_task_while_implementing_is_allowed_and_rewording_one_is_not():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward.checks import _only_adds
+
+    assert _only_adds(["a", "b"], ["a", "x", "b", "y"]) and _only_adds(["Total Tasks: 8", "a"], ["Total Tasks: 9", "a", "b"])
+    assert not _only_adds(["a", "b"], ["a", "B"]) and not _only_adds(["a", "b"], ["b", "a"]) and not _only_adds(["a", "b"], ["a"])
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    item = next(it for it in rub.items if it.id.endswith("tasks.later_edits"))
+    assert item.check.params.get("additions") is True
+    run, col = golden.golden(rub, variant="added_task")
+    assert engine.evaluate(rub, run, col).scores.compliance == 1.0
+    item.check.params.pop("additions")  # agentos_v2's rule: ticks only
+    assert engine.evaluate(rub, run, col).scores.compliance < 1.0
 
 
 def test_golden_run_scores_full_marks():

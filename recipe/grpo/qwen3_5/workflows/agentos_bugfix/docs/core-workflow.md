@@ -51,14 +51,15 @@ S/
 │   ├── initialization.md      shape-spec PHASE 1: the task description, unchanged
 │   └── requirements.md        shape-spec PHASE 2: questions with your assumed answers, reuse findings
 ├── spec.md                    write-spec
-├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes
+├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes and may add tasks
 ├── checks/                    the task groups' tests that are written as scripts; any scratch file
 └── verifications/
     └── final-verification.md  implement-tasks PHASE 3
 ```
 
 No command creates `S/checks/`; make it the first time you need it. Write each file in the structure its
-document gives, and leave a file alone once its command is over, except for the checkboxes in `tasks.md`.
+document gives, and leave a file alone once its command is over. `tasks.md` is the one exception:
+implement-tasks ticks its checkboxes, and adds a task when the change needs work no task covers.
 
 ## Nobody is on the other side
 

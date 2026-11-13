@@ -95,6 +95,7 @@ REWORD = (
     ("- [ ] 1.0 Complete database layer", "- [ ] 1.0 Complete [the change in this area]"),
     # quotes agentos_v2's rubric still carries from before its 2026-11-07 / 11-13 wording fixes
     ("The tests the task groups call for are scripts in `S/checks/`.", "The tests the task groups call for are scripts in `S/checks/`"),
+    ("leave a file alone once its command is over, except for the checkboxes in `tasks.md`.", "leave a file alone once its command is over."),
     ("the tests the task groups call for, as scripts; any scratch file", "the task groups' tests that are written as scripts; any scratch file"),
     ("checks/`, not repository test files) and ensuring those tests pass.", "checks/` ... and ensuring they pass."),
     # T1 test scope
@@ -231,6 +232,11 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
         p["section"] = SUITE_NEW
     if kind == f"{NEW}.report" and p.get("rule") in ("test_counts", "failed_listed", "suite_status"):
         p["suite_section"] = SUITE_NEW
+    if kind == f"{NEW}.tasks" and it["stage"] == "create_tasks" and it["target"].get("state", "final") == "final":
+        it["target"]["state"] = "stage_end"  # T3: what create-tasks wrote, not tasks.md after implement-tasks added to it
+    if kind == f"{NEW}.tasks" and p.get("rule") == "later_edits":  # T3: implement-tasks may add tasks
+        p["additions"] = True
+        it["note"] = "after create-tasks, every write of tasks.md only ticks boxes, marks them ⚠️ or adds task lines; no earlier line is reworded or removed"
     if "six" in (it.get("note") or "") and kind == "cross_ref":
         it["note"] = it["note"].replace("the template's six", "the template's four")
 

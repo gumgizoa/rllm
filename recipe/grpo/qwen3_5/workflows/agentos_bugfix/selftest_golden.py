@@ -23,7 +23,10 @@ TODAY = "2026-10-16"
 NAME = "slugify-edge-hyphens"
 S = f"{SPECS}/{TODAY}-{NAME}"
 CHECKS = f"{S}/checks"
-VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task")  # no follow-up questions in this workflow
+# no follow-up questions in this workflow; "added_task": a sub-task the tasks missed is added to tasks.md while
+# implementing (implement-tasks PHASE 2), then implemented and ticked
+VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task")
+ADDED_TASK = "2.4 Name the sep argument in the package docstring of textkit/__init__.py"
 
 ISSUE = """slugify() leaves hyphens at the edges: slugify("Hello, World!") returns "hello-world-" and
 slugify("  --Draft-- ") returns "-draft-". A slug should never start or end with a hyphen.
@@ -349,7 +352,7 @@ Make `slugify` return slugs that never start or end with the separator, and let 
 """
 
 
-def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozenset()) -> str:
+def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozenset(), added: bool = False) -> str:
     def t(tid: str, text: str, indent: str = "  ") -> str:
         if tid in warned:
             box = "⚠️"
@@ -368,7 +371,7 @@ def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozense
         "    - Titles ending or starting with punctuation give no edge hyphen",
         t("1.2", "Trim the separator from both ends of the slug in textkit/slug.py"),
         t("1.3", "Ensure the edge tests pass"),
-        "    - Run ONLY checks/check_edges.py",
+        "    - Run checks/check_edges.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
         "",
         "**Acceptance Criteria:**",
         "- check_edges.py passes",
@@ -384,7 +387,8 @@ def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozense
         "    - A custom separator is used inside and trimmed at the ends",
         t("2.2", "Add the sep keyword argument to slugify in textkit/slug.py"),
         t("2.3", "Ensure the separator tests pass"),
-        "    - Run ONLY checks/check_sep.py",
+        "    - Run checks/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
+        *([t("2.4", ADDED_TASK[4:])] if added else []),
         "",
         "**Acceptance Criteria:**",
         "- check_sep.py passes",
@@ -521,6 +525,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         raise ValueError(f"unknown variant {variant!r}; known: {VARIANTS}")
     v = {variant} if variant else set()
     review, follow, failures, warn = "review_group" in v, "followups" in v, "suite_failures" in v, "warn_task" in v
+    added = "added_task" in v
     docs = _docs()
     s = _Steps(heredoc="heredoc_writes" in v)
     tasks_path = f"{S}/tasks.md"
@@ -596,6 +601,12 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     tick("2.1")
     s.replace(f"{WORKDIR}/textkit/slug.py", G1_BODY, G2_BODY)
     tick("2.2")
+    if added:
+        # the package docstring describes slugify: no task covers it, so it is added to tasks.md, then done
+        last = "    - Run checks/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)"
+        s.replace(tasks_path, last, f"{last}\n  - [ ] {ADDED_TASK}")
+        s.replace(f"{WORKDIR}/textkit/__init__.py", '"""Small text helpers."""', '"""Small text helpers: slugify(text, sep="-") and wrap."""')
+        tick("2.4")
     run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
     run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")  # the tests written so far, on the changed code
     run_existing()
@@ -610,7 +621,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
         tick("3.4", "3.0")
     # ---------------------------------------------------------------- PHASE 3
-    final_tasks = tasks_md(done, review)
+    final_tasks = tasks_md(done, review, added=added)
     s.cat(tasks_path, final_tasks)
     if warn:
         # Step 1's spot check: the README still documents slugify without sep, so 2.2 is found incomplete and marked

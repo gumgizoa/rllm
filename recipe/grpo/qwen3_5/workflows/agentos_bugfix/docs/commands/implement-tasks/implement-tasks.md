@@ -22,7 +22,7 @@ Read `/tmp/agent-os/specs/[this-spec]/tasks.md` to review the available task gro
 
 Now that you have the task group(s) to be implemented, proceed with implementation by following these instructions:
 
-Implement all tasks assigned to you and ONLY those task(s) that have been assigned to you. The tasks assigned to you are those of the current task group: one task group per pass of PHASE 2.
+Implement all tasks assigned to you and ONLY those task(s) that have been assigned to you. The tasks assigned to you are those of the current task group: one task group per pass of PHASE 2. If, while implementing, you find work the change needs that no task covers (another file to change, a case the tasks miss), add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first, as a new sub-task of the current task group or as a new task group at the end, and implement it as an assigned task. Add lines only: do not reword or remove the tasks that are there.
 
 ## Implementation process:
 
