@@ -18,7 +18,7 @@ This stage checks the fix report of the same round:
 - `BUG_DIR` is `/tmp/speckit/bugs/issue/`. `BUG_DIR/assessment.md` MUST exist.
 - This round's fix report MUST exist. If not, carry out this round's fix stage first (`/speckit/stages/02-fix.md`).
 - Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round.
-- Read both `assessment.md` and this round's fix report in full so you know:
+- Ground the validation in `assessment.md` and this round's fix report (both are already in your context):
   - The original symptom and reproduction steps (from `assessment.md`).
   - The actual code changes and checks added (from this round's fix report).
 

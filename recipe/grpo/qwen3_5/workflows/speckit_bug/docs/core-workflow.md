@@ -49,6 +49,6 @@ report, and continue. A stage ends by moving on to the next stage, not by replyi
   **Deviations from Assessment**).
 - **Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and
   the `- **Field**:` lines.
-- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`.
-  Do not add or edit test files in the repository.
+- **Checks you write** (reproduction scripts and the like) go in
+  `/tmp/speckit/bugs/issue/checks/`.
 - Only the fix stage edits the repository. The assess and test stages read it and run commands.

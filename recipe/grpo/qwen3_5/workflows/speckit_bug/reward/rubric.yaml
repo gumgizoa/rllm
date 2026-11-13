@@ -736,22 +736,22 @@ sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: f6ea8ea1fb988d41fb7a698b2d422f3c28f4773cf6ac23b88d9e337d97459791
+  sha256: 9ac1670da4f22ddd1263df19f5639bf3b33f78802b996bb30e4e66fc3cc314ac
   container_path: /speckit/core-workflow.md
 - id: AS
   path: docs/stages/01-assess.md
   role: stage_rule
-  sha256: 30cbcef8c73f5d5c62e87fbf9a56e55ab4917ba82f6e42b12dd0081bb36df759
+  sha256: 94a5f54690d40878053f4dcad2e91132df594d115c31f76be56d173808bea3fe
   container_path: /speckit/stages/01-assess.md
 - id: FX
   path: docs/stages/02-fix.md
   role: stage_rule
-  sha256: 701743f519d85a2f2b9dda03c33db43b698de2a1b7b1135af6fc1cd3a07bda1e
+  sha256: 0c26cb8d8044d1d4614386c685b3365d043d17c6086ccec0898cc317d149dce0
   container_path: /speckit/stages/02-fix.md
 - id: TS
   path: docs/stages/03-test.md
   role: stage_rule
-  sha256: 12eb91250493f0e7f389266fdf828f385582ca64ce4cbd9d3f09c8e9b5ddb85c
+  sha256: 3c95e41749b7c5f4c07b9cbe09c908c190aa6e9dc633a2fbfbfb466e909b0915
   container_path: /speckit/stages/03-test.md
 - id: INS
   path: instruction.md
@@ -4664,39 +4664,6 @@ items:
   template: ''
   log_only: false
   note: no majority among 2 samples (kinds ['order'])
-- id: speckit_bug.fix.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: fix
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-  requirement: must
-  modality_evidence: imperative (FX:20 'Read ... in full')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: FX
-    lines:
-    - 20
-    - 20
-    quote: '- Read `BUG_DIR/assessment.md` in full.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'read in the fix window: assessment'
 - id: speckit_bug.fix.run.speckit_bug_check_scripts.before_change
   scope: specific
   class: evidence
@@ -4770,7 +4737,7 @@ items:
   - doc: CW
     lines:
     - 52
-    - 52
+    - 53
     quote: '- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`.'
   impl_refs: []
   derived_by: manual
@@ -6649,71 +6616,6 @@ items:
   template: ''
   log_only: false
   note: no majority among 2 samples (kinds ['order'])
-- id: speckit_bug.test.unimplemented.unimplemented.3
-  scope: specific
-  class: content
-  stage: test
-  target:
-    type: action
-    ref: unimplemented
-    state: final
-  check:
-    kind: unimplemented
-    params: {}
-  requirement: should
-  modality_evidence: 'statement ts-009 (must); dict must (''imperative:Read'' at TS:21); lowered: unimplemented'
-  none_allowed: '-'
-  applies_when: null
-  weight: 0.0
-  gate: null
-  availability:
-  - sandbox_file
-  sources:
-  - doc: TS
-    lines:
-    - 21
-    - 23
-    quote: 'Read both `assessment.md` and this round''s fix report in full so you know: ... The original symptom and reproduction
-      steps ... The actual code changes and checks added'
-  impl_refs: []
-  derived_by: llm_extract
-  template: ''
-  log_only: false
-  note: no majority among 2 samples (kinds ['speckit_bug.read'])
-- id: speckit_bug.test.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: test
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-      - fix
-  requirement: must
-  modality_evidence: imperative (TS:21 'Read both ... in full')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: TS
-    lines:
-    - 21
-    - 21
-    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: assessment.md and fix.md read in the test window
 - id: speckit_bug.test.run.speckit_bug_check_scripts.run
   scope: specific
   class: evidence
@@ -8599,63 +8501,6 @@ items:
   log_only: false
   note: when the section records a command (a code span), one of them is a valid test run made before this round's first repository
     edit (round 1's baseline stands, FX:34); not applicable when it names none
-- id: speckit_bug.fix_2.run.doc_read.fx
-  scope: common
-  class: evidence
-  stage: fix_2
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: doc_read
-    params:
-      doc: FX
-      single_doc: true
-      min_coverage: 0.5
-  requirement: must
-  modality_evidence: imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_2
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 15
-    - 15
-    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
-  - doc: INS
-    lines:
-    - 5
-    - 6
-    quote: When you reach a stage, open its document before doing anything else for that stage
-  - doc: SP
-    lines:
-    - 67
-    - 68
-    quote: On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document
-      describes.
-  - doc: TS
-    lines:
-    - 97
-    - 98
-    quote: '`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round''s fix
-      stage'
-  impl_refs: []
-  derived_by: manual
-  template: C-A2
-  log_only: false
-  note: 02-fix.md read (alone in its call, at least half of it seen) in the round-2 fix window
 - id: speckit_bug.fix_2.run.exec_evidence.local_tests
   scope: specific
   class: evidence
@@ -8751,54 +8596,6 @@ items:
   template: C-A6
   log_only: false
   note: no repository write in this fix window before 02-fix.md is read in it
-- id: speckit_bug.fix_2.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: fix_2
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-      - fix
-      - test
-  requirement: must
-  modality_evidence: imperative (FX:20 'Read ... in full'; FX:21 'also read')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_2
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: FX
-    lines:
-    - 20
-    - 20
-    quote: '- Read `BUG_DIR/assessment.md` in full.'
-  - doc: FX
-    lines:
-    - 21
-    - 21
-    quote: '- In rounds 2 and 3, also read the previous round''s fix report and verification report in full: what failed there
-      is the new evidence this round answers.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'read in the fix window: assessment, fix, test'
 - id: speckit_bug.fix_2.run.speckit_bug_check_scripts.before_change
   scope: specific
   class: evidence
@@ -10389,62 +10186,6 @@ items:
   log_only: false
   note: a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the
     lint / type-check row is not one of the verdict's conditions)
-- id: speckit_bug.test_2.run.doc_read.ts
-  scope: common
-  class: evidence
-  stage: test_2
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: doc_read
-    params:
-      doc: TS
-      single_doc: true
-      min_coverage: 0.5
-  requirement: must
-  modality_evidence: imperative (CW:15; INS:5-6; SP:67; FX:99-100)
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_2
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 15
-    - 15
-    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
-  - doc: INS
-    lines:
-    - 5
-    - 6
-    quote: When you reach a stage, open its document before doing anything else for that stage
-  - doc: SP
-    lines:
-    - 67
-    - 68
-    quote: On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document
-      describes.
-  - doc: FX
-    lines:
-    - 99
-    - 100
-    quote: Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage.
-  impl_refs: []
-  derived_by: manual
-  template: C-A2
-  log_only: false
-  note: 03-test.md read (alone in its call, at least half of it seen) in the round-2 test window
 - id: speckit_bug.test_2.run.exec_evidence.tests
   scope: specific
   class: evidence
@@ -10542,47 +10283,6 @@ items:
   template: C-A6
   log_only: false
   note: no write into the repository in the test window
-- id: speckit_bug.test_2.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: test_2
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-      - fix_2
-  requirement: must
-  modality_evidence: imperative (TS:21 'Read both ... in full')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_2
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: TS
-    lines:
-    - 21
-    - 21
-    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: assessment.md and fix-2.md read in the test window
 - id: speckit_bug.test_2.run.speckit_bug_check_scripts.run
   scope: specific
   class: evidence
@@ -12385,63 +12085,6 @@ items:
   log_only: false
   note: when the section records a command (a code span), one of them is a valid test run made before this round's first repository
     edit (round 1's baseline stands, FX:34); not applicable when it names none
-- id: speckit_bug.fix_3.run.doc_read.fx
-  scope: common
-  class: evidence
-  stage: fix_3
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: doc_read
-    params:
-      doc: FX
-      single_doc: true
-      min_coverage: 0.5
-  requirement: must
-  modality_evidence: imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test_2
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_3
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 15
-    - 15
-    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
-  - doc: INS
-    lines:
-    - 5
-    - 6
-    quote: When you reach a stage, open its document before doing anything else for that stage
-  - doc: SP
-    lines:
-    - 67
-    - 68
-    quote: On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document
-      describes.
-  - doc: TS
-    lines:
-    - 97
-    - 98
-    quote: '`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round''s fix
-      stage'
-  impl_refs: []
-  derived_by: manual
-  template: C-A2
-  log_only: false
-  note: 02-fix.md read (alone in its call, at least half of it seen) in the round-3 fix window
 - id: speckit_bug.fix_3.run.exec_evidence.local_tests
   scope: specific
   class: evidence
@@ -12537,54 +12180,6 @@ items:
   template: C-A6
   log_only: false
   note: no repository write in this fix window before 02-fix.md is read in it
-- id: speckit_bug.fix_3.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: fix_3
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-      - fix_2
-      - test_2
-  requirement: must
-  modality_evidence: imperative (FX:20 'Read ... in full'; FX:21 'also read')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test_2
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_3
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: FX
-    lines:
-    - 20
-    - 20
-    quote: '- Read `BUG_DIR/assessment.md` in full.'
-  - doc: FX
-    lines:
-    - 21
-    - 21
-    quote: '- In rounds 2 and 3, also read the previous round''s fix report and verification report in full: what failed there
-      is the new evidence this round answers.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'read in the fix window: assessment, fix_2, test_2'
 - id: speckit_bug.fix_3.run.speckit_bug_check_scripts.before_change
   scope: specific
   class: evidence
@@ -14175,62 +13770,6 @@ items:
   log_only: false
   note: a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the
     lint / type-check row is not one of the verdict's conditions)
-- id: speckit_bug.test_3.run.doc_read.ts
-  scope: common
-  class: evidence
-  stage: test_3
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: doc_read
-    params:
-      doc: TS
-      single_doc: true
-      min_coverage: 0.5
-  requirement: must
-  modality_evidence: imperative (CW:15; INS:5-6; SP:67; FX:99-100)
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test_2
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_3
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 15
-    - 15
-    quote: Read a stage's document as the first step of that stage, and carry out the stage from it.
-  - doc: INS
-    lines:
-    - 5
-    - 6
-    quote: When you reach a stage, open its document before doing anything else for that stage
-  - doc: SP
-    lines:
-    - 67
-    - 68
-    quote: On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document
-      describes.
-  - doc: FX
-    lines:
-    - 99
-    - 100
-    quote: Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage.
-  impl_refs: []
-  derived_by: manual
-  template: C-A2
-  log_only: false
-  note: 03-test.md read (alone in its call, at least half of it seen) in the round-3 test window
 - id: speckit_bug.test_3.run.exec_evidence.tests
   scope: specific
   class: evidence
@@ -14328,47 +13867,6 @@ items:
   template: C-A6
   log_only: false
   note: no write into the repository in the test window
-- id: speckit_bug.test_3.run.speckit_bug_read.reports
-  scope: specific
-  class: evidence
-  stage: test_3
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.read
-    params:
-      artifacts:
-      - assessment
-      - fix_3
-  requirement: must
-  modality_evidence: imperative (TS:21 'Read both ... in full')
-  none_allowed: '-'
-  applies_when:
-    any:
-    - field_matches:
-        artifact: test_2
-        section: '*'
-        label: Result
-        pattern: ^\W*(?:partial|failed)\b
-    - artifact_exists: fix_3
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: TS
-    lines:
-    - 21
-    - 21
-    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: assessment.md and fix-3.md read in the test window
 - id: speckit_bug.test_3.unimplemented.unimplemented
   scope: specific
   class: content
@@ -14683,42 +14181,6 @@ items:
   log_only: false
   note: 'round 3 (when the previous verification report''s Result is partial or failed, or round 3 was run): the previous
     report, then fix-3.md, then test-3.md, each written once'
-- id: speckit_bug.global.run.prohibited_action.test_file_write
-  scope: common
-  class: evidence
-  stage: global
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: prohibited_action
-    params:
-      action: test_file_write
-  requirement: must
-  modality_evidence: prohibition (CW:53 'Do not add or edit test files')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 53
-    - 53
-    quote: Do not add or edit test files in the repository.
-  - doc: FX
-    lines:
-    - 36
-    - 36
-    quote: Do not add or edit test files in the repository.
-  impl_refs: []
-  derived_by: manual
-  template: C-A6
-  log_only: false
-  note: no edit of a test file that existed at BASE_SHA
 - id: speckit_bug.global.unimplemented.unimplemented
   scope: specific
   class: content
@@ -14956,7 +14418,7 @@ items:
   - doc: CW
     lines:
     - 52
-    - 52
+    - 53
     quote: '- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`.'
   impl_refs: []
   derived_by: manual
@@ -14964,43 +14426,6 @@ items:
   log_only: false
   note: no report, reproduction / debug / scratch script or summary note created in the repository (a file absent at BASE_SHA
     named like one), kept or removed again
-- id: speckit_bug.global.run.speckit_bug_created_files.tests
-  scope: specific
-  class: evidence
-  stage: global
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: speckit_bug.created_files
-    params:
-      test_paths: true
-  requirement: must
-  modality_evidence: prohibition (CW:53 'Do not add')
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 53
-    - 53
-    quote: Do not add or edit test files in the repository.
-  - doc: AS
-    lines:
-    - 45
-    - 45
-    quote: 'Do not plan to add or edit test files in the repository: the task''s tests are already in place.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'no test file created in the repository (a test_*.py / tests/ path absent at BASE_SHA), kept or removed again: checks
-    go in BUG_DIR/checks/'
 - id: speckit_bug.global.unimplemented.unimplemented.5
   scope: specific
   class: content
@@ -15220,23 +14645,6 @@ conflicts:
     - 40
     quote: 'Never stop to ask or to report: when something is unclear, take the most plausible reading, record it in the current
       report, and continue.'
-- type: documented
-  description: 'The test stage reads the fix report it just followed (TS:21) and the fix stage the assessment it just wrote
-    (FX:20): both reports are in the agent''s own context'
-  resolution: the reads are required as written (must, in the stage's window); a check of the file right after writing it,
-    inside the next stage's window, counts
-  items: []
-  sources:
-  - path: docs/stages/02-fix.md
-    lines:
-    - 20
-    - 20
-    quote: '- Read `BUG_DIR/assessment.md` in full.'
-  - path: docs/stages/03-test.md
-    lines:
-    - 21
-    - 21
-    quote: '- Read both `assessment.md` and this round''s fix report in full so you know:'
 - type: critic
   items:
   - speckit_bug.fix.run.speckit_bug_check_scripts.written
