@@ -540,7 +540,7 @@ EDITS: tuple[Edit, ...] = (
         "and ends with running ONLY those tests (final sub-task)",
         "- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) "
         "and ends with running ONLY those tests (final sub-task)\n"
-        "- **Write these tests as check scripts outside the repository**: every test a task group writes (the x.1 "
+        "- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes (the x.1 "
         "sub-task, and the additional tests of a test-review group) is a script under "
         "`agent-os/specs/[this-spec]/checks/`, run on its own, or a new test function added to the existing repository "
         "test module that covers the changed code; never change or remove an existing test line. "
