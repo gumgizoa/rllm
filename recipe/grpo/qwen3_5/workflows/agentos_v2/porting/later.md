@@ -72,6 +72,7 @@ only after the user said yes to recording it.
   - Python packaging files as the example: `shape-spec.md:108`
   - the test rule that assumes hidden-test grading: `core-workflow.md:84-86`, `create-tasks.md:215`,
     `implement-tasks.md:39`
+    (2026-11-14: the user decided this rule stays as it is; it is a general rule, not one dataset's)
 - **Why**: the port was written against the SWE-Gym message (`scripts/prepare_swegym.py`
   `INSTRUCTION_TEMPLATE_AIDLC`: tagged issue plus four condition lines). The SWE-bench Verified evaluation
   message is the bare issue text with no tag and none of those lines (checked in one episode each of
@@ -82,4 +83,7 @@ only after the user said yes to recording it.
   message") versus one paragraph of task conditions swapped per dataset (needs a slot in `workflows/spec.py`,
   which today only swaps the system prompt per harness); what feature-development tasks give as input; whether
   the test rule belongs to the workflow or to the dataset's conditions; the same change in the other three ports.
+- **Done so far** (2026-11-14): `workflows/agentos_bugfix` carries the neutral wording for the tag, "the issue",
+  the only-input sentence and `/testbed` (its `CHANGES.md`, G); the packaging example went with the step that
+  held it. agentos_v2 itself and the other three ports are unchanged.
 - **Origin**: review of 2026-11-13 (task `2026-11-13-agentos-v2-resolve-review`, LOG 16:05 and 16:40).
