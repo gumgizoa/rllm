@@ -31,6 +31,9 @@ And one rule is changed rather than cut:
   verification) both become the tests written plus the existing tests of the changed code. Upstream's two ends
   left the existing tests unrun while the code changed and asked for a run at the end that seldom happened
   (6.8% of evaluation runs, a third of them timing out).
+* T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
+  flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
+  reproduces it is such a test.
 
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
 issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
@@ -53,7 +56,8 @@ HERE = Path(__file__).resolve().parent
 OUT_DIR = HERE / "docs"
 
 COMMANDS = base.COMMANDS
-SOURCES = base.SOURCES
+# agentos_v2's sources plus the one standard this workflow edits (T2)
+SOURCES = {**base.SOURCES, "std/testing/test-writing": (base.PROFILE + "/standards/testing/test-writing.md",) * 2}
 UPSTREAM_COMMIT = base.UPSTREAM_COMMIT
 
 _STD = base.PROFILE + "/standards/"
@@ -195,6 +199,9 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "  - Test verification should run ONLY the newly written tests, not the entire suite",
          "  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite", "T1: test scope"),
         ("sub", "and ends with running ONLY those tests (final sub-task)", "and ends with running those tests and the existing tests of the changed code (final sub-task)", "T1: test scope"),
+    ),
+    "std/testing/test-writing": (
+        ("span", "- **Write Minimal Tests During Development**", "- **Test Behavior, Not Implementation**", "", "T2: the three lines that hold tests back"),
     ),
     "wf/run-all-tests": (
         ("sub", "Run the entire tests suite for the application so that ALL tests run.",

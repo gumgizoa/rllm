@@ -232,7 +232,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 71ce93813963481e522b158a7a94effac787d51c0fd090e5cb62799ec2e89a54
+  sha256: d3b4395abe64e14cb0507dbe04d00bacc47970d29ad60689f0d89131be189071
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -3778,8 +3778,8 @@ items:
       by updating their checkbox to checked state: `- [x]`'
   - doc: IT
     lines:
-    - 122
-    - 122
+    - 119
+    - 119
     quote: Check `/tmp/agent-os/specs/[this-spec]/tasks.md` and ensure that all tasks and their sub-tasks are marked as completed
       with `- [x]`.
   - doc: CW
@@ -3848,8 +3848,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 141
-    - 141
+    - 138
+    - 138
     quote: Create your final verification report in `/tmp/agent-os/specs/[this-spec]/verifications/final-verification.md`.
   - doc: CW
     lines:
@@ -3886,13 +3886,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 155
-    - 155
+    - 152
+    - 152
     quote: '## Executive Summary'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -3924,13 +3924,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 187
-    - 187
+    - 184
+    - 184
     quote: '### Failed Tests'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -3962,13 +3962,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 172
-    - 172
+    - 169
+    - 169
     quote: '### Incomplete or Issues'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4000,18 +4000,18 @@ items:
   sources:
   - doc: IT
     lines:
-    - 190
-    - 190
+    - 187
+    - 187
     quote: '### Notes'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 190
-    - 190
+    - 187
+    - 187
     quote: '### Notes'
   impl_refs: []
   derived_by: template_compiler
@@ -4043,13 +4043,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 181
-    - 181
+    - 178
+    - 178
     quote: '### Test Summary'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4081,13 +4081,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 185
-    - 185
+    - 182
+    - 182
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4119,13 +4119,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 184
-    - 184
+    - 181
+    - 181
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4157,13 +4157,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 183
-    - 183
+    - 180
+    - 180
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4195,13 +4195,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 179
+    - 179
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4237,8 +4237,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 151
-    - 151
+    - 148
+    - 148
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   impl_refs: []
   derived_by: manual
@@ -4273,8 +4273,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 163
-    - 163
+    - 160
+    - 160
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   impl_refs: []
   derived_by: manual
@@ -4310,8 +4310,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 176
+    - 176
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: manual
@@ -4342,13 +4342,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 157
-    - 157
+    - 154
+    - 154
     quote: '[Brief 2-3 sentence overview of the verification results and overall implementation quality]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4379,13 +4379,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 188
-    - 188
+    - 185
+    - 185
     quote: '[List any failing tests with their descriptions, or note "None - all tests passing"]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4416,13 +4416,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 173
-    - 173
+    - 170
+    - 170
     quote: '[List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4453,13 +4453,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 191
-    - 191
+    - 188
+    - 188
     quote: '[Any additional context about test results, known issues, or regressions]'
   impl_refs: []
   derived_by: template_compiler
@@ -4491,13 +4491,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 185
-    - 185
+    - 182
+    - 182
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4529,13 +4529,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 184
-    - 184
+    - 181
+    - 181
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4567,13 +4567,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 183
-    - 183
+    - 180
+    - 180
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4605,13 +4605,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 179
+    - 179
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4643,18 +4643,18 @@ items:
   sources:
   - doc: IT
     lines:
-    - 161
-    - 161
+    - 158
+    - 158
     quote: '## 1. Tasks Verification'
   - doc: IT
     lines:
-    - 177
-    - 177
+    - 174
+    - 174
     quote: '## 2. Test Suite Results'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4686,13 +4686,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 146
-    - 146
+    - 143
+    - 143
     quote: '# Verification Report: [Spec Title]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4724,13 +4724,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 149
-    - 149
+    - 146
+    - 146
     quote: '**Date:** [Current Date]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4762,13 +4762,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 145
+    - 145
     quote: '**Spec:** `[spec-name]`'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4800,23 +4800,23 @@ items:
   sources:
   - doc: IT
     lines:
-    - 151
-    - 151
+    - 148
+    - 148
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 163
-    - 163
+    - 160
+    - 160
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 176
+    - 176
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: template_compiler
@@ -4848,13 +4848,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 150
-    - 150
+    - 147
+    - 147
     quote: '**Verifier:** implementation-verifier'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4888,8 +4888,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 135
-    - 135
+    - 132
+    - 132
     quote: Include these counts and the list of failed tests in your final verification report.
   impl_refs: []
   derived_by: manual
@@ -4933,88 +4933,88 @@ items:
   sources:
   - doc: IT
     lines:
-    - 146
-    - 146
+    - 143
+    - 143
     quote: '# Verification Report: [Spec Title]'
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 145
+    - 145
     quote: '**Spec:** `[spec-name]`'
   - doc: IT
     lines:
-    - 149
-    - 149
+    - 146
+    - 146
     quote: '**Date:** [Current Date]'
   - doc: IT
     lines:
-    - 151
-    - 151
+    - 148
+    - 148
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   - doc: IT
     lines:
-    - 157
-    - 157
+    - 154
+    - 154
     quote: '[Brief 2-3 sentence overview of the verification results and overall implementation quality]'
   - doc: IT
     lines:
-    - 163
-    - 163
+    - 160
+    - 160
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   - doc: IT
     lines:
-    - 166
-    - 166
+    - 163
+    - 163
     quote: '- [x] Task Group 1: [Title]'
   - doc: IT
     lines:
-    - 169
-    - 169
+    - 166
+    - 166
     quote: '- [x] Task Group 2: [Title]'
   - doc: IT
     lines:
-    - 173
-    - 173
+    - 170
+    - 170
     quote: '[List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 176
+    - 176
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 179
+    - 179
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 183
-    - 183
+    - 180
+    - 180
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 184
-    - 184
+    - 181
+    - 181
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 185
-    - 185
+    - 182
+    - 182
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 188
-    - 188
+    - 185
+    - 185
     quote: '[List any failing tests with their descriptions, or note "None - all tests passing"]'
   - doc: IT
     lines:
-    - 191
-    - 191
+    - 188
+    - 188
     quote: '[Any additional context about test results, known issues, or regressions]'
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -5045,14 +5045,14 @@ items:
   sources:
   - doc: IT
     lines:
-    - 129
-    - 129
+    - 126
+    - 126
     quote: IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness
       in your verification report.
   - doc: IT
     lines:
-    - 172
-    - 173
+    - 169
+    - 170
     quote: '### Incomplete or Issues [List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   impl_refs: []
   derived_by: manual
@@ -5084,14 +5084,14 @@ items:
   sources:
   - doc: IT
     lines:
-    - 133
-    - 135
+    - 130
+    - 132
     quote: Verify how many tests are passing and how many have failed or produced errors. Include these counts and the list
       of failed tests in your final verification report.
   - doc: IT
     lines:
-    - 181
-    - 185
+    - 178
+    - 182
     quote: '### Test Summary - **Total Tests:** [count] - **Passing:** [count] - **Failing:** [count] - **Errors:** [count]'
   impl_refs: []
   derived_by: manual
@@ -5123,13 +5123,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 135
-    - 135
+    - 132
+    - 132
     quote: Include these counts and the list of failed tests in your final verification report.
   - doc: IT
     lines:
-    - 137
-    - 137
+    - 134
+    - 134
     quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
   impl_refs: []
   derived_by: manual
@@ -5159,8 +5159,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 145
+    - 145
     quote: '**Spec:** `[spec-name]`'
   impl_refs: []
   derived_by: manual
@@ -5190,8 +5190,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 161
-    - 163
+    - 158
+    - 160
     quote: '## 1. Tasks Verification **Status:** ✅ All Complete | ⚠️ Issues Found'
   impl_refs: []
   derived_by: manual
@@ -5223,8 +5223,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 177
-    - 179
+    - 174
+    - 176
     quote: '## 2. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: manual
@@ -5555,8 +5555,8 @@ items:
       PHASE 3 below.
   - doc: IT
     lines:
-    - 137
-    - 137
+    - 134
+    - 134
     quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
   impl_refs: []
   derived_by: manual
@@ -5700,8 +5700,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 120
-    - 122
+    - 117
+    - 119
     quote: '### Step 1: Ensure tasks.md has been updated Check `/tmp/agent-os/specs/[this-spec]/tasks.md` and ensure that
       all tasks and their sub-tasks are marked as completed with `- [x]`.'
   impl_refs: []
@@ -5732,8 +5732,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 133
-    - 133
+    - 130
+    - 130
     quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
       you wrote. ...  Verify how many tests are passing and how many have failed or produced errors.'
   impl_refs: []
@@ -5772,8 +5772,8 @@ items:
     quote: leave a file alone once its command is over, except for the checkboxes in `tasks.md`.
   - doc: IT
     lines:
-    - 129
-    - 129
+    - 126
+    - 126
     quote: IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness
       in your verification report.
   impl_refs: []
@@ -6750,22 +6750,22 @@ appendix:
     template: spec
   - doc: IT
     lines:
-    - 166
-    - 166
+    - 163
+    - 163
     quote: '- [x] Task Group 1: [Title]'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
   - doc: IT
     lines:
-    - 167
-    - 167
+    - 164
+    - 164
     quote: '- [x] Subtask 1.1'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
   - doc: IT
     lines:
-    - 165
-    - 165
+    - 162
+    - 162
     quote: '### Completed Tasks'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
@@ -7531,83 +7531,43 @@ appendix:
     quote: Apply validation consistently across all entry points (web forms, API endpoints, background jobs)
     modality: must
     reason: 'G4: not checkable by rule ()'
-  - statement: it-117
-    doc: IT
-    lines:
-    - 106
-    - 106
-    quote: Do NOT write tests for every change or intermediate step.
-    modality: prohibition
-    reason: 'G4: not checkable by rule ()'
-  - statement: it-118
-    doc: IT
-    lines:
-    - 106
-    - 106
-    quote: Focus on completing the feature implementation first, then add strategic tests only at logical completion points
-    modality: must
-    reason: 'G4: not checkable by rule ()'
-  - statement: it-119
-    doc: IT
-    lines:
-    - 107
-    - 107
-    quote: Write tests exclusively for critical paths and primary user workflows.
-    modality: must
-    reason: 'G4: not checkable by rule ()'
-  - statement: it-120
-    doc: IT
-    lines:
-    - 107
-    - 107
-    quote: Skip writing tests for non-critical utilities and secondary workflows until if/when you're instructed to do so.
-    modality: prohibition
-    reason: 'G4: not checkable by rule ()'
-  - statement: it-121
-    doc: IT
-    lines:
-    - 108
-    - 108
-    quote: Do NOT test edge cases, error states, or validation logic unless they are business-critical.
-    modality: prohibition
-    reason: 'G4: not checkable by rule ()'
   - statement: it-122
     doc: IT
     lines:
-    - 109
-    - 109
+    - 106
+    - 106
     quote: Focus tests on what the code does, not how it does it, to reduce brittleness
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-123
     doc: IT
     lines:
-    - 110
-    - 110
+    - 107
+    - 107
     quote: Use descriptive names that explain what's being tested and the expected outcome
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-124
     doc: IT
     lines:
-    - 111
-    - 111
+    - 108
+    - 108
     quote: Isolate units by mocking databases, APIs, file systems, and other external services
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-125
     doc: IT
     lines:
-    - 112
-    - 112
+    - 109
+    - 109
     quote: Keep unit tests fast (milliseconds) so developers run them frequently during development
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-128
     doc: IT
     lines:
-    - 124
-    - 125
+    - 121
+    - 122
     quote: 'If a task is still marked incomplete, then verify that it has in fact been completed by checking the following:
       - Run a brief spot check in the code'
     modality: must
@@ -7615,16 +7575,16 @@ appendix:
   - statement: it-136
     doc: IT
     lines:
-    - 133
-    - 133
+    - 130
+    - 130
     quote: Verify how many tests are passing and how many have failed or produced errors.
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-138
     doc: IT
     lines:
-    - 137
-    - 137
+    - 134
+    - 134
     quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
     modality: prohibition
     reason: 'G4: not checkable by rule ()'
@@ -7912,8 +7872,8 @@ appendix:
   - statement: it-140
     doc: IT
     lines:
-    - 143
-    - 143
+    - 140
+    - 140
     quote: 'The content of this report should follow this structure:'
     modality: should
     reason: The report skeleton (title, fields, sections) is already compiled from the template. This statement adds no rule
