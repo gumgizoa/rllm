@@ -32,7 +32,9 @@ repository prohibitions and the test runs. What they cannot say:
                                  path it names (ratio; a box ticked untraceably fails)
       {rule: groups_in_order}    the groups are ticked in order: group k's last tick is not after group k+1's first
                                  (ratio over adjacent pairs)
-      {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio)
+      {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio);
+                                 with ``additions: true`` a write may also add lines (new tasks) and change the
+                                 ``Total Tasks`` line, as long as every earlier line is still there, in order
 
 * ``agentos_v2.checks`` -- the check scripts under ``S/checks/`` (``dir``)::
 
@@ -602,6 +604,15 @@ def _norm_box(text: str) -> list[str]:
     return out
 
 
+_TOTAL_LINE = re.compile(r"(?i)^\s*(?:[-*+]\s+)?(?:\*\*)?Total\s+Tasks")
+
+
+def _only_adds(prev: list[str], new: list[str]) -> bool:
+    """``new`` is ``prev`` with lines added (the ``Total Tasks`` line may differ): no earlier line gone or reworded."""
+    it = iter(ln for ln in new if not _TOTAL_LINE.match(ln))
+    return all(any(ln == x for x in it) for ln in prev if not _TOTAL_LINE.match(ln))
+
+
 def _prior(ctx: EvalContext, path: str, e) -> str | None:
     prev = None
     for x in ctx.facts.writes.get(path, []):
@@ -615,7 +626,7 @@ def _prior(ctx: EvalContext, path: str, e) -> str | None:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits")},
@@ -725,11 +736,11 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             if prev is None or new is None:
                 bad.append(f"step {e.step}: content unknown")
                 continue
-            if _norm_box(prev) == _norm_box(new):
+            if _norm_box(prev) == _norm_box(new) or (p.get("additions") and _only_adds(_norm_box(prev), _norm_box(new))):
                 good += 1
             else:
                 bad.append(f"step {e.step}: {e.op} changes the tasks")
-        return Result.ratio(item, good, len(edits), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only")
+        return Result.ratio(item, good, len(edits), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only" + (" or added tasks" if p.get("additions") else ""))
     return Result.no(item, f"unknown rule {rule!r}")
 
 
