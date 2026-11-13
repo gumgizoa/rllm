@@ -246,7 +246,16 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
         # a pattern that is a literal of agentos_v2's templates goes when this workflow's templates no longer have it;
         # the other patterns (fill marks and the like) are rules, not template text, and stay
         everything = " ".join(d.text for d in docs.values())
-        kept = [x for x in p.get("patterns", []) if ws(_unescape(x)) not in _v2_text() or ws(_unescape(x)) in everything]
+        kept = []
+        for x in p.get("patterns", []):
+            lit = ws(_unescape(x))
+            if lit not in _v2_text() or lit in everything:
+                kept.append(x)
+                continue
+            for old, new in REWORD:  # a placeholder whose wording changed here stays, in its new wording
+                lit = lit.replace(old, new)
+            if lit in everything:
+                kept.append(re.escape(lit))
         report["residue_patterns_dropped"] += len(p.get("patterns", [])) - len(kept)
         p["patterns"] = kept
     if kind == "no_template_residue" and it.get("target", {}).get("ref") == "tasks":

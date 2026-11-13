@@ -141,6 +141,9 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
     assert len(rub["items"]) + len(report["dropped_items"]) == 207 + 1 and len(rub["items"]) >= 150  # + the T4 item
+    # a template placeholder whose wording changed here is still a placeholder left in
+    residue = next(it for it in rub["items"] if it["id"].endswith("shape_spec.requirements.no_template_residue"))
+    assert any("task description or the repository" in x.replace("\\", "") for x in residue["check"]["params"]["patterns"])
 
 
 def test_adding_a_task_while_implementing_is_allowed_and_rewording_one_is_not():
