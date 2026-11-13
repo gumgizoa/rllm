@@ -861,7 +861,7 @@ def _status(text: str, section: str) -> str:
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False},
+    params={"rule": True, "artifact": False, "suite_section": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name")},
@@ -870,6 +870,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
     """rule: test_counts | failed_listed | suite_status | tasks_status | incomplete_listed | spec_name -- final-verification.md against the PHASE 3 runs, tasks.md and the spec folder."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
+    suite = str(p.get("suite_section") or "3. Test Suite Results")  # the report section of the test results, as numbered in the template
     text = _text(ctx, _artifact(item, "final_verification"))
     if text is None:
         return Result.no(item, "final-verification.md absent")
@@ -877,7 +878,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         runs = _phase3_runs(ctx)
         if not runs:
             return Result.no(item, "no valid PHASE 3 test run to compare with")
-        summ = M.section(text, "Test Summary") or M.section(text, "3. Test Suite Results", match="prefix") or text
+        summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
         got = {k: _num(M.field_value(summ, k)) for k in ("Total Tests", "Passing", "Failing", "Errors")}
 
         def score(r) -> int:
@@ -891,7 +892,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
             k = score(best)
             return Result.ratio(item, k, 4, f"step {best.step}: {best.passed} passed / {best.failed} failed / {best.errors} errors vs {got}")
         if rule == "suite_status":
-            st = _status(text, "3. Test Suite Results")
+            st = _status(text, suite)
             if not st:
                 return Result.no(item, "no Test Suite Results Status")
             bad = best.failed + best.errors
