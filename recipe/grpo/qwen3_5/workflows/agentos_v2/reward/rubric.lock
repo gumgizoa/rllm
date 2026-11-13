@@ -10,14 +10,18 @@
   "cli": "2.1.283",
   "model": "claude-opus-5-5"
  },
- "rubric_sha256": "fca7a8623f1b721a4991ee65850280e7d6c6c107935005f3092b05e8847fa12c",
+ "rubric_sha256": "b34ca5e776fb08d415beb49bec3db3553d39528b3e818bb1fb237e4c8acaea4c",
  "sources": {
-  "docs/commands/create-tasks/create-tasks.md": "dfee48c463f7f48c8b1df78c1837cae1ff28d15693c32f550694a537987978bf",
-  "docs/commands/implement-tasks/implement-tasks.md": "7e4effd01a1248e19c58e822a3630ef356177914726cf03a1189c606960fc588",
+  "docs/commands/create-tasks/create-tasks.md": "21c3ee5d5f3fec5d920a55d5ee10d185a5a20aab926877ac383170023af48dbc",
+  "docs/commands/implement-tasks/implement-tasks.md": "de6c13ec1324c39b4ae558dd7a4cebdc45ea77f344cca3e6172b3a14f52ed539",
   "docs/commands/shape-spec/shape-spec.md": "9cce0198e07d56b924780a31359f827c6a3d4f1ef52a2ba8511c2f769b2b6db5",
   "docs/commands/write-spec/write-spec.md": "dab24a7971bb3dbcd0c8a69b0ccbef61f159011b54cb16389ecb30a478d65d0e",
-  "docs/core-workflow.md": "e0510c4b6b4f2b8b8634ec4f6a679e8b5a157790573f5fa8476ce9376e0041d6",
+  "docs/core-workflow.md": "78b13fb466b4c80e9a8f4d05db4304d99ba8ce3dba2504840ab3fbf87c1abbe1",
   "instruction.md": "f9225eebd5c041b8c83f520ed6e071368fe00e112fdec4c222564cf16d30c643",
   "system-prompt.j2": "9bc2fe5eddfa007f8742b812ade98c8d9d3aa23fe01ebc43d9b440cdd481ada3"
+ },
+ "manual_edit": {
+  "date": "2026-11-07",
+  "what": "test_file_write->test_file_modify on the prohibited_action item; created_files.tests log_only; sources re-hashed after v5 test-rule docs rebuild"
  }
 }

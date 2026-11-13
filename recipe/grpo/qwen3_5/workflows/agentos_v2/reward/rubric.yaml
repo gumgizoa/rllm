@@ -7980,10 +7980,10 @@ items:
   check:
     kind: prohibited_action
     params:
-      action: test_file_write
+      action: test_file_modify
   requirement: must
-  modality_evidence: CW:84-85 'No test file in the repository is added or edited'; CT:215 'do not add or change test files
-    in the repository'
+  modality_evidence: 'v5 prohibition: existing test lines never changed or removed; additions to existing test modules allowed
+    (CW:85; CT:215)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7993,19 +7993,23 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
     - 85
-    quote: No test file in the repository is added or edited.
+    - 85
+    quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
     - 215
     - 215
-    quote: do not add or change test files in the repository.
+    quote: '- **Write these tests as check scripts outside the repository**: every test a task group writes (the x.1 sub-task,
+      and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on
+      its own, or a new test function added to the existing repository test module that covers the changed code; never change
+      or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
   derived_by: manual
   template: C-A6
   log_only: false
-  note: no edit of a test file that existed at BASE_SHA
+  note: 'v5: only a write that changes or removes an existing test line counts; a test function added to an existing module
+    is allowed (manual edit 2026-11-07, docs rebuilt from build.py)'
 - id: agentos_v2.global.unimplemented.unimplemented
   scope: specific
   class: content
@@ -8606,8 +8610,8 @@ items:
     params:
       test_paths: true
   requirement: must
-  modality_evidence: CW:84-85 'No test file in the repository is added'; CT:215 every test a task group writes is a script
-    under checks/
+  modality_evidence: 'v5 prohibition: existing test lines never changed or removed; additions to existing test modules allowed
+    (CW:85; CT:215)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8617,20 +8621,23 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
     - 85
-    quote: The tests the task groups call for are scripts in `S/checks/`. No test file in the repository is added or edited.
+    - 85
+    quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
     - 215
     - 215
-    quote: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script
-      under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
+    quote: '- **Write these tests as check scripts outside the repository**: every test a task group writes (the x.1 sub-task,
+      and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on
+      its own, or a new test function added to the existing repository test module that covers the changed code; never change
+      or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
   derived_by: manual
   template: ''
-  log_only: false
-  note: no new test file created in the repository (even when removed again)
+  log_only: true
+  note: 'v5: new test files in the repository are allowed (existing modules preferred); kept for logging only (manual edit
+    2026-11-07)'
 - id: agentos_v2.global.run.agentos_v2_created_files.workflow_files
   scope: specific
   class: evidence
