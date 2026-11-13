@@ -33,6 +33,8 @@ And one rule is changed rather than cut:
   (6.8% of evaluation runs, a third of them timing out).
 * T3 tasks found while implementing: a task the change needs and tasks.md lacks is added to tasks.md and then
   implemented. "ONLY the tasks assigned to you" stays; tasks.md is the one file a later command may add to.
+* T4 the report's overall Status: the template offers three values and upstream never says which holds when. The
+  rule is stated after the template: it follows from the two section Statuses.
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -135,6 +137,15 @@ Recommended implementation sequence:
 2. Test Review & Gap Analysis (Task Group 2)
 """
 
+# T4: which overall Status holds when, stated after the report template.
+_STATUS_RULE = """
+
+The **Status** at the top of the report follows from the two sections below it:
+- `✅ Passed`: Tasks Verification is `✅ All Complete` and Test Suite Results is `✅ All Passing`.
+- `⚠️ Passed with Issues`: a task is marked ⚠️ (Tasks Verification `⚠️ Issues Found`), or a test fails that is not one you wrote for this change (Test Suite Results `⚠️ Some Failures`).
+- `❌ Failed`: a test you wrote for this change fails (Test Suite Results `❌ Critical Failures`).
+"""
+
 # source key -> cuts applied after agentos_v2's edits, in order. ("sub", old, new, note): ``old`` occurs exactly
 # once ("all": every occurrence). ("span", start, end, new, note): the text from ``start`` up to (not including)
 # ``end`` (``"$"``: the end of the source) -> ``new``.
@@ -230,6 +241,8 @@ CUTS: dict[str, tuple[tuple, ...]] = {
     "wf/verification-report": (
         ("span", "## 2. Roadmap Updates", "## 3. Test Suite Results", "", "B3: the report's Roadmap section"),
         ("sub", "## 3. Test Suite Results", "## 2. Test Suite Results", "B3: renumbered"),
+        ("sub", "[Any additional context about test results, known issues, or regressions]\n```",
+         "[Any additional context about test results, known issues, or regressions]\n```" + _STATUS_RULE.rstrip("\n"), "T4: the overall Status follows from the section Statuses"),
     ),
 }
 

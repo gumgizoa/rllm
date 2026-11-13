@@ -136,7 +136,7 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
-    assert len(rub["items"]) + len(report["dropped_items"]) == 207 and len(rub["items"]) >= 150
+    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + 1 and len(rub["items"]) >= 150  # + the T4 item
 
 
 def test_adding_a_task_while_implementing_is_allowed_and_rewording_one_is_not():
@@ -156,6 +156,28 @@ def test_adding_a_task_while_implementing_is_allowed_and_rewording_one_is_not():
     assert engine.evaluate(rub, run, col).scores.compliance == 1.0
     item.check.params.pop("additions")  # agentos_v2's rule: ticks only
     assert engine.evaluate(rub, run, col).scores.compliance < 1.0
+
+
+def test_overall_status_must_follow_from_the_section_statuses():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    impl = (DOCS / "commands/implement-tasks/implement-tasks.md").read_text(encoding="utf-8")
+    assert "The **Status** at the top of the report follows from the two sections below it:" in impl  # T4
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    item = next(it for it in rub.items if it.id.endswith("_report.overall_status"))
+
+    def result(col):
+        return engine.evaluate(rub, run, col).results[item.id]
+
+    run, col = golden.golden(rub, variant="suite_failures")  # two failures: Some Failures, Passed with Issues
+    assert result(col).status == "pass"
+    report = next(p for p in col.files if p.endswith("final-verification.md"))
+    col.files[report] = col.files[report].replace("**Status:** ⚠️ Passed with Issues", "**Status:** ✅ Passed", 1)
+    assert result(col).status == "fail"  # Passed over a failing suite
 
 
 def test_golden_run_scores_full_marks():

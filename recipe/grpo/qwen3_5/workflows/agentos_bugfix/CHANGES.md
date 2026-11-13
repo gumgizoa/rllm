@@ -27,6 +27,7 @@
 | T1 | 테스트 실행 범위 | 구현 중(implement-tasks PHASE 2, create-tasks 예시·제약): "자기가 쓴 테스트만 실행". 최종 검증(PHASE 3): "전체 테스트를 실행" | 두 곳 모두 "자기가 쓴 테스트 + 수정한 코드의 기존 테스트". 전체 테스트는 몇 분 안에 끝날 때만 추가로. 구현 중 문장에 "task가 바꾸라고 한 동작을 기대하는 기존 테스트는 실패하는 것이 맞으니 수정을 그대로 두고 그 테스트를 최종 보고서에 적는다"를 덧붙임. "이 단계에서 전체 테스트를 돌리지 말 것"은 그대로 | 구현 중에는 기존 테스트가 안 돌고, 마지막의 전체 테스트는 거의 지켜지지 않음. 평가(wf-floor-tcx): 정답 test patch가 건드리는 파일을 실행한 런 73.8% → 58.9%, 편집 뒤 테스트 횟수 7.2 → 4.5, 전체 테스트를 돌린 런 6.8%(34런 중 시간 초과 12) |
 | T2 | 테스트 작성 기준 | implement-tasks의 test-writing standard 7줄 | "개발 중 테스트는 최소로", "핵심 사용자 흐름만 테스트", "edge case 테스트는 미룸" 세 줄을 뺌. 나머지 4줄(동작을 테스트, 이름, mock, 속도)은 그대로 | 버그 수정은 특정 입력의 예외 동작이 대상인 경우가 많고, 그것을 재현하는 테스트가 곧 edge case 테스트임. 따로 잰 수치는 없음. create-tasks 예시의 "Skip exhaustive coverage of all methods and edge cases" 등 같은 취지의 4줄은 손대지 않음 |
 | T3 | 구현 중에 찾은 작업 | 명령이 끝난 파일은 고치지 않음. tasks.md는 체크박스만 예외. "배정된 task만 구현" | 구현 중에 task에 없는 필요한 작업(고칠 다른 파일, 빠진 경우)을 찾으면 tasks.md에 먼저 추가한 뒤 배정된 task로 구현함. 줄 추가만 허용하고 있던 task는 고치거나 지우지 않음. spec.md·requirements.md는 그대로 고치지 않음 | 계획에 적힌 것이 곧 고쳐지는 범위임(평가 wf-floor-tcx: 계획이 정답 파일을 모두 담은 런은 정답 파일을 모두 고친 비율 89.5%, 다 담지 못한 런은 24.1%). 새로 찾은 작업을 정식으로 구현할 길을 둠. 모델이 이 길을 쓸지는 확인되지 않음 |
+| T4 | 보고서의 전체 Status | 머리의 Status 칸에 세 값(Passed / Passed with Issues / Failed)만 있고 언제 무엇을 적는지 기준이 없음 | 보고서 양식 뒤에 기준을 적음: 두 절의 Status에서 정해짐. All Complete + All Passing이면 Passed, ⚠️로 표시한 task가 있거나 이 변경을 위해 쓴 것이 아닌 테스트가 실패하면(Some Failures) Passed with Issues, 이 변경을 위해 쓴 테스트가 실패하면(Critical Failures) Failed | 평가(wf-floor-tcx)에서 보고서의 96.2%가 Passed이고, 그중 61런은 마지막 검증이 실패, 42런은 같은 보고서의 Failing 칸이 1 이상. 해결률보다 보고서 정확도의 문제 |
 
 ## 문구 일반화 (G)
 
@@ -72,6 +73,9 @@
   agentos_v2의 tasks 검사에 선택 설정값(`additions`)을 추가함(agentos_v2 동작은 그대로). create-tasks 단계의 tasks.md 항목 3개
   (task 수, group 구성, 테스트 먼저)는 create-tasks가 끝난 시점의 tasks.md를 보도록 바꿈. 기준 런에 "구현 중에 task를 추가하는"
   정직한 변형을 넣었고 만점. 같은 런이 agentos_v2의 규칙으로는 0.9977.
+- T4에 따라 항목 1개를 새로 넣음: 머리 Status가 두 절의 Status에서 정해지는 값과 같은가(필수). agentos_v2의 보고서 검사에 규칙
+  `overall_status`를 추가해 구현함(agentos_v2 채점기는 이 규칙을 쓰지 않음). "Passed with Issues"나 "Failed"를 적는 것 자체는
+  감점하지 않고, 적은 값이 절들과 맞는지만 봄. 항목 수 161개.
 - T1의 새 요구("수정한 코드의 기존 테스트를 돌렸는가")를 직접 보는 항목은 아직 없음. 검사 코드를 새로 써야 함.
 - 없는 것: `rubric.md`(사람이 읽는 항목 표), 실제 런으로의 확인.
 

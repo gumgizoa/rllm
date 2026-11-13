@@ -187,3 +187,8 @@ The content of this report should follow this structure:
 ### Notes
 [Any additional context about test results, known issues, or regressions]
 ```
+
+The **Status** at the top of the report follows from the two sections below it:
+- `✅ Passed`: Tasks Verification is `✅ All Complete` and Test Suite Results is `✅ All Passing`.
+- `⚠️ Passed with Issues`: a task is marked ⚠️ (Tasks Verification `⚠️ Issues Found`), or a test fails that is not one you wrote for this change (Test Suite Results `⚠️ Some Failures`).
+- `❌ Failed`: a test you wrote for this change fails (Test Suite Results `❌ Critical Failures`).
