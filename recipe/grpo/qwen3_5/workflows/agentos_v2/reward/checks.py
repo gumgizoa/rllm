@@ -45,7 +45,10 @@ repository prohibitions and the test runs. What they cannot say:
 * ``agentos_v2.verify`` -- implement-tasks PHASE 3, which begins once every task is ticked (or marked ⚠️): the first
   write of tasks.md after which no task line is open (else the report's first write)::
 
-      {rule: code_frozen}  no repository write after that point ("the code change is complete before PHASE 3")
+      {rule: code_frozen}  no repository write after that point ("the code change is complete before PHASE 3");
+                           with ``fix_round: true`` writes are accepted when a failing test run of PHASE 3 precedes
+                           them and a test run follows them (one return to PHASE 2), and ``suite_run`` and the
+                           report rules then read the runs after those writes
       {rule: suite_run}    a valid test run between that point and the report's first write
       {rule: whole_suite}  one of those runs is the whole suite (a runner at the repository root selecting nothing,
                            or only top-level test directories)
@@ -818,9 +821,21 @@ def phase3_window(ctx: EvalContext):
     return (a, b) if a < b else None
 
 
-def _phase3_runs(ctx: EvalContext) -> list:
+def _phase3_edits(ctx: EvalContext) -> list:
+    """Repository writes the agent authored after PHASE 3 began (git putting content back -- stash, checkout -- is none)."""
+    start = phase3_start(ctx)
+    if start is None:
+        return []
+    s = 1 if start is UNKNOWN else start
+    return [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.step > s and not F.is_generated(e.path)]
+
+
+def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
+    """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
     w = phase3_window(ctx)
-    return [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w)] if w else []
+    runs = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w)] if w else []
+    late = _phase3_edits(ctx) if after_fix else []
+    return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
 
 
 def _whole(r, workdir: str | None) -> bool:
@@ -834,20 +849,33 @@ def _whole(r, workdir: str | None) -> bool:
     return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
 
 
-@register("agentos_v2.verify", params={"rule": True}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite")})
+@register("agentos_v2.verify", params={"rule": True, "fix_round": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite")})
 def verify(item: Item, ctx: EvalContext) -> Result:
     """rule: code_frozen | suite_run | whole_suite -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite."""
     rule = str((item.check.params or {}).get("rule"))
+    fix_round = bool((item.check.params or {}).get("fix_round"))  # the documents allow one return to PHASE 2 after a failing run
     start = phase3_start(ctx)
     if start is None:
         return Result.no(item, "PHASE 3 never began (tasks not all ticked, no report)")
+    if rule == "code_frozen" and fix_round:
+        if ctx.facts.unseen_repo_paths:
+            return Result.no(item, "a repository change the trace does not show: its time is unknown")
+        late = _phase3_edits(ctx)
+        if not late:
+            return Result.ok(item, "no repository write after PHASE 3 began")
+        runs = _phase3_runs(ctx)
+        failed_before = any(r.step < late[0].step and r.failed + r.errors > 0 for r in runs)
+        rerun_after = any(r.step > late[-1].step for r in runs)
+        if failed_before and rerun_after:
+            return Result.ok(item, f"fix round: a failing run before step {late[0].step}, a run after step {late[-1].step}")
+        return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began, " + ("no failing test run before it" if not failed_before else "no test run after it"))
     if rule == "code_frozen":
         if ctx.facts.unseen_repo_paths:
             return Result.no(item, "a repository change the trace does not show: its time is unknown")
         s = 1 if start is UNKNOWN else start
         late = [e for e in ctx.facts.repo_writes if e.ok is not False and e.step > s and not F.is_generated(e.path)]
         return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began (step {s})") if late else Result.ok(item, f"no repository write after step {s}")
-    runs = _phase3_runs(ctx)
+    runs = _phase3_runs(ctx, after_fix=fix_round)
     if rule == "suite_run":
         return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}") if runs else Result.no(item, "no valid test run between the last tick and the report")
     if rule == "whole_suite":
@@ -875,7 +903,7 @@ def _status(text: str, section: str) -> str:
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -904,7 +932,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         got = "Passed with Issues" if re.search(r"(?i)with\s+issues", head) else "Failed" if re.search(r"(?i)fail", head) else "Passed" if re.search(r"(?i)pass", head) else head[:30]
         return Result.ok(item, f"Status {got}, as the sections give") if got == want else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
     if rule in ("test_counts", "failed_listed", "suite_status"):
-        runs = _phase3_runs(ctx)
+        runs = _phase3_runs(ctx, after_fix=bool(p.get("fix_round")))  # after a fix round the report is about the re-run
         if not runs:
             return Result.no(item, "no valid PHASE 3 test run to compare with")
         summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
