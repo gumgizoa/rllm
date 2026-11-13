@@ -59,6 +59,9 @@ repository prohibitions and the test runs. What they cannot say:
                                  is ticked and none is marked ⚠️
       {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None")
       {rule: spec_name}          the **Spec:** field names the spec folder
+      {rule: overall_status}     the Status at the top follows from the two section Statuses: Failed with Critical
+                                 Failures, Passed with Issues with Issues Found or Some Failures, Passed with All
+                                 Complete and All Passing (a workflow whose documents give that rule)
 
 * ``agentos_v2.created_files`` / ``agentos_v2.paths_written`` -- no test / scratch file created in the repository;
   no file written at a path ``pattern`` names.
@@ -875,16 +878,31 @@ def _status(text: str, section: str) -> str:
     params={"rule": True, "artifact": False, "suite_section": False},
     availability=("sandbox_file", "trace"),
     common=False,
-    choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name")},
+    choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
 )
 def report(item: Item, ctx: EvalContext) -> Result:
-    """rule: test_counts | failed_listed | suite_status | tasks_status | incomplete_listed | spec_name -- final-verification.md against the PHASE 3 runs, tasks.md and the spec folder."""
+    """rule: test_counts | failed_listed | suite_status | tasks_status | incomplete_listed | spec_name | overall_status -- final-verification.md against the PHASE 3 runs, tasks.md, the spec folder and itself."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     suite = str(p.get("suite_section") or "3. Test Suite Results")  # the report section of the test results, as numbered in the template
     text = _text(ctx, _artifact(item, "final_verification"))
     if text is None:
         return Result.no(item, "final-verification.md absent")
+    if rule == "overall_status":
+        head = M.clean_value(M.field_value(re.split(r"(?m)^##\s", text, maxsplit=1)[0], "Status") or "")
+        tasks_st, suite_st = _status(text, "1. Tasks Verification"), _status(text, suite)
+        if not head:
+            return Result.no(item, "no Status at the top of the report")
+        if re.search(r"(?i)critical\s+failures", suite_st):
+            want = "Failed"
+        elif re.search(r"(?i)issues\s+found", tasks_st) or re.search(r"(?i)some\s+failures", suite_st):
+            want = "Passed with Issues"
+        elif re.search(r"(?i)all\s+complete", tasks_st) and re.search(r"(?i)all\s+passing", suite_st):
+            want = "Passed"
+        else:
+            return Result.no(item, f"section Statuses {tasks_st[:30]!r} / {suite_st[:30]!r} give no overall Status")
+        got = "Passed with Issues" if re.search(r"(?i)with\s+issues", head) else "Failed" if re.search(r"(?i)fail", head) else "Passed" if re.search(r"(?i)pass", head) else head[:30]
+        return Result.ok(item, f"Status {got}, as the sections give") if got == want else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
     if rule in ("test_counts", "failed_listed", "suite_status"):
         runs = _phase3_runs(ctx)
         if not runs:
