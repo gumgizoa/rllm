@@ -3846,7 +3846,7 @@ items:
     kind: artifact_exists
     params: {}
   requirement: must
-  modality_evidence: imperative (IT:247 'Create your final verification report'); CW:91-92
+  modality_evidence: imperative (IT:247 'Create your final verification report'); CW:92-93
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -5557,7 +5557,8 @@ items:
     - 38
     - 39
     quote: '## Self-verify and test your work by: - Running the tests you''ve written (if any; they are check scripts under
-      `/tmp/agent-os/specs/[this-spec]/checks/` ... and ensuring they pass.'
+      `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through
+      that module with the test runner) and the existing tests of the code you changed, and ensuring they pass.'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5652,7 +5653,8 @@ items:
       rule: written
       dir: '{artifact}/{SPEC}/checks'
   requirement: must
-  modality_evidence: CT:215 every test a task group writes is a script under checks/; CW:84 the tests are scripts in S/checks/
+  modality_evidence: CT:215 every test a task group writes is a script under checks/ or a function added to an existing test
+    module; CW:84-85 likewise
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -5669,8 +5671,9 @@ items:
   - doc: CW
     lines:
     - 85
-    - 85
-    quote: The tests the task groups call for are scripts in `S/checks/`
+    - 86
+    quote: The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the existing repository
+      test module that covers the changed code.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -6580,7 +6583,7 @@ items:
     params:
       pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
   requirement: must
-  modality_evidence: CW:86-87 'Nothing that belongs to the workflow goes into /testbed'
+  modality_evidence: CW:87-88 'Nothing that belongs to the workflow goes into /testbed'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -6690,7 +6693,8 @@ conflicts:
     - 39
     - 39
     quote: '- Running ONLY the tests you''ve written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`,
-      not repository test files) and ensuring those tests pass.'
+      or test functions you added to an existing repository test module, run through that module with the test runner) and
+      ensuring those tests pass.'
 - type: documented
   description: The report's structure 'should' be followed (IT:249), while section 2's status and its reason are imperative
     (IT:235) and the counts and failed tests must be included (IT:241)
@@ -6723,7 +6727,7 @@ conflicts:
       reasonable defaults. **CRITICAL: Always include the reusability question at the END of your questions.**'
 - type: documented
   description: The generic system prompt asks to ask the user for clarification and to keep AGENTS.md in the repository (SP:11,
-    SP:175); the workflow has no one to ask and keeps everything of its own out of /testbed (CW:67-74, CW:86-87)
+    SP:175); the workflow has no one to ask and keeps everything of its own out of /testbed (CW:67-74, CW:87-88)
   resolution: 'the workflow wins (CW:6-7 ''it replaces any procedure you would otherwise follow''): spec files, notes and
     scratch scripts created in the repository fail their item; AGENTS.md is not itemized; no item rewards asking'
   items: []
@@ -6735,8 +6739,8 @@ conflicts:
     quote: '* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context.'
   - path: docs/core-workflow.md
     lines:
-    - 86
     - 87
+    - 88
     quote: 'Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary scripts.'
 - type: documented
   description: 'The report has four **Status:** lines (IT:257, 269, 285, 297), each with its own value set (G7 critic: a whole-report

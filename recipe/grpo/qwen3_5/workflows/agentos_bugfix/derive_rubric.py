@@ -96,10 +96,8 @@ REWORD = (
     ("- [ ] 1.0 Complete database layer - [ ] 1.1 Write 2-8 focused tests for [Model] functionality", "- [ ] 1.0 Complete [the change in this area] - [ ] 1.1 Write 2-8 focused tests for [the behavior to change]"),
     ("- [ ] 1.0 Complete database layer", "- [ ] 1.0 Complete [the change in this area]"),
     # quotes agentos_v2's rubric still carries from before its 2026-11-07 / 11-13 wording fixes
-    ("The tests the task groups call for are scripts in `S/checks/`.", "The tests the task groups call for are scripts in `S/checks/`"),
     ("leave a file alone once its command is over, except for the checkboxes in `tasks.md`.", "leave a file alone once its command is over."),
-    ("the tests the task groups call for, as scripts; any scratch file", "the task groups' tests that are written as scripts; any scratch file"),
-    ("checks/`, not repository test files) and ensuring those tests pass.", "checks/` ... and ensuring they pass."),
+    ("with the test runner) and ensuring those tests pass.", "with the test runner) and the existing tests of the code you changed, and ensuring they pass."),
     # T6 fix round
     ("DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.", "DO NOT attempt to fix it.  Just note it in your final verification report."),
     ("DO NOT attempt to fix any failing tests.", "DO NOT attempt to fix it."),
@@ -112,7 +110,6 @@ REWORD = (
     ("and ends with running ONLY those tests (fin", "and ends with running those tests and the existing tests of the changed code (fin"),
     ("ends with running ONLY those tests (final sub-task)", "ends with running those tests and the existing tests of the changed code (final sub-task)"),
     ("Run the entire tests suite for the application so that ALL tests run.", "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. ..."),
-    ("**Write these tests as check scripts outside the repository**", "**Write these tests as check scripts or as additions to an existing test module**"),
 )
 # The placeholders of the one-group tasks example (build.py _TASKS_EXAMPLE), for the tasks.md residue item.
 TASKS_PLACEHOLDERS = ("[Area of the change]", "[Name of the area]", "[the change in this area]", "[the behavior to change]", "[First change to make]",
