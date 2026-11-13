@@ -152,7 +152,7 @@ def test_decided_behaviors_are_in_the_commands():
     assert shape.count("**Answer:** (assumed)") == 3 and "(assumed) <path> — <basis>" in shape  # G4-1, G4-2
     assert "DATED_SPEC_NAME" in shape and "Always use dated folder names" in shape  # G5-2 kept
     assert "No visual files found" in shape  # G4-3: the mandatory ls stays
-    assert "/checks/" in tasks and "do not add or change test files in the repository" in tasks  # G9-1
+    assert "/checks/" in tasks and "never change or remove an existing test line" in tasks  # G9-1 (add-only since 2026-11-07)
     assert "repeat PHASE 2 for the next task group with unchecked tasks" in impl  # G4-5
     assert "proceed with implementation of all task groups in tasks.md, in order" in impl  # G4-4
     assert "⚠️ No Updates Needed` with that reason" in impl  # G7-8
