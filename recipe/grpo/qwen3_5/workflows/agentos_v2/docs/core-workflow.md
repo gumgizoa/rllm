@@ -53,7 +53,7 @@ S/
 │   └── visuals/               made by shape-spec PHASE 1; stays empty, nobody adds mockups
 ├── spec.md                    write-spec
 ├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes
-├── checks/                    the tests the task groups call for, as scripts; any scratch file
+├── checks/                    the task groups' tests that are written as scripts; any scratch file
 ├── implementation/            made by shape-spec PHASE 1; stays empty
 └── verifications/
     └── final-verification.md  implement-tasks PHASE 3
