@@ -35,7 +35,7 @@ vendored as ``openspec_kinds.py`` (that port is not on this branch) and used as 
   of the window) (ratio; 02-apply.md:98); ``{rule: done_or_reasoned}`` -- at the end every task is ticked or
   carries a plain line under it, its one-line reason (02-apply.md:105, 109) (ratio).
 * ``openspec_ff.verify`` -- ``{rule: open_tasks_critical}``: when tasks.md held open boxes as the report was
-  written, the report lists a CRITICAL issue (03-verify.md:70-71).
+  last written, the report lists a CRITICAL issue (03-verify.md:70-71).
 * ``openspec_ff.created_files`` / ``openspec_ff.no_fetch`` / ``openspec_ff.holds`` -- as in speckit_bug: no
   test / scratch file created in the repository, no URL fetched, a refs predicate as a check.
 * ``openspec_ff.paths_written`` -- no file the trace wrote matches ``pattern`` (a script under /tmp: checks belong
@@ -394,7 +394,7 @@ def lists_critical(text: str | None) -> bool:
 
 @register("openspec_ff.verify", params={"rule": True, "artifact": False, "tasks": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("open_tasks_critical",)})
 def verify(item: Item, ctx: EvalContext) -> Result:
-    """rule ``open_tasks_critical``: when the task list held an open box as the report was written, the report lists a CRITICAL issue."""
+    """rule ``open_tasks_critical``: when the task list held an open box as the report was last written, the report lists a CRITICAL issue."""
     p = item.check.params or {}
     if str(p.get("rule")) != "open_tasks_critical":
         return Result.no(item, f"unknown rule {p.get('rule')!r}")
@@ -402,7 +402,7 @@ def verify(item: Item, ctx: EvalContext) -> Result:
     text = ctx.artifact_text(aid, "final")
     if text is None:
         return Result.no(item, "report absent")
-    at = refs.write_event(ctx, aid, "first")
+    at = refs.write_event(ctx, aid, "last")  # the report is judged as it stands: a rewrite after a return to apply is the one read
     if at is None or at is UNKNOWN:
         return Result.not_applicable(item, "the report's write is not in the trace")
     evs = [e for e in _content_events(ctx, str(p.get("tasks") or "tasks")) if e.step <= at and e.content is not None]

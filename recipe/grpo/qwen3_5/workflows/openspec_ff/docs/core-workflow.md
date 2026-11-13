@@ -72,19 +72,18 @@ delta spec you write is therefore an `## ADDED Requirements` delta for a new cap
 ## The Repository
 
 - Only the apply action edits `/testbed`. ff and verify read it and run commands in it.
-- Explore reads it too, but runs only what is already there: existing code, existing tests, and the
-  issue's own example exactly as given. It composes no code of its own: not a one-line
-  `python -c`, not a heredoc piped to `python3`, not a script in `/tmp`. It writes no file anywhere,
-  inside the repository or outside it. A variant worth trying becomes an open question for ff.
+- Explore reads it too and runs commands in it, but writes no file anywhere, inside the repository
+  or outside it.
 - Do not add or edit test files there; the tests for this task already exist. Touch README, `docs/`
   or changelogs only if the issue asks for it.
 - Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under
   `/openspec/changes/issue/`.
 
-## Verify Once
+## Verify, Then Fix What It Finds
 
-Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to
-archive; the report records what is still open.
+Verify writes `/openspec/changes/issue/verify.md`. If the report holds a CRITICAL issue, go back
+to apply, fix what the report names, and run verify again, rewriting `verify.md`. Go back at most
+twice; after that, move on to archive with the report as it stands.
 
 ## Archive, Then Finish
 

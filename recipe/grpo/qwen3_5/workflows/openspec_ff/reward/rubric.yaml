@@ -59,7 +59,7 @@ generated:
       unrelated_run_none_min_drop: 0.005
       x_fill_no_real_test_compliance_max: 0.5
     results:
-    - mutation: variant:critical_archived
+    - mutation: variant:critical_fixed
       kind: honest
       status: ok
       compliance: 1.0
@@ -155,6 +155,25 @@ generated:
         key: honest_tolerance
       worst_items: []
     - mutation: variant:explore_runs_tests
+      kind: honest
+      status: ok
+      compliance: 1.0
+      signals:
+        order: 1.0
+        process: 1.0
+        stage.explore: 1.0
+        stage.ff: 1.0
+        stage.apply: 1.0
+        stage.verify: 1.0
+        stage.archive: 1.0
+      check:
+        metric: compliance
+        value: 1.0
+        op: '>='
+        bound: 0.98
+        key: honest_tolerance
+      worst_items: []
+    - mutation: variant:explore_runs_snippet
       kind: honest
       status: ok
       compliance: 1.0
@@ -274,18 +293,18 @@ generated:
     - mutation: x_fill_bare
       kind: exploit
       status: ok
-      compliance: 0.1738
+      compliance: 0.1723
       signals:
         order: 0.0
-        process: 0.1983
-        stage.explore: 0.8182
+        process: 0.1966
+        stage.explore: 0.8095
         stage.ff: 0.1
         stage.apply: 0.0
         stage.verify: 0.1
         stage.archive: 0.0
       check:
         metric: compliance
-        value: 0.1738
+        value: 0.1723
         op: <=
         bound: 0.5
         key: x_fill_no_real_test_compliance_max
@@ -428,18 +447,18 @@ generated:
     - mutation: glob_read
       kind: exploit
       status: ok
-      compliance: 0.7871
+      compliance: 0.7823
       signals:
         order: 0.3333
-        process: 0.8628
-        stage.explore: 0.4091
+        process: 0.8571
+        stage.explore: 0.381
         stage.ff: 1.0
         stage.apply: 1.0
         stage.verify: 0.9048
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.7871
+        value: 0.7823
         op: <=
         bound: 0.995
         key: glob_read_min_drop
@@ -456,18 +475,18 @@ generated:
     - mutation: cp_read
       kind: exploit
       status: ok
-      compliance: 0.7871
+      compliance: 0.7823
       signals:
         order: 0.3333
-        process: 0.8628
-        stage.explore: 0.4091
+        process: 0.8571
+        stage.explore: 0.381
         stage.ff: 1.0
         stage.apply: 1.0
         stage.verify: 0.9048
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.7871
+        value: 0.7823
         op: <=
         bound: 0.995
         key: cp_read_min_drop
@@ -509,44 +528,44 @@ generated:
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6122
+      compliance: 0.6265
       signals:
         order: 0.0
-        process: 0.7143
+        process: 0.731
         stage.explore: 1.0
         stage.ff: 0.0
         stage.apply: 1.0
         stage.verify: 0.9048
-        stage.archive: 0.6667
+        stage.archive: 0.75
       check:
         metric: compliance
-        value: 0.6122
+        value: 0.6265
         op: <=
         bound: 0.995
         key: invisible_write_min_drop
       worst_items:
       - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 49, write:verify
         unknown)'
-      - 'openspec_ff.archive.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 36: edit tinyconf/values.py)'
       - 'openspec_ff.ff.design.read_files.dependencies: 1.00->0.00 (window empty)'
       - 'openspec_ff.ff.proposal.artifact_exists: 1.00->0.00 (absent or empty at stage end)'
       - 'openspec_ff.ff.run.openspec_ff_cli.instructions_design: 1.00->0.00 (window empty)'
+      - 'openspec_ff.ff.run.openspec_ff_cli.instructions_proposal: 1.00->0.00 (window empty)'
       note: The artifacts are in the sandbox but the trace never writes them.
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6426
+      compliance: 0.6393
       signals:
         order: 0.1667
-        process: 0.6575
-        stage.explore: 0.5909
+        process: 0.654
+        stage.explore: 0.5714
         stage.ff: 0.878
         stage.apply: 0.5862
         stage.verify: 0.619
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.6426
+        value: 0.6393
         op: <=
         bound: 0.995
         key: no_reads_min_drop
@@ -775,16 +794,22 @@ generated:
       note: Documents read with the editor's ``view`` (line-numbered output) instead of ``cat``.
     failures: []
     golden_fixture: recipe.grpo.qwen3_5.workflows.openspec_ff.selftest_golden
+  revised:
+    at: '2026-11-13'
+    by: hand
+    note: 'documents changed (verify sends a CRITICAL issue back to apply; explore may run a snippet without writing a file):
+      three items dropped (explore composed_code, archive repo_write, archive tasks_after_verify), cited lines and quotes
+      moved, conflicts rewritten; not regenerated, so rubric.lock does not match'
 sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: 70390850bda1906ff6344fb5c3398c642edf1b0e733f11f0cf6ce904cbee9d81
+  sha256: b5a42f066e52d7fb002995c257912ea8a5d5a7489d2b8f317e1d151d759f53fc
   container_path: /opsx/core-workflow.md
 - id: EX
   path: docs/stages/00-explore.md
   role: stage_rule
-  sha256: 3b429d7909f4c6daa1c95f531ac11b26c0b5258518cadf882abdbc15188868e4
+  sha256: 2a555569030ae634ffb1b0abf5b0b853c7bc89f86a9012f4247bd5095bbb5ddb
   container_path: /opsx/stages/00-explore.md
 - id: FF
   path: docs/stages/01-ff.md
@@ -799,7 +824,7 @@ sources:
 - id: VF
   path: docs/stages/03-verify.md
   role: stage_rule
-  sha256: bcce424d193f59eba80d2ff8ef9adf8d73306847abc84a20b04f9e4e1bf3904b
+  sha256: 2a9c9128b6a42adfe2606f979a90c47d4c7bd4582d5e5475110e8477fe5e2bf3
   container_path: /opsx/stages/03-verify.md
 - id: SCHEMA
   path: sandbox/schemas/spec-driven-sandbox/schema.yaml
@@ -1085,54 +1110,6 @@ items:
   template: C-A2
   log_only: false
   note: /openspec/config.yaml (the project's context and rules) read in the explore window
-- id: openspec_ff.explore.run.prohibited_action.composed_code
-  scope: common
-  class: evidence
-  stage: explore
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: prohibited_action
-    params:
-      action: command
-      pattern: (?m)\bpython[0-9.]*(?:\s+-[A-Za-z]+)*\s+-c\b|\bpython[0-9.]*\s*(?:-\s*)?<<|\|\s*python[0-9.]*(?:\s+-)?\s*(?:$|[;&|)])
-  requirement: should
-  modality_evidence: 'prohibition (EX:5 ''you must NEVER write code ... Code you compose yourself is writing code, a one-line
-    `python -c` or a snippet piped to stdin included''; EX:215; CW:75-77 ''It composes no code of its own: not a one-line
-    `python -c`, not a heredoc piped to `python3`''); the same EX:5 lets explore run ''the issue''s own example exactly as
-    given'', which a rule cannot tell from composed code by the command alone (conflict below): should'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 75
-    - 77
-    quote: 'Explore reads it too, but runs only what is already there: existing code, existing tests, and the issue''s own
-      example exactly as given. It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`,
-      not a script in `/tmp`.'
-  - doc: EX
-    lines:
-    - 5
-    - 5
-    quote: Code you compose yourself is writing code, a one-line `python -c` or a snippet piped to stdin included
-  - doc: EX
-    lines:
-    - 215
-    - 215
-    quote: 'Running code you composed is writing code too, whether as `python -c "..."` or as a heredoc piped to `python3`:
-      when you want to try a variant of the issue''s example, record it as an open question for ff instead.'
-  impl_refs: []
-  derived_by: manual
-  template: C-A6
-  log_only: false
-  note: no `python -c`, heredoc or stdin snippet piped to python in the explore window
 - id: openspec_ff.explore.run.openspec_ff_cli.no_new_change
   scope: specific
   class: evidence
@@ -1191,9 +1168,9 @@ items:
     params:
       pattern: .
   requirement: must
-  modality_evidence: prohibition (CW:77-78 'It writes no file anywhere, inside the repository or outside it'; EX:5 'so is
-    any file write (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or heredoc)';
-    EX:219 'Do not save insights to files')
+  modality_evidence: prohibition (CW:75-76 'writes no file anywhere, inside the repository or outside it'; EX:5 'Any file
+    write is writing code (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or
+    a heredoc written to a file)'; EX:219 'Do not save insights to files')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -1203,9 +1180,9 @@ items:
   sources:
   - doc: CW
     lines:
-    - 77
-    - 78
-    quote: It writes no file anywhere, inside the repository or outside it.
+    - 75
+    - 76
+    quote: Explore reads it too and runs commands in it, but writes no file anywhere, inside the repository or outside it.
   - doc: CW
     lines:
     - 62
@@ -1215,8 +1192,8 @@ items:
     lines:
     - 5
     - 5
-    quote: Code you compose yourself is writing code, a one-line `python -c` or a snippet piped to stdin included, and so
-      is any file write (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or heredoc).
+    quote: Any file write is writing code (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell
+      redirection or a heredoc written to a file).
   - doc: EX
     lines:
     - 219
@@ -2269,7 +2246,7 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: &id002
+      patterns:
       - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
       - (?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|
   requirement: must
@@ -2308,7 +2285,7 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: &id001
+      patterns:
       - (?i)</?(?:context|rules|project_context)>
       - This planning home, /openspec, sits outside it\.
       - The change comes from one issue, given in the task; nobody will add to it\.
@@ -2658,7 +2635,12 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id001
+      patterns:
+      - (?i)</?(?:context|rules|project_context)>
+      - This planning home, /openspec, sits outside it\.
+      - The change comes from one issue, given in the task; nobody will add to it\.
+      - 'The environment is fully set up: no packages are installed and nothing is fetched from the network\.'
+      - No capability exists yet in this project, so list every capability under New Capabilities
   requirement: must
   modality_evidence: prohibition (FF:63; FF:101-103)
   none_allowed: '-'
@@ -2706,7 +2688,9 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id002
+      patterns:
+      - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
+      - (?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|
   requirement: must
   modality_evidence: 'FF:100 ''fill in its sections'': a value that is only a fill-in mark is a placeholder left in place'
   none_allowed: '-'
@@ -3925,7 +3909,9 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id002
+      patterns:
+      - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
+      - (?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|
   requirement: must
   modality_evidence: 'FF:100 ''fill in its sections'': a value that is only a fill-in mark is a placeholder left in place'
   none_allowed: '-'
@@ -3964,7 +3950,12 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id001
+      patterns:
+      - (?i)</?(?:context|rules|project_context)>
+      - This planning home, /openspec, sits outside it\.
+      - The change comes from one issue, given in the task; nobody will add to it\.
+      - 'The environment is fully set up: no packages are installed and nothing is fetched from the network\.'
+      - No capability exists yet in this project, so list every capability under New Capabilities
   requirement: must
   modality_evidence: prohibition (FF:63; FF:101-103)
   none_allowed: '-'
@@ -4325,7 +4316,9 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id002
+      patterns:
+      - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
+      - (?im)^\|(?:[^|\n]*\|)*\s*(?:x+|\.{2,}|…+|\?+)\s*\|
   requirement: must
   modality_evidence: 'FF:100 ''fill in its sections'': a value that is only a fill-in mark is a placeholder left in place'
   none_allowed: '-'
@@ -4362,7 +4355,12 @@ items:
   check:
     kind: no_template_residue
     params:
-      patterns: *id001
+      patterns:
+      - (?i)</?(?:context|rules|project_context)>
+      - This planning home, /openspec, sits outside it\.
+      - The change comes from one issue, given in the task; nobody will add to it\.
+      - 'The environment is fully set up: no packages are installed and nothing is fetched from the network\.'
+      - No capability exists yet in this project, so list every capability under New Capabilities
   requirement: must
   modality_evidence: prohibition (FF:63; FF:101-103)
   none_allowed: '-'
@@ -6768,8 +6766,8 @@ items:
     kind: artifact_exists
     params: {}
   requirement: must
-  modality_evidence: imperative (VF:145 'Write the report to a file in the change directory'; CW:86 'Verify runs once and
-    writes verify.md'; CW:23 verify leaves `verify.md`)
+  modality_evidence: imperative (VF:145 'Write the report to a file in the change directory'; CW:84 'Verify writes verify.md';
+    CW:23 verify leaves `verify.md`)
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -6785,9 +6783,9 @@ items:
     quote: 'Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`.'
   - doc: CW
     lines:
-    - 86
-    - 86
-    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`.
+    - 84
+    - 84
+    quote: Verify writes `/openspec/changes/issue/verify.md`.
   impl_refs: []
   derived_by: manual
   template: C-F1
@@ -6806,7 +6804,7 @@ items:
     params:
       heading: 'Verification Report: issue'
   requirement: must
-  modality_evidence: 'the scorecard''s title (VF:149) under VF:200-201 ''Use clear markdown with: - Table for summary scorecard'';
+  modality_evidence: 'the scorecard''s title (VF:149) under VF:201-202 ''Use clear markdown with: - Table for summary scorecard'';
     its level is not bound (a report''s title is often its # heading)'
   none_allowed: '-'
   applies_when: null
@@ -6822,8 +6820,8 @@ items:
     quote: '## Verification Report: issue'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: manual
@@ -6858,8 +6856,8 @@ items:
     quote: '### Summary'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: manual
@@ -6881,7 +6879,7 @@ items:
       text: '| Dimension    | Status           |'
   requirement: must
   modality_evidence: 'binding docs/stages/03-verify.md:200-201 ''Use clear markdown with: - Table for summary scorecard''
-    (must: imperative:Use); dict must (''imperative:Use'' at VF:200)'
+    (must: imperative:Use); dict must (''imperative:Use'' at VF:201)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -6896,8 +6894,8 @@ items:
     quote: '| Dimension    | Status           |'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: template_compiler
@@ -6991,7 +6989,7 @@ items:
       min: 1
   requirement: must
   modality_evidence: 'binding docs/stages/03-verify.md:200-201 ''Use clear markdown with: - Table for summary scorecard''
-    (must: imperative:Use); dict must (''imperative:Use'' at VF:200)'
+    (must: imperative:Use); dict must (''imperative:Use'' at VF:201)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7006,8 +7004,8 @@ items:
     quote: '| Completeness | X/Y tasks, N reqs|'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: template_compiler
@@ -7030,7 +7028,7 @@ items:
       min: 1
   requirement: must
   modality_evidence: 'binding docs/stages/03-verify.md:200-201 ''Use clear markdown with: - Table for summary scorecard''
-    (must: imperative:Use); dict must (''imperative:Use'' at VF:200)'
+    (must: imperative:Use); dict must (''imperative:Use'' at VF:201)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7045,8 +7043,8 @@ items:
     quote: '| Correctness  | M/N reqs covered |'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: template_compiler
@@ -7069,7 +7067,7 @@ items:
       min: 1
   requirement: must
   modality_evidence: 'binding docs/stages/03-verify.md:200-201 ''Use clear markdown with: - Table for summary scorecard''
-    (must: imperative:Use); dict must (''imperative:Use'' at VF:200)'
+    (must: imperative:Use); dict must (''imperative:Use'' at VF:201)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7084,8 +7082,8 @@ items:
     quote: '| Coherence    | Followed/Issues  |'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: template_compiler
@@ -7190,7 +7188,7 @@ items:
       pattern: \b(?:CRITICAL|WARNING|SUGGESTION)\b
       min: 1
   requirement: should
-  modality_evidence: 'VF:202 ''Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)'' (output format guidance: should)'
+  modality_evidence: 'VF:203 ''Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)'' (output format guidance: should)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7200,8 +7198,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 202
-    - 202
+    - 203
+    - 203
     quote: '- Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)'
   - doc: VF
     lines:
@@ -7227,8 +7225,8 @@ items:
       pattern: (?i)\b(?:[1-9]\d*\s+critical\s+issues?(?:\(s\))?\s+found|no\s+critical\s+issues\b|all\s+checks\s+passed\b)
       min: 1
   requirement: must
-  modality_evidence: the Final Assessment phrasings the report uses (VF:180-186); it is where the one report records what
-    is still open before the archive (CW:86-87, VF:188), so a report without one caps its stage
+  modality_evidence: the Final Assessment phrasings the report uses (VF:181-187); it is where the one report records what
+    is still open before the archive (CW:84-86, VF:189), so a report without one caps its stage
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7239,8 +7237,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 180
-    - 185
+    - 181
+    - 186
     quote: '**Final Assessment**: - If CRITICAL issues: "X critical issue(s) found. Fix before archiving." ... "All checks
       passed. Ready for archive."'
   impl_refs: []
@@ -7274,8 +7272,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 203
-    - 203
+    - 204
+    - 204
     quote: 'Code references in format: `file.ts:123`'
   impl_refs: []
   derived_by: llm_extract
@@ -7299,7 +7297,7 @@ items:
       - Followed/Issues
   requirement: must
   modality_evidence: 'binding docs/stages/03-verify.md:200-201 ''Use clear markdown with: - Table for summary scorecard''
-    (must: imperative:Use); dict must (''imperative:Use'' at VF:200)'
+    (must: imperative:Use); dict must (''imperative:Use'' at VF:201)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7325,8 +7323,8 @@ items:
     quote: '| Coherence    | Followed/Issues  |'
   - doc: VF
     lines:
-    - 200
     - 201
+    - 202
     quote: 'Use clear markdown with: - Table for summary scorecard'
   impl_refs: []
   derived_by: template_compiler
@@ -7368,8 +7366,8 @@ items:
     quote: In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check.
   - doc: VF
     lines:
-    - 181
-    - 181
+    - 182
+    - 182
     quote: '"X critical issue(s) found. Fix before archiving."'
   impl_refs: []
   derived_by: manual
@@ -7391,7 +7389,7 @@ items:
       patterns:
       - consider reviewing
   requirement: must
-  modality_evidence: statement vf-136 (prohibition); dict prohibition ('No <noun>' at VF:205)
+  modality_evidence: statement vf-136 (prohibition); dict prohibition ('No <noun>' at VF:206)
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7401,8 +7399,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 205
-    - 205
+    - 206
+    - 206
     quote: No vague suggestions like "consider reviewing"
   impl_refs: []
   derived_by: llm_extract
@@ -8400,7 +8398,7 @@ items:
     kind: unimplemented
     params: {}
   requirement: should
-  modality_evidence: 'statement vf-125 (must); dict must (''imperative:Include'' at VF:186); lowered: unimplemented'
+  modality_evidence: 'statement vf-125 (must); dict must (''imperative:Include'' at VF:187); lowered: unimplemented'
   none_allowed: '-'
   applies_when: null
   weight: 0.0
@@ -8410,8 +8408,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 186
-    - 186
+    - 187
+    - 187
     quote: Include the suggestion count when nonzero in every final assessment.
   impl_refs: []
   derived_by: llm_extract
@@ -8430,7 +8428,7 @@ items:
     kind: unimplemented
     params: {}
   requirement: should
-  modality_evidence: 'statement vf-131 (must); dict must (''must'' at VF:196); lowered: unimplemented'
+  modality_evidence: 'statement vf-131 (must); dict must (''must'' at VF:197); lowered: unimplemented'
   none_allowed: '-'
   applies_when: null
   weight: 0.0
@@ -8440,8 +8438,8 @@ items:
   sources:
   - doc: VF
     lines:
-    - 196
-    - 196
+    - 197
+    - 197
     quote: '**Actionability**: Every issue must have a specific recommendation with file/line references where applicable'
   impl_refs: []
   derived_by: llm_extract
@@ -8461,7 +8459,7 @@ items:
     params:
       pattern: changes/archive[/]\d{4}-\d{2}-\d{2}-issue
   requirement: must
-  modality_evidence: CW:99-100 the change moved to `/openspec/changes/archive/<date>-issue/`; CW:24 archive leaves 'the archived
+  modality_evidence: CW:98-99 the change moved to `/openspec/changes/archive/<date>-issue/`; CW:24 archive leaves 'the archived
     change'
   none_allowed: '-'
   applies_when: null
@@ -8472,8 +8470,8 @@ items:
   sources:
   - doc: CW
     lines:
+    - 98
     - 99
-    - 100
     quote: moves the change to `/openspec/changes/archive/<date>-issue/`.
   - doc: CW
     lines:
@@ -8499,7 +8497,7 @@ items:
       rule: exists
       root: '{artifact}/specs'
   requirement: must
-  modality_evidence: CW:99 'merges its delta specs into `/openspec/specs/`'
+  modality_evidence: CW:98 'merges its delta specs into `/openspec/specs/`'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8509,8 +8507,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 99
-    - 99
+    - 98
+    - 98
     quote: It validates the change, merges its delta specs into `/openspec/specs/`
   impl_refs: []
   derived_by: manual
@@ -8531,7 +8529,7 @@ items:
       rule: synced
       root: '{artifact}/specs'
   requirement: must
-  modality_evidence: 'CW:99 ''merges its delta specs into `/openspec/specs/`'': the archive''s product is the archived change''s
+  modality_evidence: 'CW:98 ''merges its delta specs into `/openspec/specs/`'': the archive''s product is the archived change''s
     deltas merged; main specs that do not hold them are no archive of this change'
   none_allowed: '-'
   applies_when: null
@@ -8543,65 +8541,14 @@ items:
   sources:
   - doc: CW
     lines:
-    - 99
-    - 99
+    - 98
+    - 98
     quote: It validates the change, merges its delta specs into `/openspec/specs/`
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
   note: each ADDED requirement of the archived deltas (with its scenarios) is in its main spec
-- id: openspec_ff.archive.run.prohibited_action.repo_write
-  scope: common
-  class: evidence
-  stage: archive
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: prohibited_action
-    params:
-      action: repo_write
-      window:
-      - first_write:verify
-      - end
-  requirement: must
-  modality_evidence: 'prohibition (CW:74 ''Only the apply action edits `/testbed`''; CW:86-87 ''Verify runs once ... Whatever
-    it finds, move on to archive''; CW:105-106 ''do not reopen tasks or apply: the code is done'')'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 86
-    - 87
-    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report
-      records what is still open.
-  - doc: CW
-    lines:
-    - 74
-    - 74
-    quote: '- Only the apply action edits `/testbed`. ff and verify read it and run commands in it.'
-  - doc: CW
-    lines:
-    - 105
-    - 106
-    quote: 'do not reopen tasks or apply: the code is done, and judging it was verify''s job.'
-  - doc: VF
-    lines:
-    - 188
-    - 188
-    quote: '**Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.'
-  impl_refs: []
-  derived_by: manual
-  template: C-A6
-  log_only: false
-  note: no write into the repository once verify.md is written (no return to apply after the report, whatever it found)
 - id: openspec_ff.archive.run.openspec_ff_archive.succeeded
   scope: specific
   class: evidence
@@ -8615,7 +8562,7 @@ items:
     params:
       rule: succeeded
   requirement: must
-  modality_evidence: 'imperative (CW:93-96 ''Then run once: openspec archive issue --yes''; CW:24 the action starts from it)'
+  modality_evidence: 'imperative (CW:92-95 ''Then run once: openspec archive issue --yes''; CW:24 the action starts from it)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8626,8 +8573,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 93
-    - 96
+    - 92
+    - 95
     quote: 'Then run once: ```bash openspec archive issue --yes'
   - doc: CW
     lines:
@@ -8655,8 +8602,8 @@ items:
       - '{artifact}/changes/archive'
       - '{artifact}/specs'
   requirement: must
-  modality_evidence: 'CW:99-100: the command merges the delta specs and moves the change; a hand-made archive (mv / cp of
-    the change, a main spec written by the agent) is not the archive step'
+  modality_evidence: 'CW:98-99: the command merges the delta specs and moves the change; a hand-made archive (mv / cp of the
+    change, a main spec written by the agent) is not the archive step'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8667,8 +8614,8 @@ items:
   sources:
   - doc: CW
     lines:
+    - 98
     - 99
-    - 100
     quote: It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`.
   - doc: CW
     lines:
@@ -8680,58 +8627,6 @@ items:
   template: ''
   log_only: false
   note: 'the trace writes or moves nothing into /openspec/changes/archive/ or /openspec/specs/: the CLI did it'
-- id: openspec_ff.archive.run.openspec_ff_paths_written.tasks_after_verify
-  scope: specific
-  class: evidence
-  stage: archive
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: openspec_ff.paths_written
-    params:
-      pattern: ^/openspec/changes/issue/tasks\.md$
-      window:
-      - first_write:verify
-      - end
-  requirement: must
-  modality_evidence: 'prohibition (CW:105-106 ''do not reopen tasks or apply''; CW:86-87 ''Whatever it finds, move on to archive;
-    the report records what is still open''): an open task stays open in tasks.md and recorded in verify.md'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CW
-    lines:
-    - 86
-    - 87
-    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report
-      records what is still open.
-  - doc: CW
-    lines:
-    - 74
-    - 74
-    quote: '- Only the apply action edits `/testbed`. ff and verify read it and run commands in it.'
-  - doc: CW
-    lines:
-    - 105
-    - 106
-    quote: 'do not reopen tasks or apply: the code is done, and judging it was verify''s job.'
-  - doc: VF
-    lines:
-    - 188
-    - 188
-    quote: '**Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: the active tasks.md not written once verify.md is written (no task ticked, reopened or added after the report); after
-    the archive call the specs_only item covers the archived copy, and a hand-made move is the by_cli item's
 - id: openspec_ff.archive.unimplemented.unimplemented
   scope: specific
   class: content
@@ -8776,7 +8671,7 @@ items:
       rule: after
       event: write:verify
   requirement: must
-  modality_evidence: imperative (CW:91-92 'archive only once `/openspec/changes/issue/verify.md` exists')
+  modality_evidence: imperative (CW:90-91 'archive only once `/openspec/changes/issue/verify.md` exists')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8786,8 +8681,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 91
-    - 93
+    - 90
+    - 92
     quote: archive only once `/openspec/changes/issue/verify.md` exists. If it does not, open `/opsx/stages/03-verify.md`
       and write it first.
   impl_refs: []
@@ -8810,7 +8705,7 @@ items:
       allow:
       - '{artifact}/changes/issue/specs'
   requirement: must
-  modality_evidence: imperative (CW:103 'correct only what the error message names in the delta spec'); prohibition (CW:105-106
+  modality_evidence: imperative (CW:102 'correct only what the error message names in the delta spec'); prohibition (CW:104-105
     'do not reopen tasks or apply')
   none_allowed: '-'
   applies_when: null
@@ -8821,14 +8716,14 @@ items:
   sources:
   - doc: CW
     lines:
-    - 103
-    - 106
+    - 102
+    - 105
     quote: 'correct only what the error message names in the delta spec (its format, or a spec file that is missing) ... Never
       add `--no-validate`, and do not reopen tasks or apply: the code is done, and judging it was verify''s job.'
   - doc: CW
     lines:
-    - 91
-    - 91
+    - 90
+    - 90
     quote: The code change must be complete before this step
   impl_refs: []
   derived_by: manual
@@ -8848,8 +8743,8 @@ items:
     params:
       rule: retries
   requirement: must
-  modality_evidence: 'imperative (CW:93 ''run once''; CW:103-104 ''run the same command one more time. If it fails again,
-    call `finish` without archiving''; CW:102 ''Exit code 0: call `finish`'')'
+  modality_evidence: 'imperative (CW:92 ''run once''; CW:102-103 ''run the same command one more time. If it fails again,
+    call `finish` without archiving''; CW:101 ''Exit code 0: call `finish`'')'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8859,8 +8754,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 102
-    - 105
+    - 101
+    - 104
     quote: '- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec (its
       format, or a spec file that is missing), then run the same command one more time. If it fails again, call `finish` without
       archiving.'
@@ -9049,7 +8944,7 @@ items:
     params:
       action: test_file_write
   requirement: must
-  modality_evidence: prohibition (CW:79 'Do not add or edit test files there'; SCHEMA:234 'Do NOT add or edit test files')
+  modality_evidence: prohibition (CW:77 'Do not add or edit test files there'; SCHEMA:234 'Do NOT add or edit test files')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -9059,8 +8954,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 79
-    - 79
+    - 77
+    - 77
     quote: '- Do not add or edit test files there; the tests for this task already exist.'
   - doc: SCHEMA
     lines:
@@ -9315,7 +9210,7 @@ items:
     params:
       test_paths: true
   requirement: must
-  modality_evidence: prohibition (CW:79 'Do not add ... test files there')
+  modality_evidence: prohibition (CW:77 'Do not add ... test files there')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -9325,8 +9220,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 79
-    - 79
+    - 77
+    - 77
     quote: '- Do not add or edit test files there; the tests for this task already exist.'
   - doc: CONFIG
     lines:
@@ -9518,7 +9413,7 @@ items:
     params:
       pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:proposal|design|tasks|verify(?:-2)?|spec)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
   requirement: must
-  modality_evidence: 'prohibition (CW:81-82 ''Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts'')'
+  modality_evidence: 'prohibition (CW:79-80 ''Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts'')'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -9528,8 +9423,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 81
-    - 82
+    - 79
+    - 80
     quote: '- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`.'
   - doc: CW
     lines:
@@ -9800,7 +9695,7 @@ items:
       rule: absent
       sub: (?:^|\s)--no-validate\b
   requirement: must
-  modality_evidence: prohibition (CW:105 'Never add `--no-validate`')
+  modality_evidence: prohibition (CW:104 'Never add `--no-validate`')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -9810,8 +9705,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 105
-    - 105
+    - 104
+    - 104
     quote: Never add `--no-validate`
   impl_refs: []
   derived_by: manual
@@ -9841,31 +9736,33 @@ scoring:
     hidden_failure_min_drop: 0.0
 conflicts:
 - type: documented
-  description: 'Verify once: the report keeps upstream''s CRITICAL label ''Must fix before archive'' and the assessment ''Fix
-    before archiving'' (VF:163, VF:181); core-workflow.md says verify runs once and the run moves on to archive whatever it
-    finds (CW:86-87), and 03-verify.md''s next step is the archive (VF:188)'
-  resolution: 'procedure precedence (core first): a CRITICAL issue is recorded in verify.md, not fixed; no item asks for a
-    fix or a second report after a CRITICAL count, and the prescribed ''N critical issue(s) found. Fix before archiving.''
-    passes the Final Assessment item; going back to apply after verify.md (a repository edit or a task-list write once verify.md
-    is written) fails the archive stage''s no-return items (CW:74, CW:86-87, CW:105-106)'
+  description: 'Verify and archive: the report labels a CRITICAL issue ''Must fix before archive'' (VF:163, VF:182); core-workflow.md
+    sends a report holding one back to apply, at most twice, and then on to the archive with the report as it stands (CW:84-86,
+    VF:189)'
+  resolution: 'going back to apply after verify.md is the documents'' own path: a repository edit, a task-list write and a
+    rewritten verify.md once the report exists fail no item, and verify.md is judged in its final state; no item counts the
+    returns or asks for the fix (whether a report''s CRITICAL issue was fixed is prose against code, not a rule), and the
+    prescribed ''N critical issue(s) found. Fix before archiving.'' passes the Final Assessment item'
   items: []
   sources:
   - path: docs/core-workflow.md
     lines:
+    - 84
     - 86
-    - 87
-    quote: Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report
-      records what is still open.
+    quote: If the report holds a CRITICAL issue, go back to apply, fix what the report names, and run verify again, rewriting
+      `verify.md`. Go back at most twice; after that, move on to archive with the report as it stands.
   - path: docs/stages/03-verify.md
     lines:
-    - 181
-    - 181
+    - 182
+    - 182
     quote: '- If CRITICAL issues: "X critical issue(s) found. Fix before archiving."'
   - path: docs/stages/03-verify.md
     lines:
-    - 188
-    - 188
-    quote: '**Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.'
+    - 189
+    - 189
+    quote: '**Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the
+      apply action (`/opsx/stages/02-apply.md`) and fix each CRITICAL item, even though apply reports its tasks done; then
+      run verify again and rewrite this report.'
 - type: documented
   description: 'Every stage document opens with the upstream Project check (''confirm the project has a root: run `openspec
     list --json`''); core-workflow.md says the planning root is already set up'
@@ -9946,9 +9843,9 @@ conflicts:
   description: Explore calls itself 'a stance, not a workflow' with 'no fixed steps and no required sequence' (EX:7); core-workflow.md
     gives it a starting command, a required summary before 01-ff.md and no file (CW:20, CW:60-63)
   resolution: 'procedure precedence (core first): the explore stage''s items are what core-workflow.md and the document''s
-    own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no composed
-    code, no `openspec new change`; the stance''s suggestions (diagrams, comparison tables, `list --specs` / `show`, how long
-    to explore) have no item, and reading the project config is should'
+    own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no `openspec
+    new change`; the stance''s suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have
+    no item, and reading the project config is should'
   items: []
   sources:
   - path: docs/stages/00-explore.md
@@ -9983,26 +9880,6 @@ conflicts:
     - 51
     - 51
     quote: '- never ask a question and never stop to report;'
-- type: documented
-  description: Explore may run 'the issue's own example exactly as given' but no code it composes (EX:5, CW:75-77); a Python
-    example from an issue can only be run as `python -c` / a heredoc, which is also what composed code looks like
-  resolution: 'the composed-code item (`python -c`, a heredoc or stdin piped to python in the explore window) is should: the
-    trace does not hold the issue text to tell its example from the agent''s own code. The no-file item stays must: running
-    an example needs no file'
-  items: []
-  sources:
-  - path: docs/stages/00-explore.md
-    lines:
-    - 5
-    - 5
-    quote: 'Here a read-only command is one that runs only what already exists and writes no file: reading, searching, running
-      existing code and existing tests, and running the issue''s own example exactly as given.'
-  - path: docs/core-workflow.md
-    lines:
-    - 75
-    - 77
-    quote: 'runs only what is already there: existing code, existing tests, and the issue''s own example exactly as given.
-      It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`'
 - type: documented
   description: 'Where explore ends: the documents end it by opening 01-ff.md after the summary (EX:189-191, CW:62-63); a run
     that never opens 01-ff.md, or reads it ahead, has no other boundary between explore and ff'
@@ -10047,8 +9924,8 @@ conflicts:
   sources:
   - path: docs/core-workflow.md
     lines:
-    - 93
-    - 100
+    - 92
+    - 99
     quote: 'Then run once: ```bash openspec archive issue --yes ``` It validates the change, merges its delta specs into `/openspec/specs/`
       and moves the change to `/openspec/changes/archive/<date>-issue/`.'
 - type: documented
@@ -10061,8 +9938,8 @@ conflicts:
   sources:
   - path: docs/core-workflow.md
     lines:
+    - 101
     - 102
-    - 103
     quote: '- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec'
 - type: documented
   description: 'skip_specs: the schema lets a change opt out of specs when no spec-level behaviour changes; a SWE task changes
@@ -10110,7 +9987,7 @@ conflicts:
       the conversation
 - type: documented
   description: The generic system prompt asks to keep AGENTS.md in the repository (SP:11) and to ask the user for clarification;
-    the workflow forbids leaving anything behind in /testbed and stopping to ask (CW:48-56, CW:81-82)
+    the workflow forbids leaving anything behind in /testbed and stopping to ask (CW:48-56, CW:79-80)
   resolution: 'the workflow wins (SP:61-64 the workflow takes the place of the usual procedure): a scratch / note file created
     in the repository fails its item even when removed again; AGENTS.md is not itemized'
   items: []
@@ -10122,8 +9999,8 @@ conflicts:
     quote: '* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context.'
   - path: docs/core-workflow.md
     lines:
-    - 81
-    - 82
+    - 79
+    - 80
     quote: '- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts.'
 - type: critic
   items:
@@ -10850,22 +10727,6 @@ appendix:
     quote: ff and verify read it and run commands in it.
     modality: may
     reason: 'G4: not checkable by rule ()'
-  - statement: cw-044
-    doc: CW
-    lines:
-    - 78
-    - 78
-    quote: A variant worth trying becomes an open question for ff.
-    modality: should
-    reason: 'G4: not checkable by rule ()'
-  - statement: cw-052
-    doc: CW
-    lines:
-    - 87
-    - 87
-    quote: the report records what is still open.
-    modality: implicit
-    reason: 'G4: not checkable by rule (The verify report must list any open issues it found.)'
   - statement: ex-001
     doc: EX
     lines:
@@ -10883,14 +10744,6 @@ appendix:
       It is the source material for this exploration; nobody will add to it.'
     modality: implicit
     reason: 'G4: not checkable by rule (Agent should treat issue description as the sole source material)'
-  - statement: ex-007
-    doc: EX
-    lines:
-    - 5
-    - 5
-    quote: Varying the issue's example is left to ff and apply, which keep their scripts under `checks/`.
-    modality: prohibition
-    reason: 'G4: not checkable by rule (Explore may only run the issue example exactly as given)'
   - statement: ex-013
     doc: EX
     lines:
@@ -11193,14 +11046,6 @@ appendix:
     quote: ff builds the proposal's Why and the design's Context and Decisions (choice, rationale, alternatives) on it
     modality: must
     reason: 'G4: not checkable by rule (ff artifacts come from the explore summary)'
-  - statement: ex-086
-    doc: EX
-    lines:
-    - 215
-    - 215
-    quote: when you want to try a variant of the issue's example, record it as an open question for ff instead.
-    modality: must
-    reason: 'G4: not checkable by rule ()'
   - statement: ex-088
     doc: EX
     lines:
@@ -12112,51 +11957,43 @@ appendix:
     quote: Treat every not verified or partially verified check as skipped in the final assessment.
     modality: must
     reason: 'G4: not checkable by rule ()'
-  - statement: vf-126
-    doc: VF
-    lines:
-    - 188
-    - 188
-    quote: '**Next step**: go to the archive step in `/opsx/core-workflow.md`.'
-    modality: must
-    reason: 'G4: not checkable by rule ()'
   - statement: vf-127
     doc: VF
     lines:
-    - 192
-    - 192
+    - 193
+    - 193
     quote: '**Completeness**: Focus on objective checklist items (checkboxes, requirements list)'
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: vf-128
     doc: VF
     lines:
-    - 193
-    - 193
+    - 194
+    - 194
     quote: '**Correctness**: Use keyword search, file path analysis, reasonable inference - don''t require perfect certainty'
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: vf-129
     doc: VF
     lines:
-    - 194
-    - 194
+    - 195
+    - 195
     quote: '**Coherence**: Look for glaring inconsistencies, don''t nitpick style'
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: vf-130
     doc: VF
     lines:
-    - 195
-    - 195
+    - 196
+    - 196
     quote: '**False Positives**: When uncertain, prefer SUGGESTION over WARNING, WARNING over CRITICAL'
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: vf-135
     doc: VF
     lines:
-    - 204
-    - 204
+    - 205
+    - 205
     quote: Specific, actionable recommendations
     modality: must
     reason: 'G4: not checkable by rule ()'
@@ -12461,8 +12298,8 @@ appendix:
   - statement: cw-046
     doc: CW
     lines:
-    - 79
-    - 80
+    - 77
+    - 78
     quote: Touch README, `docs/` or changelogs only if the issue asks for it.
     modality: prohibition
     reason: It depends on whether the issue asks for README/docs/changelog changes, and that can't be expressed as an applies_when
@@ -13114,8 +12951,8 @@ appendix:
   - statement: vf-115
     doc: VF
     lines:
-    - 170
-    - 173
+    - 171
+    - 174
     quote: "**WARNING** (Should fix):\n      - Spec/design divergences\n      - Missing scenario coverage\n      - Each with\
       \ specific recommendation"
     modality: must
@@ -13124,8 +12961,8 @@ appendix:
   - statement: vf-116
     doc: VF
     lines:
-    - 175
-    - 178
+    - 176
+    - 179
     quote: "**SUGGESTION** (Nice to fix):\n      - Pattern inconsistencies\n      - Minor improvements\n      - Each with\
       \ specific recommendation"
     modality: must
@@ -13134,8 +12971,8 @@ appendix:
   - statement: vf-118
     doc: VF
     lines:
-    - 181
-    - 181
+    - 182
+    - 182
     quote: If any check was skipped, also name every skipped check and its reason.
     modality: must
     reason: No predicate can tell which checks were skipped or whether a 'Final Assessment' section exists in the report,

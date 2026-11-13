@@ -133,13 +133,17 @@ def test_planning_paths_stay_outside_the_repository():
         assert needle in entry, needle
 
 
-def test_verify_runs_once_then_archive():
+def test_a_critical_issue_goes_back_to_apply_before_archive():
     entry = _docs()["core-workflow.md"]
     verify = _docs()["stages/03-verify.md"]
-    assert "Verify runs once" in entry
-    assert "**Next step**: go to the archive step" in verify
+    assert "## Verify, Then Fix What It Finds" in entry and "Verify runs once" not in entry  # G8-2
+    assert "If the report holds a CRITICAL issue, go back\nto apply" in entry and "Go back at most\ntwice" in entry
+    assert "**Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times" in verify
+    assert "Otherwise go to the archive step" in verify
+    assert "Verification is advisory" not in verify  # G8-2: the report decides whether the change goes back
+    assert "- A test or check script that failed when you last ran it after your final edit" in verify  # G8-3
     for text in (entry, verify):
-        assert "verify-2" not in text and not re.search(r"\brounds?\b", text, re.I)
+        assert "verify-2" not in text  # one verify.md, rewritten
 
 
 # ---------------------------------------------------------------------- the fork
@@ -290,12 +294,13 @@ def test_explore_comes_first_and_hands_off_to_ff():
         assert text.lower().index("explore") < re.search(r"\bff\b", text).start()
 
 
-def test_explore_writes_nothing_and_composes_no_code():
+def test_explore_writes_nothing_and_may_run_snippets():
     explore = _docs()["stages/00-explore.md"]
     entry = _docs()["core-workflow.md"]
     assert "NEVER write code or implement features" in explore and "Never write code or implement features" in explore  # kept
     assert "In this session explore writes nothing" in explore  # G4-13
-    assert "python -c" in explore and "python -c" in entry  # G9-5 boundary, in the stage and the entry document
+    assert "as a one-line `python -c` or a snippet piped to stdin" in explore  # G9-5 (rev.): a snippet run is read-only
+    assert "Code you compose yourself" not in explore and "composes no code" not in entry  # the ban is gone
     for gone in ("### When no change exists", "### When a change exists", "Don't manually scaffold", "yes/no", "Want me to"):
         assert gone not in explore, gone  # G4-17, G7-10, G4-13
     assert 'openspec new change "issue"' not in explore  # only ff runs it
@@ -308,7 +313,7 @@ def test_explore_ends_with_the_summary_ff_builds_on():
         assert field in explore, field  # G2-12
     assert "There's no required ending" not in explore and "summary is optional" not in explore  # G8-6, G2-12
     assert "inside a tool call (the `think` tool, for example) before the tool call that opens" in explore  # G2-11, G2-14
-    assert "heredoc piped to `python3`" in explore  # G9-6: composed code named in the guardrail
+    assert "Running code you composed" not in explore  # G9-6 dropped
     assert "Do not ask the user to repeat facts you can verify." in explore  # G4-14: explore:48 verbatim
     assert "I assume a single-device\ntool (assumption, with that evidence)" in explore  # G4-19
     assert "Is sharing state" not in explore
