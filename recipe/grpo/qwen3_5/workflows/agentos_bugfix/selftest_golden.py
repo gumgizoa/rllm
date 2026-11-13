@@ -25,7 +25,9 @@ S = f"{SPECS}/{TODAY}-{NAME}"
 CHECKS = f"{S}/checks"
 # no follow-up questions in this workflow; "added_task": a sub-task the tasks missed is added to tasks.md while
 # implementing (implement-tasks PHASE 2), then implemented and ticked
-VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task")
+# "fix_round": PHASE 3 finds an existing test failing because of the change, checks it against the unchanged code
+# (git stash), goes back to PHASE 2 once, fixes the change and runs the tests again
+VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task", "fix_round")
 ADDED_TASK = "2.4 Name the sep argument in the package docstring of textkit/__init__.py"
 
 ISSUE = """slugify() leaves hyphens at the edges: slugify("Hello, World!") returns "hello-world-" and
@@ -102,6 +104,10 @@ G1_BODY = '''def slugify(text):
 G2_BODY = '''def slugify(text, sep="-"):
     """``text`` lower-cased, every run of other characters replaced by one ``sep``, none at either end."""
     return _NON_WORD.sub(sep, text.lower()).strip(sep)'''
+
+# the separator option written without lower-casing the text: an existing test of slugify then fails ("fix_round")
+G2_BROKEN = G2_BODY.replace("text.lower()", "text")
+assert G2_BROKEN != G2_BODY
 
 CHECK_EDGES = f"""\"\"\"Task 1.1: a slug never starts or ends with a hyphen.\"\"\"
 import sys
@@ -526,6 +532,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     v = {variant} if variant else set()
     review, follow, failures, warn = "review_group" in v, "followups" in v, "suite_failures" in v, "warn_task" in v
     added = "added_task" in v
+    fix = "fix_round" in v
     docs = _docs()
     s = _Steps(heredoc="heredoc_writes" in v)
     tasks_path = f"{S}/tasks.md"
@@ -599,7 +606,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         "check_sep.py", False, _traceback(f"{CHECKS}/check_sep.py", 7, 'assert slugify("Hello World", sep="_") == "hello_world"', "TypeError: slugify() got an unexpected keyword argument 'sep'")
     )
     tick("2.1")
-    s.replace(f"{WORKDIR}/textkit/slug.py", G1_BODY, G2_BODY)
+    s.replace(f"{WORKDIR}/textkit/slug.py", G1_BODY, G2_BROKEN if fix else G2_BODY)
     tick("2.2")
     if added:
         # the package docstring describes slugify: no task covers it, so it is added to tasks.md, then done
@@ -626,6 +633,15 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     if warn:
         # Step 1's spot check: the README still documents slugify without sep, so 2.2 is found incomplete and marked
         s.replace(tasks_path, "- [x] 2.2 ", "- [⚠️] 2.2 ")
+    if fix:
+        # the covering module fails on the changed code and passes on the unchanged code: the change causes it
+        one = "FAILED tests/test_slug.py::test_slugify_keeps_case_insensitive - AssertionError: assert 'Hello-World' == 'hello-world'"
+        s.sh(f"cd {WORKDIR} && python -m pytest tests/test_slug.py -q", f"..F..                                                                    [100%]\n{one}\n1 failed, 4 passed in 0.04s", code=1)
+        unchanged = ".....                                                                    [100%]\n5 passed in 0.03s"
+        s.sh(f"cd {WORKDIR} && git stash -q && python -m pytest tests/test_slug.py -q; git stash pop -q", unchanged)
+        s.replace(f"{WORKDIR}/textkit/slug.py", G2_BROKEN, G2_BODY)  # back to PHASE 2 once: the lower-casing is restored
+        s.cat(tasks_path, final_tasks)  # PHASE 3 again from Step 1
+        run_existing()
     # the tests of the changed code once more: the tests written, then the suite (small here), which holds the covering module
     run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")
     run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")

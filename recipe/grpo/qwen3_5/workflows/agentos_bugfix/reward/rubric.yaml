@@ -81,6 +81,10 @@ generated:
       kind: honest
       status: ok
       compliance: 1.0
+    - mutation: variant:fix_round
+      kind: honest
+      status: ok
+      compliance: 1.0
     - mutation: template_copy
       kind: exploit
       status: ok
@@ -168,7 +172,7 @@ generated:
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9707
+      compliance: 0.9278
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -236,7 +240,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 299359b80b80761cdefb2896f224956424b472eb37362234fec2b834ae81acf8
+  sha256: 504182c649bb4c7ff434d227e5740f5e3af5193c7e4ccbc762fe4207da78d57f
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -251,7 +255,7 @@ sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: f62dc6c1b9bf6ad24a885cc731a0dae0ed5ac4556b26437be6fb602309fd1e70
+  sha256: 5400aa11e2f7bac6978be4983ca110e1f490ff4a16316b1ccbd49a8f9df98c82
   container_path: /agent-os/core-workflow.md
 - id: INS
   path: instruction.md
@@ -394,8 +398,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 43
     - 44
+    - 45
     quote: 'shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short
       kebab-case name you choose for the change.'
   impl_refs: []
@@ -436,8 +440,8 @@ items:
     quote: 'Determine a kebab-case spec name from the user''s description, then create the spec folder:'
   - doc: CW
     lines:
-    - 43
     - 44
+    - 45
     quote: '`/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short kebab-case name you choose for the change.'
   impl_refs: []
   derived_by: manual
@@ -504,8 +508,8 @@ items:
       modification.
   - doc: CW
     lines:
-    - 51
-    - 51
+    - 52
+    - 52
     quote: 'shape-spec PHASE 1: the task description, unchanged'
   impl_refs: []
   derived_by: manual
@@ -1861,8 +1865,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 69
-    - 71
+    - 70
+    - 72
     quote: Where a document has you ask questions, write them as it describes, then answer each one yourself from the task
       description and the repository, and record the answer with its basis where the document says (`**Answer:** (assumed)
       <answer> — <basis>` in `requirements.md`).
@@ -2005,8 +2009,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 80
     - 81
+    - 82
     quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
   impl_refs: []
   derived_by: manual
@@ -2821,8 +2825,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 80
     - 81
+    - 82
     quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
   impl_refs: []
   derived_by: manual
@@ -3506,8 +3510,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 80
     - 81
+    - 82
     quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
   impl_refs: []
   derived_by: manual
@@ -3743,8 +3747,8 @@ items:
     quote: 'The tasks assigned to you are those of the current task group: one task group per pass of PHASE 2.'
   - doc: IT
     lines:
-    - 45
-    - 45
+    - 46
+    - 46
     quote: IF there are still tasks in tasks.md that have yet to be implemented (marked unfinished with `- [ ]`), repeat PHASE
       2 for the next task group with unchecked tasks.
   impl_refs: []
@@ -3782,14 +3786,14 @@ items:
       by updating their checkbox to checked state: `- [x]`'
   - doc: IT
     lines:
-    - 119
-    - 119
+    - 120
+    - 120
     quote: Check `/tmp/agent-os/specs/[this-spec]/tasks.md` and ensure that all tasks and their sub-tasks are marked as completed
       with `- [x]`.
   - doc: CW
     lines:
-    - 74
-    - 76
+    - 75
+    - 77
     quote: The checkboxes in `S/tasks.md` are the record of what has been implemented; the TaskTracker tool may serve as a
       private scratch list, but it does not replace ticking `tasks.md`.
   impl_refs: []
@@ -3852,13 +3856,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 138
-    - 138
+    - 142
+    - 142
     quote: Create your final verification report in `/tmp/agent-os/specs/[this-spec]/verifications/final-verification.md`.
   - doc: CW
     lines:
-    - 91
-    - 92
+    - 93
+    - 94
     quote: As soon as `S/verifications/final-verification.md` is written, call `finish`.
   impl_refs: []
   derived_by: manual
@@ -3890,13 +3894,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 152
-    - 152
+    - 156
+    - 156
     quote: '## Executive Summary'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -3928,13 +3932,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 184
-    - 184
+    - 188
+    - 188
     quote: '### Failed Tests'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -3966,13 +3970,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 169
-    - 169
+    - 173
+    - 173
     quote: '### Incomplete or Issues'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4004,18 +4008,18 @@ items:
   sources:
   - doc: IT
     lines:
-    - 187
-    - 187
+    - 191
+    - 191
     quote: '### Notes'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 187
-    - 187
+    - 191
+    - 191
     quote: '### Notes'
   impl_refs: []
   derived_by: template_compiler
@@ -4047,13 +4051,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 178
-    - 178
+    - 182
+    - 182
     quote: '### Test Summary'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4085,13 +4089,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 186
+    - 186
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4123,13 +4127,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 181
-    - 181
+    - 185
+    - 185
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4161,13 +4165,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 180
-    - 180
+    - 184
+    - 184
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4199,13 +4203,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 183
+    - 183
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4241,8 +4245,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 152
+    - 152
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   impl_refs: []
   derived_by: manual
@@ -4277,8 +4281,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 160
-    - 160
+    - 164
+    - 164
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   impl_refs: []
   derived_by: manual
@@ -4314,8 +4318,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 176
-    - 176
+    - 180
+    - 180
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: manual
@@ -4346,13 +4350,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 154
-    - 154
+    - 158
+    - 158
     quote: '[Brief 2-3 sentence overview of the verification results and overall implementation quality]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4383,13 +4387,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 185
-    - 185
+    - 189
+    - 189
     quote: '[List any failing tests with their descriptions, or note "None - all tests passing"]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4420,13 +4424,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 170
-    - 170
+    - 174
+    - 174
     quote: '[List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4457,13 +4461,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 188
-    - 188
+    - 192
+    - 192
     quote: '[Any additional context about test results, known issues, or regressions]'
   impl_refs: []
   derived_by: template_compiler
@@ -4495,13 +4499,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 186
+    - 186
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4533,13 +4537,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 181
-    - 181
+    - 185
+    - 185
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4571,13 +4575,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 180
-    - 180
+    - 184
+    - 184
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4609,13 +4613,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 183
+    - 183
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4647,18 +4651,18 @@ items:
   sources:
   - doc: IT
     lines:
-    - 158
-    - 158
+    - 162
+    - 162
     quote: '## 1. Tasks Verification'
   - doc: IT
     lines:
-    - 174
-    - 174
+    - 178
+    - 178
     quote: '## 2. Test Suite Results'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4690,13 +4694,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 147
+    - 147
     quote: '# Verification Report: [Spec Title]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4728,13 +4732,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 146
-    - 146
+    - 150
+    - 150
     quote: '**Date:** [Current Date]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4766,13 +4770,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 145
-    - 145
+    - 149
+    - 149
     quote: '**Spec:** `[spec-name]`'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4804,23 +4808,23 @@ items:
   sources:
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 152
+    - 152
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   - doc: IT
     lines:
-    - 160
-    - 160
+    - 164
+    - 164
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   - doc: IT
     lines:
-    - 176
-    - 176
+    - 180
+    - 180
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: template_compiler
@@ -4852,13 +4856,13 @@ items:
   sources:
   - doc: IT
     lines:
-    - 147
-    - 147
+    - 151
+    - 151
     quote: '**Verifier:** implementation-verifier'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -4892,8 +4896,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 132
-    - 132
+    - 133
+    - 133
     quote: Include these counts and the list of failed tests in your final verification report.
   impl_refs: []
   derived_by: manual
@@ -4937,88 +4941,88 @@ items:
   sources:
   - doc: IT
     lines:
-    - 143
-    - 143
+    - 147
+    - 147
     quote: '# Verification Report: [Spec Title]'
   - doc: IT
     lines:
-    - 145
-    - 145
+    - 149
+    - 149
     quote: '**Spec:** `[spec-name]`'
   - doc: IT
     lines:
-    - 146
-    - 146
+    - 150
+    - 150
     quote: '**Date:** [Current Date]'
   - doc: IT
     lines:
-    - 148
-    - 148
+    - 152
+    - 152
     quote: '**Status:** ✅ Passed | ⚠️ Passed with Issues | ❌ Failed'
   - doc: IT
     lines:
-    - 154
-    - 154
+    - 158
+    - 158
     quote: '[Brief 2-3 sentence overview of the verification results and overall implementation quality]'
   - doc: IT
     lines:
-    - 160
-    - 160
+    - 164
+    - 164
     quote: '**Status:** ✅ All Complete | ⚠️ Issues Found'
   - doc: IT
     lines:
-    - 163
-    - 163
+    - 167
+    - 167
     quote: '- [x] Task Group 1: [Title]'
   - doc: IT
     lines:
-    - 166
-    - 166
+    - 170
+    - 170
     quote: '- [x] Task Group 2: [Title]'
   - doc: IT
     lines:
-    - 170
-    - 170
+    - 174
+    - 174
     quote: '[List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   - doc: IT
     lines:
-    - 176
-    - 176
+    - 180
+    - 180
     quote: '**Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   - doc: IT
     lines:
-    - 179
-    - 179
+    - 183
+    - 183
     quote: '- **Total Tests:** [count]'
   - doc: IT
     lines:
-    - 180
-    - 180
+    - 184
+    - 184
     quote: '- **Passing:** [count]'
   - doc: IT
     lines:
-    - 181
-    - 181
+    - 185
+    - 185
     quote: '- **Failing:** [count]'
   - doc: IT
     lines:
-    - 182
-    - 182
+    - 186
+    - 186
     quote: '- **Errors:** [count]'
   - doc: IT
     lines:
-    - 185
-    - 185
+    - 189
+    - 189
     quote: '[List any failing tests with their descriptions, or note "None - all tests passing"]'
   - doc: IT
     lines:
-    - 188
-    - 188
+    - 192
+    - 192
     quote: '[Any additional context about test results, known issues, or regressions]'
   - doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
   impl_refs: []
   derived_by: template_compiler
@@ -5049,14 +5053,14 @@ items:
   sources:
   - doc: IT
     lines:
-    - 126
-    - 126
+    - 127
+    - 127
     quote: IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness
       in your verification report.
   - doc: IT
     lines:
-    - 169
-    - 170
+    - 173
+    - 174
     quote: '### Incomplete or Issues [List any tasks that were found incomplete or have issues, or note "None" if all complete]'
   impl_refs: []
   derived_by: manual
@@ -5076,6 +5080,7 @@ items:
     params:
       rule: test_counts
       suite_section: 2. Test Suite Results
+      fix_round: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include these counts ... in your final verification report')
   none_allowed: '-'
@@ -5088,14 +5093,14 @@ items:
   sources:
   - doc: IT
     lines:
-    - 130
-    - 132
+    - 131
+    - 133
     quote: Verify how many tests are passing and how many have failed or produced errors. Include these counts and the list
       of failed tests in your final verification report.
   - doc: IT
     lines:
-    - 178
     - 182
+    - 186
     quote: '### Test Summary - **Total Tests:** [count] - **Passing:** [count] - **Failing:** [count] - **Errors:** [count]'
   impl_refs: []
   derived_by: manual
@@ -5115,6 +5120,7 @@ items:
     params:
       rule: failed_listed
       suite_section: 2. Test Suite Results
+      fix_round: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include ... the list of failed tests'; IT:243 'Just note their failures')
   none_allowed: '-'
@@ -5127,14 +5133,14 @@ items:
   sources:
   - doc: IT
     lines:
-    - 132
-    - 132
+    - 133
+    - 133
     quote: Include these counts and the list of failed tests in your final verification report.
   - doc: IT
     lines:
-    - 134
-    - 134
-    quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
+    - 138
+    - 138
+    quote: DO NOT attempt to fix it.  Just note it in your final verification report.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5163,8 +5169,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 145
-    - 145
+    - 149
+    - 149
     quote: '**Spec:** `[spec-name]`'
   impl_refs: []
   derived_by: manual
@@ -5194,8 +5200,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 158
-    - 160
+    - 162
+    - 164
     quote: '## 1. Tasks Verification **Status:** ✅ All Complete | ⚠️ Issues Found'
   impl_refs: []
   derived_by: manual
@@ -5215,6 +5221,7 @@ items:
     params:
       rule: suite_status
       suite_section: 2. Test Suite Results
+      fix_round: true
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)
   none_allowed: '-'
@@ -5227,8 +5234,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 174
-    - 176
+    - 178
+    - 180
     quote: '## 2. Test Suite Results **Status:** ✅ All Passing | ⚠️ Some Failures | ❌ Critical Failures'
   impl_refs: []
   derived_by: manual
@@ -5260,8 +5267,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 191
-    - 191
+    - 195
+    - 195
     quote: 'The **Status** at the top of the report follows from the two sections below it:'
   impl_refs: []
   derived_by: manual
@@ -5515,8 +5522,8 @@ items:
     quote: 3. Implement the assigned task group according to requirements and standards
   - doc: CW
     lines:
-    - 80
-    - 80
+    - 81
+    - 81
     quote: Only implement-tasks PHASE 2 changes the repository.
   impl_refs: []
   derived_by: manual
@@ -5568,6 +5575,7 @@ items:
     kind: agentos_bugfix.verify
     params:
       rule: code_frozen
+      fix_round: true
   requirement: must
   modality_evidence: CW:82-83 'the code change is complete before PHASE 3 begins'; IT:243 'DO NOT attempt to fix any failing
     tests'
@@ -5580,26 +5588,26 @@ items:
   sources:
   - doc: CW
     lines:
-    - 81
     - 82
-    quote: implement-tasks PHASE 3 runs tests and writes its report without changing code, so the code change is complete
-      before PHASE 3 begins.
+    - 83
+    quote: implement-tasks PHASE 3 runs tests and writes its report and changes no code itself;
   - doc: IT
     lines:
-    - 43
-    - 43
-    quote: IF all tasks are now marked as done (with `- [x]`) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with
-      PHASE 3 below.
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
   - doc: IT
     lines:
-    - 134
-    - 134
-    quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
+    - 138
+    - 138
+    quote: DO NOT attempt to fix it.  Just note it in your final verification report.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
-  note: no repository write once every task is ticked (PHASE 3)
+  note: 'no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run before the writes
+    and a test run after them'
 - id: agentos_bugfix.implement_tasks.unimplemented.unimplemented.8
   scope: specific
   class: content
@@ -5660,8 +5668,8 @@ items:
       under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
   - doc: CW
     lines:
-    - 83
-    - 83
+    - 85
+    - 85
     quote: The tests the task groups call for are scripts in `S/checks/`
   impl_refs: []
   derived_by: manual
@@ -5737,8 +5745,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 117
-    - 119
+    - 118
+    - 120
     quote: '### Step 1: Ensure tasks.md has been updated Check `/tmp/agent-os/specs/[this-spec]/tasks.md` and ensure that
       all tasks and their sub-tasks are marked as completed with `- [x]`.'
   impl_refs: []
@@ -5758,6 +5766,7 @@ items:
     kind: agentos_bugfix.verify
     params:
       rule: suite_run
+      fix_round: true
   requirement: must
   modality_evidence: imperative (IT:239 'Run the entire tests suite for the application')
   none_allowed: '-'
@@ -5769,8 +5778,8 @@ items:
   sources:
   - doc: IT
     lines:
-    - 130
-    - 130
+    - 131
+    - 131
     quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
       you wrote. ...  Verify how many tests are passing and how many have failed or produced errors.'
   impl_refs: []
@@ -5805,13 +5814,13 @@ items:
   sources:
   - doc: CW
     lines:
-    - 61
-    - 61
+    - 62
+    - 62
     quote: leave a file alone once its command is over.
   - doc: IT
     lines:
-    - 126
-    - 126
+    - 127
+    - 127
     quote: IF you have concluded that this task has NOT been completed, then mark this checkbox with ⚠️ and note it's incompleteness
       in your verification report.
   impl_refs: []
@@ -5909,8 +5918,8 @@ items:
     quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
   - doc: CW
     lines:
-    - 80
-    - 80
+    - 81
+    - 81
     quote: Only implement-tasks PHASE 2 changes the repository.
   - doc: SP
     lines:
@@ -5920,10 +5929,10 @@ items:
       reach it and doing its PHASEs in order.
   - doc: IT
     lines:
-    - 43
-    - 43
-    quote: IF all tasks are now marked as done (with `- [x]`) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with
-      PHASE 3 below.
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
   impl_refs: []
   derived_by: manual
   template: C-A3
@@ -5955,8 +5964,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
-    - 84
+    - 86
+    - 86
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
@@ -6146,8 +6155,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 31
     - 32
+    - 33
     quote: The bold `agent-os/standards/...` lines there only name each standard; there are no separate standards files to
       open.
   impl_refs: []
@@ -6178,8 +6187,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 43
-    - 45
+    - 44
+    - 46
     quote: 'shape-spec creates the spec folder once, as `/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`: today''s date and a short
       kebab-case name you choose for the change. The documents call it `[this-spec]`, `[current-spec]`, `[spec-path]` or `$SPEC_PATH`;
       each of these means that one folder, and every later command works in it.'
@@ -6211,13 +6220,13 @@ items:
   sources:
   - doc: CW
     lines:
-    - 87
-    - 87
+    - 89
+    - 89
     quote: They go to `S/`, scratch files to `S/checks/`.
   - doc: CW
     lines:
-    - 55
-    - 55
+    - 56
+    - 56
     quote: the task groups' tests that are written as scripts; any scratch file
   impl_refs: []
   derived_by: manual
@@ -6260,8 +6269,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 60
     - 61
+    - 62
     quote: Write each file in the structure its document gives, and leave a file alone once its command is over.
   impl_refs: []
   derived_by: manual
@@ -6297,8 +6306,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 61
-    - 61
+    - 62
+    - 62
     quote: leave a file alone once its command is over.
   impl_refs: []
   derived_by: manual
@@ -6388,8 +6397,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 66
     - 67
+    - 68
     quote: No person reads your messages, answers a question, reviews a result or starts the next command, and a reply that
       calls no tool ends the session at once, with the work unfinished.
   impl_refs: []
@@ -6479,8 +6488,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 72
-    - 72
+    - 73
+    - 73
     quote: When a command is done, open the next command document right away instead of summing up.
   impl_refs: []
   derived_by: llm_extract
@@ -6541,8 +6550,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
-    - 84
+    - 86
+    - 86
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
@@ -6581,8 +6590,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 86
-    - 87
+    - 88
+    - 89
     quote: 'Nothing that belongs to the workflow goes into the repository: no spec files, notes, summaries or temporary scripts.
       They go to `S/`, scratch files to `S/checks/`.'
   impl_refs: []
@@ -6788,22 +6797,22 @@ appendix:
     template: spec
   - doc: IT
     lines:
-    - 163
-    - 163
+    - 167
+    - 167
     quote: '- [x] Task Group 1: [Title]'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
   - doc: IT
     lines:
-    - 164
-    - 164
+    - 168
+    - 168
     quote: '- [x] Subtask 1.1'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
   - doc: IT
     lines:
-    - 162
-    - 162
+    - 166
+    - 166
     quote: '### Completed Tasks'
     reason: section 'Completed Tasks' skipped by config
     template: final_verification
@@ -6811,8 +6820,8 @@ appendix:
     statement: cw-026
     doc: CW
     lines:
-    - 74
-    - 76
+    - 75
+    - 77
     quote: The checkboxes in `S/tasks.md` are the record of what has been implemented; the TaskTracker tool may serve as a
       private scratch list, but it does not replace ticking `tasks.md`.
     reason: MAY ('may')
@@ -6820,8 +6829,8 @@ appendix:
     statement: cw-029
     doc: CW
     lines:
-    - 80
     - 81
+    - 82
     quote: shape-spec, write-spec and create-tasks read the repository and may run commands in it, but change nothing.
     reason: MAY ('may')
   implicit_items:
@@ -7363,8 +7372,8 @@ appendix:
   - statement: it-021
     doc: IT
     lines:
-    - 49
-    - 49
+    - 50
+    - 50
     quote: 'Ensure that the tasks list is ALIGNED and DOES NOT CONFLICT with the user''s preferences and standards as detailed
       in the following files:'
     modality: must
@@ -7372,240 +7381,240 @@ appendix:
   - statement: it-086
     doc: IT
     lines:
-    - 55
-    - 55
+    - 56
+    - 56
     quote: Establish and follow naming conventions for variables, functions, classes, and files across the codebase
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-088
     doc: IT
     lines:
-    - 57
-    - 57
+    - 58
+    - 58
     quote: Choose descriptive names that reveal intent
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-090
     doc: IT
     lines:
-    - 58
-    - 58
+    - 59
+    - 59
     quote: Keep functions small and focused on a single task for better readability and testability
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-093
     doc: IT
     lines:
-    - 65
-    - 65
+    - 66
+    - 66
     quote: Write code that explains itself through clear structure and naming
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-094
     doc: IT
     lines:
-    - 66
-    - 66
+    - 67
+    - 67
     quote: Add concise, minimal comments to explain large sections of code logic.
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-096
     doc: IT
     lines:
-    - 67
-    - 67
+    - 68
+    - 68
     quote: Comments should be evergreen informational texts that are relevant far into the future.
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-097
     doc: IT
     lines:
-    - 73
-    - 73
+    - 74
+    - 74
     quote: Organize files and directories in a predictable, logical structure that team members can navigate easily
     modality: must
     reason: 'G4: not checkable by rule (General convention standard)'
   - statement: it-098
     doc: IT
     lines:
-    - 74
-    - 74
+    - 75
+    - 75
     quote: Use environment variables for configuration
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-100
     doc: IT
     lines:
-    - 80
-    - 80
+    - 81
+    - 81
     quote: Provide clear, actionable error messages to users without exposing technical details or security information
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-101
     doc: IT
     lines:
-    - 81
-    - 81
+    - 82
+    - 82
     quote: Validate input and check preconditions early; fail with clear error messages rather than allowing invalid state
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-102
     doc: IT
     lines:
-    - 82
-    - 82
+    - 83
+    - 83
     quote: Use specific exception/error types rather than generic ones to enable targeted handling
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-103
     doc: IT
     lines:
-    - 83
-    - 83
+    - 84
+    - 84
     quote: Handle errors at appropriate boundaries (controllers, API layers) rather than scattering try-catch blocks everywhere
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-104
     doc: IT
     lines:
-    - 84
-    - 84
+    - 85
+    - 85
     quote: Design systems to degrade gracefully when non-critical services fail rather than breaking entirely
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-105
     doc: IT
     lines:
-    - 85
-    - 85
+    - 86
+    - 86
     quote: Implement exponential backoff for transient failures in external service calls
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-106
     doc: IT
     lines:
-    - 86
-    - 86
+    - 87
+    - 87
     quote: Always clean up resources (file handles, connections) in finally blocks or equivalent mechanisms
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-107
     doc: IT
     lines:
-    - 92
-    - 92
+    - 93
+    - 93
     quote: Always validate on the server
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-108
     doc: IT
     lines:
-    - 92
-    - 92
+    - 93
+    - 93
     quote: never trust client-side validation alone for security or data integrity
     modality: prohibition
     reason: 'G4: not checkable by rule ()'
   - statement: it-109
     doc: IT
     lines:
-    - 93
-    - 93
+    - 94
+    - 94
     quote: Use client-side validation to provide immediate user feedback, but duplicate checks server-side
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-110
     doc: IT
     lines:
-    - 94
-    - 94
+    - 95
+    - 95
     quote: Validate input as early as possible and reject invalid data before processing
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-111
     doc: IT
     lines:
-    - 95
-    - 95
+    - 96
+    - 96
     quote: Provide clear, field-specific error messages that help users correct their input
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-112
     doc: IT
     lines:
-    - 96
-    - 96
+    - 97
+    - 97
     quote: When possible, define what is allowed rather than trying to block everything that's not
     modality: should
     reason: 'G4: not checkable by rule ()'
   - statement: it-113
     doc: IT
     lines:
-    - 97
-    - 97
+    - 98
+    - 98
     quote: Check data types, formats, ranges, and required fields systematically
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-114
     doc: IT
     lines:
-    - 98
-    - 98
+    - 99
+    - 99
     quote: Sanitize user input to prevent injection attacks (SQL, XSS, command injection)
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-115
     doc: IT
     lines:
-    - 99
-    - 99
+    - 100
+    - 100
     quote: Validate business rules (e.g., sufficient balance, valid dates) at the appropriate application layer
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-116
     doc: IT
     lines:
-    - 100
-    - 100
+    - 101
+    - 101
     quote: Apply validation consistently across all entry points (web forms, API endpoints, background jobs)
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-122
     doc: IT
     lines:
-    - 106
-    - 106
+    - 107
+    - 107
     quote: Focus tests on what the code does, not how it does it, to reduce brittleness
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-123
     doc: IT
     lines:
-    - 107
-    - 107
+    - 108
+    - 108
     quote: Use descriptive names that explain what's being tested and the expected outcome
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-124
     doc: IT
     lines:
-    - 108
-    - 108
+    - 109
+    - 109
     quote: Isolate units by mocking databases, APIs, file systems, and other external services
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-125
     doc: IT
     lines:
-    - 109
-    - 109
+    - 110
+    - 110
     quote: Keep unit tests fast (milliseconds) so developers run them frequently during development
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-128
     doc: IT
     lines:
-    - 121
     - 122
+    - 123
     quote: 'If a task is still marked incomplete, then verify that it has in fact been completed by checking the following:
       - Run a brief spot check in the code'
     modality: must
@@ -7613,17 +7622,17 @@ appendix:
   - statement: it-136
     doc: IT
     lines:
-    - 130
-    - 130
+    - 131
+    - 131
     quote: Verify how many tests are passing and how many have failed or produced errors.
     modality: must
     reason: 'G4: not checkable by rule ()'
   - statement: it-138
     doc: IT
     lines:
-    - 134
-    - 134
-    quote: DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
+    - 138
+    - 138
+    quote: DO NOT attempt to fix it.  Just note it in your final verification report.
     modality: prohibition
     reason: 'G4: not checkable by rule ()'
   - statement: ss-002
@@ -7799,8 +7808,8 @@ appendix:
   - statement: cw-027
     doc: CW
     lines:
-    - 75
-    - 75
+    - 76
+    - 76
     quote: the TaskTracker tool may serve as a private scratch list
     modality: may
     reason: 'G4: not checkable by rule ()'
@@ -7875,8 +7884,8 @@ appendix:
   - statement: it-087
     doc: IT
     lines:
-    - 56
-    - 56
+    - 57
+    - 57
     quote: Maintain consistent code style (indenting, line breaks, etc.)
     modality: should
     reason: Consistent code style is relative to each repository's own conventions. No formatter is named, so there is no
@@ -7884,8 +7893,8 @@ appendix:
   - statement: it-089
     doc: IT
     lines:
-    - 57
-    - 57
+    - 58
+    - 58
     quote: avoid abbreviations and single-letter variables except in narrow contexts
     modality: prohibition
     reason: Naming quality comes with a vague exception ('except in narrow contexts'), so it is a judgement call and can't
@@ -7893,16 +7902,16 @@ appendix:
   - statement: it-091
     doc: IT
     lines:
-    - 59
-    - 59
+    - 60
+    - 60
     quote: Use consistent indentation (spaces or tabs)
     modality: should
     reason: Consistent indentation is relative to each repository's own style. No kind inspects code formatting.
   - statement: it-092
     doc: IT
     lines:
-    - 59
-    - 59
+    - 60
+    - 60
     quote: configure your editor/linter to enforce it
     modality: should
     reason: This is general advice about how to set up an editor or linter, not tied to any task in the run. Configuring a
@@ -7910,8 +7919,8 @@ appendix:
   - statement: it-140
     doc: IT
     lines:
-    - 140
-    - 140
+    - 144
+    - 144
     quote: 'The content of this report should follow this structure:'
     modality: should
     reason: The report skeleton (title, fields, sections) is already compiled from the template. This statement adds no rule
@@ -8029,8 +8038,8 @@ appendix:
   - statement: cw-019
     doc: CW
     lines:
-    - 60
-    - 60
+    - 61
+    - 61
     quote: No command creates `S/checks/`; make it the first time you need it.
     modality: must
     reason: Applies only 'the first time you need it' (S/checks/). Whether the folder is needed cannot be written as an applies_when
@@ -8038,8 +8047,8 @@ appendix:
   - statement: cw-020
     doc: CW
     lines:
-    - 60
     - 61
+    - 62
     quote: Write each file in the structure its document gives
     modality: must
     reason: Each file's structure is already covered by the compiled template sections and labels and by the per-command document
@@ -8047,8 +8056,8 @@ appendix:
   - statement: cw-028
     doc: CW
     lines:
-    - 80
-    - 80
+    - 81
+    - 81
     quote: Only implement-tasks PHASE 2 changes the repository.
     modality: prohibition
     reason: Covered by cw-029 (no repo writes in shape_spec, write_spec or create_tasks) and cw-030 (code frozen in PHASE
@@ -8056,8 +8065,8 @@ appendix:
   - statement: cw-035
     doc: CW
     lines:
-    - 91
-    - 91
+    - 93
+    - 93
     quote: The run ends with implement-tasks PHASE 3.
     modality: implicit
     reason: This is a statement of fact, not a separate rule. A run that ends at PHASE 3 is already enforced by cw-030 (code_frozen)

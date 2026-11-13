@@ -25,7 +25,8 @@ Open each command document when you reach it, and work from that document rather
    verifies the result and writes the final verification report.
 
 Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends
-with its report. There are no repeat rounds.
+with its report. There are no repeat rounds, with one exception inside implement-tasks: PHASE 3 sends
+you back to PHASE 2 once when a test fails because of your change.
 
 The coding standards apply where code is written: the implement-tasks document contains them, written
 out under "User Standards & Preferences Compliance". The bold `agent-os/standards/...` lines there only
@@ -79,7 +80,8 @@ reply that calls no tool ends the session at once, with the work unfinished. So:
 
 - Only implement-tasks PHASE 2 changes the repository. shape-spec, write-spec and create-tasks read the
   repository and may run commands in it, but change nothing. implement-tasks PHASE 3 runs tests and writes
-  its report without changing code, so the code change is complete before PHASE 3 begins.
+  its report and changes no code itself; when a test fails because of your change it sends you back to
+  PHASE 2 once, and that is the only code change after PHASE 3 has begun.
 - The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the
   existing repository test module that covers the changed code. No existing test line in the repository
   is changed or removed.

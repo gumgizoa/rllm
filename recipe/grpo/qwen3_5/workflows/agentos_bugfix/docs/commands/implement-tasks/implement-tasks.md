@@ -37,10 +37,11 @@ Implement all tasks assigned to you and ONLY those task(s) that have been assign
 
 ## Self-verify and test your work by:
 - Running the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.
+- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.
 
 ## Next step
 
-IF all tasks are now marked as done (with `- [x]`) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with PHASE 3 below.
+IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`, continue with PHASE 3 below.
 
 IF there are still tasks in tasks.md that have yet to be implemented (marked unfinished with `- [ ]`), repeat PHASE 2 for the next task group with unchecked tasks.
 
@@ -131,7 +132,10 @@ Run the tests of the changed code once more: the test modules that cover the fil
 
 Include these counts and the list of failed tests in your final verification report.
 
-DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.
+IF a test fails, find out whether your change causes it. A test you wrote for this change: it does. An existing test: run it once without your change, in one command (`git stash -q && <the test command>; git stash pop -q`); if it fails there as well, your change does not cause it.
+
+- Your change causes the failure, and the test is not one that asserts the behavior the task asks to change: go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1. Go back once only; a failure that is still there afterwards is noted in the report.
+- Any other failure: DO NOT attempt to fix it.  Just note it in your final verification report.
 
 ### Step 3: Create final verification report
 

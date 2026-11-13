@@ -35,6 +35,11 @@ And one rule is changed rather than cut:
   implemented. "ONLY the tasks assigned to you" stays; tasks.md is the one file a later command may add to.
 * T4 the report's overall Status: the template offers three values and upstream never says which holds when. The
   rule is stated after the template: it follows from the two section Statuses.
+* T5 a failing test is not ticked over: while implementing, a failure the change causes is fixed before the task
+  group's last sub-task is ticked; after two attempts it is marked ⚠️ instead.
+* T6 one fix round after verification: upstream's "DO NOT attempt to fix any failing tests" handed the failures to
+  the person reading the report. Here nobody reads it, so a failure the change causes (checked against the
+  unchanged code with ``git stash``) sends the run back to PHASE 2 once; every other failure is still only noted.
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -220,6 +225,13 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "Run the entire tests suite for the application so that ALL tests run.",
          "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. "
          "Run the entire tests suite as well only if it finishes within a few minutes.", "T1: test scope of the final verification"),
+        ("sub", "DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.",
+         "IF a test fails, find out whether your change causes it. A test you wrote for this change: it does. An existing test: run it once without your change, "
+         "in one command (`git stash -q && <the test command>; git stash pop -q`); if it fails there as well, your change does not cause it.\n\n"
+         "- Your change causes the failure, and the test is not one that asserts the behavior the task asks to change: go back to PHASE 2 once, fix the change, "
+         "then carry out PHASE 3 again from Step 1. Go back once only; a failure that is still there afterwards is noted in the report.\n"
+         "- Any other failure: DO NOT attempt to fix it.  Just note it in your final verification report.",
+         "T6: one return to PHASE 2 for a failure the change causes"),
     ),
     "wf/implement-tasks": (
         ("sub", "1. Analyze the provided spec.md, requirements.md, and visuals (if any)", "1. Analyze the provided spec.md and requirements.md", "B2"),
@@ -232,6 +244,15 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "
          "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.",
          "T1: test scope; an existing test of the old behavior is not a reason to undo the change"),
+        ("sub", "and list that test in the final verification report.",
+         "and list that test in the final verification report.\n"
+         "- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. "
+         "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.",
+         "T5: a failing test is fixed before the tick; ⚠️ after two attempts"),
+    ),
+    "impl-2": (
+        ("sub", "IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in",
+         "T5: a ⚠️ task does not hold PHASE 3 back"),
     ),
     "impl-3": (
         ("span", "### Step 2: Update roadmap (if applicable)", "### Step 3: Run entire tests suite", "", "B3: the roadmap step"),

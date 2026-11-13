@@ -100,6 +100,12 @@ REWORD = (
     ("leave a file alone once its command is over, except for the checkboxes in `tasks.md`.", "leave a file alone once its command is over."),
     ("the tests the task groups call for, as scripts; any scratch file", "the task groups' tests that are written as scripts; any scratch file"),
     ("checks/`, not repository test files) and ensuring those tests pass.", "checks/` ... and ensuring they pass."),
+    # T6 fix round
+    ("DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.", "DO NOT attempt to fix it.  Just note it in your final verification report."),
+    ("DO NOT attempt to fix any failing tests.", "DO NOT attempt to fix it."),
+    ("without changing code, so the code change is complete before PHASE 3 begins.", "and changes no code itself;"),
+    ("IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in"),
+    ("There are no repeat rounds.", "There are no repeat rounds,"),
     # T1 test scope
     ("- Running ONLY the tests you've written", "- Running the tests you've written"),
     ("Test verification should run ONLY the newly written tests, not the entire suite", "Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite"),
@@ -252,6 +258,11 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
         p["section"] = SUITE_NEW
     if kind == f"{NEW}.report" and p.get("rule") in ("test_counts", "failed_listed", "suite_status"):
         p["suite_section"] = SUITE_NEW
+        p["fix_round"] = True  # T6: after a return to PHASE 2 the report is about the re-run
+    if kind == f"{NEW}.verify":  # T6: one return to PHASE 2 after a failing PHASE 3 run
+        p["fix_round"] = True
+        if p.get("rule") == "code_frozen":
+            it["note"] = "no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run before the writes and a test run after them"
     if kind == f"{NEW}.tasks" and it["stage"] == "create_tasks" and it["target"].get("state", "final") == "final":
         it["target"]["state"] = "stage_end"  # T3: what create-tasks wrote, not tasks.md after implement-tasks added to it
     if kind == f"{NEW}.tasks" and p.get("rule") == "later_edits":  # T3: implement-tasks may add tasks

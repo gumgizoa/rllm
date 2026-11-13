@@ -81,7 +81,11 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     assert "### Step 2: Run the tests of the changed code" in impl and "### Step 3: Create final verification report" in impl
     assert "and the existing tests of the code you changed, and ensuring they pass" in impl and "Running ONLY the tests" not in impl
     assert "Run the entire tests suite as well only if it finishes within a few minutes." in impl and "so that ALL tests run" not in impl
-    assert "DO NOT attempt to fix any failing tests." in impl  # kept verbatim, as in agentos_v2
+    # T6: a failure the change causes sends the run back to PHASE 2 once; any other failure is only noted, as upstream
+    assert "go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1" in impl
+    assert "`git stash -q && <the test command>; git stash pop -q`" in impl and "Any other failure: DO NOT attempt to fix it." in impl
+    # T5: a failing test is fixed before the tick, marked after two attempts
+    assert "before you tick the task group's last sub-task" in impl and "or with ⚠️ where a test could not be made to pass" in impl
     # T3: a task the tasks miss is added to tasks.md, then implemented; the one file a later command adds to
     assert "ONLY those task(s) that have been assigned to you" in impl and "add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first" in impl
     assert "`tasks.md` is the one exception" in docs["core-workflow.md"]
@@ -178,6 +182,31 @@ def test_overall_status_must_follow_from_the_section_statuses():
     report = next(p for p in col.files if p.endswith("final-verification.md"))
     col.files[report] = col.files[report].replace("**Status:** ⚠️ Passed with Issues", "**Status:** ✅ Passed", 1)
     assert result(col).status == "fail"  # Passed over a failing suite
+
+
+def test_one_fix_round_after_a_failing_verification_is_allowed():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    frozen = next(it for it in rub.items if it.id.endswith("_verify.code_frozen"))
+    assert frozen.check.params.get("fix_round") is True
+    run, col = golden.golden(rub, variant="fix_round")  # failing run, checked against the unchanged code, fixed, run again
+    rep = engine.evaluate(rub, run, col)
+    assert rep.scores.compliance == 1.0 and rep.results[frozen.id].status == "pass"
+    # the same late edit with no failing run before it: PHASE 3 gave no reason to go back
+    calm, col2 = golden.golden(rub, variant="fix_round")
+    failing = [a for st in calm.steps for a in st.actions if "1 failed, 4 passed" in (a.observation or "")]
+    assert len(failing) == 1
+    failing[0].observation = failing[0].observation.replace("1 failed, 4 passed", "5 passed").replace("exit code 1", "exit code 0").replace("..F..", ".....")
+    res = engine.evaluate(rub, calm, col2).results[frozen.id]
+    assert res.status == "fail" and "no failing test run before it" in res.detail
+    for it in rub.items:  # agentos_v2's rule: no repository write at all once PHASE 3 has begun
+        it.check.params.pop("fix_round", None)
+    assert engine.evaluate(rub, run, col).results[frozen.id].status == "fail"
 
 
 def test_golden_run_scores_full_marks():
