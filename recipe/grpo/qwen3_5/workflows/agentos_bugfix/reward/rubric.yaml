@@ -76,12 +76,20 @@ generated:
     - mutation: variant:warn_task
       kind: honest
       status: ok
-      compliance: 0.9935
+      compliance: 1.0
     - mutation: variant:added_task
       kind: honest
       status: ok
       compliance: 1.0
     - mutation: variant:fix_round
+      kind: honest
+      status: ok
+      compliance: 1.0
+    - mutation: variant:expected_failure
+      kind: honest
+      status: ok
+      compliance: 1.0
+    - mutation: variant:warn_attempts
       kind: honest
       status: ok
       compliance: 1.0
@@ -124,15 +132,15 @@ generated:
     - mutation: echo_evidence
       kind: exploit
       status: ok
-      compliance: 0.9556
+      compliance: 0.9498
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.9501
+      compliance: 0.9444
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9556
+      compliance: 0.9498
     - mutation: glob_read
       kind: exploit
       status: ok
@@ -144,15 +152,15 @@ generated:
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.8523
+      compliance: 0.8574
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6559
+      compliance: 0.6504
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6819
+      compliance: 0.6858
     - mutation: no_artifacts
       kind: exploit
       status: ok
@@ -168,11 +176,11 @@ generated:
     - mutation: full_suite_rerun
       kind: exploit
       status: fail
-      compliance: 0.9971
+      compliance: 0.9974
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9278
+      compliance: 0.9347
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -200,7 +208,7 @@ generated:
     - mutation: hidden_failure
       kind: exploit
       status: ok
-      compliance: 0.9889
+      compliance: 0.99
     - mutation: precheck_tasks
       kind: exploit
       status: ok
@@ -222,7 +230,7 @@ generated:
       status: ok
       compliance: 1.0
     failures:
-    - 'full_suite_rerun: exploit not caught: compliance 0.9971 (bound <= 0.9950, full_suite_rerun_min_drop); highest signals:
+    - 'full_suite_rerun: exploit not caught: compliance 0.9974 (bound <= 0.9950, full_suite_rerun_min_drop); highest signals:
       order 1.00, stage.shape_spec 1.00, stage.write_spec 1.00'
     - 'honest_reformat: honest run penalised: compliance 0.9789 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
       1.00->0.00 (In Scope: placeholder '''')'
@@ -230,7 +238,7 @@ generated:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 47
-    kept_items: 161
+    kept_items: 164
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -3180,7 +3188,7 @@ items:
   check:
     kind: item_format
     params:
-      pattern: ^\s*[-*+]\s+\[[ xX]\]\s+\d+\.\d+\s+\S
+      pattern: ^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S
       of_pattern: ^\s*[-*+]\s+\[[^\]\n]{0,4}\]
   requirement: should
   modality_evidence: CT:57-58 the example's task lines (should)
@@ -3835,6 +3843,82 @@ items:
   template: ''
   log_only: false
   note: each box ticked in implement-tasks, after a write or a run of a path its task names
+- id: agentos_bugfix.implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.tasks
+    params:
+      rule: ticked_passing
+      dir: '{artifact}/{SPEC}/checks'
+      suite_section: 2. Test Suite Results
+  requirement: must
+  modality_evidence: 'imperative (IT: ''fix the change and run the tests again before you tick the task group''s last sub-task'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: IF a test fails because of your change, fix the change and run the tests again before you tick the task group's
+      last sub-task.
+  - doc: IT
+    lines:
+    - 39
+    - 39
+    quote: 'An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it
+      is and list that test in the final verification report.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: no task group's test sub-task ticked while the last test result since the code last changed is a failure, unless the
+    report's test results show a failure (T5)
+- id: agentos_bugfix.implement_tasks.tasks.agentos_bugfix_tasks.warned_after_attempts
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.tasks
+    params:
+      rule: warned_after_attempts
+      dir: '{artifact}/{SPEC}/checks'
+  requirement: must
+  modality_evidence: 'IT: ''After two attempts that do not get it to pass, mark that sub-task''s checkbox with ⚠️ instead
+    of ticking it'''
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and
+      go on.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: a test sub-task marked ⚠️ instead of ticked has two failing test results after the group's first code change, with
+    a code change between them (T5)
 - id: agentos_bugfix.implement_tasks.final_verification.artifact_exists
   scope: common
   class: structure
@@ -5544,6 +5628,8 @@ items:
     params:
       rule: pass_last
       dir: '{artifact}/{SPEC}/checks'
+      warned: true
+      fix_round: true
   requirement: must
   modality_evidence: imperative (IT:39 'Running ONLY the tests you've written ... and ensuring those tests pass')
   none_allowed: '-'
@@ -5564,7 +5650,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: each check script run in implement-tasks last ran passing, after the last code change
+  note: each check script run in implement-tasks last ran passing, after the last code change -- or was left failing under
+    a ⚠️ mark made after two attempts
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.code_frozen
   scope: specific
   class: evidence
@@ -5791,6 +5878,38 @@ items:
   template: ''
   log_only: false
   note: a valid test run between the last tick and the report
+- id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.phase2_run
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.verify
+    params:
+      rule: phase2_run
+  requirement: must
+  modality_evidence: 'imperative (IT: ''Running the tests you''ve written ... and the existing tests of the code you changed'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 39
+    - 39
+    quote: '- Running the tests you''ve written ... and the existing tests of the code you changed, and ensuring they pass.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: while implementing (before every task is ticked), a valid run of the repository's tests after the last code change
+    (T1)
 - id: agentos_bugfix.global.tasks.agentos_bugfix_tasks.later_edits
   scope: specific
   class: evidence

@@ -140,7 +140,7 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
-    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + 1 and len(rub["items"]) >= 150  # + the T4 item
+    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + len(D.ADDED) and len(rub["items"]) >= 150  # + the T4, T1 and T5 items
     # a template placeholder whose wording changed here is still a placeholder left in
     residue = next(it for it in rub["items"] if it["id"].endswith("shape_spec.requirements.no_template_residue"))
     assert any("task description or the repository" in x.replace("\\", "") for x in residue["check"]["params"]["patterns"])
@@ -210,6 +210,82 @@ def test_one_fix_round_after_a_failing_verification_is_allowed():
     for it in rub.items:  # agentos_v2's rule: no repository write at all once PHASE 3 has begun
         it.check.params.pop("fix_round", None)
     assert engine.evaluate(rub, run, col).results[frozen.id].status == "fail"
+
+
+def _scored(variant):
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    run, col = golden.golden(rub, variant=variant)
+    rep = engine.evaluate(rub, run, col)
+    assert not rep.engine_errors, (variant, rep.errors[:2])
+    return rub, run, col, rep, {it.id.rsplit(".", 1)[1]: rep.results[it.id] for it in rub.items if it.check.kind.startswith(NAME + ".")}
+
+
+def test_the_existing_tests_are_run_while_implementing():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+
+    assert _scored(None)[4]["phase2_run"].status == "pass"
+    rub, run, col, rep, res = _scored("no_existing_run")  # the check scripts only; PHASE 3 runs the suite
+    assert res["phase2_run"].status == "fail" and res["suite_run"].status == "pass" and rep.scores.compliance < 1.0
+    # checking a failure against the unchanged code (git stash, stash pop) is no code change: the runs before it still count
+    rub, run, col, rep, res = _scored(None)
+    tick = next(n for n, st in enumerate(run.steps) if any(a.kind == "replace" and (a.text or "").startswith("- [x] 2.3 ") for a in st.actions))
+    step, action = type(run.steps[0]), type(run.steps[0].actions[0])
+    stash = action("shell", "terminal", command="cd /testbed && git stash -q && python -m pytest tests/test_slug.py -q; git stash pop -q", observation=".....\n5 passed in 0.03s\n[Command finished with exit code 0]")
+    run.steps.insert(tick, step(0, [stash], ""))
+    for n, st in enumerate(run.steps, 1):
+        st.n = n
+    ids = {it.id.rsplit(".", 1)[1]: it for it in rub.items}
+    again = engine.evaluate(rub, run, col).results
+    assert again[ids["phase2_run"].id].status == "pass"
+    # the same for the check scripts: PHASE 3 of "expected_failure" ends with that check, after the scripts' last runs
+    rub, run, col, rep, res = _scored("expected_failure")
+    last = next(it for it in rub.items if it.id.endswith("pass_last"))
+    assert res["pass_last"].status == "pass"
+    last.check.params.pop("fix_round")  # agentos_v2's rule: any repository write makes the earlier runs stale
+    assert engine.evaluate(rub, run, col).results[last.id].status == "fail"
+
+
+def test_a_test_sub_task_is_not_ticked_over_a_failing_test():
+    assert _scored(None)[4]["ticked_passing"].status == "pass"
+    rub, run, col, rep, res = _scored("tick_failing")  # 2.3 ticked right after the existing tests failed; the report says All Passing
+    assert res["ticked_passing"].status == "fail" and "2.3 ticked" in res["ticked_passing"].detail
+    # an existing test that asserts the behavior the task changes is left failing and listed in the report
+    rub, run, col, rep, res = _scored("expected_failure")
+    assert res["ticked_passing"].status == "pass" and "report" in res["ticked_passing"].detail and rep.scores.compliance == 1.0
+
+
+def test_a_warning_mark_needs_two_failed_attempts():
+    assert _scored(None)[4]["warned_after_attempts"].status == "not_applicable"
+    assert _scored("warn_task")[4]["warned_after_attempts"].status == "not_applicable"  # PHASE 3's mark on a ticked task is another rule
+    rub, run, col, rep, res = _scored("warn_attempts")
+    assert res["warned_after_attempts"].status == "pass" and rep.scores.compliance == 1.0
+    rub, run, col, rep, res = _scored("warn_no_attempt")  # one failing run, no fix, marked
+    assert res["warned_after_attempts"].status == "fail" and "2.3" in res["warned_after_attempts"].detail
+
+
+def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_the_run():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+
+    rub, run, col, rep, res = _scored("warn_attempts")
+    last = next(it for it in rub.items if it.id.endswith("pass_last"))
+    assert last.check.params.get("warned") is True and res["pass_last"].status == "pass"
+    # the same run with check_sep.py failing from the change on: the mark came after its failing runs
+    seen = False
+    for st in run.steps:
+        for a in st.actions:
+            seen = seen or "[^a-z0-9—]+" in (a.text or "")
+            if seen and (a.command or "").endswith("checks/check_sep.py"):
+                a.observation = "AssertionError: a—b\n[Command finished with exit code 1]"
+    marked = engine.evaluate(rub, run, col).results[last.id]
+    assert marked.status == "pass", marked.detail
+    last.check.params.pop("warned")  # agentos_v2's rule: every script passes at the end
+    assert engine.evaluate(rub, run, col).results[last.id].status == "fail"
 
 
 def test_golden_run_scores_full_marks():
