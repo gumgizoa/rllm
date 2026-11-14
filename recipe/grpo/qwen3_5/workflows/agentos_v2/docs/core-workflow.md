@@ -53,7 +53,7 @@ S/
 │   └── visuals/               made by shape-spec PHASE 1; stays empty, nobody adds mockups
 ├── spec.md                    write-spec
 ├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes
-├── checks/                    the tests the task groups call for, as scripts; any scratch file
+├── checks/                    the task groups' tests that are written as scripts; any scratch file
 ├── implementation/            made by shape-spec PHASE 1; stays empty
 └── verifications/
     └── final-verification.md  implement-tasks PHASE 3
@@ -81,8 +81,9 @@ reply that calls no tool ends the session at once, with the work unfinished. So:
 - Only implement-tasks PHASE 2 changes `/testbed`. shape-spec, write-spec and create-tasks read the
   repository and may run commands in it, but change nothing. implement-tasks PHASE 3 runs tests and writes
   its report without changing code, so the code change is complete before PHASE 3 begins.
-- The tests the task groups call for are scripts in `S/checks/`. No test file in the repository is added
-  or edited.
+- The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the
+  existing repository test module that covers the changed code. No existing test line in the repository
+  is changed or removed.
 - Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary
   scripts. They go to `S/`, scratch files to `S/checks/`.
 

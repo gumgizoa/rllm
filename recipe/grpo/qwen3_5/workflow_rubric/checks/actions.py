@@ -39,7 +39,7 @@ FULL_WRITES = frozenset({"create", "overwrite"})
 INVALIDATIONS = ("read_ahead", "multi_read", "rewrite")
 WRITE_MODES = ("once", "append_only", "no_rewrite")
 RUN_KINDS = ("test", "build")
-PROHIBITED_ACTIONS = ("execute", "repo_write", "source_write", "test_file_write", "install", "full_suite", "command")
+PROHIBITED_ACTIONS = ("execute", "repo_write", "source_write", "test_file_write", "test_file_modify", "install", "full_suite", "command")
 
 _INSTALL = re.compile(
     r"""^(?:\S*/)?(?:
@@ -352,9 +352,12 @@ def _install(seg: shell.Segment) -> bool:
 def prohibited_action(item: Item, ctx: EvalContext) -> Result:
     """No action of class ``action`` in the window: ``execute`` (a test-runner invocation, or running
     a path ``selector`` names), ``repo_write`` / ``test_file_write`` (an existing test file: one at
-    BASE_SHA, not created by the run) / ``source_write`` (any file that existed at BASE_SHA, modified in
-    place; a file the run creates is not one) -- restricted to ``paths_in``; a change the diff shows but
-    the trace does not counts --, ``install`` (pip/npm/apt ... install),
+    BASE_SHA, not created by the run) / ``test_file_modify`` (an existing test file whose prior lines
+    were changed or removed -- a write that only adds lines, such as a new test function, is not one;
+    a write whose prior or new content is unknown is not counted) / ``source_write`` (any file that
+    existed at BASE_SHA, modified in place; a file the run creates is not one) -- restricted to
+    ``paths_in``; a change the diff shows but the trace does not counts, except for ``test_file_modify``
+    --, ``install`` (pip/npm/apt ... install),
     ``full_suite`` (a test runner at the repository root that selects no path, id, label or filter),
     ``command`` (any command matching ``pattern``). ``pattern`` also filters the other classes
     (commands for execute/install/full_suite, repo paths for writes)."""
@@ -371,23 +374,31 @@ def prohibited_action(item: Item, ctx: EvalContext) -> Result:
         if "selector" in p:
             targets = refs.as_set(refs.normalize(refs.select(ctx, p["selector"]), "path", ctx))
             hits += [f"step {s}: runs {path}" for s, path in executed_paths(ctx) if refs.in_window(s, w) and path in targets]
-    elif action in ("repo_write", "test_file_write", "source_write"):
+    elif action in ("repo_write", "test_file_write", "test_file_modify", "source_write"):
         inside = refs.as_set(refs.normalize(refs.select(ctx, p["paths_in"]), "path", ctx)) if "paths_in" in p else None
 
         def wanted(path: str) -> bool:
             # test_file_write: an existing test file (edited, overwritten, removed) -- a new file the run adds is
             # no edit of the tests; whether it may stay in the change is the change's own check.
+            # test_file_modify: the same files, but only a write that changed or removed a prior line counts
+            # (the event filter below); an added test function in an existing module is allowed.
             # source_write: any file that existed at BASE_SHA, modified in place (a file the run creates is not one)
             if action == "repo_write":
                 kind_ok = True
-            elif action == "test_file_write":
+            elif action in ("test_file_write", "test_file_modify"):
                 kind_ok = is_test_path(path) and not is_new_path(ctx, path)
             else:
                 kind_ok = not is_new_path(ctx, path)
             return kind_ok and (inside is None or path in inside) and (rx is None or rx.search(path) is not None)
 
-        hits += [f"step {e.step}: {e.op} {e.path}" for e in f.repo_writes if e.ok is not False and refs.in_window(e.step, w) and wanted(e.path)]
-        hits += [f"changed outside the trace: {path}" for path in getattr(f, "_unseen_repo_paths", []) if wanted(path)]
+        def event_ok(e) -> bool:
+            if action == "test_file_modify":
+                return e.removed_existing is True
+            return True
+
+        hits += [f"step {e.step}: {e.op} {e.path}" for e in f.repo_writes if e.ok is not False and refs.in_window(e.step, w) and wanted(e.path) and event_ok(e)]
+        if action != "test_file_modify":
+            hits += [f"changed outside the trace: {path}" for path in getattr(f, "_unseen_repo_paths", []) if wanted(path)]
     elif action == "install":
         for c in f.commands:
             if refs.in_window(c.step, w) and (rx is None or rx.search(c.command)):

@@ -953,6 +953,7 @@ def what(it: S.Item, rub: S.Rubric) -> str:
             "repo_write": "edit the repository",
             "source_write": "edit a file that existed at BASE_SHA",
             "test_file_write": "edit test files",
+            "test_file_modify": "change or remove an existing line of a test file",
             "install": "install packages",
             "full_suite": "run the whole test suite",
             "command": "run commands matching",

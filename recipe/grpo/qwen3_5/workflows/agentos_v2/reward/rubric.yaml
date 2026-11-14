@@ -769,12 +769,12 @@ sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
   role: command
-  sha256: dfee48c463f7f48c8b1df78c1837cae1ff28d15693c32f550694a537987978bf
+  sha256: 156a5fadec4ebce371b1aa182ebabbeac2042b1dfbacecde3c4c3a277a9428c8
   container_path: /agent-os/commands/create-tasks/create-tasks.md
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: f9bd71058c2d070287d951639dc0cdb77bdb85fcabf3e97a0378c5660af38e10
+  sha256: de6c13ec1324c39b4ae558dd7a4cebdc45ea77f344cca3e6172b3a14f52ed539
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -789,7 +789,7 @@ sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: e0510c4b6b4f2b8b8634ec4f6a679e8b5a157790573f5fa8476ce9376e0041d6
+  sha256: 6a3a0eff3f1d5bda5830ea587ea31272d0cd2f86a7cc7a7fca0faa4fde28989c
   container_path: /agent-os/core-workflow.md
 - id: INS
   path: instruction.md
@@ -5278,7 +5278,7 @@ items:
     kind: artifact_exists
     params: {}
   requirement: must
-  modality_evidence: imperative (IT:247 'Create your final verification report'); CW:91-92
+  modality_evidence: imperative (IT:247 'Create your final verification report'); CW:92-93
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -5293,8 +5293,8 @@ items:
     quote: Create your final verification report in `/tmp/agent-os/specs/[this-spec]/verifications/final-verification.md`.
   - doc: CW
     lines:
-    - 91
     - 92
+    - 93
     quote: As soon as `S/verifications/final-verification.md` is written, call `finish`.
   impl_refs: []
   derived_by: manual
@@ -7047,7 +7047,8 @@ items:
     - 38
     - 39
     quote: '## Self-verify and test your work by: - Running ONLY the tests you''ve written (if any; they are check scripts
-      under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass.'
+      under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module,
+      run through that module with the test runner) and ensuring those tests pass.'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -7412,7 +7413,8 @@ items:
       rule: written
       dir: '{artifact}/{SPEC}/checks'
   requirement: must
-  modality_evidence: CT:215 every test a task group writes is a script under checks/; CW:84 the tests are scripts in S/checks/
+  modality_evidence: CT:215 every test a task group writes is a script under checks/ or a function added to an existing test
+    module; CW:84-85 likewise
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7429,8 +7431,9 @@ items:
   - doc: CW
     lines:
     - 84
-    - 84
-    quote: The tests the task groups call for are scripts in `S/checks/`.
+    - 85
+    quote: The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the existing repository
+      test module that covers the changed code.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -7980,10 +7983,10 @@ items:
   check:
     kind: prohibited_action
     params:
-      action: test_file_write
+      action: test_file_modify
   requirement: must
-  modality_evidence: CW:84-85 'No test file in the repository is added or edited'; CT:215 'do not add or change test files
-    in the repository'
+  modality_evidence: 'v5 prohibition: existing test lines never changed or removed; additions to existing test modules allowed
+    (CW:85; CT:215)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -7993,19 +7996,23 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
     - 85
-    quote: No test file in the repository is added or edited.
+    - 85
+    quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
     - 215
     - 215
-    quote: do not add or change test files in the repository.
+    quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
+      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
+      run on its own, or a new test function added to the existing repository test module that covers the changed code; never
+      change or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
   derived_by: manual
   template: C-A6
   log_only: false
-  note: no edit of a test file that existed at BASE_SHA
+  note: 'v5: only a write that changes or removes an existing test line counts; a test function added to an existing module
+    is allowed (manual edit 2026-11-07, docs rebuilt from build.py)'
 - id: agentos_v2.global.unimplemented.unimplemented
   scope: specific
   class: content
@@ -8286,14 +8293,14 @@ items:
   sources:
   - doc: CW
     lines:
-    - 86
-    - 87
+    - 88
+    - 88
     quote: They go to `S/`, scratch files to `S/checks/`.
   - doc: CW
     lines:
     - 56
     - 56
-    quote: the tests the task groups call for, as scripts; any scratch file
+    quote: the task groups' tests that are written as scripts; any scratch file
   impl_refs: []
   derived_by: manual
   template: ''
@@ -8606,8 +8613,8 @@ items:
     params:
       test_paths: true
   requirement: must
-  modality_evidence: CW:84-85 'No test file in the repository is added'; CT:215 every test a task group writes is a script
-    under checks/
+  modality_evidence: 'v5 prohibition: existing test lines never changed or removed; additions to existing test modules allowed
+    (CW:85; CT:215)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8617,20 +8624,23 @@ items:
   sources:
   - doc: CW
     lines:
-    - 84
     - 85
-    quote: The tests the task groups call for are scripts in `S/checks/`. No test file in the repository is added or edited.
+    - 85
+    quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
     - 215
     - 215
-    quote: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script
-      under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
+    quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
+      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
+      run on its own, or a new test function added to the existing repository test module that covers the changed code; never
+      change or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
   derived_by: manual
   template: ''
-  log_only: false
-  note: no new test file created in the repository (even when removed again)
+  log_only: true
+  note: 'v5: new test files in the repository are allowed (existing modules preferred); kept for logging only (manual edit
+    2026-11-07)'
 - id: agentos_v2.global.run.agentos_v2_created_files.workflow_files
   scope: specific
   class: evidence
@@ -8644,7 +8654,7 @@ items:
     params:
       pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
   requirement: must
-  modality_evidence: CW:86-87 'Nothing that belongs to the workflow goes into /testbed'
+  modality_evidence: CW:87-88 'Nothing that belongs to the workflow goes into /testbed'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8654,8 +8664,8 @@ items:
   sources:
   - doc: CW
     lines:
-    - 86
     - 87
+    - 88
     quote: 'Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary scripts.
       They go to `S/`, scratch files to `S/checks/`.'
   impl_refs: []
@@ -8875,7 +8885,8 @@ conflicts:
     - 39
     - 39
     quote: '- Running ONLY the tests you''ve written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`,
-      not repository test files) and ensuring those tests pass.'
+      or test functions you added to an existing repository test module, run through that module with the test runner) and
+      ensuring those tests pass.'
 - type: documented
   description: The report's structure 'should' be followed (IT:249), while section 2's status and its reason are imperative
     (IT:235) and the counts and failed tests must be included (IT:241)
@@ -8908,7 +8919,7 @@ conflicts:
       reasonable defaults. **CRITICAL: Always include the reusability question at the END of your questions.**'
 - type: documented
   description: The generic system prompt asks to ask the user for clarification and to keep AGENTS.md in the repository (SP:11,
-    SP:175); the workflow has no one to ask and keeps everything of its own out of /testbed (CW:67-74, CW:86-87)
+    SP:175); the workflow has no one to ask and keeps everything of its own out of /testbed (CW:67-74, CW:87-88)
   resolution: 'the workflow wins (CW:6-7 ''it replaces any procedure you would otherwise follow''): spec files, notes and
     scratch scripts created in the repository fail their item; AGENTS.md is not itemized; no item rewards asking'
   items: []
@@ -8920,8 +8931,8 @@ conflicts:
     quote: '* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context.'
   - path: docs/core-workflow.md
     lines:
-    - 86
     - 87
+    - 88
     quote: 'Nothing that belongs to the workflow goes into `/testbed`: no spec files, notes, summaries or temporary scripts.'
 - type: documented
   description: 'The report has four **Status:** lines (IT:257, 269, 285, 297), each with its own value set (G7 critic: a whole-report

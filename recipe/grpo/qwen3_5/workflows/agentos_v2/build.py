@@ -540,12 +540,13 @@ EDITS: tuple[Edit, ...] = (
         "and ends with running ONLY those tests (final sub-task)",
         "- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) "
         "and ends with running ONLY those tests (final sub-task)\n"
-        "- **Write these tests as check scripts outside the repository**: every test a task group writes (the x.1 "
+        "- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes (the x.1 "
         "sub-task, and the additional tests of a test-review group) is a script under "
-        "`agent-os/specs/[this-spec]/checks/`, run on its own; do not add or change test files in the repository. "
-        "The test-writing standard applies to these scripts.",
+        "`agent-os/specs/[this-spec]/checks/`, run on its own, or a new test function added to the existing repository "
+        "test module that covers the changed code; never change or remove an existing test line. "
+        "The test-writing standard applies to these tests.",
         "semantic",
-        "G9-1: the tests are check scripts under S/checks/, never repository test files",
+        "G9-1: the tests are check scripts under S/checks/ or additions to existing test modules (v5); existing test lines never change",
     ),
     # ---- implement-tasks: commands/implement-tasks/single-agent/*, workflows/implementation/**
     Edit(
@@ -581,9 +582,10 @@ EDITS: tuple[Edit, ...] = (
         "wf/implement-tasks",
         "- Running ONLY the tests you've written (if any) and ensuring those tests pass.",
         "- Running ONLY the tests you've written (if any; they are check scripts under "
-        "`agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass.",
+        "`agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, "
+        "run through that module with the test runner) and ensuring those tests pass.",
         "semantic",
-        "G9-1: the tests run are the check scripts",
+        "G9-1: the tests run are the check scripts or the added tests in their module (v5)",
     ),
     Edit(
         "wf/implement-tasks",

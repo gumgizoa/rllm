@@ -104,6 +104,11 @@ class WriteEvent:
     ok          the tool's own success signal (editor replies; shell failure markers), None if silent
     content     file content right after this write, replayed; None when it cannot be replayed
     source      the tool: file_editor | heredoc | redirect | printf | python | tee | cp | mv | sed | other
+    removed_existing
+                True when the write dropped or changed at least one non-blank line the file had before it
+                (a pure addition keeps every prior line and is False); None when the prior or the new
+                content is unknown. A delete of known content is True. ``prohibited_action`` with
+                ``test_file_modify`` keys on this: a test added to an existing module is not a modification.
     """
 
     path: str
@@ -113,6 +118,7 @@ class WriteEvent:
     content: str | None = None
     source: str = "other"
     action_index: int = 0
+    removed_existing: bool | None = None
 
 
 @dataclass

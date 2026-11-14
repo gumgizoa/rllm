@@ -212,7 +212,7 @@ Recommended implementation sequence:
   - Test verification should run ONLY the newly written tests, not the entire suite
   - If there is a dedicated test coverage group for filling in gaps in test coverage, this group should add only a maximum of 10 additional tests IF NECESSARY to fill critical gaps
 - **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running ONLY those tests (final sub-task)
-- **Write these tests as check scripts outside the repository**: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own; do not add or change test files in the repository. The test-writing standard applies to these scripts.
+- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own, or a new test function added to the existing repository test module that covers the changed code; never change or remove an existing test line. The test-writing standard applies to these tests.
 - **Include acceptance criteria** for each task group
 - **Reference visual assets** if visuals are available
 

@@ -32,31 +32,54 @@ repository prohibitions and the test runs. What they cannot say:
                                  path it names (ratio; a box ticked untraceably fails)
       {rule: groups_in_order}    the groups are ticked in order: group k's last tick is not after group k+1's first
                                  (ratio over adjacent pairs)
-      {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio)
+      {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio);
+                                 with ``additions: true`` a write may also add lines (new tasks) and change the
+                                 ``Total Tasks`` line, as long as every earlier line is still there, in order
+      {rule: ticked_passing}     no task group's test sub-task (the one that runs its tests) is ticked ``[x]`` while
+                                 the last test result since the code last changed is a failure, unless the report's
+                                 test results show a failure (ratio over the groups with such a result; a workflow
+                                 whose documents say to fix a failing test before the tick)
+      {rule: warned_after_attempts}  a test sub-task marked ⚠️ instead of ticked has, in its group's stretch, two failing
+                                 test results after the group's first code change with a code change between them
+                                 (ratio; same workflows)
 
 * ``agentos_v2.checks`` -- the check scripts under ``S/checks/`` (``dir``)::
 
       {rule: written}    a check script written in the window
       {rule: pass_last}  each check script run in the window last ran passing, after the window's last code change
-                         (ratio; read off each execution's own result)
+                         (ratio; read off each execution's own result); with ``warned: true`` a script left failing
+                         counts when a ⚠️ mark that ``warned_after_attempts`` accepts follows a failing run of it; with
+                         ``fix_round: true`` git putting content back (stash, checkout) is no code change
 
 * ``agentos_v2.verify`` -- implement-tasks PHASE 3, which begins once every task is ticked (or marked ⚠️): the first
   write of tasks.md after which no task line is open (else the report's first write)::
 
-      {rule: code_frozen}  no repository write after that point ("the code change is complete before PHASE 3")
+      {rule: code_frozen}  no repository write after that point ("the code change is complete before PHASE 3");
+                           with ``fix_round: true`` writes are accepted when a failing test run of PHASE 3 precedes
+                           them and a test run follows them (one return to PHASE 2), and ``suite_run`` and the
+                           report rules then read the runs after those writes; with ``dir`` a check script under it
+                           that ran failing in PHASE 3 is such a failing run, and its re-run such a run
       {rule: suite_run}    a valid test run between that point and the report's first write
       {rule: whole_suite}  one of those runs is the whole suite (a runner at the repository root selecting nothing,
                            or only top-level test directories)
+      {rule: phase2_run}   before that point, a valid test run of the repository's tests after the last code change
+                           (a workflow whose documents have the existing tests of the changed code run while
+                           implementing; not applicable without a code change)
 
 * ``agentos_v2.report`` -- final-verification.md against tasks.md and the PHASE 3 runs::
 
       {rule: test_counts}        the Test Summary's Passing / Failing / Errors (and Total) are a PHASE 3 run's counts
       {rule: failed_listed}      every failing test that run names appears in the report (ratio)
-      {rule: suite_status}       the Test Suite Results Status agrees with that run: All Passing only without failures
+      {rule: suite_status}       the Test Suite Results Status agrees with that run: All Passing only without failures;
+                                 with ``dir``, Critical Failures is also right when a check script under it last ran
+                                 failing (a workflow whose documents give that Status to a failing test the agent wrote)
       {rule: tasks_status}       the Tasks Verification Status agrees with tasks.md: All Complete only when every task
                                  is ticked and none is marked ⚠️
       {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None")
       {rule: spec_name}          the **Spec:** field names the spec folder
+      {rule: overall_status}     the Status at the top follows from the two section Statuses: Failed with Critical
+                                 Failures, Passed with Issues with Issues Found or Some Failures, Passed with All
+                                 Complete and All Passing (a workflow whose documents give that rule)
 
 * ``agentos_v2.created_files`` / ``agentos_v2.paths_written`` -- no test / scratch file created in the repository;
   no file written at a path ``pattern`` names.
@@ -221,10 +244,13 @@ def _content_events(ctx: EvalContext, path: str) -> list:
     return [e for e in ctx.facts.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
 
 
-def _change_steps(ctx: EvalContext, w) -> list[int]:
-    """Steps of the writes to repository files that are part of the final change (run byproducts aside), in the window."""
+def _change_steps(ctx: EvalContext, w, authored: bool = False) -> list[int]:
+    """Steps of the writes to repository files that are part of the final change (run byproducts aside), in the window;
+    ``authored``: without git putting content back (``git stash`` / ``stash pop`` / ``checkout``), which edits nothing."""
     keep = F.change_paths(ctx)
-    return sorted({e.step for e in ctx.facts.repo_writes if e.ok is not False and e.path in keep and not F.is_generated(e.path) and refs.in_window(e.step, w)})
+    return sorted(
+        {e.step for e in ctx.facts.repo_writes if e.ok is not False and e.path in keep and not F.is_generated(e.path) and refs.in_window(e.step, w) and not (authored and e.op == "unknown")}
+    )
 
 
 def read_steps(ctx: EvalContext, paths: list[str], w) -> dict[str, list[int]]:
@@ -602,6 +628,15 @@ def _norm_box(text: str) -> list[str]:
     return out
 
 
+_TOTAL_LINE = re.compile(r"(?i)^\s*(?:[-*+]\s+)?(?:\*\*)?Total\s+Tasks")
+
+
+def _only_adds(prev: list[str], new: list[str]) -> bool:
+    """``new`` is ``prev`` with lines added (the ``Total Tasks`` line may differ): no earlier line gone or reworded."""
+    it = iter(ln for ln in new if not _TOTAL_LINE.match(ln))
+    return all(any(ln == x for x in it) for ln in prev if not _TOTAL_LINE.match(ln))
+
+
 def _prior(ctx: EvalContext, path: str, e) -> str | None:
     prev = None
     for x in ctx.facts.writes.get(path, []):
@@ -613,15 +648,107 @@ def _prior(ctx: EvalContext, path: str, e) -> str | None:
     return None if prev is None else prev.content
 
 
+def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
+    """(step, ``pass`` | ``fail``) of every test result the trace shows, in order: a check script's run whose outcome can
+    be read, a valid test run by its counts. Within one step a failure comes last."""
+    out = _script_results(ctx, d)
+    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass") for r in ctx.facts.runs if r.valid and r.kind == "test"]
+    return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
+
+
+def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
+    """(step, ``pass`` | ``fail``) of every run of a check script under ``d`` whose outcome can be read."""
+    if not d:
+        return []
+    return [(st, o) for rs in executions(ctx, set(check_scripts(ctx, d))).values() for st, o in rs if o in ("pass", "fail")]
+
+
+def _test_subtasks(ts: list[dict]) -> list[dict]:
+    """Per task group, in order, the sub-task that runs its tests: the last one whose text says so, else its last sub-task."""
+    by: dict[int, list[dict]] = {}
+    for t in ts:
+        if t["group"] and not t["id"].endswith(".0"):
+            by.setdefault(t["group"]["n"], []).append(t)
+    out = []
+    for n in sorted(by):
+        runs = [t for t in by[n] if _TEST_WORD.search(t["rest"]) and _RUN_WORD.search(t["rest"])]
+        out.append((runs or by[n])[-1])
+    return out
+
+
+def _warn_steps(ctx: EvalContext, aid: str) -> dict[str, int | None]:
+    """Task id -> the step of the write after which its line first carries ⚠️ (``UNKNOWN`` as in :func:`tick_steps`)."""
+    out: dict[str, int | None] = {}
+    blind = False
+    for e in ctx.facts.writes.get(ctx.facts.artifact_paths.get(aid) or "", []):
+        if e.ok is False or e.op in ("delete", "move_out"):
+            continue
+        if e.content is None:
+            blind = True
+            continue
+        for t in task_lines(e.content):
+            if t["warned"] and t["id"] not in out:
+                out[t["id"]] = UNKNOWN if blind else e.step
+    return out
+
+
+def _group_ends(ctx: EvalContext, aid: str, text: str, w, d: str | None) -> list[dict]:
+    """Per task group of ``text``, in order: its test sub-task, the step that sub-task was ticked or marked at (None when
+    it was not, or untraceably), and the test results and code changes of the group's own stretch -- from the previous
+    group's end (the window's start for the first) up to that step."""
+    when = tick_steps(ctx, aid)
+    results = _test_results(ctx, d)
+    changes = _change_steps(ctx, w, authored=True)
+    out, start = [], w[0]
+    for t in _test_subtasks(task_lines(text)):
+        s = when.get(t["id"])
+        if not _done(t) or s is None or s is UNKNOWN or not refs.in_window(s, w):
+            out.append({"task": t, "step": None, "results": [], "changes": []})
+            continue
+        out.append({"task": t, "step": s, "results": [x for x in results if start <= x[0] < s], "changes": [c for c in changes if start <= c < s]})
+        start = max(start, s)
+    return out
+
+
+def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
+    """(group end, attempts shown) for every test sub-task marked ⚠️ instead of ticked: two failing test results after
+    the group's first code change, with a code change between the first and the last of them."""
+    text = _window_end_text(ctx, aid, w)
+    if text is None:
+        return []
+    first_done, first_warn = tick_steps(ctx, aid), _warn_steps(ctx, aid)
+    out = []
+    for g in _group_ends(ctx, aid, text, w, d):
+        t = g["task"]
+        if not t["warned"] or first_warn.get(t["id"]) != first_done.get(t["id"]):
+            continue  # ticked first and marked later is PHASE 3's mark (a task found incomplete), not this rule's
+        fails = [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]
+        out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in g["changes"])))
+    return out
+
+
+def _report_failures(ctx: EvalContext, suite: str) -> bool:
+    """The report's test results show a failure: a Failing / Errors count above zero, a Status of failures, or a failed test listed."""
+    text = _text(ctx, "final_verification") if "final_verification" in ctx.rubric.artifacts else None
+    if not text:
+        return False
+    summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
+    if any((_num(M.field_value(summ, k)) or 0) > 0 for k in ("Failing", "Errors")):
+        return True
+    if re.search(r"(?i)some\s+failures|critical\s+failures", _status(text, suite)):
+        return True
+    return any(ln.strip() and not M.is_none(ln.strip("-* ")) for ln in M.content_lines(M.section(text, "Failed Tests") or ""))
+
+
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False},
     availability=("sandbox_file", "trace"),
     common=False,
-    choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits")},
+    choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts")},
 )
 def tasks(item: Item, ctx: EvalContext) -> Result:
-    """rule: group_parts | test_first | total | ticked | ticked_after_work | groups_in_order | later_edits -- tasks.md's task groups, test sub-tasks, count, and its ticks against the work."""
+    """rule: group_parts | test_first | total | ticked | ticked_after_work | groups_in_order | later_edits | ticked_passing | warned_after_attempts -- tasks.md's task groups, test sub-tasks, count, and its ticks and ⚠️ marks against the work and the test results."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     aid = _artifact(item, "tasks")
@@ -669,7 +796,7 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
     w = _window(item, ctx)
     path = ctx.facts.artifact_paths.get(aid)
     if path is None:
-        return Result.no(item, "tasks.md absent")
+        return Result.not_applicable(item, "tasks.md absent: nothing marked ⚠️") if rule == "warned_after_attempts" else Result.no(item, "tasks.md absent")
     if w is None:
         return Result.no(item, "window empty")
     if rule == "ticked":
@@ -714,6 +841,34 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             if named and not any(w[0] <= x <= s for x in _evidence_steps(ctx, named, d)):
                 bad.append(t["id"])
         return Result.ratio(item, len(pool) - len(bad), len(pool), f"ticked before (or without) the work it names: {bad[:5]}" if bad else f"{len(pool)} ticks after their work")
+    if rule == "ticked_passing":
+        text = _window_end_text(ctx, aid, w)
+        if text is None:
+            return Result.no(item, "tasks.md unknown at the end of the window")
+        d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
+        pool, bad = 0, []
+        for g in _group_ends(ctx, aid, text, w, d):
+            t = g["task"]
+            if g["step"] is None or not t["checked"] or t["warned"]:
+                continue
+            rs = [x for x in g["results"] if not g["changes"] or x[0] > g["changes"][-1]]  # of the code as it was at the tick
+            if not rs:
+                continue
+            pool += 1
+            if rs[-1][1] == "fail":
+                bad.append(f"{t['id']} ticked at step {g['step']} after the failing result of step {rs[-1][0]}")
+        if not pool:
+            return Result.not_applicable(item, "no test result between a code change and a test sub-task's tick")
+        if bad and _report_failures(ctx, str(p.get("suite_section") or "3. Test Suite Results")):
+            return Result.ok(item, f"{len(bad)} tick(s) over a failing result, which the report's test results show")
+        return Result.ratio(item, pool - len(bad), pool, "; ".join(bad[:2]) if bad else f"{pool} test sub-task(s) ticked over a passing result")
+    if rule == "warned_after_attempts":
+        d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
+        marks = warned_groups(ctx, aid, w, d)
+        if not marks:
+            return Result.not_applicable(item, "no test sub-task marked ⚠️ instead of ticked")
+        bad = [g["task"]["id"] for g, ok in marks if not ok]
+        return Result.ratio(item, len(marks) - len(bad), len(marks), f"marked ⚠️ without two failing results and a code change between them: {bad[:3]}" if bad else f"{len(marks)} mark(s) after two failed attempts")
     if rule == "later_edits":
         evs = [e for e in ctx.facts.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
         edits = [e for e in evs if refs.in_window(e.step, w) and e is not evs[0]]
@@ -725,11 +880,11 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             if prev is None or new is None:
                 bad.append(f"step {e.step}: content unknown")
                 continue
-            if _norm_box(prev) == _norm_box(new):
+            if _norm_box(prev) == _norm_box(new) or (p.get("additions") and _only_adds(_norm_box(prev), _norm_box(new))):
                 good += 1
             else:
                 bad.append(f"step {e.step}: {e.op} changes the tasks")
-        return Result.ratio(item, good, len(edits), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only")
+        return Result.ratio(item, good, len(edits), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only" + (" or added tasks" if p.get("additions") else ""))
     return Result.no(item, f"unknown rule {rule!r}")
 
 
@@ -748,7 +903,7 @@ def check_scripts(ctx: EvalContext, d: str, upto: int | None = None) -> list[str
     return sorted(out)
 
 
-@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
+@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
 def checks(item: Item, ctx: EvalContext) -> Result:
     """rule: written | pass_last -- the check scripts under ``dir``: written in the window; each one run in the window last ran passing, after the window's last code change."""
     p = item.check.params or {}
@@ -769,12 +924,15 @@ def checks(item: Item, ctx: EvalContext) -> Result:
     pool = [s for s in scripts if runs.get(s)]
     if not pool:
         return Result.no(item, f"no check script under {d}/ run in the window")
-    changes = _change_steps(ctx, w)
+    changes = _change_steps(ctx, w, authored=bool(p.get("fix_round")))  # the documents' check of a failure against the unchanged code is a stash and a pop
     last_change = changes[-1] if changes else w[0]
+    # the documents' way out of a test that cannot be made to pass: its sub-task is marked ⚠️ after two attempts
+    acks = [g["step"] for g, shown in warned_groups(ctx, "tasks", w, d) if shown] if p.get("warned") else []
     good, bad = 0, []
     for s in pool:
         rs = runs[s]
         ok = rs[-1][1] == "pass" and rs[-1][0] > last_change
+        ok = ok or (rs[-1][1] == "fail" and any(m > st for st, o in rs if o == "fail" for m in acks))
         good += ok
         if not ok:
             bad.append(posixpath.basename(s))
@@ -804,9 +962,21 @@ def phase3_window(ctx: EvalContext):
     return (a, b) if a < b else None
 
 
-def _phase3_runs(ctx: EvalContext) -> list:
+def _phase3_edits(ctx: EvalContext) -> list:
+    """Repository writes the agent authored after PHASE 3 began (git putting content back -- stash, checkout -- is none)."""
+    start = phase3_start(ctx)
+    if start is None:
+        return []
+    s = 1 if start is UNKNOWN else start
+    return [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.step > s and not F.is_generated(e.path)]
+
+
+def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
+    """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
     w = phase3_window(ctx)
-    return [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w)] if w else []
+    runs = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w)] if w else []
+    late = _phase3_edits(ctx) if after_fix else []
+    return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
 
 
 def _whole(r, workdir: str | None) -> bool:
@@ -820,20 +990,55 @@ def _whole(r, workdir: str | None) -> bool:
     return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
 
 
-@register("agentos_v2.verify", params={"rule": True}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite")})
+@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
 def verify(item: Item, ctx: EvalContext) -> Result:
-    """rule: code_frozen | suite_run | whole_suite -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite."""
+    """rule: code_frozen | suite_run | whole_suite | phase2_run -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite; a valid test run before it, after the last code change."""
     rule = str((item.check.params or {}).get("rule"))
+    fix_round = bool((item.check.params or {}).get("fix_round"))  # the documents allow one return to PHASE 2 after a failing run
     start = phase3_start(ctx)
+    if rule == "phase2_run":
+        w = _window(item, ctx)
+        if w is None:
+            return Result.no(item, "window empty")
+        end = start
+        if end is None or end is UNKNOWN:  # the ticks cannot be placed: the run only has to precede the report
+            end = refs.event(ctx, "first_write:final_verification") if "final_verification" in ctx.rubric.artifacts else None
+        if end is None or end is UNKNOWN:
+            end = w[1] if w[1] is not None else ctx.facts.n_steps + 2
+        changes = [c for c in _change_steps(ctx, w, authored=True) if c < end]
+        if not changes:
+            return Result.not_applicable(item, "no code change before PHASE 3")
+        runs = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and changes[-1] < r.step < end]
+        if runs:
+            return Result.ok(item, f"{len(runs)} valid test run(s) after the code change of step {changes[-1]}, first at step {runs[0].step}")
+        return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")
     if start is None:
         return Result.no(item, "PHASE 3 never began (tasks not all ticked, no report)")
+    if rule == "code_frozen" and fix_round:
+        if ctx.facts.unseen_repo_paths:
+            return Result.no(item, "a repository change the trace does not show: its time is unknown")
+        late = _phase3_edits(ctx)
+        if not late:
+            return Result.ok(item, "no repository write after PHASE 3 began")
+        runs = _phase3_runs(ctx)
+        failed_before = any(r.step < late[0].step and r.failed + r.errors > 0 for r in runs)
+        rerun_after = any(r.step > late[-1].step for r in runs)
+        p = item.check.params or {}
+        w3 = phase3_window(ctx)
+        if p.get("dir") and w3:  # a test the agent wrote is a check script: its failing run sends back as well
+            scripts = [(st, o) for st, o in _script_results(ctx, _expand_dir(ctx, str(p["dir"]))) if refs.in_window(st, w3)]
+            failed_before = failed_before or any(st < late[0].step and o == "fail" for st, o in scripts)
+            rerun_after = rerun_after or any(st > late[-1].step for st, _ in scripts)
+        if failed_before and rerun_after:
+            return Result.ok(item, f"fix round: a failing run before step {late[0].step}, a run after step {late[-1].step}")
+        return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began, " + ("no failing test run before it" if not failed_before else "no test run after it"))
     if rule == "code_frozen":
         if ctx.facts.unseen_repo_paths:
             return Result.no(item, "a repository change the trace does not show: its time is unknown")
         s = 1 if start is UNKNOWN else start
         late = [e for e in ctx.facts.repo_writes if e.ok is not False and e.step > s and not F.is_generated(e.path)]
         return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began (step {s})") if late else Result.ok(item, f"no repository write after step {s}")
-    runs = _phase3_runs(ctx)
+    runs = _phase3_runs(ctx, after_fix=fix_round)
     if rule == "suite_run":
         return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}") if runs else Result.no(item, "no valid test run between the last tick and the report")
     if rule == "whole_suite":
@@ -861,23 +1066,39 @@ def _status(text: str, section: str) -> str:
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False},
     availability=("sandbox_file", "trace"),
     common=False,
-    choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name")},
+    choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
 )
 def report(item: Item, ctx: EvalContext) -> Result:
-    """rule: test_counts | failed_listed | suite_status | tasks_status | incomplete_listed | spec_name -- final-verification.md against the PHASE 3 runs, tasks.md and the spec folder."""
+    """rule: test_counts | failed_listed | suite_status | tasks_status | incomplete_listed | spec_name | overall_status -- final-verification.md against the PHASE 3 runs, tasks.md, the spec folder and itself."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
+    suite = str(p.get("suite_section") or "3. Test Suite Results")  # the report section of the test results, as numbered in the template
     text = _text(ctx, _artifact(item, "final_verification"))
     if text is None:
         return Result.no(item, "final-verification.md absent")
+    if rule == "overall_status":
+        head = M.clean_value(M.field_value(re.split(r"(?m)^##\s", text, maxsplit=1)[0], "Status") or "")
+        tasks_st, suite_st = _status(text, "1. Tasks Verification"), _status(text, suite)
+        if not head:
+            return Result.no(item, "no Status at the top of the report")
+        if re.search(r"(?i)critical\s+failures", suite_st):
+            want = "Failed"
+        elif re.search(r"(?i)issues\s+found", tasks_st) or re.search(r"(?i)some\s+failures", suite_st):
+            want = "Passed with Issues"
+        elif re.search(r"(?i)all\s+complete", tasks_st) and re.search(r"(?i)all\s+passing", suite_st):
+            want = "Passed"
+        else:
+            return Result.no(item, f"section Statuses {tasks_st[:30]!r} / {suite_st[:30]!r} give no overall Status")
+        got = "Passed with Issues" if re.search(r"(?i)with\s+issues", head) else "Failed" if re.search(r"(?i)fail", head) else "Passed" if re.search(r"(?i)pass", head) else head[:30]
+        return Result.ok(item, f"Status {got}, as the sections give") if got == want else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
     if rule in ("test_counts", "failed_listed", "suite_status"):
-        runs = _phase3_runs(ctx)
+        runs = _phase3_runs(ctx, after_fix=bool(p.get("fix_round")))  # after a fix round the report is about the re-run
         if not runs:
             return Result.no(item, "no valid PHASE 3 test run to compare with")
-        summ = M.section(text, "Test Summary") or M.section(text, "3. Test Suite Results", match="prefix") or text
+        summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
         got = {k: _num(M.field_value(summ, k)) for k in ("Total Tests", "Passing", "Failing", "Errors")}
 
         def score(r) -> int:
@@ -891,14 +1112,26 @@ def report(item: Item, ctx: EvalContext) -> Result:
             k = score(best)
             return Result.ratio(item, k, 4, f"step {best.step}: {best.passed} passed / {best.failed} failed / {best.errors} errors vs {got}")
         if rule == "suite_status":
-            st = _status(text, "3. Test Suite Results")
+            st = _status(text, suite)
             if not st:
                 return Result.no(item, "no Test Suite Results Status")
             bad = best.failed + best.errors
             if re.search(r"(?i)all\s+passing", st):
                 return Result.ok(item, "All Passing, no failure") if bad == 0 else Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
             if re.search(r"(?i)some\s+failures|critical\s+failures", st):
-                return Result.ok(item, f"{st[:30]}: {bad} failures / errors") if bad > 0 else Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
+                if bad > 0:
+                    return Result.ok(item, f"{st[:30]}: {bad} failures / errors")
+                if p.get("dir") and re.search(r"(?i)critical\s+failures", st):  # the Status of a failing test the agent wrote
+                    last: dict[str, str] = {}
+                    d = _expand_dir(ctx, str(p["dir"]))
+                    for s_, rs in executions(ctx, set(check_scripts(ctx, d)) if d else set()).items():
+                        known = [o for _, o in rs if o in ("pass", "fail")]
+                        if known:
+                            last[s_] = known[-1]
+                    failing = sorted(posixpath.basename(s_) for s_, o in last.items() if o == "fail")
+                    if failing:
+                        return Result.ok(item, f"{st[:30]}: check script(s) last ran failing: {failing[:3]}")
+                return Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
             return Result.no(item, f"Status {st[:40]!r} is none of the three")
         fails = [r for r in runs if r.failed + r.errors > 0]
         if not fails:

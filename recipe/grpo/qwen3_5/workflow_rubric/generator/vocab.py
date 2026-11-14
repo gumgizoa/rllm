@@ -47,7 +47,8 @@ _STATIC: dict[str, tuple] = {
                       "echo/printf summaries, /tmp dummies, agent-made runners, zero-test and load-error-only runs are void)", (), ()),
     "prohibited_action": ({"action": True, "window": False, "pattern": False, "selector": False, "paths_in": False}, ("trace",), "evidence",
                           "no action of class execute (a test run, or running the path `selector` names) | repo_write | source_write (a file that "
-                          "existed at BASE_SHA, edited in place; new files are not) | test_file_write (an existing test file) | install | full_suite "
+                          "existed at BASE_SHA, edited in place; new files are not) | test_file_write (an existing test file) | test_file_modify (an existing "
+                          "test file whose prior lines were changed or removed; a pure addition is not one) | install | full_suite "
                           "(a test runner at the repo root selecting nothing) | command (pattern) in the window; pattern also filters paths / commands",
                           (), ("pattern",)),
     "artifact_exists": ({"artifact": False}, ("sandbox_file",), "structure", "the artifact exists (final / stage_end)", (), ()),
@@ -114,7 +115,7 @@ RELATIONS = ("subset", "superset", "equal", "intersects", "disjoint")
 EVENT_FIXED = ("start", "end", "first_repo_write", "last_repo_write", "last_change_write")
 EVENT_KINDS = ("read", "write", "first_write", "last_write", "stage_start", "stage_end")
 FIELD_TYPES = ("command_run", "repo_path", "test_id", "failed_test_id", "test_selection")
-PROHIBITED_ACTIONS = ("execute", "repo_write", "source_write", "test_file_write", "install", "full_suite", "command")
+PROHIBITED_ACTIONS = ("execute", "repo_write", "source_write", "test_file_write", "test_file_modify", "install", "full_suite", "command")
 MATCHES = ("exact_ci", "norm", "prefix", "regex")
 RUN_KINDS = ("test", "build")
 # the enumerated parameters of the common kinds (the registry's ``choices``; this copy serves the static table)

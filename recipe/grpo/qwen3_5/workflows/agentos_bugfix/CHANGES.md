@@ -1,0 +1,143 @@
+# agentos_bugfix — agentos_v2 대비 변경 내역
+
+- 만든 이유: agentos_v2 문서를 줄 단위로 검토하던 중, 기능 기획용 단계가 버그 수정 과제와 무관하다는 판단
+  (`tasks/2026-11-13-agentos-v2-resolve-review/`, 사용자 결정 2026-11-13).
+- 방침: agentos_v2는 그대로 두고, 버그 수정에 필요 없는 단계만 뺀 워크플로우를 따로 둠. 뺀 것과 문구
+  일반화 외에는 agentos_v2와 같음 (같은 upstream v2.1.1, 같은 편집, 같은 렌더 방식).
+- 문서 분량: 명령 문서 4개 1,329줄 → 620줄, 진입 문서 93줄 → 94줄.
+
+## 뺀 것
+
+| # | 대상 | 위치 (agentos_v2 문서 기준) | 이유 |
+|---|---|---|---|
+| B1 | 제품 맥락 조사 | shape-spec PHASE 2 Step 2 (README, 문서 목차, 패키징 정보 읽기)와 책임 목록의 해당 줄. 뒤 Step 번호를 당김 | 버그의 위치·원인과 무관한 읽기 |
+| B2 | 시안 | `planning/visuals/` 폴더 생성, 필수 `ls`, 시안 분석, 시안 후속 질문, requirements.md의 Visual Assets 절, spec.md의 Visual Design 절, 시안을 참조하라는 줄 전부 | 시안은 항상 없음 |
+| B3 | roadmap | implement-tasks PHASE 3의 roadmap 갱신 Step, 보고서의 Roadmap Updates 절. 뒤 Step·절 번호를 당김 | roadmap이 없어 항상 "갱신 없음"만 적음 |
+| B4 | standards 8개 | backend 4개(api, migrations, models, queries), frontend 4개(accessibility, components, css, responsive) | 웹 UI·REST·DB 기준 |
+| B5 | 사용자 스토리 | spec.md의 User Stories 절 | 기능 기획용 칸 |
+| B6 | `implementation/` 폴더 | shape-spec PHASE 1 Step 3 (verifications/ 폴더만 만듦) | 아무도 쓰지 않는 폴더 |
+| B7 | 웹앱 tasks 예시 | create-tasks의 DB·API·UI group 예시 → 같은 뼈대의 group 1개 + 테스트 검토 group | 예시의 내용이 웹앱 전용. 뼈대(테스트 2–8개 작성 → 변경 → 그 테스트만 실행)는 유지 |
+| B8 | 후속 질문 | shape-spec PHASE 2의 후속 질문 Step, requirements.md의 Follow-up Questions 절, "후속 질문은 1–3개" 제약 | 답할 사람이 없어 되물을 일이 없음. 실제로 후속 질문을 쓴 런은 평가 4–7%, 학습 5–8% (`tasks/2026-11-13-agentos-v2-resolve-review/analysis/q2_q4_q5.csv`) |
+| B9 | shape-spec·write-spec·create-tasks의 standards | 세 문서 끝의 "User Standards & Preferences Compliance" 블록(문서마다 54–66줄). implement-tasks에는 그대로 둠 | 코딩 기준이라 코드를 쓰는 단계에서만 쓰임. 파일로 따로 배포하지 않음("필요하면 읽어라"는 모델 판단에 맡기는 지시라 넣지 않음) |
+
+## 바꾼 것
+
+| # | 대상 | agentos_v2 | agentos_bugfix | 이유 |
+|---|---|---|---|---|
+| T1 | 테스트 실행 범위 | 구현 중(implement-tasks PHASE 2, create-tasks 예시·제약): "자기가 쓴 테스트만 실행". 최종 검증(PHASE 3): "전체 테스트를 실행" | 두 곳 모두 "자기가 쓴 테스트 + 수정한 코드의 기존 테스트". 전체 테스트는 몇 분 안에 끝날 때만 추가로. 구현 중 문장에 "task가 바꾸라고 한 동작을 기대하는 기존 테스트는 실패하는 것이 맞으니 수정을 그대로 두고 그 테스트를 최종 보고서에 적는다"를 덧붙임. "이 단계에서 전체 테스트를 돌리지 말 것"은 그대로 | 구현 중에는 기존 테스트가 안 돌고, 마지막의 전체 테스트는 거의 지켜지지 않음. 평가(wf-floor-tcx): 정답 test patch가 건드리는 파일을 실행한 런 73.8% → 58.9%, 편집 뒤 테스트 횟수 7.2 → 4.5, 전체 테스트를 돌린 런 6.8%(34런 중 시간 초과 12) |
+| T2 | 테스트 작성 기준 | implement-tasks의 test-writing standard 7줄 | "개발 중 테스트는 최소로", "핵심 사용자 흐름만 테스트", "edge case 테스트는 미룸" 세 줄을 뺌. 나머지 4줄(동작을 테스트, 이름, mock, 속도)은 그대로 | 버그 수정은 특정 입력의 예외 동작이 대상인 경우가 많고, 그것을 재현하는 테스트가 곧 edge case 테스트임. 따로 잰 수치는 없음. create-tasks 예시의 "Skip exhaustive coverage of all methods and edge cases" 등 같은 취지의 4줄은 손대지 않음 |
+| T3 | 구현 중에 찾은 작업 | 명령이 끝난 파일은 고치지 않음. tasks.md는 체크박스만 예외. "배정된 task만 구현" | 구현 중에 task에 없는 필요한 작업(고칠 다른 파일, 빠진 경우)을 찾으면 tasks.md에 먼저 추가한 뒤 배정된 task로 구현함. 줄 추가만 허용하고 있던 task는 고치거나 지우지 않음. spec.md·requirements.md는 그대로 고치지 않음 | 계획에 적힌 것이 곧 고쳐지는 범위임(평가 wf-floor-tcx: 계획이 정답 파일을 모두 담은 런은 정답 파일을 모두 고친 비율 89.5%, 다 담지 못한 런은 24.1%). 새로 찾은 작업을 정식으로 구현할 길을 둠. 모델이 이 길을 쓸지는 확인되지 않음 |
+| T4 | 보고서의 전체 Status | 머리의 Status 칸에 세 값(Passed / Passed with Issues / Failed)만 있고 언제 무엇을 적는지 기준이 없음 | 보고서 양식 뒤에 기준을 적음: 두 절의 Status에서 정해짐. All Complete + All Passing이면 Passed, ⚠️로 표시한 task가 있거나 이 변경을 위해 쓴 것이 아닌 테스트가 실패하면(Some Failures) Passed with Issues, 이 변경을 위해 쓴 테스트가 실패하면(Critical Failures) Failed | 평가(wf-floor-tcx)에서 보고서의 96.2%가 Passed이고, 그중 61런은 마지막 검증이 실패, 42런은 같은 보고서의 Failing 칸이 1 이상. 해결률보다 보고서 정확도의 문제 |
+| T5 | 실패한 테스트를 두고 체크함 | 구현 단계에 "테스트가 통과하도록 한다"만 있음 | "수정 때문에 테스트가 실패하면 고치고 다시 돌린 뒤에 task group의 마지막 하위 task를 체크한다. 두 번 시도해도 통과하지 못하면 체크 대신 ⚠️로 표시하고 넘어간다". ⚠️가 있어도 PHASE 3으로 넘어감 | 평가(wf-floor-tcx)에서 구현 중 실패를 보고 체크한 뒤 검증 없이 끝낸 런 16개의 해결률 12.5%(같은 과제 미적용 52.1%). 모델마다 크기가 다르고 런 수가 작음 |
+| T6 | 검증에서 실패를 보고도 끝냄 | PHASE 3: "실패한 테스트를 고치지 말고 기록만"(upstream 원문). upstream은 사람이 보고서를 읽고 다시 시킴 | 실패하면 수정 때문인지 확인(자기가 쓴 테스트면 그렇다, 기존 테스트면 `git stash -q && <테스트 명령>; git stash pop -q` 한 줄로 수정 없이 돌려 봄). 수정 때문이고 옛 동작을 기대하는 테스트가 아니면 PHASE 2로 한 번 돌아가 고치고 PHASE 3을 Step 1부터 다시 함. 한 번만. 그 밖의 실패는 그대로 기록만 | 평가(wf-floor-tcx)에서 마지막 검증이 실패인 채 끝난 런 6.1% → 14.1%, 손실 차이 −11.2. 그중 PHASE 3에서 실패를 본 런 50개(해결률 44.0%, 미적용 52.0%). 위험: 실패한 채로도 풀린 런이 있어 판단이 틀리면 옳은 수정을 망가뜨림. `git stash pop`을 빠뜨리면 수정이 사라지므로 한 줄 명령으로 지정함 |
+
+## 문구 일반화 (G)
+
+데이터셋 한 가지 경우에 맞춰져 있던 문구를 바꿈 (해결률 영향과 별개, `agentos_v2/porting/later.md`).
+
+| 바꾸기 전 | 바꾼 뒤 | 위치 |
+|---|---|---|
+| the issue in `<issue_description>` | the task description in the task message | shape-spec PHASE 1, core-workflow |
+| the issue (입력을 가리킬 때) | the task description / the task | shape-spec PHASE 2, core-workflow, system prompt |
+| The issue is your only input from outside | The task message is your only input from outside | core-workflow |
+| the repository at `/testbed`, `/testbed` | the repository (you work in) | instruction, system prompt, core-workflow |
+
+## 그대로 둔 것
+
+- 확인 질문 4–8개와 자체 답변, 재사용 코드 검색: 수정하지 않기로 함.
+- "끝난 산출물은 고치지 않음": tasks.md의 task 추가(T3)만 예외로 둠. spec.md와 requirements.md는 그대로 고치지 않음.
+- 테스트 규칙(검사 스크립트 또는 기존 테스트 모듈에 함수 추가, 기존 테스트 줄 변경 금지): 일반적인 규칙이라
+  데이터셋에 맞춘 문구로 보지 않고 그대로 둠.
+- 남긴 standards 6개(global 5개, testing 1개)와 그 안의 웹 관련 줄(예: 서버·클라이언트 검증).
+- 질문 양식의 "UI components", "page layouts" 같은 upstream 문구.
+
+## 채점기 (1차, 2026-11-13)
+
+- `derive_rubric.py`가 agentos_v2의 `reward/rubric.yaml`에서 만듦. 모델 호출 없음. agentos_v2 채점기나 이 워크플로우 문서가
+  바뀌면 다시 돌림 (`--check`로 낡았는지 확인).
+- 항목 207개 → 160개. 지운 47개 = 뺀 단계의 항목 19개(제품 맥락 읽기 4, 시안 5, roadmap 3, 사용자 스토리 4,
+  `implementation/` 폴더와 빈 폴더 규칙 2, 후속 질문 1) + T1로 문서에서 없어진 요구 1개("PHASE 3에서 전체 테스트를 돌렸는가")
+  + 검사 없이 문장만 기록하던 항목 중 그 문장이 문서에서 빠진 27개(standards 문장이 많음).
+- 고친 설정값: requirements.md·spec.md의 허용 절 목록, 양식 자리표시 목록(빠진 것 39개 제거, 문구가 바뀐 것 1개는 새 문구로, 새 tasks 예시의 자리표시 9개 추가),
+  보고서의 테스트 결과 절 이름(`3.` → `2.`).
+- 나머지 항목은 검사 내용 그대로. 출처의 줄 번호와 인용문만 이 워크플로우 문서에 맞춤 (인용문 44개는 바뀐 문구로 다시 찾음,
+  찾지 못한 출처 51개는 지움, 출처가 하나도 안 남은 항목은 없음).
+- 전용 검사는 agentos_v2의 함수를 `agentos_bugfix.*` 이름으로 등록해 씀 (`reward/checks.py`). 이를 위해 agentos_v2의 보고서
+  검사에 테스트 결과 절 이름을 받는 선택 설정값(`suite_section`)을 추가함 (agentos_v2 동작은 그대로).
+- 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 10개도 0.99 이상(9개는 만점, 테스트 검토 group을 둔 변형 0.9913).
+- 알려진 미달 2건 (기준은 바꾸지 않음):
+  - "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자람 (agentos_v2는 0.9833). 같은 항목(requirements.md의
+    In Scope 칸)에서 잃는 것은 agentos_v2와 같고, 항목 수가 줄어 한 항목의 비중이 커진 결과.
+  - "편집 뒤 모든 테스트 실행을 전체 테스트로 바꾼 변형"이 0.9974로 기준 0.995 이하에 못 미침(감점이 0.0026). T1로 기준 런이
+    구현 중에 기존 테스트를 돌리게 되면서 이 변형이 처음 적용됨. 걸리는 항목은 "구현 중에는 전체 테스트를 돌리지 않음"인데
+    agentos_v2에서 권고(should, 가중치 0.25)로 되어 있어 감점이 작음. 필수(must)로 올리면 기준을 넘음: 사용자 결정 필요.
+- T3에 따라 "tasks.md는 create-tasks 뒤에 체크만 한다" 항목이 줄 추가도 허용함(있던 줄을 고치거나 지우면 감점 그대로). 이를 위해
+  agentos_v2의 tasks 검사에 선택 설정값(`additions`)을 추가함(agentos_v2 동작은 그대로). create-tasks 단계의 tasks.md 항목 3개
+  (task 수, group 구성, 테스트 먼저)는 create-tasks가 끝난 시점의 tasks.md를 보도록 바꿈. 기준 런에 "구현 중에 task를 추가하는"
+  정직한 변형을 넣었고 만점. 같은 런이 agentos_v2의 규칙으로는 0.9977.
+- T4에 따라 항목 1개를 새로 넣음: 머리 Status가 두 절의 Status에서 정해지는 값과 같은가(필수). agentos_v2의 보고서 검사에 규칙
+  `overall_status`를 추가해 구현함(agentos_v2 채점기는 이 규칙을 쓰지 않음). "Passed with Issues"나 "Failed"를 적는 것 자체는
+  감점하지 않고, 적은 값이 절들과 맞는지만 봄. 항목 수 161개.
+- T6에 따라 "모든 task를 체크한 뒤에는 저장소를 고치지 않는다" 항목이 수정 한 번을 허용함: 그 쓰기 앞에 실패한 테스트 실행이 있고
+  뒤에 테스트 실행이 있어야 함. 보고서의 수치·실패 목록·Status 항목과 "PHASE 3에서 테스트를 돌렸는가"는 수정 뒤의 실행을 봄.
+  agentos_v2의 검사에 선택 설정값(`fix_round`)으로 구현(agentos_v2 채점은 그대로). `git stash`로 내용을 되돌린 것은 수정으로 세지 않음.
+  기준 런에 `fix_round` 변형을 넣었고 만점, 같은 런이 agentos_v2 규칙으로는 감점.
+- T5에 따라 항목 2개를 새로 넣음(필수, 2026-11-14). 항목 수 164개.
+  - `ticked_passing`: task group의 테스트 실행 하위 task(문구에 테스트와 실행이 있는 마지막 하위 task, 없으면 group의 마지막 하위
+    task)를 `[x]`로 체크한 시점에, 마지막 코드 수정 뒤의 최근 테스트 결과가 실패가 아닌가. 테스트 결과는 검사 스크립트의 실행
+    결과와 인정되는 테스트 실행(자기 스크립트든 기존 테스트든)을 함께 봄. 실패였더라도 보고서의 테스트 결과 절에 실패가 적혀
+    있으면(Failing·Errors 수, Status, Failed Tests 목록 중 하나) 허용함: 과제가 바꾸라는 동작을 검사하는 기존 테스트는 실패한 채
+    두고 보고서에 적으라는 것이 문서의 지시임. 마지막 코드 수정 뒤에 테스트 결과가 없는 group은 세지 않고, 그런 group뿐이면 해당 없음.
+  - `warned_after_attempts`: 체크 대신 ⚠️로 표시한 테스트 실행 하위 task마다, 그 group 구간(앞 group이 끝난 뒤부터 표시까지)에서
+    첫 코드 수정 뒤에 실패한 테스트 결과가 2회 이상 있고 그 사이에 코드 수정이 있는가. ⚠️가 없으면 해당 없음. 먼저 체크했다가
+    나중에 ⚠️로 바꾼 것(PHASE 3 Step 1의 표시)은 대상이 아님.
+  - 기존 항목 3개를 문서대로 한 런이 감점되지 않게 고침: "검사 스크립트가 마지막에 통과했는가"는 위 조건을 만족하는 ⚠️ 표시가
+    그 스크립트의 실패한 실행 뒤에 있으면 실패한 채 둔 스크립트를 인정함(`warned`), 그리고 `git stash` / `stash pop`을 코드 수정으로
+    세지 않음(`fix_round`; T6의 "수정 없이 돌려 보기" 뒤에 스크립트를 다시 돌리지 않아도 됨). "tasks.md의 task 줄 형식"은 `[⚠️]` 칸과
+    ⚠️가 붙은 줄도 task 줄로 받음(agentos_v2에서는 ⚠️ 표시 한 줄이 형식 위반으로 잡힘).
+  - 보지 않는 것: 두 번보다 많이 시도한 것, 실패한 테스트가 수정 때문인지.
+- 자기가 쓴 검사 스크립트의 실패를 문서가 테스트 실패로 치는 두 곳에서 채점기도 그렇게 봄(2026-11-14). 전에는 테스트 실행기의 실행만 봤음.
+  - 보고서의 테스트 결과 Status(`suite_status`): 실행기의 실행에 실패가 없어도, 검사 스크립트의 마지막 실행이 실패였으면
+    "❌ Critical Failures"를 맞는 것으로 봄(T4: 이 변경을 위해 쓴 테스트가 실패한 경우의 Status). 반대 방향(스크립트가 실패했는데
+    "All Passing"이라고 적음)은 여기서 판정하지 않음: 실패 여부를 종료 코드와 출력으로 읽는 것이라 틀릴 수 있고, 그런 런은
+    "검사 스크립트가 마지막에 통과했는가"에서 이미 감점됨.
+  - PHASE 3의 수정 한 번(`code_frozen`): PHASE 3에서 검사 스크립트가 실패한 것도 수정하러 돌아가는 근거로, 그 뒤의 스크립트
+    실행도 다시 돌린 것으로 봄(T6: 자기가 쓴 테스트의 실패는 수정 때문).
+  - 기준 런에 정직한 변형 `script_failing`(검사 스크립트가 두 번의 시도와 PHASE 3의 한 번을 거쳐도 실패: ⚠️, Critical Failures,
+    Failed)을 넣었고 만점. 이 두 설정값을 빼면 각 항목에서 실패함을 테스트로 확인.
+- 알려진 어긋남: "코드가 바뀌는 동안에는 전체 테스트를 돌리지 않음"(권고) 항목은 마지막 코드 변경까지를 구현 중으로 봄. PHASE 3에서 전체
+  테스트를 돌린 뒤 수정하러 돌아간 정직한 런은 이 권고 항목에서 감점됨(가중치 0.25).
+- T1에 따라 항목 1개를 새로 넣음(필수, 2026-11-14): `phase2_run` — 구현 단계(모든 task가 체크되기 전)에서, 마지막 코드 수정
+  뒤에 저장소의 기존 테스트를 실행한 인정되는 기록이 1회 이상 있는가. 통과 여부는 보지 않음. 코드 수정이 없으면 해당 없음. 체크
+  시점을 알 수 없으면 보고서를 쓰기 전까지를 봄. 그 테스트가 수정한 파일의 테스트인지는 보지 않음(파일 이름이나 폴더로 맞추면
+  대응이 안 되는 저장소에서 문서대로 한 런이 감점되므로 넣지 않기로 함).
+- 위 세 규칙은 agentos_v2의 검사 함수에 규칙과 선택 설정값으로 넣었고 agentos_v2의 rubric은 쓰지 않음(agentos_v2의 기준 런과 변형
+  40개 점수 동일). 기준 런에 정직한 변형 2개(`expected_failure`: 과제가 바꾸라는 동작을 검사하는 기존 테스트를 실패한 채 두고
+  보고서에 적음, `warn_attempts`: 두 번 시도 뒤 ⚠️, PHASE 3에서 한 번 더 시도, 남은 실패를 보고서에 적음)를 넣었고 둘 다 만점.
+  규칙이 잡아야 하는 런 3개(`DISHONEST`: 구현 중 기존 테스트 실행 없음, 실패한 채 체크하고 보고서에는 모두 통과, 시도 없이 ⚠️)는
+  테스트에서 해당 항목이 실패하는지 확인함.
+- 없는 것: `rubric.md`(사람이 읽는 항목 표).
+- 항목의 근거 메모(`modality_evidence`)에 적힌 줄 번호는 agentos_v2 문서의 것 그대로임. 출처(`sources`)의 줄 번호와 인용문은 이 워크플로우 문서의 것.
+
+## 평가 (2026-11-13 ~ 11-14)
+
+- SWE-bench Verified 499과제, wf-floor-tcx-step27 모델(agentos_v2로 학습), 코드 bee66a2d(T1·T5 채점 항목을 넣기 전):
+  해결 252/499 = 50.5%. 같은 모델의 agentos_v2 적용 52.7%(차이는 구분되지 않음, p 0.30), 미적용 58.4%. 채점 오류 0.
+  결과는 `rllm-home/eval_results/agentos_bugfix/t6-full-floor27/`.
+- 그 499런의 궤적에 지금 채점기를 다시 적용한 결과(오프라인 재채점, 채점 오류 0):
+
+  | 항목 | 통과 | 실패 | 해당 없음 |
+  |---|---|---|---|
+  | `phase2_run` | 250 | 240 | 9 |
+  | `ticked_passing` | 318 | 67 | 114 |
+  | `warned_after_attempts` | 1 | 0 | 498 |
+
+  `ticked_passing`의 실패 67개 중 31개는 tasks.md가 없거나 내용을 따라갈 수 없는 런이고, 통과 318개 중 23개는 실패한 채 체크했지만
+  보고서에 실패가 적힌 경우. 기존 항목은 "검사 스크립트가 마지막에 통과했는가" 13런, "task 줄 형식" 2런, "PHASE 3의 수정 한 번" 3런이
+  실패에서 통과로 바뀜. "❌ Critical Failures"를 적은 런은 없어 `suite_status`의 판정은 그대로.
+
+## 확인
+
+- `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
+- `pytest recipe/grpo/qwen3_5/tests/test_agentos_bugfix.py` (뺀 단계의 단어가 문서에 남지 않았는지, Step·절
+  번호, 남긴 standards 목록, 문서 5개 업로드, 채점기가 derive 결과와 같은지, 기준 런 점수)

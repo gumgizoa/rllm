@@ -36,7 +36,7 @@ Implement all tasks assigned to you and ONLY those task(s) that have been assign
 - **User Standards & Preferences** which are defined below.
 
 ## Self-verify and test your work by:
-- Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, not repository test files) and ensuring those tests pass.
+- Running ONLY the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and ensuring those tests pass.
 
 ## Next step
 

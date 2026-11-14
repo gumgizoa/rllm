@@ -110,8 +110,9 @@ class _Replayer:
     def _is_dir(self, p: str) -> bool:
         return p in self.dirs or bool(self._under(p))
 
-    def _event(self, path: str, step: int, idx: int, op: str, ok: bool | None, content: str | None, source: str) -> None:
-        self.out.writes.setdefault(path, []).append(WriteEvent(path=path, step=step, op=op, ok=ok, content=content, source=source, action_index=idx))
+    def _event(self, path: str, step: int, idx: int, op: str, ok: bool | None, content: str | None, source: str, prior: str | None = None, prior_known: bool = False) -> None:
+        self.out.writes.setdefault(path, []).append(WriteEvent(path=path, step=step, op=op, ok=ok, content=content, source=source, action_index=idx,
+                                                              removed_existing=_removed_existing(op, ok, prior, content, prior_known)))
 
     def _gap(self, step: int, idx: int, command: str) -> None:
         entry = (step, idx, command)
@@ -140,7 +141,7 @@ class _Replayer:
                 return
             self.history.setdefault(path, []).append(prior)
             self._set(path, a.text or "")
-            self._event(path, step, idx, op, ok, a.text or "", "file_editor")
+            self._event(path, step, idx, op, ok, a.text or "", "file_editor", prior=prior, prior_known=exists)
             return
         if a.kind in ("replace", "insert"):
             if ok is False:
@@ -158,7 +159,7 @@ class _Replayer:
             if content != prior or new is not None:
                 self.history.setdefault(path, []).append(prior)
             self._set(path, content)
-            self._event(path, step, idx, "edit", ok, content, "file_editor")
+            self._event(path, step, idx, "edit", ok, content, "file_editor", prior=prior, prior_known=exists)
             return
         if a.kind == "undo":
             if ok is False:
@@ -169,7 +170,7 @@ class _Replayer:
             if content is None and prior is not None:
                 self._gap(step, idx, f"undo {path}")
             self._set(path, content)
-            self._event(path, step, idx, "edit", ok, content, "file_editor")
+            self._event(path, step, idx, "edit", ok, content, "file_editor", prior=prior, prior_known=exists)
 
     # -- shell -----------------------------------------------------------------------------
     def shell(self, step: int, idx: int, a: Action) -> None:
@@ -202,7 +203,8 @@ class _Replayer:
         if op.op == "delete":
             targets = ([path] if path in self.state else []) + self._under(path)
             for p in targets or [path]:
-                self._event(p, step, idx, "delete", ok, self.state.get(p) if ok is False else None, op.source)
+                self._event(p, step, idx, "delete", ok, self.state.get(p) if ok is False else None, op.source,
+                            prior=self.state.get(p), prior_known=p in self.state)
                 if ok is not False:
                     self._drop(p)
             if ok is not False:
@@ -240,7 +242,7 @@ class _Replayer:
         if lost:
             self._gap(step, idx, command)
         self._set(path, content)
-        self._event(path, step, idx, name, ok, content, op.source)
+        self._event(path, step, idx, name, ok, content, op.source, prior=prior, prior_known=exists)
 
     def _transfer(self, step: int, idx: int, op: shell.WriteOp, ok: bool | None, command: str) -> None:
         move = op.op == "move"
@@ -281,6 +283,26 @@ class _Replayer:
             self.dirs = (self.dirs - moved_dirs) | {dst + d[len(src) :] for d in moved_dirs}
             self._add_parents(dst + "/x")
             self.out.moves.append((step, src, dst))
+
+
+def _removed_existing(op: str, ok: bool | None, prior: str | None, content: str | None, prior_known: bool) -> bool | None:
+    """Did this write drop or change a non-blank line the file had before it? None when unknowable.
+
+    A file that did not exist before (``prior_known`` False) cannot lose a line: False. A failed write
+    changes nothing: False. A delete / move-out of a known existing file: True. Otherwise both the prior
+    and the new content must be known; the answer is whether any prior non-blank line is absent from the
+    new content (so a pure addition -- a new test function appended or inserted -- is False)."""
+    if ok is False:
+        return False
+    if not prior_known:
+        return False
+    if op in ("delete", "move_out"):
+        return True
+    if prior is None or content is None:
+        return None
+    before = {ln.strip() for ln in prior.splitlines() if ln.strip()}
+    after = {ln.strip() for ln in content.splitlines() if ln.strip()}
+    return bool(before - after)
 
 
 def replay(run: Run, start_cwd: str | None, initial: Mapping[str, str] | None = None, fresh: tuple[str, ...] = FRESH_PREFIXES) -> Replay:
