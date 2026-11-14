@@ -42,7 +42,7 @@ issue text and the repository only. Record each link verbatim in `assessment.md`
 5. **Propose a remediation**
    - Outline one preferred fix and, if non-obvious, one or two alternatives with trade-offs.
    - Identify files to change and the shape of the change (without writing the patch yet — that is the fix stage's job).
-   - Call out the checks that will prove the fix: a reproduction script to write under `BUG_DIR/checks/`, and the existing repository tests to run. Do not plan to add or edit test files in the repository: the task's tests are already in place.
+   - Call out the checks that will prove the fix: a reproduction script to write under `BUG_DIR/checks/`, and the existing repository tests to run.
    - Flag risks: API breakage, migrations, performance, security, observability.
 
 6. **Write the assessment file**

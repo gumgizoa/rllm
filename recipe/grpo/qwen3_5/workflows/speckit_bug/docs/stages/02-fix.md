@@ -17,8 +17,8 @@ The round decides the report names:
 
 - `BUG_DIR` is `/tmp/speckit/bugs/issue/`. `BUG_DIR/assessment.md` MUST exist. If it does not, the assessment stage has not run: carry it out first (`/speckit/stages/01-assess.md`).
 - Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round.
-- Read `BUG_DIR/assessment.md` in full. Treat its **Proposed Remediation**, **Files likely to change**, **Checks to run**, and **Risks & Considerations** sections as the contract for this stage.
-- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what failed there is the new evidence this round answers.
+- Treat the assessment's **Proposed Remediation**, **Files likely to change**, **Checks to run**, and **Risks & Considerations** sections as the contract for this stage.
+- In rounds 2 and 3, what failed in the previous round's verification report is the new evidence this round answers.
 
 ## Execution
 
@@ -33,7 +33,7 @@ The round decides the report names:
      - Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline.
      - In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change.
    - Make the code changes described by the preferred remediation. Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report).
-   - The checks written before the change stay as they are; the change has to make them pass. Do not add or edit test files in the repository.
+   - The checks written before the change stay as they are; the change has to make them pass.
    - Keep the change minimal — do not refactor unrelated code, do not introduce dependencies that the assessment did not call for.
    - If you discover the assessment was wrong (the proposed fix does not work, the root cause is elsewhere), document the new finding in the fix report under **Deviations from Assessment** and continue from the corrected root cause. Do not edit `assessment.md`.
 

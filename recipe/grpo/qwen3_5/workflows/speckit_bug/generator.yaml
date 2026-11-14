@@ -329,10 +329,10 @@ exclude:
   - {statement: ts-008, kind: write_discipline, reason: "an earlier round's verification report not rewritten (TS:20): the report's own write_discipline once fails any rewrite"}
   - {statement: fx-049, kind: write_discipline, reason: "'Never edit assessment.md' (FX:105) is the assessment's write_discipline once (AS:14, AS:118), which fails any later edit"}
   - {statement: cw-034, kind: write_discipline, reason: "'never rewrite an earlier report' (CW:47-48) is each report's write_discipline once (one write over the report's life)"}
-  - {statement: "fx-01[25]", kind: speckit_bug.read, reason: "duplicates the manual per-round report reads (FX:20-21), which are conditional on the round; these also applied to rounds that never ran"}
-  - {statement: cw-022, kind: speckit_bug.read, reason: "duplicates the manual round-2/3 reads of the previous verification report (FX:21), which are conditional on the round"}
-  - {statement: ts-032, kind: speckit_bug.read, reason: "duplicates the manual round-2/3 reads of the previous verification report (FX:21)"}
-  - {statement: fx-046, kind: doc_read, reason: "duplicates the manual doc_read of 03-test.md (FX:99-100), judged in each round's test window"}
+  - {statement: "fx-01[25]", kind: speckit_bug.read, reason: "the run's own reports are in the agent's context; re-reading them is not required (removed 2026-11-13)"}
+  - {statement: cw-022, kind: speckit_bug.read, reason: "the previous verification report is in the agent's context; re-reading it is not required (removed 2026-11-13)"}
+  - {statement: ts-032, kind: speckit_bug.read, reason: "the previous verification report is in the agent's context; re-reading it is not required (removed 2026-11-13)"}
+  - {statement: fx-046, kind: doc_read, reason: "duplicates the manual round-1 doc_read of 03-test.md (FX:99-100); the round-2/3 re-reads stay in the documents but are not scored, the document is already in the agent's context (2026-11-13)"}
   - {statement: "ts-01[159]", kind: speckit_bug.checks_table, reason: "duplicates the manual Checks Performed items (TS:30-39), whose claim windows run from the round's last repository edit to the report"}
   - {statement: ts-021, kind: speckit_bug.checks_table, reason: "duplicates the manual test_run item (TS:38, TS:72)"}
   - {statement: ts-010, kind: speckit_bug.checks_table, reason: "duplicates the manual unrun items (TS:44, TS:106), one per round with the round's conditions"}
@@ -347,8 +347,8 @@ exclude:
   - {statement: cw-019, kind: speckit_bug.holds, reason: "duplicates the manual no_round_after_verified item (CW:25); its condition reads Result from Summary, where it never is"}
   - {statement: cw-021, kind: speckit_bug.holds, reason: "duplicates the manual round-2/3 existence gates (CW:26-27); its condition reads Result from Summary, where it never is"}
   - {statement: cw-027, kind: speckit_bug.holds, reason: "all three round-1 reports exist: the stage model's existence gates"}
-  - {statement: cw-032, kind: speckit_bug.created_files, reason: "without a pattern it fails any new file in the repository, a new source module of the fix included; the manual scratch / test-file items carry CW:45-46"}
-  - {statement: cw-032, kind: cross_ref, reason: "'no untracked path' fails any new file in the repository, a new source module of the fix included; the manual scratch / test-file items carry CW:45-46"}
+  - {statement: cw-032, kind: speckit_bug.created_files, reason: "without a pattern it fails any new file in the repository, a new source module of the fix included; the manual scratch item carries CW:45-46"}
+  - {statement: cw-032, kind: cross_ref, reason: "'no untracked path' fails any new file in the repository, a new source module of the fix included; the manual scratch item carries CW:45-46"}
   # -- misreadings
   - {statement: fx-036, kind: prohibited_action, reason: "'do not introduce dependencies that the assessment did not call for' (FX:37) is about the change (a new import or requirement), not installing a package into the environment to run the tests"}
   - {statement: as-039, kind: cross_ref, reason: "the template's own entry format is `path/to/file.py:42` (AS:79): a path with its line suffix is never a base path, so the honest run fails it"}
@@ -402,11 +402,6 @@ conflicts:
       - {path: system-prompt.j2, lines: [48, 48], quote: "ask the user for clarification."}
       - {path: docs/core-workflow.md, lines: [38, 40], quote: "Never stop to ask or to report: when something is unclear, take the most plausible reading, record it in the current report, and continue."}
     resolution: "the workflow wins: no item rewards asking; a run that stops before a stage's report fails that stage's existence gate"
-  - description: "The test stage reads the fix report it just followed (TS:21) and the fix stage the assessment it just wrote (FX:20): both reports are in the agent's own context"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
-      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
-    resolution: "the reads are required as written (must, in the stage's window); a check of the file right after writing it, inside the next stage's window, counts"
 
 # Items the templates do not yield (or yield too weakly): the header fields under each report's title (a title that
 # names the run's own subject, so no section addresses them), the round fields, and every rule about the run --
@@ -482,28 +477,6 @@ manual:
       - {path: docs/core-workflow.md, lines: [33, 34], quote: "Do not fetch links in it and do not look it up online."}
       - {path: docs/stages/01-assess.md, lines: [18, 18], quote: "Do not fetch URLs found in the issue, and do not look the issue up online."}
     note: "no command fetching a URL: curl / wget / a text browser on a URL, a Python urlopen / requests / httpx call on a URL literal, a git clone of a URL"
-  - id: speckit_bug.global.run.prohibited_action.test_file_write
-    stage: global
-    class: evidence
-    requirement: must
-    check: {kind: prohibited_action, params: {action: test_file_write}}
-    availability: [trace]
-    modality_evidence: "prohibition (CW:53 'Do not add or edit test files')"
-    sources:
-      - {path: docs/core-workflow.md, lines: [53, 53], quote: "Do not add or edit test files in the repository."}
-      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "Do not add or edit test files in the repository."}
-    note: "no edit of a test file that existed at BASE_SHA"
-  - id: speckit_bug.global.run.speckit_bug_created_files.tests
-    stage: global
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.created_files, params: {test_paths: true}}
-    availability: [trace]
-    modality_evidence: "prohibition (CW:53 'Do not add')"
-    sources:
-      - {path: docs/core-workflow.md, lines: [53, 53], quote: "Do not add or edit test files in the repository."}
-      - {path: docs/stages/01-assess.md, lines: [45, 45], quote: "Do not plan to add or edit test files in the repository: the task's tests are already in place."}
-    note: "no test file created in the repository (a test_*.py / tests/ path absent at BASE_SHA), kept or removed again: checks go in BUG_DIR/checks/"
   - id: speckit_bug.global.run.speckit_bug_created_files.scratch
     stage: global
     class: evidence
@@ -513,7 +486,7 @@ manual:
     modality_evidence: "prohibition (CW:45-46 'Never write reports, checks, or scratch files into the repository')"
     sources:
       - {path: docs/core-workflow.md, lines: [45, 46], quote: "Never write reports, checks, or scratch files into the repository."}
-      - {path: docs/core-workflow.md, lines: [52, 52], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
+      - {path: docs/core-workflow.md, lines: [52, 53], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
     note: "no report, reproduction / debug / scratch script or summary note created in the repository (a file absent at BASE_SHA named like one), kept or removed again"
   # ============================================================== assess
   - id: speckit_bug.assess.run.doc_read.as
@@ -715,16 +688,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
-  - id: speckit_bug.fix.run.speckit_bug_read.reports
-    stage: fix
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment]}}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (FX:20 'Read ... in full')"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
-    note: "read in the fix window: assessment"
   - id: speckit_bug.fix.fix.field_enum.round
     stage: fix
     target: {type: artifact, ref: fix}
@@ -844,7 +807,7 @@ manual:
     modality_evidence: "imperative (FX:31 'Copy every example the issue gives ... into a check script under `BUG_DIR/checks/`')"
     sources:
       - {path: docs/stages/02-fix.md, lines: [31, 31], quote: "Copy every example the issue gives (a code snippet, a command, an input with its expected output) verbatim into a check script under `BUG_DIR/checks/`, and script the assessment's reproduction too."}
-      - {path: docs/core-workflow.md, lines: [52, 52], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
+      - {path: docs/core-workflow.md, lines: [52, 53], quote: "- **Checks you write** (reproduction scripts and the like) go in `/tmp/speckit/bugs/issue/checks/`."}
     note: "a file written under /tmp/speckit/bugs/issue/checks/ in the round-1 fix window (later rounds may reuse it)"
   - id: speckit_bug.fix.fix.section_present.checks_added
     stage: fix
@@ -960,16 +923,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
-  - id: speckit_bug.test.run.speckit_bug_read.reports
-    stage: test
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix]}}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (TS:21 'Read both ... in full')"
-    sources:
-      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
-    note: "assessment.md and fix.md read in the test window"
   - id: speckit_bug.test.run.prohibited_action.repo_write
     stage: test
     class: evidence
@@ -1143,20 +1096,6 @@ manual:
       - {path: docs/core-workflow.md, lines: [22, 22], quote: "Round 2: `fix-2.md`, then `test-2.md`."}
       - {path: docs/stages/02-fix.md, lines: [13, 13], quote: "| 2 | `fix-2.md` | `test.md` |"}
     note: "fix-2.md exists when the previous verification report's Result is partial or failed"
-  - id: speckit_bug.fix_2.run.doc_read.fx
-    stage: fix_2
-    class: evidence
-    requirement: must
-    check: {kind: doc_read, params: {doc: FX, single_doc: true, min_coverage: 0.5}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
-    availability: [trace]
-    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')"
-    sources:
-      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
-      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
-      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
-      - {path: docs/stages/03-test.md, lines: [97, 98], quote: "`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round's fix stage"}
-    note: "02-fix.md read (alone in its call, at least half of it seen) in the round-2 fix window"
   - id: speckit_bug.fix_2.fix_2.write_discipline.once
     stage: fix_2
     target: {type: artifact, ref: fix_2}
@@ -1168,18 +1107,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
-  - id: speckit_bug.fix_2.run.speckit_bug_read.reports
-    stage: fix_2
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix, test]}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (FX:20 'Read ... in full'; FX:21 'also read')"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
-      - {path: docs/stages/02-fix.md, lines: [21, 21], quote: "- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what failed there is the new evidence this round answers."}
-    note: "read in the fix window: assessment, fix, test"
   - id: speckit_bug.fix_2.fix_2.field_enum.round
     stage: fix_2
     target: {type: artifact, ref: fix_2}
@@ -1388,20 +1315,6 @@ manual:
       - {path: docs/stages/03-test.md, lines: [13, 13], quote: "| 2 | `fix-2.md` | `test-2.md` |"}
       - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
     note: "test-2.md exists when round 2 is due (the previous verification report's Result is partial or failed)"
-  - id: speckit_bug.test_2.run.doc_read.ts
-    stage: test_2
-    class: evidence
-    requirement: must
-    check: {kind: doc_read, params: {doc: TS, single_doc: true, min_coverage: 0.5}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
-    availability: [trace]
-    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; FX:99-100)"
-    sources:
-      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
-      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
-      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
-      - {path: docs/stages/02-fix.md, lines: [99, 100], quote: "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
-    note: "03-test.md read (alone in its call, at least half of it seen) in the round-2 test window"
   - id: speckit_bug.test_2.test_2.write_discipline.once
     stage: test_2
     target: {type: artifact, ref: test_2}
@@ -1413,17 +1326,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
-  - id: speckit_bug.test_2.run.speckit_bug_read.reports
-    stage: test_2
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_2]}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (TS:21 'Read both ... in full')"
-    sources:
-      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
-    note: "assessment.md and fix-2.md read in the test window"
   - id: speckit_bug.test_2.run.prohibited_action.repo_write
     stage: test_2
     class: evidence
@@ -1600,20 +1502,6 @@ manual:
       - {path: docs/core-workflow.md, lines: [23, 23], quote: "Round 3: `fix-3.md`, then `test-3.md`."}
       - {path: docs/stages/02-fix.md, lines: [14, 14], quote: "| 3 | `fix-3.md` | `test-2.md` |"}
     note: "fix-3.md exists when the previous verification report's Result is partial or failed"
-  - id: speckit_bug.fix_3.run.doc_read.fx
-    stage: fix_3
-    class: evidence
-    requirement: must
-    check: {kind: doc_read, params: {doc: FX, single_doc: true, min_coverage: 0.5}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
-    availability: [trace]
-    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; TS:97 'read ... again')"
-    sources:
-      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
-      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
-      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
-      - {path: docs/stages/03-test.md, lines: [97, 98], quote: "`partial` or `failed` in round 1 or 2 — read `/speckit/stages/02-fix.md` again and begin the next round's fix stage"}
-    note: "02-fix.md read (alone in its call, at least half of it seen) in the round-3 fix window"
   - id: speckit_bug.fix_3.fix_3.write_discipline.once
     stage: fix_3
     target: {type: artifact, ref: fix_3}
@@ -1625,18 +1513,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/02-fix.md, lines: [19, 19], quote: "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round."}
-  - id: speckit_bug.fix_3.run.speckit_bug_read.reports
-    stage: fix_3
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_2, test_2]}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (FX:20 'Read ... in full'; FX:21 'also read')"
-    sources:
-      - {path: docs/stages/02-fix.md, lines: [20, 20], quote: "- Read `BUG_DIR/assessment.md` in full."}
-      - {path: docs/stages/02-fix.md, lines: [21, 21], quote: "- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what failed there is the new evidence this round answers."}
-    note: "read in the fix window: assessment, fix_2, test_2"
   - id: speckit_bug.fix_3.fix_3.field_enum.round
     stage: fix_3
     target: {type: artifact, ref: fix_3}
@@ -1845,20 +1721,6 @@ manual:
       - {path: docs/stages/03-test.md, lines: [14, 14], quote: "| 3 | `fix-3.md` | `test-3.md` |"}
       - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
     note: "test-3.md exists when round 3 is due (the previous verification report's Result is partial or failed)"
-  - id: speckit_bug.test_3.run.doc_read.ts
-    stage: test_3
-    class: evidence
-    requirement: must
-    check: {kind: doc_read, params: {doc: TS, single_doc: true, min_coverage: 0.5}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
-    availability: [trace]
-    modality_evidence: "imperative (CW:15; INS:5-6; SP:67; FX:99-100)"
-    sources:
-      - {path: docs/core-workflow.md, lines: [15, 15], quote: "Read a stage's document as the first step of that stage, and carry out the stage from it."}
-      - {path: instruction.md, lines: [5, 6], quote: "When you reach a stage, open its document before doing anything else for that stage"}
-      - {path: system-prompt.j2, lines: [67, 68], quote: "On reaching a stage, first open its stage document under /speckit/stages/, then carry out the stage as that document describes."}
-      - {path: docs/stages/02-fix.md, lines: [99, 100], quote: "Once this round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
-    note: "03-test.md read (alone in its call, at least half of it seen) in the round-3 test window"
   - id: speckit_bug.test_3.test_3.write_discipline.once
     stage: test_3
     target: {type: artifact, ref: test_3}
@@ -1870,17 +1732,6 @@ manual:
     sources:
       - {path: docs/core-workflow.md, lines: [47, 47], quote: "- **One write per report**, complete, at the end of its stage. Never rewrite an earlier report:"}
       - {path: docs/stages/03-test.md, lines: [20, 20], quote: "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round."}
-  - id: speckit_bug.test_3.run.speckit_bug_read.reports
-    stage: test_3
-    class: evidence
-    requirement: must
-    check: {kind: speckit_bug.read, params: {artifacts: [assessment, fix_3]}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
-    availability: [trace, sandbox_file]
-    modality_evidence: "imperative (TS:21 'Read both ... in full')"
-    sources:
-      - {path: docs/stages/03-test.md, lines: [21, 21], quote: "- Read both `assessment.md` and this round's fix report in full so you know:"}
-    note: "assessment.md and fix-3.md read in the test window"
   - id: speckit_bug.test_3.run.prohibited_action.repo_write
     stage: test_3
     class: evidence
