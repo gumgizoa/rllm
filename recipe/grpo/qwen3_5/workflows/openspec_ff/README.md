@@ -85,7 +85,7 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 
 | 단계 | 시작 명령 | 하는 일 | 남기는 것 |
 |---|---|---|---|
-| explore | `openspec list --json`, `openspec list --specs`, `config.yaml` 읽기 | issue와 코드를 읽고, 기존 코드·기존 테스트·issue 예시를 그대로 실행해 문제와 바꿀 위치를 파악. 직접 짠 코드(한 줄 `python -c` 포함)와 파일 쓰기 금지 | 파일 없음. ff 문서를 여는 turn에 "What We Figured Out" 요약(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문 + 근거) |
+| explore | `openspec list --json`, `openspec list --specs`, `config.yaml` 읽기 | issue와 코드를 읽고, 기존 코드·기존 테스트를 실행하고 issue 예시나 그 변형을 한 줄 `python -c`·stdin snippet으로 실행해 문제와 바꿀 위치를 파악. 파일 쓰기 금지 | 파일 없음. ff 문서를 여는 turn에 "What We Figured Out" 요약(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문 + 근거) |
 | ff | `openspec new change "issue"` → `openspec status` → 산출물마다 `openspec instructions <산출물>` | issue와 저장소 코드를 읽고 계획 산출물 작성 | `proposal.md`, `specs/<기능>/spec.md`, `design.md`(필요할 때만), `tasks.md` |
 | apply | `openspec instructions apply` | tasks.md의 작업을 하나씩 구현하고 체크박스 갱신. 확인 스크립트 작성·실행 | `/testbed` 코드 변경, `tasks.md`의 `- [x]`, `checks/*.py` |
 | verify | `openspec status`로 맥락 확인 후 직접 점검 (verify를 대신하는 CLI 명령은 없음) | 구현을 산출물과 대조해 완전성·정확성·일관성 점검 | `verify.md` |
@@ -96,7 +96,7 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 - explore는 요약의 "문제"와 "바꿀 위치"를 근거와 함께 말할 수 있으면 끝남. 남은 질문은 열린 채로 둬도 됨. step 상한은 없음.
 - ff는 원문 그대로이고, explore 요약을 근거로 proposal의 Why와 design의 Context·Decisions를 씀. 요약의 가정은 proposal에 옮김.
 
-- verify는 1회만 함. 보고서 결과와 관계없이 다음은 archive이고, 남은 문제는 보고서에 기록됨.
+- verify 보고서에 CRITICAL이 있으면 apply로 돌아가 고친 뒤 다시 verify하고 `verify.md`를 다시 씀(최대 2회). 그 뒤에는 보고서 상태 그대로 archive하고, 남은 문제는 보고서에 기록됨.
 - archive는 `verify.md`가 있을 때만 실행함.
 - archive가 실패하면(종료 코드 1) 오류가 가리키는 delta spec 형식만 고쳐 한 번 더 실행함.
   - 그래도 실패하면 archive 없이 끝냄.
@@ -136,7 +136,7 @@ spec과 delta spec의 관계는 다음과 같음.
 - **사람이 없음**: 질문하거나 보고하려고 멈추지 않음. 도구 호출 없이 메시지만 내면 그 즉시 세션이 끝나기 때문임(openhands-sdk 동작).
   불명확한 점은 가장 타당한 해석을 골라 해당 산출물에 기록하고 진행함.
 - **입력**: issue 본문이 유일한 입력. 본문 속 링크를 열거나 온라인에서 찾아보지 않음.
-- **explore**: 읽기·검색과 기존 코드·기존 테스트·issue 예시 실행만 함. 직접 짠 코드 실행과 파일 쓰기(저장소, `/tmp`, `checks/` 모두) 금지. 사람만 답할 수 있는 질문은 가정으로 요약에 기록하고, 선택지는 agent가 추천안과 대안으로 정함.
+- **explore**: 읽기·검색과 실행만 함(기존 코드·기존 테스트, issue 예시와 그 변형을 파일 없이 실행). 파일 쓰기(저장소, `/tmp`, `checks/` 모두) 금지. 사람만 답할 수 있는 질문은 가정으로 요약에 기록하고, 선택지는 agent가 추천안과 대안으로 정함.
 - **저장소**: apply 단계만 `/testbed`를 수정함.
   - 테스트 파일은 추가·수정하지 않음.
   - README, `docs/`, changelog는 issue가 요구할 때만 수정함.

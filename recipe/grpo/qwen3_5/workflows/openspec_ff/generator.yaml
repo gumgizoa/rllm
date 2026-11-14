@@ -1,7 +1,7 @@
 # Generator config for openspec_ff: what the generator cannot read off the workflow's documents.
 #
 # The agent sees docs/ at /opsx -- core-workflow.md (the package author's hand-written definition of the workflow:
-# actions, fixed names, explore before ff, verify once, the archive step) and stages/00-explore.md, 01-ff.md,
+# actions, fixed names, explore before ff, verify and its return to apply, the archive step) and stages/00-explore.md, 01-ff.md,
 # 02-apply.md, 03-verify.md (OpenSpec's explore / ff / apply / verify skills as build.py renders them; explore writes
 # nothing, its one output is a summary in a tool call) -- plus instruction.md and the system prompt. Unlike the other
 # ports the real `openspec` CLI runs in the sandbox, and what it serves is agent-visible text too: `openspec
@@ -131,19 +131,21 @@ templates:
     literals: patterns
     binding: &scorecard
       path: docs/stages/03-verify.md
-      lines: [200, 201]
+      lines: [201, 202]
       quote: "Use clear markdown with: - Table for summary scorecard"
     binding_requirement: must
 
 # CW:16-24: explore -> ff -> apply -> verify -> archive, each action once, "and explore always comes first" (CW:11-12).
-# Explore writes nothing (CW:62, CW:77-78, EX:5): it has no artifact, and its one output, the "What We Figured Out"
+# Explore writes nothing (CW:62, CW:76, EX:5): it has no artifact, and its one output, the "What We Figured Out"
 # summary, is written inside a tool call before 01-ff.md is opened (CW:62-63, EX:191), so explore is the stage from the
 # start of the run to the first read of 01-ff.md, and ff (no earlier artifact to start from) begins at that read.
-# "Verify runs once and writes
-# /openspec/changes/issue/verify.md. Whatever it finds, move on to archive" (CW:84-87), so verify.md is the one report
-# and there is no second verify stage. Only apply may send the run back (to ff, for a missing artifact: CW:26).
-# The change is `issue` (CW:35) until `openspec archive` moves it to changes/archive/<date>-issue/ (CW:99-100): every
-# change artifact has both locations, exclusive. The archive merges the delta specs into specs/<cap>/spec.md (CW:99).
+# "Verify writes /openspec/changes/issue/verify.md. If the report holds a CRITICAL issue, go back to apply, fix what
+# the report names, and run verify again, rewriting `verify.md`. Go back at most twice" (CW:82-86): verify.md is one
+# file, rewritten on a second verify, and there is no second verify stage -- the stage windows stay as the first
+# writes cut them, and what follows the first verify.md (a fix, a ticked task, the rewritten report) is judged by no
+# no-return item. apply may also send the run back to ff for a missing artifact (CW:26).
+# The change is `issue` (CW:35) until `openspec archive` moves it to changes/archive/<date>-issue/ (CW:98-99): every
+# change artifact has both locations, exclusive. The archive merges the delta specs into specs/<cap>/spec.md (CW:98).
 # The CLI's own file operations (the scaffold of `new change`, the archive move, the merged main specs) are not in the
 # trace; the archive stage is judged on the command and its outcome, and on what the CLI left.
 stage_model:
@@ -259,13 +261,13 @@ exclude:
   - {statement: "*", kind: openspec.read_files, reason: "duplicates the manual dependency reads (FF:56, FF:107) and context-file reads (AP:74, VF:41), whose windows run from the dependency's write to the dependent artifact / to apply's first code change"}
   - {statement: "*", kind: openspec.tasks, reason: "duplicates the manual has_tasks / verification items (SCHEMA:211-229)"}
   - {statement: "*", kind: openspec_ff.evidence, reason: "duplicates the manual apply test_or_check item (SCHEMA:232-234)"}
-  - {statement: "*", kind: openspec_ff.holds, reason: "duplicates the manual code-change gate (CW:22) and the archive stage's no-return-to-apply items (CW:86-87, CW:105-106)"}
+  - {statement: "*", kind: openspec_ff.holds, reason: "duplicates the manual code-change gate (CW:22)"}
   - {statement: "*", kind: openspec_ff.verify, reason: "duplicates the manual open_tasks_critical items, kept at should: both sides are the agent's writing (P6)"}
   - {statement: "*", kind: openspec_ff.no_fetch, reason: "duplicates the manual global no_fetch item (CW:42-44, CONFIG:13), which already names every fetching command"}
   - {statement: "*", kind: doc_read, reason: "the stage documents' reads are manual items, one per stage window"}
   - {statement: "*", kind: openspec_ff.note, reason: "explore's summary is the manual note item (CW:62-63, EX:189-191, EX:209); the stage documents' other 'announce' / 'display' lines may also go in the message of a turn that makes a tool call, or into an artifact (CW:52-53), which a tool-call note check does not see, and an assumption is recorded only when there is one (EX:35)"}
-  - {statement: "*", kind: openspec_ff.paths_written, stage: explore, reason: "duplicates the manual explore no-file item (CW:77-78, EX:5), which already covers every path (repository, /tmp, checks/, the workflow configuration)"}
-  - {statement: "*", kind: prohibited_action, stage: explore, reason: "duplicates the manual explore no-file item (CW:77-78: a repository edit is a file write) and the composed-code item (CW:75-77, EX:5), kept at should: the issue's own example may be run as given (conflict below)"}
+  - {statement: "*", kind: openspec_ff.paths_written, stage: explore, reason: "duplicates the manual explore no-file item (CW:75-76, EX:5), which already covers every path (repository, /tmp, checks/, the workflow configuration)"}
+  - {statement: "*", kind: prohibited_action, stage: explore, reason: "duplicates the manual explore no-file item (CW:75-76: a repository edit is a file write)"}
   - {statement: "*", kind: openspec_ff.tasks, reason: "the task-list rules (done_or_reasoned, rerun_after_tick) are manual items (AP:97-98, AP:105, AP:109); the extracted copies repeat done_or_reasoned (cw-011, ap-059, ap-072, schema-114) or read 'Mark the task complete' (ap-047) as a write the done_or_reasoned item already judges"}
   - {statement: "ff-062", kind: no_template_residue, reason: "the context / rules blocks not copied into an artifact (FF:101-103) are manual items per artifact, with the config's own sentences as patterns"}
   - {statement: "schema-00[23]", kind: section_present, reason: "the proposal's headings are the template's, compiled at must under FF:100's binding ('Use `template` as the structure'); SCHEMA:13-15 describe their content (the manual field_filled items)"}
@@ -280,21 +282,22 @@ exclude:
   - {statement: "schema-096", kind: item_format, reason: "duplicates the manual tasks groups item (SCHEMA:218), which allows the optional Workflow follow-up section"}
   - {statement: "schema-097", kind: item_format, reason: "duplicates the manual task_lines item (SCHEMA:219)"}
   - {statement: "vf-132", kind: item_format, reason: "duplicates the scorecard rows compiled from the template (VF:152-156)"}
-  - {statement: "vf-117", kind: item_format, reason: "duplicates the manual Final Assessment item (VF:180-186), which also accepts the prescribed 'All checks passed. Ready for archive.' this pattern misses"}
-  - {statement: "config-00[47]", kind: openspec_ff.created_files, reason: "duplicates the manual global created_files items (tests: CW:79; scratch scripts: CW:81-82)"}
-  - {statement: "cw-062", kind: prohibited_action, reason: "duplicates the manual global no_skip_validation item (CW:105), which matches the flag in an openspec call over the whole run"}
-  # -- misreadings
+  - {statement: "vf-117", kind: item_format, reason: "duplicates the manual Final Assessment item (VF:181-187), which also accepts the prescribed 'All checks passed. Ready for archive.' this pattern misses"}
+  - {statement: "config-00[47]", kind: openspec_ff.created_files, reason: "duplicates the manual global created_files items (tests: CW:77; scratch scripts: CW:79-80)"}
+  - {statement: "cw-062", kind: prohibited_action, reason: "duplicates the manual global no_skip_validation item (CW:104), which matches the flag in an openspec call over the whole run"}
+  # -- misreadings (statement ids are those of the 2026-10-16 parse; the 2026-11-13 document change removed and added
+  # sentences in core-workflow.md, 00-explore.md and 03-verify.md, so re-check cw-* / ex-* / vf-* ids at the next
+  # regeneration)
   - {statement: "schema-076", kind: item_format, reason: "'(e.g., \"See proposal.md - Why\")' is an example of referencing the proposal, not a required word (SCHEMA:177)"}
-  - {statement: "cw-049", kind: write_discipline, reason: "'Verify runs once' (CW:86) is the action, not the file: a report corrected in place is still one verify, and the archive moves verify.md (no trace write explains the archived file, so the item fails every run); a return to apply after it is the archive stage's no-return items"}
 
 # Contradictions and gaps the documents leave, and how the rubric reads them (P3).
 conflicts:
-  - description: "Verify once: the report keeps upstream's CRITICAL label 'Must fix before archive' and the assessment 'Fix before archiving' (VF:163, VF:181); core-workflow.md says verify runs once and the run moves on to archive whatever it finds (CW:86-87), and 03-verify.md's next step is the archive (VF:188)"
+  - description: "Verify and archive: the report labels a CRITICAL issue 'Must fix before archive' (VF:163, VF:182); core-workflow.md sends a report holding one back to apply, at most twice, and then on to the archive with the report as it stands (CW:84-86, VF:189)"
     sources:
-      - {path: docs/core-workflow.md, lines: [86, 87], quote: "Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report records what is still open."}
-      - {path: docs/stages/03-verify.md, lines: [181, 181], quote: "- If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\""}
-      - {path: docs/stages/03-verify.md, lines: [188, 188], quote: "**Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report."}
-    resolution: "procedure precedence (core first): a CRITICAL issue is recorded in verify.md, not fixed; no item asks for a fix or a second report after a CRITICAL count, and the prescribed 'N critical issue(s) found. Fix before archiving.' passes the Final Assessment item; going back to apply after verify.md (a repository edit or a task-list write once verify.md is written) fails the archive stage's no-return items (CW:74, CW:86-87, CW:105-106)"
+      - {path: docs/core-workflow.md, lines: [84, 86], quote: "If the report holds a CRITICAL issue, go back to apply, fix what the report names, and run verify again, rewriting `verify.md`. Go back at most twice; after that, move on to archive with the report as it stands."}
+      - {path: docs/stages/03-verify.md, lines: [182, 182], quote: "- If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\""}
+      - {path: docs/stages/03-verify.md, lines: [189, 189], quote: "**Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the apply action (`/opsx/stages/02-apply.md`) and fix each CRITICAL item, even though apply reports its tasks done; then run verify again and rewrite this report."}
+    resolution: "going back to apply after verify.md is the documents' own path: a repository edit, a task-list write and a rewritten verify.md once the report exists fail no item, and verify.md is judged in its final state; no item counts the returns or asks for the fix (whether a report's CRITICAL issue was fixed is prose against code, not a rule), and the prescribed 'N critical issue(s) found. Fix before archiving.' passes the Final Assessment item"
   - description: "Every stage document opens with the upstream Project check ('confirm the project has a root: run `openspec list --json`'); core-workflow.md says the planning root is already set up"
     sources:
       - {path: docs/stages/01-ff.md, lines: [3, 3], quote: "confirm the project has a root: run `openspec list --json`"}
@@ -320,17 +323,12 @@ conflicts:
     sources:
       - {path: docs/stages/00-explore.md, lines: [7, 7], quote: "**This is a stance, not a workflow.** There are no fixed steps and no required sequence. The one required output is the summary under **Ending Discovery**, written when exploration is done."}
       - {path: docs/core-workflow.md, lines: [20, 20], quote: "| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the \"What We Figured Out\" summary, in a tool call before the ff document is opened |"}
-    resolution: "procedure precedence (core first): the explore stage's items are what core-workflow.md and the document's own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no composed code, no `openspec new change`; the stance's suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have no item, and reading the project config is should"
+    resolution: "procedure precedence (core first): the explore stage's items are what core-workflow.md and the document's own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no `openspec new change`; the stance's suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have no item, and reading the project config is should"
   - description: "The stance asks questions and lets 'the user' follow what resonates (EX:24-25, EX:40); core-workflow.md says nobody answers and never to ask (CW:48-51)"
     sources:
       - {path: docs/stages/00-explore.md, lines: [35, 35], quote: "A question only the person could answer (intent, priorities, scope the issue leaves open) gets no reply: take the most plausible reading of the issue, mark it as an **assumption** (not as confirmed intent) in your summary, and continue"}
       - {path: docs/core-workflow.md, lines: [51, 51], quote: "- never ask a question and never stop to report;"}
     resolution: "a question is put to the issue, the code and the tests and settled there or recorded as an assumption in the summary (EX:35, CW:54-55); no item reads the questions or the assumptions (prose judgment), and a text-only turn ends the session by itself"
-  - description: "Explore may run 'the issue's own example exactly as given' but no code it composes (EX:5, CW:75-77); a Python example from an issue can only be run as `python -c` / a heredoc, which is also what composed code looks like"
-    sources:
-      - {path: docs/stages/00-explore.md, lines: [5, 5], quote: "Here a read-only command is one that runs only what already exists and writes no file: reading, searching, running existing code and existing tests, and running the issue's own example exactly as given."}
-      - {path: docs/core-workflow.md, lines: [75, 77], quote: "runs only what is already there: existing code, existing tests, and the issue's own example exactly as given. It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`"}
-    resolution: "the composed-code item (`python -c`, a heredoc or stdin piped to python in the explore window) is should: the trace does not hold the issue text to tell its example from the agent's own code. The no-file item stays must: running an example needs no file"
   - description: "Where explore ends: the documents end it by opening 01-ff.md after the summary (EX:189-191, CW:62-63); a run that never opens 01-ff.md, or reads it ahead, has no other boundary between explore and ff"
     sources:
       - {path: docs/stages/00-explore.md, lines: [189, 189], quote: "Then open `/opsx/stages/01-ff.md` and continue: ff turns what you found into a change."}
@@ -342,11 +340,11 @@ conflicts:
     resolution: "the summary item looks in every tool call (a `think` thought, a command as typed, a write's text) of the explore window and of the step that opens 01-ff.md; it needs the 'What We Figured Out' heading with 'The problem' and 'Where the change goes' (EX:189: the two entries that must be stated); the evidence behind each entry and the other entries are prose and have no item"
   - description: "The archive: core-workflow.md says to run `openspec archive issue --yes`, which validates, merges the delta specs and moves the change; nothing forbids doing those steps by hand in words, but the step is the command"
     sources:
-      - {path: docs/core-workflow.md, lines: [93, 100], quote: "Then run once: ```bash openspec archive issue --yes ``` It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`."}
+      - {path: docs/core-workflow.md, lines: [92, 99], quote: "Then run once: ```bash openspec archive issue --yes ``` It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`."}
     resolution: "the archive stage needs a successful `openspec archive` call (zero_stage gate) and no archive directory / main spec the trace itself wrote or moved (zero_stage gate): a hand-made archive scores 0 on the stage even when its files look right"
   - description: "The CLI's file operations (`new change`'s scaffold, the archive move, the merged main specs) and its exit codes: the trace shows only the command and what it printed; harbor's openhands-sdk observations carry no exit-code line"
     sources:
-      - {path: docs/core-workflow.md, lines: [102, 103], quote: "- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec"}
+      - {path: docs/core-workflow.md, lines: [101, 102], quote: "- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec"}
     resolution: "a call's outcome is read off its observation: the CLI's failure text (Error / Aborted / Validation failed) fails it, the archive's 'archived as' passes it, else the terminal's exit-code line when present; the planning artifacts are found at either location (exclusive) and their trace writes count at the active one"
   - description: "skip_specs: the schema lets a change opt out of specs when no spec-level behaviour changes; a SWE task changes behaviour, and core-workflow.md says every delta is ADDED for a new capability (CW:69-70)"
     sources:
@@ -362,13 +360,13 @@ conflicts:
     sources:
       - {path: docs/stages/01-ff.md, lines: [56, 56], quote: "Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in the conversation"}
     resolution: "required as written (must): a read of the dependency file after it was written and before the dependent artifact"
-  - description: "The generic system prompt asks to keep AGENTS.md in the repository (SP:11) and to ask the user for clarification; the workflow forbids leaving anything behind in /testbed and stopping to ask (CW:48-56, CW:81-82)"
+  - description: "The generic system prompt asks to keep AGENTS.md in the repository (SP:11) and to ask the user for clarification; the workflow forbids leaving anything behind in /testbed and stopping to ask (CW:48-56, CW:79-80)"
     sources:
       - {path: system-prompt.j2, lines: [11, 11], quote: "* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context."}
-      - {path: docs/core-workflow.md, lines: [81, 82], quote: "- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts."}
+      - {path: docs/core-workflow.md, lines: [79, 80], quote: "- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts."}
     resolution: "the workflow wins (SP:61-64 the workflow takes the place of the usual procedure): a scratch / note file created in the repository fails its item even when removed again; AGENTS.md is not itemized"
 
-# Items the templates do not yield: every rule about the run (reads, CLI calls, the repository, evidence, verify once,
+# Items the templates do not yield: every rule about the run (reads, CLI calls, the repository, evidence, the report,
 # the archive) and the OpenSpec format rules of the delta specs / task list / main specs (openspec.* kinds).
 manual:
   # ============================================================== global
@@ -422,9 +420,9 @@ manual:
     requirement: must
     check: {kind: openspec_ff.cli, params: {rule: absent, sub: '(?:^|\s)--no-validate\b'}}
     availability: [trace]
-    modality_evidence: "prohibition (CW:105 'Never add `--no-validate`')"
+    modality_evidence: "prohibition (CW:104 'Never add `--no-validate`')"
     sources:
-      - {path: docs/core-workflow.md, lines: [105, 105], quote: "Never add `--no-validate`"}
+      - {path: docs/core-workflow.md, lines: [104, 104], quote: "Never add `--no-validate`"}
   - id: openspec_ff.global.run.openspec_ff_cli.project_check
     stage: global
     class: evidence
@@ -464,9 +462,9 @@ manual:
     requirement: must
     check: {kind: prohibited_action, params: {action: test_file_write}}
     availability: [trace]
-    modality_evidence: "prohibition (CW:79 'Do not add or edit test files there'; SCHEMA:234 'Do NOT add or edit test files')"
+    modality_evidence: "prohibition (CW:77 'Do not add or edit test files there'; SCHEMA:234 'Do NOT add or edit test files')"
     sources:
-      - {path: docs/core-workflow.md, lines: [79, 79], quote: "- Do not add or edit test files there; the tests for this task already exist."}
+      - {path: docs/core-workflow.md, lines: [77, 77], quote: "- Do not add or edit test files there; the tests for this task already exist."}
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [234, 235], quote: "Do NOT add or edit test files in the repository - the task's tests are already in place."}
       - {path: sandbox/openspec-config.yaml, lines: [12, 12], quote: "The test files for this issue are already in place in the repository and are not to be added to or edited."}
     note: "no edit of a test file that existed at BASE_SHA"
@@ -476,9 +474,9 @@ manual:
     requirement: must
     check: {kind: openspec_ff.created_files, params: {test_paths: true}}
     availability: [trace]
-    modality_evidence: "prohibition (CW:79 'Do not add ... test files there')"
+    modality_evidence: "prohibition (CW:77 'Do not add ... test files there')"
     sources:
-      - {path: docs/core-workflow.md, lines: [79, 79], quote: "- Do not add or edit test files there; the tests for this task already exist."}
+      - {path: docs/core-workflow.md, lines: [77, 77], quote: "- Do not add or edit test files there; the tests for this task already exist."}
       - {path: sandbox/openspec-config.yaml, lines: [12, 12], quote: "The test files for this issue are already in place in the repository and are not to be added to or edited."}
     note: "no test file created in the repository (a test_*.py / tests/ path absent at BASE_SHA), kept or removed again: checks go in /openspec/changes/issue/checks/"
   - id: openspec_ff.global.run.openspec_ff_created_files.scratch
@@ -487,9 +485,9 @@ manual:
     requirement: must
     check: {kind: openspec_ff.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:proposal|design|tasks|verify(?:-2)?|spec)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
     availability: [trace]
-    modality_evidence: "prohibition (CW:81-82 'Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts')"
+    modality_evidence: "prohibition (CW:79-80 'Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts')"
     sources:
-      - {path: docs/core-workflow.md, lines: [81, 82], quote: "- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`."}
+      - {path: docs/core-workflow.md, lines: [79, 80], quote: "- Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under `/openspec/changes/issue/`."}
       - {path: docs/core-workflow.md, lines: [36, 37], quote: "- From the ff action on, scripts you write to reproduce or check behavior go in `/openspec/changes/issue/checks/`. Explore writes none."}
     note: "no planning artifact, reproduction / check / debug / scratch script or summary note created in the repository (a file absent at BASE_SHA named like one), kept or removed again"
   - id: openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts
@@ -543,25 +541,13 @@ manual:
     requirement: must
     check: {kind: openspec_ff.paths_written, params: {pattern: '.'}}
     availability: [trace]
-    modality_evidence: "prohibition (CW:77-78 'It writes no file anywhere, inside the repository or outside it'; EX:5 'so is any file write (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or heredoc)'; EX:219 'Do not save insights to files')"
+    modality_evidence: "prohibition (CW:75-76 'writes no file anywhere, inside the repository or outside it'; EX:5 'Any file write is writing code (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or a heredoc written to a file)'; EX:219 'Do not save insights to files')"
     sources:
-      - {path: docs/core-workflow.md, lines: [77, 78], quote: "It writes no file anywhere, inside the repository or outside it."}
+      - {path: docs/core-workflow.md, lines: [75, 76], quote: "Explore reads it too and runs commands in it, but writes no file anywhere, inside the repository or outside it."}
       - {path: docs/core-workflow.md, lines: [62, 62], quote: "It leaves no file."}
-      - {path: docs/stages/00-explore.md, lines: [5, 5], quote: "Code you compose yourself is writing code, a one-line `python -c` or a snippet piped to stdin included, and so is any file write (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or heredoc)."}
+      - {path: docs/stages/00-explore.md, lines: [5, 5], quote: "Any file write is writing code (in the repository, in `/tmp`, under `/openspec/changes/issue/checks/`, by shell redirection or a heredoc written to a file)."}
       - {path: docs/stages/00-explore.md, lines: [219, 219], quote: "- **Don't auto-capture** - Do not save insights to files: nothing is captured during explore"}
     note: "no file written in the explore window by any tool (editor, redirection, heredoc, tee, cp / mv; /dev/null aside), in the repository, /tmp or /openspec alike; what a run leaves by itself (__pycache__, .pytest_cache) is not in the trace"
-  - id: openspec_ff.explore.run.prohibited_action.composed_code
-    stage: explore
-    class: evidence
-    requirement: should
-    check: {kind: prohibited_action, params: {action: command, pattern: '(?m)\bpython[0-9.]*(?:\s+-[A-Za-z]+)*\s+-c\b|\bpython[0-9.]*\s*(?:-\s*)?<<|\|\s*python[0-9.]*(?:\s+-)?\s*(?:$|[;&|)])'}}
-    availability: [trace]
-    modality_evidence: "prohibition (EX:5 'you must NEVER write code ... Code you compose yourself is writing code, a one-line `python -c` or a snippet piped to stdin included'; EX:215; CW:75-77 'It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`'); the same EX:5 lets explore run 'the issue's own example exactly as given', which a rule cannot tell from composed code by the command alone (conflict below): should"
-    sources:
-      - {path: docs/core-workflow.md, lines: [75, 77], quote: "Explore reads it too, but runs only what is already there: existing code, existing tests, and the issue's own example exactly as given. It composes no code of its own: not a one-line `python -c`, not a heredoc piped to `python3`, not a script in `/tmp`."}
-      - {path: docs/stages/00-explore.md, lines: [5, 5], quote: "Code you compose yourself is writing code, a one-line `python -c` or a snippet piped to stdin included"}
-      - {path: docs/stages/00-explore.md, lines: [215, 215], quote: "Running code you composed is writing code too, whether as `python -c \"...\"` or as a heredoc piped to `python3`: when you want to try a variant of the issue's example, record it as an open question for ff instead."}
-    note: "no `python -c`, heredoc or stdin snippet piped to python in the explore window"
   - id: openspec_ff.explore.run.openspec_ff_cli.no_new_change
     stage: explore
     class: evidence
@@ -1366,20 +1352,20 @@ manual:
     target: {type: artifact, ref: verify, state: final}
     check: {kind: artifact_exists, params: {}}
     gate: {zero_stage: true}
-    modality_evidence: "imperative (VF:145 'Write the report to a file in the change directory'; CW:86 'Verify runs once and writes verify.md'; CW:23 verify leaves `verify.md`)"
+    modality_evidence: "imperative (VF:145 'Write the report to a file in the change directory'; CW:84 'Verify writes verify.md'; CW:23 verify leaves `verify.md`)"
     sources:
       - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`."}
-      - {path: docs/core-workflow.md, lines: [86, 86], quote: "Verify runs once and writes `/openspec/changes/issue/verify.md`."}
+      - {path: docs/core-workflow.md, lines: [84, 84], quote: "Verify writes `/openspec/changes/issue/verify.md`."}
   - id: openspec_ff.verify.verify.section_present.title
     stage: verify
     class: structure
     requirement: must
     target: {type: artifact, ref: verify, state: final}
     check: {kind: section_present, params: {heading: "Verification Report: issue"}}
-    modality_evidence: "the scorecard's title (VF:149) under VF:200-201 'Use clear markdown with: - Table for summary scorecard'; its level is not bound (a report's title is often its # heading)"
+    modality_evidence: "the scorecard's title (VF:149) under VF:201-202 'Use clear markdown with: - Table for summary scorecard'; its level is not bound (a report's title is often its # heading)"
     sources: &vf_title
       - {path: docs/stages/03-verify.md, lines: [149, 149], quote: "## Verification Report: issue"}
-      - {path: docs/stages/03-verify.md, lines: [200, 201], quote: "Use clear markdown with: - Table for summary scorecard"}
+      - {path: docs/stages/03-verify.md, lines: [201, 202], quote: "Use clear markdown with: - Table for summary scorecard"}
   - id: openspec_ff.verify.verify.section_present.summary
     stage: verify
     class: structure
@@ -1389,7 +1375,7 @@ manual:
     modality_evidence: "the scorecard's Summary heading (VF:151); its level is not bound"
     sources: &vf_summary
       - {path: docs/stages/03-verify.md, lines: [151, 151], quote: "### Summary"}
-      - {path: docs/stages/03-verify.md, lines: [200, 201], quote: "Use clear markdown with: - Table for summary scorecard"}
+      - {path: docs/stages/03-verify.md, lines: [201, 202], quote: "Use clear markdown with: - Table for summary scorecard"}
   - id: openspec_ff.verify.verify.item_format.final_assessment
     stage: verify
     class: content
@@ -1397,9 +1383,9 @@ manual:
     target: {type: artifact, ref: verify, state: final}
     gate: {cap_stage: 0.1}
     check: {kind: item_format, params: {pattern: &assessment '(?i)\b(?:[1-9]\d*\s+critical\s+issues?(?:\(s\))?\s+found|no\s+critical\s+issues\b|all\s+checks\s+passed\b)', min: 1}}
-    modality_evidence: "the Final Assessment phrasings the report uses (VF:180-186); it is where the one report records what is still open before the archive (CW:86-87, VF:188), so a report without one caps its stage"
+    modality_evidence: "the Final Assessment phrasings the report uses (VF:181-187); it is where the one report records what is still open before the archive (CW:84-86, VF:189), so a report without one caps its stage"
     sources: &assessment_src
-      - {path: docs/stages/03-verify.md, lines: [180, 185], quote: "**Final Assessment**: - If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\" ... \"All checks passed. Ready for archive.\""}
+      - {path: docs/stages/03-verify.md, lines: [181, 186], quote: "**Final Assessment**: - If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\" ... \"All checks passed. Ready for archive.\""}
     note: "a Final Assessment in one of the prescribed phrasings: 'N critical issue(s) found', 'No critical issues ...', 'All checks passed'"
   - id: openspec_ff.verify.verify.item_format.priorities
     stage: verify
@@ -1407,9 +1393,9 @@ manual:
     requirement: should
     target: {type: artifact, ref: verify, state: final}
     check: {kind: item_format, params: {pattern: '\b(?:CRITICAL|WARNING|SUGGESTION)\b', min: 1}}
-    modality_evidence: "VF:202 'Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)' (output format guidance: should)"
+    modality_evidence: "VF:203 'Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)' (output format guidance: should)"
     sources: &prio_src
-      - {path: docs/stages/03-verify.md, lines: [202, 202], quote: "- Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)"}
+      - {path: docs/stages/03-verify.md, lines: [203, 203], quote: "- Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)"}
       - {path: docs/stages/03-verify.md, lines: [161, 163], quote: "**Issues by Priority**: 1. **CRITICAL** (Must fix before archive):"}
     note: "the issues are grouped by priority (some CRITICAL / WARNING / SUGGESTION label)"
   - id: openspec_ff.verify.verify.openspec_ff_verify.open_tasks_critical
@@ -1432,7 +1418,7 @@ manual:
     modality_evidence: "VF:159 'In each Status cell, report the results of checks that ran': a cell or item holding only a fill-in mark, or the Final Assessment's own X / Y / Z, is a placeholder left in place"
     sources: &fill_src
       - {path: docs/stages/03-verify.md, lines: [159, 159], quote: "In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check."}
-      - {path: docs/stages/03-verify.md, lines: [181, 181], quote: "\"X critical issue(s) found. Fix before archiving.\""}
+      - {path: docs/stages/03-verify.md, lines: [182, 182], quote: "\"X critical issue(s) found. Fix before archiving.\""}
     note: "a table cell or list item holding only a fill-in mark (x, ..., ?), or the template's 'X critical issue(s)' / 'Y warning(s)' / 'Z suggestion(s)'"
   # ============================================================== archive (core-workflow.md, "Archive, Then Finish")
   - id: openspec_ff.archive.run.openspec_ff_archive.after_verify
@@ -1441,32 +1427,10 @@ manual:
     requirement: must
     check: {kind: openspec_ff.archive, params: {rule: after, event: "write:verify"}}
     availability: [trace]
-    modality_evidence: "imperative (CW:91-92 'archive only once `/openspec/changes/issue/verify.md` exists')"
+    modality_evidence: "imperative (CW:90-91 'archive only once `/openspec/changes/issue/verify.md` exists')"
     sources:
-      - {path: docs/core-workflow.md, lines: [91, 93], quote: "archive only once `/openspec/changes/issue/verify.md` exists. If it does not, open `/opsx/stages/03-verify.md` and write it first."}
+      - {path: docs/core-workflow.md, lines: [90, 92], quote: "archive only once `/openspec/changes/issue/verify.md` exists. If it does not, open `/opsx/stages/03-verify.md` and write it first."}
     note: "the first `openspec archive` call comes after verify.md is written"
-  - id: openspec_ff.archive.run.prohibited_action.repo_write
-    stage: archive
-    class: evidence
-    requirement: must
-    check: {kind: prohibited_action, params: {action: repo_write, window: ["first_write:verify", "end"]}}
-    availability: [trace]
-    modality_evidence: "prohibition (CW:74 'Only the apply action edits `/testbed`'; CW:86-87 'Verify runs once ... Whatever it finds, move on to archive'; CW:105-106 'do not reopen tasks or apply: the code is done')"
-    sources: &no_return
-      - {path: docs/core-workflow.md, lines: [86, 87], quote: "Verify runs once and writes `/openspec/changes/issue/verify.md`. Whatever it finds, move on to archive; the report records what is still open."}
-      - {path: docs/core-workflow.md, lines: [74, 74], quote: "- Only the apply action edits `/testbed`. ff and verify read it and run commands in it."}
-      - {path: docs/core-workflow.md, lines: [105, 106], quote: "do not reopen tasks or apply: the code is done, and judging it was verify's job."}
-      - {path: docs/stages/03-verify.md, lines: [188, 188], quote: "**Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report."}
-    note: "no write into the repository once verify.md is written (no return to apply after the report, whatever it found)"
-  - id: openspec_ff.archive.run.openspec_ff_paths_written.tasks_after_verify
-    stage: archive
-    class: evidence
-    requirement: must
-    check: {kind: openspec_ff.paths_written, params: {pattern: '^/openspec/changes/issue/tasks\.md$', window: ["first_write:verify", "end"]}}
-    availability: [trace]
-    modality_evidence: "prohibition (CW:105-106 'do not reopen tasks or apply'; CW:86-87 'Whatever it finds, move on to archive; the report records what is still open'): an open task stays open in tasks.md and recorded in verify.md"
-    sources: *no_return
-    note: "the active tasks.md not written once verify.md is written (no task ticked, reopened or added after the report); after the archive call the specs_only item covers the archived copy, and a hand-made move is the by_cli item's"
   - id: openspec_ff.archive.run.openspec_ff_archive.succeeded
     stage: archive
     class: evidence
@@ -1474,9 +1438,9 @@ manual:
     check: {kind: openspec_ff.archive, params: {rule: succeeded}}
     gate: {zero_stage: true}
     availability: [trace]
-    modality_evidence: "imperative (CW:93-96 'Then run once: openspec archive issue --yes'; CW:24 the action starts from it)"
+    modality_evidence: "imperative (CW:92-95 'Then run once: openspec archive issue --yes'; CW:24 the action starts from it)"
     sources:
-      - {path: docs/core-workflow.md, lines: [93, 96], quote: "Then run once: ```bash openspec archive issue --yes"}
+      - {path: docs/core-workflow.md, lines: [92, 95], quote: "Then run once: ```bash openspec archive issue --yes"}
       - {path: docs/core-workflow.md, lines: [24, 24], quote: "| archive | this document, below | `openspec archive issue --yes` | the archived change |"}
     note: "an `openspec archive` call succeeded (its output says 'archived as', or it exited 0 without failure text)"
   - id: openspec_ff.archive.run.openspec_ff_archive.retries
@@ -1485,9 +1449,9 @@ manual:
     requirement: must
     check: {kind: openspec_ff.archive, params: {rule: retries}}
     availability: [trace]
-    modality_evidence: "imperative (CW:93 'run once'; CW:103-104 'run the same command one more time. If it fails again, call `finish` without archiving'; CW:102 'Exit code 0: call `finish`')"
+    modality_evidence: "imperative (CW:92 'run once'; CW:102-103 'run the same command one more time. If it fails again, call `finish` without archiving'; CW:101 'Exit code 0: call `finish`')"
     sources:
-      - {path: docs/core-workflow.md, lines: [102, 105], quote: "- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec (its format, or a spec file that is missing), then run the same command one more time. If it fails again, call `finish` without archiving."}
+      - {path: docs/core-workflow.md, lines: [101, 104], quote: "- Exit code 0: call `finish`. - Exit code 1: correct only what the error message names in the delta spec (its format, or a spec file that is missing), then run the same command one more time. If it fails again, call `finish` without archiving."}
     note: "at most two `openspec archive` calls, the second only after a failed first"
   - id: openspec_ff.archive.run.openspec_ff_archive.specs_only
     stage: archive
@@ -1495,10 +1459,10 @@ manual:
     requirement: must
     check: {kind: openspec_ff.archive, params: {rule: specs_only, allow: ["{artifact}/changes/issue/specs"]}}
     availability: [trace]
-    modality_evidence: "imperative (CW:103 'correct only what the error message names in the delta spec'); prohibition (CW:105-106 'do not reopen tasks or apply')"
+    modality_evidence: "imperative (CW:102 'correct only what the error message names in the delta spec'); prohibition (CW:104-105 'do not reopen tasks or apply')"
     sources:
-      - {path: docs/core-workflow.md, lines: [103, 106], quote: "correct only what the error message names in the delta spec (its format, or a spec file that is missing) ... Never add `--no-validate`, and do not reopen tasks or apply: the code is done, and judging it was verify's job."}
-      - {path: docs/core-workflow.md, lines: [91, 91], quote: "The code change must be complete before this step"}
+      - {path: docs/core-workflow.md, lines: [102, 105], quote: "correct only what the error message names in the delta spec (its format, or a spec file that is missing) ... Never add `--no-validate`, and do not reopen tasks or apply: the code is done, and judging it was verify's job."}
+      - {path: docs/core-workflow.md, lines: [90, 90], quote: "The code change must be complete before this step"}
     note: "after the first `openspec archive` call nothing is written but the change's delta specs (no code, tasks or other artifact)"
   - id: openspec_ff.archive.run.openspec_ff_archive.by_cli
     stage: archive
@@ -1507,9 +1471,9 @@ manual:
     check: {kind: openspec_ff.archive, params: {rule: by_cli, roots: ["{artifact}/changes/archive", "{artifact}/specs"]}}
     gate: {zero_stage: true}
     availability: [trace]
-    modality_evidence: "CW:99-100: the command merges the delta specs and moves the change; a hand-made archive (mv / cp of the change, a main spec written by the agent) is not the archive step"
+    modality_evidence: "CW:98-99: the command merges the delta specs and moves the change; a hand-made archive (mv / cp of the change, a main spec written by the agent) is not the archive step"
     sources:
-      - {path: docs/core-workflow.md, lines: [99, 100], quote: "It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`."}
+      - {path: docs/core-workflow.md, lines: [98, 99], quote: "It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`."}
       - {path: docs/core-workflow.md, lines: [27, 28], quote: "The `openspec` command is installed and does the bookkeeping."}
     note: "the trace writes or moves nothing into /openspec/changes/archive/ or /openspec/specs/: the CLI did it"
   - id: openspec_ff.archive.change.path_match.archived
@@ -1518,9 +1482,9 @@ manual:
     requirement: must
     target: {type: artifact, ref: change, state: final}
     check: {kind: path_match, params: {pattern: 'changes/archive[/]\d{4}-\d{2}-\d{2}-issue'}}
-    modality_evidence: "CW:99-100 the change moved to `/openspec/changes/archive/<date>-issue/`; CW:24 archive leaves 'the archived change'"
+    modality_evidence: "CW:98-99 the change moved to `/openspec/changes/archive/<date>-issue/`; CW:24 archive leaves 'the archived change'"
     sources:
-      - {path: docs/core-workflow.md, lines: [99, 100], quote: "moves the change to `/openspec/changes/archive/<date>-issue/`."}
+      - {path: docs/core-workflow.md, lines: [98, 99], quote: "moves the change to `/openspec/changes/archive/<date>-issue/`."}
       - {path: docs/core-workflow.md, lines: [24, 24], quote: "| archive | this document, below | `openspec archive issue --yes` | the archived change |"}
     note: "the change ended up in the archive"
   - id: openspec_ff.archive.main_spec.main_spec.exists
@@ -1529,9 +1493,9 @@ manual:
     requirement: must
     target: {type: artifact, ref: main_spec, state: final}
     check: {kind: openspec.main_spec, params: {rule: exists, root: "{artifact}/specs"}}
-    modality_evidence: "CW:99 'merges its delta specs into `/openspec/specs/`'"
+    modality_evidence: "CW:98 'merges its delta specs into `/openspec/specs/`'"
     sources:
-      - {path: docs/core-workflow.md, lines: [99, 99], quote: "It validates the change, merges its delta specs into `/openspec/specs/`"}
+      - {path: docs/core-workflow.md, lines: [98, 98], quote: "It validates the change, merges its delta specs into `/openspec/specs/`"}
     note: "every capability the deltas add has its main spec /openspec/specs/<capability-path>/spec.md"
   - id: openspec_ff.archive.main_spec.main_spec.synced
     stage: archive
@@ -1540,9 +1504,9 @@ manual:
     target: {type: artifact, ref: main_spec, state: final}
     check: {kind: openspec.main_spec, params: {rule: synced, root: "{artifact}/specs"}}
     gate: {zero_stage: true}
-    modality_evidence: "CW:99 'merges its delta specs into `/openspec/specs/`': the archive's product is the archived change's deltas merged; main specs that do not hold them are no archive of this change"
+    modality_evidence: "CW:98 'merges its delta specs into `/openspec/specs/`': the archive's product is the archived change's deltas merged; main specs that do not hold them are no archive of this change"
     sources:
-      - {path: docs/core-workflow.md, lines: [99, 99], quote: "It validates the change, merges its delta specs into `/openspec/specs/`"}
+      - {path: docs/core-workflow.md, lines: [98, 98], quote: "It validates the change, merges its delta specs into `/openspec/specs/`"}
     note: "each ADDED requirement of the archived deltas (with its scenarios) is in its main spec"
   - id: openspec_ff.ff.spec.no_template_residue.context
     stage: ff

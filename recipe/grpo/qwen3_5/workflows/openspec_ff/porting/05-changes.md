@@ -250,3 +250,10 @@ explore 단계 추가(2026-10-15)는 맨 아래 "Explore extension" 절. 아래 
   `01-ff.md`, no longer "in the same turn"; `00-explore.md` (edit note `G2-12/G2-11/G2-14`), `core-workflow.md`
   actions-table row and "From Explore to ff".
 - Verified: `build --check` rc=0; recipe tests 136 passed (test_openspec_ff updated for both).
+
+**추가 (wf-floor-tcx-step27 평가 분석 이후, 2026-11-13)**
+- verify → apply 복귀 복원(G8-2, 2026-10-14 삭제분 대체): verify.md에 CRITICAL이 있으면 apply로 돌아가 고치고 다시 verify해 verify.md를 다시 씀. 최대 2회, 그 뒤에는 보고서 상태 그대로 archive. `core-workflow.md` "Verify, Then Fix What It Finds", `03-verify.md` Next step, "Verification is advisory." 삭제.
+- CRITICAL 목록에 한 줄 추가(G8-3): 마지막 편집 뒤 실행한 테스트나 check script가 실패로 끝났으면 CRITICAL. 새 실행을 요구하지 않음. 2026-10-14에 반복을 삭제한 이유(1회차 CRITICAL 0/60)를 해소하기 위한 것.
+- explore의 직접 짠 코드 실행 금지 삭제(G9-5 수정, G9-6 삭제): 파일을 쓰지 않는 한 줄 `python -c`나 stdin snippet으로 issue 예시와 그 변형을 실행할 수 있음. 파일 쓰기 금지는 유지.
+- rubric은 재생성하지 않고 직접 수정: 위 규칙과 충돌하는 3개 항목 삭제, 인용 행 번호와 충돌 기록 갱신. `rubric.lock`은 맞지 않음.
+

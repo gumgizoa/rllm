@@ -75,7 +75,7 @@ Complete 2026-10-13 (G10-6 added and decided 2026-10-14): every row of `02-gaps.
 
 ## Behaviors the port adds
 
-- Verify once: `verify.md` in `/openspec/changes/issue/`, then archive (the G8-1 round rule was dropped 2026-10-14).
+- Verify, then fix: `verify.md` in `/openspec/changes/issue/`; a CRITICAL issue goes back to apply, at most twice, and verify rewrites the report before the archive (G8-2, 2026-11-13; G8-1's round had been dropped 2026-10-14).
 - Archive (D-5, G8-4): the agent runs `openspec archive issue --yes` after verify; exit 1 → fix only what the error names in the delta spec (or write the missing spec), rerun once; still failing → `finish` without archive.
 
 ## Agreed text for the forked schema
@@ -136,3 +136,17 @@ evidence: `docs/existing-projects.md:41,51-57,90,99` (added at the user's reques
 | G2-14 | G2-12's placement sentence → the summary is written in a tool call (e.g. `think`) before the tool call that opens `/opsx/stages/01-ff.md`, not necessarily in the same turn | env | user 2026-10-16 | found in stage 6 (run 5: 5/6 summaries in a `think` call 1–14 turns earlier; the rule's reason, a text-only turn, does not arise); P3: checkable as "a tool call before the first 01-ff.md open holds the summary". Missing summaries (2/4 think on) watched in the next smoke |
 
 Explore extension: every row decided 2026-10-15 (G7-10, G4-19 added from stage 4). Later idea recorded: `later.md` "Explore scaffolds the change itself".
+
+## Revision 2026-11-13 (wf-floor-tcx-step27 eval, SWE-bench Verified 499)
+
+Two rules the port added stood in the way of solving the task and are taken back; nothing else is asked anew except G8-3's one line.
+Evidence: `AI-DLC/reports/2026-11-12_openspec_ff-지침과-산출물-문제-분석.md` (outside this repository).
+
+| Gap | Decision | Tag | By | Notes |
+|---|---|---|---|---|
+| G8-2 | verify → apply return restored (replaces G8-1's drop): a report holding a CRITICAL issue sends the run back to apply to fix what it names, then verify again, rewriting the one `verify.md`; at most two returns, then archive with the report as it stands. `core-workflow.md` "Verify, Then Fix What It Finds"; `03-verify.md` Next step; "Verification is advisory." removed | semantic | user 2026-11-13 | "verify once, archive whatever it finds" kept a known-failing change from being fixed: 98.0% of reports read ready, edits after `verify.md` 0.2% |
+| G8-3 | `03-verify.md` CRITICAL list gains "A test or check script that failed when you last ran it after your final edit" | semantic | user 2026-11-13 | G8-1 was dropped because the round never fired (CRITICAL 0/60): verify judges against the agent's own tasks/specs. 61 reports read ready although the last test run after the final edit had failed; this line gives the round a finding. It asks for no new run |
+| G9-5 (rev.) | explore's read-only boundary is the file write, not composed code: the issue's example or a variant of it may be run as a one-line `python -c` or a snippet piped to stdin; no file is written anywhere, as before. `00-explore.md` IMPORTANT paragraph; `core-workflow.md` "The Repository" | semantic | user 2026-11-13 | the trained model composed code during explore in 73.5% of runs, and the proposal/specs then fix the expected behavior without having seen the actual one (plan divergence before coding in 36 of 42 lost pairs) |
+| G9-6 | dropped: the Guardrails sentence naming composed code as writing code, and "Varying the issue's example is left to ff and apply" | semantic | user 2026-11-13 | follows G9-5 (rev.) |
+
+Rubric: revised by hand, not regenerated (`reward/rubric.md` header; `rubric.lock` no longer matches). Items dropped: `explore.run.prohibited_action.composed_code`, `archive.run.prohibited_action.repo_write`, `archive.run.openspec_ff_paths_written.tasks_after_verify`. `openspec_ff.verify` `open_tasks_critical` reads the task list as of the report's last write. Golden: `critical_archived` → `critical_fixed`, new `explore_runs_snippet`. No item scores the return itself (how many, whether the fix landed).

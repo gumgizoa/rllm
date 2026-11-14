@@ -51,7 +51,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
    Each dimension can have CRITICAL, WARNING, or SUGGESTION issues.
 
-   Verification is advisory. Respect intentional omissions such as `skip_specs: true`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. `Not verified` describes a limit of this report, not a new archive prerequisite. Archive retains its own checks and user-confirmation behavior.
+   Respect intentional omissions such as `skip_specs: true`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. `Not verified` describes a limit of this report, not a new archive prerequisite. Archive retains its own checks and user-confirmation behavior.
 
    Mark checks the schema does not define, or artifacts the status reports as intentionally skipped, as **Not applicable**. The correctness checks of a change whose readable delta specs contain REMOVED or RENAMED requirements but no ADDED or MODIFIED requirements are also **Not applicable** (see step 6). Exclude them from skipped-check counts and the archive-readiness assessment. Reserve **Not verified** for applicable checks whose evidence is missing or unusable.
 
@@ -165,6 +165,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
       - Missing requirement implementations
       - Removed requirements still implemented
       - Renamed requirements whose behavior is no longer implemented
+      - A test or check script that failed when you last ran it after your final edit
       - Each with specific, actionable recommendation
 
    2. **WARNING** (Should fix):
@@ -185,7 +186,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - If any check was skipped and there are no CRITICAL issues: do not claim readiness. Say "No critical issues found in the checks that ran. <check(s)> not verified: <reason>." Include the warning count when nonzero.
    - Include the suggestion count when nonzero in every final assessment.
 
-   **Next step**: go to the archive step in `/opsx/core-workflow.md`. What is left stays recorded in this report.
+   **Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the apply action (`/opsx/stages/02-apply.md`) and fix each CRITICAL item, even though apply reports its tasks done; then run verify again and rewrite this report. Otherwise go to the archive step in `/opsx/core-workflow.md`; what is left stays recorded in this report.
 
 **Verification Heuristics**
 

@@ -164,15 +164,15 @@ EXPLORE_EDITS: tuple[Edit, ...] = (
     Edit(
         "explore",
         "but you must NEVER write code or implement features. ",
-        "but you must NEVER write code or implement features. Here a read-only command is one that runs only "
-        "what already exists and writes no file: reading, searching, running existing code and existing tests, "
-        "and running the issue's own example exactly as given. Code you compose yourself is writing code, a "
-        "one-line `python -c` or a snippet piped to stdin included, and so is any file write (in the "
-        f"repository, in `/tmp`, under `{CHANGE_DIR}checks/`, by shell redirection or heredoc). Files a run "
-        "leaves behind by itself, such as `__pycache__` or `.pytest_cache`, are not your writes. Varying the "
-        "issue's example is left to ff and apply, which keep their scripts under `checks/`. ",
+        "but you must NEVER write code or implement features. Here a read-only command is one that writes no "
+        "file: reading, searching, running existing code and existing tests, and running the issue's example "
+        "or a variant of it as a one-line `python -c` or a snippet piped to stdin. Any file write is writing "
+        f"code (in the repository, in `/tmp`, under `{CHANGE_DIR}checks/`, by shell redirection or a heredoc "
+        "written to a file). Files a run leaves behind by itself, such as `__pycache__` or `.pytest_cache`, "
+        "are not your writes. ",
         "semantic",
-        "G9-5: the read-only boundary, \"NEVER write code\" taken literally (composed snippets included)",
+        "G9-5 (rev. 2026-11-13): the read-only boundary is the file write; a snippet run without writing a file "
+        "(the issue's example or a variant) is allowed",
     ),
     Edit(
         "explore",
@@ -459,11 +459,9 @@ EXPLORE_EDITS: tuple[Edit, ...] = (
         "explore",
         "Creating or updating OpenSpec change artifacts within the confirmed scope is fine, writing anything "
         "else is not.",
-        "In this session explore writes no change artifact either; ff creates them. Running code you composed "
-        "is writing code too, whether as `python -c \"...\"` or as a heredoc piped to `python3`: when you want "
-        "to try a variant of the issue's example, record it as an open question for ff instead.",
+        "In this session explore writes no change artifact either; ff creates them.",
         "semantic",
-        "G4-13/G9-6: explore writes nothing; composed code named as writing code in the guardrail",
+        "G4-13: explore writes nothing (G9-6's composed-code sentence dropped 2026-11-13)",
     ),
     Edit(
         "explore",
@@ -777,9 +775,28 @@ EDITS: tuple[Edit, ...] = (
         "verify",
         "   - Include the suggestion count when nonzero in every final assessment.\n",
         "   - Include the suggestion count when nonzero in every final assessment.\n\n"
-        f"   **Next step**: go to the archive step in `{ENTRY_DOC}`. What is left stays recorded in this report.\n",
-        "env",
-        "G2-5: hand-off to archive; G8-1's verify -> apply round dropped (never triggered in the val ablation)",
+        "   **Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times, go "
+        f"back to the apply action (`{STAGE_DOCS['apply']}`) and fix each CRITICAL item, even though apply "
+        "reports its tasks done; then run verify again and rewrite this report. Otherwise go to the archive step "
+        f"in `{ENTRY_DOC}`; what is left stays recorded in this report.\n",
+        "semantic",
+        "G2-5/G8-2: a CRITICAL issue goes back to apply, at most twice, then archive (G8-1's round restored "
+        "2026-11-13 on one rewritten verify.md)",
+    ),
+    Edit(
+        "verify",
+        "   Verification is advisory. Respect intentional omissions",
+        "   Respect intentional omissions",
+        "semantic",
+        "G8-2: a CRITICAL issue sends the change back to apply, so the report is not advisory",
+    ),
+    Edit(
+        "verify",
+        "      - Renamed requirements whose behavior is no longer implemented\n",
+        "      - Renamed requirements whose behavior is no longer implemented\n"
+        "      - A test or check script that failed when you last ran it after your final edit\n",
+        "semantic",
+        "G8-3: a run seen failing after the last edit is CRITICAL (the round needs a finding to fire)",
     ),
 )
 

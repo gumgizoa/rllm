@@ -8,7 +8,7 @@ schema's instructions and templates, the project config) -- and never from the r
 * ``/opsx/core-workflow.md`` first (INS:5, SP:66), then each stage document as its action begins (CW:18-24), one per
   call;
 * explore, first (CW:11-12): ``openspec list --json`` (CW:20, EX:113-116) and the project config (EX:131), the code and
-  the existing tests read (CW:75-76, EX:5) -- no file written and no code composed (CW:75-78) -- then the "What We
+  the existing tests read (CW:75, EX:5) -- no file written and no code composed (CW:75-76) -- then the "What We
   Figured Out" summary in a ``think`` call (CW:60-63, EX:189-207) before ``01-ff.md`` is opened;
 * ff: the project check (``openspec list --json``, FF:3), ``openspec new change "issue"`` (CW:21, FF:22-26), ``openspec
   status --change "issue" --json`` (FF:28-31), the repository inspected read-only (FF:57), then per artifact in
@@ -19,10 +19,10 @@ schema's instructions and templates, the project config) -- and never from the r
 * apply: ``status`` and ``openspec instructions apply`` (AP:26-39), every context file read (AP:72-76), a check script
   under ``/openspec/changes/issue/checks/`` (CW:36-37) run before and after the fix, the source edited, the repository's
   tests run, each task ticked at its line and the apply instructions re-run after it (AP:96-98);
-* verify, once (CW:84-87): ``status`` and ``instructions apply`` (VF:26-39), every artifact read (VF:41), the code
+* verify, once (CW:82-86): ``status`` and ``instructions apply`` (VF:26-39), every artifact read (VF:41), the code
   inspected and the checks run without editing anything (VF:43, CW:74), ``verify.md`` in the scorecard format of
-  VF:145-188 with no CRITICAL issue, then straight on to the archive (VF:188);
-* archive: ``openspec archive issue --yes`` once (CW:93-100), which prints "archived as" and exits 0; then ``finish``,
+  VF:145-189 with no CRITICAL issue, then straight on to the archive (VF:189);
+* archive: ``openspec archive issue --yes`` once (CW:92-99), which prints "archived as" and exits 0; then ``finish``,
   whose observation never returns, as in training.
 
 The CLI's own file operations are not in the trace: :func:`golden` returns the ``Collected`` the collector would see
@@ -31,16 +31,17 @@ change`` scaffolded), the merged main spec under ``/openspec/specs/``, the confi
 and the diff against BASE_SHA (``tinyconf/values.py`` modified). The task is made up (a ``tinyconf`` package whose
 ``parse_bool`` reads every non-empty string as true); all text is synthetic.
 
-:data:`VARIANTS` are other honest runs the documents allow: ``critical_archived`` -- apply leaves the ValueError task
+:data:`VARIANTS` are other honest runs the documents allow: ``critical_fixed`` -- apply leaves the ValueError task
 open with its one-line reason (AP:105, AP:109), verify.md lists it and the requirement it leaves unimplemented as
-CRITICAL issues (VF:70-71, VF:163-165, VF:181), and the run moves on to archive with them recorded (CW:86-87, VF:188;
-no return to apply, CW:105-106), the CLI archiving with its incomplete-task warning under ``--yes``; ``no_design`` --
+CRITICAL issues (VF:70-71, VF:163-165, VF:183), so the run goes back to apply, fixes both, runs verify again and
+rewrites verify.md with nothing CRITICAL left (CW:84-86, VF:189) before the archive; ``no_design`` --
 design.md skipped as conditional (FF:72, SCHEMA:170); ``heredoc_writes`` -- every artifact written with a shell heredoc
 instead of the editor; ``archive_retry`` -- the first archive fails validation on the delta spec (a scenario written
-with three hashes), the run corrects only that and runs the same command once more (CW:103-104);
+with three hashes), the run corrects only that and runs the same command once more (CW:102-103);
 ``summary_in_ff_turn`` -- the explore summary's ``think`` call shares the turn that opens ``01-ff.md``, ahead of the read
 (EX:191 "before the tool call that opens"); ``explore_runs_tests`` -- explore also runs the existing tests as they are
-(CW:75-76, EX:5: read-only); ``summary_lean`` -- the summary holds only the parts that must be stated (EX:189: the problem,
+(CW:75, EX:5: read-only); ``explore_runs_snippet`` -- explore tries the issue's example as a one-line ``python -c``,
+writing no file (EX:5); ``summary_lean`` -- the summary holds only the parts that must be stated (EX:189: the problem,
 where the change goes).
 """
 
@@ -67,7 +68,7 @@ ARCH = f"{ROOT}/changes/archive/{DATE}-issue"
 CAP = "boolean-parsing"
 CHECK = f"{CHG}/checks/check_parse_bool.py"
 FORK = "spec-driven-sandbox"
-VARIANTS = ("critical_archived", "no_design", "heredoc_writes", "archive_retry", "summary_in_ff_turn", "explore_runs_tests", "summary_lean")
+VARIANTS = ("critical_fixed", "no_design", "heredoc_writes", "archive_retry", "summary_in_ff_turn", "explore_runs_tests", "explore_runs_snippet", "summary_lean")
 EXIT0 = "\n[The command completed with exit code 0.]\n[Current working directory: /testbed]\n[Command finished with exit code 0]"
 EXIT1 = "\n[The command completed with exit code 1.]\n[Current working directory: /testbed]\n[Command finished with exit code 1]"
 
@@ -534,7 +535,7 @@ def _verify(critical: bool, design: bool = True) -> str:
                 " Recommendation: Complete task: raise ValueError naming the text for any other input.",
                 "- Requirement not found: Unknown words are rejected. Recommendation: Implement requirement Unknown words are rejected."]
         final = "2 critical issue(s) found. Fix before archiving."
-        nxt = "Go to the archive step in `/opsx/core-workflow.md`. Task 2.2 and the requirement Unknown words are rejected stay open, recorded above."
+        nxt = "Go back to the apply action and fix task 2.2 and the requirement Unknown words are rejected, then run verify again."
     else:
         completeness = "4/4 tasks, 2 reqs"
         correctness = "2/2 reqs covered"
@@ -620,7 +621,7 @@ def golden(rubric=None, variant: str | None = None):
     if variant and variant not in VARIANTS:
         raise ValueError(f"unknown variant {variant!r}; known: {VARIANTS}")
     v = {variant} if variant else set()
-    crit = "critical_archived" in v
+    crit = "critical_fixed" in v
     design = "no_design" not in v
     docs = _docs()
     stage = {k: f"{C}/stages/{n}" for k, n in (("explore", "00-explore.md"), ("ff", "01-ff.md"), ("apply", "02-apply.md"), ("verify", "03-verify.md"))}
@@ -629,7 +630,7 @@ def golden(rubric=None, variant: str | None = None):
     lean = "summary_lean" in v
 
     s.sh(f"cat {C}/core-workflow.md", docs[f"{C}/core-workflow.md"])
-    # ---- explore: read and run what exists, write nothing (CW:60-63, CW:75-78) -----------------------
+    # ---- explore: read and run what exists, write nothing (CW:60-63, CW:75-76) -----------------------
     s.sh(f"cat {stage['explore']}", docs[stage["explore"]])
     s.sh("cd /testbed && openspec list --json", cli_list())
     s.sh(f"cat {ROOT}/config.yaml", _config_text().rstrip("\n"))
@@ -638,6 +639,9 @@ def golden(rubric=None, variant: str | None = None):
     s.sh("cat tests/test_values.py", TESTS_PY.rstrip("\n"))
     if "explore_runs_tests" in v:
         s.sh(TEST_CMD, PYTEST_OK + EXIT0)  # the existing tests, run as they are (EX:5)
+    if "explore_runs_snippet" in v:
+        # the issue's example, run without writing a file (EX:5): read-only
+        s.sh("python -c \"from tinyconf.values import parse_bool; print(parse_bool('false'))\"", "True" + EXIT0)
     think = Action("other", "think", text=_summary(lean), observation="Your thought has been logged.")
     read_ff = Action("shell", "terminal", command=f"cat {stage['ff']}", observation=docs[stage["ff"]])
     # ---- ff ----------------------------------------------------------------------------------------
@@ -708,22 +712,35 @@ def golden(rubric=None, variant: str | None = None):
         tick("2.2")
     s.sh(TEST_CMD, PYTEST_OK + EXIT0)
     tick("2.3", reason=crit)
-    # ---- verify, once (CW:68-71) ---------------------------------------------------------------------
+    # ---- verify; a CRITICAL issue goes back to apply, then verify again (CW:84-86, VF:189) ------------------
     s.sh(f"cat {stage['verify']}", docs[stage["verify"]])
-    s.sh('openspec status --change "issue" --json', cli_status(done))
-    cur_tasks = _tasks(ticked, open_reason=crit)
-    s.sh('openspec instructions apply --change "issue" --json', cli_apply(cur_tasks, design))
-    s.sh("cat " + " ".join(ctx), (_proposal() + _spec(v, broken=broken) + (_design() if design else "") + cur_tasks).rstrip("\n"))
-    s.sh("git diff --stat", " tinyconf/values.py | 12 ++++++++++--\n 1 file changed, 10 insertions(+), 2 deletions(-)")
-    s.sh(CHECK_CMD, _check_out("half" if crit else "full") + (EXIT1 if crit else EXIT0))
-    s.sh(TEST_CMD, PYTEST_OK + EXIT0)
-    # whatever the report finds, the next step is the archive (CW:70-71, VF:188): a CRITICAL issue stays recorded
-    s.write(f"{CHG}/verify.md", _verify(critical=crit, design=design))
+
+    def verify(critical: bool) -> None:
+        s.sh('openspec status --change "issue" --json', cli_status(done))
+        cur_tasks = _tasks(ticked, open_reason=critical)
+        s.sh('openspec instructions apply --change "issue" --json', cli_apply(cur_tasks, design))
+        s.sh("cat " + " ".join(ctx), (_proposal() + _spec(v, broken=broken) + (_design() if design else "") + cur_tasks).rstrip("\n"))
+        s.sh("git diff --stat", " tinyconf/values.py | 12 ++++++++++--\n 1 file changed, 10 insertions(+), 2 deletions(-)")
+        s.sh(CHECK_CMD, _check_out("half" if critical else "full") + (EXIT1 if critical else EXIT0))
+        s.sh(TEST_CMD, PYTEST_OK + EXIT0)
+        s.write(f"{CHG}/verify.md", _verify(critical=critical, design=design))
+
+    verify(crit)
+    if crit:
+        # the report holds CRITICAL issues: back to apply for what it names, then verify again and rewrite the report
+        s.replace(f"{WORKDIR}/tinyconf/values.py", HALF_BOOL, NEW_BOOL)
+        s.sh(CHECK_CMD, _check_out("full") + EXIT0)
+        open_line = "- [ ] 2.2 Raise ValueError naming the text for any other input and verify check_parse_bool.py passes in full\n"
+        s.replace(f"{CHG}/tasks.md", open_line + REASON + "\n", open_line.replace("- [ ]", "- [x]", 1))
+        ticked.add("2.2")
+        s.sh('openspec instructions apply --change "issue" --json', cli_apply(_tasks(ticked), design))
+        s.sh(TEST_CMD, PYTEST_OK + EXIT0)
+        verify(False)
     # ---- archive ---------------------------------------------------------------------------------------
     if broken:
         s.sh("openspec archive issue --yes", cli_archive_fail())
         s.replace(spec_path, "### Scenario: Unknown word\n", "#### Scenario: Unknown word\n")
-    s.sh("openspec archive issue --yes", cli_archive_ok(N_REQ, open_tasks=1 if crit else 0))
+    s.sh("openspec archive issue --yes", cli_archive_ok(N_REQ, open_tasks=0))
     s.add(Action("other", "finish"))
 
     run = Run(instance_id=f"selftest/openspec_ff/{variant or 'golden'}", steps=s.steps)
