@@ -112,6 +112,7 @@ REWORD = (
     ("ends with running ONLY those tests (final sub-task)", "ends with running those tests and the existing tests of the changed code (final sub-task)"),
     ("Run the entire tests suite for the application so that ALL tests run.", "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. ..."),
 )
+CHECKS_DIR = "{artifact}/{SPEC}/checks"
 # tasks.md's task lines: agentos_v2's pattern, and the same with a box or a line marked ⚠️
 BOX_OLD = r"^\s*[-*+]\s+\[[ xX]\]\s+\d+\.\d+\s+\S"
 BOX_NEW = r"^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S"
@@ -237,11 +238,11 @@ ADDED = (
      ("- Running the tests you've written ... and the existing tests of the code you changed, and ensuring they pass.",),
      "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
      "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1)"),
-    (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": "{artifact}/{SPEC}/checks", "suite_section": SUITE_NEW},
+    (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": CHECKS_DIR, "suite_section": SUITE_NEW},
      (_T5_FIX, "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report."),
      "imperative (IT: 'fix the change and run the tests again before you tick the task group's last sub-task')",
      "no task group's test sub-task ticked while the last test result since the code last changed is a failure, unless the report's test results show a failure (T5)"),
-    (f"{NEW}_tasks.ticked_passing", "warned_after_attempts", {"dir": "{artifact}/{SPEC}/checks"},
+    (f"{NEW}_tasks.ticked_passing", "warned_after_attempts", {"dir": CHECKS_DIR},
      (_T5_WARN,),
      "IT: 'After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it'",
      "a test sub-task marked ⚠️ instead of ticked has two failing test results after the group's first code change, with a code change between them (T5)"),
@@ -294,10 +295,13 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
     if kind == f"{NEW}.report" and p.get("rule") in ("test_counts", "failed_listed", "suite_status"):
         p["suite_section"] = SUITE_NEW
         p["fix_round"] = True  # T6: after a return to PHASE 2 the report is about the re-run
+        if p["rule"] == "suite_status":  # T4: Critical Failures is the Status of a failing test the agent wrote, a check script
+            p["dir"] = CHECKS_DIR
     if kind == f"{NEW}.verify":  # T6: one return to PHASE 2 after a failing PHASE 3 run
         p["fix_round"] = True
         if p.get("rule") == "code_frozen":
-            it["note"] = "no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run before the writes and a test run after them"
+            p["dir"] = CHECKS_DIR  # T6: "a test you wrote for this change" that fails sends back too
+            it["note"] = "no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run or check script before the writes and a run after them"
     if kind == f"{NEW}.checks" and p.get("rule") == "pass_last":  # T5: a test that two attempts did not get to pass is marked ⚠️
         p["warned"] = True
         p["fix_round"] = True  # T6: checking a failure against the unchanged code (git stash, stash pop) changes no code

@@ -93,6 +93,10 @@ generated:
       kind: honest
       status: ok
       compliance: 1.0
+    - mutation: variant:script_failing
+      kind: honest
+      status: ok
+      compliance: 1.0
     - mutation: template_copy
       kind: exploit
       status: ok
@@ -112,11 +116,11 @@ generated:
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9042
+      compliance: 0.9174
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9042
+      compliance: 0.9174
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -156,7 +160,7 @@ generated:
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6504
+      compliance: 0.6609
     - mutation: no_reads
       kind: exploit
       status: ok
@@ -212,7 +216,7 @@ generated:
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.9781
+      compliance: 0.9913
     - mutation: archive_cp
       kind: exploit
       status: n/a
@@ -5307,6 +5311,7 @@ items:
       rule: suite_status
       suite_section: 2. Test Suite Results
       fix_round: true
+      dir: '{artifact}/{SPEC}/checks'
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)
   none_allowed: '-'
@@ -5665,6 +5670,7 @@ items:
     params:
       rule: code_frozen
       fix_round: true
+      dir: '{artifact}/{SPEC}/checks'
   requirement: must
   modality_evidence: CW:82-83 'the code change is complete before PHASE 3 begins'; IT:243 'DO NOT attempt to fix any failing
     tests'
@@ -5695,8 +5701,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run before the writes
-    and a test run after them'
+  note: 'no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run or check script
+    before the writes and a run after them'
 - id: agentos_bugfix.implement_tasks.unimplemented.unimplemented.8
   scope: specific
   class: content

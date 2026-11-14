@@ -31,7 +31,9 @@ CHECKS = f"{S}/checks"
 # ticked over it and the report lists it
 # "warn_attempts": an existing test fails because of the change; two attempts do not get it to pass, the group's test
 # sub-task is marked ⚠️ instead of ticked; PHASE 3 goes back once more, and the report notes the failure that is left
-VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task", "fix_round", "expected_failure", "warn_attempts")
+# "script_failing": the same with a check script the agent wrote: it fails through both attempts and the one of
+# PHASE 3, so the report's test results are Critical Failures and its Status is Failed
+VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task", "fix_round", "expected_failure", "warn_attempts", "script_failing")
 # runs that do not do what the documents say, for the tests of the rules that catch them (not scored by the self-test):
 # no run of the existing tests while implementing; a test sub-task ticked over a failing test the report does not show;
 # a test sub-task marked ⚠️ after one failing run and no attempt to fix
@@ -122,6 +124,11 @@ _CLASSES = ('r"[^a-z0-9—]+"', 'r"[^a-z0-9—–]+"', 'r"[^\\w—]+"', 'r"[^a-z
 G2_DASH = tuple(G2_BODY.replace("_NON_WORD.sub(sep, text.lower())", f"re.sub({c}, sep, text.lower())") for c in _CLASSES)
 assert len({G2_BODY, *G2_DASH}) == 5
 DASH_TEST = ("tests/test_slug.py::test_slugify_replaces_dashes", "AssertionError: assert 'a—b' == 'a-b'")
+# the separator option that trims only the hyphen: check_sep.py fails, the existing tests pass ("script_failing":
+# the change, two attempts, the attempt of PHASE 3)
+G2_TRIM = tuple(G2_BODY.replace(".strip(sep)", t) for t in ('.strip("-")', '.strip("-").strip()', '.lstrip("-").rstrip("-")', '.strip("-").strip(" ")'))
+assert len({G2_BODY, *G2_TRIM}) == 5
+SEP_FAIL = ('assert slugify("Hello, World!", sep="_") == "hello_world"', "AssertionError")
 # an existing test that asserts the edge hyphen the task removes ("expected_failure")
 EDGE_TEST = ("tests/test_slug.py::test_slugify_trailing_punctuation", "AssertionError: assert 'hello-world' == 'hello-world-'")
 
@@ -482,7 +489,7 @@ def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozense
     )
 
 
-def report_md(*, failures: bool = False, review: bool = False, warned: bool = False, warned_test: bool = False, slug_failure: tuple[str, str] | None = None) -> str:
+def report_md(*, failures: bool = False, review: bool = False, warned: bool = False, warned_test: bool = False, slug_failure: tuple[str, str] | None = None, own_failure: bool = False) -> str:
     groups = ["- [x] Task Group 1: Edge separators", "  - [x] 1.1 check_edges.py", "  - [x] 1.2 trim in slugify", "  - [x] 1.3 edge checks pass"]
     groups += ["- [x] Task Group 2: Separator option", "  - [x] 2.1 check_sep.py", "  - [x] 2.2 sep argument", "  - [x] 2.3 separator checks pass"]
     if review:
@@ -491,11 +498,16 @@ def report_md(*, failures: bool = False, review: bool = False, warned: bool = Fa
         groups[6] = "  - ⚠️ 2.2 sep argument (see below)"
     issues = "- ⚠️ 2.2: the spot check found the README still documents slugify without sep; left marked, not fixed in PHASE 3" if warned else "None"
     if warned_test:
-        groups[7] = "  - ⚠️ 2.3 separator checks pass, an existing test does not (see below)"
-        issues = "- ⚠️ 2.3: an existing test of slugify still fails after two attempts in PHASE 2 and one more in PHASE 3; left marked"
-    status = "⚠️ Passed with Issues" if (failures or warned or warned_test or slug_failure) else "✅ Passed"
+        groups[7] = "  - ⚠️ 2.3 " + ("the separator check does not pass (see below)" if own_failure else "separator checks pass, an existing test does not (see below)")
+        issues = "- ⚠️ 2.3: " + ("checks/check_sep.py" if own_failure else "an existing test of slugify") + " still fails after two attempts in PHASE 2 and one more in PHASE 3; left marked"
+    status = "❌ Failed" if own_failure else "⚠️ Passed with Issues" if (failures or warned or warned_test or slug_failure) else "✅ Passed"
     t_status = "⚠️ Issues Found" if (warned or warned_test) else "✅ All Complete"
-    if slug_failure:
+    if own_failure:
+        summary = ["- **Total Tests:** 9", "- **Passing:** 9", "- **Failing:** 0", "- **Errors:** 0"]
+        failed = ["- checks/check_sep.py - AssertionError: a custom separator is left at the end of the slug (the check written for task 2.1)"]
+        notes = "The whole suite (tests/test_slug.py, tests/test_wrap.py) passes; the check script written for this change does not."
+        s_status = "❌ Critical Failures"
+    elif slug_failure:
         summary = ["- **Total Tests:** 9", "- **Passing:** 8", "- **Failing:** 1", "- **Errors:** 0"]
         failed = [f"- {slug_failure[0]} - {slug_failure[1]}"]
         notes = (
@@ -530,9 +542,9 @@ def report_md(*, failures: bool = False, review: bool = False, warned: bool = Fa
                 "",
                 "## Executive Summary",
                 "",
-                "slugify now trims the separator from both ends and takes a `sep` keyword argument. The check scripts of both "
-                "task groups pass"
-                + ("; the whole suite shows one failure in the tests of slugify." if slug_failure else " and the whole test suite was run once." if not failures else "; the whole suite shows two failures in wrap, outside this change."),
+                "slugify now trims the separator from both ends and takes a `sep` keyword argument. "
+                + ("The check script of task group 1 passes, the one of task group 2 does not" if own_failure else "The check scripts of both task groups pass")
+                + ("; the whole suite passes." if own_failure else "; the whole suite shows one failure in the tests of slugify." if slug_failure else " and the whole test suite was run once." if not failures else "; the whole suite shows two failures in wrap, outside this change."),
                 "",
                 "---",
                 "",
@@ -583,6 +595,8 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     fix = "fix_round" in v
     expected, attempts = "expected_failure" in v, "warn_attempts" in v
     dash = attempts or "tick_failing" in v or "warn_no_attempt" in v  # the group 2 change that fails an existing test
+    own = "script_failing" in v  # the group 2 change that fails the check script written for it
+    sep_fail = _traceback(f"{CHECKS}/check_sep.py", 8, *SEP_FAIL)
     slug = f"{WORKDIR}/textkit/slug.py"
     marked: set[str] = set()
     docs = _docs()
@@ -667,17 +681,29 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         "check_sep.py", False, _traceback(f"{CHECKS}/check_sep.py", 7, 'assert slugify("Hello World", sep="_") == "hello_world"', "TypeError: slugify() got an unexpected keyword argument 'sep'")
     )
     tick("2.1")
-    s.replace(slug, G1_BODY, G2_BROKEN if fix else G2_DASH[0] if dash else G2_BODY)
+    s.replace(slug, G1_BODY, G2_BROKEN if fix else G2_DASH[0] if dash else G2_TRIM[0] if own else G2_BODY)
     tick("2.2")
+    if own:
+        run_check("check_sep.py", False, sep_fail)  # the test written for the change fails because of it
+        for a in (1, 2):  # two attempts: fix the change, run the tests again
+            s.replace(slug, G2_TRIM[a - 1], G2_TRIM[a])
+            run_check("check_sep.py", False, sep_fail)
+        run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")
+        run_existing()
+        mark("2.3")  # not ticked
+        tick("2.0")
     if added:
         # the package docstring describes slugify: no task covers it, so it is added to tasks.md, then done
         last = "    - Run checks/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)"
         s.replace(tasks_path, last, f"{last}\n  - [ ] {ADDED_TASK}")
         s.replace(f"{WORKDIR}/textkit/__init__.py", '"""Small text helpers."""', '"""Small text helpers: slugify(text, sep="-") and wrap."""')
         tick("2.4")
-    run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
-    run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")  # the tests written so far, on the changed code
-    if attempts:
+    if not own:
+        run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
+        run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")  # the tests written so far, on the changed code
+    if own:
+        pass
+    elif attempts:
         run_existing(DASH_TEST)  # an existing test fails because of the change
         for a in (1, 2):  # two attempts: fix the change, run the tests again
             s.replace(slug, G2_DASH[a - 1], G2_DASH[a])
@@ -725,9 +751,15 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         s.replace(slug, G2_DASH[2], G2_DASH[3])
         s.cat(tasks_path, final_tasks)
         run_existing(DASH_TEST)
+    if own:
+        # the check written for the change still fails -- a test of this change, so the change causes it: back to PHASE 2
+        # once; that attempt fails too
+        run_check("check_sep.py", False, sep_fail)
+        s.replace(slug, G2_TRIM[2], G2_TRIM[3])
+        s.cat(tasks_path, final_tasks)
     # the tests of the changed code once more: the tests written, then the suite (small here), which holds the covering module
     run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")
-    run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
+    run_check("check_sep.py", not own, sep_fail, pass_obs="PASS: the separator is the caller's")
     if review:
         run_check("check_review.py", True, pass_obs="PASS: punctuation only gives an empty slug")
     left = DASH_TEST if (attempts or "warn_no_attempt" in v) else EDGE_TEST if expected else None  # the failure the report shows
@@ -738,7 +770,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     if expected:
         # it passes on the unchanged code, so the change causes it; it asserts the behavior the task changes: not fixed
         s.sh(f"cd {WORKDIR} && git stash -q && python -m pytest tests/test_slug.py -q; git stash pop -q", unchanged)
-    s.create(f"{S}/verifications/final-verification.md", report_md(failures=failures, review=review, warned=warn, warned_test=bool(marked), slug_failure=left))
+    s.create(f"{S}/verifications/final-verification.md", report_md(failures=failures, review=review, warned=warn, warned_test=bool(marked), slug_failure=left, own_failure=own))
     s.add(Action("other", "finish"), "Final verification report written.")
 
     run = Run(instance_id=f"selftest/agentos_bugfix/{variant or 'golden'}", steps=s.steps)

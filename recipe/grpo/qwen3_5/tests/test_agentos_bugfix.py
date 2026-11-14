@@ -288,6 +288,21 @@ def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_th
     assert engine.evaluate(rub, run, col).results[last.id].status == "fail"
 
 
+def test_a_failing_check_script_is_a_failing_test_of_the_change():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+
+    # the check written for the change fails through two attempts and the one of PHASE 3: ⚠️, Critical Failures, Failed
+    rub, run, col, rep, res = _scored("script_failing")
+    assert rep.scores.compliance == 1.0
+    assert res["suite_status"].status == "pass" and "check script" in res["suite_status"].detail
+    assert res["code_frozen"].status == "pass" and res["overall_status"].status == "pass" and res["pass_last"].status == "pass"
+    for rule, why in (("_report.suite_status", "has no failure"), ("_verify.code_frozen", "no failing test run before it")):
+        it = next(i for i in rub.items if i.id.endswith(rule))
+        it.check.params.pop("dir")  # agentos_v2's rule: only the test runner's runs count
+        got = engine.evaluate(rub, run, col).results[it.id]
+        assert got.status == "fail" and why in got.detail, (rule, got.detail)
+
+
 def test_golden_run_scores_full_marks():
     from recipe.grpo.qwen3_5.workflow_rubric import engine
     from recipe.grpo.qwen3_5.workflow_rubric import schema as S
