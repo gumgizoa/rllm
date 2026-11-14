@@ -57,7 +57,8 @@ repository prohibitions and the test runs. What they cannot say:
       {rule: code_frozen}  no repository write after that point ("the code change is complete before PHASE 3");
                            with ``fix_round: true`` writes are accepted when a failing test run of PHASE 3 precedes
                            them and a test run follows them (one return to PHASE 2), and ``suite_run`` and the
-                           report rules then read the runs after those writes
+                           report rules then read the runs after those writes; with ``dir`` a check script under it
+                           that ran failing in PHASE 3 is such a failing run, and its re-run such a run
       {rule: suite_run}    a valid test run between that point and the report's first write
       {rule: whole_suite}  one of those runs is the whole suite (a runner at the repository root selecting nothing,
                            or only top-level test directories)
@@ -69,7 +70,9 @@ repository prohibitions and the test runs. What they cannot say:
 
       {rule: test_counts}        the Test Summary's Passing / Failing / Errors (and Total) are a PHASE 3 run's counts
       {rule: failed_listed}      every failing test that run names appears in the report (ratio)
-      {rule: suite_status}       the Test Suite Results Status agrees with that run: All Passing only without failures
+      {rule: suite_status}       the Test Suite Results Status agrees with that run: All Passing only without failures;
+                                 with ``dir``, Critical Failures is also right when a check script under it last ran
+                                 failing (a workflow whose documents give that Status to a failing test the agent wrote)
       {rule: tasks_status}       the Tasks Verification Status agrees with tasks.md: All Complete only when every task
                                  is ticked and none is marked ⚠️
       {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None")
@@ -648,12 +651,16 @@ def _prior(ctx: EvalContext, path: str, e) -> str | None:
 def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
     """(step, ``pass`` | ``fail``) of every test result the trace shows, in order: a check script's run whose outcome can
     be read, a valid test run by its counts. Within one step a failure comes last."""
-    out: list[tuple[int, str]] = []
-    if d:
-        for rs in executions(ctx, set(check_scripts(ctx, d))).values():
-            out += [(st, o) for st, o in rs if o in ("pass", "fail")]
+    out = _script_results(ctx, d)
     out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass") for r in ctx.facts.runs if r.valid and r.kind == "test"]
     return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
+
+
+def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
+    """(step, ``pass`` | ``fail``) of every run of a check script under ``d`` whose outcome can be read."""
+    if not d:
+        return []
+    return [(st, o) for rs in executions(ctx, set(check_scripts(ctx, d))).values() for st, o in rs if o in ("pass", "fail")]
 
 
 def _test_subtasks(ts: list[dict]) -> list[dict]:
@@ -983,7 +990,7 @@ def _whole(r, workdir: str | None) -> bool:
     return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
 
 
-@register("agentos_v2.verify", params={"rule": True, "fix_round": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
+@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
 def verify(item: Item, ctx: EvalContext) -> Result:
     """rule: code_frozen | suite_run | whole_suite | phase2_run -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite; a valid test run before it, after the last code change."""
     rule = str((item.check.params or {}).get("rule"))
@@ -1016,6 +1023,12 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         runs = _phase3_runs(ctx)
         failed_before = any(r.step < late[0].step and r.failed + r.errors > 0 for r in runs)
         rerun_after = any(r.step > late[-1].step for r in runs)
+        p = item.check.params or {}
+        w3 = phase3_window(ctx)
+        if p.get("dir") and w3:  # a test the agent wrote is a check script: its failing run sends back as well
+            scripts = [(st, o) for st, o in _script_results(ctx, _expand_dir(ctx, str(p["dir"]))) if refs.in_window(st, w3)]
+            failed_before = failed_before or any(st < late[0].step and o == "fail" for st, o in scripts)
+            rerun_after = rerun_after or any(st > late[-1].step for st, _ in scripts)
         if failed_before and rerun_after:
             return Result.ok(item, f"fix round: a failing run before step {late[0].step}, a run after step {late[-1].step}")
         return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began, " + ("no failing test run before it" if not failed_before else "no test run after it"))
@@ -1053,7 +1066,7 @@ def _status(text: str, section: str) -> str:
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1106,7 +1119,19 @@ def report(item: Item, ctx: EvalContext) -> Result:
             if re.search(r"(?i)all\s+passing", st):
                 return Result.ok(item, "All Passing, no failure") if bad == 0 else Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
             if re.search(r"(?i)some\s+failures|critical\s+failures", st):
-                return Result.ok(item, f"{st[:30]}: {bad} failures / errors") if bad > 0 else Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
+                if bad > 0:
+                    return Result.ok(item, f"{st[:30]}: {bad} failures / errors")
+                if p.get("dir") and re.search(r"(?i)critical\s+failures", st):  # the Status of a failing test the agent wrote
+                    last: dict[str, str] = {}
+                    d = _expand_dir(ctx, str(p["dir"]))
+                    for s_, rs in executions(ctx, set(check_scripts(ctx, d)) if d else set()).items():
+                        known = [o for _, o in rs if o in ("pass", "fail")]
+                        if known:
+                            last[s_] = known[-1]
+                    failing = sorted(posixpath.basename(s_) for s_, o in last.items() if o == "fail")
+                    if failing:
+                        return Result.ok(item, f"{st[:30]}: check script(s) last ran failing: {failing[:3]}")
+                return Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
             return Result.no(item, f"Status {st[:40]!r} is none of the three")
         fails = [r for r in runs if r.failed + r.errors > 0]
         if not fails:
