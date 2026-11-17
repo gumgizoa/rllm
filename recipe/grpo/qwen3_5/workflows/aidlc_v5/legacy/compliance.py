@@ -5,6 +5,12 @@
             frontmatter must be valid, and stages 1 and 5 are capped at band 5 when no real
             test suite ever ran (a baseline never observed cannot have been reported truthfully)
 
+Copied from ``aidlc_v4/reward/compliance.py``, with two readings of ``evidence.py`` in place of the
+rubric's: "a real test suite ran" is ``evidence.ran_real_test`` (Django's runner counts; a lookup that
+names a runner, a runner script the agent wrote and a run on the agent's own test files do not), and
+each artifact's band is ``evidence.stage_band`` (a skeleton copy or an artifact with nothing under its
+frontmatter earns 0, not 2; ``Assumptions: none`` is filled).
+
 The stage bands come from the vendored rubric unchanged, graded on the files read out of the
 sandbox; a stage with no file there scores 0. Stage weights (12/12/12/19/12) do not enter: each
 stage is normalised to its own maximum, so the six signals weigh the same in the mean.
@@ -27,6 +33,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from ..reward import read as EV
 from .rubric import artifacts as A
 from .rubric import facts as F
 from .rubric import score as S
@@ -86,6 +93,10 @@ def compliance(run: Run) -> dict:
     (``os.remove``, a script that clears /tmp) -- a file that no longer exists would still score.
     """
     facts = F.analyse(run)
+    facts["ran_real_test_suite"] = EV.ran_real_test(run)
+    for path, text in run.artifact_files.items():
+        if path in A.ARTIFACT_PATHS:
+            facts["stage_artifact_band"][str(A.ARTIFACT_PATHS[path])] = EV.stage_band(A.ARTIFACT_PATHS[path], text)
     present = {A.ARTIFACT_PATHS[p] for p in run.artifact_files if p in A.ARTIFACT_PATHS}
     facts["stage_artifact_band"] = {k: (v if int(k) in present else 0) for k, v in facts["stage_artifact_band"].items()}
     order = order_v6(facts["aidlc_read_step"], artifact_write_steps(run))

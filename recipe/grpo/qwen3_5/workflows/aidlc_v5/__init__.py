@@ -1,34 +1,28 @@
-"""AI-DLC v5: aidlc_v4 with the rules that the inference-time resolve-drop analysis tied to the
-drop loosened or reverted toward the original AWS AI-DLC (see CHANGES.md in this directory).
+"""AI-DLC v5 for evaluation: aidlc_v4_eval with the rules that the inference-time resolve-drop analysis tied
+to the drop loosened or reverted toward the original AWS AI-DLC (see CHANGES.md in this directory), scored by
+the workflow's atomic rules (``reward/rubric.yaml``) on the common rubric engine.
 
-Changes vs aidlc_v4 (docs/ only, plus one scorer fact):
-  * test files: ADD-only instead of a total ban (new test function in an existing module, or a
-    new module); existing test lines are still never modified or removed
-  * Stage 5 reruns the baseline selection PLUS the test modules covering every changed file
-  * Stage 5 report records the command AND the runner's output line for each run;
-    "Regressions: none" without a recorded run is invalid
-  * Stage 1 does a repository-wide symbol/error-string search and lists referencing files left out
-  * Stage 4 states that a recorded deviation is the normal way a plan is corrected; a file the
-    code points to is opened and checked, not skipped because the plan omitted it
-  * core: the run ends only after Stage 5 (a stage-boundary progress report is not an end);
-    artifacts are written with the file-editing tool, not a shell heredoc
-  * scorer: hygiene penalty keys on ``diff_test_files_modified`` (existing test lines changed),
-    not on any test file being touched
+    docs/, instruction.md, system-prompt.j2
+        aidlc_v4_eval's (= aidlc_v4's) with the v5 document edits (CHANGES.md); instruction.md and
+        system-prompt.j2 are byte-identical to aidlc_v4_eval's
+    reward/
+        the verifier, copied from ``workflows/aidlc_v4_eval/reward`` and moved to the v5 documents: the
+        rule set (``reward/ruleset.yaml``) follows the edited lines, the rules v5 reverses are re-judged
+        (test files: add only; stage 5 also reruns the modules covering the changed files) and the rules
+        v5 adds are new judgments (CHANGES.md, "채점기"). Its headline is ``aidlc/score``, the kind x stage
+        matrix's total (``aidlc/cat/*``, ``aidlc/kind/*``)
+    legacy/
+        the milestone-1 scoring as aidlc_v4_eval keeps it (``aidlc/compliance``, ``aidlc/rubric``), with
+        v5's one scorer edit (the hygiene penalty keys on existing test lines changed, not on a test file
+        touched), for comparison with the v5 evaluations reported before this package became a verifier;
+        reward/ never imports it
 
-AI-DLC: the five-stage workflow (reverse engineering -> build and test), as a ``WorkflowSpec``.
+Do not import from ``aidlc_v4_eval`` here: a change there must not move the numbers measured with this
+package, and the other way round.
 
-    docs/              -> /ai-dlc: core-workflow.md, rule-details/01..05-*.md
-    instruction.md     the pointer joined to the task text ("Follow the workflow defined in
-                       /ai-dlc/core-workflow.md ..."), as in the Harbor runs
-                       (harbor-extension experiments/aidlc/variants/ai-dlc.md)
-    system-prompt.j2   openhands-sdk's system prompt with its procedure section rewritten
-    reward/            compliance scoring: order_v6 + stage bands s1..s5, mean aidlc/compliance
-
-The documents, the instruction and the system prompt are versioned together because the three
-name each other by absolute path (``/ai-dlc/...``) and by what a stage produces (artifacts under
-``/tmp/swe-bench-pro/``); a set copied from elsewhere at run time would let one of them drift
-from the other two. The openhands-sdk template is the SDK 1.42.1 default with its
-``<PROBLEM_SOLVING_WORKFLOW>`` section rewritten; a different ``SDK_VERSION`` needs re-extraction.
+Use it where aidlc_v4_eval would be used (``recipe.workflow.name=aidlc_v5``, ``--agent-kwargs
+workflow=aidlc_v5``, ``rescore_compliance.py --workflow aidlc_v5``). The reward signal (and
+``workflow/compliance`` in a mixed evaluation) is ``aidlc/score``.
 """
 
 from __future__ import annotations
@@ -36,16 +30,18 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..spec import WorkflowSpec
-from .reward.rubric.artifacts import ARTIFACT_DIR
+from .reward.skeleton import ARTIFACT_DIR
 
 HERE = Path(__file__).resolve().parent
 
 
 def _scorer():
-    # Imported on use: a run without the workflow never loads the rubric.
-    from .reward.evaluator import AidlcEvaluation
+    # Imported on use: a run without the workflow never loads the rubric or the checks. The milestone-1
+    # signals (legacy/) ride along as an extra scorer, for comparison with earlier evaluations.
+    from .legacy.score import SCORER as MILESTONE1
+    from .reward.eval import Evaluation
 
-    return AidlcEvaluation()
+    return Evaluation(extra=[MILESTONE1])
 
 
 SPEC = WorkflowSpec(
@@ -55,6 +51,6 @@ SPEC = WorkflowSpec(
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
     scorers={"openhands-sdk": _scorer},
-    reward_signal="aidlc/compliance",
+    reward_signal="aidlc/score",
     output_dirs=(ARTIFACT_DIR,),
 )

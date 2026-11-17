@@ -1,5 +1,8 @@
 # aidlc_v5 — aidlc_v4 대비 변경 내역
 
+- 패키지 기준 (2026-11-17 교체): **aidlc_v4_eval** (평가용 verifier) 에 아래 문서 변경을 얹은 것.
+  처음 만들 때(60ddc546)는 학습용 aidlc_v4 의 채점기(milestone-1 rubric)를 복사했음. 문서·instruction·system prompt 는
+  그대로이므로 에이전트가 보는 것은 같음 (`SPEC.fingerprint` = 11-08~09 평가 3런이 기록한 값). 채점기만 바뀜 → 아래 "채점기" 절
 - 모든 변경의 근거: AI-DLC v4 를 추론 시 붙이면 SWE-bench Verified resolve 가 떨어지는 원인 분석
   (`2026-2_DFM/04-03-02. workflow resolve 하락 원인 분석 - 가설 검증 기록.md` 4.1 · 5.10 · 5.11 · 5.12절)
 - 방침: 원본 AWS AI-DLC (`aidlc-workflows/aidlc-rules/`) 유지.
@@ -18,7 +21,57 @@
 | 6 | 04 "When the Plan Proves Wrong"; core "No stage returns" 뒤 | 계획대로 실행, 이탈은 기록 | 동일 + 이탈은 계획을 고치는 **정상 경로**. 코드·오류·테스트가 가리키는 파일은 열어 확인하고, 필요하면 변경에 추가 | 계획은 그대로 따르되 사용자가 단계마다 변경 요청 가능, 오류 처리에서 이전 단계 복귀 | v4 아래서 편집 후 새 파일 열람 58% → 44%, 빠뜨린 gold 회복률은 ≈10% 그대로 |
 | 7 | core "Execution Context" | — | **런은 Stage 5 뒤에만 끝남**. 단계 경계의 진행 보고는 종료가 아님 | 단계마다 완료 메시지 후 승인 대기 | base 모델이 "Stage 1 complete, proceeding" 을 finish 로 보낸 런 6 → 20 |
 | 8 | core "Artifact Rules" | "한 번의 쓰기로 전체 내용" | 동일 + **파일 편집 도구로 작성, 셸 heredoc 금지** | IDE 파일 도구 전제 | 편집 전 깨진 tool call 84건 중 12건이 tool call 안의 `cat > … <<EOF` 산출물 작성 |
-| 9 | reward/rubric/facts.py, score.py | diff 에 테스트 파일이 있으면 hygiene −8 | 기존 테스트 줄이 바뀌거나 삭제된 경우에만 −8 (`diff_test_files_modified`) | — | 규칙 1 과 채점기를 맞춤 |
+| 9 | legacy/rubric/facts.py, score.py (11-17 전 reward/rubric/) | diff 에 테스트 파일이 있으면 hygiene −8 | 기존 테스트 줄이 바뀌거나 삭제된 경우에만 −8 (`diff_test_files_modified`) | — | 규칙 1 과 채점기를 맞춤 |
+
+## 채점기 (2026-11-17, aidlc_v4_eval 기반으로 교체)
+
+- `reward/`: `aidlc_v4_eval/reward` 를 복사해 v5 문서로 옮김. check kind 이름공간 `aidlc_v4_eval.*` → `aidlc_v5.*`, `aidlc_v4_eval` 을 import 하지 않음.
+  `ruleset.yaml` 은 v5 문서 줄에 맞춤 (바뀐 줄 27개 삭제, 새 줄 54개 배정, 나머지는 `ruleset.py sync` 로 번호만 이동). 헤드라인은 `aidlc/score`
+- `legacy/`: `aidlc_v4_eval/legacy` 에 60ddc546 의 v5 채점기 수정(위 9번)을 얹은 것. `aidlc/compliance`·`aidlc/rubric` 을 함께 냄.
+  `legacy/rubric/` 은 60ddc546 의 `aidlc_v5/reward/rubric/` 과 바이트 단위로 같음 (`tests/test_aidlc_v5.py` 가 해시로 고정)
+- 판정 검증: `tests/test_aidlc_v5.py`. aidlc_v4_eval 의 정직 런 2개를 v5 양식으로 옮긴 런이 모든 판정 1.0. 코드 판정마다 깨는 케이스와 지키는 케이스가 있음 (aidlc_v4_eval 케이스 재사용 + v5 케이스)
+
+- 규모: 문서 줄 389 → 원자 규칙 219 → method 210 → 판정 242 (aidlc_v4_eval: 362 → 195 → 190 → 222)
+- 회귀 확인 (2026-11-17): aidlc_v4_eval snapshot 의 aidlc_v4 런 600개 (swebv100 100 + step24 500, judge 끔) 를 이 채점기로 다시 채점해 셀 단위로 대조.
+  다른 셀은 아래 의도한 변경뿐: B5b@3·4·5 (분모), S4.testcheck@4·S5.final_tests@5 (필드 이름; v4 산출물엔 없음 → 0), F7 15런 (새 테스트 모듈 create 허용), H7 5런 (baseline 선택 밖 stash 실행 허용).
+  v5 가 안 바꾼 판정은 600런 모두 같음
+- 평가 3런 재채점 (judge 끔, `rescore_compliance.py --workflow aidlc_v5`): `aidlc/score` 0.826 / 0.830 / 0.834. 같은 런을 aidlc_v4_eval 로 채점하면 0.837 / 0.841 / 0.846.
+  `aidlc/compliance` (legacy) 0.866 / 0.870 / 0.870. 평가 당시 live 채점기가 episode 에 저장한 값은 0.831 / 0.835 / 0.836 으로 다름:
+  legacy/compliance.py 가 테스트 실행·단계 band 를 reward/read.py 로 읽기 때문 (aidlc_v4_eval/legacy 와 aidlc_v4 의 차이와 같음)
+
+### rubric 변경 (aidlc_v4_eval 대비)
+
+| id | 처리 | 내용 |
+|---|---|---|
+| D13 | 판정 교체 | `rule/r_tests_untouched` → `rule/r_test_lines_kept`: patch 가 테스트 파일의 기존 줄을 지우거나 바꾸면, 또는 trajectory 편집이 기존 줄을 바꿨으면(되돌려도) 0. 추가만 하면 1 |
+| S4.testcheck | 판정 교체 | 필드 `Test files modified` → `Existing test lines modified or removed`. `check/e4_tests_untouched` → `check/e4_test_lines_kept` |
+| H14 | 판정 교체 | `check/e5_test_files_none` → `check/e5_test_lines_none` (05 Final Change 의 `Existing test lines modified or removed: none` 을 같은 기준으로 대조) |
+| S5.final_tests | 판정 교체 | 필드 `Test files in the change` → `Test files with additions`. `check/e5_test_additions` 추가 (적은 목록 = patch 의 테스트 파일) |
+| F7 | 판정 변경 | 테스트 파일을 대상으로 하는 step 은 03 Added Test 모듈이거나 (create) 일 때만 허용 |
+| H7 | 판정 변경 | stash 후 테스트 실행이 baseline 선택(01 Test) 밖 모듈이면 허용 (v5 05 Step 4 가 시키는 분류). 01 Test 가 없으면 예전처럼 모두 위반 |
+| H5b (`check/c15_preexisting_subset`) | 판정 변경 | 01 Failing 에 없는 Pre-existing 항목도 5단계 stash 실행에서 실패로 보이면 인정 |
+| c45 (`check/c45_final_files`) | 판정 변경 | 04 쪽 파일에 Checks `Test files with additions`·`## Added Test` Module 을 포함 (v5 는 추가한 테스트 모듈을 Changed Files 에 적지 않음) |
+| B5d@4 | 판정 변경 | 04 의 모든 `Executed:` 필드가 `no` (Reproduction Script, Added Test) |
+| B5b | 분모 변경 | 03·04·05 skeleton 제목에 `Added Test` 추가 |
+| D4b | 삭제 | v5 가 "Affected Scope 밖 조사 금지" 줄을 지움. 규칙·`atom/D4b` 삭제 |
+| D4c | 제외 사유 변경 | 근거였던 D4b 가 없어져 judge 미질문으로 둠 (예전 judge 에서 56/56 yes) |
+| G4b | 판정 삭제 | v5 가 뒤집음 (테스트 추가 허용). `atom/G4b` 삭제, F10·G10·H18·H2 가 대신함 |
+| G4a | 문구 변경 | "애플리케이션 소스를 수정하고, 테스트 파일에는 추가만" (제외 유지) |
+| D1c | 신설 | 1단계에서 과제 텍스트의 단어로 저장소 전체 검색 (`grep -r` 등, 경로 `.`·`/testbed`·없음) |
+| D1e | 신설 | 그 검색이 찾은 소스 파일이 01 Files 나 `Referencing files left out of scope` 에 있음 (비율) |
+| S1.leftout | 신설 (form) | 01 `Referencing files left out of scope` |
+| F10 | 신설 | 01 Existing Tests 에 테스트 파일이 있으면 03 Added Test 에 Module·Test 를 적음 |
+| S3.at_module, S3.at_test | 신설 (form) | 03 Added Test 필드 |
+| G10 | 신설 | 03 Added Test 모듈을 04 쓰기 전에 편집했고 patch 에 있음 |
+| S4.at_module, S4.at_test, S4.testadds | 신설 (form) | 04 Added Test 필드, Checks `Test files with additions` |
+| H4c | 신설 | 바꾼 소스 파일마다, 그 파일 이름을 딴 테스트 모듈(`test_<stem>.py` 등, 런이 본 것)을 04 뒤 테스트 실행이 대상으로 함 (비율). import 로 덮는 모듈은 못 읽음 |
+| H5c | 신설 | `Regressions: none` 이면 같은 절 Command·Output 이 있고 마지막 편집 뒤 테스트 실행이 있음 |
+| H5d | 신설 | 05 의 두 `Output` 값이 04~05 사이 셸 출력에 그대로 있음 |
+| H8h | 신설 | 01 Failing 에 없는 Pre-existing 항목은 5단계 stash 실행에서 실패로 확인됨 |
+| H18 | 신설 | patch 의 테스트 파일마다 마지막 편집·04 뒤 테스트 러너 실행이 대상으로 함 |
+| S5.routput, S5.output, S5.at_cmd, S5.at_result, S5.final_testlines | 신설 (form) | 05 의 새 필드 |
+| B12 | 신설 | 산출물을 셸 명령(heredoc 등)으로 쓰지 않음 |
+| C3, G11, G12, S4.at_executed | 신설 (제외) | 다른 판정이 덮음: C1a·B1 / B4b (gold 없이 "가리킨 파일이 고쳐야 했는지"는 못 가림) / G7c / B5d@4 |
 
 ## v4 에서 그대로 둔 것 (원본과도 일치)
 
@@ -31,7 +84,7 @@
 
 ## 알려진 공백
 
-- 복사한 채점기는 v4 의 채점 필드만 평가함. 새 절·필드 (`## Added Test`, `Output:`, `Referencing files left out of scope`) 는 미지 항목으로 파싱만 되고 compliance 점수에 반영되지 않음. 이 항목들과 로그 5.10절의 행동 항목 b1~b4 는 아직 구현되지 않음
+- (11-17 해소) 처음 복사한 채점기는 v4 의 채점 필드만 평가했음. 지금 `reward/` 는 v5 의 새 절·필드와 규칙을 판정함 ("채점기" 절). 로그 5.10절의 행동 항목 b1~b4 는 여전히 reward 에 없음
 - `system-prompt.j2` 와 `instruction.md` 는 v4 와 바이트 단위로 동일
 - 평가 3런 (2026-11-08~09, wf-tcx-step27, w/ 각 499과제; 분석 기록 5.13절, 비교표 `rllm-home/eval_results/m2/v5_eval/wf_drop_analysis/out/compare_v4_v5.md`):
   resolve 53.4% (런별 54.5/51.7/54.1) vs v4 w/ 52.8% (51.9/50.9/55.5) vs w/o 59.9% → 회복 없음 (+0.7pp, p = 0.7).
