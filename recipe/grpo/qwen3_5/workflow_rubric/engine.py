@@ -35,6 +35,7 @@ class Report:
     engine_errors: int = 0
     errors: list[str] = field(default_factory=list)
     cache: dict = field(default_factory=dict)  # the checks' shared state (``EvalContext.cache``)
+    collected: Collected | None = None  # what the run left behind, for a workflow's ``post`` hook
 
 
 def _offline_missing(item: Item, ctx: EvalContext) -> str | None:
@@ -107,7 +108,7 @@ def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
         if it.check.kind in SECOND_PASS:
             results[it.id] = evaluate_item(it, ctx, errors)
     scores = aggregate.score(rubric, results, engine_errors=len(errors))
-    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache)
+    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache, collected=collected)
 
 
 def signals(report: Report, prefix: str) -> dict[str, float]:

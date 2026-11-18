@@ -317,3 +317,125 @@ def test_golden_run_scores_full_marks():
         assert not rep.engine_errors, (variant, rep.errors[:2])
         assert rep.scores.compliance >= 0.98, (variant, rep.scores.compliance)
 
+
+
+# --------------------------------------------------------------------------------------------
+# penalty items (reward/penalty.py): the files tasks.md names, the final patch, the reference fix
+# --------------------------------------------------------------------------------------------
+def _diff(*paths, new=()):
+    out = []
+    for p in paths:
+        out.append(f"diff --git a/{p} b/{p}\n" + ("new file mode 100644\n" if p in new else "") + f"--- a/{p}\n+++ b/{p}\n@@ -1 +1 @@\n-x\n+y\n")
+    return "".join(out)
+
+
+def _penalty(variant, tmp_path, patch, gold=None):
+    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``."""
+    from types import SimpleNamespace
+
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
+
+    rub, run, col, _rep, _res = _scored(variant)
+    if gold is not None:
+        (tmp_path / "solution").mkdir(exist_ok=True)
+        (tmp_path / "solution" / "gold.patch").write_text(gold, encoding="utf-8")
+    col.inputs = penalty.inputs(SimpleNamespace(id="t", task_dir=str(tmp_path), metadata={}), SimpleNamespace(artifacts={"patch": patch}))
+    got = penalty.post(engine.evaluate(rub, run, col))
+    assert got["penalty_errors"] == 0.0
+    return got, {k.rsplit(".", 1)[1]: v for k, v in got.items() if k.startswith(penalty.GROUP + ".")}
+
+
+def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
+    assert got["penalty"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
+    # a task added to tasks.md before its file is edited (implement-tasks PHASE 2) names that file in time
+    got, items = _penalty("added_task", tmp_path, _diff("textkit/slug.py", "textkit/__init__.py"), gold=_diff("textkit/slug.py"))
+    assert got["penalty_named_files"] == 2.0 and got["penalty_named_late"] == 0.0 and set(items.values()) == {1.0}
+
+
+def test_penalty_items_against_the_patch_and_the_reference_fix(tmp_path):
+    # the patch changes a file no task names; the reference fix is covered all the same (more files are fine)
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0} and got["penalty"] == 0.75
+    # the reference fix changes another file: named and changed as planned, but neither covers it
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0, "patch_covers_gold": 0.0} and got["penalty"] == 0.5
+    # tests, the run's scratch scripts and non-source files are on neither side
+    patch = _diff("textkit/slug.py", "tests/test_slug.py", "repro_edges.py", "docs/changes.rst", new=("repro_edges.py",))
+    got, items = _penalty(None, tmp_path, patch, gold=_diff("textkit/slug.py", "docs/changes.rst"))
+    assert set(items.values()) == {1.0} and got["penalty_patch_files"] == 1.0
+    # no code change at all: the named file is not in the patch
+    got, items = _penalty(None, tmp_path, "", gold=_diff("textkit/slug.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 0.0}
+
+
+def test_penalty_without_a_reference_fix_scores_the_two_items_that_need_none(tmp_path):
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty"] == 1.0 and got["penalty_gold_unknown"] == 1.0
+
+
+def test_named_files_are_collected_over_every_version_of_tasks_md():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
+
+    def tasks(*changes):
+        lines = ["#### Task Group 1: Core", "**Dependencies:** None", "", "- [ ] 1.0 Complete the fix", "  - [ ] 1.1 Write 2-8 focused tests for the fix", "    - a check script next to pkg/a.py"]
+        lines += [f"  - [ ] 1.{i} {c}" for i, c in enumerate(changes, 2)]
+        lines += ["  - [ ] 1.9 Ensure the tests of this group pass", "    - Run tests/test_a.py", "", "**Acceptance Criteria:**", "- pkg/z.py behaves"]
+        return "\n".join(lines)
+
+    draft = tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py")
+    # only the change tasks count: not the test tasks' files, not what follows a **Label:** line
+    assert P.names_in(P.change_text(draft), "/testbed", set()) == {"pkg/a.py", "pkg/d.py"}
+    known = {"pkg/a.py", "pkg/b.py", "pkg/d.py"}
+    # b.py is added as a task at step 30: before its first edit it is a named file, after it it is not
+    added = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py", "Update the caller in pkg/b.py"))]
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 35}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py", "pkg/b.py"}, set())
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 25}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py"}, {"pkg/b.py"})
+    # a name removed later stays (d.py: named, never edited), so the plan still differs from the patch
+    removed = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`"))]
+    named, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", known)
+    assert named == {"pkg/a.py", "pkg/d.py"} and not late
+    assert P.judge(named, ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
+    # a bare file name and a dotted module name denote the file; the run's own check script is not a source file
+    text = "- [ ] 1.2 Fix `a.py` (pkg.b.Parser.feed) and rerun check_a.py"
+    assert P.names_in(text, "/testbed", known, frozenset({"check_a.py"})) == {"a.py", "pkg/b.py"}
+    assert P.match("a.py", "pkg/a.py") and not P.match("a.py", "pkg/ba.py")
+
+
+def test_a_run_that_names_no_file_fails_the_three_items_about_named_files():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
+
+    assert P.judge(set(), ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": 0.0, "patch_covers_gold": 1.0}
+    assert P.judge(set(), [], [], None) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": None, "patch_covers_gold": None}
+
+
+def test_penalty_reads_the_reference_fix_of_both_task_layouts_and_never_raises(tmp_path):
+    import json
+    from types import SimpleNamespace
+
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
+
+    gym, bench = tmp_path / "gym", tmp_path / "bench"
+    (gym / "solution").mkdir(parents=True)
+    (gym / "solution" / "gold.patch").write_text(_diff("pkg/a.py"), encoding="utf-8")
+    (bench / "tests").mkdir(parents=True)
+    (bench / "tests" / "config.json").write_text(json.dumps({"patch": _diff("pkg/b.py"), "test_patch": _diff("tests/test_b.py")}), encoding="utf-8")
+    assert P.patch_files(P.gold_patch(SimpleNamespace(task_dir=str(gym))))[0] == ["pkg/a.py"]
+    assert P.patch_files(P.gold_patch(SimpleNamespace(metadata={"task_path": str(bench)})))[0] == ["pkg/b.py"]
+    assert P.gold_patch(SimpleNamespace(metadata={})) is None and P.gold_patch(SimpleNamespace(task_dir=str(tmp_path / "none"))) is None
+    # a failure is a full penalty, not a missing signal and not an exception (which would zero compliance with it)
+    assert P.post(SimpleNamespace()) == {"penalty": 0.0, "penalty_errors": 1.0}
+
+
+def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
+    import pickle
+
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward.eval import Evaluation
+
+    ev = pickle.loads(pickle.dumps(Evaluation()))  # the policy travels to the Ray actor that scores
+    assert ev.inputs is penalty.inputs and ev.post is penalty.post
+    assert SPEC.reward_signal == "agentos_bugfix/compliance"
+    assert not any(".penalty." in it.id for it in ev.rubric.items)  # the rubric and its compliance are untouched
