@@ -108,6 +108,21 @@ def parse_run(episode: Any, instance_id: str = "") -> Run:
         raise UnknownHarness(str(e)) from None
 
 
+def _task_workdir(task) -> str | None:
+    """The code root a saved task recorded (``workdir`` in its metadata, or the task dict itself), so an offline
+    replay classifies repository writes and runner targets as the live run did; None when the task does not say."""
+    sources = [getattr(task, "metadata", None), task if isinstance(task, dict) else None]
+    for src in sources:
+        if not isinstance(src, dict):
+            continue
+        w = src.get("workdir")
+        if not w and isinstance(src.get("metadata"), dict):
+            w = src["metadata"].get("workdir")
+        if isinstance(w, str) and w.startswith("/"):
+            return w
+    return None
+
+
 def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, post: Post | None = None) -> dict[str, float]:
     """The engine's signals for one run, the reward signal clamped to [0, 1], plus collection diagnostics
     and what ``post`` derives from the report (never overriding the engine's)."""
@@ -256,6 +271,8 @@ class RubricEvaluation(ComplianceEvaluation):
         collected, extra = data
         if self.inputs is not None:
             collected.inputs = self.inputs(task, episode)
+        if collected.workdir is None:
+            collected.workdir = _task_workdir(task)
         out = rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post)
         for e, (ok, d) in zip(self.extra, extra, strict=True):
             if ok:

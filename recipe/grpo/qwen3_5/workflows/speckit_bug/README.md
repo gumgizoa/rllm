@@ -129,7 +129,10 @@ rollout이 끝나면 sandbox는 사라지고, 아래 두 가지가 episode JSON�
 | `workflow` | 워크플로우 이름과 버전 해시(문서·instruction·system prompt 기준) |
 
 - 준수율 채점기(`reward/rubric.yaml`)가 `speckit_bug/compliance` 등 `speckit_bug/*` 신호를 episode metrics에 남김. 학습 reward에 들어가는 방식은 `recipe.workflow.compliance_reward`가 정함.
-- `speckit_bug/penalty` (2026-11-18 추가): assessment의 **Files likely to change**와 fix.md Changes 표의 합집합이 그 task의 정답 patch 소스 파일(`reward/gold_files.json`, SWE-Gym + SWE-bench Verified, 테스트·문서 제외)을 얼마나 못 짚었는지(1 − recall). log-only 항목 `fix.penalty.gold_files.named`에서 나오며 compliance에는 들어가지 않음. `compliance_reward.penalty_lam` > 0이면 train.py가 실패한 rollout에서 `penalty_lam × D`를 뺌. gold 표에 없는 task면 신호가 없음.
+- `speckit_bug/penalty` (2026-11-18 추가): log-only `*.penalty.*` 항목 세 개의 **평균 score** (1 = 규칙을 전부 지킴; 팀 공통 규약). compliance에는 들어가지 않음. train.py는 `compliance_reward.penalty_weight`(w) > 0이면 `reward = (1 − w) × <mode reward> + w × penalty`로 섞음. 합의된 설정은 mode=mul floor=0.7 w=0.2, 즉 `0.8 × solve × (0.7 + 0.3c) + 0.2 × penalty`. `penalty_gate: unsolved`면 성공 rollout은 penalty = 1로 쳐서 실패 rollout만 갈림. 근거 표 `reward/gold_files.json`(instance_id → `src`: 정답 patch 소스 파일, `tests`: F2P 테스트가 든 기존 테스트 파일; SWE-Gym + SWE-bench Verified).
+  - `fix.penalty.gold_files.named`: assessment **Files likely to change** ∪ fix.md Changes 표가 `src`를 얼마나 덮는지(recall). 표에 없는 task면 not applicable.
+  - `test.penalty.f2p_test_run.after_last_edit`: 마지막 소스 수정 이후 유효한 저장소 테스트 실행이 `tests` 중 하나를 대상으로 했는지. F2P 테스트 파일이 전부 hidden test_patch가 새로 만드는 것이면(약 2~3%) not applicable.
+  - `fix.penalty.scope_consistency.recorded`: 보고서가 실제 변경을 서술하는지. 세 조건(최종 변경 파일이 모두 Changes 표에 있음 / Changes 표의 파일이 모두 실제 변경됨 / Files likely to change 밖을 고쳤으면 Deviations from Assessment가 비어 있지 않음)의 충족 비율. gold를 쓰지 않으며, 같은 check가 compliance 항목 `fix.fix.speckit_bug_scope_consistency.recorded`로도 채점됨(기존 `cross_ref.changes` 대체).
 - 아래 8절의 smoke는 산출물 수집 기능이 들어오기 전에 돌린 것이라, 그 episode들에는 `workflow_outputs`가 없음.
 
 ## 8. smoke에서 관찰된 실제 동작

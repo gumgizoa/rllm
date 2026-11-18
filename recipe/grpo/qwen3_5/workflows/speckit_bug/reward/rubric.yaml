@@ -4248,8 +4248,8 @@ items:
   template: C-F8
   log_only: false
   note: template fix
-- id: speckit_bug.fix.fix.cross_ref.changes
-  scope: common
+- id: speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded
+  scope: specific
   class: content
   stage: fix
   target:
@@ -4257,32 +4257,24 @@ items:
     ref: fix
     state: final
   check:
-    kind: cross_ref
+    kind: speckit_bug.scope_consistency
     params:
-      left:
-        fact:
-          name: repo_write_paths
-          window:
-          - stage_start:fix
-          - write:fix
-          final: true
-      right:
-        ids:
-          artifact: fix
-          section: Changes
-          pattern: (?m)^\|\s*(?:\*\*)?`?([^`|*\s]+)
-          group: 1
-      relation: subset
-      normalize: path
-      allow_empty: true
+      fixes:
+      - fix
+      - fix_2
+      - fix_3
+      assessment: assessment
   requirement: must
-  modality_evidence: FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); anchored on the trace
+  modality_evidence: 'FX:3 ''record the changes in this round''s fix report''; the Changes table (FX:64-66); FX:35 ''Stay within the files
+    listed by the assessment unless ... log the expansion explicitly in the report''; FX:90 Deviations ''Empty if none''. Replaces
+    the cross_ref subset item (2026-11-18): both directions of the Changes table, plus the acknowledged scope expansion'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
   gate: null
   availability:
   - sandbox_file
+  - trace
   sources:
   - doc: FX
     lines:
@@ -4301,11 +4293,62 @@ items:
     - 3
     - 3
     quote: record the changes in this round's fix report
+  - doc: FX
+    lines:
+    - 90
+    - 90
+    quote: Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why.
   impl_refs: []
   derived_by: manual
-  template: C-F11
+  template: ''
   log_only: false
-  note: every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)
+  note: 'share of three conditions: every file of the final change is a Changes row (of fix.md / fix-2.md / fix-3.md); every
+    Changes row is a changed file; a change beyond the assessment''s **Files likely to change** comes with a substantive
+    Deviations from Assessment'
+- id: speckit_bug.fix.penalty.scope_consistency.recorded
+  scope: specific
+  class: content
+  stage: fix
+  target:
+    type: artifact
+    ref: fix
+    state: final
+  check:
+    kind: speckit_bug.scope_consistency
+    params:
+      fixes:
+      - fix
+      - fix_2
+      - fix_3
+      assessment: assessment
+  requirement: must
+  modality_evidence: same rule as speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded; this copy is the penalty (D) side, so an
+    unsolved rollout is still held to it
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  - trace
+  sources:
+  - doc: FX
+    lines:
+    - 64
+    - 66
+    quote: '| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short
+      note> |'
+  - doc: FX
+    lines:
+    - 35
+    - 35
+    quote: Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which
+      case, log the expansion explicitly in the report).
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the ``penalty`` id segment routes it into speckit_bug/penalty; identical check to the compliance item
 - id: speckit_bug.fix.penalty.gold_files.named
   scope: specific
   class: content
@@ -4353,6 +4396,55 @@ items:
   log_only: true
   note: recall of the gold source files among assessment **Files likely to change** ∪ fix Changes table; the ``penalty`` id
     segment routes it into speckit_bug/penalty (post hook), never into compliance; not applicable without a gold entry
+- id: speckit_bug.test.penalty.f2p_test_run.after_last_edit
+  scope: specific
+  class: evidence
+  stage: test
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: speckit_bug.f2p_test_run
+    params: {}
+  requirement: must
+  modality_evidence: 'TS:31/33 run the regression suite / existing test suites for the changed modules; TS:38 ''Running the
+    repository''s tests for the changed modules is ... expected''; FX:41 ''run the tests that exercise the changed paths''.
+    Judged against the task''s hidden test patch (gold_files.json tests), so log-only: a penalty (D) term, not compliance'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: TS
+    lines:
+    - 31
+    - 31
+    quote: Run any broader regression suite that touches the changed files.
+  - doc: TS
+    lines:
+    - 33
+    - 33
+    quote: Existing test suites for the changed modules.
+  - doc: TS
+    lines:
+    - 38
+    - 38
+    quote: Running the repository's tests for the changed modules is neither, and is expected.
+  - doc: FX
+    lines:
+    - 41
+    - 41
+    quote: run the tests that exercise the changed paths
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: a valid repository test run after the last source edit (any stage) targets a file the FAIL_TO_PASS tests live in;
+    not applicable without a gold entry, when those files are all new in the hidden test patch (agent cannot see them), or
+    when nothing was edited; the ``penalty`` id segment routes it into speckit_bug/penalty
 - id: speckit_bug.fix.fix.write_discipline.once
   scope: common
   class: evidence
