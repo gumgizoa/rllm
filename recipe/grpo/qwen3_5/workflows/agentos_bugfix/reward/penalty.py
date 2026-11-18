@@ -22,10 +22,9 @@ The named files
     the run never edited stays -- it is a planned file that was not changed.
 
 The spec folder as a shell variable
-    shape-spec.md has the agent keep the spec folder in ``$SPEC_PATH``, and the trace replay does not follow shell
-    variables: a ``cat > $SPEC_PATH/tasks.md`` is a write it cannot place. So when a tool call uses the variable, the
-    trace is replayed once more with the run's spec folder written out in its place, and tasks.md's versions and the
-    edits are read from that replay.
+    shape-spec.md has the agent keep the spec folder in ``$SPEC_PATH``. The engine replays such a run with the
+    variable's value known (``checks.SHELL_VARS``, ``engine.evaluate``), so a ``cat > $SPEC_PATH/tasks.md`` is a
+    version of tasks.md like any other in the facts this module reads.
 
 A name matches a file when the paths are equal or one is the tail of the other (``slug.py`` matches
 ``textkit/slug.py``). Source files only, on every side: test files, generated files and the scratch scripts a run
@@ -34,17 +33,14 @@ leaves in the repository are not counted.
 
 from __future__ import annotations
 
-import functools
 import json
 import logging
 import posixpath
 import re
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 from ....workflow_rubric import facts as F
-from ....workflow_rubric import schema
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +51,6 @@ _EXT = r"(?:py|pyx|pxd|pxi|pyi|c|cc|cpp|h|hpp|js|jsx|ts|tsx|mjs|cjs|go|rs|java|k
 _SOURCE = re.compile(rf"\.{_EXT}$")
 _PATH = re.compile(rf"(?<![\w/.-])[~./]*(?:[\w.-]+/)*[\w.-]+\.{_EXT}\b")
 _DOTTED = re.compile(r"(?<![\w./-])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+")
-_SPEC_PATH = re.compile(r"\$\{SPEC_PATH\}|\$SPEC_PATH\b")
-_SPEC_NAME = re.compile(r"\$\{DATED_SPEC_NAME\}|\$DATED_SPEC_NAME\b")
 _URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
 _TABLES = re.compile(r"(?:^|/)\w*(?:parse|lex)tab\.py$")  # ply's generated tables
 _SCRATCH = re.compile(r"^(?:test|tests|repro|reproduce|check|verify|debug|demo|tmp|scratch|run|try|example|issue|bug|fix)[_\-.\d]", re.I)
@@ -185,46 +179,6 @@ def names_in(text: str, workdir: str | None, known: set[str], own_scripts: froze
     return out
 
 
-@functools.lru_cache(maxsize=1)
-def _rubric():
-    return schema.load(Path(__file__).with_name("rubric.yaml"))
-
-
-def _spell_out(text: str, spec_dir: str) -> str:
-    return _SPEC_NAME.sub(posixpath.basename(spec_dir), _SPEC_PATH.sub(spec_dir, text))
-
-
-def spec_path_facts(facts: Any, collected: Any, task: Any, episode: Any) -> Any:
-    """``facts``, or the facts of the same trace with the spec folder written out wherever a tool call names it as
-    ``$SPEC_PATH`` / ``$DATED_SPEC_NAME`` (module docstring). ``facts`` itself when no call does, or the folder is unknown."""
-    spec_dir = facts.artifact_paths.get("spec_dir")
-    if not spec_dir or episode is None:
-        return facts
-    used = False
-    trajectories = []
-    for traj in getattr(episode, "trajectories", None) or []:
-        steps = []
-        for step in getattr(traj, "steps", None) or []:
-            msgs = list(getattr(step, "chat_completions", None) or [])
-            last = msgs[-1] if msgs else None
-            if isinstance(last, dict) and last.get("tool_calls"):
-                calls = []
-                for call in last["tool_calls"]:
-                    fn = dict((call or {}).get("function") or {})
-                    args = fn.get("arguments")
-                    if isinstance(args, str) and (_SPEC_PATH.search(args) or _SPEC_NAME.search(args)):
-                        fn["arguments"], used = _spell_out(args, spec_dir), True
-                    calls.append({**(call or {}), "function": fn})
-                msgs[-1] = {**last, "tool_calls": calls}
-            steps.append(SimpleNamespace(chat_completions=msgs))
-        trajectories.append(SimpleNamespace(name=getattr(traj, "name", None), steps=steps))
-    if not used:
-        return facts
-    from ....workflow_rubric.evaluation import parse_run  # imported on use: evaluation imports the engine
-
-    return F.build(_rubric(), parse_run(SimpleNamespace(trajectories=trajectories), str(getattr(task, "id", "") or "")), collected)
-
-
 def versions(facts: Any, collected: Any) -> tuple[list[tuple[int, str]], bool]:
     """(step, text) of every replayable write of tasks.md, in order, and whether a write had to be skipped."""
     path = facts.artifact_paths.get("tasks")
@@ -306,7 +260,6 @@ def measure(facts: Any, collected: Any, task: Any, episode: Any) -> dict[str, fl
     patch = [p for p in patch_all if source_file(p) and not (p in new and scratch(p))]
     gold_text = gold_patch(task)
     gold = [p for p in patch_files(gold_text)[0] if source_file(p)] if gold_text is not None else None
-    facts = spec_path_facts(facts, collected, task, episode)
     edits = first_edits(facts, workdir)
     # the run's own scripts: what it wrote outside the repository (check scripts), and inside it the scratch files the
     # patch adds and the root-level scripts that are gone again by the end

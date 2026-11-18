@@ -96,7 +96,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
-from recipe.grpo.qwen3_5.workflow_rubric.checks import register
+from recipe.grpo.qwen3_5.workflow_rubric.checks import register, register_shell_vars
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.replay import content_at
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
@@ -135,6 +135,24 @@ _PATHLIKE = re.compile(r"(?<![\w@:/.-])((?:\.{0,2}/)?[\w.-]+(?:/[\w.-]+)+/?|[\w-
 _CODE = re.compile(r"`([^`\n]+)`")
 _URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
 _SPEC_DOCS = frozenset({"spec.md", "tasks.md", "requirements.md", "initialization.md", "final-verification.md"})
+
+
+def spec_folder_vars(facts) -> dict[str, str | None]:
+    """shape-spec.md's shell variables for the spec folder (``TODAY``, ``SPEC_NAME``, ``DATED_SPEC_NAME``, ``SPEC_PATH``),
+    read off the folder the run left in the sandbox. The agent's shell keeps them for the whole session; the replay
+    sees one command at a time, so without them ``cat > $SPEC_PATH/tasks.md`` is a write to an unknown path."""
+    spec_dir = (facts.artifact_paths.get("spec_dir") or "").rstrip("/")
+    if not spec_dir:
+        return {}
+    name = posixpath.basename(spec_dir)
+    out: dict[str, str | None] = {"SPEC_PATH": spec_dir, "DATED_SPEC_NAME": name}
+    m = re.fullmatch(rf"({F.DATE_RX})-(.+)", name)
+    if m:
+        out.update(TODAY=m.group(1), SPEC_NAME=m.group(2))
+    return out
+
+
+register_shell_vars("agentos_v2", spec_folder_vars)
 
 
 # --------------------------------------------------------------------------------------------

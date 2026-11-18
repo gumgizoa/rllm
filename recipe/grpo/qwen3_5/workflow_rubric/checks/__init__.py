@@ -13,11 +13,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..context import EvalContext, Result
 from ..schema import Item, Rubric, RubricError
 
 CheckFn = Callable[[Item, EvalContext], Result]
+# facts -> {shell variable: value}: the variables a workflow's documents have the agent keep a folder in, with the
+# value the sandbox shows for this run (None / absent when it is not known)
+ShellVars = Callable[[Any], dict[str, str | None]]
 
 
 @dataclass
@@ -32,6 +36,13 @@ class Kind:
 
 
 REGISTRY: dict[str, Kind] = {}
+# ``Rubric.workflow`` -> its shell variables. Filled, like the plugin kinds, when the workflow's ``reward/checks.py`` is
+# imported; the engine replays a run that uses them with their values known (``engine.evaluate``).
+SHELL_VARS: dict[str, ShellVars] = {}
+
+
+def register_shell_vars(workflow: str, fn: ShellVars) -> None:
+    SHELL_VARS[workflow] = fn
 
 
 def register(name: str, params: dict[str, bool] | None = None, availability: tuple[str, ...] = ("sandbox_file",), common: bool = True, choices: dict[str, tuple[str, ...]] | None = None):

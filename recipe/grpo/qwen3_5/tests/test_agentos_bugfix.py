@@ -439,3 +439,68 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert ev.inputs is penalty.inputs and ev.post is penalty.post
     assert SPEC.reward_signal == "agentos_bugfix/compliance"
     assert not any(".penalty." in it.id for it in ev.rubric.items)  # the rubric and its compliance are untouched
+
+
+def _with_spec_path_variable(run, golden):
+    """``run`` as an agent that follows shape-spec.md's snippet types it: the spec folder kept in ``$SPEC_PATH``."""
+    first = True
+    for st in run.steps:
+        for a in st.actions:
+            if a.kind == "shell" and a.command and golden.S in a.command:
+                lines = a.command.split("\n")
+                lines[0] = lines[0].replace(golden.S, "$SPEC_PATH")  # the command line; a heredoc's body stays as written
+                if first:
+                    lines[0], first = f'TODAY=$(date +%Y-%m-%d); SPEC_PATH="/tmp/agent-os/specs/$TODAY-{golden.NAME}"; ' + lines[0], False
+                a.command = "\n".join(lines)
+    assert not first
+    return run
+
+
+@pytest.mark.parametrize("variant", [None, "heredoc_writes", "sed_ticks", "added_task"])
+def test_a_run_that_keeps_the_spec_folder_in_a_shell_variable_scores_like_one_that_types_the_path(variant):
+    from recipe.grpo.qwen3_5.workflow_rubric import checks, engine
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
+
+    rub, run, col, typed, _res = _scored(variant)
+    tasks = typed.facts.artifact_paths["tasks"]
+    run = _with_spec_path_variable(run, golden)
+    rep = engine.evaluate(rub, run, col)
+    assert not rep.engine_errors and rep.scores.compliance == typed.scores.compliance == 1.0
+    assert [(e.step, e.op, e.content) for e in rep.facts.writes[tasks]] == [(e.step, e.op, e.content) for e in typed.facts.writes[tasks]]
+    assert not shell.KNOWN_VARS.get()  # set for the one evaluation only
+    assert penalty.versions(rep.facts, col) == penalty.versions(typed.facts, col)
+    # without the workflow's variables the replay cannot place those commands, and the honest run loses marks
+    fn = checks.SHELL_VARS.pop(NAME)
+    try:
+        blind = engine.evaluate(rub, run, col)
+    finally:
+        checks.SHELL_VARS[NAME] = fn
+    assert blind.scores.compliance < 0.95
+
+
+def test_shell_variables_known_from_outside_keep_the_shells_own_rules():
+    from recipe.grpo.qwen3_5.workflow_rubric import checks, engine
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward.checks import spec_folder_vars
+
+    assert checks.SHELL_VARS[NAME] is checks.SHELL_VARS["agentos_v2"] is spec_folder_vars
+    rub, run, _col, rep, _res = _scored(None)
+    assert spec_folder_vars(rep.facts) == {"SPEC_PATH": golden.S, "DATED_SPEC_NAME": f"{golden.TODAY}-{golden.NAME}", "TODAY": golden.TODAY, "SPEC_NAME": golden.NAME}
+    assert engine.known_shell_vars(rub, run, rep.facts) == {}  # the golden run types the path: nothing to replay again
+    cmd = "cat > $SPEC_PATH/tasks.md <<EOF\nin ${SPEC_PATH}\nEOF"
+    assert [(o.path, o.variable) for o in shell.write_ops(cmd, "/testbed")] == [("", True)]
+    token = shell.KNOWN_VARS.set({"SPEC_PATH": "/tmp/agent-os/specs/2026-10-16-x"})
+    try:
+        (op,) = shell.write_ops(cmd, "/testbed")
+        assert (op.path, op.variable, op.body) == ("/tmp/agent-os/specs/2026-10-16-x/tasks.md", False, "in /tmp/agent-os/specs/2026-10-16-x\n")
+        # a literal value the command itself gives wins; single quotes and a quoted heredoc are not expanded
+        ops = shell.write_ops("SPEC_PATH=/elsewhere; echo hi > $SPEC_PATH/a.txt; cat > '$SPEC_PATH/lit' <<'E'\n$SPEC_PATH\nE", "/testbed")
+        assert [o.path for o in ops] == ["/elsewhere/a.txt", "/testbed/$SPEC_PATH/lit"] and ops[1].body == "$SPEC_PATH\n"
+        # a value the command line does not show (the snippet's ``$(date ...)``) falls back to the known one
+        (op,) = shell.write_ops('TODAY=$(date +%F); SPEC_PATH="/tmp/agent-os/specs/$TODAY-x"; mkdir -p $SPEC_PATH/planning', "/testbed")
+        assert op.path == "/tmp/agent-os/specs/2026-10-16-x/planning"
+    finally:
+        shell.KNOWN_VARS.reset(token)

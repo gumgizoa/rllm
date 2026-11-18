@@ -27,6 +27,7 @@ substitutions/deletions whose regexes cannot backtrack badly.
 from __future__ import annotations
 
 import ast
+import contextvars
 import functools
 import logging
 import posixpath
@@ -39,6 +40,16 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+
+# Shell variables whose value is known from outside the command line: name -> value. The parser reads one command at a
+# time and starts it with no variables, while the agent's shell keeps them from call to call; a variable a workflow's
+# documents have the agent keep a folder in (``$SPEC_PATH``) is therefore unknown in every later command. The engine
+# sets this for the run it scores (``engine.evaluate``); a variable the command itself gives a literal value keeps that.
+KNOWN_VARS: contextvars.ContextVar[Mapping[str, str] | None] = contextvars.ContextVar("known_shell_vars", default=None)
+
+
+def _known_var(name: str) -> str | None:
+    return (KNOWN_VARS.get() or {}).get(name)
 
 HOME = "/root"
 MAX_DEPTH = 3  # nested `bash -c` / executed scripts followed
@@ -529,6 +540,10 @@ class _Lexer:
     # -- variables -------------------------------------------------------------------------
     def _lookup(self, name: str) -> str | None:
         v = self.st.env.get(name, _MISSING)
+        if v is _MISSING or v is None:  # never set here, or set to something the command line does not show
+            known = _known_var(name)
+            if known is not None:
+                return known
         if v is _MISSING:
             if name == "HOME":
                 return HOME
@@ -832,6 +847,10 @@ def _expand_heredoc(body: str, env: Mapping[str, str | None], cwd: str | None) -
 
 
 def _env_value(name: str, env: Mapping[str, str | None], cwd: str | None) -> str | None:
+    if env.get(name) is None:
+        known = _known_var(name)
+        if known is not None:
+            return known
     if name in env:
         return env[name]
     return HOME if name == "HOME" else cwd if name == "PWD" else None
