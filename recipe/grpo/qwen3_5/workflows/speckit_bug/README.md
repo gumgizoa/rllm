@@ -128,7 +128,8 @@ rollout이 끝나면 sandbox는 사라지고, 아래 두 가지가 episode JSON�
 | `stray_files` | agent 실행 중 `/tmp`(`/tmp/speckit` 제외)나 `/speckit`에 생기거나 바뀐 파일(이름과 크기만) |
 | `workflow` | 워크플로우 이름과 버전 해시(문서·instruction·system prompt 기준) |
 
-- 지금 reward는 숨겨진 테스트 통과 여부(`is_correct`)뿐임. 이 워크플로우에는 준수율 채점기가 아직 없음.
+- 준수율 채점기(`reward/rubric.yaml`)가 `speckit_bug/compliance` 등 `speckit_bug/*` 신호를 episode metrics에 남김. 학습 reward에 들어가는 방식은 `recipe.workflow.compliance_reward`가 정함.
+- `speckit_bug/penalty` (2026-11-18 추가): assessment의 **Files likely to change**와 fix.md Changes 표의 합집합이 그 task의 정답 patch 소스 파일(`reward/gold_files.json`, SWE-Gym + SWE-bench Verified, 테스트·문서 제외)을 얼마나 못 짚었는지(1 − recall). log-only 항목 `fix.penalty.gold_files.named`에서 나오며 compliance에는 들어가지 않음. `compliance_reward.penalty_lam` > 0이면 train.py가 실패한 rollout에서 `penalty_lam × D`를 뺌. gold 표에 없는 task면 신호가 없음.
 - 아래 8절의 smoke는 산출물 수집 기능이 들어오기 전에 돌린 것이라, 그 episode들에는 `workflow_outputs`가 없음.
 
 ## 8. smoke에서 관찰된 실제 동작

@@ -4306,6 +4306,53 @@ items:
   template: C-F11
   log_only: false
   note: every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)
+- id: speckit_bug.fix.penalty.gold_files.named
+  scope: specific
+  class: content
+  stage: fix
+  target:
+    type: artifact
+    ref: fix
+    state: final
+  check:
+    kind: speckit_bug.gold_files
+    params:
+      assessment: assessment
+      fix: fix
+  requirement: must
+  modality_evidence: 'AS:93 the assessment names the files to change; FX:64-66 the fix report''s Changes table; FX:35 ''Stay within
+    the files listed by the assessment unless newly discovered evidence requires expanding scope''. Judged against the task''s
+    reference fix (gold_files.json), so log-only: a penalty (D) term, not compliance'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  sources:
+  - doc: AS
+    lines:
+    - 93
+    - 93
+    quote: '**Files likely to change**:'
+  - doc: FX
+    lines:
+    - 64
+    - 66
+    quote: '| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short
+      note> |'
+  - doc: FX
+    lines:
+    - 35
+    - 35
+    quote: Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which
+      case, log the expansion explicitly in the report).
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: recall of the gold source files among assessment **Files likely to change** ∪ fix Changes table; the ``penalty`` id
+    segment routes it into speckit_bug/penalty (post hook), never into compliance; not applicable without a gold entry
 - id: speckit_bug.fix.fix.write_discipline.once
   scope: common
   class: evidence

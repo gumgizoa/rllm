@@ -69,6 +69,8 @@ recipe:
       lam: 0.2          # mode=add only
       floor: 0.0        # mode=mul only; the least a solved rollout earns
       weight: 0.3       # mode=wsum only; compliance's share of the reward
+      penalty_lam: 0.0  # any mode; reward -= penalty_lam * (1 - verifier) * D, D the workflow's
+                        # penalty_signal in [0, 1] (speckit_bug/penalty: gold files not named); 0 = off
   train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split

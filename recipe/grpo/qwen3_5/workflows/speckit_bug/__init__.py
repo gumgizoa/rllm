@@ -43,4 +43,5 @@ SPEC = WorkflowSpec(
     output_dirs=("/tmp/speckit",),
     scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
     reward_signal="speckit_bug/compliance",
+    penalty_signal="speckit_bug/penalty",
 )

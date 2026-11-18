@@ -538,29 +538,35 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
         recipe = _recipe(agent, name, reward)
         return train_module._workflow_reward(recipe, train_module.make_agent_flow(recipe, cfg))
 
-    assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
-    assert r(None, {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
-    assert r("aidlc_v4", {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3)
-    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == (("aidlc/compliance",), "add", 0.15, 0.0, 0.3)
-    assert r("aidlc_v4", {"enable": True, "floor": 0.3}) == (("aidlc/compliance",), "mul", 0.2, 0.3, 0.3)
+    off = (None, None, 0.0, 0.0, 0.0, (), 0.0)
+    assert r("aidlc_v4", {"enable": False}) == off
+    assert r(None, {"enable": False}) == off
+    assert r("aidlc_v4", {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3, (), 0.0)
+    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == (("aidlc/compliance",), "add", 0.15, 0.0, 0.3, (), 0.0)
+    assert r("aidlc_v4", {"enable": True, "floor": 0.3}) == (("aidlc/compliance",), "mul", 0.2, 0.3, 0.3, (), 0.0)
+    # The D term needs a workflow with a penalty_signal (speckit_bug has one; aidlc_v4 has none).
+    assert r("speckit_bug", {"enable": True, "penalty_lam": 0.3})[5:] == (("speckit_bug/penalty",), 0.3)
+    assert r(["none", "speckit_bug"], {"enable": True, "penalty_lam": 0.3})[5:] == (("speckit_bug/penalty",), 0.3)
+    with pytest.raises(SystemExit, match="no workflow in .* has a penalty_signal"):
+        r("aidlc_v4", {"enable": True, "penalty_lam": 0.3})
     # No workflow: nothing to fold in, the run trains on the verifier reward (a rewarded variant
     # with workflow.name=null is its own baseline) -- never a startup failure.
-    assert r(None, {"enable": True}) == (None, None, 0.0, 0.0, 0.0)
+    assert r(None, {"enable": True}) == off
     monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
-    assert r(None, {"enable": True}, agent="mini-swe-agent") == (None, None, 0.0, 0.0, 0.0)
+    assert r(None, {"enable": True}, agent="mini-swe-agent") == off
     # A workflow with no scorer for this harness, asked to reward: stop rather than run verifier-only.
     (tmp_path / "README.md").write_text("start here")
     monkeypatch.setitem(workflows.WORKFLOWS, "unscored", workflows.WorkflowSpec(docs_dir=tmp_path, container_dir="/wf", entry_doc="README.md"))
     with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
         r("unscored", {"enable": True})
-    assert r("unscored", {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
+    assert r("unscored", {"enable": False}) == off
     # A mix: none trains on the verifier reward; every other member must have a scorer.
-    assert r(["none", "aidlc_v4"], {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3)
+    assert r(["none", "aidlc_v4"], {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3, (), 0.0)
     with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
         r(["aidlc_v4", "unscored"], {"enable": True})
     # wsum: weight read through; a 'none' route is refused (its missing signal would score as 0).
-    assert r("aidlc_v4", {"enable": True, "mode": "wsum", "weight": 0.3}) == (("aidlc/compliance",), "wsum", 0.2, 0.0, 0.3)
-    assert r(["speckit_bug", "aidlc_v4"], {"enable": True, "mode": "wsum", "weight": 0.25})[1:] == ("wsum", 0.2, 0.0, 0.25)
+    assert r("aidlc_v4", {"enable": True, "mode": "wsum", "weight": 0.3}) == (("aidlc/compliance",), "wsum", 0.2, 0.0, 0.3, (), 0.0)
+    assert r(["speckit_bug", "aidlc_v4"], {"enable": True, "mode": "wsum", "weight": 0.25})[1:5] == ("wsum", 0.2, 0.0, 0.25)
     with pytest.raises(SystemExit, match="mode=wsum cannot train a 'none' route"):
         r(["none", "aidlc_v4"], {"enable": True, "mode": "wsum"})
 

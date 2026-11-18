@@ -556,4 +556,110 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before"]
+# --------------------------------------------------------------------------------------------
+# speckit_bug.gold_files  (log-only penalty item; ``inputs`` / ``post`` hooks beside it)
+# --------------------------------------------------------------------------------------------
+# The task's reference fix (SWE-Gym / SWE-bench gold patch) names the source files that had to
+# change. ``inputs`` looks them up by task id in ``gold_files.json`` (tests, docs and changelogs
+# already dropped); the kind measures how many of them the workflow named -- in the assessment's
+# **Files likely to change** list or the fix report's Changes table -- as a recall in [0, 1].
+# The item is ``log_only``: it never enters ``speckit_bug/compliance``. ``post`` folds every item
+# whose id reads ``speckit_bug.<stage>.penalty.<kind>.<what>`` into ``speckit_bug/penalty`` =
+# 1 - mean(score), the D term train.py subtracts from unsolved rollouts.
+_GOLD_PATH = posixpath.join(posixpath.dirname(__file__), "gold_files.json")
+_GOLD: dict[str, list[str]] | None = None
+_PATH_IN_TEXT = re.compile(r"`([^`\n]+)`")
+_PATHLIKE = re.compile(r"(?<![\w/.-])((?:/|\./)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z][A-Za-z0-9]*)(?![\w/])")
+_PENALTY_SEGMENT = "penalty"
+
+
+def _gold_table() -> dict[str, list[str]]:
+    global _GOLD
+    if _GOLD is None:
+        import json
+
+        try:
+            with open(_GOLD_PATH, encoding="utf-8") as fh:
+                _GOLD = {str(k): [str(x) for x in v] for k, v in json.load(fh).items()}
+        except (OSError, ValueError):
+            _GOLD = {}
+    return _GOLD
+
+
+def _instance_id(task) -> str:
+    """The SWE instance id of ``task``: its ``id`` (``owner__repo-123`` or ``...:0``), else metadata's."""
+    tid = str(getattr(task, "id", "") or "").split(":")[0]
+    if tid:
+        return tid
+    meta = getattr(task, "metadata", None) or {}
+    if isinstance(meta, dict):
+        inner = meta.get("metadata") if isinstance(meta.get("metadata"), dict) else {}
+        return str(meta.get("instance_id") or inner.get("instance_id") or meta.get("task_id") or meta.get("id") or "")
+    return ""
+
+
+def inputs(task, episode) -> dict:
+    """``Collected.inputs``: the task's gold source files (None when the table has no entry)."""
+    return {"gold_files": _gold_table().get(_instance_id(task))}
+
+
+def post(report) -> dict[str, float]:
+    """``speckit_bug/penalty``: 1 - mean score of the scored ``*.penalty.*`` items; absent when none was scored."""
+    scores = []
+    for item_id, r in report.results.items():
+        parts = str(item_id).split(".")
+        if len(parts) > 2 and parts[2] == _PENALTY_SEGMENT and getattr(r, "status", None) in ("pass", "fail"):
+            scores.append(float(getattr(r, "score", 0.0)))
+    return {"penalty": 1.0 - sum(scores) / len(scores)} if scores else {}
+
+
+def _norm_repo_path(p: str, workdir: str | None) -> str:
+    p = p.strip().strip("`'\"").split(":")[0]
+    if workdir and p.startswith(workdir.rstrip("/") + "/"):
+        p = p[len(workdir.rstrip("/")) + 1 :]
+    return p.lstrip("./")
+
+
+def named_files(assessment: str | None, fix: str | None, workdir: str | None = None) -> set[str]:
+    """Repository files the reports name as the change's scope: the assessment's **Files likely to change**
+    list (under Proposed Remediation) and the fix report's Changes table (first cell of each row)."""
+    out: set[str] = set()
+    if assessment:
+        body = _section(assessment, "Proposed Remediation")
+        value = M.field_value(body, "Files likely to change", multiline=True) if body else None
+        for line in (value or "").splitlines():  # ``clean_value`` drops the backticks: one path per list line
+            m = _PATHLIKE.search(M.strip_list_marker(line))
+            if m:
+                out.add(_norm_repo_path(m.group(1), workdir))
+    if fix:
+        body = _section(fix, "Changes")
+        for row in table_rows(body or ""):
+            m = _PATH_IN_TEXT.search(row["check"]) or _PATHLIKE.search(row["check"])
+            if m:
+                out.add(_norm_repo_path(m.group(1), workdir))
+    return {p for p in out if p and not p.startswith("<") and p.lower() != "file"}
+
+
+@register("speckit_bug.gold_files", params={"assessment": False, "fix": False}, availability=("sandbox_file",), common=False)
+def gold_files(item: Item, ctx: EvalContext) -> Result:
+    """Recall of the task's gold source files among the files the reports name (assessment **Files likely to change** ∪ fix Changes table); not applicable without a gold entry."""
+    gold = (ctx.collected.inputs or {}).get("gold_files")
+    if not gold:
+        return Result.not_applicable(item, "no gold files for this task")
+    p = item.check.params or {}
+    assessment = ctx.artifact_text(str(p.get("assessment") or "assessment"), "final")
+    fix = ctx.artifact_text(str(p.get("fix") or "fix"), "final")
+    if assessment is None and fix is None:
+        return Result.no(item, "neither report exists")
+    named = named_files(assessment, fix, ctx.collected.workdir)
+    hit = [g for g in gold if _names(named, g)]
+    return Result.ratio(item, len(hit), len(gold), f"{len(hit)}/{len(gold)} gold files named; named {sorted(named)[:6]}")
+
+
+def _names(named: set[str], gold: str) -> bool:
+    """``gold`` (repository-relative) is among ``named``: equal, or a longer path ending in it -- the reports
+    write ``/testbed/pkg/mod.py`` and the replay knows no workdir to strip."""
+    return any(n == gold or n.endswith("/" + gold) for n in named)
+
+
+__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before", "gold_files", "named_files", "inputs", "post"]

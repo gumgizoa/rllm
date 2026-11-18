@@ -764,6 +764,20 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
       - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
     note: "every repository file this round wrote that is part of the final change is a row of the Changes table (its first cell)"
+  - id: speckit_bug.fix.penalty.gold_files.named
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    log_only: true
+    check: {kind: speckit_bug.gold_files, params: {assessment: assessment, fix: fix}}
+    availability: [sandbox_file]
+    modality_evidence: "AS:93 the assessment names the files to change; FX:64-66 the fix report's Changes table; FX:35 'Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope'. Judged against the task's reference fix (gold_files.json), so log-only: a penalty (D) term, not compliance"
+    sources:
+      - {path: docs/stages/01-assess.md, lines: [93, 93], quote: "**Files likely to change**:"}
+      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
+      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
+    note: "recall of the gold source files among assessment **Files likely to change** ∪ fix Changes table; the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; not applicable without a gold entry"
   - id: speckit_bug.fix.fix.field_type.commands_run
     stage: fix
     target: {type: artifact, ref: fix}
