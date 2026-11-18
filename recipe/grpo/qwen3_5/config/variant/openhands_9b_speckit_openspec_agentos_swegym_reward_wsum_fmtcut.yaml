@@ -1,0 +1,33 @@
+# @package _global_
+#
+# openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut with the reward as a weighted sum
+# instead of the floored product:
+#
+#   reward = 0.7 * verifier + 0.3 * <workflow>/compliance        (floor run: verifier * (0.7 + 0.3 * compliance))
+#
+# What changes against the floor run (wf-floor-tcx, 20261110_090156): an unsolved rollout now earns up
+# to 0.3 for following its workflow (there it stayed 0), so a group in which every rollout fails still
+# has an advantage, ordered by compliance; a solved one earns 0.7..1.0 as before, so every solve still
+# outranks every failure. A rollout whose compliance scoring failed counts as compliance 0
+# (0.7 * verifier; logged as batch/rollout/compliance_missing -- 0 of 6912 in the floor run).
+# Everything else -- speckit_bug / openspec_ff / agentos_v2 mix, the malformed-tool-call cut
+# (rllm.gateway.tool_call_validation=drop + recipe.openhands_end_on_invalid_tool_call), validation
+# pinned to AI-DLC, RLOO without std normalisation, rollout gpu_memory_utilization 0.7 -- is inherited.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_openspec_agentos_swegym_reward_wsum_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=null
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut
+
+recipe:
+  workflow:
+    compliance_reward:
+      enable: true
+      mode: wsum
+      weight: 0.3
+      floor: 0.0   # the inherited 0.7 is mul-only; train.py rejects a floor under any other mode
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-speckit-openspec-agentos-wsum03-fmtcut-topp1

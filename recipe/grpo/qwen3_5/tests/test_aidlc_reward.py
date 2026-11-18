@@ -378,9 +378,9 @@ def _episodes(reason, verifier, compliance_value):
     return [SimpleNamespace(termination_reason=reason, trajectories=[traj], task_id="t", is_correct=verifier > 0, metrics={})], traj
 
 
-def _reward(train_module, reason, verifier, compliance_value, mode, lam=0.2, scale=0.5, floor=0.0):
+def _reward(train_module, reason, verifier, compliance_value, mode, lam=0.2, scale=0.5, floor=0.0, weight=0.3):
     eps, traj = _episodes(reason, verifier, compliance_value)
-    train_module.make_budget_scaled_grouping_hook(scale, mode, lam, "aidlc/compliance", floor)(eps, None)
+    train_module.make_budget_scaled_grouping_hook(scale, mode, lam, "aidlc/compliance", floor, weight)(eps, None)
     return traj.reward
 
 
@@ -414,6 +414,41 @@ def test_hook_add_adds_lam_times_compliance(train_module):
 
     assert _reward(train_module, TR.ENV_DONE, 1.0, 0.5, "add") == pytest.approx(1.1)
     assert _reward(train_module, TR.ENV_DONE, 0.0, 0.5, "add") == pytest.approx(0.1)
+
+
+def test_hook_wsum_is_the_weighted_sum_of_verifier_and_compliance(train_module):
+    from rllm.workflows.workflow import TerminationReason as TR
+
+    def r(verifier, c, reason=TR.ENV_DONE, weight=0.3):
+        return _reward(train_module, reason, verifier, c, "wsum", weight=weight)
+
+    assert r(1.0, 1.0) == pytest.approx(1.0)
+    assert r(1.0, 0.0) == pytest.approx(0.7)  # solved, no compliance: still above any failure
+    assert r(0.0, 1.0) == pytest.approx(0.3)  # unsolved, full compliance: earns the weight
+    assert r(0.0, 0.0) == 0.0
+    assert r(1.0, 0.5) == pytest.approx(0.85)
+    assert r(1.0, 0.5, TR.MAX_TURNS_EXCEEDED) == pytest.approx(0.425)  # budget scale applies last
+    assert r(0.0, 0.5, weight=0.5) == pytest.approx(0.25)
+    with pytest.raises(ValueError, match="weight must be in"):
+        train_module.make_budget_scaled_grouping_hook(0.5, "wsum", 0.2, "aidlc/compliance", 0.0, 1.5)
+    with pytest.raises(ValueError, match="mode=mul only"):
+        train_module.make_budget_scaled_grouping_hook(0.5, "wsum", 0.2, "aidlc/compliance", 0.7)  # floor left over
+
+
+def test_hook_wsum_scores_a_failed_compliance_scoring_as_zero_and_logs_it(train_module):
+    from rllm.workflows.workflow import TerminationReason as TR
+
+    assert _reward(train_module, TR.ENV_DONE, 1.0, None, "wsum") == pytest.approx(0.7)  # not the verifier's 1.0
+    assert _reward(train_module, TR.ENV_DONE, 0.0, None, "wsum") == 0.0
+    scored, _ = _episodes(TR.ENV_DONE, 1.0, 0.9)
+    failed, _ = _episodes(TR.ENV_DONE, 1.0, None)
+    hook = train_module.make_budget_scaled_grouping_hook(1.0, "wsum", 0.2, "aidlc/compliance", 0.0, 0.3)
+    hook(scored + failed, None)
+    assert [e.metrics["rollout/compliance_missing"] for e in scored + failed] == [0.0, 1.0]
+    # The other modes keep the verifier reward for a failed scoring and do not write the metric.
+    eps, _ = _episodes(TR.ENV_DONE, 1.0, None)
+    train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, "aidlc/compliance", 0.7)(eps, None)
+    assert "rollout/compliance_missing" not in eps[0].metrics
 
 
 def test_hook_budget_scale_applies_last(train_module):
@@ -503,26 +538,31 @@ def test_workflow_reward(train_module, tmp_path, monkeypatch):
         recipe = _recipe(agent, name, reward)
         return train_module._workflow_reward(recipe, train_module.make_agent_flow(recipe, cfg))
 
-    assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0, 0.0)
-    assert r(None, {"enable": False}) == (None, None, 0.0, 0.0)
-    assert r("aidlc_v4", {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0)
-    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == (("aidlc/compliance",), "add", 0.15, 0.0)
-    assert r("aidlc_v4", {"enable": True, "floor": 0.3}) == (("aidlc/compliance",), "mul", 0.2, 0.3)
+    assert r("aidlc_v4", {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
+    assert r(None, {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
+    assert r("aidlc_v4", {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3)
+    assert r("aidlc_v4", {"enable": True, "mode": "add", "lam": 0.15}) == (("aidlc/compliance",), "add", 0.15, 0.0, 0.3)
+    assert r("aidlc_v4", {"enable": True, "floor": 0.3}) == (("aidlc/compliance",), "mul", 0.2, 0.3, 0.3)
     # No workflow: nothing to fold in, the run trains on the verifier reward (a rewarded variant
     # with workflow.name=null is its own baseline) -- never a startup failure.
-    assert r(None, {"enable": True}) == (None, None, 0.0, 0.0)
+    assert r(None, {"enable": True}) == (None, None, 0.0, 0.0, 0.0)
     monkeypatch.setattr(train_module, "StepLimitedMiniSweAgent", lambda **kw: SimpleNamespace(**kw))
-    assert r(None, {"enable": True}, agent="mini-swe-agent") == (None, None, 0.0, 0.0)
+    assert r(None, {"enable": True}, agent="mini-swe-agent") == (None, None, 0.0, 0.0, 0.0)
     # A workflow with no scorer for this harness, asked to reward: stop rather than run verifier-only.
     (tmp_path / "README.md").write_text("start here")
     monkeypatch.setitem(workflows.WORKFLOWS, "unscored", workflows.WorkflowSpec(docs_dir=tmp_path, container_dir="/wf", entry_doc="README.md"))
     with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
         r("unscored", {"enable": True})
-    assert r("unscored", {"enable": False}) == (None, None, 0.0, 0.0)
+    assert r("unscored", {"enable": False}) == (None, None, 0.0, 0.0, 0.0)
     # A mix: none trains on the verifier reward; every other member must have a scorer.
-    assert r(["none", "aidlc_v4"], {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0)
+    assert r(["none", "aidlc_v4"], {"enable": True}) == (("aidlc/compliance",), "mul", 0.2, 0.0, 0.3)
     with pytest.raises(SystemExit, match="'unscored' has no compliance scorer"):
         r(["aidlc_v4", "unscored"], {"enable": True})
+    # wsum: weight read through; a 'none' route is refused (its missing signal would score as 0).
+    assert r("aidlc_v4", {"enable": True, "mode": "wsum", "weight": 0.3}) == (("aidlc/compliance",), "wsum", 0.2, 0.0, 0.3)
+    assert r(["speckit_bug", "aidlc_v4"], {"enable": True, "mode": "wsum", "weight": 0.25})[1:] == ("wsum", 0.2, 0.0, 0.25)
+    with pytest.raises(SystemExit, match="mode=wsum cannot train a 'none' route"):
+        r(["none", "aidlc_v4"], {"enable": True, "mode": "wsum"})
 
 
 # --- hide_git_history reaches the caller-built hooks ---------------------------------------

@@ -78,7 +78,7 @@ BUDGET_EXHAUSTED = frozenset(
 )
 
 
-COMPLIANCE_MODES = ("mul", "add")
+COMPLIANCE_MODES = ("mul", "add", "wsum")
 
 
 def make_budget_scaled_grouping_hook(
@@ -87,6 +87,7 @@ def make_budget_scaled_grouping_hook(
     compliance_lam: float = 0.2,
     compliance_signals: str | tuple[str, ...] | None = None,
     compliance_floor: float = 0.0,
+    compliance_weight: float = 0.3,
 ):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
@@ -109,12 +110,24 @@ def make_budget_scaled_grouping_hook(
       pushes against it; a floor keeps every solve above every failure;
     * ``"add"``: ``reward = verifier + lam * compliance`` -- compliance is a bonus
       of at most ``lam``, earned whether or not the task was solved;
+    * ``"wsum"``: ``reward = (1 - weight) * verifier + weight * compliance`` -- a
+      weighted sum in [0, 1]; an unsolved rollout earns up to ``weight`` for
+      following the workflow, a solved one at least ``1 - weight``, so with
+      weight < 0.5 every solve still outranks every failure. RLOO here does not
+      divide by the group std, so this is not ``"add"`` rescaled: the same ratio
+      under ``"add"`` (lam = weight / (1 - weight)) gives advantages 1 / (1 - weight)
+      times larger;
     * ``None``: the verifier reward alone.
 
     The budget scale then applies to the result, so following the workflow
     cannot buy back what running out of turns costs. A trajectory without the
     signal (no workflow scorer, or its scoring failed) keeps the verifier
-    reward alone -- in ``"mul"`` it is not zeroed for a scoring failure.
+    reward alone under ``"mul"`` / ``"add"`` -- in ``"mul"`` it is not zeroed for a
+    scoring failure. Under ``"wsum"`` it counts as compliance 0, i.e.
+    ``(1 - weight) * verifier``, so a rollout the scorer failed on never outranks
+    a scored one; ``rollout/compliance_missing`` (1 on such a rollout, else 0)
+    logs how often that happens. ``_workflow_reward`` refuses ``"wsum"`` with a
+    ``none`` route, whose rollouts carry no signal by design.
 
     One caveat: the trainer runs the same hook over validation episodes, so
     ``val/reward_*`` is scaled -- and carries the compliance term -- too.
@@ -138,22 +151,30 @@ def make_budget_scaled_grouping_hook(
         raise ValueError(f"recipe.workflow.compliance_reward.floor must be in [0, 1], got {compliance_floor}")
     if compliance_mode != "mul" and compliance_floor != 0.0:
         raise ValueError(f"recipe.workflow.compliance_reward.floor applies to mode=mul only, got floor={compliance_floor} with mode={compliance_mode!r}")
+    if not 0.0 <= compliance_weight <= 1.0:
+        raise ValueError(f"recipe.workflow.compliance_reward.weight must be in [0, 1], got {compliance_weight}")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
         for episode in episodes:
             exhausted = episode.termination_reason in BUDGET_EXHAUSTED
+            missing = False
             for trajectory in episode.trajectories:
                 if trajectory.reward is None:
                     continue
                 carried = trajectory.signals or {}
                 c = next((carried[name] for name in signals if name in carried), None) if compliance_mode else None
-                if c is not None:
+                if compliance_mode == "wsum":
+                    missing = missing or c is None
+                    trajectory.reward = (1.0 - compliance_weight) * trajectory.reward + compliance_weight * (0.0 if c is None else float(c))
+                elif c is not None:
                     if compliance_mode == "mul":
                         trajectory.reward = trajectory.reward * (compliance_floor + (1.0 - compliance_floor) * float(c))
                     else:
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
                 if exhausted and scale != 1.0:
                     trajectory.reward = trajectory.reward * scale
+            if compliance_mode == "wsum":
+                episode.metrics["rollout/compliance_missing"] = 1.0 if missing else 0.0
         annotate(episodes)
         return _default_traj_grouping_hook(episodes, transform_config, compact_filtering_config)
 
@@ -226,8 +247,9 @@ def _workflow_names(recipe: DictConfig) -> tuple[tuple[str, ...], str | None]:
         raise SystemExit(f"recipe.workflow.val_name names one workflow, got {list(val)}")
     return pool, (val[0] if val else None)
 
-def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float, float]:
-    """(signals folded into the reward, "mul" / "add", lam for "add", floor for "mul"); ``(None, None, 0.0, 0.0)`` when off.
+def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float, float, float]:
+    """(signals folded into the reward, "mul" / "add" / "wsum", lam for "add", floor for "mul", weight for "wsum");
+    ``(None, None, 0.0, 0.0, 0.0)`` when off.
 
     Scoring itself follows the harness: a workflow with a scorer for it is
     always scored -- and logged as ``<workflow>/*`` episode metrics -- so the
@@ -243,22 +265,35 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
     verifier reward. RLOO here does not divide by the group's std
     (``norm_adv_by_std_in_grpo: false``), so a group's advantages scale with
     its rewards: under ``mul`` a low-compliance workflow's groups pull far less
-    than ``none``'s.
+    than ``none``'s. ``wsum`` refuses a ``none`` route: it scores a missing
+    signal as compliance 0, so ``none``'s solves would all be cut to ``1 - weight``.
     """
     reward = (recipe.get("workflow") or {}).get("compliance_reward") or {}
     if not bool(reward.get("enable", False)):
-        return None, None, 0.0, 0.0
+        return None, None, 0.0, 0.0, 0.0
     routes = agent_flow.routes() if hasattr(agent_flow, "routes") else {}
     flows = {name: flow for name, flow in routes.items() if flow.workflow_spec is not None}
     if not flows:
         logger.warning("recipe.workflow.compliance_reward.enable is set but there is no workflow; training on the verifier reward alone")
-        return None, None, 0.0, 0.0
+        return None, None, 0.0, 0.0, 0.0
     for name, flow in flows.items():
         if flow.workflow_spec.reward_signal is None or flow.evaluation_policy is None:
             raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.harness={flow.name!r}")
+    mode = str(reward.get("mode", "mul"))
     if len(flows) < len(routes):
+        if mode == "wsum":
+            raise SystemExit(
+                "recipe.workflow.compliance_reward.mode=wsum cannot train a 'none' route: its rollouts carry no compliance "
+                f"signal, which wsum scores as 0, cutting every solve to 1 - weight (routes: {sorted(routes)})"
+            )
         logger.warning("recipe.workflow.compliance_reward: the 'none' route trains on the verifier reward alone, beside %s", sorted(flows))
-    return tuple(flow.workflow_spec.reward_signal for flow in flows.values()), str(reward.get("mode", "mul")), float(reward.get("lam", 0.2)), float(reward.get("floor", 0.0))
+    return (
+        tuple(flow.workflow_spec.reward_signal for flow in flows.values()),
+        mode,
+        float(reward.get("lam", 0.2)),
+        float(reward.get("floor", 0.0)),
+        float(reward.get("weight", 0.3)),
+    )
 
 
 def _build_hooks(
@@ -399,7 +434,7 @@ def main(config: DictConfig) -> None:
     agent_flow.configure({"agent_image": agent_image})
     _pin_workflow(val_dataset, _workflow_names(recipe)[1])
     _log_workflow_split(agent_flow, train_dataset, val_dataset)
-    reward_signal, compliance_mode, compliance_lam, compliance_floor = _workflow_reward(recipe, agent_flow)
+    reward_signal, compliance_mode, compliance_lam, compliance_floor, compliance_weight = _workflow_reward(recipe, agent_flow)
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     hooks = _build_hooks(
         agent_flow,
@@ -410,7 +445,7 @@ def main(config: DictConfig) -> None:
         verifier_timeout=OmegaConf.select(config, "rllm.timeouts.verifier"),
     )
     logger.info(
-        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s)",
+        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s weight=%s)",
         type(agent_flow).__name__,
         recipe.agent_step_limit,
         getattr(agent_flow, "workflow", None),
@@ -420,6 +455,7 @@ def main(config: DictConfig) -> None:
         compliance_mode,
         compliance_lam if compliance_mode == "add" else "-",
         compliance_floor if compliance_mode == "mul" else "-",
+        compliance_weight if compliance_mode == "wsum" else "-",
     )
 
     trainer = AgentTrainer(
@@ -437,7 +473,7 @@ def main(config: DictConfig) -> None:
         agent_network=bool(recipe.agent_network),
         verify_network=bool(recipe.verify_network),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal, compliance_floor),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal, compliance_floor, compliance_weight),
     )
     trainer.train()
 

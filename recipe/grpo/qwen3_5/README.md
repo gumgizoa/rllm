@@ -443,8 +443,17 @@ and the reward, with `recipe.workflow.compliance_reward.enable`, folds in the wo
 ```
 reward = verifier * (floor + (1 - floor) * compliance) * budget_reward_scale  # mode: mul (default), floor default 0
 reward = (verifier + lam * compliance) * budget_reward_scale                  # mode: add, lam default 0.2
+reward = ((1 - weight) * verifier + weight * compliance) * budget_reward_scale  # mode: wsum, weight default 0.3
                                                                               # budget scale only when the budget ran out
 ```
+
+`wsum` is a weighted sum in [0, 1]: an unsolved rollout earns up to `weight` for following the
+workflow, a solved one at least `1 - weight` (every solve above every failure while weight < 0.5).
+It is not `add` rescaled: RLOO here does not divide by the group std, so `add` with the same ratio
+(lam = weight / (1 - weight)) has advantages 1 / (1 - weight) times larger. A rollout whose
+compliance scoring failed counts as compliance 0 under `wsum` (`mul` / `add` keep the verifier
+reward), logged as `rollout/compliance_missing`; a mix with a `none` route is refused at startup,
+since its rollouts carry no signal by design.
 
 Under `mul` an unsolved rollout earns 0 however well it followed the workflow, and a solved one
 earns only its compliance: solving is necessary, following the workflow decides how much of the 1
