@@ -150,3 +150,11 @@ Evidence: `AI-DLC/reports/2026-11-12_openspec_ff-지침과-산출물-문제-분�
 | G9-6 | dropped: the Guardrails sentence naming composed code as writing code, and "Varying the issue's example is left to ff and apply" | semantic | user 2026-11-13 | follows G9-5 (rev.) |
 
 Rubric: revised by hand, not regenerated (`reward/rubric.md` header; `rubric.lock` no longer matches). Items dropped: `explore.run.prohibited_action.composed_code`, `archive.run.prohibited_action.repo_write`, `archive.run.openspec_ff_paths_written.tasks_after_verify`. `openspec_ff.verify` `open_tasks_critical` reads the task list as of the report's last write. Golden: `critical_archived` → `critical_fixed`, new `explore_runs_snippet`. No item scores the return itself (how many, whether the fix landed).
+
+## Revision 2026-11-18 (the summary no longer names a tool of one harness)
+
+| ID | Decision | Tag | Decided | Notes |
+|---|---|---|---|---|
+| G2-15 | G2-14's placement sentence → the summary is written in the agent's message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`. `00-explore.md` Ending Discovery; `core-workflow.md` actions-table row and "From Explore to ff" | env | user 2026-11-18 | G2-14 named the `think` tool, which only openhands-sdk has and which the training agent is not given (its tools: terminal, file_editor, finish, task_tracker). In 96 training runs of the last step, 85 wrote no summary, 9 wrote it in a message, 2 in a terminal command. A message next to a tool call exists in every harness and stays in the trajectory (`core-workflow.md` "No One Will Answer") |
+
+Rubric: revised by hand again, not regenerated. `openspec_ff.note` reads a turn's message as well as its tool calls; the summary item, its quotes and the two explore conflicts follow the new sentence. Golden: the summary is the message of explore's last turn (`summary_in_ff_turn`: of the turn that opens `01-ff.md`), so the run is one step shorter; the self-test results in `rubric.yaml` are the re-run ones (golden 1.0, 30 ok / 12 n/a).

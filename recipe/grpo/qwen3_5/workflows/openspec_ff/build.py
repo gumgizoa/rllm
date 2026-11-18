@@ -415,12 +415,12 @@ EXPLORE_EDITS: tuple[Edit, ...] = (
     Edit(
         "explore",
         "When it feels like things are crystallizing, you might summarize:\n",
-        f"When exploration is done, write this summary inside a tool call (the `think` tool, for example) "
-        f"before the tool call that opens `{STAGE_DOCS['ff']}`; a message without a tool call ends the "
+        f"When exploration is done, write this summary in your message, in a turn that also makes a tool call, "
+        f"no later than the turn that opens `{STAGE_DOCS['ff']}`; a message without a tool call ends the "
         "session. Back every entry with its evidence: the `file:line` you read, the command you ran and what "
         "it printed.\n",
         "semantic",
-        "G2-12/G2-11/G2-14: the summary always, with evidence, in a tool call before ff is opened",
+        "G2-12/G2-11/G2-15: the summary always, with evidence, in a message no later than the turn that opens ff",
     ),
     Edit(
         "explore",

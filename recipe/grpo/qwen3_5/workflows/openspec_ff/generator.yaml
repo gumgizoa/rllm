@@ -3,7 +3,7 @@
 # The agent sees docs/ at /opsx -- core-workflow.md (the package author's hand-written definition of the workflow:
 # actions, fixed names, explore before ff, verify and its return to apply, the archive step) and stages/00-explore.md, 01-ff.md,
 # 02-apply.md, 03-verify.md (OpenSpec's explore / ff / apply / verify skills as build.py renders them; explore writes
-# nothing, its one output is a summary in a tool call) -- plus instruction.md and the system prompt. Unlike the other
+# nothing, its one output is a summary in a message) -- plus instruction.md and the system prompt. Unlike the other
 # ports the real `openspec` CLI runs in the sandbox, and what it serves is agent-visible text too: `openspec
 # instructions <artifact> --json` returns each artifact's `instruction` and `template` from the forked schema
 # (sandbox/schemas/spec-driven-sandbox/, installed at /openspec/schemas/spec-driven-sandbox/) and the project
@@ -137,7 +137,7 @@ templates:
 
 # CW:16-24: explore -> ff -> apply -> verify -> archive, each action once, "and explore always comes first" (CW:11-12).
 # Explore writes nothing (CW:62, CW:76, EX:5): it has no artifact, and its one output, the "What We Figured Out"
-# summary, is written inside a tool call before 01-ff.md is opened (CW:62-63, EX:191), so explore is the stage from the
+# summary, is written in a message no later than the turn that opens 01-ff.md (CW:62-63, EX:191), so explore is the stage from the
 # start of the run to the first read of 01-ff.md, and ff (no earlier artifact to start from) begins at that read.
 # "Verify writes /openspec/changes/issue/verify.md. If the report holds a CRITICAL issue, go back to apply, fix what
 # the report names, and run verify again, rewriting `verify.md`. Go back at most twice" (CW:82-86): verify.md is one
@@ -265,7 +265,7 @@ exclude:
   - {statement: "*", kind: openspec_ff.verify, reason: "duplicates the manual open_tasks_critical items, kept at should: both sides are the agent's writing (P6)"}
   - {statement: "*", kind: openspec_ff.no_fetch, reason: "duplicates the manual global no_fetch item (CW:42-44, CONFIG:13), which already names every fetching command"}
   - {statement: "*", kind: doc_read, reason: "the stage documents' reads are manual items, one per stage window"}
-  - {statement: "*", kind: openspec_ff.note, reason: "explore's summary is the manual note item (CW:62-63, EX:189-191, EX:209); the stage documents' other 'announce' / 'display' lines may also go in the message of a turn that makes a tool call, or into an artifact (CW:52-53), which a tool-call note check does not see, and an assumption is recorded only when there is one (EX:35)"}
+  - {statement: "*", kind: openspec_ff.note, reason: "explore's summary is the manual note item (CW:62-63, EX:189-191, EX:209); the stage documents' other 'announce' / 'display' lines may also go in the message of a turn that makes a tool call, or into an artifact (CW:52-53), which no pattern can pin to one place, and an assumption is recorded only when there is one (EX:35)"}
   - {statement: "*", kind: openspec_ff.paths_written, stage: explore, reason: "duplicates the manual explore no-file item (CW:75-76, EX:5), which already covers every path (repository, /tmp, checks/, the workflow configuration)"}
   - {statement: "*", kind: prohibited_action, stage: explore, reason: "duplicates the manual explore no-file item (CW:75-76: a repository edit is a file write)"}
   - {statement: "*", kind: openspec_ff.tasks, reason: "the task-list rules (done_or_reasoned, rerun_after_tick) are manual items (AP:97-98, AP:105, AP:109); the extracted copies repeat done_or_reasoned (cw-011, ap-059, ap-072, schema-114) or read 'Mark the task complete' (ap-047) as a write the done_or_reasoned item already judges"}
@@ -322,8 +322,8 @@ conflicts:
   - description: "Explore calls itself 'a stance, not a workflow' with 'no fixed steps and no required sequence' (EX:7); core-workflow.md gives it a starting command, a required summary before 01-ff.md and no file (CW:20, CW:60-63)"
     sources:
       - {path: docs/stages/00-explore.md, lines: [7, 7], quote: "**This is a stance, not a workflow.** There are no fixed steps and no required sequence. The one required output is the summary under **Ending Discovery**, written when exploration is done."}
-      - {path: docs/core-workflow.md, lines: [20, 20], quote: "| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the \"What We Figured Out\" summary, in a tool call before the ff document is opened |"}
-    resolution: "procedure precedence (core first): the explore stage's items are what core-workflow.md and the document's own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no `openspec new change`; the stance's suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have no item, and reading the project config is should"
+      - {path: docs/core-workflow.md, lines: [20, 20], quote: "| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the \"What We Figured Out\" summary, in a message no later than the turn that opens the ff document |"}
+    resolution: "procedure precedence (core first): the explore stage's items are what core-workflow.md and the document's own required parts fix -- its document read, `openspec list --json`, the summary in a message, no file, no `openspec new change`; the stance's suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have no item, and reading the project config is should"
   - description: "The stance asks questions and lets 'the user' follow what resonates (EX:24-25, EX:40); core-workflow.md says nobody answers and never to ask (CW:48-51)"
     sources:
       - {path: docs/stages/00-explore.md, lines: [35, 35], quote: "A question only the person could answer (intent, priorities, scope the issue leaves open) gets no reply: take the most plausible reading of the issue, mark it as an **assumption** (not as confirmed intent) in your summary, and continue"}
@@ -332,12 +332,12 @@ conflicts:
   - description: "Where explore ends: the documents end it by opening 01-ff.md after the summary (EX:189-191, CW:62-63); a run that never opens 01-ff.md, or reads it ahead, has no other boundary between explore and ff"
     sources:
       - {path: docs/stages/00-explore.md, lines: [189, 189], quote: "Then open `/opsx/stages/01-ff.md` and continue: ff turns what you found into a change."}
-      - {path: docs/core-workflow.md, lines: [62, 63], quote: "written inside a tool call (the `think` tool, for example) before you open `/opsx/stages/01-ff.md`."}
+      - {path: docs/core-workflow.md, lines: [62, 63], quote: "written in your message (in a turn that also makes a tool call) no later than the turn that opens `/opsx/stages/01-ff.md`."}
     resolution: "explore's window runs from the start to the first read of 01-ff.md, ff's from that read to tasks.md (windows: writes; explore has no artifact). A run that writes the change without opening 01-ff.md keeps every write inside explore (its no-file / no-new-change items fail) and has no ff window (ff's document read fails, ff's repository-write item finds nothing to judge); 01-ff.md read ahead (with 00-explore.md at the start) closes explore there, and the order item voids the pair"
-  - description: "The summary goes 'inside a tool call ... before the tool call that opens 01-ff.md' (EX:191); a turn may hold the summary call and the call that opens 01-ff.md together"
+  - description: "The summary goes 'in your message ... no later than the turn that opens 01-ff.md' (EX:191); the turn that opens 01-ff.md may itself carry the summary"
     sources:
-      - {path: docs/stages/00-explore.md, lines: [191, 191], quote: "write this summary inside a tool call (the `think` tool, for example) before the tool call that opens `/opsx/stages/01-ff.md`"}
-    resolution: "the summary item looks in every tool call (a `think` thought, a command as typed, a write's text) of the explore window and of the step that opens 01-ff.md; it needs the 'What We Figured Out' heading with 'The problem' and 'Where the change goes' (EX:189: the two entries that must be stated); the evidence behind each entry and the other entries are prose and have no item"
+      - {path: docs/stages/00-explore.md, lines: [191, 191], quote: "write this summary in your message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`"}
+    resolution: "the summary item looks in the message and in every tool call (a command as typed, a write's text) of the explore window and of the step that opens 01-ff.md; it needs the 'What We Figured Out' heading with 'The problem' and 'Where the change goes' (EX:189: the two entries that must be stated); the evidence behind each entry and the other entries are prose and have no item"
   - description: "The archive: core-workflow.md says to run `openspec archive issue --yes`, which validates, merges the delta specs and moves the change; nothing forbids doing those steps by hand in words, but the step is the command"
     sources:
       - {path: docs/core-workflow.md, lines: [92, 99], quote: "Then run once: ```bash openspec archive issue --yes ``` It validates the change, merges its delta specs into `/openspec/specs/` and moves the change to `/openspec/changes/archive/<date>-issue/`."}
@@ -501,7 +501,7 @@ manual:
       - {path: docs/core-workflow.md, lines: [36, 37], quote: "- From the ff action on, scripts you write to reproduce or check behavior go in `/openspec/changes/issue/checks/`."}
       - {path: sandbox/openspec-config.yaml, lines: [14, 14], quote: "From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/."}
     note: "no .py / .sh written under /tmp (scripts belong under /openspec/changes/issue/checks/)"
-  # ============================================================== explore (no file; the summary in a tool call)
+  # ============================================================== explore (no file; the summary in a message)
   - id: openspec_ff.explore.run.doc_read.ex
     stage: explore
     class: evidence
@@ -566,14 +566,14 @@ manual:
     requirement: must
     check: {kind: openspec_ff.note, params: {patterns: ['(?i)\bwhat\s+we\s+figured\s+out\b', '(?i)\bthe\s+problem\b', '(?i)\bwhere\s+the\s+change\s+goes\b']}}
     availability: [trace]
-    modality_evidence: "imperative (CW:62-63 'What it leaves is the \"What We Figured Out\" summary, written inside a tool call ... before you open `/opsx/stages/01-ff.md`'; EX:191 'write this summary inside a tool call ... before the tool call that opens'; EX:209 'Here the summary is required'; EX:7 'The one required output is the summary'); its two entries that must be stated (EX:189 'can state **The problem** and **Where the change goes**')"
+    modality_evidence: "imperative (CW:62-63 'What it leaves is the \"What We Figured Out\" summary, written in your message ... no later than the turn that opens `/opsx/stages/01-ff.md`'; EX:191 'write this summary in your message ... no later than the turn that opens'; EX:209 'Here the summary is required'; EX:7 'The one required output is the summary'); its two entries that must be stated (EX:189 'can state **The problem** and **Where the change goes**')"
     sources:
-      - {path: docs/core-workflow.md, lines: [61, 63], quote: "It leaves no file. What it leaves is the \"What We Figured Out\" summary, written inside a tool call (the `think` tool, for example) before you open `/opsx/stages/01-ff.md`."}
+      - {path: docs/core-workflow.md, lines: [61, 63], quote: "It leaves no file. What it leaves is the \"What We Figured Out\" summary, written in your message (in a turn that also makes a tool call) no later than the turn that opens `/opsx/stages/01-ff.md`."}
       - {path: docs/stages/00-explore.md, lines: [189, 189], quote: "Exploration is done once the summary below can state **The problem** and **Where the change goes**, each with its evidence; **Open questions** may stay open."}
-      - {path: docs/stages/00-explore.md, lines: [191, 191], quote: "When exploration is done, write this summary inside a tool call (the `think` tool, for example) before the tool call that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session."}
+      - {path: docs/stages/00-explore.md, lines: [191, 191], quote: "When exploration is done, write this summary in your message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session."}
       - {path: docs/stages/00-explore.md, lines: [193, 200], quote: "## What We Figured Out **The problem**: [crystallized understanding, with evidence] **How the area works**: [the code path involved, with evidence] **Where the change goes**: [preferred option and why; alternatives and their tradeoffs]"}
       - {path: docs/stages/00-explore.md, lines: [209, 209], quote: "Here the summary is required"}
-    note: "one tool call in the explore window (or in the turn that opens 01-ff.md) holds the summary: the 'What We Figured Out' heading with its 'The problem' and 'Where the change goes' entries"
+    note: "one turn in the explore window (or the turn that opens 01-ff.md) holds the summary, in its message or in one tool call: the 'What We Figured Out' heading with its 'The problem' and 'Where the change goes' entries"
   - id: openspec_ff.explore.proposal.field_filled.why
     stage: explore
     class: content

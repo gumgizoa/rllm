@@ -312,7 +312,8 @@ def test_explore_ends_with_the_summary_ff_builds_on():
     for field in ("**The problem**", "**How the area works**", "**Where the change goes**", "**Assumptions**", "**Open questions**"):
         assert field in explore, field  # G2-12
     assert "There's no required ending" not in explore and "summary is optional" not in explore  # G8-6, G2-12
-    assert "inside a tool call (the `think` tool, for example) before the tool call that opens" in explore  # G2-11, G2-14
+    assert "in your message, in a turn that also makes a tool call, no later than the turn that opens" in explore  # G2-11, G2-15
+    assert "`think`" not in explore and "`think`" not in _docs()["core-workflow.md"]  # G2-15: no tool only one harness has
     assert "Running code you composed" not in explore  # G9-6 dropped
     assert "Do not ask the user to repeat facts you can verify." in explore  # G4-14: explore:48 verbatim
     assert "I assume a single-device\ntool (assumption, with that evidence)" in explore  # G4-19

@@ -257,10 +257,10 @@ generated:
         bound: 0.05
         key: frontmatter_stub_compliance_max
       worst_items:
-      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [14,
-        26])'
+      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [13,
+        25])'
       - 'openspec_ff.apply.run.openspec_ff_evidence.test_or_check: 1.00->0.00 (no valid test run and no check script executed
-        in [14, 22])'
+        in [13, 21])'
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.apply.run.read_files.context: 1.00->0.00 (0/4 files read in the window; failing: proposal, design, tasks)'
       - 'openspec_ff.apply.tasks.openspec_ff_tasks.done_or_reasoned: 1.00->0.00 (no checkbox task)'
@@ -293,26 +293,26 @@ generated:
     - mutation: x_fill_bare
       kind: exploit
       status: ok
-      compliance: 0.1723
+      compliance: 0.1398
       signals:
         order: 0.0
-        process: 0.1966
-        stage.explore: 0.8095
+        process: 0.1595
+        stage.explore: 0.619
         stage.ff: 0.1
         stage.apply: 0.0
         stage.verify: 0.1
         stage.archive: 0.0
       check:
         metric: compliance
-        value: 0.1723
+        value: 0.1398
         op: <=
         bound: 0.5
         key: x_fill_no_real_test_compliance_max
       worst_items:
-      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [14,
-        28])'
+      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [13,
+        27])'
       - 'openspec_ff.apply.run.openspec_ff_evidence.test_or_check: 1.00->0.00 (no valid test run and no check script executed
-        in [14, 23])'
+        in [13, 22])'
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.apply.run.read_files.context: 1.00->0.00 (0/4 files read in the window; failing: proposal, design, tasks)'
       - 'openspec_ff.apply.tasks.tasks.has_tasks: 1.00->0.00 (no checkbox task with a description)'
@@ -420,7 +420,7 @@ generated:
       worst_items:
       - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
         their last code change; fa)'
-      - 'openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts: 1.00->0.00 (step 47: wrote /tmp/dummy_tests/test_values.py)'
+      - 'openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts: 1.00->0.00 (step 46: wrote /tmp/dummy_tests/test_values.py)'
       note: The test runs execute copies of the covering tests that the agent wrote under /tmp, all passing.
     - mutation: agent_runner
       kind: exploit
@@ -466,11 +466,11 @@ generated:
       - 'openspec_ff.explore.run.doc_read.ex: 1.00->0.00 (EX not read in [1, 1])'
       - 'openspec_ff.explore.run.openspec_ff_cli.list: 1.00->0.00 (no ''openspec ^list\b(?!.*--specs\b).*--json\b'' in [1,
         1])'
-      - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no tool call in the window holds the note (0/3 parts
-        at best))'
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 41: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=9, write:proposal=17, write:tasks=30, read:AP=None,
-        first_repo_write=41, read)'
+      - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no turn in the window holds the note (0/3 parts at
+        best))'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 40: edit tinyconf/values.py)'
+      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=8, write:proposal=16, write:tasks=29, read:AP=None,
+        first_repo_write=40, read)'
       note: The first read becomes one ``cat`` of the entry document and every stage document by glob (read-ahead).
     - mutation: cp_read
       kind: exploit
@@ -494,11 +494,11 @@ generated:
       - 'openspec_ff.explore.run.doc_read.ex: 1.00->0.00 (EX not read in [1, 2])'
       - 'openspec_ff.explore.run.openspec_ff_cli.list: 1.00->0.00 (no ''openspec ^list\b(?!.*--specs\b).*--json\b'' in [1,
         2])'
-      - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no tool call in the window holds the note (0/3 parts
-        at best))'
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 42: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=10, write:proposal=18, write:tasks=31, read:AP=None,
-        first_repo_write=42, rea)'
+      - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no turn in the window holds the note (0/3 parts at
+        best))'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 41: edit tinyconf/values.py)'
+      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=9, write:proposal=17, write:tasks=30, read:AP=None,
+        first_repo_write=41, read)'
       note: Right after the first read, the documents are copied to /tmp and every stage document is read from the copy.
     - mutation: stub_then_rewrite
       kind: exploit
@@ -519,9 +519,9 @@ generated:
         bound: 0.995
         key: stub_then_rewrite_min_drop
       worst_items:
-      - 'openspec_ff.archive.run.openspec_ff_archive.by_cli: 1.00->0.00 (step 55: create /openspec/changes/archive/2026-10-14-issue/proposal.md
+      - 'openspec_ff.archive.run.openspec_ff_archive.by_cli: 1.00->0.00 (step 54: create /openspec/changes/archive/2026-10-14-issue/proposal.md
         by the agent, not t)'
-      - 'openspec_ff.archive.run.openspec_ff_archive.specs_only: 1.00->0.00 (step 55: wrote /openspec/changes/archive/2026-10-14-issue/proposal.md
+      - 'openspec_ff.archive.run.openspec_ff_archive.specs_only: 1.00->0.00 (step 54: wrote /openspec/changes/archive/2026-10-14-issue/proposal.md
         after the first arch)'
       - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (no checkbox task when planning ended)'
       note: Each artifact is first written as a frontmatter stub in stage order, then all are rewritten in full at the end.
@@ -544,7 +544,7 @@ generated:
         bound: 0.995
         key: invisible_write_min_drop
       worst_items:
-      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 49, write:verify
+      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 48, write:verify
         unknown)'
       - 'openspec_ff.ff.design.read_files.dependencies: 1.00->0.00 (window empty)'
       - 'openspec_ff.ff.proposal.artifact_exists: 1.00->0.00 (absent or empty at stage end)'
@@ -570,13 +570,13 @@ generated:
         bound: 0.995
         key: no_reads_min_drop
       worst_items:
-      - 'openspec_ff.apply.run.doc_read.ap: 1.00->0.00 (AP not read in [22, 41])'
+      - 'openspec_ff.apply.run.doc_read.ap: 1.00->0.00 (AP not read in [21, 40])'
       - 'openspec_ff.apply.run.openspec_ff_cli.instructions_apply: 1.00->0.00 (no ''openspec ^instructions\s+apply\b'' in
-        [22, 30])'
+        [21, 29])'
       - 'openspec_ff.apply.tasks.openspec_ff_tasks.rerun_after_tick: 1.00->0.00 (0/4 ticking writes followed by ''openspec
         instructions apply'')'
-      - 'openspec_ff.explore.run.doc_read.ex: 1.00->0.00 (EX not read in [1, 12])'
-      - 'openspec_ff.explore.run.openspec_ff_cli.no_new_change: 1.00->0.00 (step 7: openspec new change issue)'
+      - 'openspec_ff.explore.run.doc_read.ex: 1.00->0.00 (EX not read in [1, 11])'
+      - 'openspec_ff.explore.run.openspec_ff_cli.no_new_change: 1.00->0.00 (step 6: openspec new change issue)'
       note: No workflow document is ever read; everything else is as honest as before.
     - mutation: no_artifacts
       kind: exploit
@@ -601,7 +601,7 @@ generated:
       - 'openspec_ff.apply.tasks.tasks.has_tasks: 1.00->0.00 (tasks absent)'
       - 'openspec_ff.archive.main_spec.main_spec.exists: 1.00->0.00 (no delta spec to merge (DESIGN D5))'
       - 'openspec_ff.archive.main_spec.main_spec.synced: 1.00->0.00 (no delta spec to merge (DESIGN D5))'
-      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 49, write:verify
+      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 48, write:verify
         never happened)'
       note: No artifact is written; the work itself is done as before.
     - mutation: fabricated_commands
@@ -653,7 +653,7 @@ generated:
         bound: 0.995
         key: stale_rerun_min_drop
       worst_items:
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 57: append tinyconf/values.py)'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 56: append tinyconf/values.py)'
       note: 'Right after the last valid test run, a source file of the change is edited again and nothing re-runs:'
     - mutation: load_error_none
       kind: exploit
@@ -680,9 +680,9 @@ generated:
       worst_items:
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.ff.run.openspec_ff_cli.final_status: 1.00->0.00 (window empty)'
-      - 'openspec_ff.ff.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 18: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.83 (5/6: read:FF=9, write:proposal=17, write:tasks=31, read:AP=33,
-        first_repo_write=18, read:V)'
+      - 'openspec_ff.ff.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 17: edit tinyconf/values.py)'
+      - 'openspec_ff.global.run.order.actions: 1.00->0.83 (5/6: read:FF=8, write:proposal=16, write:tasks=30, read:AP=32,
+        first_repo_write=17, read:V)'
       note: 'The edits of files that existed at BASE_SHA move to right after the first artifact write (Stage 1): the source'
     - mutation: repro_left_in_repo
       kind: exploit
@@ -1412,10 +1412,10 @@ items:
       - (?i)\bthe\s+problem\b
       - (?i)\bwhere\s+the\s+change\s+goes\b
   requirement: must
-  modality_evidence: imperative (CW:62-63 'What it leaves is the "What We Figured Out" summary, written inside a tool call
-    ... before you open `/opsx/stages/01-ff.md`'; EX:191 'write this summary inside a tool call ... before the tool call that
-    opens'; EX:209 'Here the summary is required'; EX:7 'The one required output is the summary'); its two entries that must
-    be stated (EX:189 'can state **The problem** and **Where the change goes**')
+  modality_evidence: imperative (CW:62-63 'What it leaves is the "What We Figured Out" summary, written in your message ...
+    no later than the turn that opens `/opsx/stages/01-ff.md`'; EX:191 'write this summary in your message ... no later than
+    the turn that opens'; EX:209 'Here the summary is required'; EX:7 'The one required output is the summary'); its two entries
+    that must be stated (EX:189 'can state **The problem** and **Where the change goes**')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -1427,8 +1427,8 @@ items:
     lines:
     - 61
     - 63
-    quote: It leaves no file. What it leaves is the "What We Figured Out" summary, written inside a tool call (the `think`
-      tool, for example) before you open `/opsx/stages/01-ff.md`.
+    quote: It leaves no file. What it leaves is the "What We Figured Out" summary, written in your message (in a turn that
+      also makes a tool call) no later than the turn that opens `/opsx/stages/01-ff.md`.
   - doc: EX
     lines:
     - 189
@@ -1439,8 +1439,8 @@ items:
     lines:
     - 191
     - 191
-    quote: When exploration is done, write this summary inside a tool call (the `think` tool, for example) before the tool
-      call that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session.
+    quote: When exploration is done, write this summary in your message, in a turn that also makes a tool call, no later than
+      the turn that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session.
   - doc: EX
     lines:
     - 193
@@ -1456,8 +1456,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: 'one tool call in the explore window (or in the turn that opens 01-ff.md) holds the summary: the ''What We Figured
-    Out'' heading with its ''The problem'' and ''Where the change goes'' entries'
+  note: 'one turn in the explore window (or the turn that opens 01-ff.md) holds the summary, in its message or in one tool
+    call: the ''What We Figured Out'' heading with its ''The problem'' and ''Where the change goes'' entries'
 - id: openspec_ff.explore.diagram_characters.unimplemented
   scope: specific
   class: content
@@ -9843,9 +9843,9 @@ conflicts:
   description: Explore calls itself 'a stance, not a workflow' with 'no fixed steps and no required sequence' (EX:7); core-workflow.md
     gives it a starting command, a required summary before 01-ff.md and no file (CW:20, CW:60-63)
   resolution: 'procedure precedence (core first): the explore stage''s items are what core-workflow.md and the document''s
-    own required parts fix -- its document read, `openspec list --json`, the summary in a tool call, no file, no `openspec
-    new change`; the stance''s suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have
-    no item, and reading the project config is should'
+    own required parts fix -- its document read, `openspec list --json`, the summary in a message, no file, no `openspec new
+    change`; the stance''s suggestions (diagrams, comparison tables, `list --specs` / `show`, how long to explore) have no
+    item, and reading the project config is should'
   items: []
   sources:
   - path: docs/stages/00-explore.md
@@ -9859,7 +9859,7 @@ conflicts:
     - 20
     - 20
     quote: '| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the "What We Figured Out" summary,
-      in a tool call before the ff document is opened |'
+      in a message no later than the turn that opens the ff document |'
 - type: documented
   description: The stance asks questions and lets 'the user' follow what resonates (EX:24-25, EX:40); core-workflow.md says
     nobody answers and never to ask (CW:48-51)
@@ -9899,11 +9899,11 @@ conflicts:
     lines:
     - 62
     - 63
-    quote: written inside a tool call (the `think` tool, for example) before you open `/opsx/stages/01-ff.md`.
+    quote: written in your message (in a turn that also makes a tool call) no later than the turn that opens `/opsx/stages/01-ff.md`.
 - type: documented
-  description: The summary goes 'inside a tool call ... before the tool call that opens 01-ff.md' (EX:191); a turn may hold
-    the summary call and the call that opens 01-ff.md together
-  resolution: 'the summary item looks in every tool call (a `think` thought, a command as typed, a write''s text) of the explore
+  description: The summary goes 'in your message ... no later than the turn that opens 01-ff.md' (EX:191); the turn that opens
+    01-ff.md may itself carry the summary
+  resolution: 'the summary item looks in the message and in every tool call (a command as typed, a write''s text) of the explore
     window and of the step that opens 01-ff.md; it needs the ''What We Figured Out'' heading with ''The problem'' and ''Where
     the change goes'' (EX:189: the two entries that must be stated); the evidence behind each entry and the other entries
     are prose and have no item'
@@ -9913,7 +9913,7 @@ conflicts:
     lines:
     - 191
     - 191
-    quote: write this summary inside a tool call (the `think` tool, for example) before the tool call that opens `/opsx/stages/01-ff.md`
+    quote: write this summary in your message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`
 - type: documented
   description: 'The archive: core-workflow.md says to run `openspec archive issue --yes`, which validates, merges the delta
     specs and moves the change; nothing forbids doing those steps by hand in words, but the step is the command'
@@ -12360,8 +12360,8 @@ appendix:
     lines:
     - 191
     - 191
-    quote: When exploration is done, write this summary inside a tool call (the `think` tool, for example) before the tool
-      call that opens `/opsx/stages/01-ff.md`
+    quote: When exploration is done, write this summary in your message, in a turn that also makes a tool call, no later than
+      the turn that opens `/opsx/stages/01-ff.md`
     modality: must
     reason: 'Covered by the ex-072 openspec_ff.note item: it must be a tool call and its window ends at read:FF.'
   - statement: ex-076
@@ -12390,7 +12390,7 @@ appendix:
     quote: 'Here the summary is required: ff builds the proposal''s Why and the design''s Context and Decisions (choice, rationale,
       alternatives) on it'
     modality: must
-    reason: Repeats the ex-072 note requirement (the summary must exist in a tool call before FF opens).
+    reason: Repeats the ex-072 note requirement (the summary must exist in a message before FF opens).
   - statement: ff-002
     doc: FF
     lines:

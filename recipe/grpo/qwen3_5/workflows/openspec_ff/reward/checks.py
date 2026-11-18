@@ -40,8 +40,8 @@ vendored as ``openspec_kinds.py`` (that port is not on this branch) and used as 
   test / scratch file created in the repository, no URL fetched, a refs predicate as a check.
 * ``openspec_ff.paths_written`` -- no file the trace wrote matches ``pattern`` (a script under /tmp: checks belong
   in the change's checks/, core-workflow.md:36-37; any file at all while exploring, core-workflow.md:77-78).
-* ``openspec_ff.note`` -- one tool call in the window (a ``think`` thought, a command as typed, a write's text)
-  holds every regex of ``patterns``: a note the documents ask to be written inside a tool call, such as explore's
+* ``openspec_ff.note`` -- one turn in the window holds every regex of ``patterns``, in its message or in one tool call
+  (a command as typed, a write's text): a note the documents ask to be written in a message, such as explore's
   "What We Figured Out" summary before the call that opens 01-ff.md (00-explore.md:189-191, core-workflow.md:60-63).
   The window's end step counts too, so the note may share the turn that opens the next stage's document.
 
@@ -473,8 +473,9 @@ def paths_written(item: Item, ctx: EvalContext) -> Result:
 
 @register("openspec_ff.note", params={"patterns": True, "window": False}, availability=("trace",), common=False)
 def note(item: Item, ctx: EvalContext) -> Result:
-    """One tool call in the window holds every pattern of ``patterns`` (regexes over the call's own text: a ``think``
-    thought, a command as typed, the text a write puts in a file); the window's end step counts too."""
+    """One turn in the window holds every pattern of ``patterns``, in its message or in one tool call (regexes over
+    the call's own text: a command as typed, the text a write puts in a file, a thought where the harness has a tool
+    for one); the window's end step counts too."""
     p = item.check.params or {}
     w = _window(item, ctx)
     if w is None:
@@ -490,15 +491,17 @@ def note(item: Item, ctx: EvalContext) -> Result:
     for st in ctx.run.steps:
         if st.n < a or (b is not None and st.n > b):
             continue
-        for act in st.actions:
-            text = "\n".join(x for x in (act.text, act.command) if isinstance(x, str) and x)[:MAX_TEXT]
+        texts = [("message", st.message if isinstance(st.message, str) else "")]
+        texts += [(act.name or act.kind, "\n".join(x for x in (act.text, act.command) if isinstance(x, str) and x)) for act in st.actions]
+        for where, text in texts:
+            text = text[:MAX_TEXT]
             if not text:
                 continue
             n = sum(1 for rx in rxs if rx.search(text))
             if n == len(rxs):
-                return Result.ok(item, f"step {st.n}: {act.name or act.kind}")
+                return Result.ok(item, f"step {st.n}: {where}")
             best = max(best, n)
-    return Result.no(item, f"no tool call in the window holds the note ({best}/{len(rxs)} parts at best)")
+    return Result.no(item, f"no turn in the window holds the note ({best}/{len(rxs)} parts at best)")
 
 
 @register("openspec_ff.holds", params={"predicate": True}, availability=("trace", "sandbox_file"), common=False)
