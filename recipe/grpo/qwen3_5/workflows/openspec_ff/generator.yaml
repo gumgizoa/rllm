@@ -1420,6 +1420,73 @@ manual:
       - {path: docs/stages/03-verify.md, lines: [159, 159], quote: "In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check."}
       - {path: docs/stages/03-verify.md, lines: [182, 182], quote: "\"X critical issue(s) found. Fix before archiving.\""}
     note: "a table cell or list item holding only a fill-in mark (x, ..., ?), or the template's 'X critical issue(s)' / 'Y warning(s)' / 'Z suggestion(s)'"
+  # penalty items (reward/penalty.py): what verify.md says against what the run did. log_only -- evaluated and reported,
+  # never part of compliance; their mean is the second score, openspec_ff/penalty. Names: <stage>.penalty.<item>.
+  - id: openspec_ff.verify.penalty.no_run_after_change
+    stage: verify
+    class: evidence
+    requirement: should
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: no_run_after_change}}
+    availability: [trace]
+    log_only: true
+    modality_evidence: "VF:117 'verified by an existing repository test or by a check script under' checks/ and VF:168 'when you last ran it after your final edit' take a run after the last edit for granted; no line orders one: should"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [117, 117], quote: "Check if the scenario is verified by an existing repository test or by a check script under `/openspec/changes/issue/checks/`"}
+      - {path: docs/stages/03-verify.md, lines: [168, 168], quote: "A test or check script that failed when you last ran it after your final edit"}
+    note: "after the last change to the code, a valid repository test run or a check script the run wrote under checks/ was executed"
+  - id: openspec_ff.verify.penalty.false_clean_claim
+    stage: verify
+    class: evidence
+    requirement: must
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: false_clean_claim}}
+    availability: [trace]
+    log_only: true
+    modality_evidence: "VF:185 'If no issues and no checks were skipped: \"All checks passed. Ready for archive.\"'; VF:186 'If any check was skipped ... do not claim readiness'; VF:168 a failed test or check script is CRITICAL"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [185, 185], quote: "If no issues and no checks were skipped: \"All checks passed. Ready for archive.\""}
+      - {path: docs/stages/03-verify.md, lines: [186, 186], quote: "If any check was skipped and there are no CRITICAL issues: do not claim readiness."}
+      - {path: docs/stages/03-verify.md, lines: [168, 168], quote: "A test or check script that failed when you last ran it after your final edit"}
+    note: "the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change)"
+  - id: openspec_ff.verify.penalty.task_count_mismatch
+    stage: verify
+    class: evidence
+    requirement: must
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: task_count_mismatch}}
+    availability: [trace]
+    log_only: true
+    modality_evidence: "imperative (VF:69 'Report complete vs total tasks from `progress`')"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [69, 69], quote: "Report complete vs total tasks from `progress`."}
+    note: "the report's 'X/Y tasks' is what tasks.md held when the report was last written (0 with no report, or a report older than the last code change)"
+  - id: openspec_ff.verify.penalty.critical_missing
+    stage: verify
+    class: evidence
+    requirement: must
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: critical_missing}}
+    availability: [trace]
+    log_only: true
+    modality_evidence: "VF:70-71 'Add CRITICAL issue for each listed incomplete task'; VF:168 a test or check script that failed on its last run is listed under CRITICAL"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [70, 71], quote: "- If `progress.remaining` is greater than 0: - Add CRITICAL issue for each listed incomplete task."}
+      - {path: docs/stages/03-verify.md, lines: [168, 168], quote: "A test or check script that failed when you last ran it after your final edit"}
+    note: "when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL issue (0 with no report, or a report older than the last code change)"
+  - id: openspec_ff.verify.penalty.left_broken
+    stage: verify
+    class: evidence
+    requirement: should
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: left_broken}}
+    availability: [trace]
+    log_only: true
+    modality_evidence: "CW:84-85 'go back to apply, fix what the report names, and run verify again'; VF:189 'fix each CRITICAL item' -- at most twice, then the run may archive with the report as it stands: should"
+    sources:
+      - {path: docs/core-workflow.md, lines: [84, 85], quote: "If the report holds a CRITICAL issue, go back to apply, fix what the report names, and run verify again, rewriting `verify.md`."}
+      - {path: docs/stages/03-verify.md, lines: [189, 189], quote: "if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the apply action (`/opsx/stages/02-apply.md`) and fix each CRITICAL item"}
+    note: "at the end of the run no test or check script stands failed since the last code change (a re-run that leaves the failing test out does not clear it) and tasks.md holds no open task"
   # ============================================================== archive (core-workflow.md, "Archive, Then Finish")
   - id: openspec_ff.archive.run.openspec_ff_archive.after_verify
     stage: archive

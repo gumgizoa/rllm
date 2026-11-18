@@ -260,3 +260,4 @@ explore 단계 추가(2026-10-15)는 맨 아래 "Explore extension" 절. 아래 
 **추가 (2026-11-18)**
 - explore 요약을 쓰는 위치 변경(G2-15, G2-14 대체): `think` tool 예시를 지우고, tool call이 있는 turn의 메시지 본문에 쓰되 `01-ff.md`를 여는 turn보다 늦지 않게 쓰도록 함. `think`는 openhands-sdk에만 있는 tool이고 학습 agent에게는 주어지지 않음. `00-explore.md` Ending Discovery, `core-workflow.md` Actions 표와 "From Explore to ff".
 - rubric은 재생성하지 않고 직접 수정: `openspec_ff.note`가 turn의 메시지 본문도 읽음. 요약 항목의 인용문과 충돌 기록 2건 갱신. golden run은 요약을 explore 마지막 turn의 메시지에 두며 selftest 결과를 다시 돌린 값으로 교체(golden 1.0).
+- penalty 항목 5개 추가(`reward/penalty.py`, rubric 항목 `openspec_ff.verify.penalty.*`, `log_only`): 마지막 코드 수정 뒤 실행이 있는지, verify.md의 Final Assessment·task 수·CRITICAL이 실제와 맞는지, 실패나 열린 task를 남기지 않고 끝냈는지. compliance에는 들어가지 않고, 평균을 두 번째 점수 `openspec_ff/penalty`로 내보냄. 문서는 바꾸지 않음. 값의 방향(지금은 1 = 잘함)과 reward 반영은 workflow별로 모아 따로 정함.

@@ -8446,6 +8446,196 @@ items:
   template: ''
   log_only: false
   note: no majority among 2 samples (kinds ['unimplemented'])
+- id: openspec_ff.verify.penalty.no_run_after_change
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: no_run_after_change
+  requirement: should
+  modality_evidence: 'VF:117 ''verified by an existing repository test or by a check script under'' checks/ and VF:168 ''when
+    you last ran it after your final edit'' take a run after the last edit for granted; no line orders one: should'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 117
+    - 117
+    quote: Check if the scenario is verified by an existing repository test or by a check script under `/openspec/changes/issue/checks/`
+  - doc: VF
+    lines:
+    - 168
+    - 168
+    quote: A test or check script that failed when you last ran it after your final edit
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: after the last change to the code, a valid repository test run or a check script the run wrote under checks/ was executed
+- id: openspec_ff.verify.penalty.false_clean_claim
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: false_clean_claim
+  requirement: must
+  modality_evidence: 'VF:185 ''If no issues and no checks were skipped: "All checks passed. Ready for archive."''; VF:186
+    ''If any check was skipped ... do not claim readiness''; VF:168 a failed test or check script is CRITICAL'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 185
+    - 185
+    quote: 'If no issues and no checks were skipped: "All checks passed. Ready for archive."'
+  - doc: VF
+    lines:
+    - 186
+    - 186
+    quote: 'If any check was skipped and there are no CRITICAL issues: do not claim readiness.'
+  - doc: VF
+    lines:
+    - 168
+    - 168
+    quote: A test or check script that failed when you last ran it after your final edit
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after
+    the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change)
+- id: openspec_ff.verify.penalty.task_count_mismatch
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: task_count_mismatch
+  requirement: must
+  modality_evidence: imperative (VF:69 'Report complete vs total tasks from `progress`')
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 69
+    - 69
+    quote: Report complete vs total tasks from `progress`.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the report's 'X/Y tasks' is what tasks.md held when the report was last written (0 with no report, or a report older
+    than the last code change)
+- id: openspec_ff.verify.penalty.critical_missing
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: critical_missing
+  requirement: must
+  modality_evidence: VF:70-71 'Add CRITICAL issue for each listed incomplete task'; VF:168 a test or check script that failed
+    on its last run is listed under CRITICAL
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 70
+    - 71
+    quote: '- If `progress.remaining` is greater than 0: - Add CRITICAL issue for each listed incomplete task.'
+  - doc: VF
+    lines:
+    - 168
+    - 168
+    quote: A test or check script that failed when you last ran it after your final edit
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL
+    issue (0 with no report, or a report older than the last code change)
+- id: openspec_ff.verify.penalty.left_broken
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: left_broken
+  requirement: should
+  modality_evidence: 'CW:84-85 ''go back to apply, fix what the report names, and run verify again''; VF:189 ''fix each CRITICAL
+    item'' -- at most twice, then the run may archive with the report as it stands: should'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 84
+    - 85
+    quote: If the report holds a CRITICAL issue, go back to apply, fix what the report names, and run verify again, rewriting
+      `verify.md`.
+  - doc: VF
+    lines:
+    - 189
+    - 189
+    quote: if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the apply action (`/opsx/stages/02-apply.md`)
+      and fix each CRITICAL item
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: at the end of the run no test or check script stands failed since the last code change (a re-run that leaves the failing
+    test out does not clear it) and tasks.md holds no open task
 - id: openspec_ff.archive.change.path_match.archived
   scope: common
   class: content

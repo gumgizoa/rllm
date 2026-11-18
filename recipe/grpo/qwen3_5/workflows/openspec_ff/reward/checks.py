@@ -512,3 +512,7 @@ def holds(item: Item, ctx: EvalContext) -> Result:
 
 
 __all__ = ["cli", "archive", "delta", "evidence", "tasks", "verify", "created_files", "no_fetch", "holds", "paths_written", "note", "invocations", "succeeded", "lists_critical", "archive_calls", "open_without_reason"]
+
+# the openspec_ff.penalty kind (the log_only penalty items) lives in penalty.py, which builds on the helpers above;
+# imported last so that loading this module registers every kind the rubric names
+from recipe.grpo.qwen3_5.workflows.openspec_ff.reward import penalty as _penalty  # noqa: E402, F401
