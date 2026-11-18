@@ -40,6 +40,9 @@ And one rule is changed rather than cut:
 * T6 one fix round after verification: upstream's "DO NOT attempt to fix any failing tests" handed the failures to
   the person reading the report. Here nobody reads it, so a failure the change causes (checked against the
   unchanged code with ``git stash``) sends the run back to PHASE 2 once; every other failure is still only noted.
+* T7 the file of each change: create-tasks said "specific and verifiable" and its example's change sub-tasks named
+  no file, so 29% of evaluation runs wrote tasks.md without one. Each change sub-task now names, on its task line,
+  the path of the file it changes (a constraint, and the example's 1.2 / 1.3 lines).
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -93,10 +96,10 @@ _TASKS_EXAMPLE = """\
     - Limit to 2-8 highly focused tests maximum
     - Test only critical behaviors
     - Skip exhaustive coverage of all methods and edge cases
-  - [ ] 1.2 [First change to make]
+  - [ ] 1.2 [First change to make] in [path of the file to change]
     - [details]
     - Reuse pattern from: [existing code if applicable]
-  - [ ] 1.3 [Next change to make]
+  - [ ] 1.3 [Next change to make] in [path of the file to change]
     - [details]
   - [ ] 1.4 Ensure the tests of this group pass
     - Run the 2-8 tests written in 1.1 and the existing tests of the changed code
@@ -141,6 +144,12 @@ Recommended implementation sequence:
 1. [Area of the change] (Task Group 1)
 2. Test Review & Gap Analysis (Task Group 2)
 """
+
+# T7: every change sub-task names its file (the example's 1.2 / 1.3 lines carry the path too).
+_NAME_THE_FILE = (
+    "- **Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in the repository of the file it changes. "
+    "A task added while implementing does the same, and is added before that file is edited.\n"
+)
 
 # T4: which overall Status holds when, stated after the report template.
 _STATUS_RULE = """
@@ -217,6 +226,7 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "  - Test verification should run ONLY the newly written tests, not the entire suite",
          "  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite", "T1: test scope"),
         ("sub", "and ends with running ONLY those tests (final sub-task)", "and ends with running those tests and the existing tests of the changed code (final sub-task)", "T1: test scope"),
+        ("sub", "- **Create tasks that are specific and verifiable**\n", "- **Create tasks that are specific and verifiable**\n" + _NAME_THE_FILE, "T7: a change task names the file it changes"),
     ),
     "std/testing/test-writing": (
         ("span", "- **Write Minimal Tests During Development**", "- **Test Behavior, Not Implementation**", "", "T2: the three lines that hold tests back"),

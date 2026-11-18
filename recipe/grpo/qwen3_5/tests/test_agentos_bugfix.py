@@ -76,6 +76,9 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     # T1: while implementing and at the end, the tests written plus the existing tests of the changed code
     assert "Run the 2-8 tests written in 1.1 and the existing tests of the changed code" in tasks and "running ONLY those tests" not in tasks
     assert "Do NOT run the entire test suite at this stage" in tasks
+    # T7: a change sub-task names the file it changes, in the constraints and on the example's task lines
+    assert "- **Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in the repository of the file it changes." in tasks
+    assert tasks.count(" in [path of the file to change]") == 2 and "1.2 [First change to make] in [path of the file to change]" in tasks
     impl = docs["commands/implement-tasks/implement-tasks.md"]
     assert "## 1. Tasks Verification" in impl and "## 2. Test Suite Results" in impl and "## 3." not in impl
     assert "### Step 2: Run the tests of the changed code" in impl and "### Step 3: Create final verification report" in impl
