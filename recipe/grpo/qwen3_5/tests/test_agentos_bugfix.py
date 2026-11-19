@@ -143,7 +143,7 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
-    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + len(D.ADDED) and len(rub["items"]) >= 150  # + the T4, T1 and T5 items
+    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + len(D.ADDED) + len(D.PENALTY) and len(rub["items"]) >= 150  # + the T4, T1 and T5 items, + the penalty items
     # a template placeholder whose wording changed here is still a placeholder left in
     residue = next(it for it in rub["items"] if it["id"].endswith("shape_spec.requirements.no_template_residue"))
     assert any("task description or the repository" in x.replace("\\", "") for x in residue["check"]["params"]["patterns"])
@@ -345,6 +345,62 @@ def test_golden_run_scores_full_marks():
         assert rep.scores.compliance >= 0.98, (variant, rep.scores.compliance)
 
 
+def test_a_label_keeps_the_list_under_it_across_blank_lines():
+    """``**In Scope:**``, a blank line, then the list: the list is the label's value, as it is without the blank line."""
+    from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
+
+    def value(text, label="In Scope"):
+        return M.field_value(text, label, multiline=True)
+
+    assert value("**In Scope:**\n- a\n- b\n\n**Out of Scope:**\n- c\n") == "a\nb"
+    spaced = "**In Scope:**\n\n- a\n\n- b\n\n**Out of Scope:**\n\n- c\n\n### Next\n\n- d\n"
+    assert value(spaced) == "a\nb" and value(spaced, "Out of Scope") == "c"
+    assert value("- In Scope:\n\n  - a\n\n  - b\n- Out of Scope: none\n") == "a\nb"
+    # nothing under the label is still nothing: the next label, a heading or a paragraph after the blank line is not its value
+    assert value("**In Scope:**\n\n**Out of Scope:**\n\n- c\n") == ""
+    assert value("**In Scope:**\n\n### Next\n- d\n") == ""
+    assert value("**In Scope:**\n\nSome prose here.\n") == ""
+    # a label with a value on its own line, or with prose under it, does not reach past the blank line
+    assert value("**In Scope:** x\n\n- unrelated\n") == "x"
+    assert value("**In Scope:**\nprose\n\n- unrelated\n") == "prose"
+    assert value("**In Scope:**\n\n- a\n\n---\n\n- z\n") == "a"
+
+
+def test_the_self_check_passes_on_the_reformatted_run_and_the_whole_suite_run():
+    import copy
+
+    import yaml
+
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import mutations as MU
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    path = RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"
+    recorded = yaml.safe_load(path.read_text(encoding="utf-8"))["generated"]["selftest"]
+    assert recorded["status"] == "passed" and recorded["failures"] == []
+    assert D.SELFTEST == {"full_suite_rerun_min_drop": MU.SHOULD_DROP}
+    rub = G.with_docs(S.load(path), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    th, _ = G.thresholds_of(rub)
+    run, col = golden.golden(rub)
+    env = MU.Env.build(rub, run)
+    by_name = {m.name: m for m in MU.MUTATIONS}
+
+    def scored(name):
+        rep = engine.evaluate(rub, *by_name[name].fn(copy.deepcopy(run), copy.deepcopy(col), rub, env=env))
+        return rep, G.judge(by_name[name], rep, 1.0, th)
+
+    rep, verdict = scored("honest_reformat")  # bold labels and blank lines: the same content, the same score
+    assert rep.scores.compliance == 1.0 and verdict["ok"]
+    rep, verdict = scored("full_suite_rerun")  # caught by the one should item, at a should item's size
+    item = next(it for it in rub.items if it.id.endswith("prohibited_action.full_suite_phase2"))
+    assert item.requirement == "should" and rep.results[item.id].status == "fail"
+    assert verdict["ok"] and 1.0 - rep.scores.compliance >= MU.SHOULD_DROP
+
+
 
 # --------------------------------------------------------------------------------------------
 # penalty items (reward/penalty.py): the files tasks.md names, the final patch, the reference fix
@@ -356,21 +412,27 @@ def _diff(*paths, new=()):
     return "".join(out)
 
 
-def _penalty(variant, tmp_path, patch, gold=None):
-    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``."""
+def _penalty(variant, tmp_path, patch, gold=None, errors=0, before_scoring=None):
+    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``.
+    ``before_scoring``: called once the golden run is at hand, before it is scored again with the patch."""
     from types import SimpleNamespace
 
-    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import engine, evaluation
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
 
     rub, run, col, _rep, _res = _scored(variant)
+    if before_scoring is not None:
+        before_scoring()
     if gold is not None:
         (tmp_path / "solution").mkdir(exist_ok=True)
         (tmp_path / "solution" / "gold.patch").write_text(gold, encoding="utf-8")
-    col.inputs = penalty.inputs(SimpleNamespace(id="t", task_dir=str(tmp_path), metadata={}), SimpleNamespace(artifacts={"patch": patch}))
-    got = penalty.post(engine.evaluate(rub, run, col))
-    assert got["penalty_errors"] == 0.0
-    return got, {k.rsplit(".", 1)[1]: v for k, v in got.items() if k.startswith(penalty.GROUP + ".")}
+    episode = SimpleNamespace(artifacts={"patch": patch})
+    col.inputs = penalty.inputs(SimpleNamespace(id="t", task_dir=str(tmp_path), metadata={}), episode)
+    col.diff = evaluation._episode_diff(episode)  # what scoring a saved episode puts there: the patch it recorded
+    rep = engine.evaluate(rub, run, col)
+    assert rep.engine_errors == errors, rep.errors
+    got = penalty.post(rep)
+    return got, {k.rsplit(".", 1)[1]: v for k, v in got.items() if k.startswith("global.penalty.plan_files.")}
 
 
 def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
@@ -453,8 +515,9 @@ def test_penalty_reads_the_reference_fix_of_both_task_layouts_and_never_raises(t
     assert P.patch_files(P.gold_patch(SimpleNamespace(task_dir=str(gym))))[0] == ["pkg/a.py"]
     assert P.patch_files(P.gold_patch(SimpleNamespace(metadata={"task_path": str(bench)})))[0] == ["pkg/b.py"]
     assert P.gold_patch(SimpleNamespace(metadata={})) is None and P.gold_patch(SimpleNamespace(task_dir=str(tmp_path / "none"))) is None
-    # a failure is a full penalty, not a missing signal and not an exception (which would zero compliance with it)
-    assert P.post(SimpleNamespace()) == {"penalty": 0.0, "penalty_errors": 1.0}
+    # a report without a penalty item has no penalty signal (a kind that raises is a failed item: the engine's rule,
+    # see test_a_failure_of_the_test_items_leaves_the_file_items_standing)
+    assert P.post(SimpleNamespace(results={}, cache={})) == {}
 
 
 def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
@@ -465,8 +528,11 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
 
     ev = pickle.loads(pickle.dumps(Evaluation()))  # the policy travels to the Ray actor that scores
     assert ev.inputs is penalty.inputs and ev.post is penalty.post
-    assert SPEC.reward_signal == "agentos_bugfix/compliance"
-    assert not any(".penalty." in it.id for it in ev.rubric.items)  # the rubric and its compliance are untouched
+    assert SPEC.reward_signal == "agentos_bugfix/compliance" and SPEC.penalty_signal == "agentos_bugfix/penalty"
+    # the penalty items are rubric items, as in the other workflows -- log_only, so compliance is untouched
+    pen = [it for it in ev.rubric.items if ".penalty." in it.id]
+    assert len(pen) == 11 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
+    assert {it.check.params["rule"] for it in pen} == {*penalty.FILE_RULES, *penalty.TEST_RULES}
 
 
 # --------------------------------------------------------------------------------------------
@@ -479,6 +545,12 @@ def _test_items(tl=None, **kw):
     got = T.judge(tl if tl is not None else T.Timeline(**kw))
     short = lambda name: name.split(".penalty.", 1)[1]  # noqa: E731
     return {short(k): v for k, (v, _) in got.items()}, {short(k): a for k, (_, a) in got.items()}
+
+
+def T_Result(*args):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    return T.Result(*args)
 
 
 def _res(step, passed, *keys, runner=False):
@@ -505,9 +577,20 @@ def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
 
 def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_test_passes_at_its_last_run():
     edited, last = "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"
-    # no failing result: nothing to penalise
+    # the tests ran and none failed: the items' condition did not arise, nothing to penalise
     v, a = _test_items(src=[10], results=[_res(12, True, "/s/a.py")], p2_end=30)
     assert (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (1.0, False)
+    # no test ran after the source change, or no source changed: the run never did what the items are about -- 0.0,
+    # so running no test is not the way to keep an item about failures
+    for kw in (dict(src=[10], p2_end=30), dict(src=[], results=[_res(12, True, "/s/a.py")], p2_end=30)):
+        v, a = _test_items(**kw)
+        assert (v[edited], a[edited]) == (0.0, False) and (v[last], a[last]) == (0.0, False)
+    # a check script that ran with an outcome the trace does not show ran: the items stand outside, worth 1.0
+    v, a = _test_items(src=[10], own_runs=[12], p2_end=30)
+    assert (v[edited], a[edited]) == (1.0, False)
+    # a failed test is not cleared by a later run narrowed below what failed (the rule every workflow shares)
+    narrowed = T_Result(14, True, True, ("tests/unit/test_a.py",), ("-k other",))
+    assert _test_items(src=[10], results=[_res(12, False, "tests/unit/test_a.py", runner=True), narrowed], p2_end=30)[0][last] == 0.0
     # group 1 fails and is ticked (15) without an edit, group 2 fails and is edited: the last failure alone would pass
     two = dict(src=[10], test_edits=[22], results=[_res(12, False, "/s/a.py"), _res(20, False, "/s/b.py"), _res(23, True, "/s/b.py")], p2_end=25)
     assert _test_items(group_ends=[15, 25], **two)[0][edited] == 0.0
@@ -549,10 +632,24 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     cause, edited, last = "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"
     base = dict(src=[10], p2_end=30, p3=30, report=40)
     runner_fail = _res(32, False, "tests/test_a.py", runner=True)
-    # no failing result in PHASE 3, or PHASE 3 not placed: the three items do not apply
-    for kw in (dict(base, results=[_res(32, True, "/s/a.py")]), dict(src=[10], p2_end=30, results=[runner_fail])):
+    # no failure seen in PHASE 3: the three items stand outside the run. Worth 1.0 when the final code was tested -- a
+    # test ran in PHASE 3, or after the last source change in whichever phase (running it once more would have shown
+    # nothing new; the run item alone is lost) -- and 0.0 when it never was
+    run3 = "phase3_run.existing_and_own"
+    for kw, want in (
+        (dict(base, results=[_res(32, True, "/s/a.py")]), 1.0),  # ran in PHASE 3
+        (dict(base, results=[_res(12, True, "/s/a.py")]), 1.0),  # ran in PHASE 2 after the last source change, not again
+        (dict(base, own_runs=[12]), 1.0),  # ... a check script whose outcome the trace does not show ran as well
+        (dict(src=[10], p2_end=30, results=[_res(12, True, "/s/a.py")]), 1.0),  # ... PHASE 3 not placed
+        (dict(base, src=[10, 20], results=[_res(12, True, "/s/a.py")]), 0.0),  # tested, then changed again: the final code never was
+        (dict(base), 0.0),  # nothing run at all
+        (dict(src=[10], p2_end=30), 0.0),
+        (dict(src=[], p2_end=30, results=[_res(12, True, "/s/a.py")]), 0.0),  # no source change
+    ):
         v, a = _test_items(**kw)
-        assert [v[k] for k in (cause, edited, last)] == [1.0] * 3 and not any(a[k] for k in (cause, edited, last))
+        assert [v[k] for k in (cause, edited, last)] == [want] * 3 and not any(a[k] for k in (cause, edited, last)), kw
+    v, a = _test_items(**dict(base, results=[_res(12, True, "/s/a.py")]))
+    assert (v[run3], a[run3]) == (0.0, True)  # not running the tests once more costs the run item
     # a runner failure left unchecked: the check is missing, the edit item is not asked (the cause is unknown)
     v, a = _test_items(**base, results=[runner_fail])
     assert (v[cause], a[cause]) == (0.0, True) and (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (0.0, True)
@@ -615,10 +712,16 @@ def test_a_script_that_edits_the_repository_is_not_a_test_and_a_new_source_file_
     # or at a step with a repository write while its own text writes files; a script that only reads is a test
     assert T.fix_scripts(runs_of, writes, text) == {"/tmp/fix.py", "/tmp/repro.py", "/tmp/patch.sh"}
     assert T.fix_scripts({"/tmp/repro.py": [(14, "pass")]}, writes, text) == set()
-    # a new file the final change keeps is source whatever its name, unless it sits at the repository root
-    assert not T.is_run_script("pkg/template.py", new=True, kept=True) and not T.is_run_script("pkg/checkpoint.py", new=True, kept=True)
-    assert T.is_run_script("check_fix.py", new=True, kept=True) and T.is_run_script("pkg/helper.py", new=True, kept=False)
-    assert not T.is_run_script("check_fix.py", new=False, kept=True) and not T.is_run_script("pkg/notes.txt", new=True, kept=False)
+    # a new file the final change keeps is source whatever its name, unless it is a throwaway name at the repository
+    # root (the rule every workflow shares, facts.is_run_script)
+    from recipe.grpo.qwen3_5.workflow_rubric import facts as F
+
+    diff = {"pkg/template.py": "A", "pkg/checkpoint.py": "A", "check_fix.py": "A", "verify_all.py": "M"}
+    created = {"/testbed/pkg/helper.py": 5, "/testbed/pkg/notes.txt": 5}  # written by the run, gone from the final change
+    ctx = N(collected=N(diff=diff, base_present=None, workdir="/testbed"), facts=N(repo_writes=[], _created=created), cache={})
+    assert not F.is_run_script(ctx, "pkg/template.py") and not F.is_run_script(ctx, "pkg/checkpoint.py")
+    assert F.is_run_script(ctx, "check_fix.py") and F.is_run_script(ctx, "pkg/helper.py")
+    assert not F.is_run_script(ctx, "verify_all.py") and not F.is_run_script(ctx, "pkg/notes.txt")  # not new; no script
     # the runner on a test file counts as a test of the run's own once the run has written to that file
     own = {"tests/utils_tests/test_duration.py": 40}
     assert T.runs_own_test(45, ("utils_tests.test_duration",), False, own) and T.runs_own_test(45, (), True, own)
@@ -632,11 +735,12 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
     def boom(ctx):
         raise RuntimeError("unexpected trace")
 
-    monkeypatch.setattr(penalty_tests, "measure", boom)
-    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
-    assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0 and got["penalty_errors"] == 0.0
-    assert got["penalty_tests_errors"] == 1.0 and got["penalty_tests"] == 0.0 and got["penalty"] == 4 / 11
-    assert all(got[name] == 0.0 for name in penalty_tests.ITEMS)
+    # a kind that raises is a failed item and an engine error, as everywhere in the engine: the seven test items are
+    # 0.0, the four file items stand, and nothing reaches compliance
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=7, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
+    assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0
+    assert got["penalty_tests"] == 0.0 and got["penalty"] == 4 / 11
+    assert all(got[name.split(".", 1)[1]] == 0.0 for name in penalty_tests.ITEMS)
 
 
 @pytest.mark.parametrize(
@@ -649,16 +753,17 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
     ],
 )
 def test_test_items_of_the_golden_run_and_its_variants(variant, zero, applies):
-    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty, penalty_tests
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
 
     *_, rep, _res = _scored(variant)
     got = penalty.post(rep)
-    assert got["penalty_errors"] == 0.0
-    scores = {k.split(".penalty.", 1)[1]: v for k, v in got.items() if k.startswith(penalty_tests.STAGE + ".")}
-    assert len(scores) == 7 and {k for k, v in scores.items() if v == 0.0} == zero
+    assert not rep.engine_errors
+    scores = {k.split(".penalty.", 1)[1]: v for k, v in got.items() if k.startswith("implement_tasks.penalty.")}
+    assert set(scores) == set(penalty.TEST_RULES) and {k for k, v in scores.items() if v == 0.0} == zero
     assert got["penalty_tests"] == (7 - len(zero)) / 7
     if applies is not None:
-        assert {k[len("penalty_applies.") :] for k, v in got.items() if k.startswith("penalty_applies.") and v == 1.0} == applies
+        judged = {k[len("penalty_applies.") :] for k, v in got.items() if k.startswith("penalty_applies.") and v == 1.0}
+        assert {k for k in judged if not k.startswith("plan_files.")} == applies
 
 
 def _with_spec_path_variable(run, golden):
@@ -691,9 +796,10 @@ def test_a_run_that_keeps_the_spec_folder_in_a_shell_variable_scores_like_one_th
     assert [(e.step, e.op, e.content) for e in rep.facts.writes[tasks]] == [(e.step, e.op, e.content) for e in typed.facts.writes[tasks]]
     assert not shell.KNOWN_VARS.get()  # set for the one evaluation only
     assert penalty.versions(rep.facts, col) == penalty.versions(typed.facts, col)
-    # the test items read the commands again after the evaluation, with the variables the run was replayed with
+    # the penalty items are judged inside the evaluation, in the replay that knows the variable: nothing reads the
+    # commands a second time
     got, want = penalty.post(rep), penalty.post(typed)
-    assert rep.shell_vars and got["penalty_errors"] == 0.0 and got["penalty_tests"] == 1.0
+    assert got["penalty_tests"] == 1.0
     assert {k: v for k, v in got.items() if ".penalty." in k or k.startswith("penalty_applies.")} == {k: v for k, v in want.items() if ".penalty." in k or k.startswith("penalty_applies.")}
     # without the workflow's variables the replay cannot place those commands, and the honest run loses marks
     fn = checks.SHELL_VARS.pop(NAME)

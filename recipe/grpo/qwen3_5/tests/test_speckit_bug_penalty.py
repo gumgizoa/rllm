@@ -94,9 +94,37 @@ def test_penalty_is_the_mean_score_of_the_penalty_items():
     missed = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, {k: v.replace("setuponly", "elsewhere") for k, v in FILES.items()}))
     # gold_files 0 (setuponly never named); scope_consistency 1/3 (setuponly unrecorded, elsewhere a phantom row); related test 1
     assert missed["speckit_bug/penalty"] == pytest.approx((0 + 1 / 3 + 1) / 3)
-    # a task without a gold entry: the gold items are not applicable, the consistency item still counts
+    # a task without a gold entry: the gold item cannot be judged and is left out of the mean, the other two still count
     unknown = ev.score(SimpleNamespace(id="unknown__task-1", metadata=META), _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, FILES))
     assert unknown["speckit_bug/penalty"] == 1.0
+    assert unknown["speckit_bug/penalty_unavailable"] == 1.0
+    assert "speckit_bug/fix.penalty.gold_files.named" not in unknown
+    # each item is reported under its own name, with whether it was judged on the run
+    assert clean["speckit_bug/fix.penalty.gold_files.named"] == 1.0
+    assert clean["speckit_bug/penalty_applies.related_test_run.after_last_edit"] == 1.0
+
+
+def test_a_run_that_changes_no_code_keeps_no_penalty_rule():
+    ev = _ev()
+    task = SimpleNamespace(id=TASK, metadata=META)
+    idle = ev.score(task, _trace(RUN_F2P), _data(ev, {}))
+    # no report names the gold file (0), no fix report (0), and no source change for a test run to verify: outside the
+    # item, worth 0 -- every item stays in the mean, so doing nothing is not the way to a high penalty score
+    assert idle["speckit_bug/penalty"] == 0.0
+    assert idle["speckit_bug/penalty_applies.related_test_run.after_last_edit"] == 0.0
+    assert idle["speckit_bug/test.penalty.related_test_run.after_last_edit"] == 0.0
+
+
+def test_a_scratch_script_written_after_the_test_run_is_no_source_change():
+    ev = _ev()
+    task = SimpleNamespace(id=TASK, metadata=META)
+    repro = ("file_editor", {"command": "create", "path": "/testbed/repro_issue.py", "file_text": "print(1)\n"}, "File created successfully at: /testbed/repro_issue.py")
+    readme = ("file_editor", {"command": "str_replace", "path": "/testbed/README.rst", "old_str": "a", "new_str": "b"}, "The file /testbed/README.rst has been edited.")
+    files = {**FILES, f"{BUG}/fix.md": FIX.replace("| `src/_pytest/other.py` | modified | extra |\n", "| `src/_pytest/other.py` | modified | extra |\n| `repro_issue.py` | added | script |\n| `README.rst` | modified | note |\n")}
+    s = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P, repro, readme), _data(ev, files))
+    # the last source change is still the edit before the run: a throwaway script at the repository root and a README
+    # edit do not make the earlier test run stale
+    assert s["speckit_bug/test.penalty.related_test_run.after_last_edit"] == 1.0
 
 
 def test_scope_consistency_wants_the_reports_to_describe_the_change():
@@ -118,21 +146,29 @@ def test_scope_consistency_wants_the_reports_to_describe_the_change():
     assert only_f2p["speckit_bug/compliance"] == pytest.approx(clean["speckit_bug/compliance"])
 
 
-def test_gold_files_item_is_a_recall_over_several_gold_files(monkeypatch):
+def test_gold_files_item_wants_every_gold_file_named(monkeypatch):
     monkeypatch.setattr(checks, "_GOLD", {"t": {"src": ["a/one.py", "a/two.py", "a/three.py"]}})
     ev = _ev()
     fix = "# Fix\n\n## Changes\n\n| File | Change | Notes |\n|---|---|---|\n| `a/one.py` | modified | - |\n| `a/two.py` | modified | - |\n"
     edits = [("file_editor", {"command": "str_replace", "path": f"/testbed/a/{n}.py", "old_str": "a", "new_str": "b"}, "edited") for n in ("one", "two")]
     s = ev.score(SimpleNamespace(id="t", metadata=META), _trace(*edits), _data(ev, {f"{BUG}/fix.md": fix}, related={"a/one.py": [], "a/two.py": []}))
-    # gold recall 2/3; consistency 1 (no assessment list to expand beyond); related test not applicable (no related test exists)
-    assert s["speckit_bug/penalty"] == pytest.approx((2 / 3 + 1) / 2)
+    # two of three gold files named: 0, not 2/3; consistency 1 (no assessment list to expand beyond); the related-test
+    # item stands outside the run with its condition not arisen (the code changed, no related test exists): worth 1
+    assert s["speckit_bug/fix.penalty.gold_files.named"] == 0.0
+    assert s["speckit_bug/penalty"] == pytest.approx((0 + 1 + 1) / 3)
+    assert s["speckit_bug/penalty_applies.related_test_run.after_last_edit"] == 0.0
+    all_three = fix + "| `a/three.py` | modified | - |\n"
+    edits3 = [*edits, ("file_editor", {"command": "str_replace", "path": "/testbed/a/three.py", "old_str": "a", "new_str": "b"}, "edited")]
+    s = ev.score(SimpleNamespace(id="t", metadata=META), _trace(*edits3), _data(ev, {f"{BUG}/fix.md": all_three}, related={"a/one.py": [], "a/two.py": [], "a/three.py": []}))
+    assert s["speckit_bug/fix.penalty.gold_files.named"] == 1.0
+    assert s["speckit_bug/penalty"] == 1.0
 
 
 def test_the_items_are_log_only_and_routed_by_their_id():
     rub = _ev().rubric
     pen = [i for i in rub.items if i.id.split(".")[2] == "penalty"]
     assert sorted(i.id for i in pen) == ["speckit_bug.fix.penalty.gold_files.named", "speckit_bug.fix.penalty.scope_consistency.recorded", "speckit_bug.test.penalty.related_test_run.after_last_edit"]
-    # the consistency rule is scored on both sides: once for compliance, once for D
+    # the consistency rule is scored on both sides: once for compliance, once for the penalty
     assert any(i.id == "speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded" and not i.log_only for i in rub.items)
     assert not any(i.id == "speckit_bug.fix.fix.cross_ref.changes" for i in rub.items)
     assert all(i.log_only for i in pen)

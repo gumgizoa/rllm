@@ -33,6 +33,7 @@ from __future__ import annotations
 import importlib
 import logging
 import math
+import re
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
@@ -121,6 +122,29 @@ def _task_workdir(task) -> str | None:
         if isinstance(w, str) and w.startswith("/"):
             return w
     return None
+
+
+def _episode_diff(episode) -> dict[str, str] | None:
+    """The repository diff a saved episode recorded as its patch (``episode.artifacts["patch"]``), as path -> status
+    (``A`` added, ``D`` deleted, ``M`` changed), so an offline replay knows the final change as the live run did;
+    None when the episode recorded no patch."""
+    art = getattr(episode, "artifacts", None)
+    patch = art.get("patch") if isinstance(art, dict) else None
+    if not isinstance(patch, str):
+        return None
+    out: dict[str, str] = {}
+    cur: str | None = None
+    for line in patch.splitlines():
+        if line.startswith("diff --git "):
+            m = re.match(r"diff --git a/(\S+) b/(\S+)$", line)
+            cur = m.group(2) if m else None
+            if cur is not None:
+                out.setdefault(cur, "M")
+        elif cur is not None and line.startswith("new file mode"):
+            out[cur] = "A"
+        elif cur is not None and line.startswith("deleted file mode"):
+            out[cur] = "D"
+    return out
 
 
 def rubric_signals(rubric: Rubric, run: Run, collected: Collected, prefix: str, post: Post | None = None) -> dict[str, float]:
@@ -273,6 +297,8 @@ class RubricEvaluation(ComplianceEvaluation):
             collected.inputs = self.inputs(task, episode)
         if collected.workdir is None:
             collected.workdir = _task_workdir(task)
+        if collected.diff is None:
+            collected.diff = _episode_diff(episode)
         out = rubric_signals(self.rubric, parse_run(episode, str(getattr(task, "id", "") or "")), collected, self.prefix, self.post)
         for e, (ok, d) in zip(self.extra, extra, strict=True):
             if ok:

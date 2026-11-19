@@ -216,8 +216,7 @@ EDITS: tuple[Edit, ...] = (
         "   - Identify files to change and the shape of the change (without writing the patch yet — that is "
         "the fix stage's job).\n"
         "   - Call out the checks that will prove the fix: a reproduction script to write under `BUG_DIR/checks/`, "
-        "and the existing repository tests to run. Do not plan to add or edit test files in the repository: "
-        "the task's tests are already in place.",
+        "and the existing repository tests to run.",
         "semantic",
         "checks outside the repository instead of repository tests",
     ),
@@ -273,10 +272,10 @@ EDITS: tuple[Edit, ...] = (
         f"- `BUG_DIR` is `{BUG_DIR}`. `BUG_DIR/assessment.md` MUST exist. If it does not, the assessment stage "
         f"has not run: carry it out first (`{STAGE_DOCS['assess']}`).\n"
         "- Write this round's `FIX_REPORT` once. Never rewrite the fix report of an earlier round.\n"
-        "- Read `BUG_DIR/assessment.md` in full. Treat its **Proposed Remediation**, **Files likely to change**, "
+        "- Treat the assessment's **Proposed Remediation**, **Files likely to change**, "
         "**Checks to run**, and **Risks & Considerations** sections as the contract for this stage.\n"
-        "- In rounds 2 and 3, also read the previous round's fix report and verification report in full: what "
-        "failed there is the new evidence this round answers.",
+        "- In rounds 2 and 3, what failed in the previous round's verification report is the new evidence this "
+        "round answers.",
         "loop",
         "self-recover instead of instructing the user; per-round reports",
     ),
@@ -310,8 +309,7 @@ EDITS: tuple[Edit, ...] = (
     Edit(
         "fix",
         "   - Add or update the tests called out in the assessment so the bug cannot regress silently.",
-        "   - The checks written before the change stay as they are; the change has to make them pass. Do not add "
-        "or edit test files in the repository.",
+        "   - The checks written before the change stay as they are; the change has to make them pass.",
         "semantic",
         "checks outside the repository instead of repository tests (G9-1); written before the change (G9-5)",
     ),
@@ -406,7 +404,7 @@ EDITS: tuple[Edit, ...] = (
         f"- `BUG_DIR` is `{BUG_DIR}`. `BUG_DIR/assessment.md` MUST exist.\n"
         f"- This round's fix report MUST exist. If not, carry out this round's fix stage first (`{STAGE_DOCS['fix']}`).\n"
         "- Write this round's `TEST_REPORT` once. Never rewrite the verification report of an earlier round.\n"
-        "- Read both `assessment.md` and this round's fix report in full so you know:",
+        "- Ground the validation in `assessment.md` and this round's fix report (both are already in your context):",
         "loop",
         "self-recover instead of instructing the user; per-round reports",
     ),

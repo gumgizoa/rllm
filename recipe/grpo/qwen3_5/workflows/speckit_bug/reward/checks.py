@@ -68,10 +68,12 @@ import posixpath
 import re
 
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
+from recipe.grpo.qwen3_5.workflow_rubric import penalty as PEN
 from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_run
 from recipe.grpo.qwen3_5.workflow_rubric.context import EvalContext, Result
+from recipe.grpo.qwen3_5.workflow_rubric.facts import change_paths, same_file, source_change_steps
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 
 MAX_TEXT = 400_000
@@ -561,23 +563,25 @@ def holds(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # The task's reference fix (SWE-Gym / SWE-bench gold patch) names the source files that had to
 # change. ``inputs`` looks them up by task id in ``gold_files.json`` (``src``: tests, docs and
-# changelogs dropped). ``speckit_bug.gold_files`` measures how many of them the reports named
-# (assessment **Files likely to change** ∪ fix Changes table) as a recall.
+# changelogs dropped). ``speckit_bug.gold_files`` is 1 when the reports named every one of them
+# (assessment **Files likely to change** ∪ fix Changes table), else 0; without a gold entry it cannot be
+# judged (unavailable).
 # ``speckit_bug.related_test_run`` (no gold) asks whether a valid repository test run after the last
-# source edit targeted an existing test related to a changed file -- FX:33's own definition, named after
-# it or importing it, plus tests naming a symbol the diff touches -- read from the sandbox by
-# ``collect.py`` exec 3 into ``Collected.related_tests``; offline it is unavailable.
-# ``speckit_bug.scope_consistency`` (no gold) checks that the fix reports describe the change made; it is
-# scored twice: as a compliance item and as a penalty item.
-# Penalty items are ``log_only``: they never enter ``speckit_bug/compliance``. ``post`` folds every item
-# whose id reads ``speckit_bug.<stage>.penalty.<kind>.<what>`` into ``speckit_bug/penalty`` = mean(score),
-# 1 when every penalty rule was kept (the team-wide convention: item scores are kept = 1 / broken = 0,
-# the signal is their plain mean), the P of train.py's ``reward = (1 - w) * <mode reward> + w * P``.
+# source change (``facts.source_change_steps``, the definition every workflow shares) targeted an existing
+# test related to a changed file -- FX:33's own definition, named after it or importing it, plus tests naming
+# a symbol the diff touches -- read from the sandbox by ``collect.py`` exec 3 into ``Collected.related_tests``
+# (collected only for a rubric with a kind that declares ``related_tests``); offline it is unavailable.
+# ``speckit_bug.scope_consistency`` (no gold) checks that the fix reports describe the change made: the share
+# of its three conditions that hold. It is scored twice: as a compliance item and as a penalty item.
+# Penalty items are ``log_only``: they never enter ``speckit_bug/compliance``. The common ``post``
+# (``workflow_rubric/penalty.py``) folds every item whose id reads ``speckit_bug.<stage>.penalty.<kind>.<what>``
+# into ``speckit_bug/penalty``, the P of train.py's ``reward = (1 - w) * <mode reward> + w * P``: every item
+# stays in the mean (one a run stands outside of is worth 0 when the run never changed code, 1 when it did
+# and the item's condition did not arise), an item that cannot be judged is left out.
 _GOLD_PATH = posixpath.join(posixpath.dirname(__file__), "gold_files.json")
 _GOLD: dict[str, dict[str, list[str]]] | None = None
 _PATH_IN_TEXT = re.compile(r"`([^`\n]+)`")
 _PATHLIKE = re.compile(r"(?<![\w/.-])((?:/|\./)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z][A-Za-z0-9]*)(?![\w/])")
-_PENALTY_SEGMENT = "penalty"
 
 
 def _gold_table() -> dict[str, dict[str, list[str]]]:
@@ -611,14 +615,7 @@ def inputs(task, episode) -> dict:
     return {"gold_files": None if g is None else g["src"]}
 
 
-def post(report) -> dict[str, float]:
-    """``speckit_bug/penalty``: mean score of the scored ``*.penalty.*`` items (1 = every rule kept); absent when none was scored."""
-    scores = []
-    for item_id, r in report.results.items():
-        parts = str(item_id).split(".")
-        if len(parts) > 2 and parts[2] == _PENALTY_SEGMENT and getattr(r, "status", None) in ("pass", "fail"):
-            scores.append(float(getattr(r, "score", 0.0)))
-    return {"penalty": sum(scores) / len(scores)} if scores else {}
+post = PEN.post  # speckit_bug/penalty and its item signals: the rule every workflow shares
 
 
 def _norm_repo_path(p: str, workdir: str | None) -> str:
@@ -650,10 +647,10 @@ def named_files(assessment: str | None, fix: str | None, workdir: str | None = N
 
 @register("speckit_bug.gold_files", params={"assessment": False, "fix": False}, availability=("sandbox_file",), common=False)
 def gold_files(item: Item, ctx: EvalContext) -> Result:
-    """Recall of the task's gold source files among the files the reports name (assessment **Files likely to change** ∪ fix Changes table); not applicable without a gold entry."""
+    """Every gold source file of the task is among the files the reports name (assessment **Files likely to change** ∪ fix Changes table): 1, else 0; unavailable without a gold entry."""
     gold = (ctx.collected.inputs or {}).get("gold_files")
     if not gold:
-        return Result.not_applicable(item, "no gold files for this task")
+        return Result.unavailable(item, "no gold files for this task")
     p = item.check.params or {}
     assessment = ctx.artifact_text(str(p.get("assessment") or "assessment"), "final")
     fix = ctx.artifact_text(str(p.get("fix") or "fix"), "final")
@@ -661,13 +658,14 @@ def gold_files(item: Item, ctx: EvalContext) -> Result:
         return Result.no(item, "neither report exists")
     named = named_files(assessment, fix, ctx.collected.workdir)
     hit = [g for g in gold if _names(named, g)]
-    return Result.ratio(item, len(hit), len(gold), f"{len(hit)}/{len(gold)} gold files named; named {sorted(named)[:6]}")
+    detail = f"{len(hit)}/{len(gold)} gold files named; named {sorted(named)[:6]}"
+    return Result.ok(item, detail) if len(hit) == len(gold) else Result.no(item, detail)
 
 
 def _names(named: set[str], gold: str) -> bool:
-    """``gold`` (repository-relative) is among ``named``: equal, or a longer path ending in it -- the reports
-    write ``/testbed/pkg/mod.py`` and the replay knows no workdir to strip."""
-    return any(n == gold or n.endswith("/" + gold) for n in named)
+    """``gold`` (repository-relative) is among ``named``, by the shared rule (``facts.same_file``): equal, or one
+    path is the tail of the other -- the reports write ``/testbed/pkg/mod.py`` or just ``mod.py``."""
+    return any(same_file(n, gold) for n in named)
 
 
 def _mentions_test_file(run, path: str, workdir: str | None) -> bool:
@@ -707,46 +705,43 @@ def _targets_dir_of(run, path: str, workdir: str | None) -> bool:
     return False
 
 
-@register("speckit_bug.related_test_run", params={}, availability=("trace",), common=False)
+@register("speckit_bug.related_test_run", params={}, availability=("trace", "related_tests"), common=False)
 def related_test_run(item: Item, ctx: EvalContext) -> Result:
-    """After the last source edit, a valid repository test run (the runner's own summary, N >= 1 tests) targets an
+    """After the last source change, a valid repository test run (the runner's own summary, N >= 1 tests) targets an
     existing test file related to a changed source file: named after it, importing it, or mentioning a symbol the
-    diff touches (``Collected.related_tests``, read from the sandbox at collect time). Not applicable when nothing
-    was edited or the repository has no test related to the change; unavailable offline (no sandbox)."""
-    from recipe.grpo.qwen3_5.workflow_rubric.facts import is_test_path
-
+    diff touches (``Collected.related_tests``, read from the sandbox at collect time). Outside the item: a run with
+    no source change (worth 0) and a repository with no test related to the change (worth 1); unavailable offline
+    (no sandbox)."""
     rel = ctx.collected.related_tests
     if rel is None:  # not read from a sandbox (offline replay, or the collect step failed): never a verdict
         return Result.unavailable(item, "related tests not collected")
-    edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.op not in ("delete", "move_out") and not is_test_path(e.path)]
+    edits = source_change_steps(ctx)
     if not edits:
-        return Result.not_applicable(item, "no source edit to verify")
+        return PEN.outside(item, "no source change to verify", premise=False)
     tests = sorted({t for ts in rel.values() for t in ts})
     if not tests:
-        return Result.not_applicable(item, f"no existing test is named after, imports or names a symbol of {sorted(rel)[:3]}")
-    last = max(edits)
+        return PEN.outside(item, f"no existing test is named after, imports or names a symbol of {sorted(rel)[:3]}", premise=True)
+    last = edits[-1]
     after = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and r.step > last]
     if not after:
-        return Result.no(item, f"no valid test run after the last source edit (step {last})")
+        return Result.no(item, f"no valid test run after the last source change (step {last})")
     wd = ctx.collected.workdir
     hit = [r for r in after if any(_mentions_test_file(r, t, wd) or _targets_dir_of(r, t, wd) for t in tests)]
     if hit:
         return Result.ok(item, f"step {hit[0].step}: {hit[0].command.strip()[:80]}")
-    return Result.no(item, f"{len(after)} test run(s) after the last edit, none on the {len(tests)} related test file(s), e.g. {tests[:3]}")
+    return Result.no(item, f"{len(after)} test run(s) after the last source change, none on the {len(tests)} related test file(s), e.g. {tests[:3]}")
 
 
 _NONE_LIKE = re.compile(r"^\W*(?:none|no deviations?|n/?a|not applicable|nothing)\b", re.I)
 
 
 def _covers(path: str, names: set[str]) -> bool:
-    return any(n == path or n.endswith("/" + path) or path.endswith("/" + n) for n in names)
+    return any(same_file(n, path) for n in names)
 
 
 @register("speckit_bug.scope_consistency", params={"fixes": False, "assessment": False}, availability=("sandbox_file", "trace"), common=False)
 def scope_consistency(item: Item, ctx: EvalContext) -> Result:
     """The fix reports describe the change that was made: every changed repository file is a row of a Changes table, every Changes row names a changed file, and a change beyond the assessment's **Files likely to change** comes with a substantive Deviations from Assessment; the score is the share of these three that hold."""
-    from recipe.grpo.qwen3_5.workflow_rubric.facts import change_paths
-
     p = item.check.params or {}
     wd = ctx.collected.workdir
     fixes = list(p.get("fixes") or ["fix", "fix_2", "fix_3"])
@@ -758,7 +753,7 @@ def scope_consistency(item: Item, ctx: EvalContext) -> Result:
     for t in texts:
         table |= named_files(None, t, wd)
     if not changed and not table:
-        return Result.not_applicable(item, "nothing changed and nothing recorded")
+        return PEN.outside(item, "nothing changed and nothing recorded", premise=False)
     assessment = ctx.artifact_text(str(p.get("assessment") or "assessment"), "final")
     listed = named_files(assessment, None, wd) if assessment else set()
     unrecorded = sorted(c for c in changed if not _covers(c, table))

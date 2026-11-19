@@ -251,8 +251,9 @@ class Result:
         return cls(item.id, "unavailable", 0.0, detail)
 
     @classmethod
-    def not_applicable(cls, item: Item, detail: str = "") -> Result:
-        return cls(item.id, "not_applicable", 0.0, detail)
+    def not_applicable(cls, item: Item, detail: str = "", score: float = 0.0) -> Result:
+        """``score`` is read only for penalty items (``penalty.py``): what the item is worth to a run it does not apply to."""
+        return cls(item.id, "not_applicable", score, detail)
 
 
 @dataclass

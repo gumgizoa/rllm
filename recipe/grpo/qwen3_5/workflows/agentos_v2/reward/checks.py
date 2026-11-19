@@ -96,6 +96,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
+from recipe.grpo.qwen3_5.workflow_rubric import results as R
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register, register_shell_vars
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.replay import content_at
@@ -104,14 +105,8 @@ from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
 
 MAX_CMD = 20_000
 MAX_TEXT = 400_000
-_EXIT = re.compile(r"\[(?:The command completed with exit code|Command finished with exit code)\s+(-?\d+)\.?\]")
-_FAIL_TEXT = re.compile(
-    r"Traceback \(most recent call last\)|\bAssertionError\b|^\s*(?:FAIL|FAILED|ERROR)\b|\b[1-9]\d* (?:failed|errors?)\b|\bFAILED \(|"
-    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b",
-    re.M,
-)
-_PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b", re.M | re.I)
-_MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b")
+# the outcome of a script run is read by the common rule (workflow_rubric/results.py), shared with the other workflows
+_EXIT, _FAIL_TEXT, _PASS_TEXT, _MARK_WORDS = R.EXIT, R.FAIL_TEXT, R.PASS_TEXT, R.MARK_WORDS
 _SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
 _NOT_READ = re.compile(r"No such file or directory|cannot open|Is a directory|not found", re.I)
 _WARN = "⚠"
@@ -182,80 +177,9 @@ def _expand_dir(ctx: EvalContext, template: str) -> str | None:
     return posixpath.normpath(s) if s.startswith("/") and not left else None
 
 
-def _segments(ctx: EvalContext, c) -> list[shell.Segment]:
-    key = ("agentos_v2.segments", c.step, c.action_index)
-    if key not in ctx.cache:
-        try:
-            ctx.cache[key] = shell.flat(shell.split((c.command or "")[:MAX_CMD], c.cwd)[0])
-        except Exception:  # noqa: BLE001 -- agent text: an unparsable command runs nothing we can attribute
-            ctx.cache[key] = []
-    return ctx.cache[key]
-
-
-def _executed_by(seg: shell.Segment) -> set[str]:
-    """Absolute paths the segment executes: a script it runs (``python x.py``, ``bash x.sh``, ``./x``) or a runner target."""
-    out: set[str] = set()
-    try:
-        out |= {posixpath.normpath(p) for p in F._executed(seg) if p}
-        hit = E.classify(seg)
-        if hit is not None:
-            out |= {posixpath.normpath(shell.resolve(t, seg.cwd)) for t in hit.targets if t}
-    except Exception:  # noqa: BLE001 -- agent text
-        pass
-    return out
-
-
-def _others_print(segs: list[shell.Segment], i: int, rx: re.Pattern) -> bool:
-    """Could a segment other than ``i`` have printed text ``rx`` matches (its literal words, heredoc, stdin)?"""
-    for j, s in enumerate(segs):
-        if j == i:
-            continue
-        blob = " ".join(s.argv or []) + "\n" + (s.heredoc or "") + "\n" + (s.stdin_text or "")
-        if rx.search(blob[:MAX_CMD]):
-            return True
-    return False
-
-
-def _exit_code(observation: str) -> int | None:
-    m = _EXIT.findall((observation or "")[-2000:])
-    try:
-        return int(m[-1]) if m else None
-    except ValueError:
-        return None
-
-
-def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "") -> str | None:
-    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output: the exit code when the
-    segment is the command's last, failure or pass text when no other segment could have printed such words."""
-    obs = E.clean_observation(observation or "", command)
-    body = _EXIT.sub("", obs)[-MAX_TEXT:]
-    code = _exit_code(obs) if i == len(segs) - 1 else None
-    foreign = _others_print(segs, i, _MARK_WORDS)
-    failed_text = bool(_FAIL_TEXT.search(body)) and not foreign
-    if code is not None:
-        return "fail" if code != 0 or failed_text else "pass"
-    if failed_text:
-        return "fail"
-    if not foreign and _PASS_TEXT.search(body) and not _FAIL_TEXT.search(body):
-        return "pass"
-    return None
-
-
-def executions(ctx: EvalContext, paths: set[str]) -> dict[str, list[tuple[int, str | None]]]:
-    """Absolute path -> [(step, outcome)] of every run of it, in order (the final call's observation is empty: None)."""
-    out: dict[str, list[tuple[int, str | None]]] = {p: [] for p in paths}
-    if not paths:
-        return out
-    for c in ctx.facts.commands:
-        segs = _segments(ctx, c)
-        for i, seg in enumerate(segs):
-            hit = _executed_by(seg) & paths
-            if not hit:
-                continue
-            res = outcome(segs, i, c.observation or "", c.command or "") if c.step < ctx.facts.n_steps else None
-            for p in sorted(hit):
-                out[p].append((c.step, res))
-    return out
+# the shell segments of a command, what a segment executes and how its run came out: the common rule
+_segments, _executed_by, _others_print, _exit_code = R.segments, R.executed_by, R.others_print, R.exit_code
+outcome, executions = R.outcome, R.executions
 
 
 def _content_events(ctx: EvalContext, path: str) -> list:

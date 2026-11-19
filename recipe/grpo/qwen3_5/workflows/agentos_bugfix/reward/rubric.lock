@@ -4,7 +4,7 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50"
  },
- "rubric_sha256": "2d0d770d4edbba0a29aab9508caac40ccb2764e98de9131e7bf048ed6800a732",
+ "rubric_sha256": "9146ed4bb451f2c74f1687c320ebea1a6e3f94f016c26cc462c30dd728c3b779",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "be578e8e5c59fd1e53fcb78aedc7da050b8bb16b4491ec7993054e68a975139b",
   "docs/commands/implement-tasks/implement-tasks.md": "30b0d403047cfab8eb3c4977e311755e95c8c5f4db6226ae472a6c2b4e0686c9",

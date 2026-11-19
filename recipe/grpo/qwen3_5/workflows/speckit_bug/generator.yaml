@@ -778,7 +778,7 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-    note: "the ``penalty`` id segment routes it into speckit_bug/penalty; identical check to the compliance item"
+    note: "the ``penalty`` id segment routes it into speckit_bug/penalty; identical check to the compliance item; worth 0 to a run that changed nothing and recorded nothing"
   - id: speckit_bug.fix.penalty.gold_files.named
     stage: fix
     target: {type: artifact, ref: fix}
@@ -792,7 +792,7 @@ manual:
       - {path: docs/stages/01-assess.md, lines: [93, 93], quote: "**Files likely to change**:"}
       - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-    note: "recall of the gold source files among assessment **Files likely to change** ∪ fix Changes table; the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; not applicable without a gold entry"
+    note: "1 when every gold source file is among assessment **Files likely to change** ∪ fix Changes table, else 0; the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; unavailable (left out of the mean) without a gold entry"
   - id: speckit_bug.test.penalty.related_test_run.after_last_edit
     stage: test
     target: {type: action, ref: run}
@@ -800,7 +800,7 @@ manual:
     requirement: must
     log_only: true
     check: {kind: speckit_bug.related_test_run, params: {}}
-    availability: [trace]
+    availability: [trace, related_tests]
     modality_evidence: "FX:33 'Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them'; TS:31/33 run the regression suite / existing test suites for the changed modules; TS:38 'Running the repository's tests for the changed modules is ... expected'; FX:41 'run the tests that exercise the changed paths'. Needs the sandbox (related_tests), log-only: a penalty (D) term, not compliance"
     sources:
       - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline."}
@@ -808,7 +808,7 @@ manual:
       - {path: docs/stages/03-test.md, lines: [33, 33], quote: "Existing test suites for the changed modules."}
       - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
       - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "run the tests that exercise the changed paths"}
-    note: "a valid repository test run after the last source edit (any stage) targets an existing test file related to a changed source file: named after it, importing it, or naming a symbol the diff touches (Collected.related_tests, read from the sandbox at collect time, FX:33's own definition); not applicable when nothing was edited or no existing test relates to the change; unavailable offline; the ``penalty`` id segment routes it into speckit_bug/penalty"
+    note: "a valid repository test run after the last source change (any stage) targets an existing test file related to a changed source file: named after it, importing it, or naming a symbol the diff touches (Collected.related_tests, read from the sandbox at collect time, FX:33's own definition). The last source change is the common one (facts.source_change_steps). Worth 0 to a run with no source change, 1 when the repository has no test related to the change; unavailable offline (no sandbox)"
   - id: speckit_bug.fix.fix.field_type.commands_run
     stage: fix
     target: {type: artifact, ref: fix}

@@ -10,7 +10,7 @@ generated:
   kinds: registry
   stage_model: fixed
   selftest:
-    status: failed
+    status: passed
     golden: 1.0
     golden_signals:
       order: 1.0
@@ -42,7 +42,7 @@ generated:
       no_artifacts_stage_max: 0.0
       fabricated_commands_min_drop: 0.005
       fabricated_ids_min_drop: 0.005
-      full_suite_rerun_min_drop: 0.005
+      full_suite_rerun_min_drop: 0.00125
       stale_rerun_min_drop: 0.005
       load_error_none_min_drop: 0.005
       early_edit_min_drop: 0.005
@@ -179,7 +179,7 @@ generated:
       compliance: null
     - mutation: full_suite_rerun
       kind: exploit
-      status: fail
+      status: ok
       compliance: 0.9974
     - mutation: stale_rerun
       kind: exploit
@@ -227,22 +227,18 @@ generated:
       compliance: null
     - mutation: honest_reformat
       kind: honest
-      status: fail
-      compliance: 0.9789
+      status: ok
+      compliance: 1.0
     - mutation: honest_view
       kind: honest
       status: ok
       compliance: 1.0
-    failures:
-    - 'full_suite_rerun: exploit not caught: compliance 0.9974 (bound <= 0.9950, full_suite_rerun_min_drop); highest signals:
-      order 1.00, stage.shape_spec 1.00, stage.write_spec 1.00'
-    - 'honest_reformat: honest run penalised: compliance 0.9789 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
-      1.00->0.00 (In Scope: placeholder '''')'
+    failures: []
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 47
-    kept_items: 164
+    kept_items: 175
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -6731,6 +6727,372 @@ items:
   template: ''
   log_only: false
   note: no spec file, note, summary or scratch / check script created in the repository (even when removed again)
+- id: agentos_bugfix.global.penalty.plan_files.named
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: plan_files.named
+  requirement: must
+  modality_evidence: 'CT: ''every sub-task that changes code names, on its task line, the path in the repository of the file
+    it changes'''
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CT
+    lines:
+    - 119
+    - 119
+    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
+      the repository of the file it changes.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the change tasks of tasks.md name a source file (a name written down after the file was already edited does not count)
+- id: agentos_bugfix.global.penalty.plan_files.named_equals_patch
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: plan_files.named_equals_patch
+  requirement: must
+  modality_evidence: 'CT: ''every sub-task that changes code names ... the file it changes'''
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CT
+    lines:
+    - 119
+    - 119
+    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
+      the repository of the file it changes.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the files tasks.md names are the source files of the final change, no more and no fewer
+- id: agentos_bugfix.global.penalty.plan_files.named_covers_gold
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: plan_files.named_covers_gold
+  requirement: must
+  modality_evidence: 'CT: ''every sub-task that changes code names ... the file it changes''; judged against the task''s reference
+    fix, which the agent cannot see'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CT
+    lines:
+    - 119
+    - 119
+    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
+      the repository of the file it changes.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: every source file of the task's reference fix is named in tasks.md; unavailable (left out of the mean) for a task
+    with no reference fix to read
+- id: agentos_bugfix.global.penalty.plan_files.patch_covers_gold
+  scope: specific
+  class: content
+  stage: global
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: plan_files.patch_covers_gold
+  requirement: must
+  modality_evidence: judged against the task's reference fix, which the agent cannot see
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CT
+    lines:
+    - 119
+    - 119
+    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
+      the repository of the file it changes.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: every source file of the task's reference fix is in the final change (more files are fine); unavailable (left out
+    of the mean) for a task with no reference fix to read
+- id: agentos_bugfix.implement_tasks.penalty.phase2_run.existing_and_own
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase2_run.existing_and_own
+  requirement: must
+  modality_evidence: 'imperative (IT: ''Running the tests you''ve written ... and the existing tests of the code you changed'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 39
+    - 39
+    quote: '- Running the tests you''ve written ... and the existing tests of the code you changed, and ensuring they pass.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: after the last source change of PHASE 2, a valid run of the repository's tests and a run of a test of the run's own;
+    worth 0 to a run that changed no source
+- id: agentos_bugfix.implement_tasks.penalty.phase2_fail.edited_after_fail
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase2_fail.edited_after_fail
+  requirement: must
+  modality_evidence: 'imperative (IT: ''fix the change or that test and run the tests again before you tick the task group''s
+    last sub-task'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test
+      and run the tests again before you tick the task group's last sub-task.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: in every task group's stretch of PHASE 2 that holds a failing result, source or a test is edited after the last failing
+    result and before the tick; a run the item stands outside of is worth 0 when it never did what the item is about and 1
+    when it did and the item's condition did not arise
+- id: agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase2_fail.last_result_pass
+  requirement: must
+  modality_evidence: 'imperative (IT: ''fix the change or that test and run the tests again'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test
+      and run the tests again before you tick the task group's last sub-task.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'every test that failed in PHASE 2 passed again: the same file, a directory or label above it or the whole suite,
+    not a run narrowed below what failed; a run the item stands outside of is worth 0 when it never did what the item is about
+    and 1 when it did and the item''s condition did not arise'
+- id: agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase3_run.existing_and_own
+  requirement: must
+  modality_evidence: 'imperative (IT: ''Run the tests of the changed code once more: the test modules that cover the files
+    you changed, and the tests you wrote'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 131
+    - 131
+    quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
+      you wrote.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: in PHASE 3 (from the last tick to the report), a valid run of the repository's tests and a run of a test of the run's
+    own; worth 0 to a run whose PHASE 3 cannot be placed
+- id: agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase3_fail.cause_checked
+  requirement: must
+  modality_evidence: 'imperative (IT: ''An existing test: run it once without your change, in one command'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 135
+    - 135
+    quote: 'An existing test: run it once without your change, in one command'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: after a failing runner run in PHASE 3 and before the report, the runner is invoked with the change stashed away; a
+    run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source
+    change in whichever phase) and 0 when it never was
+- id: agentos_bugfix.implement_tasks.penalty.phase3_fail.edited_after_fail
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase3_fail.edited_after_fail
+  requirement: must
+  modality_evidence: 'imperative (IT: ''go back to PHASE 2 once, fix the change'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 137
+    - 137
+    quote: go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
+    away), source or a test is edited before the report; a run that saw no such failure is worth 1 when its final code was
+    tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was
+- id: agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase3_fail.last_result_pass
+  requirement: must
+  modality_evidence: 'imperative (IT: ''fix the change, then carry out PHASE 3 again from Step 1'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 137
+    - 137
+    quote: go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: when a result failed in PHASE 3, the last result before the report passes; a run that saw no such failure is worth
+    1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when
+    it never was
 scoring:
   item_weight:
     must: 1.0
@@ -6751,6 +7113,7 @@ scoring:
     frontmatter_stub_compliance_max: 0.05
     x_fill_no_real_test_compliance_max: 0.5
     honest_golden_min: 0.95
+    full_suite_rerun_min_drop: 0.00125
 conflicts:
 - type: documented
   description: create-tasks PHASE 1 reads spec.md / requirements.md only when they are not in the conversation context (CT:13),

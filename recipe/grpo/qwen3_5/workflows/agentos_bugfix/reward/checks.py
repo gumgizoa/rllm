@@ -14,3 +14,7 @@ for _name, _kind in list(REGISTRY.items()):
         REGISTRY.setdefault(_alias, Kind(_alias, _kind.fn, dict(_kind.params), _kind.availability, _kind.common, _kind.doc, dict(_kind.choices)))
 
 register_shell_vars("agentos_bugfix", _v2.spec_folder_vars)  # the same shape-spec.md snippet, the same variables
+
+# the agentos_bugfix.penalty kind (the log_only penalty items) lives in penalty.py; imported last so that loading this
+# module registers every kind the rubric names
+from . import penalty as _penalty  # noqa: E402, F401

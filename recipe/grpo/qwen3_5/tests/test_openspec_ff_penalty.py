@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from recipe.grpo.qwen3_5.workflow_rubric import engine
+from recipe.grpo.qwen3_5.workflow_rubric import results as R
 from recipe.grpo.qwen3_5.workflow_rubric import schema as S
 from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest
 from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Step
@@ -72,7 +73,10 @@ def test_the_golden_run_and_its_variants_pass_every_item(rubric):
     for v in (None, *SG.VARIANTS):
         got, out, _ = _score(rubric, *_golden(rubric, v))
         assert got == ALL, (v, got)
-        assert out["penalty"] == 1.0 and out["penalty_applicable"] == 1.0
+        assert out["penalty"] == 1.0 and out["penalty_unavailable"] == 0.0
+        # the four rules the run was judged on, and the one it stands outside of with its condition not arisen:
+        # nothing had to be CRITICAL because the tests were read and none failed -- worth 1
+        assert {r: out[f"penalty_applies.{r}"] for r in P.RULES} == {**ALL, "critical_missing": 0.0}, v
 
 
 def test_the_items_are_reported_and_never_scored(rubric):
@@ -128,8 +132,29 @@ def test_nothing_run_after_the_last_code_change(rubric):
     for st in run.steps[edit + 1 :]:
         st.actions = [Action("shell", "terminal", command="git status --short", observation=" M tinyconf/values.py" + SG.EXIT0) if _is_test(a) or _is_check(a) else a for a in st.actions]
     got, _, _ = _score(rubric, run, col)
-    # nothing had to be CRITICAL and nothing stands failed; the report still says all checks passed
-    assert got == {**ALL, "no_run_after_change": 0.0, "false_clean_claim": 0.0}
+    # the report still says all checks passed. Nothing had to be CRITICAL and nothing stands failed -- because nothing
+    # was run: the run stands outside those two rules without having done what they are about, worth 0, so running
+    # no test is never the way to keep a rule
+    assert got == {**ALL, "no_run_after_change": 0.0, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
+
+
+def test_a_check_script_whose_outcome_cannot_be_read_ran_and_is_no_passing_result(rubric):
+    run, col = _golden(rubric)
+    edit = _step_of(run, lambda a: a.kind == "replace" and (a.path or "").startswith("/testbed/"))
+    for st in run.steps[edit + 1 :]:
+        acts = []
+        for a in st.actions:
+            if _is_test(a):
+                a = Action("shell", "terminal", command="git status --short", observation=" M tinyconf/values.py" + SG.EXIT0)
+            elif _is_check(a):
+                a = Action("shell", "terminal", command=a.command, observation="done")  # no exit code, no pass / failure text
+            acts.append(a)
+        st.actions = acts
+    got, out, rep = _score(rubric, run, col)
+    # something ran after the change (no_run_after_change), nothing is known to stand failed (left_broken) and
+    # nothing had to be CRITICAL -- but no readable result says the checks passed, so the clean claim is unsupported
+    assert got == {**ALL, "false_clean_claim": 0.0}
+    assert "runs not_run" in rep.results[P.ITEM_PREFIX + "false_clean_claim"].detail
 
 
 def test_no_report(rubric):
@@ -161,11 +186,17 @@ def test_an_open_task_behind_a_report_that_counts_every_task_done(rubric):
 
 
 def test_post_with_nothing_applicable():
-    class R:  # a run that changed no code: every item not applicable
+    class Rep:  # a run that changed no code: every item not applicable, worth 0
         results = {P.ITEM_PREFIX + r: type("X", (), {"status": "not_applicable", "score": 0.0})() for r in P.RULES}
 
-    out = P.post(R())
-    assert out["penalty"] == 0.0 and out["penalty_applicable"] == 0.0 and all(out[f"verify.penalty.{r}"] == 0.0 for r in P.RULES)
+    out = P.post(Rep())
+    assert out["penalty"] == 0.0 and all(out[f"verify.penalty.{r}"] == 0.0 and out[f"penalty_applies.{r}"] == 0.0 for r in P.RULES)
+
+    class Blind:  # nothing could be read: no penalty signal at all, rather than a made-up 0 or 1
+        results = {P.ITEM_PREFIX + r: type("X", (), {"status": "unavailable", "score": 0.0})() for r in P.RULES}
+
+    out = P.post(Blind())
+    assert "penalty" not in out and out["penalty_unavailable"] == float(len(P.RULES))
 
 
 def test_checkboxes_are_read_leniently():
@@ -176,10 +207,16 @@ def test_what_narrows_a_test_run():
     assert P._selection("python -m pytest tests/a.py -q") == ()
     assert P._selection('python -m pytest tests/a.py -k "not test_x"') == ("-k not test_x",)
     assert P._selection("pytest tests/a.py::T::t --deselect tests/a.py::T::u") == ("--deselect tests/a.py::T::u", "tests/a.py::T::t")
-    runs = [(1, "test tests/a.py", False, ()), (2, "test tests/a.py", True, ("-k not t",)), (3, "test tests/b.py", False, ())]
-    assert P._standing(runs, 9) == {"test tests/a.py": False, "test tests/b.py": False}  # the narrower pass clears nothing
-    assert P._standing([*runs, (4, "test tests", True, ())], 9) == {"test tests": True}  # the whole directory passing clears both
-    assert P._standing([*runs, (4, "test tests", True, ())], 3) == {"test tests/a.py": False, "test tests/b.py": False}  # as of step 3
+    T = R.TestResult
+    runs = [T(1, False, True, ("tests/a.py",)), T(2, True, True, ("tests/a.py",), ("-k not t",)), T(3, False, True, ("tests/b.py",))]
+    assert R.standing_failures(runs, 9) == ["tests/a.py", "tests/b.py"]  # the narrower pass clears nothing
+    assert R.standing_failures([*runs, T(4, True, True, ("tests",))], 9) == []  # the whole directory passing clears both
+    assert R.standing_failures([*runs, T(4, True, True, ("tests",))], 3) == ["tests/a.py", "tests/b.py"]  # as of step 3
+    assert R.standing_failures([*runs, T(4, True, True, (R.WHOLE,))]) == []  # so does the whole suite
+    assert R.standing_failures([T(1, False, True, ("tests/a.py",)), T(2, True, True, ("tests/a.py",), ("tests/a.py::t_other",))]) == ["tests/a.py"]  # another test of the file
+    assert R.standing_failures([T(1, False, True, ("tests/a.py",), ("tests/a.py::t",)), T(2, True, True, ("tests/a.py",), ("tests/a.py::t",))]) == []  # the very test that failed
+    assert R.standing_failures([T(1, False, True, ("tests/a.py", "tests/b.py")), T(2, True, True, ("tests/a.py",))]) == ["tests/b.py"]  # one of two files
+    assert R.standing_failures([T(1, False, True, ("queries.test_q",)), T(2, True, True, ("queries",))]) == []  # a dotted label above it
 
 
 def test_a_critical_heading_with_items_counts_as_listed():

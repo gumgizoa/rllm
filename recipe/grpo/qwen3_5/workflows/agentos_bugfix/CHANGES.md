@@ -67,12 +67,12 @@
 - 전용 검사는 agentos_v2의 함수를 `agentos_bugfix.*` 이름으로 등록해 씀 (`reward/checks.py`). 이를 위해 agentos_v2의 보고서
   검사에 테스트 결과 절 이름을 받는 선택 설정값(`suite_section`)을 추가함 (agentos_v2 동작은 그대로).
 - 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 10개도 0.99 이상(9개는 만점, 테스트 검토 group을 둔 변형 0.9913).
-- 알려진 미달 2건 (기준은 바꾸지 않음):
-  - "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자람 (agentos_v2는 0.9833). 같은 항목(requirements.md의
+- 자체 점검 미달 2건 (2026-11-19에 해결, 아래 "자체 점검 미달 해결" 절):
+  - "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자랐음 (agentos_v2는 0.9833). 같은 항목(requirements.md의
     In Scope 칸)에서 잃는 것은 agentos_v2와 같고, 항목 수가 줄어 한 항목의 비중이 커진 결과.
-  - "편집 뒤 모든 테스트 실행을 전체 테스트로 바꾼 변형"이 0.9974로 기준 0.995 이하에 못 미침(감점이 0.0026). T1로 기준 런이
+  - "편집 뒤 모든 테스트 실행을 전체 테스트로 바꾼 변형"이 0.9974로 기준 0.995 이하에 못 미쳤음(감점이 0.0026). T1로 기준 런이
     구현 중에 기존 테스트를 돌리게 되면서 이 변형이 처음 적용됨. 걸리는 항목은 "구현 중에는 전체 테스트를 돌리지 않음"인데
-    agentos_v2에서 권고(should, 가중치 0.25)로 되어 있어 감점이 작음. 필수(must)로 올리면 기준을 넘음: 사용자 결정 필요.
+    agentos_v2에서 권고(should, 가중치 0.25)로 되어 있어 감점이 작음.
 - T3에 따라 "tasks.md는 create-tasks 뒤에 체크만 한다" 항목이 줄 추가도 허용함(있던 줄을 고치거나 지우면 감점 그대로). 이를 위해
   agentos_v2의 tasks 검사에 선택 설정값(`additions`)을 추가함(agentos_v2 동작은 그대로). create-tasks 단계의 tasks.md 항목 3개
   (task 수, group 구성, 테스트 먼저)는 create-tasks가 끝난 시점의 tasks.md를 보도록 바꿈. 기준 런에 "구현 중에 task를 추가하는"
@@ -179,6 +179,58 @@
   `ticked_passing`의 실패 67개 중 31개는 tasks.md가 없거나 내용을 따라갈 수 없는 런이고, 통과 318개 중 23개는 실패한 채 체크했지만
   보고서에 실패가 적힌 경우. 기존 항목은 "검사 스크립트가 마지막에 통과했는가" 13런, "task 줄 형식" 2런, "PHASE 3의 수정 한 번" 3런이
   실패에서 통과로 바뀜. "❌ Critical Failures"를 적은 런은 없어 `suite_status`의 판정은 그대로.
+
+## penalty 항목 통일 (2026-11-19)
+
+speckit_bug·openspec_ff와 같은 규칙으로 맞춤. 문서는 바꾸지 않음.
+
+- penalty 항목 11개(파일 4, 테스트 7)를 `post` 밖 계산에서 rubric의 `log_only` 항목으로 옮김 (`derive_rubric.py`의
+  `PENALTY`, kind `agentos_bugfix.penalty`). compliance에는 들어가지 않으며, 다시 만든 rubric에서 golden과 변이 실행의
+  compliance는 이전과 같음. 엔진 `Report`에 더했던 `collected`, `ctx`, `shell_vars` 필드는 없앰 (항목이 엔진 안에서
+  판정되므로 `$SPEC_PATH` 값을 다시 설정할 필요가 없음).
+- 소스 변경 시점, 임시 스크립트 판정, 실패한 테스트의 재통과 판정, 스크립트 실행 결과 읽기, 파일 이름 대조를 공통
+  함수로 바꿈 (`workflow_rubric/facts.py`의 `source_change_steps`·`is_run_script`·`same_file`,
+  `workflow_rubric/results.py`). 달라지는 판정: 소스 변경에 코드·설정 확장자 조건이 붙음; 좁힌 재실행(`-k`, 다른
+  `::id`)으로는 실패가 해소되지 않음; 임시 스크립트 이름 규칙이 하나로 됨(파일 항목에서 최상위의 임의 새 `.py`를
+  스크립트로 보던 규칙은 없어지고, 최상위의 임시 이름이거나 최종 변경에 남지 않은 새 스크립트만 해당).
+- 점수를 합치는 규칙이 공통 `workflow_rubric/penalty.py`로 바뀜. 테스트 항목의 해당 없음 값이 달라짐: 전제 행동(코드
+  변경, 그 구간의 테스트 실행, PHASE 3 도달)을 안 했으면 0, 했는데 실패가 없었으면 1 (이전에는 실패 조건 항목이 항상
+  1). 정답 패치가 없는 태스크의 정답 항목과 workdir을 모르는 실행의 테스트 항목은 판정 불가로 평균에서 빠짐
+  (`/testbed` 기본값은 없앰).
+- 최종 변경 파일은 `facts.change_paths`로 읽음. 저장된 에피소드의 patch는 엔진(`evaluation.py`)이 diff로 채움.
+- 신호 이름: 항목별 값이 `agentos_bugfix/<stage>.penalty.<이름>`으로 바뀜 (이전에는 workflow 이름이 한 번 더 붙음).
+  `penalty_applies.<이름>`은 판정 불가가 아닌 항목마다 나옴 (판정 불가 항목은 값도 `penalty_applies`도 없고
+  `penalty_unavailable`에 개수만 셈). `penalty_errors`, `penalty_tests_errors`는 없앰 (판정 중 오류는
+  엔진 규칙대로 그 항목 실패와 `engine_errors`). `__init__.py`에 `penalty_signal` 지정.
+
+## 자체 점검 미달 해결 (2026-11-19)
+
+자체 점검 상태가 `failed`에서 `passed`가 됨. 항목과 가중치는 바꾸지 않음.
+
+- 서식을 바꾼 변형 (0.9789 → 1.0): 라벨 줄 다음에 빈 줄이 있으면 그 아래 목록을 값으로 읽지 못하던 것을 고침
+  (`workflow_rubric/markdown.py`의 `_continuation`). 라벨 줄에 값이 없을 때만, 빈 줄 뒤에 오는 목록과 항목 사이에 빈 줄이
+  있는 목록을 그 라벨의 값으로 읽음. 빈 줄 뒤에 다른 라벨, 제목, 문단이 오면 이전처럼 빈 값. 공통 코드라 모든 워크플로의
+  라벨 칸 항목에 적용됨: 자체 점검에서 바뀐 것은 이 변형뿐 (agentos_v2 0.9833 → 1.0, speckit_bug·speckit_sdd·openspec_ff 변화
+  없음).
+- 전체 테스트로 바꾼 변형 (점수 0.9974 그대로): 이 변형에 요구하는 최소 감점을 0.005에서 0.00125로 낮춤
+  (`derive_rubric.py`의 `SELFTEST` → rubric의 `scoring.selftest.full_suite_rerun_min_drop`). 0.005는 필수 항목 하나가 걸릴
+  때를 가정한 값인데 이 변형에 걸리는 항목은 권고 하나뿐이라서, 권고 항목만 걸리는 변이가 쓰는 값(`mutations.SHOULD_DROP`)에
+  맞춤. 항목을 필수로 올리는 방법은 쓰지 않음 (학습 reward에서 이 항목의 비중이 4배가 됨).
+
+## PHASE 3 실패 항목의 해당 없음 값 (2026-11-20)
+
+PHASE 3에서 실패를 보지 않은 실행이 PHASE 3 실패 항목 3개(`phase3_fail.cause_checked`, `phase3_fail.edited_after_fail`,
+`phase3_fail.last_result_pass`)에서 받는 값을 바꿈.
+
+- 이전: PHASE 3 안에서 테스트를 돌렸으면 1, 안 돌렸거나 PHASE 3 구간을 잡을 수 없으면 0.
+- 이후: 최종 코드에 테스트 결과가 있으면 1, 없으면 0. "결과가 있다"는 PHASE 3 안에서 테스트를 돌렸거나, 마지막 소스 수정
+  뒤부터 보고서 전(보고서가 없으면 실행 끝)까지 어느 단계에서든 테스트를 돌렸다는 뜻. PHASE 3 구간을 잡을 수 없는 실행도
+  같은 기준으로 봄.
+- 이유: PHASE 2에서 마지막 수정 뒤에 테스트를 돌리고 PHASE 3에서 반복하지 않은 실행은, 한 번 더 돌려도 새로 볼 실패가 없음.
+  이런 실행이 한 번도 테스트하지 않은 실행과 똑같이 4개 항목을 잃고 있었음. 반복하지 않은 대가는 `phase3_run` 1개로 남김.
+- `phase3_run.existing_and_own`과 PHASE 2 항목 3개, 실패가 판정되는 경우의 규칙은 그대로.
+- 평가 에피소드 499개(t6-full-floor27) 재채점: PHASE 3에서 테스트를 돌리지 않은 322개 중 247개가 항목 3개를 되찾고 75개는
+  0 그대로. penalty 평균 0.456 → 0.591 (통일 이전 0.669). compliance가 바뀐 에피소드는 없음.
 
 ## 확인
 

@@ -57,4 +57,5 @@ SPEC = WorkflowSpec(
     setup_script=HERE / "setup.sh",
     scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
     reward_signal="openspec_ff/compliance",
+    penalty_signal="openspec_ff/penalty",
 )
