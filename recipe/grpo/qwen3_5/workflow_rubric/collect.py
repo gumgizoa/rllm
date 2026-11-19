@@ -699,6 +699,154 @@ def parse_git(output: str, c: Collected, paths: list[str]) -> None:
 
 
 # --------------------------------------------------------------------------------------------
+# Exec 3: the repository's existing tests that relate to the changed source files
+# --------------------------------------------------------------------------------------------
+# FX:33 in speckit_bug ("the existing repository tests for each file you will change: test files named
+# after it, or test files that import it") and its siblings elsewhere need, per changed source file, the
+# tracked test files that (a) are named after it, (b) import it, or (c) mention a symbol its diff
+# touches (the ``def`` / ``class`` names in the hunks and their headers). (c) is what lets a test reach a
+# module through a re-export (``from django.db.models import Q`` for ``django/db/models/query.py``).
+# Read-only, tracked files only (an agent-made test is not an "existing" test), bounded in count and
+# bytes, every path base64 under a marker line like the other execs.
+MAX_CHANGED_FOR_TESTS = 20
+MAX_SYMBOLS = 40
+MAX_RELATED_BYTES = 256 * 1024
+# A test file by path, for GNU grep -E: the Python-side ``facts.is_test_path`` is the final word.
+_TEST_PATH_ERE = r"(^|/)(tests|__tests__|spec|test|testing)/|(^|/)test_[^/]*\.py$|(^|/)[^/]*_tests?\.py$|(^|/)conftest\.py$|_test\.go$|\.(test|spec)\.[cm]?[jt]sx?$|_(spec|test)\.rb$"
+_SOURCE_EXT = re.compile(r"\.(?:py|pyx|pyi)$")
+_IDENT = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def _module_parts(path: str) -> tuple[str, str, str]:
+    """(stem, dotted module, dotted parent) of a repo-relative Python path; ``pkg/__init__.py`` -> the package."""
+    mod = _SOURCE_EXT.sub("", path)
+    parts = [x for x in mod.split("/") if x]
+    if parts and parts[-1] == "__init__":
+        parts = parts[:-1]
+    if parts and parts[0] in ("src", "lib"):
+        parts = parts[1:]
+    stem = parts[-1] if parts else ""
+    return stem, ".".join(parts), ".".join(parts[:-1])
+
+
+def _name_ere(path: str, stem: str) -> str:
+    """ERE for a test *path* named after ``path``: ``test_<stem>*.py``, ``<stem>_test(s).py``, a directory ``<stem>/``,
+    or the same for the module's package (``axes/_base.py`` -> ``test_axes.py``), looked for near the module only --
+    under its parent directory, under its grandparent when that is itself nested (``lib/matplotlib/``), under a
+    top-level ``tests/`` / ``test/`` / ``testing/`` or ``<top>/tests/``, or at the repository root -- so
+    ``astropy/timeseries/core.py`` does not claim every package's ``test_core.py``."""
+    parts = path.split("/")
+    pkg = parts[-2] if len(parts) >= 2 and parts[-2] not in ("src", "lib") else ""
+    where = ["(tests|test|testing)/"]
+    if len(parts) >= 2:
+        where.append(re.escape("/".join(parts[:-1])) + "/")
+    if len(parts) >= 4:
+        where.append(re.escape("/".join(parts[:-2])) + "/")
+    if len(parts) > 1:
+        where.append(re.escape(parts[0]) + "/(tests|test|testing)/")
+    stems = [re.escape(stem)] + ([re.escape(pkg)] if pkg and _IDENT.match(pkg) and pkg != stem else [])
+    names = "|".join(f"test_?{x}[^/]*\\.py|{x}_tests?\\.py" for x in stems)
+    pre = "^(" + "|".join(where) + ")"
+    # a directory named after the module itself (``tests/queries/``); package names (``models/``) are too generic
+    return rf"{pre}(.*/)?({names})$|^({names})$|{pre}(.*/)?{re.escape(stem)}/"
+
+
+def _content_regexes(stem: str, dotted: str, parent: str) -> list[str]:
+    """ERE patterns a test file's text matches when it imports the module (``from a.b import``, ``import a.b``,
+    ``from a import b``); the symbol pattern is added in the shell from the diff."""
+    out = []
+    if dotted:
+        d = re.escape(dotted)
+        out.append(rf"^[[:space:]]*(from[[:space:]]+{d}[[:space:]]+import|import[[:space:]]+{d}([^A-Za-z0-9_.]|$))")
+    if parent and stem:
+        out.append(rf"^[[:space:]]*from[[:space:]]+{re.escape(parent)}[[:space:]]+import([^A-Za-z0-9_]|$).*([^A-Za-z0-9_]|^){re.escape(stem)}([^A-Za-z0-9_]|$)")
+    return out
+
+
+def related_script(workdir: str, base_sha: str, changed: list[str]) -> str:
+    """Shell for exec 3: for each changed source path, the tracked test files related to it (see above).
+
+    Per path: ``@@WFR REL <b64 path>`` then one base64 line holding the newline-separated related test
+    paths (empty when none). ``@@WFR NTESTS n`` counts the tracked test files looked at.
+    """
+    sha = shlex.quote(base_sha)
+    lines = [
+        f"cd {shlex.quote(workdir)} 2>/dev/null || {{ echo '{_MARK} NOWD'; exit 0; }}",
+        f'G() {{ {_GIT} "$@"; }}',
+        f"echo '{_MARK} BEGIN'",
+        "set -f; export LC_ALL=C",  # no globbing of the patterns below; byte-wise grep
+        "TL=$(mktemp 2>/dev/null || echo /tmp/.wfr_tests.$$)",
+        f"G ls-files -z 2>/dev/null | grep -zE {shlex.quote(_TEST_PATH_ERE)} > \"$TL\"",
+        f"echo \"{_MARK} NTESTS $(tr -cd '\\000' < \"$TL\" | wc -c)\"",
+    ]
+    for path in changed[:MAX_CHANGED_FOR_TESTS]:
+        stem, dotted, parent = _module_parts(path)
+        if not stem or not _IDENT.match(stem):
+            continue
+        b64 = base64.b64encode(path.encode("utf-8")).decode("ascii")
+        qp = shlex.quote(path)
+        name_ere = _name_ere(path, stem)
+        # (c) symbols the diff touches: def / class names in changed lines and hunk headers (dunder and
+        # names of <= 3 characters are too common to mean anything)
+        sym = (
+            f"{{ G diff -U0 {sha} -- {qp} 2>/dev/null; [ -f {qp} ] && G ls-files --error-unmatch {qp} >/dev/null 2>&1 || cat {qp} 2>/dev/null; }}"
+            " | grep -oE '(^|[^A-Za-z0-9_])(def|class)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' | sed -E 's/^.*(def|class)[[:space:]]+//'"
+            " | grep -vE '^__|^.{1,3}$' | sort -u | head -n " + str(MAX_SYMBOLS) + " | paste -sd '|' -"
+        )
+        content = [*_content_regexes(stem, dotted, parent)]
+        content_args = " ".join(f"-e {shlex.quote(c)}" for c in content)
+        lines += [
+            f"echo '{_MARK} REL {b64}'",
+            f"SY=$({sym})",
+            "SA=\"\"; [ -n \"$SY\" ] && SA=\"-e (^|[^A-Za-z0-9_])($SY)([^A-Za-z0-9_]|$)\"",
+            "{ "
+            f"grep -zE {shlex.quote(name_ere)} < \"$TL\" | tr '\\000' '\\n'; "
+            f"xargs -0 -r grep -lE {content_args} $SA -- < \"$TL\" 2>/dev/null; "
+            "} | sort -u | head -c " + str(MAX_RELATED_BYTES) + " | base64 -w0; echo",
+        ]
+    lines += ['rm -f "$TL" 2>/dev/null', f"echo '{_MARK} END'"]
+    return "\n".join(lines)
+
+
+def parse_related(output: str, c: Collected, changed: list[str]) -> None:
+    """Fill ``c.related_tests`` from a :func:`related_script` run; ``None`` stays when the step produced nothing."""
+    from .facts import _CODE_EXT, is_test_path  # local: facts imports context, not this module
+
+    seen: set[str] = set()
+    rel: dict[str, list[str]] = {}
+    for tag, arg, body in _records(output):
+        seen.add(tag)
+        if tag == "NOWD":
+            c.errors.append(f"collect: cannot cd to {c.workdir}")
+        elif tag == "REL":
+            path = _unb64(arg).decode("utf-8", errors="replace")
+            raw = _unb64(body or "")
+            paths = [t.decode("utf-8", errors="replace") for t in raw.split(b"\n") if t]
+            if len(raw) >= MAX_RELATED_BYTES:
+                c.errors.append(f"collect: related tests for {path} truncated at {MAX_RELATED_BYTES} bytes")
+                paths = paths[:-1]
+            rel[path] = sorted({p for p in paths if is_test_path(p) and _CODE_EXT.search(p)})
+    if "BEGIN" not in seen and "NOWD" not in seen:
+        c.errors.append("collect: no output from the related-tests step")
+        return
+    if "END" not in seen:
+        c.errors.append("collect: related-tests step cut short (shell timeout?)")
+    if "BEGIN" in seen:
+        for p in changed[:MAX_CHANGED_FOR_TESTS]:
+            rel.setdefault(p, [])
+        c.related_tests = rel
+
+
+def changed_sources(c: Collected) -> list[str]:
+    """The diff's code paths exec 3 looks up tests for: no test files, no run byproducts, Python only."""
+    from .facts import is_generated, is_test_path
+
+    if not c.diff:
+        return []
+    return sorted(p for p in c.diff if _SOURCE_EXT.search(p) and not is_test_path(p) and not is_generated(p))
+
+
+# --------------------------------------------------------------------------------------------
 # Entry point
 # --------------------------------------------------------------------------------------------
 def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collected:
@@ -725,7 +873,16 @@ def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collect
         except Exception as e:  # noqa: BLE001
             logger.warning("collect: git step failed: %s", _short(e))
             c.errors.append(f"collect: git step failed: {_short(e)}")
+    try:
+        changed = changed_sources(c)
+        if changed:
+            parse_related(_exec(sandbox, related_script(c.workdir, c.base_sha, changed)), c, changed)
+        elif c.diff is not None:
+            c.related_tests = {}
+    except Exception as e:  # noqa: BLE001
+        logger.warning("collect: related-tests step failed: %s", _short(e))
+        c.errors.append(f"collect: related-tests step failed: {_short(e)}")
     return c
 
 
-__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "collect", "resolve_roots", "scan_plan", "status_paths", "task_info"]
+__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "changed_sources", "collect", "parse_related", "related_script", "resolve_roots", "scan_plan", "status_paths", "task_info"]

@@ -556,4 +556,222 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before"]
+# --------------------------------------------------------------------------------------------
+# speckit_bug.gold_files  (log-only penalty item; ``inputs`` / ``post`` hooks beside it)
+# --------------------------------------------------------------------------------------------
+# The task's reference fix (SWE-Gym / SWE-bench gold patch) names the source files that had to
+# change. ``inputs`` looks them up by task id in ``gold_files.json`` (``src``: tests, docs and
+# changelogs dropped). ``speckit_bug.gold_files`` measures how many of them the reports named
+# (assessment **Files likely to change** ∪ fix Changes table) as a recall.
+# ``speckit_bug.related_test_run`` (no gold) asks whether a valid repository test run after the last
+# source edit targeted an existing test related to a changed file -- FX:33's own definition, named after
+# it or importing it, plus tests naming a symbol the diff touches -- read from the sandbox by
+# ``collect.py`` exec 3 into ``Collected.related_tests``; offline it is unavailable.
+# ``speckit_bug.scope_consistency`` (no gold) checks that the fix reports describe the change made; it is
+# scored twice: as a compliance item and as a penalty item.
+# Penalty items are ``log_only``: they never enter ``speckit_bug/compliance``. ``post`` folds every item
+# whose id reads ``speckit_bug.<stage>.penalty.<kind>.<what>`` into ``speckit_bug/penalty`` = mean(score),
+# 1 when every penalty rule was kept (the team-wide convention: item scores are kept = 1 / broken = 0,
+# the signal is their plain mean), the P of train.py's ``reward = (1 - w) * <mode reward> + w * P``.
+_GOLD_PATH = posixpath.join(posixpath.dirname(__file__), "gold_files.json")
+_GOLD: dict[str, dict[str, list[str]]] | None = None
+_PATH_IN_TEXT = re.compile(r"`([^`\n]+)`")
+_PATHLIKE = re.compile(r"(?<![\w/.-])((?:/|\./)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z][A-Za-z0-9]*)(?![\w/])")
+_PENALTY_SEGMENT = "penalty"
+
+
+def _gold_table() -> dict[str, dict[str, list[str]]]:
+    global _GOLD
+    if _GOLD is None:
+        import json
+
+        try:
+            with open(_GOLD_PATH, encoding="utf-8") as fh:
+                _GOLD = {str(k): {"src": [str(x) for x in v.get("src", [])]} for k, v in json.load(fh).items()}
+        except (OSError, ValueError, AttributeError):
+            _GOLD = {}
+    return _GOLD
+
+
+def _instance_id(task) -> str:
+    """The SWE instance id of ``task``: its ``id`` (``owner__repo-123`` or ``...:0``), else metadata's."""
+    tid = str(getattr(task, "id", "") or "").split(":")[0]
+    if tid:
+        return tid
+    meta = getattr(task, "metadata", None) or {}
+    if isinstance(meta, dict):
+        inner = meta.get("metadata") if isinstance(meta.get("metadata"), dict) else {}
+        return str(meta.get("instance_id") or inner.get("instance_id") or meta.get("task_id") or meta.get("id") or "")
+    return ""
+
+
+def inputs(task, episode) -> dict:
+    """``Collected.inputs``: the task's gold source files (None without a table entry)."""
+    g = _gold_table().get(_instance_id(task))
+    return {"gold_files": None if g is None else g["src"]}
+
+
+def post(report) -> dict[str, float]:
+    """``speckit_bug/penalty``: mean score of the scored ``*.penalty.*`` items (1 = every rule kept); absent when none was scored."""
+    scores = []
+    for item_id, r in report.results.items():
+        parts = str(item_id).split(".")
+        if len(parts) > 2 and parts[2] == _PENALTY_SEGMENT and getattr(r, "status", None) in ("pass", "fail"):
+            scores.append(float(getattr(r, "score", 0.0)))
+    return {"penalty": sum(scores) / len(scores)} if scores else {}
+
+
+def _norm_repo_path(p: str, workdir: str | None) -> str:
+    p = p.strip().strip("`'\"").split(":")[0]
+    if workdir and p.startswith(workdir.rstrip("/") + "/"):
+        p = p[len(workdir.rstrip("/")) + 1 :]
+    return p.lstrip("./")
+
+
+def named_files(assessment: str | None, fix: str | None, workdir: str | None = None) -> set[str]:
+    """Repository files the reports name as the change's scope: the assessment's **Files likely to change**
+    list (under Proposed Remediation) and the fix report's Changes table (first cell of each row)."""
+    out: set[str] = set()
+    if assessment:
+        body = _section(assessment, "Proposed Remediation")
+        value = M.field_value(body, "Files likely to change", multiline=True) if body else None
+        for line in (value or "").splitlines():  # ``clean_value`` drops the backticks: one path per list line
+            m = _PATHLIKE.search(M.strip_list_marker(line))
+            if m:
+                out.add(_norm_repo_path(m.group(1), workdir))
+    if fix:
+        body = _section(fix, "Changes")
+        for row in table_rows(body or ""):
+            m = _PATH_IN_TEXT.search(row["check"]) or _PATHLIKE.search(row["check"])
+            if m:
+                out.add(_norm_repo_path(m.group(1), workdir))
+    return {p for p in out if p and not p.startswith("<") and p.lower() != "file"}
+
+
+@register("speckit_bug.gold_files", params={"assessment": False, "fix": False}, availability=("sandbox_file",), common=False)
+def gold_files(item: Item, ctx: EvalContext) -> Result:
+    """Recall of the task's gold source files among the files the reports name (assessment **Files likely to change** ∪ fix Changes table); not applicable without a gold entry."""
+    gold = (ctx.collected.inputs or {}).get("gold_files")
+    if not gold:
+        return Result.not_applicable(item, "no gold files for this task")
+    p = item.check.params or {}
+    assessment = ctx.artifact_text(str(p.get("assessment") or "assessment"), "final")
+    fix = ctx.artifact_text(str(p.get("fix") or "fix"), "final")
+    if assessment is None and fix is None:
+        return Result.no(item, "neither report exists")
+    named = named_files(assessment, fix, ctx.collected.workdir)
+    hit = [g for g in gold if _names(named, g)]
+    return Result.ratio(item, len(hit), len(gold), f"{len(hit)}/{len(gold)} gold files named; named {sorted(named)[:6]}")
+
+
+def _names(named: set[str], gold: str) -> bool:
+    """``gold`` (repository-relative) is among ``named``: equal, or a longer path ending in it -- the reports
+    write ``/testbed/pkg/mod.py`` and the replay knows no workdir to strip."""
+    return any(n == gold or n.endswith("/" + gold) for n in named)
+
+
+def _mentions_test_file(run, path: str, workdir: str | None) -> bool:
+    """The run targeted ``path`` (repo-relative test file): the path or its stem in the command / targets / ids, or
+    for Django's runner the dotted label of the module (``tests/forms_tests/tests/test_forms.py`` -> ``forms_tests``...)."""
+    text = " ".join([run.command or "", *(run.targets or []), *(run.ids or [])])
+    rel = path
+    if workdir and rel.startswith(workdir.rstrip("/") + "/"):
+        rel = rel[len(workdir.rstrip("/")) + 1 :]
+    if rel in text or ("/" + rel) in text:
+        return True
+    stem = posixpath.splitext(posixpath.basename(rel))[0]
+    if stem not in ("tests", "test", "__init__") and re.search(r"(?<![\w/])" + re.escape(stem) + r"(?![\w])", text):
+        return True
+    if re.search(r"runtests\.py|manage\.py\s+test", run.command or ""):
+        parts = [x for x in rel.split("/")[:-1] if x not in ("tests", "test", "testing")]
+        label = ".".join(parts + [stem])
+        if parts and re.search(r"(?<![\w.])" + re.escape(parts[0]) + r"(?![\w])", run.command or ""):
+            return True
+        if label and label in (run.command or ""):
+            return True
+    return False
+
+
+def _targets_dir_of(run, path: str, workdir: str | None) -> bool:
+    """The run's target is a directory holding ``path`` (``pytest tests/queries``, ``pytest tests/``)."""
+    rel = path
+    if workdir and rel.startswith(workdir.rstrip("/") + "/"):
+        rel = rel[len(workdir.rstrip("/")) + 1 :]
+    for t in run.targets or []:
+        t = t.strip()
+        if workdir and t.startswith(workdir.rstrip("/") + "/"):
+            t = t[len(workdir.rstrip("/")) + 1 :]
+        t = t.lstrip("./").rstrip("/")
+        if t and not posixpath.splitext(t)[1] and rel.startswith(t + "/"):
+            return True
+    return False
+
+
+@register("speckit_bug.related_test_run", params={}, availability=("trace",), common=False)
+def related_test_run(item: Item, ctx: EvalContext) -> Result:
+    """After the last source edit, a valid repository test run (the runner's own summary, N >= 1 tests) targets an
+    existing test file related to a changed source file: named after it, importing it, or mentioning a symbol the
+    diff touches (``Collected.related_tests``, read from the sandbox at collect time). Not applicable when nothing
+    was edited or the repository has no test related to the change; unavailable offline (no sandbox)."""
+    from recipe.grpo.qwen3_5.workflow_rubric.facts import is_test_path
+
+    rel = ctx.collected.related_tests
+    if rel is None:  # not read from a sandbox (offline replay, or the collect step failed): never a verdict
+        return Result.unavailable(item, "related tests not collected")
+    edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.op not in ("delete", "move_out") and not is_test_path(e.path)]
+    if not edits:
+        return Result.not_applicable(item, "no source edit to verify")
+    tests = sorted({t for ts in rel.values() for t in ts})
+    if not tests:
+        return Result.not_applicable(item, f"no existing test is named after, imports or names a symbol of {sorted(rel)[:3]}")
+    last = max(edits)
+    after = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and r.step > last]
+    if not after:
+        return Result.no(item, f"no valid test run after the last source edit (step {last})")
+    wd = ctx.collected.workdir
+    hit = [r for r in after if any(_mentions_test_file(r, t, wd) or _targets_dir_of(r, t, wd) for t in tests)]
+    if hit:
+        return Result.ok(item, f"step {hit[0].step}: {hit[0].command.strip()[:80]}")
+    return Result.no(item, f"{len(after)} test run(s) after the last edit, none on the {len(tests)} related test file(s), e.g. {tests[:3]}")
+
+
+_NONE_LIKE = re.compile(r"^\W*(?:none|no deviations?|n/?a|not applicable|nothing)\b", re.I)
+
+
+def _covers(path: str, names: set[str]) -> bool:
+    return any(n == path or n.endswith("/" + path) or path.endswith("/" + n) for n in names)
+
+
+@register("speckit_bug.scope_consistency", params={"fixes": False, "assessment": False}, availability=("sandbox_file", "trace"), common=False)
+def scope_consistency(item: Item, ctx: EvalContext) -> Result:
+    """The fix reports describe the change that was made: every changed repository file is a row of a Changes table, every Changes row names a changed file, and a change beyond the assessment's **Files likely to change** comes with a substantive Deviations from Assessment; the score is the share of these three that hold."""
+    from recipe.grpo.qwen3_5.workflow_rubric.facts import change_paths
+
+    p = item.check.params or {}
+    wd = ctx.collected.workdir
+    fixes = list(p.get("fixes") or ["fix", "fix_2", "fix_3"])
+    texts = [t for t in (ctx.artifact_text(a, "final") for a in fixes) if t]
+    if not texts:
+        return Result.no(item, "no fix report")
+    changed = set(change_paths(ctx))
+    table: set[str] = set()
+    for t in texts:
+        table |= named_files(None, t, wd)
+    if not changed and not table:
+        return Result.not_applicable(item, "nothing changed and nothing recorded")
+    assessment = ctx.artifact_text(str(p.get("assessment") or "assessment"), "final")
+    listed = named_files(assessment, None, wd) if assessment else set()
+    unrecorded = sorted(c for c in changed if not _covers(c, table))
+    phantom = sorted(t for t in table if not _covers(t, changed))
+    outside = sorted(c for c in changed if not _covers(c, listed))
+    acknowledged = True
+    if outside and listed:
+        devs = [_section(t, "Deviations from Assessment") for t in texts]
+        acknowledged = any(d and d.strip() and not _NONE_LIKE.match(d.strip()) for d in devs)
+    conds = [("changed files recorded", not unrecorded, f"unrecorded {unrecorded[:3]}"), ("recorded files changed", not phantom, f"not changed {phantom[:3]}"),
+             ("scope expansion acknowledged", acknowledged, f"edited beyond the assessment's list {outside[:3]} with no deviation recorded")]
+    good = sum(1 for _, ok, _ in conds if ok)
+    return Result.ratio(item, good, len(conds), "; ".join(f"{n}: {'ok' if ok else why}" for n, ok, why in conds))
+
+
+__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before", "gold_files", "related_test_run", "scope_consistency", "named_files", "inputs", "post"]

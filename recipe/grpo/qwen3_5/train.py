@@ -79,6 +79,7 @@ BUDGET_EXHAUSTED = frozenset(
 
 
 COMPLIANCE_MODES = ("mul", "add", "wsum")
+PENALTY_GATES = ("all", "unsolved")
 
 
 def make_budget_scaled_grouping_hook(
@@ -88,6 +89,9 @@ def make_budget_scaled_grouping_hook(
     compliance_signals: str | tuple[str, ...] | None = None,
     compliance_floor: float = 0.0,
     compliance_weight: float = 0.3,
+    penalty_signals: str | tuple[str, ...] | None = None,
+    penalty_weight: float = 0.0,
+    penalty_gate: str = "all",
 ):
     """Return a ``traj_grouping_hook`` that applies SWE-Master's reward shaping.
 
@@ -118,6 +122,21 @@ def make_budget_scaled_grouping_hook(
       under ``"add"`` (lam = weight / (1 - weight)) gives advantages 1 / (1 - weight)
       times larger;
     * ``None``: the verifier reward alone.
+
+    ``penalty_signals`` / ``penalty_weight`` (w) fold in a penalty term after the mode above and
+    before the budget scale::
+
+        reward = (1 - w) * <mode reward> + w * P
+
+    ``P`` is the workflow's ``penalty_signal`` in [0, 1], 1 when every penalty rule was kept
+    (``WorkflowSpec.penalty_signal``, e.g. ``speckit_bug/penalty``: the mean of its log-only
+    ``*.penalty.*`` rubric items -- gold files named, a related existing test run after the last edit,
+    reports that describe the change). With ``penalty_gate="unsolved"`` a solved rollout is given
+    P = 1, so only failures are told apart by it (``verifier`` is the reward before shaping, 0 or 1
+    for a pass/fail verifier). A rollout without the signal counts as P = 1 (the group shares the
+    task, so this is a constant shift within it, and every group keeps the same ``1 - w`` scale).
+    ``penalty_weight`` 0 (the default) leaves the mode reward alone; with w = 0.2 and ``mul`` floor
+    0.7 a solve earns 0.56..0.8 from the first term and every rollout 0..0.2 from the second.
 
     The budget scale then applies to the result, so following the workflow
     cannot buy back what running out of turns costs. A trajectory without the
@@ -153,6 +172,13 @@ def make_budget_scaled_grouping_hook(
         raise ValueError(f"recipe.workflow.compliance_reward.floor applies to mode=mul only, got floor={compliance_floor} with mode={compliance_mode!r}")
     if not 0.0 <= compliance_weight <= 1.0:
         raise ValueError(f"recipe.workflow.compliance_reward.weight must be in [0, 1], got {compliance_weight}")
+    if not 0.0 <= penalty_weight < 1.0:
+        raise ValueError(f"recipe.workflow.compliance_reward.penalty_weight must be in [0, 1), got {penalty_weight}")
+    if penalty_gate not in PENALTY_GATES:
+        raise ValueError(f"recipe.workflow.compliance_reward.penalty_gate must be one of {PENALTY_GATES}, got {penalty_gate!r}")
+    penalties = (penalty_signals,) if isinstance(penalty_signals, str) else tuple(penalty_signals or ())
+    if penalty_weight > 0.0 and not penalties:
+        raise ValueError("compliance_reward.penalty_weight > 0 needs the signal it reads (WorkflowSpec.penalty_signal)")
 
     def hook(episodes, transform_config, compact_filtering_config=None):
         for episode in episodes:
@@ -162,6 +188,7 @@ def make_budget_scaled_grouping_hook(
                 if trajectory.reward is None:
                     continue
                 carried = trajectory.signals or {}
+                verifier = float(trajectory.reward)
                 c = next((carried[name] for name in signals if name in carried), None) if compliance_mode else None
                 if compliance_mode == "wsum":
                     missing = missing or c is None
@@ -171,6 +198,11 @@ def make_budget_scaled_grouping_hook(
                         trajectory.reward = trajectory.reward * (compliance_floor + (1.0 - compliance_floor) * float(c))
                     else:
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
+                if penalty_weight > 0.0:
+                    kept = float(next((carried[name] for name in penalties if name in carried), 1.0))
+                    if penalty_gate == "unsolved":
+                        kept = 1.0 - (1.0 - verifier) * (1.0 - kept)
+                    trajectory.reward = (1.0 - penalty_weight) * trajectory.reward + penalty_weight * kept
                 if exhausted and scale != 1.0:
                     trajectory.reward = trajectory.reward * scale
             if compliance_mode == "wsum":
@@ -247,9 +279,12 @@ def _workflow_names(recipe: DictConfig) -> tuple[tuple[str, ...], str | None]:
         raise SystemExit(f"recipe.workflow.val_name names one workflow, got {list(val)}")
     return pool, (val[0] if val else None)
 
-def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float, float, float]:
-    """(signals folded into the reward, "mul" / "add" / "wsum", lam for "add", floor for "mul", weight for "wsum");
-    ``(None, None, 0.0, 0.0, 0.0)`` when off.
+def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | None, str | None, float, float, float, tuple[str, ...], float, str]:
+    """(signals folded into the reward, "mul" / "add" / "wsum", lam for "add", floor for "mul", weight for "wsum",
+    penalty signals, penalty_weight, penalty_gate); ``(None, None, 0.0, 0.0, 0.0, (), 0.0, "all")`` when off.
+
+    ``compliance_reward.penalty_weight`` > 0 folds each workflow's ``penalty_signal`` (P, 1 = every penalty rule
+    kept) into the reward as ``(1 - w) * reward + w * P``; a workflow in the mix without one counts as P = 1.
 
     Scoring itself follows the harness: a workflow with a scorer for it is
     always scored -- and logged as ``<workflow>/*`` episode metrics -- so the
@@ -270,12 +305,12 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
     """
     reward = (recipe.get("workflow") or {}).get("compliance_reward") or {}
     if not bool(reward.get("enable", False)):
-        return None, None, 0.0, 0.0, 0.0
+        return None, None, 0.0, 0.0, 0.0, (), 0.0, "all"
     routes = agent_flow.routes() if hasattr(agent_flow, "routes") else {}
     flows = {name: flow for name, flow in routes.items() if flow.workflow_spec is not None}
     if not flows:
         logger.warning("recipe.workflow.compliance_reward.enable is set but there is no workflow; training on the verifier reward alone")
-        return None, None, 0.0, 0.0, 0.0
+        return None, None, 0.0, 0.0, 0.0, (), 0.0, "all"
     for name, flow in flows.items():
         if flow.workflow_spec.reward_signal is None or flow.evaluation_policy is None:
             raise SystemExit(f"recipe.workflow.compliance_reward.enable=true: workflow {name!r} has no compliance scorer for recipe.harness={flow.name!r}")
@@ -287,12 +322,20 @@ def _workflow_reward(recipe: DictConfig, agent_flow) -> tuple[tuple[str, ...] | 
                 f"signal, which wsum scores as 0, cutting every solve to 1 - weight (routes: {sorted(routes)})"
             )
         logger.warning("recipe.workflow.compliance_reward: the 'none' route trains on the verifier reward alone, beside %s", sorted(flows))
+    penalty_weight = float(reward.get("penalty_weight", 0.0))
+    penalty_gate = str(reward.get("penalty_gate", "all"))
+    penalties = tuple(flow.workflow_spec.penalty_signal for flow in flows.values() if flow.workflow_spec.penalty_signal)
+    if penalty_weight > 0.0 and not penalties:
+        raise SystemExit(f"recipe.workflow.compliance_reward.penalty_weight={penalty_weight}: no workflow in {sorted(flows)} has a penalty_signal")
     return (
         tuple(flow.workflow_spec.reward_signal for flow in flows.values()),
         mode,
         float(reward.get("lam", 0.2)),
         float(reward.get("floor", 0.0)),
         float(reward.get("weight", 0.3)),
+        penalties,
+        penalty_weight,
+        penalty_gate,
     )
 
 
@@ -434,7 +477,7 @@ def main(config: DictConfig) -> None:
     agent_flow.configure({"agent_image": agent_image})
     _pin_workflow(val_dataset, _workflow_names(recipe)[1])
     _log_workflow_split(agent_flow, train_dataset, val_dataset)
-    reward_signal, compliance_mode, compliance_lam, compliance_floor, compliance_weight = _workflow_reward(recipe, agent_flow)
+    reward_signal, compliance_mode, compliance_lam, compliance_floor, compliance_weight, penalty_signal, penalty_weight, penalty_gate = _workflow_reward(recipe, agent_flow)
     sandbox_backend = os.environ.get("SANDBOX_BACKEND", recipe.sandbox_backend)
     hooks = _build_hooks(
         agent_flow,
@@ -445,7 +488,7 @@ def main(config: DictConfig) -> None:
         verifier_timeout=OmegaConf.select(config, "rllm.timeouts.verifier"),
     )
     logger.info(
-        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s weight=%s)",
+        "agent flow: %s (step_limit=%s, workflow=%s, enable_thinking=%s, compliance scored=%s, reward=%s mode=%s lam=%s floor=%s weight=%s penalty=%s penalty_weight=%s penalty_gate=%s)",
         type(agent_flow).__name__,
         recipe.agent_step_limit,
         getattr(agent_flow, "workflow", None),
@@ -456,6 +499,9 @@ def main(config: DictConfig) -> None:
         compliance_lam if compliance_mode == "add" else "-",
         compliance_floor if compliance_mode == "mul" else "-",
         compliance_weight if compliance_mode == "wsum" else "-",
+        penalty_signal if penalty_weight > 0.0 else "-",
+        penalty_weight if penalty_weight > 0.0 else "-",
+        penalty_gate if penalty_weight > 0.0 else "-",
     )
 
     trainer = AgentTrainer(
@@ -473,7 +519,7 @@ def main(config: DictConfig) -> None:
         agent_network=bool(recipe.agent_network),
         verify_network=bool(recipe.verify_network),
         # Passed through **kwargs to UnifiedTrainer (verl_launcher.py forwards them).
-        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal, compliance_floor, compliance_weight),
+        traj_grouping_hook=make_budget_scaled_grouping_hook(float(recipe.budget_reward_scale), compliance_mode, compliance_lam, reward_signal, compliance_floor, compliance_weight, penalty_signal, penalty_weight, penalty_gate),
     )
     trainer.train()
 

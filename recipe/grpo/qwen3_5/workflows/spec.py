@@ -32,6 +32,8 @@ class WorkflowSpec:
     scorers           harness name -> factory of an evaluation policy for ``SandboxTaskHooks``
     reward_signal     the scorers' signal in [0, 1] that train.py folds into the reward
                       (``recipe.workflow.compliance_reward``); the others are logged only
+    penalty_signal    a scorers' signal P in [0, 1] (1 = every penalty rule kept) train.py folds in as
+                      ``(1 - w) * reward + w * P`` (``compliance_reward.penalty_weight`` / ``penalty_gate``); None = none
     output_dirs       container paths (directories or files) the workflow has the agent write its
                       reports to, outside the repository; read back into
                       ``episode.artifacts["workflow_outputs"]`` (``run_artifacts.py``)
@@ -55,6 +57,7 @@ class WorkflowSpec:
     system_prompt: Mapping[str, Path] = field(default_factory=dict)
     scorers: Mapping[str, Callable[[], Any]] = field(default_factory=dict)
     reward_signal: str | None = None
+    penalty_signal: str | None = None
     output_dirs: tuple[str, ...] = ()
     agent_image_extra: str = ""
     sandbox_files: Mapping[str, Path] = field(default_factory=dict)
