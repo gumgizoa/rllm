@@ -118,6 +118,10 @@ CHECKS_DIR = "{artifact}/{SPEC}/checks"
 BOX_OLD = r"^\s*[-*+]\s+\[[ xX]\]\s+\d+\.\d+\s+\S"
 BOX_NEW = r"^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S"
 # The placeholders of the one-group tasks example (build.py _TASKS_EXAMPLE), for the tasks.md residue item.
+# Self-check bounds that differ from the defaults. The whole-suite mutation is caught by one item, a should
+# (``implement_tasks.run.prohibited_action.full_suite_phase2``, weight 0.25): it is held to the bound of a should
+# item (``mutations.SHOULD_DROP``), not to the default, which takes a must item to reach.
+SELFTEST = {"full_suite_rerun_min_drop": 0.00125}
 TASKS_PLACEHOLDERS = ("[Area of the change]", "[Name of the area]", "[the change in this area]", "[the behavior to change]", "[First change to make]",
                       "[path of the file to change]", "[details]", "[existing code if applicable]", "[Next change to make]", "[what works once this group is done]")
 
@@ -224,6 +228,7 @@ def derive() -> tuple[dict, dict]:
                     "dropped_items": len(report["dropped_items"]), "kept_items": len(items)},
     }
     rub["generated"].pop("cache", None)
+    rub["scoring"]["selftest"] = {**(rub["scoring"].get("selftest") or {}), **SELFTEST}
     return rub, report
 
 

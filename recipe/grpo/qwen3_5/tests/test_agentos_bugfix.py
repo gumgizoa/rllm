@@ -345,6 +345,62 @@ def test_golden_run_scores_full_marks():
         assert rep.scores.compliance >= 0.98, (variant, rep.scores.compliance)
 
 
+def test_a_label_keeps_the_list_under_it_across_blank_lines():
+    """``**In Scope:**``, a blank line, then the list: the list is the label's value, as it is without the blank line."""
+    from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
+
+    def value(text, label="In Scope"):
+        return M.field_value(text, label, multiline=True)
+
+    assert value("**In Scope:**\n- a\n- b\n\n**Out of Scope:**\n- c\n") == "a\nb"
+    spaced = "**In Scope:**\n\n- a\n\n- b\n\n**Out of Scope:**\n\n- c\n\n### Next\n\n- d\n"
+    assert value(spaced) == "a\nb" and value(spaced, "Out of Scope") == "c"
+    assert value("- In Scope:\n\n  - a\n\n  - b\n- Out of Scope: none\n") == "a\nb"
+    # nothing under the label is still nothing: the next label, a heading or a paragraph after the blank line is not its value
+    assert value("**In Scope:**\n\n**Out of Scope:**\n\n- c\n") == ""
+    assert value("**In Scope:**\n\n### Next\n- d\n") == ""
+    assert value("**In Scope:**\n\nSome prose here.\n") == ""
+    # a label with a value on its own line, or with prose under it, does not reach past the blank line
+    assert value("**In Scope:** x\n\n- unrelated\n") == "x"
+    assert value("**In Scope:**\nprose\n\n- unrelated\n") == "prose"
+    assert value("**In Scope:**\n\n- a\n\n---\n\n- z\n") == "a"
+
+
+def test_the_self_check_passes_on_the_reformatted_run_and_the_whole_suite_run():
+    import copy
+
+    import yaml
+
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import mutations as MU
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    path = RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"
+    recorded = yaml.safe_load(path.read_text(encoding="utf-8"))["generated"]["selftest"]
+    assert recorded["status"] == "passed" and recorded["failures"] == []
+    assert D.SELFTEST == {"full_suite_rerun_min_drop": MU.SHOULD_DROP}
+    rub = G.with_docs(S.load(path), RECIPE / "workflows" / NAME)
+    assert G.load_plugins(rub) == []
+    th, _ = G.thresholds_of(rub)
+    run, col = golden.golden(rub)
+    env = MU.Env.build(rub, run)
+    by_name = {m.name: m for m in MU.MUTATIONS}
+
+    def scored(name):
+        rep = engine.evaluate(rub, *by_name[name].fn(copy.deepcopy(run), copy.deepcopy(col), rub, env=env))
+        return rep, G.judge(by_name[name], rep, 1.0, th)
+
+    rep, verdict = scored("honest_reformat")  # bold labels and blank lines: the same content, the same score
+    assert rep.scores.compliance == 1.0 and verdict["ok"]
+    rep, verdict = scored("full_suite_rerun")  # caught by the one should item, at a should item's size
+    item = next(it for it in rub.items if it.id.endswith("prohibited_action.full_suite_phase2"))
+    assert item.requirement == "should" and rep.results[item.id].status == "fail"
+    assert verdict["ok"] and 1.0 - rep.scores.compliance >= MU.SHOULD_DROP
+
+
 
 # --------------------------------------------------------------------------------------------
 # penalty items (reward/penalty.py): the files tasks.md names, the final patch, the reference fix

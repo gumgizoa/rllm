@@ -392,8 +392,12 @@ def _indent(line: str) -> int:
     return len(line) - len(line.lstrip(" \t"))
 
 
-def _continuation(lines: list[str], kinds: list[str], i: int, attach_code: bool) -> list[str]:
+def _continuation(lines: list[str], kinds: list[str], i: int, attach_code: bool, loose: bool = False) -> list[str]:
+    """The lines after line ``i`` that belong to its label. ``loose`` (the label has nothing on its own line): a list
+    under it may start after blank lines and have blank lines between its items; anything else after a blank line
+    is not taken."""
     base, out, j = _indent(lines[i]), [], i + 1
+    listed = True  # every line taken so far is a list item
     while j < len(lines):
         line, k = lines[j], kinds[j]
         if k == _COMMENT:
@@ -410,10 +414,19 @@ def _continuation(lines: list[str], kinds: list[str], i: int, attach_code: bool)
                 j += 1
             continue
         s = line.strip()
-        if not s or _atx(line) or _HR.match(line):
+        if not s:
+            n = j
+            while n < len(lines) and kinds[n] == _TEXT and not lines[n].strip():
+                n += 1
+            if not (loose and listed and n < len(lines) and kinds[n] == _TEXT and _LIST_MARK.match(lines[n])):
+                break
+            j = n
+            continue
+        if _atx(line) or _HR.match(line):
             break
         if _indent(line) <= base and _ANY_LABEL_LINE.match(line):
             break
+        listed = listed and bool(_LIST_MARK.match(line))
         out.append(_LIST_MARK.sub("", s, count=1).strip())
         j += 1
     return out
@@ -426,7 +439,9 @@ def field_value(section_text: str | None, label: str | None, multiline: bool = F
     Case-insensitive, word-bounded (``Classpath:`` never answers ``Path``); the value stops at the
     next label on its line. ``multiline`` adds the following lines that belong to it -- deeper
     indented lines, same-level non-label list items, a fenced block -- up to a blank line, another
-    label line, or a heading. None when the label is absent; "" when present but empty.
+    label line, or a heading. A label with nothing on its own line also keeps a list that starts after
+    blank lines or has blank lines between its items (``**In Scope:**``, a blank line, ``- a``, a blank
+    line, ``- b``). None when the label is absent; "" when present but empty.
     """
     if section_text is None or label is None or not str(label).strip():
         return None
@@ -442,7 +457,7 @@ def field_value(section_text: str | None, label: str | None, multiline: bool = F
         nxt = _NEXT_LABEL.search(v)
         parts = [(v[: nxt.start()] if nxt else v).strip()]
         if multiline and not nxt:
-            parts += _continuation(lines, kinds, i, attach_code=not parts[0])
+            parts += _continuation(lines, kinds, i, attach_code=not parts[0], loose=not parts[0])
         return clean_value("\n".join(p for p in parts if p))
     return None
 

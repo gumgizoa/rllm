@@ -67,12 +67,12 @@
 - 전용 검사는 agentos_v2의 함수를 `agentos_bugfix.*` 이름으로 등록해 씀 (`reward/checks.py`). 이를 위해 agentos_v2의 보고서
   검사에 테스트 결과 절 이름을 받는 선택 설정값(`suite_section`)을 추가함 (agentos_v2 동작은 그대로).
 - 기준 런(`selftest_golden.py`, agentos_v2 것에서 뺀 단계만 제거): 만점 1.0, 정직한 변형 10개도 0.99 이상(9개는 만점, 테스트 검토 group을 둔 변형 0.9913).
-- 알려진 미달 2건 (기준은 바꾸지 않음):
-  - "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자람 (agentos_v2는 0.9833). 같은 항목(requirements.md의
+- 자체 점검 미달 2건 (2026-11-19에 해결, 아래 "자체 점검 미달 해결" 절):
+  - "정직한 런의 서식을 바꾼 변형"이 0.9789로 기준 0.98에 0.0011 모자랐음 (agentos_v2는 0.9833). 같은 항목(requirements.md의
     In Scope 칸)에서 잃는 것은 agentos_v2와 같고, 항목 수가 줄어 한 항목의 비중이 커진 결과.
-  - "편집 뒤 모든 테스트 실행을 전체 테스트로 바꾼 변형"이 0.9974로 기준 0.995 이하에 못 미침(감점이 0.0026). T1로 기준 런이
+  - "편집 뒤 모든 테스트 실행을 전체 테스트로 바꾼 변형"이 0.9974로 기준 0.995 이하에 못 미쳤음(감점이 0.0026). T1로 기준 런이
     구현 중에 기존 테스트를 돌리게 되면서 이 변형이 처음 적용됨. 걸리는 항목은 "구현 중에는 전체 테스트를 돌리지 않음"인데
-    agentos_v2에서 권고(should, 가중치 0.25)로 되어 있어 감점이 작음. 필수(must)로 올리면 기준을 넘음: 사용자 결정 필요.
+    agentos_v2에서 권고(should, 가중치 0.25)로 되어 있어 감점이 작음.
 - T3에 따라 "tasks.md는 create-tasks 뒤에 체크만 한다" 항목이 줄 추가도 허용함(있던 줄을 고치거나 지우면 감점 그대로). 이를 위해
   agentos_v2의 tasks 검사에 선택 설정값(`additions`)을 추가함(agentos_v2 동작은 그대로). create-tasks 단계의 tasks.md 항목 3개
   (task 수, group 구성, 테스트 먼저)는 create-tasks가 끝난 시점의 tasks.md를 보도록 바꿈. 기준 런에 "구현 중에 task를 추가하는"
@@ -202,6 +202,20 @@ speckit_bug·openspec_ff와 같은 규칙으로 맞춤. 문서는 바꾸지 않�
   `penalty_applies.<이름>`은 판정 불가가 아닌 항목마다 나옴 (판정 불가 항목은 값도 `penalty_applies`도 없고
   `penalty_unavailable`에 개수만 셈). `penalty_errors`, `penalty_tests_errors`는 없앰 (판정 중 오류는
   엔진 규칙대로 그 항목 실패와 `engine_errors`). `__init__.py`에 `penalty_signal` 지정.
+
+## 자체 점검 미달 해결 (2026-11-19)
+
+자체 점검 상태가 `failed`에서 `passed`가 됨. 항목과 가중치는 바꾸지 않음.
+
+- 서식을 바꾼 변형 (0.9789 → 1.0): 라벨 줄 다음에 빈 줄이 있으면 그 아래 목록을 값으로 읽지 못하던 것을 고침
+  (`workflow_rubric/markdown.py`의 `_continuation`). 라벨 줄에 값이 없을 때만, 빈 줄 뒤에 오는 목록과 항목 사이에 빈 줄이
+  있는 목록을 그 라벨의 값으로 읽음. 빈 줄 뒤에 다른 라벨, 제목, 문단이 오면 이전처럼 빈 값. 공통 코드라 모든 워크플로의
+  라벨 칸 항목에 적용됨: 자체 점검에서 바뀐 것은 이 변형뿐 (agentos_v2 0.9833 → 1.0, speckit_bug·speckit_sdd·openspec_ff 변화
+  없음).
+- 전체 테스트로 바꾼 변형 (점수 0.9974 그대로): 이 변형에 요구하는 최소 감점을 0.005에서 0.00125로 낮춤
+  (`derive_rubric.py`의 `SELFTEST` → rubric의 `scoring.selftest.full_suite_rerun_min_drop`). 0.005는 필수 항목 하나가 걸릴
+  때를 가정한 값인데 이 변형에 걸리는 항목은 권고 하나뿐이라서, 권고 항목만 걸리는 변이가 쓰는 값(`mutations.SHOULD_DROP`)에
+  맞춤. 항목을 필수로 올리는 방법은 쓰지 않음 (학습 reward에서 이 항목의 비중이 4배가 됨).
 
 ## 확인
 

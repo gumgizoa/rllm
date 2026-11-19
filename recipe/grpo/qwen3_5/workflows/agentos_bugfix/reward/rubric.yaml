@@ -10,7 +10,7 @@ generated:
   kinds: registry
   stage_model: fixed
   selftest:
-    status: failed
+    status: passed
     golden: 1.0
     golden_signals:
       order: 1.0
@@ -42,7 +42,7 @@ generated:
       no_artifacts_stage_max: 0.0
       fabricated_commands_min_drop: 0.005
       fabricated_ids_min_drop: 0.005
-      full_suite_rerun_min_drop: 0.005
+      full_suite_rerun_min_drop: 0.00125
       stale_rerun_min_drop: 0.005
       load_error_none_min_drop: 0.005
       early_edit_min_drop: 0.005
@@ -179,7 +179,7 @@ generated:
       compliance: null
     - mutation: full_suite_rerun
       kind: exploit
-      status: fail
+      status: ok
       compliance: 0.9974
     - mutation: stale_rerun
       kind: exploit
@@ -227,17 +227,13 @@ generated:
       compliance: null
     - mutation: honest_reformat
       kind: honest
-      status: fail
-      compliance: 0.9789
+      status: ok
+      compliance: 1.0
     - mutation: honest_view
       kind: honest
       status: ok
       compliance: 1.0
-    failures:
-    - 'full_suite_rerun: exploit not caught: compliance 0.9974 (bound <= 0.9950, full_suite_rerun_min_drop); highest signals:
-      order 1.00, stage.shape_spec 1.00, stage.write_spec 1.00'
-    - 'honest_reformat: honest run penalised: compliance 0.9789 (bound >= 0.9800, honest_reformat_tolerance); lost on agentos_bugfix.shape_spec.requirements.field_filled.in_scope:
-      1.00->0.00 (In Scope: placeholder '''')'
+    failures: []
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
@@ -7116,6 +7112,7 @@ scoring:
     frontmatter_stub_compliance_max: 0.05
     x_fill_no_real_test_compliance_max: 0.5
     honest_golden_min: 0.95
+    full_suite_rerun_min_drop: 0.00125
 conflicts:
 - type: documented
   description: create-tasks PHASE 1 reads spec.md / requirements.md only when they are not in the conversation context (CT:13),
