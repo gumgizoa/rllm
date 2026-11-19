@@ -4248,7 +4248,7 @@ items:
   template: C-F8
   log_only: false
   note: template fix
-- id: speckit_bug.fix.penalty.scope_consistency.recorded
+- id: speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded
   scope: specific
   class: content
   stage: fix
@@ -4267,8 +4267,8 @@ items:
   requirement: must
   modality_evidence: 'FX:3 ''record the changes in this round''s fix report''; the Changes table (FX:64-66); FX:35 ''Stay
     within the files listed by the assessment unless ... log the expansion explicitly in the report''; FX:90 Deviations ''Empty
-    if none''. Both directions of the Changes table, plus the acknowledged scope expansion. Scored on the penalty side only
-    (2026-11-19): the same rule is no longer a compliance item, so it enters the reward once'
+    if none''. Replaces the cross_ref subset item (2026-11-18): both directions of the Changes table, plus the acknowledged
+    scope expansion'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -4302,11 +4302,55 @@ items:
   impl_refs: []
   derived_by: manual
   template: ''
-  log_only: true
+  log_only: false
   note: 'share of three conditions: every file of the final change is a Changes row (of fix.md / fix-2.md / fix-3.md); every
     Changes row is a changed file; a change beyond the assessment''s **Files likely to change** comes with a substantive Deviations
-    from Assessment. A penalty item: the ``penalty`` id segment routes it into speckit_bug/penalty, never into compliance;
-    worth 0 to a run that changed nothing and recorded nothing'
+    from Assessment'
+- id: speckit_bug.fix.penalty.scope_consistency.recorded
+  scope: specific
+  class: content
+  stage: fix
+  target:
+    type: artifact
+    ref: fix
+    state: final
+  check:
+    kind: speckit_bug.scope_consistency
+    params:
+      fixes:
+      - fix
+      - fix_2
+      - fix_3
+      assessment: assessment
+  requirement: must
+  modality_evidence: same rule as speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded; this copy is the penalty (D)
+    side, so an unsolved rollout is still held to it
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  - trace
+  sources:
+  - doc: FX
+    lines:
+    - 64
+    - 66
+    quote: '| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short
+      note> |'
+  - doc: FX
+    lines:
+    - 35
+    - 35
+    quote: Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which
+      case, log the expansion explicitly in the report).
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: the ``penalty`` id segment routes it into speckit_bug/penalty; identical check to the compliance item; worth 0 to
+    a run that changed nothing and recorded nothing
 - id: speckit_bug.fix.penalty.gold_files.named
   scope: specific
   class: content

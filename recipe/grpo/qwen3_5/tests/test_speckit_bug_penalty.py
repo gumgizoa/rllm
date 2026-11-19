@@ -140,8 +140,8 @@ def test_scope_consistency_wants_the_reports_to_describe_the_change():
     # the expansion made but not acknowledged: 2/3
     silent = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, {**FILES, f"{BUG}/fix.md": FIX_UNACKNOWLEDGED}))
     assert silent["speckit_bug/penalty"] == pytest.approx((1 + 2 / 3 + 1) / 3)
-    # the rule is a penalty item only: it no longer moves the fix stage score
-    assert unrecorded["speckit_bug/stage.fix"] == pytest.approx(clean["speckit_bug/stage.fix"])
+    # the compliance twin moves the fix stage score; the penalty items do not
+    assert unrecorded["speckit_bug/stage.fix"] < clean["speckit_bug/stage.fix"]
     only_f2p = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_OTHER), _data(ev, FILES))
     assert only_f2p["speckit_bug/compliance"] == pytest.approx(clean["speckit_bug/compliance"])
 
@@ -168,8 +168,8 @@ def test_the_items_are_log_only_and_routed_by_their_id():
     rub = _ev().rubric
     pen = [i for i in rub.items if i.id.split(".")[2] == "penalty"]
     assert sorted(i.id for i in pen) == ["speckit_bug.fix.penalty.gold_files.named", "speckit_bug.fix.penalty.scope_consistency.recorded", "speckit_bug.test.penalty.related_test_run.after_last_edit"]
-    # the consistency rule is a penalty item only: scored on both sides it would enter the reward twice
-    assert not any(i.check.kind == "speckit_bug.scope_consistency" and not i.log_only for i in rub.items)
+    # the consistency rule is scored on both sides: once for compliance, once for the penalty
+    assert any(i.id == "speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded" and not i.log_only for i in rub.items)
     assert not any(i.id == "speckit_bug.fix.fix.cross_ref.changes" for i in rub.items)
     assert all(i.log_only for i in pen)
     assert speckit_bug.SPEC.penalty_signal == "speckit_bug/penalty"

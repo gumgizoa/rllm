@@ -572,7 +572,7 @@ def holds(item: Item, ctx: EvalContext) -> Result:
 # a symbol the diff touches -- read from the sandbox by ``collect.py`` exec 3 into ``Collected.related_tests``
 # (collected only for a rubric with a kind that declares ``related_tests``); offline it is unavailable.
 # ``speckit_bug.scope_consistency`` (no gold) checks that the fix reports describe the change made: the share
-# of its three conditions that hold. It is a penalty item only, so the rule enters the reward once.
+# of its three conditions that hold. It is scored twice: as a compliance item and as a penalty item.
 # Penalty items are ``log_only``: they never enter ``speckit_bug/compliance``. The common ``post``
 # (``workflow_rubric/penalty.py``) folds every item whose id reads ``speckit_bug.<stage>.penalty.<kind>.<what>``
 # into ``speckit_bug/penalty``, the P of train.py's ``reward = (1 - w) * <mode reward> + w * P``: every item

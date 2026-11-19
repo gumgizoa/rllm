@@ -752,6 +752,20 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [88, 88], quote: "## Deviations from Assessment"}
       - {path: docs/core-workflow.md, lines: [50, 51], quote: "**Keep each report's structure** exactly as its stage document gives it: the `#`/`##` headings and the `- **Field**:` lines."}
     note: "the heading is bound; its body may be empty (FX:90 'Empty if none')"
+  - id: speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded
+    stage: fix
+    target: {type: artifact, ref: fix}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.scope_consistency, params: {fixes: [fix, fix_2, fix_3], assessment: assessment}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); FX:35 'Stay within the files listed by the assessment unless ... log the expansion explicitly in the report'; FX:90 Deviations 'Empty if none'. Replaces the cross_ref subset item (2026-11-18): both directions of the Changes table, plus the acknowledged scope expansion"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
+      - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
+      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
+      - {path: docs/stages/02-fix.md, lines: [90, 90], quote: "Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why."}
+    note: "share of three conditions: every file of the final change is a Changes row (of fix.md / fix-2.md / fix-3.md); every Changes row is a changed file; a change beyond the assessment's **Files likely to change** comes with a substantive Deviations from Assessment"
   - id: speckit_bug.fix.penalty.scope_consistency.recorded
     stage: fix
     target: {type: artifact, ref: fix}
@@ -760,13 +774,11 @@ manual:
     log_only: true
     check: {kind: speckit_bug.scope_consistency, params: {fixes: [fix, fix_2, fix_3], assessment: assessment}}
     availability: [sandbox_file, trace]
-    modality_evidence: "FX:3 'record the changes in this round's fix report'; the Changes table (FX:64-66); FX:35 'Stay within the files listed by the assessment unless ... log the expansion explicitly in the report'; FX:90 Deviations 'Empty if none'. Both directions of the Changes table, plus the acknowledged scope expansion. Scored on the penalty side only (2026-11-19): the same rule is no longer a compliance item, so it enters the reward once"
+    modality_evidence: "same rule as speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded; this copy is the penalty (D) side, so an unsolved rollout is still held to it"
     sources:
       - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-      - {path: docs/stages/02-fix.md, lines: [3, 3], quote: "record the changes in this round's fix report"}
-      - {path: docs/stages/02-fix.md, lines: [90, 90], quote: "Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why."}
-    note: "share of three conditions: every file of the final change is a Changes row (of fix.md / fix-2.md / fix-3.md); every Changes row is a changed file; a change beyond the assessment's **Files likely to change** comes with a substantive Deviations from Assessment. A penalty item: the ``penalty`` id segment routes it into speckit_bug/penalty, never into compliance; worth 0 to a run that changed nothing and recorded nothing"
+    note: "the ``penalty`` id segment routes it into speckit_bug/penalty; identical check to the compliance item; worth 0 to a run that changed nothing and recorded nothing"
   - id: speckit_bug.fix.penalty.gold_files.named
     stage: fix
     target: {type: artifact, ref: fix}
