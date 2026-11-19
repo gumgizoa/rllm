@@ -74,12 +74,16 @@ delta spec you write is therefore an `## ADDED Requirements` delta for a new cap
 - Only the apply action edits `/testbed`. ff and verify read it and run commands in it.
 - Explore reads it too and runs commands in it, but writes no file anywhere, inside the repository
   or outside it.
-- Do not add or edit test files there; the tests for this task already exist. Touch README, `docs/`
-  or changelogs only if the issue asks for it.
+- Do not add or edit test files there; the grading tests are added after you finish. Touch README,
+  `docs/` or changelogs only if the issue asks for it.
 - Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under
   `/openspec/changes/issue/`.
 
 ## Verify, Then Fix What It Finds
+
+Before it writes the report, verify runs the repository tests that cover the change and every check
+script under `/openspec/changes/issue/checks/`, after the last code change. A run that fails is a
+CRITICAL issue.
 
 Verify writes `/openspec/changes/issue/verify.md`. If the report holds a CRITICAL issue, go back
 to apply, fix what the report names, and run verify again, rewriting `verify.md`. Go back at most

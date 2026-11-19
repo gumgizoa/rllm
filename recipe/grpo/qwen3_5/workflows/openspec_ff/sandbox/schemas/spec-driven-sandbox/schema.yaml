@@ -231,8 +231,8 @@ artifacts:
         multiple implementation tasks.
       - Each task group MUST verify its own work as it lands: run the existing repository
         tests that cover it, or write a check script under /openspec/changes/issue/checks/
-        and run it. Do NOT add or edit test files in the repository - the task's tests are
-        already in place. Change repository documentation (README, docs/, changelogs) only
+        and run it. Do NOT add or edit test files in the repository - the grading tests are
+        added after you finish. Change repository documentation (README, docs/, changelogs) only
         when the issue asks for it; comments and docstrings in the code you change are part
         of that code. Do NOT collect verification into a final group - when a late group
         first exercises work from an early one, the failures cascade back through every

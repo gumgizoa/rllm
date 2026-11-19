@@ -773,6 +773,18 @@ EDITS: tuple[Edit, ...] = (
     ),
     Edit(
         "verify",
+        "8. **Generate Verification Report**\n",
+        "8. **Run the Evidence**\n\n"
+        f"   After your last code change, run the repository tests that cover the code you changed and every check script "
+        f"under `{CHANGE_DIR}checks/`. In the report, name each command and its result. A run that fails is a CRITICAL "
+        "issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. If you ran "
+        "nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness.\n\n"
+        "9. **Generate Verification Report**\n",
+        "semantic",
+        "G8-7: verify runs the tests and check scripts after the last code change before it writes the report",
+    ),
+    Edit(
+        "verify",
         "   - Include the suggestion count when nonzero in every final assessment.\n",
         "   - Include the suggestion count when nonzero in every final assessment.\n\n"
         "   **Next step**: if the report holds a CRITICAL issue and you have gone back fewer than two times, go "
@@ -837,8 +849,8 @@ def forbidden_left(key: str, text: str) -> list[str]:
 AGREED_TASKS_ITEM = """\
 - Each task group MUST verify its own work as it lands: run the existing repository
   tests that cover it, or write a check script under /openspec/changes/issue/checks/
-  and run it. Do NOT add or edit test files in the repository - the task's tests are
-  already in place. Change repository documentation (README, docs/, changelogs) only
+  and run it. Do NOT add or edit test files in the repository - the grading tests are
+  added after you finish. Change repository documentation (README, docs/, changelogs) only
   when the issue asks for it; comments and docstrings in the code you change are part
   of that code. Do NOT collect verification into a final group - when a late group
   first exercises work from an early one, the failures cascade back through every

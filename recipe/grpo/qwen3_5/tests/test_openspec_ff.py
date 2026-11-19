@@ -146,6 +146,39 @@ def test_a_critical_issue_goes_back_to_apply_before_archive():
         assert "verify-2" not in text  # one verify.md, rewritten
 
 
+def test_verify_runs_the_evidence_before_it_writes_the_report():
+    # G8-7: the report rests on a run made after the last code change
+    entry = _docs()["core-workflow.md"]
+    verify = _docs()["stages/03-verify.md"]
+    run, report = verify.index("8. **Run the Evidence**"), verify.index("9. **Generate Verification Report**")
+    assert run < report and "8. **Generate Verification Report**" not in verify
+    step = verify[run:report]
+    for needle in (
+        "After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`.",
+        "In the report, name each command and its result.",
+        "A run that fails is a CRITICAL issue.",
+        "A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing.",
+        "mark the affected checks `Not verified` and do not claim readiness.",
+    ):
+        assert needle in step, needle
+    assert "Before it writes the report, verify runs the repository tests that cover the change and every check\nscript under" in entry
+    assert entry.index("Before it writes the report") < entry.index("Verify writes `/openspec/changes/issue/verify.md`")
+
+
+def test_no_document_says_the_grading_tests_are_in_the_repository():
+    # G9-7: the tests that grade the task are applied after the run; the ban on test files stays
+    from recipe.grpo.qwen3_5.workflows import openspec_ff
+
+    entry = _docs()["core-workflow.md"]
+    schema = (build.FORK_DIR / "schema.yaml").read_text(encoding="utf-8")
+    config = openspec_ff.SPEC.sandbox_files[openspec_ff.CONFIG_STAGED].read_text(encoding="utf-8")
+    for text in (entry, schema, config, *_docs().values()):
+        assert "already exist. Touch" not in text and "already in place" not in text
+    assert "Do not add or edit test files there; the grading tests are added after you finish." in entry
+    assert "Do NOT add or edit test files in the repository - the grading tests are\n" in build.AGREED_TASKS_ITEM
+    assert "The tests that grade this issue are added after you finish; do not add or edit test files in the repository." in config
+
+
 # ---------------------------------------------------------------------- the fork
 
 

@@ -261,3 +261,8 @@ explore 단계 추가(2026-10-15)는 맨 아래 "Explore extension" 절. 아래 
 - explore 요약을 쓰는 위치 변경(G2-15, G2-14 대체): `think` tool 예시를 지우고, tool call이 있는 turn의 메시지 본문에 쓰되 `01-ff.md`를 여는 turn보다 늦지 않게 쓰도록 함. `think`는 openhands-sdk에만 있는 tool이고 학습 agent에게는 주어지지 않음. `00-explore.md` Ending Discovery, `core-workflow.md` Actions 표와 "From Explore to ff".
 - rubric은 재생성하지 않고 직접 수정: `openspec_ff.note`가 turn의 메시지 본문도 읽음. 요약 항목의 인용문과 충돌 기록 2건 갱신. golden run은 요약을 explore 마지막 turn의 메시지에 두며 selftest 결과를 다시 돌린 값으로 교체(golden 1.0).
 - penalty 항목 5개 추가(`reward/penalty.py`, rubric 항목 `openspec_ff.verify.penalty.*`, `log_only`): 마지막 코드 수정 뒤 실행이 있는지, verify.md의 Final Assessment·task 수·CRITICAL이 실제와 맞는지, 실패나 열린 task를 남기지 않고 끝냈는지. compliance에는 들어가지 않고, 평균을 두 번째 점수 `openspec_ff/penalty`로 내보냄. 문서는 바꾸지 않음. 값의 방향(지금은 1 = 잘함)과 reward 반영은 workflow별로 모아 따로 정함.
+
+**추가 (2026-11-19)**
+- verify에 실행 단계 추가(G8-7): `03-verify.md` 8단계 "Run the Evidence". 마지막 코드 수정 뒤 수정한 코드를 다루는 저장소 테스트와 `checks/`의 check script를 모두 실행하고, 보고서에 명령과 결과를 적음. 실패한 실행은 CRITICAL이고, 실패한 테스트를 빼고 다시 돌린 것은 여전히 실패로 봄. 아무것도 실행하지 않았으면 해당 검사를 `Not verified`로 적고 준비됐다고 쓰지 않음. 보고서 작성은 9단계가 됨. `core-workflow.md` "Verify, Then Fix What It Finds" 첫 문단에 같은 규칙. G8-3의 "새 실행을 요구하지 않음"을 대체.
+- "테스트가 이미 있다"는 문장 세 곳 수정(G9-7): `core-workflow.md` "The Repository", `schema.yaml` tasks 지침, `openspec-config.yaml` context. 채점용 테스트는 실행이 끝난 뒤 적용되므로 "the grading tests are added after you finish"로 바꿈. 테스트 파일을 추가하거나 고치지 말라는 금지는 그대로.
+- rubric은 재생성하지 않고 직접 수정: 두 문서의 삽입 지점 뒤 인용 행 번호를 4씩 옮기고 바뀐 인용문 세 개를 교체. `penalty.no_run_after_change`는 새 단계를 근거로 must가 됨. golden run의 `critical_fixed` 보고서는 실패한 check script를 CRITICAL로 적음. selftest 결과는 기록값과 같음.
