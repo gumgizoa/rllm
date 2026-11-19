@@ -140,7 +140,11 @@ In both branches, never create the root as a side effect: do not run `openspec i
      - Add SUGGESTION: "Code pattern deviation: <details>"
      - Recommendation: "Consider following project pattern: <example>"
 
-8. **Generate Verification Report**
+8. **Run the Evidence**
+
+   After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`. In the report, name each command and its result. A run that fails is a CRITICAL issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness.
+
+9. **Generate Verification Report**
 
    Write the report to a file in the change directory: `/openspec/changes/issue/verify.md`.
 

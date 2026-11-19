@@ -17,7 +17,7 @@ change is `/testbed`, a different place.
 
 | Action | Open this first | Starts from | Leaves |
 |--------|-----------------|-------------|--------|
-| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the "What We Figured Out" summary, in a tool call before the ff document is opened |
+| explore | `/opsx/stages/00-explore.md` | `openspec list --json` | no file: only the "What We Figured Out" summary, in a message no later than the turn that opens the ff document |
 | ff | `/opsx/stages/01-ff.md` | `openspec new change "issue"` | the change and every planning artifact |
 | apply | `/opsx/stages/02-apply.md` | `openspec instructions apply --change "issue" --json` | the code change, tasks checked |
 | verify | `/opsx/stages/03-verify.md` | `openspec status --change "issue" --json`, then your own review: no `openspec` command performs verify or writes its report | `verify.md` |
@@ -59,8 +59,8 @@ on the spot. So, until you call `finish`:
 
 Explore investigates the issue against the code before anything is planned. It is over once you can
 state the problem and where the change goes, each backed by what you read or ran; open questions may
-remain. It leaves no file. What it leaves is the "What We Figured Out" summary, written inside a tool
-call (the `think` tool, for example) before you open `/opsx/stages/01-ff.md`. ff then writes the proposal and the design
+remain. It leaves no file. What it leaves is the "What We Figured Out" summary, written in your message
+(in a turn that also makes a tool call) no later than the turn that opens `/opsx/stages/01-ff.md`. ff then writes the proposal and the design
 from that summary: the proposal's Why and the design's Context and **Decisions** (choice, rationale,
 alternatives) rest on it, and its assumptions go into the proposal.
 
@@ -74,12 +74,16 @@ delta spec you write is therefore an `## ADDED Requirements` delta for a new cap
 - Only the apply action edits `/testbed`. ff and verify read it and run commands in it.
 - Explore reads it too and runs commands in it, but writes no file anywhere, inside the repository
   or outside it.
-- Do not add or edit test files there; the tests for this task already exist. Touch README, `docs/`
-  or changelogs only if the issue asks for it.
+- Do not add or edit test files there; the grading tests are added after you finish. Touch README,
+  `docs/` or changelogs only if the issue asks for it.
 - Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts. Those belong under
   `/openspec/changes/issue/`.
 
 ## Verify, Then Fix What It Finds
+
+Before it writes the report, verify runs the repository tests that cover the change and every check
+script under `/openspec/changes/issue/checks/`, after the last code change. A run that fails is a
+CRITICAL issue.
 
 Verify writes `/openspec/changes/issue/verify.md`. If the report holds a CRITICAL issue, go back
 to apply, fix what the report names, and run verify again, rewriting `verify.md`. Go back at most

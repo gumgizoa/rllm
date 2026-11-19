@@ -9,7 +9,7 @@ schema's instructions and templates, the project config) -- and never from the r
   call;
 * explore, first (CW:11-12): ``openspec list --json`` (CW:20, EX:113-116) and the project config (EX:131), the code and
   the existing tests read (CW:75, EX:5) -- no file written and no code composed (CW:75-76) -- then the "What We
-  Figured Out" summary in a ``think`` call (CW:60-63, EX:189-207) before ``01-ff.md`` is opened;
+  Figured Out" summary in the message of explore's last turn (CW:60-63, EX:189-207), before ``01-ff.md`` is opened;
 * ff: the project check (``openspec list --json``, FF:3), ``openspec new change "issue"`` (CW:21, FF:22-26), ``openspec
   status --change "issue" --json`` (FF:28-31), the repository inspected read-only (FF:57), then per artifact in
   dependency order ``openspec instructions <id> --change "issue" --json`` (FF:44-46), the completed dependencies
@@ -19,10 +19,11 @@ schema's instructions and templates, the project config) -- and never from the r
 * apply: ``status`` and ``openspec instructions apply`` (AP:26-39), every context file read (AP:72-76), a check script
   under ``/openspec/changes/issue/checks/`` (CW:36-37) run before and after the fix, the source edited, the repository's
   tests run, each task ticked at its line and the apply instructions re-run after it (AP:96-98);
-* verify, once (CW:82-86): ``status`` and ``instructions apply`` (VF:26-39), every artifact read (VF:41), the code
-  inspected and the checks run without editing anything (VF:43, CW:74), ``verify.md`` in the scorecard format of
-  VF:145-189 with no CRITICAL issue, then straight on to the archive (VF:189);
-* archive: ``openspec archive issue --yes`` once (CW:92-99), which prints "archived as" and exits 0; then ``finish``,
+* verify, once (CW:82-90): ``status`` and ``instructions apply`` (VF:26-39), every artifact read (VF:41), the code
+  inspected without editing anything (VF:43, CW:74), the check script and the repository's tests run again after the
+  last code change and named in the report (VF:143-145), ``verify.md`` in the scorecard format of
+  VF:149-193 with no CRITICAL issue, then straight on to the archive (VF:193);
+* archive: ``openspec archive issue --yes`` once (CW:96-103), which prints "archived as" and exits 0; then ``finish``,
   whose observation never returns, as in training.
 
 The CLI's own file operations are not in the trace: :func:`golden` returns the ``Collected`` the collector would see
@@ -33,13 +34,13 @@ and the diff against BASE_SHA (``tinyconf/values.py`` modified). The task is mad
 
 :data:`VARIANTS` are other honest runs the documents allow: ``critical_fixed`` -- apply leaves the ValueError task
 open with its one-line reason (AP:105, AP:109), verify.md lists it and the requirement it leaves unimplemented as
-CRITICAL issues (VF:70-71, VF:163-165, VF:183), so the run goes back to apply, fixes both, runs verify again and
-rewrites verify.md with nothing CRITICAL left (CW:84-86, VF:189) before the archive; ``no_design`` --
+CRITICAL issues (VF:70-71, VF:167-169, VF:187), so the run goes back to apply, fixes both, runs verify again and
+rewrites verify.md with nothing CRITICAL left (CW:88-90, VF:193) before the archive; ``no_design`` --
 design.md skipped as conditional (FF:72, SCHEMA:170); ``heredoc_writes`` -- every artifact written with a shell heredoc
 instead of the editor; ``archive_retry`` -- the first archive fails validation on the delta spec (a scenario written
-with three hashes), the run corrects only that and runs the same command once more (CW:102-103);
-``summary_in_ff_turn`` -- the explore summary's ``think`` call shares the turn that opens ``01-ff.md``, ahead of the read
-(EX:191 "before the tool call that opens"); ``explore_runs_tests`` -- explore also runs the existing tests as they are
+with three hashes), the run corrects only that and runs the same command once more (CW:106-107);
+``summary_in_ff_turn`` -- the explore summary is the message of the turn that opens ``01-ff.md``
+(EX:191 "no later than the turn that opens"); ``explore_runs_tests`` -- explore also runs the existing tests as they are
 (CW:75, EX:5: read-only); ``explore_runs_snippet`` -- explore tries the issue's example as a one-line ``python -c``,
 writing no file (EX:5); ``summary_lean`` -- the summary holds only the parts that must be stated (EX:189: the problem,
 where the change goes).
@@ -343,7 +344,7 @@ def cli_archive_fail() -> str:
 
 
 # --------------------------------------------------------------------------------------------
-# Explore's one output: the "What We Figured Out" summary (EX:193-207), written in a tool call
+# Explore's one output: the "What We Figured Out" summary (EX:193-207), written in a message
 # --------------------------------------------------------------------------------------------
 def _summary(lean: bool = False) -> str:
     if lean:
@@ -533,8 +534,9 @@ def _verify(critical: bool, design: bool = True) -> str:
         correctness = "1/2 reqs covered"
         crit = ["- Incomplete task 2.2 (Raise ValueError naming the text): `tinyconf/values.py:12` still returns False for unknown words."
                 " Recommendation: Complete task: raise ValueError naming the text for any other input.",
-                "- Requirement not found: Unknown words are rejected. Recommendation: Implement requirement Unknown words are rejected."]
-        final = "2 critical issue(s) found. Fix before archiving."
+                "- Requirement not found: Unknown words are rejected. Recommendation: Implement requirement Unknown words are rejected.",
+                f"- Check script failed: `{CHECK_CMD}` exits 1 with 11/12 checks ok. Recommendation: make the unknown-word check pass (`tinyconf/values.py:12`)."]
+        final = "3 critical issue(s) found. Fix before archiving."
         nxt = "Go back to the apply action and fix task 2.2 and the requirement Unknown words are rejected, then run verify again."
     else:
         completeness = "4/4 tasks, 2 reqs"
@@ -595,8 +597,8 @@ class _Steps:
         self.steps: list[Step] = []
         self.heredoc = heredoc
 
-    def add(self, action: Action, *more: Action) -> None:
-        self.steps.append(Step(len(self.steps) + 1, [action, *more]))
+    def add(self, action: Action, *more: Action, message: str = "") -> None:
+        self.steps.append(Step(len(self.steps) + 1, [action, *more], message))
 
     def sh(self, command: str, observation: str = "") -> None:
         self.add(Action("shell", "terminal", command=command, observation=observation))
@@ -642,13 +644,12 @@ def golden(rubric=None, variant: str | None = None):
     if "explore_runs_snippet" in v:
         # the issue's example, run without writing a file (EX:5): read-only
         s.sh("python -c \"from tinyconf.values import parse_bool; print(parse_bool('false'))\"", "True" + EXIT0)
-    think = Action("other", "think", text=_summary(lean), observation="Your thought has been logged.")
     read_ff = Action("shell", "terminal", command=f"cat {stage['ff']}", observation=docs[stage["ff"]])
     # ---- ff ----------------------------------------------------------------------------------------
     if "summary_in_ff_turn" in v:
-        s.add(think, read_ff)  # the summary's call ahead of the call that opens 01-ff.md, in one turn (EX:191)
+        s.add(read_ff, message=_summary(lean))  # the summary in the message of the turn that opens 01-ff.md (EX:191)
     else:
-        s.add(think)
+        s.steps[-1].message = _summary(lean)  # the summary in the message of explore's last turn, which makes a tool call
         s.add(read_ff)
     s.sh("cd /testbed && openspec list --json", cli_list())
     s.sh('openspec new change "issue"', cli_new())
@@ -712,7 +713,7 @@ def golden(rubric=None, variant: str | None = None):
         tick("2.2")
     s.sh(TEST_CMD, PYTEST_OK + EXIT0)
     tick("2.3", reason=crit)
-    # ---- verify; a CRITICAL issue goes back to apply, then verify again (CW:84-86, VF:189) ------------------
+    # ---- verify; a CRITICAL issue goes back to apply, then verify again (CW:88-90, VF:193) ------------------
     s.sh(f"cat {stage['verify']}", docs[stage["verify"]])
 
     def verify(critical: bool) -> None:

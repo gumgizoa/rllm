@@ -1,6 +1,8 @@
 """openspec_ff compliance: the generated ``rubric.yaml`` interpreted by the common rubric engine.
 
-The ``openspec_ff/*`` signals come from the rubric (``openspec_ff/compliance`` is the reward signal); the plugin
+The ``openspec_ff/*`` signals come from the rubric (``openspec_ff/compliance`` is the reward signal), and a second
+score, ``openspec_ff/penalty``, from the rubric's ``log_only`` penalty items (``penalty.py``: whether verify.md says
+what the run did, and whether what it found was fixed), which never enter compliance; the plugin
 kinds the rubric uses live next to it in ``checks.py``: the ``openspec_ff.*`` kinds (the CLI calls and their
 outcome, the archive step, ADDED-only deltas, the verify report, test / check-script evidence) and the
 ``openspec.*`` format kinds it imports from ``workflows/openspec`` (delta specs, capabilities, main specs, tasks,
@@ -11,7 +13,9 @@ from pathlib import Path
 
 from recipe.grpo.qwen3_5.workflow_rubric.evaluation import RubricEvaluation
 
+from . import penalty
+
 
 class Evaluation(RubricEvaluation):
     def __init__(self):
-        super().__init__(Path(__file__).with_name("rubric.yaml"), prefix="openspec_ff", plugins=[f"{__package__}.checks"])
+        super().__init__(Path(__file__).with_name("rubric.yaml"), prefix="openspec_ff", plugins=[f"{__package__}.checks"], post=penalty.post)

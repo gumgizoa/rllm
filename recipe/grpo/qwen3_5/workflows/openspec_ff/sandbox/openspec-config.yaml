@@ -9,7 +9,7 @@ schema: spec-driven-sandbox
 context: |
   The code this change edits is the repository at /testbed. This planning home, /openspec, sits outside it.
   The change comes from one issue, given in the task; nobody will add to it.
-  The test files for this issue are already in place in the repository and are not to be added to or edited.
+  The tests that grade this issue are added after you finish; do not add or edit test files in the repository.
   The environment is fully set up: no packages are installed and nothing is fetched from the network.
   From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.
   /openspec/specs/ starts empty in this project: no capability and no requirement exists yet.

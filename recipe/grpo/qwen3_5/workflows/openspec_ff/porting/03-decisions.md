@@ -85,8 +85,8 @@ Replaces `schema.yaml:230-236` (tasks instruction item):
 ```text
 - Each task group MUST verify its own work as it lands: run the existing repository
   tests that cover it, or write a check script under /openspec/changes/issue/checks/
-  and run it. Do NOT add or edit test files in the repository - the task's tests are
-  already in place. Change repository documentation (README, docs/, changelogs) only
+  and run it. Do NOT add or edit test files in the repository - the grading tests are
+  added after you finish. Change repository documentation (README, docs/, changelogs) only
   when the issue asks for it; comments and docstrings in the code you change are part
   of that code. Do NOT collect verification into a final group - when a late group
   first exercises work from an early one, the failures cascade back through every
@@ -150,3 +150,22 @@ Evidence: `AI-DLC/reports/2026-11-12_openspec_ff-지침과-산출물-문제-분�
 | G9-6 | dropped: the Guardrails sentence naming composed code as writing code, and "Varying the issue's example is left to ff and apply" | semantic | user 2026-11-13 | follows G9-5 (rev.) |
 
 Rubric: revised by hand, not regenerated (`reward/rubric.md` header; `rubric.lock` no longer matches). Items dropped: `explore.run.prohibited_action.composed_code`, `archive.run.prohibited_action.repo_write`, `archive.run.openspec_ff_paths_written.tasks_after_verify`. `openspec_ff.verify` `open_tasks_critical` reads the task list as of the report's last write. Golden: `critical_archived` → `critical_fixed`, new `explore_runs_snippet`. No item scores the return itself (how many, whether the fix landed).
+
+## Revision 2026-11-18 (the summary no longer names a tool of one harness)
+
+| ID | Decision | Tag | Decided | Notes |
+|---|---|---|---|---|
+| G2-15 | G2-14's placement sentence → the summary is written in the agent's message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`. `00-explore.md` Ending Discovery; `core-workflow.md` actions-table row and "From Explore to ff" | env | user 2026-11-18 | G2-14 named the `think` tool, which only openhands-sdk has and which the training agent is not given (its tools: terminal, file_editor, finish, task_tracker). In 96 training runs of the last step, 85 wrote no summary, 9 wrote it in a message, 2 in a terminal command. A message next to a tool call exists in every harness and stays in the trajectory (`core-workflow.md` "No One Will Answer") |
+
+Rubric: revised by hand again, not regenerated. `openspec_ff.note` reads a turn's message as well as its tool calls; the summary item, its quotes and the two explore conflicts follow the new sentence. Golden: the summary is the message of explore's last turn (`summary_in_ff_turn`: of the turn that opens `01-ff.md`), so the run is one step shorter; the self-test results in `rubric.yaml` are the re-run ones (golden 1.0, 30 ok / 12 n/a).
+
+## Revision 2026-11-19 (verify runs before it reports; where the grading tests are)
+
+| ID | Decision | Tag | Decided | Notes |
+|---|---|---|---|---|
+| G8-7 | `03-verify.md` gains step 8 "Run the Evidence" (report writing becomes step 9): after the last code change, run the repository tests that cover the changed code and every check script under `checks/`; name each command and its result in the report; a failing run is CRITICAL; a failing test left out of a re-run still counts as failing; with nothing run, mark the affected checks `Not verified` and do not claim readiness. `core-workflow.md` "Verify, Then Fix What It Finds" opens with the same rule | semantic | user 2026-11-19 | replaces G8-3's "It asks for no new run". wf-floor-tcx-wf1114 training rollouts: of 204 first reports written with a failed run standing, 6 list a CRITICAL issue and 177 claim a clean result; 10.4% of runs that changed code ran nothing after the last change |
+| G9-7 | the three sentences giving the reason for "do not add or edit test files" no longer say the tests are in the repository: `core-workflow.md` "The Repository" ("the grading tests are added after you finish"), the tasks instruction in `schema.yaml` (agreed text below), `openspec-config.yaml` `context` | env | user 2026-11-19 | the tests that grade a task are applied after the run, so "already exist" / "already in place" was false. The ban itself is unchanged |
+
+Rubric: revised by hand again, not regenerated. Cited lines after the two insertions moved by four (`03-verify.md` from 143, `core-workflow.md` from 84), the three reworded quotes follow, and `penalty.no_run_after_change` cites the new step and is a must (the other penalty items gain the new sentences as sources; `left_broken` stays a should, since the documents allow the archive after two returns). No item checks "name each command and its result". Golden: the `critical_fixed` report lists the failing check script as a third CRITICAL issue; self-test results unchanged. `build --check` was not run (no upstream checkout on this machine): the new `Edit` was applied to the committed `03-verify.md` and gives the new file.
+
+Penalty items (2026-11-18, user): five `log_only` items under verify, `openspec_ff.verify.penalty.{no_run_after_change, false_clean_claim, task_count_mismatch, critical_missing, left_broken}` (kind `openspec_ff.penalty`, `reward/penalty.py`). The scored items say whether the form was followed; these say whether verify.md is true of what the run did and whether what it found was fixed (wf-floor-tcx-wf1114 training rollouts: of 256 reports written with a failed run or an open task behind them, 7 list a CRITICAL issue). They are evaluated and reported with every run and never enter `openspec_ff/compliance`; `reward/eval.py` reports their mean as a second score, `openspec_ff/penalty`. Names follow `<stage>.penalty.<item>`, shared across workflows; a value of 1 still means "did it right" -- direction and the way the items enter the reward are settled for all workflows together. No document changed for them: each cites lines already there.

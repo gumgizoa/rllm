@@ -188,7 +188,7 @@ You: [reads codebase]
 
 Here discovery has one ending: it flows into the ff action. Exploration is done once the summary below can state **The problem** and **Where the change goes**, each with its evidence; **Open questions** may stay open. Then open `/opsx/stages/01-ff.md` and continue: ff turns what you found into a change.
 
-When exploration is done, write this summary inside a tool call (the `think` tool, for example) before the tool call that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session. Back every entry with its evidence: the `file:line` you read, the command you ran and what it printed.
+When exploration is done, write this summary in your message, in a turn that also makes a tool call, no later than the turn that opens `/opsx/stages/01-ff.md`; a message without a tool call ends the session. Back every entry with its evidence: the `file:line` you read, the command you ran and what it printed.
 
 ```
 ## What We Figured Out
