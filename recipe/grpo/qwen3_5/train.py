@@ -130,7 +130,7 @@ def make_budget_scaled_grouping_hook(
 
     ``P`` is the workflow's ``penalty_signal`` in [0, 1], 1 when every penalty rule was kept
     (``WorkflowSpec.penalty_signal``, e.g. ``speckit_bug/penalty``: the mean of its log-only
-    ``*.penalty.*`` rubric items -- gold files named, the F2P test file run after the last edit,
+    ``*.penalty.*`` rubric items -- gold files named, a related existing test run after the last edit,
     reports that describe the change). With ``penalty_gate="unsolved"`` a solved rollout is given
     P = 1, so only failures are told apart by it (``verifier`` is the reward before shaping, 0 or 1
     for a pass/fail verifier). A rollout without the signal counts as P = 1 (the group shares the

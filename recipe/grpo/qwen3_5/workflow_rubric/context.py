@@ -60,6 +60,9 @@ class Collected:
                   checks (the evaluation policy's ``inputs`` hook fills it; the common kinds never read it)
     snapshot      offline roots whose ``files`` are the real end-of-run tree (harbor ``artifacts:``),
                   not a replay: an artifact missing there is missing, whatever the trace wrote
+    related_tests changed source path (repo-relative) -> tracked test files that are named after it,
+                  import it, or mention a symbol its diff touches (``collect.py`` exec 3, online only);
+                  ``None`` when not collected (offline, no git), an empty list when the repository has none
     """
 
     files: dict[str, str] = field(default_factory=dict)
@@ -74,6 +77,7 @@ class Collected:
     mode: Mode = "online"
     snapshot: frozenset[str] = frozenset()
     inputs: dict[str, Any] = field(default_factory=dict)
+    related_tests: dict[str, list[str]] | None = None
 
 
 # --------------------------------------------------------------------------------------------

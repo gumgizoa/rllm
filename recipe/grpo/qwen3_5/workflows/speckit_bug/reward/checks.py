@@ -560,13 +560,13 @@ def holds(item: Item, ctx: EvalContext) -> Result:
 # speckit_bug.gold_files  (log-only penalty item; ``inputs`` / ``post`` hooks beside it)
 # --------------------------------------------------------------------------------------------
 # The task's reference fix (SWE-Gym / SWE-bench gold patch) names the source files that had to
-# change, and its hidden test patch the test files the verdict's FAIL_TO_PASS tests live in.
-# ``inputs`` looks both up by task id in ``gold_files.json`` (``src``: tests, docs and changelogs
-# dropped; ``tests``: only files that already exist in the repository -- a test file the task adds is
-# invisible to the agent, so a task whose F2P tests all live in new files has an empty list).
-# ``speckit_bug.gold_files`` measures how many gold source files the reports named (assessment
-# **Files likely to change** ∪ fix Changes table) as a recall; ``speckit_bug.f2p_test_run`` whether a
-# valid repository test run after the last source edit targeted one of the F2P test files.
+# change. ``inputs`` looks them up by task id in ``gold_files.json`` (``src``: tests, docs and
+# changelogs dropped). ``speckit_bug.gold_files`` measures how many of them the reports named
+# (assessment **Files likely to change** ∪ fix Changes table) as a recall.
+# ``speckit_bug.related_test_run`` (no gold) asks whether a valid repository test run after the last
+# source edit targeted an existing test related to a changed file -- FX:33's own definition, named after
+# it or importing it, plus tests naming a symbol the diff touches -- read from the sandbox by
+# ``collect.py`` exec 3 into ``Collected.related_tests``; offline it is unavailable.
 # ``speckit_bug.scope_consistency`` (no gold) checks that the fix reports describe the change made; it is
 # scored twice: as a compliance item and as a penalty item.
 # Penalty items are ``log_only``: they never enter ``speckit_bug/compliance``. ``post`` folds every item
@@ -587,7 +587,7 @@ def _gold_table() -> dict[str, dict[str, list[str]]]:
 
         try:
             with open(_GOLD_PATH, encoding="utf-8") as fh:
-                _GOLD = {str(k): {f: [str(x) for x in v.get(f, [])] for f in ("src", "tests")} for k, v in json.load(fh).items()}
+                _GOLD = {str(k): {"src": [str(x) for x in v.get("src", [])]} for k, v in json.load(fh).items()}
         except (OSError, ValueError, AttributeError):
             _GOLD = {}
     return _GOLD
@@ -606,9 +606,9 @@ def _instance_id(task) -> str:
 
 
 def inputs(task, episode) -> dict:
-    """``Collected.inputs``: the task's gold source files and F2P test files (both None without a table entry)."""
+    """``Collected.inputs``: the task's gold source files (None without a table entry)."""
     g = _gold_table().get(_instance_id(task))
-    return {"gold_files": None if g is None else g["src"], "gold_tests": None if g is None else g["tests"]}
+    return {"gold_files": None if g is None else g["src"]}
 
 
 def post(report) -> dict[str, float]:
@@ -692,27 +692,47 @@ def _mentions_test_file(run, path: str, workdir: str | None) -> bool:
     return False
 
 
-@register("speckit_bug.f2p_test_run", params={}, availability=("trace",), common=False)
-def f2p_test_run(item: Item, ctx: EvalContext) -> Result:
-    """After the last source edit, a valid repository test run (the runner's own summary, N >= 1 tests) targets a file the task's FAIL_TO_PASS tests live in; not applicable without a gold entry, when those files are all new in the hidden test patch, or when nothing was edited."""
+def _targets_dir_of(run, path: str, workdir: str | None) -> bool:
+    """The run's target is a directory holding ``path`` (``pytest tests/queries``, ``pytest tests/``)."""
+    rel = path
+    if workdir and rel.startswith(workdir.rstrip("/") + "/"):
+        rel = rel[len(workdir.rstrip("/")) + 1 :]
+    for t in run.targets or []:
+        t = t.strip()
+        if workdir and t.startswith(workdir.rstrip("/") + "/"):
+            t = t[len(workdir.rstrip("/")) + 1 :]
+        t = t.lstrip("./").rstrip("/")
+        if t and not posixpath.splitext(t)[1] and rel.startswith(t + "/"):
+            return True
+    return False
+
+
+@register("speckit_bug.related_test_run", params={}, availability=("trace",), common=False)
+def related_test_run(item: Item, ctx: EvalContext) -> Result:
+    """After the last source edit, a valid repository test run (the runner's own summary, N >= 1 tests) targets an
+    existing test file related to a changed source file: named after it, importing it, or mentioning a symbol the
+    diff touches (``Collected.related_tests``, read from the sandbox at collect time). Not applicable when nothing
+    was edited or the repository has no test related to the change; unavailable offline (no sandbox)."""
     from recipe.grpo.qwen3_5.workflow_rubric.facts import is_test_path
 
-    tests = (ctx.collected.inputs or {}).get("gold_tests")
-    if tests is None:
-        return Result.not_applicable(item, "no gold entry for this task")
-    if not tests:
-        return Result.not_applicable(item, "the F2P tests live only in files the task adds")
+    rel = ctx.collected.related_tests
+    if rel is None:  # not read from a sandbox (offline replay, or the collect step failed): never a verdict
+        return Result.unavailable(item, "related tests not collected")
     edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.op not in ("delete", "move_out") and not is_test_path(e.path)]
     if not edits:
         return Result.not_applicable(item, "no source edit to verify")
+    tests = sorted({t for ts in rel.values() for t in ts})
+    if not tests:
+        return Result.not_applicable(item, f"no existing test is named after, imports or names a symbol of {sorted(rel)[:3]}")
     last = max(edits)
     after = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and r.step > last]
     if not after:
         return Result.no(item, f"no valid test run after the last source edit (step {last})")
-    hit = [r for r in after if any(_mentions_test_file(r, t, ctx.collected.workdir) for t in tests)]
+    wd = ctx.collected.workdir
+    hit = [r for r in after if any(_mentions_test_file(r, t, wd) or _targets_dir_of(r, t, wd) for t in tests)]
     if hit:
         return Result.ok(item, f"step {hit[0].step}: {hit[0].command.strip()[:80]}")
-    return Result.no(item, f"{len(after)} test run(s) after the last edit, none on {tests[:3]}")
+    return Result.no(item, f"{len(after)} test run(s) after the last edit, none on the {len(tests)} related test file(s), e.g. {tests[:3]}")
 
 
 _NONE_LIKE = re.compile(r"^\W*(?:none|no deviations?|n/?a|not applicable|nothing)\b", re.I)
@@ -754,4 +774,4 @@ def scope_consistency(item: Item, ctx: EvalContext) -> Result:
     return Result.ratio(item, good, len(conds), "; ".join(f"{n}: {'ok' if ok else why}" for n, ok, why in conds))
 
 
-__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before", "gold_files", "f2p_test_run", "scope_consistency", "named_files", "inputs", "post"]
+__all__ = ["checks_table", "checks_added", "links", "read", "created_files", "check_scripts", "no_fetch", "holds", "table_rows", "result_of", "read_steps", "written_checks", "check_writes", "first_edit", "seen_before", "gold_files", "related_test_run", "scope_consistency", "named_files", "inputs", "post"]

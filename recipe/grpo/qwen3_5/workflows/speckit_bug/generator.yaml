@@ -793,21 +793,22 @@ manual:
       - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
     note: "recall of the gold source files among assessment **Files likely to change** ∪ fix Changes table; the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; not applicable without a gold entry"
-  - id: speckit_bug.test.penalty.f2p_test_run.after_last_edit
+  - id: speckit_bug.test.penalty.related_test_run.after_last_edit
     stage: test
     target: {type: action, ref: run}
     class: evidence
     requirement: must
     log_only: true
-    check: {kind: speckit_bug.f2p_test_run, params: {}}
+    check: {kind: speckit_bug.related_test_run, params: {}}
     availability: [trace]
-    modality_evidence: "TS:31/33 run the regression suite / existing test suites for the changed modules; TS:38 'Running the repository's tests for the changed modules is ... expected'; FX:41 'run the tests that exercise the changed paths'. Judged against the task's hidden test patch (gold_files.json tests), so log-only: a penalty (D) term, not compliance"
+    modality_evidence: "FX:33 'Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them'; TS:31/33 run the regression suite / existing test suites for the changed modules; TS:38 'Running the repository's tests for the changed modules is ... expected'; FX:41 'run the tests that exercise the changed paths'. Needs the sandbox (related_tests), log-only: a penalty (D) term, not compliance"
     sources:
+      - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline."}
       - {path: docs/stages/03-test.md, lines: [31, 31], quote: "Run any broader regression suite that touches the changed files."}
       - {path: docs/stages/03-test.md, lines: [33, 33], quote: "Existing test suites for the changed modules."}
       - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
       - {path: docs/stages/02-fix.md, lines: [41, 41], quote: "run the tests that exercise the changed paths"}
-    note: "a valid repository test run after the last source edit (any stage) targets a file the FAIL_TO_PASS tests live in; not applicable without a gold entry, when those files are all new in the hidden test patch (agent cannot see them), or when nothing was edited; the ``penalty`` id segment routes it into speckit_bug/penalty"
+    note: "a valid repository test run after the last source edit (any stage) targets an existing test file related to a changed source file: named after it, importing it, or naming a symbol the diff touches (Collected.related_tests, read from the sandbox at collect time, FX:33's own definition); not applicable when nothing was edited or no existing test relates to the change; unavailable offline; the ``penalty`` id segment routes it into speckit_bug/penalty"
   - id: speckit_bug.fix.fix.field_type.commands_run
     stage: fix
     target: {type: artifact, ref: fix}
@@ -906,7 +907,7 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "Find the existing repository tests for each file you will change (test files named after it, or test files that import it), run them, and keep the result as the baseline."}
       - {path: docs/stages/02-fix.md, lines: [30, 30], quote: "**Before editing any code**, set up what will judge the fix and run it on the code as it is:"}
-    note: "a valid run of base-repository tests before round 1's first repository edit (the code is unchanged from the start; rounds 2 and 3 keep round 1's baseline, FX:34)"
+    note: "a valid run of base-repository tests before round 1's first repository edit (the code is unchanged from the start; rounds 2 and 3 keep round 1's baseline, FX:33)"
   - id: speckit_bug.fix.fix.speckit_bug_checks_added.before_run
     stage: fix
     target: {type: artifact, ref: fix}
@@ -1292,7 +1293,7 @@ manual:
     check: {kind: speckit_bug.check_scripts, params: {rule: before_change, optional: true}}
     applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
     availability: [trace]
-    modality_evidence: "imperative (FX:34 'a check added in a later round must fail on the code as it is before this round's change')"
+    modality_evidence: "imperative (FX:33 'a check added in a later round must fail on the code as it is before this round's change')"
     sources:
       - {path: docs/stages/02-fix.md, lines: [34, 34], quote: "In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change."}
       - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
@@ -1333,7 +1334,7 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [81, 81], quote: "- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>"}
       - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "run them, and keep the result as the baseline."}
-    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:34); not applicable when it names none"
+    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:33); not applicable when it names none"
   - id: speckit_bug.fix_2.fix_2.no_template_residue.fill_marks
     stage: fix_2
     target: {type: artifact, ref: fix_2}
@@ -1698,7 +1699,7 @@ manual:
     check: {kind: speckit_bug.check_scripts, params: {rule: before_change, optional: true}}
     applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
     availability: [trace]
-    modality_evidence: "imperative (FX:34 'a check added in a later round must fail on the code as it is before this round's change')"
+    modality_evidence: "imperative (FX:33 'a check added in a later round must fail on the code as it is before this round's change')"
     sources:
       - {path: docs/stages/02-fix.md, lines: [34, 34], quote: "In rounds 2 and 3, round 1's baseline stands; a check added in a later round must fail on the code as it is before this round's change."}
       - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail"}
@@ -1739,7 +1740,7 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [81, 81], quote: "- `<command>` before the change: <N passed, M failed (names)>; after the change: <same, with any new failure named>"}
       - {path: docs/stages/02-fix.md, lines: [33, 33], quote: "run them, and keep the result as the baseline."}
-    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:34); not applicable when it names none"
+    note: "when the section records a command (a code span), one of them is a valid test run made before this round's first repository edit (round 1's baseline stands, FX:33); not applicable when it names none"
   - id: speckit_bug.fix_3.fix_3.no_template_residue.fill_marks
     stage: fix_3
     target: {type: artifact, ref: fix_3}

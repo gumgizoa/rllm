@@ -1,5 +1,6 @@
-"""speckit_bug's D term: the log-only ``*.penalty.*`` item (gold source files named by the reports), the
-``post`` hook that folds it into ``speckit_bug/penalty``, and train.py subtracting it from unsolved rollouts.
+"""speckit_bug's penalty term: the log-only ``*.penalty.*`` items (gold source files named by the reports, a
+related existing test run after the last edit, reports consistent with the change), the ``post`` hook that folds
+them into ``speckit_bug/penalty``, and train.py mixing it into the reward.
 
     pytest recipe/grpo/qwen3_5/tests/test_speckit_bug_penalty.py
 """
@@ -65,13 +66,10 @@ def _ev() -> Evaluation:
 
 
 def test_gold_table_has_both_datasets_with_source_files_only():
-    assert GOLD[TASK] == {"src": ["src/_pytest/setuponly.py"], "tests": ["testing/test_setuponly.py"]}
+    assert GOLD[TASK] == {"src": ["src/_pytest/setuponly.py"]}
     assert "getmoto__moto-4986" in GOLD  # SWE-Gym (the training set)
-    assert all(v["src"] for v in GOLD.values())
+    assert all(set(v) == {"src"} and v["src"] for v in GOLD.values())
     assert not any(p.endswith((".rst", ".md")) or "/tests/" in p or p.startswith("doc/") for v in GOLD.values() for p in v["src"])
-    # F2P test files the task adds are left out: a few tasks keep no visible test file at all
-    assert all(not p.endswith(".rst") for v in GOLD.values() for p in v["tests"])
-    assert 0 < sum(1 for v in GOLD.values() if not v["tests"]) < 100
 
 
 def test_named_files_joins_the_assessment_list_and_the_changes_table():
@@ -82,58 +80,58 @@ def test_named_files_joins_the_assessment_list_and_the_changes_table():
 
 
 def test_inputs_resolve_the_instance_id_from_the_task():
-    assert checks.inputs(SimpleNamespace(id=TASK), None) == {"gold_files": ["src/_pytest/setuponly.py"], "gold_tests": ["testing/test_setuponly.py"]}
+    assert checks.inputs(SimpleNamespace(id=TASK), None) == {"gold_files": ["src/_pytest/setuponly.py"]}
     assert checks.inputs(SimpleNamespace(id=f"{TASK}:0"), None)["gold_files"] == ["src/_pytest/setuponly.py"]
     assert checks.inputs(SimpleNamespace(id="", metadata={"metadata": {"instance_id": TASK}}), None)["gold_files"] == ["src/_pytest/setuponly.py"]
-    assert checks.inputs(SimpleNamespace(id="not-a-task"), None) == {"gold_files": None, "gold_tests": None}
+    assert checks.inputs(SimpleNamespace(id="not-a-task"), None) == {"gold_files": None}
 
 
 def test_penalty_is_the_mean_score_of_the_penalty_items():
     ev = _ev()
     task = SimpleNamespace(id=TASK, metadata=META)
-    clean = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs(FILES))
-    assert clean["speckit_bug/penalty"] == 1.0  # gold file named, F2P file run after the edits, reports match the change
-    missed = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs({k: v.replace("setuponly", "elsewhere") for k, v in FILES.items()}))
-    # gold_files 0 (setuponly never named); scope_consistency 1/3 (setuponly unrecorded, elsewhere a phantom row); f2p 1
+    clean = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, FILES))
+    assert clean["speckit_bug/penalty"] == 1.0  # gold file named, a related test run after the edits, reports match the change
+    missed = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, {k: v.replace("setuponly", "elsewhere") for k, v in FILES.items()}))
+    # gold_files 0 (setuponly never named); scope_consistency 1/3 (setuponly unrecorded, elsewhere a phantom row); related test 1
     assert missed["speckit_bug/penalty"] == pytest.approx((0 + 1 / 3 + 1) / 3)
     # a task without a gold entry: the gold items are not applicable, the consistency item still counts
-    unknown = ev.score(SimpleNamespace(id="unknown__task-1", metadata=META), _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs(FILES))
+    unknown = ev.score(SimpleNamespace(id="unknown__task-1", metadata=META), _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, FILES))
     assert unknown["speckit_bug/penalty"] == 1.0
 
 
 def test_scope_consistency_wants_the_reports_to_describe_the_change():
     ev = _ev()
     task = SimpleNamespace(id=TASK, metadata=META)
-    clean = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs(FILES))
+    clean = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, FILES))
     # an edit the Changes table leaves out, and no deviation recorded for the file beyond the assessment's list: 1/3
-    unrecorded = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs({**FILES, f"{BUG}/fix.md": FIX_ONE_ROW.replace("- Also touched `src/_pytest/other.py`: the helper the assessment pointed at lives there.", "None")}))
+    unrecorded = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, {**FILES, f"{BUG}/fix.md": FIX_ONE_ROW.replace("- Also touched `src/_pytest/other.py`: the helper the assessment pointed at lives there.", "None")}))
     assert unrecorded["speckit_bug/penalty"] == pytest.approx((1 + 1 / 3 + 1) / 3)
     # a Changes row for a file that was never changed: 2/3
-    phantom = ev.score(task, _trace(EDIT, RUN_F2P), ev.from_outputs(FILES))
+    phantom = ev.score(task, _trace(EDIT, RUN_F2P), _data(ev, FILES))
     assert phantom["speckit_bug/penalty"] == pytest.approx((1 + 2 / 3 + 1) / 3)
     # the expansion made but not acknowledged: 2/3
-    silent = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs({**FILES, f"{BUG}/fix.md": FIX_UNACKNOWLEDGED}))
+    silent = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, {**FILES, f"{BUG}/fix.md": FIX_UNACKNOWLEDGED}))
     assert silent["speckit_bug/penalty"] == pytest.approx((1 + 2 / 3 + 1) / 3)
     # the compliance twin moves the fix stage score; the penalty items do not
     assert unrecorded["speckit_bug/stage.fix"] < clean["speckit_bug/stage.fix"]
-    only_f2p = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_OTHER), ev.from_outputs(FILES))
+    only_f2p = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_OTHER), _data(ev, FILES))
     assert only_f2p["speckit_bug/compliance"] == pytest.approx(clean["speckit_bug/compliance"])
 
 
 def test_gold_files_item_is_a_recall_over_several_gold_files(monkeypatch):
-    monkeypatch.setattr(checks, "_GOLD", {"t": {"src": ["a/one.py", "a/two.py", "a/three.py"], "tests": []}})
+    monkeypatch.setattr(checks, "_GOLD", {"t": {"src": ["a/one.py", "a/two.py", "a/three.py"]}})
     ev = _ev()
     fix = "# Fix\n\n## Changes\n\n| File | Change | Notes |\n|---|---|---|\n| `a/one.py` | modified | - |\n| `a/two.py` | modified | - |\n"
     edits = [("file_editor", {"command": "str_replace", "path": f"/testbed/a/{n}.py", "old_str": "a", "new_str": "b"}, "edited") for n in ("one", "two")]
-    s = ev.score(SimpleNamespace(id="t", metadata=META), _trace(*edits), ev.from_outputs({f"{BUG}/fix.md": fix}))
-    # gold recall 2/3; consistency 1 (no assessment list to expand beyond); f2p not applicable (no visible test file)
+    s = ev.score(SimpleNamespace(id="t", metadata=META), _trace(*edits), _data(ev, {f"{BUG}/fix.md": fix}, related={"a/one.py": [], "a/two.py": []}))
+    # gold recall 2/3; consistency 1 (no assessment list to expand beyond); related test not applicable (no related test exists)
     assert s["speckit_bug/penalty"] == pytest.approx((2 / 3 + 1) / 2)
 
 
 def test_the_items_are_log_only_and_routed_by_their_id():
     rub = _ev().rubric
     pen = [i for i in rub.items if i.id.split(".")[2] == "penalty"]
-    assert sorted(i.id for i in pen) == ["speckit_bug.fix.penalty.gold_files.named", "speckit_bug.fix.penalty.scope_consistency.recorded", "speckit_bug.test.penalty.f2p_test_run.after_last_edit"]
+    assert sorted(i.id for i in pen) == ["speckit_bug.fix.penalty.gold_files.named", "speckit_bug.fix.penalty.scope_consistency.recorded", "speckit_bug.test.penalty.related_test_run.after_last_edit"]
     # the consistency rule is scored on both sides: once for compliance, once for D
     assert any(i.id == "speckit_bug.fix.fix.speckit_bug_scope_consistency.recorded" and not i.log_only for i in rub.items)
     assert not any(i.id == "speckit_bug.fix.fix.cross_ref.changes" for i in rub.items)
@@ -154,29 +152,43 @@ EDIT = ("file_editor", {"command": "str_replace", "path": "/testbed/src/_pytest/
 EDIT_OTHER = ("file_editor", {"command": "str_replace", "path": "/testbed/src/_pytest/other.py", "old_str": "a", "new_str": "b"}, "The file /testbed/src/_pytest/other.py has been edited.")
 RUN_F2P = ("terminal", {"command": "cd /testbed && python -m pytest testing/test_setuponly.py -q"}, "....\n4 passed in 0.20s\n[Command finished with exit code 0]")
 RUN_OTHER = ("terminal", {"command": "cd /testbed && python -m pytest testing/test_main.py -q"}, "..\n2 passed in 0.10s\n[Command finished with exit code 0]")
+RUN_DIR = ("terminal", {"command": "cd /testbed && python -m pytest testing -q"}, "......\n6 passed in 0.30s\n[Command finished with exit code 0]")
 FILES = {f"{BUG}/assessment.md": ASSESSMENT, f"{BUG}/fix.md": FIX}
+RELATED = {"src/_pytest/setuponly.py": ["testing/test_setuponly.py"], "src/_pytest/other.py": []}  # what collect.py's exec 3 found
 
 
-def test_f2p_item_wants_the_f2p_file_run_after_the_last_source_edit():
+def _data(ev, files, related=RELATED):
+    """``from_outputs`` plus the sandbox-only listing the related-tests item reads (None: offline, not collected)."""
+    collected, extra = ev.from_outputs(files)
+    collected.related_tests = related
+    return collected, extra
+
+
+def test_related_item_wants_a_related_test_run_after_the_last_source_edit():
     ev = _ev()
     task = SimpleNamespace(id=TASK, metadata=META)
-    ok = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), ev.from_outputs(FILES))
+    ok = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_F2P), _data(ev, FILES))
     assert ok["speckit_bug/penalty"] == 1.0
-    before = ev.score(task, _trace(RUN_F2P, EDIT, EDIT_OTHER), ev.from_outputs(FILES))
-    assert before["speckit_bug/penalty"] == pytest.approx(2 / 3)  # run only before the edits: the f2p item fails, the other two pass
-    other = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_OTHER), ev.from_outputs(FILES))
-    assert other["speckit_bug/penalty"] == pytest.approx(2 / 3)  # a test run, but not the F2P file
-    again = ev.score(task, _trace(RUN_F2P, EDIT, EDIT_OTHER, RUN_OTHER, RUN_F2P), ev.from_outputs(FILES))
+    before = ev.score(task, _trace(RUN_F2P, EDIT, EDIT_OTHER), _data(ev, FILES))
+    assert before["speckit_bug/penalty"] == pytest.approx(2 / 3)  # run only before the edits: the item fails, the other two pass
+    other = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_OTHER), _data(ev, FILES))
+    assert other["speckit_bug/penalty"] == pytest.approx(2 / 3)  # a test run, but not a related test
+    again = ev.score(task, _trace(RUN_F2P, EDIT, EDIT_OTHER, RUN_OTHER, RUN_F2P), _data(ev, FILES))
     assert again["speckit_bug/penalty"] == 1.0
+    whole_dir = ev.score(task, _trace(EDIT, EDIT_OTHER, RUN_DIR), _data(ev, FILES))
+    assert whole_dir["speckit_bug/penalty"] == 1.0  # the directory holding the related test counts
     for k in ("speckit_bug/compliance", "speckit_bug/stage.test"):
         assert ok[k] == pytest.approx(before[k])  # log_only
 
 
-def test_f2p_item_is_not_applicable_when_the_f2p_files_are_new(monkeypatch):
-    monkeypatch.setattr(checks, "_GOLD", {"t": {"src": ["src/_pytest/setuponly.py"], "tests": []}})
+def test_related_item_is_not_applicable_without_related_tests_and_unavailable_offline():
     ev = _ev()
-    s = ev.score(SimpleNamespace(id="t", metadata=META), _trace(EDIT, EDIT_OTHER), ev.from_outputs(FILES))
-    assert s["speckit_bug/penalty"] == 1.0  # gold_files and scope_consistency pass; f2p not applicable
+    task = SimpleNamespace(id=TASK, metadata=META)
+    none_related = ev.score(task, _trace(EDIT, EDIT_OTHER), _data(ev, FILES, related={"src/_pytest/setuponly.py": [], "src/_pytest/other.py": []}))
+    assert none_related["speckit_bug/penalty"] == 1.0  # gold_files and scope_consistency pass; nothing to run -> not applicable
+    offline = ev.score(task, _trace(EDIT, EDIT_OTHER), _data(ev, FILES, related=None))
+    assert offline["speckit_bug/penalty"] == 1.0  # not collected (offline replay): unavailable, left out of the mean
+    assert offline["speckit_bug/unavailable"] >= 1.0
 
 
 def _eps(verifier: float, compliance: float | None, penalty: float | None):
