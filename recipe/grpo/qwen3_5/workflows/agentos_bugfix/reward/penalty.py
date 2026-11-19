@@ -14,7 +14,8 @@ The files tasks.md names, against the files the run changed and the reference fi
 ``penalty_plan_files`` and ``penalty_tests`` are the means of each group. A run that names no file fails the first
 three. The two gold items do not apply -- and drop out of the mean -- when the task has no reference fix to read
 (``penalty_gold_unknown``). The test items always count, all seven (``penalty_tests.py`` says what a run outside an
-item's pool gets; ``penalty_applies.<item>`` records it). Nothing here enters the reward:
+item's pool gets; ``penalty_applies.<item>`` records it; when they cannot be computed all seven are 0.0 and
+``penalty_tests_errors`` is 1.0, the file items unaffected). Nothing here enters the reward:
 ``WorkflowSpec.reward_signal`` is still ``compliance``.
 
 The named files
@@ -281,7 +282,13 @@ def measure(facts: Any, collected: Any, task: Any, episode: Any, ctx: Any) -> di
     items = judge(named, patch, patch_all, gold)
     scored = [v for v in items.values() if v is not None]
     out = {f"{GROUP}.{rule}": v for rule, v in items.items() if v is not None}
-    tests = penalty_tests.measure(ctx)
+    # the test items on their own: a failure there is a full penalty on those seven, and leaves the file items standing
+    tests_error = 0.0
+    try:
+        tests = penalty_tests.measure(ctx)
+    except Exception:  # noqa: BLE001
+        logger.warning("agentos_bugfix penalty: the test items failed; 0.0 on all seven", exc_info=True)
+        tests, tests_error = dict.fromkeys(penalty_tests.ITEMS, (0.0, False)), 1.0
     test_scores = [v for v, _ in tests.values()]
     out.update({name: v for name, (v, _) in tests.items()})
     out.update({"penalty_applies." + name.split(".penalty.", 1)[1]: float(applies) for name, (_, applies) in tests.items()})
@@ -291,6 +298,7 @@ def measure(facts: Any, collected: Any, task: Any, episode: Any, ctx: Any) -> di
             "penalty_plan_files": sum(scored) / len(scored),
             "penalty_tests": sum(test_scores) / len(test_scores),
             "penalty_errors": 0.0,
+            "penalty_tests_errors": tests_error,
             "penalty_gold_unknown": float(not gold),
             "penalty_patch_unknown": patch_unknown,
             "penalty_tasks_write_skipped": float(skipped),

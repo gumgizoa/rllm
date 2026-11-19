@@ -523,6 +523,12 @@ def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_
     fail = _res(12, False, "tests/unit/test_a.py", runner=True)
     for later, want in ((_res(14, True, "tests/unit", runner=True), 1.0), (_res(14, True, runner=True), 1.0), (_res(14, True, "tests/unit/test_b.py", runner=True), 0.0), (_res(14, False, "tests/unit", runner=True), 0.0)):
         assert _test_items(src=[10], results=[fail, later], p2_end=30)[0][last] == want
+    # a path and a dotted label of the same module are one test
+    fail = _res(12, False, "tests/queries/test_q.py", runner=True)
+    for later, want in ((_res(14, True, "queries.test_q", runner=True), 1.0), (_res(14, True, "queries", runner=True), 1.0), (_res(14, True, "queries.test_qs", runner=True), 0.0)):
+        assert _test_items(src=[10], results=[fail, later], p2_end=30)[0][last] == want
+    fail = _res(12, False, "queries.test_q.QTests", runner=True)
+    assert _test_items(src=[10], results=[fail, _res(14, True, "tests/queries/test_q.py", runner=True)], p2_end=30)[0][last] == 1.0
     # ... and so is a dotted label above the one that failed (django's runtests.py)
     fail = _res(12, False, "queries.test_q.QTests", runner=True)
     for later, want in ((_res(14, True, "queries.test_q", runner=True), 1.0), (_res(14, True, "queries", runner=True), 1.0), (_res(14, True, "queries.test_qs", runner=True), 0.0)):
@@ -551,22 +557,86 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     v, a = _test_items(**base, results=[runner_fail])
     assert (v[cause], a[cause]) == (0.0, True) and (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (0.0, True)
     # checked, the runner passes without the change: the change causes it -- fixed and passing
-    fixed = dict(base, src=[10, 34], results=[runner_fail, _res(35, True, "tests/test_a.py", runner=True)], stash=[33], stash_results=[_res(33, True, "tests/test_a.py", runner=True)])
+    fixed = dict(base, src=[10, 34], results=[runner_fail, _res(35, True, "tests/test_a.py", runner=True)], check_runs=[33], stash_results=[_res(33, True, "tests/test_a.py", runner=True)])
     v, a = _test_items(**fixed)
     assert [v[k] for k in (cause, edited, last)] == [1.0] * 3 and all(a[k] for k in (cause, edited, last))
     v, a = _test_items(**{**fixed, "src": [10], "results": [runner_fail]})  # ... and left as it is
     assert (v[cause], v[edited], v[last]) == (1.0, 0.0, 0.0) and a[edited]
     # checked, the runner fails without the change as well: not to be fixed, so leaving it is no penalty
-    v, a = _test_items(**base, results=[runner_fail], stash=[33], stash_results=[_res(33, False, "tests/test_a.py", runner=True)])
+    v, a = _test_items(**base, results=[runner_fail], check_runs=[33], stash_results=[_res(33, False, "tests/test_a.py", runner=True)])
     assert v[cause] == 1.0 and (v[edited], a[edited]) == (1.0, False)
-    # a stash before the failure is not its check
-    assert _test_items(**base, results=[runner_fail], stash=[31])[0][cause] == 0.0
+    # a run without the change before the failure is not its check; one whose result cannot be read still is
+    assert _test_items(**base, results=[runner_fail], check_runs=[31])[0][cause] == 0.0
+    assert _test_items(**base, results=[runner_fail], check_runs=[33])[0][cause] == 1.0
     # only a script of the run's own fails: no check is asked, the fix is
     own = _res(32, False, "/s/a.py")
     v, a = _test_items(**base, results=[own])
     assert (v[cause], a[cause]) == (1.0, False) and (v[edited], a[edited]) == (0.0, True) and v[last] == 0.0
     v, a = _test_items(**base, test_edits=[33], results=[own, _res(34, True, "/s/a.py")])
     assert v[edited] == 1.0 and v[last] == 1.0
+
+
+def test_the_cause_check_is_a_runner_run_while_the_change_is_stashed_away():
+    from types import SimpleNamespace as N
+
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    cmd = lambda step, text: N(step=step, action_index=0, command=text)  # noqa: E731
+    run = lambda step, text, seg="pytest tests/test_a.py": N(step=step, action_index=0, command=text, segment=seg)  # noqa: E731
+    one = "cd /testbed && git stash -q && pytest tests/test_a.py; git stash pop -q"
+    cmds = [cmd(1, "pytest tests/test_a.py"), cmd(2, one), cmd(3, "pytest tests/test_a.py"), cmd(4, "git stash"), cmd(5, "pytest tests/test_a.py"), cmd(6, "git stash pop"), cmd(7, "pytest tests/test_a.py"),
+            cmd(8, "git stash list && pytest tests/test_a.py"), cmd(9, "pytest tests/test_a.py; git stash -u"), cmd(10, "git stash pop && pytest tests/test_a.py")]
+    before, marks = T.stash_states(cmds)
+    got = {c.step: T.run_stashed(run(c.step, c.command), before, marks) for c in cmds if "pytest" in c.command}
+    # the document's one command; the same over three commands; `git stash list` stashes nothing; a run before the
+    # stash, or after the pop, of its own command has the change in place
+    assert got == {1: False, 2: True, 3: False, 5: True, 7: False, 8: False, 9: False, 10: False}
+    assert T.stash_marks("git stash show -p; git stash drop") == [] and [on for _, on in T.stash_marks("git stash push -m x; git stash apply")] == [True, False]
+    assert T.run_stashed(run(2, one, seg="not in the command"), before, marks)  # a run that cannot be placed in a stashing command
+    # a stash that is never popped: the change is away until the run edits the repository again
+    lost = [cmd(1, "git stash"), cmd(2, "pytest tests/test_a.py"), cmd(5, "pytest tests/test_a.py")]
+    before, marks = T.stash_states(lost, edit_steps=[4])
+    assert [T.run_stashed(run(c.step, c.command), before, marks) for c in lost[1:]] == [True, False]
+    # ... and a stash with nothing to save stashed nothing
+    empty = [N(step=1, action_index=0, command="git stash", observation="No local changes to save"), cmd(2, "pytest tests/test_a.py")]
+    before, marks = T.stash_states(empty)
+    assert not T.run_stashed(run(2, "pytest tests/test_a.py"), before, marks)
+
+
+def test_a_script_that_edits_the_repository_is_not_a_test_and_a_new_source_file_is_source():
+    from types import SimpleNamespace as N
+
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    runs_of = {"/tmp/fix.py": [(12, "pass")], "/tmp/repro.py": [(12, "fail"), (14, "pass")], "/tmp/patch.sh": [(16, None)], "/tmp/quiet.py": [(18, "pass")]}
+    writes = {12: [N(source="python")], 16: [N(source="other")], 18: [N(source="file_editor")]}
+    text = {"/tmp/fix.py": "open(p, 'w').write(s)", "/tmp/repro.py": "assert f() == 1", "/tmp/patch.sh": "sed -i 's/a/b/' pkg/a.py", "/tmp/quiet.py": "print(f())"}
+    # run at a step where Python wrote to the repository (both scripts of step 12 -- the replay cannot tell them apart),
+    # or at a step with a repository write while its own text writes files; a script that only reads is a test
+    assert T.fix_scripts(runs_of, writes, text) == {"/tmp/fix.py", "/tmp/repro.py", "/tmp/patch.sh"}
+    assert T.fix_scripts({"/tmp/repro.py": [(14, "pass")]}, writes, text) == set()
+    # a new file the final change keeps is source whatever its name, unless it sits at the repository root
+    assert not T.is_run_script("pkg/template.py", new=True, kept=True) and not T.is_run_script("pkg/checkpoint.py", new=True, kept=True)
+    assert T.is_run_script("check_fix.py", new=True, kept=True) and T.is_run_script("pkg/helper.py", new=True, kept=False)
+    assert not T.is_run_script("check_fix.py", new=False, kept=True) and not T.is_run_script("pkg/notes.txt", new=True, kept=False)
+    # the runner on a test file counts as a test of the run's own once the run has written to that file
+    own = {"tests/utils_tests/test_duration.py": 40}
+    assert T.runs_own_test(45, ("utils_tests.test_duration",), False, own) and T.runs_own_test(45, (), True, own)
+    assert not T.runs_own_test(35, ("utils_tests.test_duration",), False, own) and not T.runs_own_test(35, (), True, own)
+    assert not T.runs_own_test(45, ("utils_tests.test_dateparse",), False, own)
+
+
+def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, monkeypatch):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests
+
+    def boom(ctx):
+        raise RuntimeError("unexpected trace")
+
+    monkeypatch.setattr(penalty_tests, "measure", boom)
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
+    assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0 and got["penalty_errors"] == 0.0
+    assert got["penalty_tests_errors"] == 1.0 and got["penalty_tests"] == 0.0 and got["penalty"] == 4 / 11
+    assert all(got[name] == 0.0 for name in penalty_tests.ITEMS)
 
 
 @pytest.mark.parametrize(

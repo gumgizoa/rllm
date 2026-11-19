@@ -140,6 +140,14 @@
     - `phase3_fail.last_result_pass`: 실패 결과를 봤는데 보고서 전 마지막 결과가 통과가 아니면 감점.
   - 대상이 아닌 런: 실패 관련 5개는 1.0(실패를 본 적이 없으면 감점 없음), 실행 2개는 0.0(소스를 고치지 않았거나 PHASE 3 구간을 잡을 수 없음). 어느 쪽인지는 `penalty_applies.<묶음>.<규칙>`에 기록.
   - `agentos_bugfix/penalty`는 파일 항목(해당하는 것)과 테스트 항목 7개의 평균이 됨. 묶음별 평균은 `penalty_plan_files`, `penalty_tests`.
+  - 결과로 읽지 않는 실행 두 가지(2026-11-19 코드 검토 뒤 수정). 원인 판별 실행: 변경을 stash로 뺀 동안의 러너 실행. `git stash`부터 다음 `git stash pop`/`apply`까지이고,
+    한 명령이든 여러 명령이든 같음. pop 없이 다시 고치기 시작하면 그 수정부터는 새 변경으로 봄. `git stash list`/`show`/`drop`과 저장할 것이 없던 `git stash`는 세지 않음.
+    수정 적용용 스크립트: checks/ 밖의 스크립트 중 실행한 단계에 저장소 파일이 바뀐 것(`fix.py` 등). 그 실행은 테스트 결과가 아니고, 그 작성은 테스트 수정이 아님.
+  - `phase3_fail.cause_checked`는 `git stash` 글자가 아니라 변경을 뺀 동안의 러너 실행이 있어야 1.0. 그 실행은 기존 테스트 실행으로 세지 않음.
+  - 자기 테스트 파일의 러너 실행은 그 파일에 처음 쓴 뒤의 실행만 자기 테스트 실행으로 셈. 경로 표기와 점 표기(`tests/queries/test_q.py`, `queries.test_q`)는 같은 테스트로 봄.
+  - 새로 만든 파일을 런의 스크립트로 보는 이름 규칙(`check_*`, `repro_*` 등)은 저장소 최상위 파일과 최종 patch에 남지 않은 파일에만 적용. 패키지 안에 만들어 최종 patch에 남은 파일은 소스.
+  - 저장소에 새로 만든 테스트 파일의 러너 실행은 읽지 않음(문서가 허용하지 않는 형태이고 compliance의 `created_files.tests`가 봄).
+  - 테스트 항목 계산이 실패하면 테스트 7개만 0.0으로 두고 `penalty_tests_errors` 1.0을 기록. 파일 항목은 그대로 기록.
   - 문서가 허용하는 "두 번 시도 뒤 ⚠️" 경로는 실패를 남긴 채 끝나므로 PHASE 2의 두 실패 항목에서 감점됨(기준 런 변형 `warn_attempts`, `expected_failure`, `script_failing`).
   - 채점 엔진: `Report`에 판정 맥락(`ctx`)과 재생에 쓴 shell 변수(`shell_vars`)를 넣음. penalty가 채점 뒤에 명령을 다시 읽기 위함. rubric 판정은 바뀌지 않음.
   - 코드 파일만 셈(테스트 파일, 생성 파일, 런이 만든 임시 스크립트 제외). 정답 patch는 과제 폴더에서 읽고 sandbox에는 올라가지 않음.
