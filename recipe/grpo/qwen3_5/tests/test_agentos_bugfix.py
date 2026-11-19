@@ -352,7 +352,7 @@ def _penalty(variant, tmp_path, patch, gold=None):
 def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
     assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
-    assert got["penalty"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
+    assert got["penalty"] == got["penalty_plan_files"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
     # a task added to tasks.md before its file is edited (implement-tasks PHASE 2) names that file in time
     got, items = _penalty("added_task", tmp_path, _diff("textkit/slug.py", "textkit/__init__.py"), gold=_diff("textkit/slug.py"))
     assert got["penalty_named_files"] == 2.0 and got["penalty_named_late"] == 0.0 and set(items.values()) == {1.0}
@@ -361,10 +361,11 @@ def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
 def test_penalty_items_against_the_patch_and_the_reference_fix(tmp_path):
     # the patch changes a file no task names; the reference fix is covered all the same (more files are fine)
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0} and got["penalty"] == 0.75
+    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0} and got["penalty_plan_files"] == 0.75
+    assert got["penalty_tests"] == 1.0 and got["penalty"] == (3 + 7) / 11  # the mean of the four file items and the seven test items
     # the reference fix changes another file: named and changed as planned, but neither covers it
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0, "patch_covers_gold": 0.0} and got["penalty"] == 0.5
+    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0, "patch_covers_gold": 0.0} and got["penalty_plan_files"] == 0.5
     # tests, the run's scratch scripts and non-source files are on neither side
     patch = _diff("textkit/slug.py", "tests/test_slug.py", "repro_edges.py", "docs/changes.rst", new=("repro_edges.py",))
     got, items = _penalty(None, tmp_path, patch, gold=_diff("textkit/slug.py", "docs/changes.rst"))
@@ -376,7 +377,7 @@ def test_penalty_items_against_the_patch_and_the_reference_fix(tmp_path):
 
 def test_penalty_without_a_reference_fix_scores_the_two_items_that_need_none(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty"] == 1.0 and got["penalty_gold_unknown"] == 1.0
+    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0 and got["penalty_gold_unknown"] == 1.0
 
 
 def test_named_files_are_collected_over_every_version_of_tasks_md():
@@ -444,6 +445,128 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert not any(".penalty." in it.id for it in ev.rubric.items)  # the rubric and its compliance are untouched
 
 
+# --------------------------------------------------------------------------------------------
+# penalty items (reward/penalty_tests.py): the test behaviour of implement-tasks
+# --------------------------------------------------------------------------------------------
+def _test_items(tl=None, **kw):
+    """The seven test items of a timeline built from ``kw`` (or of ``tl``): rule -> score, and rule -> applies."""
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    got = T.judge(tl if tl is not None else T.Timeline(**kw))
+    short = lambda name: name.split(".penalty.", 1)[1]  # noqa: E731
+    return {short(k): v for k, (v, _) in got.items()}, {short(k): a for k, (_, a) in got.items()}
+
+
+def _res(step, passed, *keys, runner=False):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    return T.Result(step, passed, runner, keys or (T._WHOLE,))
+
+
+def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
+    run2, run3 = "phase2_run.existing_and_own", "phase3_run.existing_and_own"
+    # both kinds of run after the last source change, and both again in PHASE 3
+    v, a = _test_items(src=[10, 20], own_runs=[22, 32], existing_runs=[23, 33], p2_end=30, p3=30, report=40)
+    assert v[run2] == v[run3] == 1.0 and a[run2] and a[run3]
+    # one of the two is not enough, and a run before the last source change does not count
+    assert _test_items(src=[10], own_runs=[12], p2_end=30)[0][run2] == 0.0
+    assert _test_items(src=[10], existing_runs=[12], p2_end=30)[0][run2] == 0.0
+    assert _test_items(src=[10, 20], own_runs=[12], existing_runs=[13], p2_end=30)[0][run2] == 0.0
+    # the runner on an existing test module the run added tests to is both
+    assert _test_items(src=[10], own_runs=[12], existing_runs=[12], p2_end=30)[0][run2] == 1.0
+    # a run that never gets to the stretch scores 0.0 there: no source change, PHASE 3 not placed
+    v, a = _test_items(src=[], own_runs=[12, 32], existing_runs=[13, 33], p2_end=30)
+    assert (v[run2], a[run2]) == (0.0, False) and (v[run3], a[run3]) == (0.0, False)
+
+
+def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_test_passes_at_its_last_run():
+    edited, last = "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"
+    # no failing result: nothing to penalise
+    v, a = _test_items(src=[10], results=[_res(12, True, "/s/a.py")], p2_end=30)
+    assert (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (1.0, False)
+    # group 1 fails and is ticked (15) without an edit, group 2 fails and is edited: the last failure alone would pass
+    two = dict(src=[10], test_edits=[22], results=[_res(12, False, "/s/a.py"), _res(20, False, "/s/b.py"), _res(23, True, "/s/b.py")], p2_end=25)
+    assert _test_items(group_ends=[15, 25], **two)[0][edited] == 0.0
+    assert _test_items(group_ends=[25], **two)[0][edited] == 1.0  # everything ticked in one write: one stretch
+    assert _test_items(group_ends=[15, 25], **{**two, "test_edits": [13, 22]})[0][edited] == 1.0
+    # an edit after the tick of its stretch is too late; a source edit counts like a test edit
+    assert _test_items(src=[10], test_edits=[16], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
+    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 1.0
+    # a.py failed and was never run again: b.py passing last does not make it pass
+    assert _test_items(**two)[0][last] == 0.0
+    assert _test_items(**{**two, "results": two["results"] + [_res(24, True, "/s/a.py")]})[0][last] == 1.0
+    # a runner run by the test files it names: a later run of the directory, or of the whole suite, runs the file
+    fail = _res(12, False, "tests/unit/test_a.py", runner=True)
+    for later, want in ((_res(14, True, "tests/unit", runner=True), 1.0), (_res(14, True, runner=True), 1.0), (_res(14, True, "tests/unit/test_b.py", runner=True), 0.0), (_res(14, False, "tests/unit", runner=True), 0.0)):
+        assert _test_items(src=[10], results=[fail, later], p2_end=30)[0][last] == want
+    # ... and so is a dotted label above the one that failed (django's runtests.py)
+    fail = _res(12, False, "queries.test_q.QTests", runner=True)
+    for later, want in ((_res(14, True, "queries.test_q", runner=True), 1.0), (_res(14, True, "queries", runner=True), 1.0), (_res(14, True, "queries.test_qs", runner=True), 0.0)):
+        assert _test_items(src=[10], results=[fail, later], p2_end=30)[0][last] == want
+
+
+def test_a_runner_target_selects_the_test_file_the_run_wrote_to():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward.penalty_tests import selects
+
+    f = "tests/utils_tests/test_duration.py"
+    for target in (f, f + "::DurationTests::test_x", "tests/utils_tests", "tests", "utils_tests.test_duration", "tests.utils_tests.test_duration", "utils_tests.test_duration.DurationTests.test_x", "utils_tests", "test_duration"):
+        assert selects(target, f), target
+    for target in ("tests/utils_tests/test_dateparse.py", "utils_tests.test_dateparse", "admin_views", "utils_tests.tests", "tests/utils", ""):
+        assert not selects(target, f), target
+
+
+def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_change_causes_it():
+    cause, edited, last = "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"
+    base = dict(src=[10], p2_end=30, p3=30, report=40)
+    runner_fail = _res(32, False, "tests/test_a.py", runner=True)
+    # no failing result in PHASE 3, or PHASE 3 not placed: the three items do not apply
+    for kw in (dict(base, results=[_res(32, True, "/s/a.py")]), dict(src=[10], p2_end=30, results=[runner_fail])):
+        v, a = _test_items(**kw)
+        assert [v[k] for k in (cause, edited, last)] == [1.0] * 3 and not any(a[k] for k in (cause, edited, last))
+    # a runner failure left unchecked: the check is missing, the edit item is not asked (the cause is unknown)
+    v, a = _test_items(**base, results=[runner_fail])
+    assert (v[cause], a[cause]) == (0.0, True) and (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (0.0, True)
+    # checked, the runner passes without the change: the change causes it -- fixed and passing
+    fixed = dict(base, src=[10, 34], results=[runner_fail, _res(35, True, "tests/test_a.py", runner=True)], stash=[33], stash_results=[_res(33, True, "tests/test_a.py", runner=True)])
+    v, a = _test_items(**fixed)
+    assert [v[k] for k in (cause, edited, last)] == [1.0] * 3 and all(a[k] for k in (cause, edited, last))
+    v, a = _test_items(**{**fixed, "src": [10], "results": [runner_fail]})  # ... and left as it is
+    assert (v[cause], v[edited], v[last]) == (1.0, 0.0, 0.0) and a[edited]
+    # checked, the runner fails without the change as well: not to be fixed, so leaving it is no penalty
+    v, a = _test_items(**base, results=[runner_fail], stash=[33], stash_results=[_res(33, False, "tests/test_a.py", runner=True)])
+    assert v[cause] == 1.0 and (v[edited], a[edited]) == (1.0, False)
+    # a stash before the failure is not its check
+    assert _test_items(**base, results=[runner_fail], stash=[31])[0][cause] == 0.0
+    # only a script of the run's own fails: no check is asked, the fix is
+    own = _res(32, False, "/s/a.py")
+    v, a = _test_items(**base, results=[own])
+    assert (v[cause], a[cause]) == (1.0, False) and (v[edited], a[edited]) == (0.0, True) and v[last] == 0.0
+    v, a = _test_items(**base, test_edits=[33], results=[own, _res(34, True, "/s/a.py")])
+    assert v[edited] == 1.0 and v[last] == 1.0
+
+
+@pytest.mark.parametrize(
+    "variant, zero, applies",
+    [
+        (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own"}),
+        ("no_existing_run", {"phase2_run.existing_and_own"}, None),
+        ("tick_failing", {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"}, None),
+        ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
+    ],
+)
+def test_test_items_of_the_golden_run_and_its_variants(variant, zero, applies):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty, penalty_tests
+
+    *_, rep, _res = _scored(variant)
+    got = penalty.post(rep)
+    assert got["penalty_errors"] == 0.0
+    scores = {k.split(".penalty.", 1)[1]: v for k, v in got.items() if k.startswith(penalty_tests.STAGE + ".")}
+    assert len(scores) == 7 and {k for k, v in scores.items() if v == 0.0} == zero
+    assert got["penalty_tests"] == (7 - len(zero)) / 7
+    if applies is not None:
+        assert {k[len("penalty_applies.") :] for k, v in got.items() if k.startswith("penalty_applies.") and v == 1.0} == applies
+
+
 def _with_spec_path_variable(run, golden):
     """``run`` as an agent that follows shape-spec.md's snippet types it: the spec folder kept in ``$SPEC_PATH``."""
     first = True
@@ -474,6 +597,10 @@ def test_a_run_that_keeps_the_spec_folder_in_a_shell_variable_scores_like_one_th
     assert [(e.step, e.op, e.content) for e in rep.facts.writes[tasks]] == [(e.step, e.op, e.content) for e in typed.facts.writes[tasks]]
     assert not shell.KNOWN_VARS.get()  # set for the one evaluation only
     assert penalty.versions(rep.facts, col) == penalty.versions(typed.facts, col)
+    # the test items read the commands again after the evaluation, with the variables the run was replayed with
+    got, want = penalty.post(rep), penalty.post(typed)
+    assert rep.shell_vars and got["penalty_errors"] == 0.0 and got["penalty_tests"] == 1.0
+    assert {k: v for k, v in got.items() if ".penalty." in k or k.startswith("penalty_applies.")} == {k: v for k, v in want.items() if ".penalty." in k or k.startswith("penalty_applies.")}
     # without the workflow's variables the replay cannot place those commands, and the honest run loses marks
     fn = checks.SHELL_VARS.pop(NAME)
     try:

@@ -1,6 +1,8 @@
-"""agentos_bugfix penalty items: the files tasks.md names, against the files the run changed and the reference fix.
+"""agentos_bugfix penalty items, reported beside the rubric and outside ``compliance``. Each is 1.0 (no penalty) or
+0.0 (penalty). Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
+(``penalty_tests.py``: seven items, ``agentos_bugfix.implement_tasks.penalty.*``).
 
-Four items, each 1.0 (no penalty) or 0.0 (penalty), reported beside the rubric and outside ``compliance``:
+The files tasks.md names, against the files the run changed and the reference fix -- four items:
 
     agentos_bugfix.global.penalty.plan_files.named               the change tasks of tasks.md name a source file
     agentos_bugfix.global.penalty.plan_files.named_equals_patch  the named files are the source files of the final patch
@@ -8,9 +10,12 @@ Four items, each 1.0 (no penalty) or 0.0 (penalty), reported beside the rubric a
     agentos_bugfix.global.penalty.plan_files.patch_covers_gold   every source file of the reference fix is in the final
                                                                  patch (more files are fine)
 
-``agentos_bugfix/penalty`` is the mean of the items that apply. A run that names no file fails the first three. The two
-gold items do not apply -- and drop out of the mean -- when the task has no reference fix to read
-(``penalty_gold_unknown``). Nothing here enters the reward: ``WorkflowSpec.reward_signal`` is still ``compliance``.
+``agentos_bugfix/penalty`` is the mean of the file items that apply and the seven test items;
+``penalty_plan_files`` and ``penalty_tests`` are the means of each group. A run that names no file fails the first
+three. The two gold items do not apply -- and drop out of the mean -- when the task has no reference fix to read
+(``penalty_gold_unknown``). The test items always count, all seven (``penalty_tests.py`` says what a run outside an
+item's pool gets; ``penalty_applies.<item>`` records it). Nothing here enters the reward:
+``WorkflowSpec.reward_signal`` is still ``compliance``.
 
 The named files
     Every version of tasks.md the trace can replay is read (a write whose content cannot be replayed is skipped; when
@@ -41,6 +46,8 @@ from pathlib import Path
 from typing import Any
 
 from ....workflow_rubric import facts as F
+from ....workflow_rubric.trace import shell
+from . import penalty_tests
 
 logger = logging.getLogger(__name__)
 
@@ -245,8 +252,9 @@ def judge(named: set[str], patch: list[str], patch_all: list[str], gold: list[st
     return out
 
 
-def measure(facts: Any, collected: Any, task: Any, episode: Any) -> dict[str, float]:
-    """The penalty signals of one run (names without the ``agentos_bugfix/`` prefix)."""
+def measure(facts: Any, collected: Any, task: Any, episode: Any, ctx: Any) -> dict[str, float]:
+    """The penalty signals of one run (names without the ``agentos_bugfix/`` prefix). ``ctx``: the context the rubric
+    was judged in (``Report.ctx``), which the test items read the run through."""
     meta = getattr(task, "metadata", None)
     workdir = collected.workdir or (meta.get("workdir") if isinstance(meta, dict) else None)
     art = getattr(episode, "artifacts", None) or {}
@@ -273,9 +281,15 @@ def measure(facts: Any, collected: Any, task: Any, episode: Any) -> dict[str, fl
     items = judge(named, patch, patch_all, gold)
     scored = [v for v in items.values() if v is not None]
     out = {f"{GROUP}.{rule}": v for rule, v in items.items() if v is not None}
+    tests = penalty_tests.measure(ctx)
+    test_scores = [v for v, _ in tests.values()]
+    out.update({name: v for name, (v, _) in tests.items()})
+    out.update({"penalty_applies." + name.split(".penalty.", 1)[1]: float(applies) for name, (_, applies) in tests.items()})
     out.update(
         {
-            "penalty": sum(scored) / len(scored),
+            "penalty": (sum(scored) + sum(test_scores)) / (len(scored) + len(test_scores)),
+            "penalty_plan_files": sum(scored) / len(scored),
+            "penalty_tests": sum(test_scores) / len(test_scores),
             "penalty_errors": 0.0,
             "penalty_gold_unknown": float(not gold),
             "penalty_patch_unknown": patch_unknown,
@@ -302,7 +316,13 @@ def post(report: Any) -> dict[str, float]:
     try:
         collected = report.collected
         given = collected.inputs or {}
-        return measure(report.facts, collected, given.get("task"), given.get("episode"))
+        # the test items parse the run's commands again: with the shell variables the run was replayed with
+        token = shell.KNOWN_VARS.set(dict(report.shell_vars)) if report.shell_vars else None
+        try:
+            return measure(report.facts, collected, given.get("task"), given.get("episode"), report.ctx)
+        finally:
+            if token is not None:
+                shell.KNOWN_VARS.reset(token)
     except Exception:  # noqa: BLE001
         logger.warning("agentos_bugfix penalty: scoring failed; penalty 0", exc_info=True)
         return {"penalty": 0.0, "penalty_errors": 1.0}

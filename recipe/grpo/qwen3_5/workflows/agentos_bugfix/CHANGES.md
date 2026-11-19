@@ -124,6 +124,21 @@
   - `named`: 수정 task에 파일을 하나도 적지 않으면 감점. `named_equals_patch`: 적은 파일과 최종 patch의 파일이 다르면 감점.
     `named_covers_gold`: 적은 파일에 정답 파일이 빠지면 감점. `patch_covers_gold`: 최종 patch에 정답 파일이 빠지면 감점(다른 파일이 더 있는 것은 허용).
   - 적은 파일은 tasks.md의 모든 버전에서 모음. 한 번 적으면 지워도 남고, 이미 고친 뒤에 처음 적은 파일은 세지 않음. 파일을 적지 않은 런은 앞의 세 항목이 모두 감점.
+- rubric 밖의 penalty 항목 7개를 더함(2026-11-19, `reward/penalty_tests.py`): implement-tasks의 테스트 행동. 이름은 `agentos_bugfix.implement_tasks.penalty.<묶음>.<규칙>`.
+  앞의 4개와 같이 기록만 하고 compliance와 학습 reward에는 들어가지 않음. 정답 patch나 정답 테스트 파일은 읽지 않음(런이 알 수 있는 것만 봄).
+  - PHASE 2(첫 소스 수정부터 PHASE 3 시작까지)
+    - `phase2_run.existing_and_own`: 마지막 소스 수정 뒤에 저장소 테스트의 유효한 러너 실행과 자기 테스트(checks/ 스크립트, 자기가 쓴 테스트 파일) 실행이 둘 다 없으면 감점.
+    - `phase2_fail.edited_after_fail`: 실패 결과를 본 뒤 고치지 않으면 감점. task group이 모두 체크된 시점으로 구간을 나누고, 실패가 있는 구간마다 그 구간의 마지막 실패 뒤 체크 전에 소스 또는 테스트 수정이 있어야 함.
+    - `phase2_fail.last_result_pass`: 실패했던 테스트가 각자의 마지막 실행에서 통과하지 않으면 감점(스크립트는 경로, 러너 실행은 대상 테스트 파일 단위).
+  - PHASE 3(마지막 task를 체크한 쓰기부터 보고서 첫 쓰기까지)
+    - `phase3_run.existing_and_own`: PHASE 3 안에 위와 같은 두 실행이 둘 다 없으면 감점.
+    - `phase3_fail.cause_checked`: 러너 실행이 실패했는데 그 뒤에 `git stash` 명령이 없으면 감점.
+    - `phase3_fail.edited_after_fail`: 고쳐야 하는 실패(자기 테스트만 실패했거나, `git stash` 안에서 돌린 러너가 통과해 내 변경이 원인임이 확인됨)를 본 뒤 소스 또는 테스트를 고치지 않으면 감점. 원인이 아님이 확인됐거나 판별하지 않은 실패는 이 항목의 대상이 아님.
+    - `phase3_fail.last_result_pass`: 실패 결과를 봤는데 보고서 전 마지막 결과가 통과가 아니면 감점.
+  - 대상이 아닌 런: 실패 관련 5개는 1.0(실패를 본 적이 없으면 감점 없음), 실행 2개는 0.0(소스를 고치지 않았거나 PHASE 3 구간을 잡을 수 없음). 어느 쪽인지는 `penalty_applies.<묶음>.<규칙>`에 기록.
+  - `agentos_bugfix/penalty`는 파일 항목(해당하는 것)과 테스트 항목 7개의 평균이 됨. 묶음별 평균은 `penalty_plan_files`, `penalty_tests`.
+  - 문서가 허용하는 "두 번 시도 뒤 ⚠️" 경로는 실패를 남긴 채 끝나므로 PHASE 2의 두 실패 항목에서 감점됨(기준 런 변형 `warn_attempts`, `expected_failure`, `script_failing`).
+  - 채점 엔진: `Report`에 판정 맥락(`ctx`)과 재생에 쓴 shell 변수(`shell_vars`)를 넣음. penalty가 채점 뒤에 명령을 다시 읽기 위함. rubric 판정은 바뀌지 않음.
   - 코드 파일만 셈(테스트 파일, 생성 파일, 런이 만든 임시 스크립트 제외). 정답 patch는 과제 폴더에서 읽고 sandbox에는 올라가지 않음.
 - 셸 변수(2026-11-18): shape-spec이 spec 폴더를 `$SPEC_PATH`에 담게 하는데 기록 재생은 명령마다 변수 없이 시작해서, 변수로 쓴 쓰기·읽기·실행이 보이지 않았음.
   sandbox에 남은 spec 폴더에서 변수 값을 알아내 한 번 더 재생하도록 고침(agentos_v2도 같음). 평가 499런 중 48런의 compliance가 0.574 → 0.762(나머지 451런 0.760), 내려간 런 없음.

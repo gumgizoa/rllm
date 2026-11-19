@@ -38,6 +38,8 @@ class Report:
     errors: list[str] = field(default_factory=list)
     cache: dict = field(default_factory=dict)  # the checks' shared state (``EvalContext.cache``)
     collected: Collected | None = None  # what the run left behind, for a workflow's ``post`` hook
+    ctx: EvalContext | None = None  # the context the items were judged in, for a ``post`` hook that asks the checks' helpers
+    shell_vars: dict[str, str] = field(default_factory=dict)  # the shell variables the run was replayed with (``evaluate``)
 
 
 def _offline_missing(item: Item, ctx: EvalContext) -> str | None:
@@ -132,7 +134,9 @@ def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
         except Exception as e:  # noqa: BLE001
             logger.warning("facts with the shell variables known failed for %s", run.instance_id, exc_info=True)
             errors.append(f"facts: {type(e).__name__}: {e}")
-        return _evaluate(rubric, run, collected, facts, errors)
+        report = _evaluate(rubric, run, collected, facts, errors)
+        report.shell_vars = dict(known)  # a ``post`` hook that parses commands again sets them the same way
+        return report
     finally:
         shell.KNOWN_VARS.reset(token)
 
@@ -148,7 +152,7 @@ def _evaluate(rubric: Rubric, run: Run, collected: Collected, facts: Facts, erro
         if it.check.kind in SECOND_PASS:
             results[it.id] = evaluate_item(it, ctx, errors)
     scores = aggregate.score(rubric, results, engine_errors=len(errors))
-    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache, collected=collected)
+    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache, collected=collected, ctx=ctx)
 
 
 def signals(report: Report, prefix: str) -> dict[str, float]:

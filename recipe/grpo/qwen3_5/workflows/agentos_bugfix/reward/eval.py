@@ -4,8 +4,9 @@ The rubric is agentos_v2's with the items of the cut steps removed (``../derive_
 signals come from it (``agentos_bugfix/compliance`` is the reward signal). Its plugin kinds are agentos_v2's, registered
 under ``agentos_bugfix.*`` in ``checks.py``.
 
-Beside the rubric, ``penalty.py`` reports ``agentos_bugfix/penalty`` and its four items (the files tasks.md names against
-the final patch and the task's reference fix). They are logged, not part of ``compliance``.
+Beside the rubric, ``penalty.py`` reports ``agentos_bugfix/penalty`` and its items: four about the files tasks.md names
+(against the final patch and the task's reference fix) and seven about the test behaviour of implement-tasks
+(``penalty_tests.py``). They are logged, not part of ``compliance``.
 """
 
 from pathlib import Path
