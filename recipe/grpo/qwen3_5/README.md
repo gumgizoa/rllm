@@ -566,8 +566,11 @@ followed it: 86% of rollouts never opened `/ai-dlc/core-workflow.md`, and of the
 70% first looked for it *inside* `/testbed` (`reports/2026-09-30_aidlc_swegym_compliance.md`).
 `prepare_swegym.py --instruction aidlc` builds the same tasks with that procedure (and the
 base-commit sha of step 6) removed, keeping only what describes the task — repo location,
-tests already handled, environment ready, minimal change to non-test files — under the
-names `swegym293_aidlc` / `swegym_val23_aidlc`, so the control arm's `swegym293` is untouched:
+environment ready, minimal change — under the names `swegym293_aidlc` / `swegym_val23_aidlc`,
+so the control arm's `swegym293` is untouched. The two statements about tests ("I've already
+taken care of all changes to any of the test files", "non-test files") are removed as well:
+the grading tests are added after the agent finishes, and whether the agent may write or edit
+test files is each workflow's own rule:
 
 ```bash
 python recipe/grpo/qwen3_5/scripts/prepare_swegym.py --parquet-dir /path/to/SkyRL-v0-293-data --instruction aidlc

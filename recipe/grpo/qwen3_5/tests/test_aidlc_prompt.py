@@ -37,11 +37,14 @@ def test_aidlc_template_drops_skyrl_procedure_but_keeps_task_facts():
     for kept in (
         "<uploaded_files>\n/testbed\n</uploaded_files>",
         "<issue_description>\nWidget.frob() returns None\n</issue_description>",
-        "DON'T have to modify the testing logic",
         "already set up for you",
-        "minimal changes to non-test files in the /testbed directory",
+        "minimal changes to the /testbed directory",
     ):
         assert kept in aidlc
+    # what the task says about tests is the workflow's to say, not the task message's
+    for dropped in ("already taken care of all changes to any of the test files", "DON'T have to modify the testing logic", "non-test files"):
+        assert dropped in skyrl
+        assert dropped not in aidlc
     assert prepare.render_instruction(INST) == skyrl  # default is the control arm's prompt
 
 

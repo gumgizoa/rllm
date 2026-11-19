@@ -159,9 +159,13 @@ Be thorough in your exploration, testing, and reasoning. It's fine if your think
 # in run 2 (2026-09-29) 86% of rollouts followed it instead of reading
 # /ai-dlc/core-workflow.md (reports/2026-09-30_aidlc_swegym_compliance.md).
 # The base-commit sha went with step 6; with ``hide_git_history`` the agent
-# cannot diff against it anyway. Everything that describes the *task* stays:
-# where the repo is, that the tests are already taken care of, that the
-# environment is ready, and that the change is minimal and to non-test files.
+# cannot diff against it anyway. What describes the *task* stays: where the
+# repo is, that the environment is ready, and that the change is minimal.
+# The two statements about tests are dropped too ("I've already taken care of
+# all changes to any of the test files ... you DON'T have to modify ... any of
+# the tests", and "non-test files" in the last line): the grading tests are
+# added after the agent finishes, and whether the agent may write or edit test
+# files is each workflow's own rule, stated in its documents.
 # ``{base_commit}`` is accepted and ignored so both templates format alike.
 INSTRUCTION_TEMPLATE_AIDLC = """<uploaded_files>
 /testbed
@@ -174,9 +178,8 @@ I've uploaded a python code repository in the directory /testbed. Consider the f
 </issue_description>
 
 Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue_description> are met?
-I've already taken care of all changes to any of the test files described in the <issue_description>. This means you DON'T have to modify the testing logic or any of the tests in any way!
 Also the development Python environment is already set up for you (i.e., all dependencies already installed), so you don't need to install other packages.
-Your task is to make the minimal changes to non-test files in the /testbed directory to ensure the <issue_description> is satisfied.
+Your task is to make the minimal changes to the /testbed directory to ensure the <issue_description> is satisfied.
 """
 
 INSTRUCTION_TEMPLATES = {"skyrl": INSTRUCTION_TEMPLATE, "aidlc": INSTRUCTION_TEMPLATE_AIDLC}
