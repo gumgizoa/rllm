@@ -217,6 +217,21 @@ speckit_bug·openspec_ff와 같은 규칙으로 맞춤. 문서는 바꾸지 않�
   때를 가정한 값인데 이 변형에 걸리는 항목은 권고 하나뿐이라서, 권고 항목만 걸리는 변이가 쓰는 값(`mutations.SHOULD_DROP`)에
   맞춤. 항목을 필수로 올리는 방법은 쓰지 않음 (학습 reward에서 이 항목의 비중이 4배가 됨).
 
+## PHASE 3 실패 항목의 해당 없음 값 (2026-11-20)
+
+PHASE 3에서 실패를 보지 않은 실행이 PHASE 3 실패 항목 3개(`phase3_fail.cause_checked`, `phase3_fail.edited_after_fail`,
+`phase3_fail.last_result_pass`)에서 받는 값을 바꿈.
+
+- 이전: PHASE 3 안에서 테스트를 돌렸으면 1, 안 돌렸거나 PHASE 3 구간을 잡을 수 없으면 0.
+- 이후: 최종 코드에 테스트 결과가 있으면 1, 없으면 0. "결과가 있다"는 PHASE 3 안에서 테스트를 돌렸거나, 마지막 소스 수정
+  뒤부터 보고서 전(보고서가 없으면 실행 끝)까지 어느 단계에서든 테스트를 돌렸다는 뜻. PHASE 3 구간을 잡을 수 없는 실행도
+  같은 기준으로 봄.
+- 이유: PHASE 2에서 마지막 수정 뒤에 테스트를 돌리고 PHASE 3에서 반복하지 않은 실행은, 한 번 더 돌려도 새로 볼 실패가 없음.
+  이런 실행이 한 번도 테스트하지 않은 실행과 똑같이 4개 항목을 잃고 있었음. 반복하지 않은 대가는 `phase3_run` 1개로 남김.
+- `phase3_run.existing_and_own`과 PHASE 2 항목 3개, 실패가 판정되는 경우의 규칙은 그대로.
+- 평가 에피소드 499개(t6-full-floor27) 재채점: PHASE 3에서 테스트를 돌리지 않은 322개 중 247개가 항목 3개를 되찾고 75개는
+  0 그대로. penalty 평균 0.456 → 0.591 (통일 이전 0.669). compliance가 바뀐 에피소드는 없음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

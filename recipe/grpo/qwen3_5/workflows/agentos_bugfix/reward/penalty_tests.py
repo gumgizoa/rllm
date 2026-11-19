@@ -2,9 +2,9 @@
 
 Seven items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the four of
 ``penalty.py``. Every run gets all seven. A run an item stands outside of gets what the rule every workflow shares
-gives (``workflow_rubric/penalty.py``): 0.0 when it never did what the item is about -- it changed no source, it never
-reached PHASE 3, it ran no test in the stretch the item reads -- and 1.0 when it ran its tests there and the item's
-condition, a failure, did not arise. So a run cannot keep an item about failures by not running the tests.
+gives (``workflow_rubric/penalty.py``): 0.0 when it never did what the item is about -- it changed no source, it ran
+no test where the item reads -- and 1.0 when it ran its tests and the item's condition, a failure, did not arise.
+So a run cannot keep an item about failures by not running the tests.
 ``penalty_applies.<item>`` says whether the item was judged on the run.
 
 PHASE 2 -- from the first source change to the start of PHASE 3 (every task ticked; without that, the report's first
@@ -33,7 +33,11 @@ write; without either, the end of the run)
         outside: as edited_after_fail
 
 PHASE 3 -- from the write that ticks the last task to the report's first write; it can be placed only when both are
-known and in that order
+known and in that order. The three failure items ask what the run did about a failure it saw in PHASE 3. A run that
+saw none there keeps them when its final code was tested: a test ran in PHASE 3, or -- PHASE 3 placed or not -- after
+the last source change and before the report (the end of the run without one). Running the tests once more would then
+have shown nothing the run had not seen, and not running them costs the run item alone. A run whose final code was
+never tested loses all four.
 
     agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
         1.0: as phase2_run, anywhere in PHASE 3
@@ -41,18 +45,18 @@ known and in that order
     agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
         judged: a valid runner run fails in PHASE 3 -- the document asks for the check on an existing test
         1.0: after that failure and before the report, the runner is invoked with the change stashed away
-        outside: 1.0 when a test ran in PHASE 3 and no runner run failed; 0.0 when none ran, or PHASE 3 cannot be placed
+        outside: 1.0 when the final code was tested and no runner run failed in PHASE 3; 0.0 when it was not
     agentos_bugfix.implement_tasks.penalty.phase3_fail.edited_after_fail
         judged: a failing result in PHASE 3 that the document says to fix -- only tests of the run's own failed (no
                 runner failure), or the runner passed with the change stashed away (the change causes it)
         1.0: source or a test is edited after the first failing result, before the report
-        outside: 1.0 when a test ran in PHASE 3 and nothing failed that is the change's to fix (a failure the check
-             showed to exist without the change, or one that was never checked, is not this item's); 0.0 when none
-             ran, or PHASE 3 cannot be placed
+        outside: 1.0 when the final code was tested and nothing failed in PHASE 3 that is the change's to fix (a
+             failure the check showed to exist without the change, or one that was never checked, is not this
+             item's); 0.0 when it was not
     agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
         judged: a failing result in PHASE 3
         1.0: the last result before the report passes
-        outside: 1.0 when a test ran in PHASE 3 and none failed; 0.0 when none ran, or PHASE 3 cannot be placed
+        outside: 1.0 when the final code was tested and no result failed in PHASE 3; 0.0 when it was not
 
 A result is a run whose outcome can be read: a script the run wrote (under checks/ or anywhere else) that ran, or a
 valid runner run. A script run whose outcome cannot be read ran (it counts for the run items, and as "a test ran") and
@@ -99,6 +103,7 @@ _STASH_BACK = frozenset({"pop", "apply"})
 _STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
 _WRITES_FILES = re.compile(r"\.write\(|write_text\(|writelines\(|\bsed\s+-i\b|\bpatch\s")
 _WHOLE = R.WHOLE  # the key of a runner run that names no file
+_NEVER = 10**9  # a step no run reaches: the end of a stretch whose closing event did not happen
 
 
 Result = R.TestResult  # one readable test result (step, passed, runner, keys, selection)
@@ -316,8 +321,9 @@ def _last_of_each_failed_test_passes(results: list[Result]) -> bool:
 def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     """Item -> (value, whether the item was judged on the run). A run an item stands outside of gets what the common
     rule gives (``workflow_rubric/penalty.py``): 0 when it never did what the item is about -- it changed no source,
-    it never reached PHASE 3, it ran no test in the stretch -- and 1 when it ran its tests there and the item's
-    condition, a failure, did not arise."""
+    it ran no test in the stretch -- and 1 when it ran its tests there and the item's condition, a failure, did not
+    arise. For the failure items of PHASE 3 a test run after the last source change counts as well, in whichever
+    phase it ran."""
     out: dict[str, tuple[float, bool]] = {}
     edits = sorted(tl.src + tl.test_edits)
 
@@ -354,16 +360,22 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             outside(P2_EDITED, ran)
             outside(P2_LAST, ran)
 
-    # PHASE 3
+    # PHASE 3. A run that ran no test there keeps the three failure items when its final code was tested all the
+    # same -- a test ran after its last source change, before the report: running the tests once more would have
+    # shown no failure the run had not seen. The run item is what it loses for not running them again.
+    end = tl.report if tl.report is not None else _NEVER
+    src = [s for s in tl.src if s < end]
+    tested = bool(src) and (any(src[-1] < r.step < end for r in tl.results) or bool(_between(tl.own_runs, src[-1], end)))
     if tl.p3 is None or tl.report is None:
-        for name in (P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST):
-            outside(name, False)
+        outside(P3_RUN, False)
+        for name in (P3_CAUSE, P3_EDITED, P3_LAST):
+            outside(name, tested)
     else:
         a, b = tl.p3, tl.report
         put(P3_RUN, _ran(tl, a, b))
         res = [r for r in tl.results if a < r.step < b]
         fails = [r for r in res if not r.passed]
-        ran = bool(res) or bool(_between(tl.own_runs, a, b))
+        ran = bool(res) or bool(_between(tl.own_runs, a, b)) or tested
         runner_fails = [r.step for r in fails if r.runner]
         checked = [r.passed for r in tl.stash_results if a < r.step < b]
         if runner_fails:

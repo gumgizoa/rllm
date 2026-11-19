@@ -283,6 +283,7 @@ _P3_RUN = "Run the tests of the changed code once more: the test modules that co
 _P3_CAUSE = "An existing test: run it once without your change, in one command"
 _P3_FIX = "go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1."
 _OUT = "a run the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise"
+_OUT3 = "a run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was"
 PENALTY = (
     ("global", "plan_files.named", "CT", (_CT_FILES,), "CT: 'every sub-task that changes code names, on its task line, the path in the repository of the file it changes'",
      "the change tasks of tasks.md name a source file (a name written down after the file was already edited does not count)"),
@@ -301,11 +302,11 @@ PENALTY = (
     ("implement_tasks", "phase3_run.existing_and_own", "IT", (_P3_RUN,), "imperative (IT: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote')",
      "in PHASE 3 (from the last tick to the report), a valid run of the repository's tests and a run of a test of the run's own; worth 0 to a run whose PHASE 3 cannot be placed"),
     ("implement_tasks", "phase3_fail.cause_checked", "IT", (_P3_CAUSE,), "imperative (IT: 'An existing test: run it once without your change, in one command')",
-     "after a failing runner run in PHASE 3 and before the report, the runner is invoked with the change stashed away; " + _OUT),
+     "after a failing runner run in PHASE 3 and before the report, the runner is invoked with the change stashed away; " + _OUT3),
     ("implement_tasks", "phase3_fail.edited_after_fail", "IT", (_P3_FIX,), "imperative (IT: 'go back to PHASE 2 once, fix the change')",
-     "after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed away), source or a test is edited before the report; " + _OUT),
+     "after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed away), source or a test is edited before the report; " + _OUT3),
     ("implement_tasks", "phase3_fail.last_result_pass", "IT", (_P3_FIX,), "imperative (IT: 'fix the change, then carry out PHASE 3 again from Step 1')",
-     "when a result failed in PHASE 3, the last result before the report passes; " + _OUT),
+     "when a result failed in PHASE 3, the last result before the report passes; " + _OUT3),
 )
 
 

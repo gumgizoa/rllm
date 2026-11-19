@@ -7025,8 +7025,8 @@ items:
   template: ''
   log_only: true
   note: after a failing runner run in PHASE 3 and before the report, the runner is invoked with the change stashed away; a
-    run the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition
-    did not arise
+    run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source
+    change in whichever phase) and 0 when it never was
 - id: agentos_bugfix.implement_tasks.penalty.phase3_fail.edited_after_fail
   scope: specific
   class: evidence
@@ -7058,8 +7058,8 @@ items:
   template: ''
   log_only: true
   note: after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
-    away), source or a test is edited before the report; a run the item stands outside of is worth 0 when it never did what
-    the item is about and 1 when it did and the item's condition did not arise
+    away), source or a test is edited before the report; a run that saw no such failure is worth 1 when its final code was
+    tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was
 - id: agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
   scope: specific
   class: evidence
@@ -7090,8 +7090,9 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: when a result failed in PHASE 3, the last result before the report passes; a run the item stands outside of is worth
-    0 when it never did what the item is about and 1 when it did and the item's condition did not arise
+  note: when a result failed in PHASE 3, the last result before the report passes; a run that saw no such failure is worth
+    1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when
+    it never was
 scoring:
   item_weight:
     must: 1.0

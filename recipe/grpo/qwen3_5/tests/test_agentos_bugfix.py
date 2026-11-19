@@ -632,11 +632,24 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     cause, edited, last = "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"
     base = dict(src=[10], p2_end=30, p3=30, report=40)
     runner_fail = _res(32, False, "tests/test_a.py", runner=True)
-    # a test ran in PHASE 3 and none failed: the three items stand outside the run with their condition not arisen (1.0);
-    # PHASE 3 not placed, or nothing run in it: the run never did what they are about (0.0)
-    for kw, want in ((dict(base, results=[_res(32, True, "/s/a.py")]), 1.0), (dict(src=[10], p2_end=30, results=[runner_fail]), 0.0), (dict(base), 0.0)):
+    # no failure seen in PHASE 3: the three items stand outside the run. Worth 1.0 when the final code was tested -- a
+    # test ran in PHASE 3, or after the last source change in whichever phase (running it once more would have shown
+    # nothing new; the run item alone is lost) -- and 0.0 when it never was
+    run3 = "phase3_run.existing_and_own"
+    for kw, want in (
+        (dict(base, results=[_res(32, True, "/s/a.py")]), 1.0),  # ran in PHASE 3
+        (dict(base, results=[_res(12, True, "/s/a.py")]), 1.0),  # ran in PHASE 2 after the last source change, not again
+        (dict(base, own_runs=[12]), 1.0),  # ... a check script whose outcome the trace does not show ran as well
+        (dict(src=[10], p2_end=30, results=[_res(12, True, "/s/a.py")]), 1.0),  # ... PHASE 3 not placed
+        (dict(base, src=[10, 20], results=[_res(12, True, "/s/a.py")]), 0.0),  # tested, then changed again: the final code never was
+        (dict(base), 0.0),  # nothing run at all
+        (dict(src=[10], p2_end=30), 0.0),
+        (dict(src=[], p2_end=30, results=[_res(12, True, "/s/a.py")]), 0.0),  # no source change
+    ):
         v, a = _test_items(**kw)
-        assert [v[k] for k in (cause, edited, last)] == [want] * 3 and not any(a[k] for k in (cause, edited, last))
+        assert [v[k] for k in (cause, edited, last)] == [want] * 3 and not any(a[k] for k in (cause, edited, last)), kw
+    v, a = _test_items(**dict(base, results=[_res(12, True, "/s/a.py")]))
+    assert (v[run3], a[run3]) == (0.0, True)  # not running the tests once more costs the run item
     # a runner failure left unchecked: the check is missing, the edit item is not asked (the cause is unknown)
     v, a = _test_items(**base, results=[runner_fail])
     assert (v[cause], a[cause]) == (0.0, True) and (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (0.0, True)
