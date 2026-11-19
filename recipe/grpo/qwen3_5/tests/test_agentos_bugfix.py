@@ -272,6 +272,30 @@ def test_a_warning_mark_needs_two_failed_attempts():
     assert res["warned_after_attempts"].status == "fail" and "2.3" in res["warned_after_attempts"].detail
 
 
+def test_fixing_the_check_script_between_two_failing_runs_is_an_attempt():
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    # T8: the test the run wrote may be the thing to fix. "script_failing" with its two fixes made to check_sep.py
+    # instead of the source: no code change between the failing runs, two edits of the check script
+    rub, run, col, rep, res = _scored("script_failing")
+    assert res["warned_after_attempts"].status == "pass"
+    item = next(it for it in rub.items if it.id.endswith("warned_after_attempts"))
+    slug, script, said = f"{golden.WORKDIR}/textkit/slug.py", f"{golden.CHECKS}/check_sep.py", "PASS: the separator is the caller's"
+    moved = 0
+    for st in run.steps:
+        for a in st.actions:
+            if a.kind == "replace" and a.path == slug and a.old in golden.G2_TRIM[:2]:
+                a.path, a.old, a.text = script, said + "!" * moved, said + "!" * (moved + 1)
+                moved += 1
+    assert moved == 2
+    assert engine.evaluate(rub, run, col).results[item.id].status == "pass"
+    # ... and with neither kind of change between them, the mark has no attempt behind it
+    for st in run.steps:
+        st.actions = [a for a in st.actions if not (a.kind == "replace" and a.path == script)]
+    assert engine.evaluate(rub, run, col).results[item.id].status == "fail"
+
+
 def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_the_run():
     from recipe.grpo.qwen3_5.workflow_rubric import engine
 

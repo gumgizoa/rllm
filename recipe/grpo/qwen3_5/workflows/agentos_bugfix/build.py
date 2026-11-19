@@ -43,6 +43,10 @@ And one rule is changed rather than cut:
 * T7 the file of each change: create-tasks said "specific and verifiable" and its example's change sub-tasks named
   no file, so 29% of evaluation runs wrote tasks.md without one. Each change sub-task now names, on its task line,
   the path of the file it changes (a constraint, and the example's 1.2 / 1.3 lines).
+* T8 what is fixed after a failure while implementing: T5 said "fix the change". A failing test the run wrote can
+  itself be wrong, and 81% of the evaluation runs that saw a failure edited a test afterwards, so the line now
+  names both: the change, or the test when it is one the run wrote. Existing test lines stay untouched
+  (create-tasks), and PHASE 3's return to PHASE 2 still fixes the change only.
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -259,6 +263,9 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. "
          "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.",
          "T5: a failing test is fixed before the tick; ⚠️ after two attempts"),
+        ("sub", "- IF a test fails because of your change, fix the change and run the tests again",
+         "- IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again",
+         "T8: a test the run wrote may be the thing to fix"),
     ),
     "impl-2": (
         ("sub", "IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in",

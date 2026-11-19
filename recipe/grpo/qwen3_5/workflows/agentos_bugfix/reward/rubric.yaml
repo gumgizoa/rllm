@@ -252,7 +252,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 504182c649bb4c7ff434d227e5740f5e3af5193c7e4ccbc762fe4207da78d57f
+  sha256: 30b0d403047cfab8eb3c4977e311755e95c8c5f4db6226ae472a6c2b4e0686c9
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -3864,7 +3864,8 @@ items:
       dir: '{artifact}/{SPEC}/checks'
       suite_section: 2. Test Suite Results
   requirement: must
-  modality_evidence: 'imperative (IT: ''fix the change and run the tests again before you tick the task group''s last sub-task'')'
+  modality_evidence: 'imperative (IT: ''fix the change or that test and run the tests again before you tick the task group''s
+    last sub-task'')'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -3876,8 +3877,8 @@ items:
     lines:
     - 40
     - 40
-    quote: IF a test fails because of your change, fix the change and run the tests again before you tick the task group's
-      last sub-task.
+    quote: IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test
+      and run the tests again before you tick the task group's last sub-task.
   - doc: IT
     lines:
     - 39
@@ -3924,7 +3925,7 @@ items:
   template: ''
   log_only: false
   note: a test sub-task marked ⚠️ instead of ticked has two failing test results after the group's first code change, with
-    a code change between them (T5)
+    a code change or an edit of a check script between them (T5, T8)
 - id: agentos_bugfix.implement_tasks.final_verification.artifact_exists
   scope: common
   class: structure

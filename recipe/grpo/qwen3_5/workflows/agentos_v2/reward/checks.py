@@ -40,7 +40,7 @@ repository prohibitions and the test runs. What they cannot say:
                                  test results show a failure (ratio over the groups with such a result; a workflow
                                  whose documents say to fix a failing test before the tick)
       {rule: warned_after_attempts}  a test sub-task marked ⚠️ instead of ticked has, in its group's stretch, two failing
-                                 test results after the group's first code change with a code change between them
+                                 test results after the group's first code change with a code change or a check-script edit between them
                                  (ratio; same workflows)
 
 * ``agentos_v2.checks`` -- the check scripts under ``S/checks/`` (``dir``)::
@@ -730,18 +730,20 @@ def _group_ends(ctx: EvalContext, aid: str, text: str, w, d: str | None) -> list
 
 def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
     """(group end, attempts shown) for every test sub-task marked ⚠️ instead of ticked: two failing test results after
-    the group's first code change, with a code change between the first and the last of them."""
+    the group's first code change, with an attempt between the first and the last of them -- a code change, or an edit
+    of a check script under ``d`` (the failing test may be the thing to fix)."""
     text = _window_end_text(ctx, aid, w)
     if text is None:
         return []
     first_done, first_warn = tick_steps(ctx, aid), _warn_steps(ctx, aid)
+    script_edits = sorted({e.step for p in (check_scripts(ctx, d) if d else []) for e in _content_events(ctx, p)})
     out = []
     for g in _group_ends(ctx, aid, text, w, d):
         t = g["task"]
         if not t["warned"] or first_warn.get(t["id"]) != first_done.get(t["id"]):
             continue  # ticked first and marked later is PHASE 3's mark (a task found incomplete), not this rule's
         fails = [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]
-        out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in g["changes"])))
+        out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in (*g["changes"], *script_edits))))
     return out
 
 
@@ -886,7 +888,7 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         if not marks:
             return Result.not_applicable(item, "no test sub-task marked ⚠️ instead of ticked")
         bad = [g["task"]["id"] for g, ok in marks if not ok]
-        return Result.ratio(item, len(marks) - len(bad), len(marks), f"marked ⚠️ without two failing results and a code change between them: {bad[:3]}" if bad else f"{len(marks)} mark(s) after two failed attempts")
+        return Result.ratio(item, len(marks) - len(bad), len(marks), f"marked ⚠️ without two failing results and a code or check-script change between them: {bad[:3]}" if bad else f"{len(marks)} mark(s) after two failed attempts")
     if rule == "later_edits":
         evs = [e for e in ctx.facts.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
         edits = [e for e in evs if refs.in_window(e.step, w) and e is not evs[0]]
