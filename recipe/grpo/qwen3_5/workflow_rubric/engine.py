@@ -14,12 +14,14 @@ diff / base tree) -> ``unavailable``; otherwise the kind's function. A check tha
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 from . import aggregate, checks, refs
 from . import facts as F
 from .context import Collected, EvalContext, Facts, Result
 from .schema import Item, Rubric
+from .trace import shell
 from .trace.model import Run
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,9 @@ class Report:
     engine_errors: int = 0
     errors: list[str] = field(default_factory=list)
     cache: dict = field(default_factory=dict)  # the checks' shared state (``EvalContext.cache``)
+    collected: Collected | None = None  # what the run left behind, for a workflow's ``post`` hook
+    ctx: EvalContext | None = None  # the context the items were judged in, for a ``post`` hook that asks the checks' helpers
+    shell_vars: dict[str, str] = field(default_factory=dict)  # the shell variables the run was replayed with (``evaluate``)
 
 
 def _offline_missing(item: Item, ctx: EvalContext) -> str | None:
@@ -89,7 +94,29 @@ def evaluate_item(item: Item, ctx: EvalContext, errors: list[str]) -> Result:
         return Result.no(item, f"engine error: {type(e).__name__}")
 
 
+def known_shell_vars(rubric: Rubric, run: Run, facts: Facts) -> dict[str, str]:
+    """The workflow's shell variables (``checks.SHELL_VARS``) this run both sets and uses, with the values ``facts``
+    gives them. Empty for a workflow that registers none, a run that never touches them, or a value not known."""
+    fn = checks.SHELL_VARS.get(rubric.workflow)
+    if fn is None:
+        return {}
+    try:
+        values = {k: v for k, v in fn(facts).items() if v}
+    except Exception:  # noqa: BLE001
+        logger.debug("shell variables of %s failed", rubric.workflow, exc_info=True)
+        return {}
+    commands = [a.command for st in run.steps for a in st.actions if a.kind == "shell" and a.command]
+    out = {}
+    for name, value in values.items():
+        sets, uses = re.compile(rf"(?<![\w$]){name}="), re.compile(rf"\$(?:{name}\b|\{{{name}\}})")
+        if any(sets.search(c) for c in commands) and any(uses.search(c) for c in commands):
+            out[name] = value
+    return out
+
+
 def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
+    """Score ``run``. A run that keeps a folder in one of its workflow's shell variables is replayed twice: once to
+    learn the folder from the sandbox, once more with the variable's value known, and it is scored on the second."""
     errors: list[str] = []
     try:
         facts = F.build(rubric, run, collected)
@@ -97,6 +124,24 @@ def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
         logger.warning("facts failed for %s", run.instance_id, exc_info=True)
         errors.append(f"facts: {type(e).__name__}: {e}")
         facts = Facts(n_steps=len(run.steps))
+    known = known_shell_vars(rubric, run, facts)
+    if not known:
+        return _evaluate(rubric, run, collected, facts, errors)
+    token = shell.KNOWN_VARS.set(known)
+    try:
+        try:
+            facts = F.build(rubric, run, collected)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("facts with the shell variables known failed for %s", run.instance_id, exc_info=True)
+            errors.append(f"facts: {type(e).__name__}: {e}")
+        report = _evaluate(rubric, run, collected, facts, errors)
+        report.shell_vars = dict(known)  # a ``post`` hook that parses commands again sets them the same way
+        return report
+    finally:
+        shell.KNOWN_VARS.reset(token)
+
+
+def _evaluate(rubric: Rubric, run: Run, collected: Collected, facts: Facts, errors: list[str]) -> Report:
     ctx = EvalContext(rubric=rubric, run=run, collected=collected, facts=facts)
     results: dict[str, Result] = {}
     for it in rubric.items:
@@ -107,7 +152,7 @@ def evaluate(rubric: Rubric, run: Run, collected: Collected) -> Report:
         if it.check.kind in SECOND_PASS:
             results[it.id] = evaluate_item(it, ctx, errors)
     scores = aggregate.score(rubric, results, engine_errors=len(errors))
-    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache)
+    return Report(results=results, scores=scores, facts=facts, engine_errors=len(errors), errors=errors, cache=ctx.cache, collected=collected, ctx=ctx)
 
 
 def signals(report: Report, prefix: str) -> dict[str, float]:

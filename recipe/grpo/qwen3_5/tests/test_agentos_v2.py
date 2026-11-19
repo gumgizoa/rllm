@@ -195,3 +195,24 @@ def test_harness_uploads_every_document():
     assert SPEC.output_dirs == ("/tmp/agent-os",)
     # resolve rate only until the generated rubric exists (reward/rubric.yaml), then its scorer
     assert (h.evaluation_policy is None) == (not (RECIPE / "workflows" / NAME / "reward" / "rubric.yaml").is_file())
+
+
+def test_a_count_of_zero_failures_in_a_scripts_output_is_not_a_failure():
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    cmd = "python /tmp/agent-os/specs/s/checks/check_fix.py"
+    segs = shell.flat(shell.split(cmd, "/testbed")[0])
+
+    def read(text, code):
+        return C.outcome(segs, 0, f"{text}\n[Command finished with exit code {code}]", cmd)
+
+    # a script's own summary line names the failures it did not have
+    assert read("Results: 6 passed, 0 failed", 0) == "pass"
+    assert read("Ran 4 checks: 4 ok, 0 errors", 0) == "pass"
+    assert read("6 passed, 0 failed, 0 error", 0) == "pass"
+    # a count above zero is a failure, whatever the exit code; so is a non-zero exit code, whatever the text
+    assert read("Results: 5 passed, 1 failed", 0) == "fail"
+    assert read("Results: 0 passed, 10 failed", 0) == "fail"
+    assert read("2 errors", 0) == "fail"
+    assert read("Results: 6 passed, 0 failed", 1) == "fail"

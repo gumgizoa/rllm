@@ -118,7 +118,7 @@ BOX_OLD = r"^\s*[-*+]\s+\[[ xX]\]\s+\d+\.\d+\s+\S"
 BOX_NEW = r"^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S"
 # The placeholders of the one-group tasks example (build.py _TASKS_EXAMPLE), for the tasks.md residue item.
 TASKS_PLACEHOLDERS = ("[Area of the change]", "[Name of the area]", "[the change in this area]", "[the behavior to change]", "[First change to make]",
-                      "[details]", "[existing code if applicable]", "[Next change to make]", "[what works once this group is done]")
+                      "[path of the file to change]", "[details]", "[existing code if applicable]", "[Next change to make]", "[what works once this group is done]")
 
 
 def ws(s: str) -> str:
@@ -227,7 +227,7 @@ def derive() -> tuple[dict, dict]:
 
 # Items for rules only this workflow's documents state: (sibling item to copy and insert after, new rule, extra params,
 # quotes of implement-tasks.md, modality evidence, note).
-_T5_FIX = "IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task."
+_T5_FIX = "IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again before you tick the task group's last sub-task."
 _T5_WARN = "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on."
 ADDED = (
     (f"{NEW}_report.suite_status", "overall_status", {"suite_section": SUITE_NEW},
@@ -240,12 +240,12 @@ ADDED = (
      "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1)"),
     (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": CHECKS_DIR, "suite_section": SUITE_NEW},
      (_T5_FIX, "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report."),
-     "imperative (IT: 'fix the change and run the tests again before you tick the task group's last sub-task')",
+     "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
      "no task group's test sub-task ticked while the last test result since the code last changed is a failure, unless the report's test results show a failure (T5)"),
     (f"{NEW}_tasks.ticked_passing", "warned_after_attempts", {"dir": CHECKS_DIR},
      (_T5_WARN,),
      "IT: 'After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it'",
-     "a test sub-task marked ⚠️ instead of ticked has two failing test results after the group's first code change, with a code change between them (T5)"),
+     "a test sub-task marked ⚠️ instead of ticked has two failing test results after the group's first code change, with a code change or an edit of a check script between them (T5, T8)"),
 )
 
 

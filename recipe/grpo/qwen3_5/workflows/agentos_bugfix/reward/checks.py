@@ -5,10 +5,12 @@ functions (``..agentos_v2.reward.checks``); only the names differ, because a rub
 prefix. What differs between the documents is passed as a parameter (``report``'s ``suite_section``).
 """
 
-from ....workflow_rubric.checks import REGISTRY, Kind
-from ...agentos_v2.reward import checks as _v2  # noqa: F401  (registers agentos_v2.*)
+from ....workflow_rubric.checks import REGISTRY, Kind, register_shell_vars
+from ...agentos_v2.reward import checks as _v2  # registers agentos_v2.*
 
 for _name, _kind in list(REGISTRY.items()):
     if _name.startswith("agentos_v2."):
         _alias = "agentos_bugfix." + _name.split(".", 1)[1]
         REGISTRY.setdefault(_alias, Kind(_alias, _kind.fn, dict(_kind.params), _kind.availability, _kind.common, _kind.doc, dict(_kind.choices)))
+
+register_shell_vars("agentos_bugfix", _v2.spec_folder_vars)  # the same shape-spec.md snippet, the same variables

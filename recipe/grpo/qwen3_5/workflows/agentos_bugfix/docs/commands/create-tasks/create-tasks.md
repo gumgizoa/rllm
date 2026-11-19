@@ -59,10 +59,10 @@ Total Tasks: [count]
     - Limit to 2-8 highly focused tests maximum
     - Test only critical behaviors
     - Skip exhaustive coverage of all methods and edge cases
-  - [ ] 1.2 [First change to make]
+  - [ ] 1.2 [First change to make] in [path of the file to change]
     - [details]
     - Reuse pattern from: [existing code if applicable]
-  - [ ] 1.3 [Next change to make]
+  - [ ] 1.3 [Next change to make] in [path of the file to change]
     - [details]
   - [ ] 1.4 Ensure the tests of this group pass
     - Run the 2-8 tests written in 1.1 and the existing tests of the changed code
@@ -116,6 +116,7 @@ Recommended implementation sequence:
 ## Important Constraints
 
 - **Create tasks that are specific and verifiable**
+- **Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in the repository of the file it changes. A task added while implementing does the same, and is added before that file is edited.
 - **Group related tasks:** For example, group back-end engineering tasks together and front-end UI tasks together.
 - **Limit test writing during development**:
   - Each implementation task group should write 2-8 focused tests maximum
