@@ -849,6 +849,20 @@ def changed_sources(c: Collected) -> list[str]:
 # --------------------------------------------------------------------------------------------
 # Entry point
 # --------------------------------------------------------------------------------------------
+def wants_related(rubric: Rubric) -> bool:
+    """The rubric has an item that reads ``Collected.related_tests`` (its own ``availability``, or its kind's): the
+    one case exec 3 is worth a call to the sandbox. Every other workflow's rollouts skip it."""
+    from . import checks  # local import: the registry is filled by the plugins, after this module loads
+
+    for item in rubric.items:
+        if "related_tests" in (item.availability or ()):
+            return True
+        kind = checks.REGISTRY.get(item.check.kind)
+        if kind is not None and "related_tests" in kind.availability:
+            return True
+    return False
+
+
 def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collected:
     """Artifact files, repository diff and base-tree membership, online; never raises."""
     c = Collected(workdir=info.workdir, base_sha=info.base_sha, pre_status=info.pre_status, errors=list(info.errors), mode="online")
@@ -873,6 +887,8 @@ def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collect
         except Exception as e:  # noqa: BLE001
             logger.warning("collect: git step failed: %s", _short(e))
             c.errors.append(f"collect: git step failed: {_short(e)}")
+    if not wants_related(rubric):
+        return c
     try:
         changed = changed_sources(c)
         if changed:
@@ -885,4 +901,4 @@ def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collect
     return c
 
 
-__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "changed_sources", "collect", "parse_related", "related_script", "resolve_roots", "scan_plan", "status_paths", "task_info"]
+__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "changed_sources", "collect", "parse_related", "related_script", "resolve_roots", "scan_plan", "status_paths", "task_info", "wants_related"]

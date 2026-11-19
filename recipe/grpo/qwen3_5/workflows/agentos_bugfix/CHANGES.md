@@ -180,6 +180,29 @@
   보고서에 실패가 적힌 경우. 기존 항목은 "검사 스크립트가 마지막에 통과했는가" 13런, "task 줄 형식" 2런, "PHASE 3의 수정 한 번" 3런이
   실패에서 통과로 바뀜. "❌ Critical Failures"를 적은 런은 없어 `suite_status`의 판정은 그대로.
 
+## penalty 항목 통일 (2026-11-19)
+
+speckit_bug·openspec_ff와 같은 규칙으로 맞춤. 문서는 바꾸지 않음.
+
+- penalty 항목 11개(파일 4, 테스트 7)를 `post` 밖 계산에서 rubric의 `log_only` 항목으로 옮김 (`derive_rubric.py`의
+  `PENALTY`, kind `agentos_bugfix.penalty`). compliance에는 들어가지 않으며, 다시 만든 rubric에서 golden과 변이 실행의
+  compliance는 이전과 같음. 엔진 `Report`에 더했던 `collected`, `ctx`, `shell_vars` 필드는 없앰 (항목이 엔진 안에서
+  판정되므로 `$SPEC_PATH` 값을 다시 설정할 필요가 없음).
+- 소스 변경 시점, 임시 스크립트 판정, 실패한 테스트의 재통과 판정, 스크립트 실행 결과 읽기, 파일 이름 대조를 공통
+  함수로 바꿈 (`workflow_rubric/facts.py`의 `source_change_steps`·`is_run_script`·`same_file`,
+  `workflow_rubric/results.py`). 달라지는 판정: 소스 변경에 코드·설정 확장자 조건이 붙음; 좁힌 재실행(`-k`, 다른
+  `::id`)으로는 실패가 해소되지 않음; 임시 스크립트 이름 규칙이 하나로 됨(파일 항목에서 최상위의 임의 새 `.py`를
+  스크립트로 보던 규칙은 없어지고, 최상위의 임시 이름이거나 최종 변경에 남지 않은 새 스크립트만 해당).
+- 점수를 합치는 규칙이 공통 `workflow_rubric/penalty.py`로 바뀜. 테스트 항목의 해당 없음 값이 달라짐: 전제 행동(코드
+  변경, 그 구간의 테스트 실행, PHASE 3 도달)을 안 했으면 0, 했는데 실패가 없었으면 1 (이전에는 실패 조건 항목이 항상
+  1). 정답 패치가 없는 태스크의 정답 항목과 workdir을 모르는 실행의 테스트 항목은 판정 불가로 평균에서 빠짐
+  (`/testbed` 기본값은 없앰).
+- 최종 변경 파일은 `facts.change_paths`로 읽음. 저장된 에피소드의 patch는 엔진(`evaluation.py`)이 diff로 채움.
+- 신호 이름: 항목별 값이 `agentos_bugfix/<stage>.penalty.<이름>`으로 바뀜 (이전에는 workflow 이름이 한 번 더 붙음).
+  `penalty_applies.<이름>`은 판정 불가가 아닌 항목마다 나옴 (판정 불가 항목은 값도 `penalty_applies`도 없고
+  `penalty_unavailable`에 개수만 셈). `penalty_errors`, `penalty_tests_errors`는 없앰 (판정 중 오류는
+  엔진 규칙대로 그 항목 실패와 `engine_errors`). `__init__.py`에 `penalty_signal` 지정.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

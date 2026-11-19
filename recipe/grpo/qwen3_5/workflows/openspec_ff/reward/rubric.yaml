@@ -804,12 +804,12 @@ sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: b5a42f066e52d7fb002995c257912ea8a5d5a7489d2b8f317e1d151d759f53fc
+  sha256: 5440968a3a60a23ca103a8b6ae7fb3c49fd932c3d62c3f665970e40ad022be0a
   container_path: /opsx/core-workflow.md
 - id: EX
   path: docs/stages/00-explore.md
   role: stage_rule
-  sha256: 2a555569030ae634ffb1b0abf5b0b853c7bc89f86a9012f4247bd5095bbb5ddb
+  sha256: 536b71d4086ffbb3a79c7df70690832a3bfbf8cff7009be9f437f18e927bcec4
   container_path: /opsx/stages/00-explore.md
 - id: FF
   path: docs/stages/01-ff.md
@@ -824,12 +824,12 @@ sources:
 - id: VF
   path: docs/stages/03-verify.md
   role: stage_rule
-  sha256: 2a9c9128b6a42adfe2606f979a90c47d4c7bd4582d5e5475110e8477fe5e2bf3
+  sha256: e7c54fc77874d7feeeb00e7c3a290ab86e457c9ebf01222b6e025b3753438cd8
   container_path: /opsx/stages/03-verify.md
 - id: SCHEMA
   path: sandbox/schemas/spec-driven-sandbox/schema.yaml
   role: schema
-  sha256: 2b5f90fee87401eb546e39d04017a23b96146062ec94fdb7ca9f87f592f9cfaa
+  sha256: 1f87bbf3043240ac22cb70e3c819dddcd51c007727eb0b18f02c3d9282e2b633
   container_path: /openspec/schemas/spec-driven-sandbox/schema.yaml
 - id: TPL_DESIGN
   path: sandbox/schemas/spec-driven-sandbox/templates/design.md
@@ -854,7 +854,7 @@ sources:
 - id: CONFIG
   path: sandbox/openspec-config.yaml
   role: reference
-  sha256: a8bb008ead85e39f3981419405a12538200c3cc278275cbf08ee59ae37dfd0e2
+  sha256: b06c1e3f5cb344b5c63919beb9a338d65be1ed95aac952beb3aaca8e41314574
   container_path: /openspec/config.yaml
 - id: INS
   path: instruction.md
@@ -8485,7 +8485,9 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: after the last change to the code, a valid repository test run or a check script the run wrote under checks/ was executed
+  note: after the last change to the code (the last source change, facts.last_change_write), a valid repository test run or
+    a check script the run wrote under checks/ was executed -- a script whose outcome cannot be read counts as run; worth
+    0 to a run that changed no code
 - id: openspec_ff.verify.penalty.false_clean_claim
   scope: specific
   class: evidence
@@ -8539,7 +8541,8 @@ items:
   template: ''
   log_only: true
   note: the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after
-    the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change)
+    the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change;
+    a check script whose outcome cannot be read is no passing result)
 - id: openspec_ff.verify.penalty.task_count_mismatch
   scope: specific
   class: evidence
@@ -8571,7 +8574,7 @@ items:
   template: ''
   log_only: true
   note: the report's 'X/Y tasks' is what tasks.md held when the report was last written (0 with no report, or a report older
-    than the last code change)
+    than the last code change; unavailable, left out of the mean, when what tasks.md held then is not known)
 - id: openspec_ff.verify.penalty.critical_missing
   scope: specific
   class: evidence
@@ -8613,8 +8616,9 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL
-    issue (0 with no report, or a report older than the last code change)
+  note: 'when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL
+    issue (0 with no report, or a report older than the last code change). When nothing was due the run stands outside the
+    rule: worth 1 when it ran something and nothing failed, 0 when it ran nothing'
 - id: openspec_ff.verify.penalty.left_broken
   scope: specific
   class: evidence
@@ -8659,8 +8663,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: at the end of the run no test or check script stands failed since the last code change (a re-run that leaves the failing
-    test out does not clear it) and tasks.md holds no open task
+  note: at the end of the run no test or check script stands failed since the last code change and tasks.md holds no open
+    task. A failure is cleared by a later passing run of the same test, a directory or label above it or the whole suite,
+    not by one narrowed below what failed (workflow_rubric/results.py). A run that ran nothing after the change stands outside
+    the rule, worth 0
 - id: openspec_ff.archive.change.path_match.archived
   scope: common
   class: content

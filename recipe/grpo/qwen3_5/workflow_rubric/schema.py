@@ -22,7 +22,8 @@ Item fields (the ones every workflow shares):
     applies_when      a predicate (:mod:`.refs`) the engine can evaluate, or ``None``
     weight            relative weight inside its stage
     gate              ``None`` | ``{zero_stage: true}`` | ``{cap_stage: <float>}``
-    availability      inputs the check needs: ``sandbox_file``, ``diff``, ``base_tree``, ``trace``
+    availability      inputs the check needs: ``sandbox_file``, ``diff``, ``base_tree``, ``trace``,
+                      ``related_tests`` (``Collected.related_tests``; read from the sandbox only for a rubric that asks)
     sources           ``[{doc, lines: [a, b], quote}]`` -- ``doc`` is a source id from ``sources``
     impl_refs         references the agent cannot see (never evidence; may only relax a check)
     derived_by        ``template_compiler`` | ``llm_extract`` | ``adapter`` | ``manual``
@@ -51,7 +52,7 @@ REQUIREMENTS = ("must", "should")
 TARGET_TYPES = ("artifact", "action")
 STATES = ("stage_end", "final")
 NONE_ALLOWED = ("yes", "no", "unspecified", "-")
-AVAILABILITY = ("sandbox_file", "diff", "base_tree", "trace")
+AVAILABILITY = ("sandbox_file", "diff", "base_tree", "trace", "related_tests")
 DERIVED_BY = ("template_compiler", "llm_extract", "adapter", "manual")
 SOURCE_ROLES = ("adapter", "instruction", "core", "stage_rule", "command", "skill", "template", "schema", "script", "system_prompt", "reference")
 WRITE_EVENTS = ("first", "last", "last_in_window")

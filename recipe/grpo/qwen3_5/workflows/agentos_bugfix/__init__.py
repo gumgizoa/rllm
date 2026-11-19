@@ -47,4 +47,5 @@ SPEC = WorkflowSpec(
     output_dirs=("/tmp/agent-os",),
     scorers={"openhands-sdk": _scorer} if (HERE / "reward" / "rubric.yaml").is_file() else {},
     reward_signal="agentos_bugfix/compliance",
+    penalty_signal="agentos_bugfix/penalty",
 )

@@ -74,6 +74,9 @@ _GENERATED = re.compile(
     r"|^(?:build|dist)/|\.egg-info(?:/|$)|\.py[cod]$|\.so$|\.o$|\.log$|\.sqlite3?$|\.db$"
 )
 _CODE_EXT = re.compile(r"\.(?:py|pyx|pyi|js|jsx|ts|tsx|mjs|cjs|go|rs|java|kt|scala|c|cc|cpp|h|hpp|cs|rb|php|swift|m|sh|pl|lua|r|jl|ex|exs|toml|cfg|ini|ya?ml|json)$", re.I)
+_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
+# a throwaway name: one of these words, then a separator, a digit or the extension (``repro_x.py``, ``check.py``, ``debug2.sh``)
+_SCRATCH_NAME = re.compile(r"(?i)^(?:repro|reproduce|reproducer|reproduction|debug|scratch|tmp|temp|check|verify|tests?|try|demo|example|run|issue|bug|fix)[_\-.\d]")
 
 
 # ============================================================================================
@@ -94,9 +97,31 @@ def is_test_path(path: str) -> bool:
     return bool(path) and _TEST_PATH.search(path) is not None
 
 
+def same_file(name: str, path: str) -> bool:
+    """A file name as a document wrote it denotes repository file ``path``: equal, or one is the tail of the other
+    (``slug.py`` and ``textkit/slug.py``; ``/testbed/pkg/mod.py`` and ``pkg/mod.py``)."""
+    return bool(name) and bool(path) and (name == path or path.endswith("/" + name) or name.endswith("/" + path))
+
+
 def is_generated(path: str) -> bool:
     """A byproduct of running or building the project (``__pycache__/``, ``*.pyc``, ``.pytest_cache/``, ``*.egg-info`` ...), not a file anyone wrote."""
     return bool(path) and _GENERATED.search(path) is not None
+
+
+def is_scratch_name(path: str) -> bool:
+    """The file is named like a throwaway script (``repro_x.py``, ``check_fix.py``, ``debug.sh``): a script extension
+    and a base name that begins with a throwaway word."""
+    base = posixpath.basename(path or "")
+    return _SCRIPT_EXT.search(base) is not None and _SCRATCH_NAME.match(base) is not None
+
+
+def is_run_script(ctx: EvalContext, rel: str) -> bool:
+    """A repository file the run wrote is one of its own scripts, not source: a new file with a script extension
+    that is either gone from the final change, or named like a throwaway at the repository root. Such a file is a
+    means of checking, as a test file is: writing it is no change to the code the tests verify."""
+    if not rel or _SCRIPT_EXT.search(rel) is None or not is_new_path(ctx, rel):
+        return False
+    return rel not in change_paths(ctx) or ("/" not in rel and is_scratch_name(rel))
 
 
 def change_paths(ctx: EvalContext) -> set[str]:
@@ -153,18 +178,28 @@ def is_new_path(ctx: EvalContext, rel: str) -> bool:
     return (wd + rel) in (getattr(ctx.facts, "_created", None) or {})
 
 
+def source_change_steps(ctx: EvalContext) -> list[int]:
+    """Steps of the run's source changes, in order: repo writes to a non-test code or config file of the final
+    change (:func:`change_paths`). Not a source change: a test file the agent wrote or edited (judged by the
+    test-file items), a README / requirements text, one of the run's own scripts (:func:`is_run_script`), and git
+    putting content back (stash / checkout / apply -- an ``unknown`` write is no edit the agent authored). These are
+    the writes that can change what the tests say about the code that was handed in."""
+    cached = ctx.cache.get("source_change_steps")
+    if cached is not None:
+        return cached
+    keep = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+    out = sorted(int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep)
+    ctx.cache["source_change_steps"] = out
+    return out
+
+
 def last_change_write(ctx: EvalContext):
-    """Step of the last repo write to a non-test code or config file in the final change (:func:`change_paths`):
-    the last change to the code the tests verify (a test file the agent wrote or edited is judged by the
-    test-file items, and does not make an earlier run stale, nor does a README / requirements text; a git
-    stash / checkout restoring content is no edit);
+    """Step of the last source change (:func:`source_change_steps`): the last change to the code the tests verify;
     ``UNKNOWN`` when the diff shows changes the trace does not and no known write is one; None without
     any change."""
-    keep = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None}
-    # an "unknown" write is git putting content back (stash / checkout / apply), not an edit the agent authored
-    steps = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep]
+    steps = source_change_steps(ctx)
     if steps:
-        return max(steps)
+        return steps[-1]
     return UNKNOWN if ctx.facts.unseen_repo_paths else None
 
 
@@ -839,9 +874,13 @@ __all__ = [
     "owning_stage",
     "is_test_path",
     "is_generated",
+    "same_file",
     "change_paths",
     "untracked_by_replay",
     "is_new_path",
+    "is_scratch_name",
+    "is_run_script",
+    "source_change_steps",
     "last_change_write",
     "executed_paths",
     "roots_of",

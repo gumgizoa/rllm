@@ -1,56 +1,63 @@
-"""agentos_bugfix penalty items, reported beside the rubric and outside ``compliance``. Each is 1.0 (no penalty) or
-0.0 (penalty). Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
+"""agentos_bugfix penalty items: rubric items outside ``compliance``, each 1.0 (no penalty) or 0.0 (penalty).
+
+They are items of the rubric (``agentos_bugfix.<stage>.penalty.<name>``, kind ``agentos_bugfix.penalty``, ``log_only``:
+judged and reported with every run, never part of ``agentos_bugfix/compliance``), as the penalty items of the other
+workflows are. Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
 (``penalty_tests.py``: seven items, ``agentos_bugfix.implement_tasks.penalty.*``).
 
 The files tasks.md names, against the files the run changed and the reference fix -- four items:
 
     agentos_bugfix.global.penalty.plan_files.named               the change tasks of tasks.md name a source file
-    agentos_bugfix.global.penalty.plan_files.named_equals_patch  the named files are the source files of the final patch
+    agentos_bugfix.global.penalty.plan_files.named_equals_patch  the named files are the source files of the final change
     agentos_bugfix.global.penalty.plan_files.named_covers_gold   every source file of the reference fix is named
     agentos_bugfix.global.penalty.plan_files.patch_covers_gold   every source file of the reference fix is in the final
-                                                                 patch (more files are fine)
+                                                                 change (more files are fine)
 
-``agentos_bugfix/penalty`` is the mean of the file items that apply and the seven test items;
-``penalty_plan_files`` and ``penalty_tests`` are the means of each group. A run that names no file fails the first
-three. The two gold items do not apply -- and drop out of the mean -- when the task has no reference fix to read
-(``penalty_gold_unknown``). The test items always count, all seven (``penalty_tests.py`` says what a run outside an
-item's pool gets; ``penalty_applies.<item>`` records it; when they cannot be computed all seven are 0.0 and
-``penalty_tests_errors`` is 1.0, the file items unaffected). Nothing here enters the reward:
-``WorkflowSpec.reward_signal`` is still ``compliance``.
+``agentos_bugfix/penalty`` is made by the rule every workflow shares (``workflow_rubric/penalty.py``): the mean of the
+eleven items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
+item is about and 1 when it did and the item's condition did not arise (``penalty_tests.py``) -- with what cannot be
+judged left out: the two gold items when the task has no reference fix to read (``penalty_gold_unknown``), the seven
+test items when the code root is not known. ``penalty_plan_files`` and ``penalty_tests`` are the means of each group.
+A run that names no file fails the first three. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
+``compliance_reward.penalty_weight`` is set (``WorkflowSpec.penalty_signal``).
 
 The named files
     Every version of tasks.md the trace can replay is read (a write whose content cannot be replayed is skipped; when
     that is the last write, the file as it was collected stands in for it). From each, the change tasks -- the
     sub-tasks that are not about tests, with the lines under them -- give file names: path tokens with a source
-    extension, and dotted module names that denote a file the run wrote, the patch changed or the reference fix changes.
-    A name counts from the first version it appears in, and stays once written, removed later or not. One name does
-    not count: a file the run had already edited when the name first appeared (written down after the fact). A name
-    the run never edited stays -- it is a planned file that was not changed.
+    extension, and dotted module names that denote a file the run wrote, the final change holds or the reference fix
+    changes. A name counts from the first version it appears in, and stays once written, removed later or not. One
+    name does not count: a file the run had already edited when the name first appeared (written down after the fact).
+    A name the run never edited stays -- it is a planned file that was not changed.
+
+The final change
+    ``facts.change_paths``: the repository diff as the sandbox gave it; for a saved episode, the patch it recorded
+    (``evaluation.py`` puts it in ``Collected.diff``); without either, what the trace wrote.
 
 The spec folder as a shell variable
     shape-spec.md has the agent keep the spec folder in ``$SPEC_PATH``. The engine replays such a run with the
-    variable's value known (``checks.SHELL_VARS``, ``engine.evaluate``), so a ``cat > $SPEC_PATH/tasks.md`` is a
-    version of tasks.md like any other in the facts this module reads.
+    variable's value known (``checks.SHELL_VARS``, ``engine.evaluate``), and the items are judged inside that replay,
+    so a ``cat > $SPEC_PATH/tasks.md`` is a version of tasks.md like any other.
 
-A name matches a file when the paths are equal or one is the tail of the other (``slug.py`` matches
-``textkit/slug.py``). Source files only, on every side: test files, generated files and the scratch scripts a run
-leaves in the repository are not counted.
+A name matches a file when the paths are equal or one is the tail of the other (``facts.same_file``: ``slug.py``
+matches ``textkit/slug.py``). Source files only, on every side: test files, generated files and the run's own scripts
+(``facts.is_run_script``) are not counted.
 """
 
 from __future__ import annotations
 
 import json
-import logging
 import posixpath
 import re
 from pathlib import Path
 from typing import Any
 
 from ....workflow_rubric import facts as F
-from ....workflow_rubric.trace import shell
+from ....workflow_rubric import penalty as PEN
+from ....workflow_rubric.checks import register
+from ....workflow_rubric.context import EvalContext, Result
+from ....workflow_rubric.schema import Item
 from . import penalty_tests
-
-logger = logging.getLogger(__name__)
 
 GROUP = "agentos_bugfix.global.penalty.plan_files"
 RULES = ("named", "named_equals_patch", "named_covers_gold", "patch_covers_gold")
@@ -61,7 +68,6 @@ _PATH = re.compile(rf"(?<![\w/.-])[~./]*(?:[\w.-]+/)*[\w.-]+\.{_EXT}\b")
 _DOTTED = re.compile(r"(?<![\w./-])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+")
 _URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
 _TABLES = re.compile(r"(?:^|/)\w*(?:parse|lex)tab\.py$")  # ply's generated tables
-_SCRATCH = re.compile(r"^(?:test|tests|repro|reproduce|check|verify|debug|demo|tmp|scratch|run|try|example|issue|bug|fix)[_\-.\d]", re.I)
 # tasks.md: a task line (checkbox and / or number), and what a task about tests says
 _HEAD = re.compile(r"^(\s*)[-*+]\s*(?:(\[[ xX]?\]|⚠️|⚠)\s*)?(?:(\d+(?:\.\d+)+)[.:)]?\s+)?(.*)$")
 _HEADING = re.compile(r"^#{2,6}\s")
@@ -76,11 +82,6 @@ _REVIEW_TESTS = re.compile(r"\b(review|analy[sz]e)\b[^.]*\b(tests?|coverage|gaps
 def source_file(path: str) -> bool:
     """A source file of the repository: not a test, not generated, with a source extension."""
     return bool(path) and _SOURCE.search(path) is not None and not F.is_test_path(path) and not F.is_generated(path) and not _TABLES.search(path)
-
-
-def scratch(path: str) -> bool:
-    """A script the run left in the repository: a Python file at its root, or one named like a throwaway (``repro_x.py``)."""
-    return path.endswith(".py") and ("/" not in path or _SCRATCH.match(posixpath.basename(path)) is not None)
 
 
 def patch_files(patch: str | None) -> tuple[list[str], set[str]]:
@@ -99,9 +100,7 @@ def patch_files(patch: str | None) -> tuple[list[str], set[str]]:
     return files, new
 
 
-def match(name: str, path: str) -> bool:
-    """``name`` (as tasks.md wrote it) denotes repository file ``path``."""
-    return name == path or path.endswith("/" + name) or name.endswith("/" + path)
+match = F.same_file  # ``name`` (as tasks.md wrote it) denotes repository file ``path``: the rule every workflow shares
 
 
 def _module(path: str) -> str:
@@ -253,84 +252,102 @@ def judge(named: set[str], patch: list[str], patch_all: list[str], gold: list[st
     return out
 
 
-def measure(facts: Any, collected: Any, task: Any, episode: Any, ctx: Any) -> dict[str, float]:
-    """The penalty signals of one run (names without the ``agentos_bugfix/`` prefix). ``ctx``: the context the rubric
-    was judged in (``Report.ctx``), which the test items read the run through."""
-    meta = getattr(task, "metadata", None)
-    workdir = collected.workdir or (meta.get("workdir") if isinstance(meta, dict) else None)
-    art = getattr(episode, "artifacts", None) or {}
-    patch_unknown = 0.0
-    if isinstance(art.get("patch"), str):
-        patch_all, new = patch_files(art["patch"])
-    elif collected.diff is not None:
-        patch_all, new = sorted(collected.diff), {p for p, st in collected.diff.items() if st in ("A", "?")}
-    else:
-        patch_all, new, patch_unknown = [], set(), 1.0
-    patch = [p for p in patch_all if source_file(p) and not (p in new and scratch(p))]
-    gold_text = gold_patch(task)
+FILES = "agentos_bugfix.penalty.files"  # ``ctx.cache`` keys of the two measurements, one per run
+TESTS = "agentos_bugfix.penalty.tests"
+# the kind's ``rule``: an item's name after ``.penalty.``
+FILE_RULES = tuple(f"plan_files.{r}" for r in RULES)
+TEST_RULES = tuple(name.split(".penalty.", 1)[1] for name in penalty_tests.ITEMS)
+
+
+def measure(ctx: EvalContext) -> dict[str, Any]:
+    """The four file items of one run (``items``: rule -> 1.0 / 0.0, or None for a gold item when the task has no
+    reference fix) and what they were judged on."""
+    c, facts = ctx.collected, ctx.facts
+    workdir = c.workdir
+    patch_all = sorted(F.change_paths(ctx))
+    patch = [p for p in patch_all if source_file(p) and not F.is_run_script(ctx, p)]
+    gold_text = gold_patch((c.inputs or {}).get("task"))
     gold = [p for p in patch_files(gold_text)[0] if source_file(p)] if gold_text is not None else None
     edits = first_edits(facts, workdir)
-    # the run's own scripts: what it wrote outside the repository (check scripts), and inside it the scratch files the
-    # patch adds and the root-level scripts that are gone again by the end
+    # the run's own scripts: what it wrote outside the repository (check scripts), and inside it the script files the
+    # final change does not keep or that carry a throwaway name at the repository root
     pre = (workdir.rstrip("/") + "/") if workdir else None
-    left_repo = {f for f in edits if (f in new and scratch(f)) or (f not in patch_all and f.endswith(".py") and "/" not in f)}
+    left_repo = {f for f in edits if F.is_run_script(ctx, f)}
     outside = {p for p in facts.writes if _SOURCE.search(p) and not (pre and p.startswith(pre))}
     own_scripts = frozenset(posixpath.basename(p) for p in (*left_repo, *outside))
     known = {f for f in (*edits, *patch, *(gold or ())) if source_file(f) and f not in left_repo}
-    vers, skipped = versions(facts, collected)
+    vers, skipped = versions(facts, c)
     named, late = named_files(vers, edits, workdir, known, own_scripts)
-    items = judge(named, patch, patch_all, gold)
-    scored = [v for v in items.values() if v is not None]
-    out = {f"{GROUP}.{rule}": v for rule, v in items.items() if v is not None}
-    # the test items on their own: a failure there is a full penalty on those seven, and leaves the file items standing
-    tests_error = 0.0
-    try:
-        tests = penalty_tests.measure(ctx)
-    except Exception:  # noqa: BLE001
-        logger.warning("agentos_bugfix penalty: the test items failed; 0.0 on all seven", exc_info=True)
-        tests, tests_error = dict.fromkeys(penalty_tests.ITEMS, (0.0, False)), 1.0
-    test_scores = [v for v, _ in tests.values()]
-    out.update({name: v for name, (v, _) in tests.items()})
-    out.update({"penalty_applies." + name.split(".penalty.", 1)[1]: float(applies) for name, (_, applies) in tests.items()})
-    out.update(
-        {
-            "penalty": (sum(scored) + sum(test_scores)) / (len(scored) + len(test_scores)),
-            "penalty_plan_files": sum(scored) / len(scored),
-            "penalty_tests": sum(test_scores) / len(test_scores),
-            "penalty_errors": 0.0,
-            "penalty_tests_errors": tests_error,
-            "penalty_gold_unknown": float(not gold),
-            "penalty_patch_unknown": patch_unknown,
-            "penalty_tasks_write_skipped": float(skipped),
-            "penalty_named_files": float(len(named)),
-            "penalty_named_late": float(len(late)),
-            "penalty_patch_files": float(len(patch)),
-        }
-    )
-    return out
+    return {
+        "items": judge(named, patch, patch_all, gold),
+        "detail": f"named {sorted(named)[:4]}; final change {patch[:4]}; reference fix {'unknown' if gold is None else gold[:4]}",
+        "gold_unknown": not gold,
+        "patch_unknown": c.diff is None,
+        "skipped": skipped,
+        "named": len(named),
+        "late": len(late),
+        "patch": len(patch),
+    }
+
+
+@register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
+def penalty(item: Item, ctx: EvalContext) -> Result:
+    """rule: plan_files.<named | named_equals_patch | named_covers_gold | patch_covers_gold>, or a test item of
+    implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase3_run.existing_and_own, phase3_fail.<...>) --
+    passes when the run did it right (see this module's docstring and ``penalty_tests.py``). A test item the run
+    stands outside of is not applicable, worth 0 when the run never did what the item is about and 1 when it did and
+    the item's condition did not arise; a gold item without a reference fix, and a test item without a known code
+    root, is unavailable."""
+    rule = str((item.check.params or {}).get("rule"))
+    if rule in FILE_RULES:
+        m = ctx.cache.get(FILES)
+        if m is None:
+            m = ctx.cache[FILES] = measure(ctx)
+        v = m["items"][rule.split(".", 1)[1]]
+        if v is None:
+            return Result.unavailable(item, "the task has no reference fix to read")
+        return Result.ok(item, m["detail"]) if v else Result.no(item, m["detail"])
+    if rule not in TEST_RULES:
+        return Result.no(item, f"unknown rule {rule!r}")
+    if TESTS not in ctx.cache:
+        ctx.cache[TESTS] = penalty_tests.measure(ctx)
+    tests = ctx.cache[TESTS]
+    if tests is None:
+        return Result.unavailable(item, "the code root is not known")
+    value, judged = tests[f"{penalty_tests.STAGE}.{rule}"]
+    if not judged:
+        why = "the run ran its tests there and the item's condition did not arise" if value else "the run never did what the item is about"
+        return PEN.outside(item, why, premise=bool(value))
+    return Result.ok(item) if value else Result.no(item)
 
 
 # --------------------------------------------------------------------------------------------
 # Hooks of the evaluation policy (``RubricEvaluation(inputs=..., post=...)``)
 # --------------------------------------------------------------------------------------------
 def inputs(task: Any, episode: Any) -> dict[str, Any]:
-    """``Collected.inputs``: the task (for its reference fix) and the episode (for its recorded patch)."""
-    return {"task": task, "episode": episode}
+    """``Collected.inputs``: the task, for its reference fix."""
+    return {"task": task}
 
 
 def post(report: Any) -> dict[str, float]:
-    """The penalty signals from a finished report. A failure here is a full penalty, never a missing signal -- and
-    never an exception, which would zero the rubric's score with it."""
-    try:
-        collected = report.collected
-        given = collected.inputs or {}
-        # the test items parse the run's commands again: with the shell variables the run was replayed with
-        token = shell.KNOWN_VARS.set(dict(report.shell_vars)) if report.shell_vars else None
-        try:
-            return measure(report.facts, collected, given.get("task"), given.get("episode"), report.ctx)
-        finally:
-            if token is not None:
-                shell.KNOWN_VARS.reset(token)
-    except Exception:  # noqa: BLE001
-        logger.warning("agentos_bugfix penalty: scoring failed; penalty 0", exc_info=True)
-        return {"penalty": 0.0, "penalty_errors": 1.0}
+    """The penalty signals of a finished report: the common ones (``workflow_rubric/penalty.py``: ``penalty``, each
+    item, ``penalty_applies.<item>``, ``penalty_unavailable``), the mean of each group, and what the file items were
+    judged on."""
+    out = PEN.post(report)
+    for name, prefix in (("penalty_plan_files", "global.penalty.plan_files."), ("penalty_tests", "implement_tasks.penalty.")):
+        values = [v for k, v in out.items() if k.startswith(prefix)]
+        if values:
+            out[name] = sum(values) / len(values)
+    m = (getattr(report, "cache", None) or {}).get(FILES)
+    if m is not None:
+        out.update(
+            {
+                "penalty_gold_unknown": float(m["gold_unknown"]),
+                "penalty_patch_unknown": float(m["patch_unknown"]),
+                "penalty_tasks_write_skipped": float(m["skipped"]),
+                "penalty_named_files": float(m["named"]),
+                "penalty_named_late": float(m["late"]),
+                "penalty_patch_files": float(m["patch"]),
+            }
+        )
+    return out

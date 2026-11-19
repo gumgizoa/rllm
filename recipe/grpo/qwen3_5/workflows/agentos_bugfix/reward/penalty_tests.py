@@ -1,8 +1,11 @@
 """agentos_bugfix penalty items: the test behaviour of implement-tasks, in PHASE 2 and in PHASE 3.
 
-Seven items, each 1.0 (no penalty) or 0.0 (penalty), reported with the items of ``penalty.py``. Every run gets all
-seven: an item about a failure is 1.0 for a run that saw none (nothing to penalise), an item about running the tests
-is 0.0 for a run that never got to the stretch it reads. ``penalty_applies.<item>`` says which of the two it was.
+Seven items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the four of
+``penalty.py``. Every run gets all seven. A run an item stands outside of gets what the rule every workflow shares
+gives (``workflow_rubric/penalty.py``): 0.0 when it never did what the item is about -- it changed no source, it never
+reached PHASE 3, it ran no test in the stretch the item reads -- and 1.0 when it ran its tests there and the item's
+condition, a failure, did not arise. So a run cannot keep an item about failures by not running the tests.
+``penalty_applies.<item>`` says whether the item was judged on the run.
 
 PHASE 2 -- from the first source change to the start of PHASE 3 (every task ticked; without that, the report's first
 write; without either, the end of the run)
@@ -13,51 +16,59 @@ write; without either, the end of the run)
              a directory above it or a dotted label of it, ``utils_tests.test_duration``). One runner run of an
              existing test module the run added tests to is both -- when it comes after the run's first write to that
              module. A run without the change (see the cause check below) is neither
-        does not apply (0.0): the run changed no source in PHASE 2
+        outside (0.0): the run changed no source in PHASE 2
     agentos_bugfix.implement_tasks.penalty.phase2_fail.edited_after_fail
-        applies: a failing result after the first source change (else 1.0)
+        judged: a failing result after the first source change
         1.0: per task group -- PHASE 2 is cut where a task group becomes fully ticked; in every stretch that holds a
              failing result, source or a test is edited after the stretch's last failing result and before its tick.
              A run that ticks everything in one write has one stretch
+        outside: 1.0 when a test ran after the first source change and none failed; 0.0 when none ran, or the run
+             changed no source
     agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
-        applies: a failing result after the first source change (else 1.0)
-        1.0: every test that failed passes at its own last run (a script by its path, a runner run by each target
-             it names; a later run of a directory or dotted label above the target, or of the whole suite, is a run
-             of that target)
+        judged: a failing result after the first source change
+        1.0: every test that failed passed again -- a later passing run of the same file, of a directory or dotted
+             label above it, or of the whole suite; not one narrowed below what failed (``-k``, ``-m``,
+             ``--deselect``, ``--ignore``, a ``file::test`` id the failing run did not use). A script is rerun by
+             running that script. The rule is the common one (``workflow_rubric/results.py``)
+        outside: as edited_after_fail
 
 PHASE 3 -- from the write that ticks the last task to the report's first write; it can be placed only when both are
 known and in that order
 
     agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
         1.0: as phase2_run, anywhere in PHASE 3
-        does not apply (0.0): PHASE 3 cannot be placed
+        outside (0.0): PHASE 3 cannot be placed
     agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
-        applies: a valid runner run fails in PHASE 3 -- the document asks for the check on an existing test (else 1.0)
+        judged: a valid runner run fails in PHASE 3 -- the document asks for the check on an existing test
         1.0: after that failure and before the report, the runner is invoked with the change stashed away
+        outside: 1.0 when a test ran in PHASE 3 and no runner run failed; 0.0 when none ran, or PHASE 3 cannot be placed
     agentos_bugfix.implement_tasks.penalty.phase3_fail.edited_after_fail
-        applies: a failing result in PHASE 3 that the document says to fix -- only tests of the run's own failed (no
-                 runner failure), or the runner passed with the change stashed away (the change causes it). A failure
-                 the check showed to exist without the change, or one that was never checked, is not this item's
-                 (else 1.0)
+        judged: a failing result in PHASE 3 that the document says to fix -- only tests of the run's own failed (no
+                runner failure), or the runner passed with the change stashed away (the change causes it)
         1.0: source or a test is edited after the first failing result, before the report
+        outside: 1.0 when a test ran in PHASE 3 and nothing failed that is the change's to fix (a failure the check
+             showed to exist without the change, or one that was never checked, is not this item's); 0.0 when none
+             ran, or PHASE 3 cannot be placed
     agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
-        applies: a failing result in PHASE 3 (else 1.0)
+        judged: a failing result in PHASE 3
         1.0: the last result before the report passes
+        outside: 1.0 when a test ran in PHASE 3 and none failed; 0.0 when none ran, or PHASE 3 cannot be placed
 
 A result is a run whose outcome can be read: a script the run wrote (under checks/ or anywhere else) that ran, or a
-valid runner run. Two kinds of run are not results:
+valid runner run. A script run whose outcome cannot be read ran (it counts for the run items, and as "a test ran") and
+is no result. Two kinds of run are not results:
 
     the cause check   a runner run while the change is stashed away -- from a ``git stash`` (push) to the next
-                      ``git stash pop`` / ``apply``, in one command or over several, or to the run's next edit when
-                      the stash is never popped (the change is gone; what follows is a new one). ``git stash list`` /
-                      ``show`` / ``drop`` stash nothing away, nor does a ``git stash`` with nothing to save
+                      ``git stash pop`` / ``apply``, in one command or over several. ``git stash list`` / ``show`` /
+                      ``drop`` stash nothing away
     a fix script      a script outside checks/ that changes the repository when it runs (it applies an edit; it is no
                       test). Writing it is no test edit either
 
-A source change is a write to a non-test file of the final change -- a new file with a throwaway name (``repro_x.py``,
-``check_fix.py``) counts as a script only at the repository root or when the final change does not keep it. A test
-edit is a write to a repository test file or to one of the run's scripts. Nothing here reads the task's reference fix
-or its test patch: every item is about what the run can know.
+A source change is what every workflow means by it (``facts.source_change_steps``): a write to a non-test code or
+config file of the final change, one of the run's own scripts aside (``facts.is_run_script``: a new script file that
+the final change does not keep, or one with a throwaway name -- ``repro_x.py``, ``check_fix.py`` -- at the repository
+root) and git putting content back aside. A test edit is a write to a repository test file or to one of the run's
+scripts. Nothing here reads the task's reference fix or its test patch: every item is about what the run can know.
 """
 
 from __future__ import annotations
@@ -69,6 +80,7 @@ from typing import Any
 
 from ....workflow_rubric import facts as F
 from ....workflow_rubric import refs
+from ....workflow_rubric import results as R
 from ....workflow_rubric.context import UNKNOWN
 from ...agentos_v2.reward import checks as C
 
@@ -80,26 +92,16 @@ P3_RUN = f"{STAGE}.phase3_run.existing_and_own"
 P3_CAUSE = f"{STAGE}.phase3_fail.cause_checked"
 P3_EDITED = f"{STAGE}.phase3_fail.edited_after_fail"
 P3_LAST = f"{STAGE}.phase3_fail.last_result_pass"
-# item -> what a run outside its pool scores: a run item 0.0 (it never got there), a failure item 1.0 (nothing to penalise)
-OUTSIDE = {P2_RUN: 0.0, P2_EDITED: 1.0, P2_LAST: 1.0, P3_RUN: 0.0, P3_CAUSE: 1.0, P3_EDITED: 1.0, P3_LAST: 1.0}
-ITEMS = tuple(OUTSIDE)
+ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
 
-_SCRATCH_NAME = re.compile(r"(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify|test|try|demo|example)[^/]*\.(?:py|sh)$")
 _STASH = re.compile(r"\bgit\s+stash\b(?:[ \t]+(?:-\S+[ \t]+)*([a-z]+)\b)?")
 _STASH_BACK = frozenset({"pop", "apply"})
 _STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
 _WRITES_FILES = re.compile(r"\.write\(|write_text\(|writelines\(|\bsed\s+-i\b|\bpatch\s")
-_WHOLE = "*"  # the key of a runner run that names no file
+_WHOLE = R.WHOLE  # the key of a runner run that names no file
 
 
-@dataclass
-class Result:
-    """One readable test result."""
-
-    step: int
-    passed: bool
-    runner: bool  # a valid runner run; else a script of the run's own
-    keys: tuple[str, ...]  # the script's path, or the test files the runner run names (``_WHOLE`` when none)
+Result = R.TestResult  # one readable test result (step, passed, runner, keys, selection)
 
 
 @dataclass
@@ -123,49 +125,7 @@ def _int(v) -> int | None:
     return None if v is None or v is UNKNOWN else int(v)
 
 
-def selects(target: str, file: str) -> bool:
-    """A runner target selects repository test file ``file``: the file or a test in it, a directory above it, or a
-    dotted label of it -- its module (``utils_tests.test_duration``), a class or test in the module, or a package above
-    it (``utils_tests``), with or without the leading directories of the path."""
-    t = target.split("::")[0].rstrip("/")
-    if not t:
-        return False
-    if "/" in t or t.endswith(".py"):
-        return t == file or file.startswith(t + "/")
-    stem = file[:-3] if file.endswith(".py") else file
-    parts = t.split(".")
-    for n in range(len(parts), 0, -1):
-        c = "/".join(parts[:n])
-        if stem == c or stem.endswith("/" + c):
-            return True
-        if n == len(parts) and ("/" + c + "/") in ("/" + stem):  # a package label: every module under it
-            return True
-    return False
-
-
-def _parts(target: str) -> tuple[list[str], bool]:
-    """A runner target as path components, and whether it was written as a path (else a dotted label)."""
-    t = target.rstrip("/")
-    if "/" in t or t.endswith(".py"):
-        return (t[:-3] if t.endswith(".py") else t).split("/"), True
-    return t.split("."), False
-
-
-def reruns(later: str, key: str) -> bool:
-    """A runner run that names ``later`` runs what an earlier run named ``key``: the same target, a directory above
-    it, or a dotted label above it (``queries`` over ``queries.test_q``). A path and a dotted label name the same test
-    when one lines up with the other once the label's missing leading directories are allowed for
-    (``tests/queries/test_q.py`` and ``queries.test_q``)."""
-    if later == _WHOLE or later == key:
-        return True
-    if key == _WHOLE:
-        return False
-    (lp, l_path), (kp, k_path) = _parts(later), _parts(key)
-    if l_path == k_path:
-        return kp[: len(lp)] == lp
-    if any(kp[: len(lp) - i] == lp[i:] for i in range(len(lp))):  # an end of ``later`` begins ``key``
-        return True
-    return any(kp[j : j + len(lp)] == lp for j in range(len(kp) - len(lp) + 1))  # ``later`` inside ``key``
+selects, reruns = R.selects, R.reruns  # which test a runner target names, and when a later run reruns it: the common rule
 
 
 def stash_marks(command: str) -> list[tuple[int, bool]]:
@@ -218,12 +178,6 @@ def run_stashed(r: Any, before: dict, marks: dict) -> bool:
     return state
 
 
-def is_run_script(path: str, new: bool, kept: bool) -> bool:
-    """A file the run wrote in the repository is one of its scripts, not source: new, with a script extension, and
-    either gone from the final change or a throwaway name at the repository root."""
-    return new and C._SCRIPT_EXT.search(path) is not None and (not kept or ("/" not in path and _SCRATCH_NAME.search(path) is not None))
-
-
 def fix_scripts(runs_of: dict, repo_writes_at: dict, text: dict) -> set[str]:
     """The scripts that change the repository when they run: at a step one runs, the replay shows a repository write
     made from Python, or any repository write while the script's own text writes files."""
@@ -258,12 +212,12 @@ def _group_ends(ctx: Any) -> list[int]:
 
 def timeline(ctx: Any) -> Timeline:
     fx = ctx.facts
-    wd = ctx.collected.workdir or "/testbed"
+    wd = ctx.collected.workdir  # known: ``measure`` does not come here without it
     pre = wd.rstrip("/") + "/"
     tl = Timeline()
 
-    # repository writes: source changes, test files, scripts left in the repository
-    keep = F.change_paths(ctx)
+    # repository writes: source changes (the definition every workflow shares), test files, scripts left in the repository
+    tl.src = list(F.source_change_steps(ctx))
     own_tests: dict[str, int] = {}  # repository test file -> the run's first write to it
     repo_scripts: dict[str, list[int]] = {}
     repo_write_steps: dict[int, list] = {}
@@ -274,11 +228,8 @@ def timeline(ctx: Any) -> Timeline:
         if F.is_test_path(e.path):
             own_tests.setdefault(e.path, int(e.step))
             tl.test_edits.append(int(e.step))
-        elif is_run_script(e.path, F.is_new_path(ctx, e.path), e.path in keep):
+        elif F.is_run_script(ctx, e.path):
             repo_scripts.setdefault(posixpath.join(wd, e.path), []).append(int(e.step))
-        elif e.path in keep:
-            tl.src.append(int(e.step))
-    tl.src.sort()
 
     # the run's scripts: under checks/, and anywhere else (outside the repository, or left in it)
     cdir = C._expand_dir(ctx, "{artifact}/{SPEC}/checks")
@@ -321,11 +272,9 @@ def timeline(ctx: Any) -> Timeline:
             tl.check_runs.append(int(r.step))
         if not r.valid:
             continue
-        rel = [refs.norm_path(t, wd) for t in (r.targets or [])]
-        rel = [t[len(pre) :] if t.startswith(pre) else t for t in rel]
-        files = tuple(sorted({t.split("::")[0] for t in rel if t.split("::")[0]}))
+        files = R.run_files(r, wd)
         whole = bool(C._whole(r, wd))
-        res = Result(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (_WHOLE,))
+        res = Result(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (_WHOLE,), R.selection(r.segment))
         if away_now:
             tl.stash_results.append(res)
             continue
@@ -358,34 +307,32 @@ def _ran(tl: Timeline, a: int, b: int) -> bool:
 
 
 def _last_of_each_failed_test_passes(results: list[Result]) -> bool:
-    """Every key that failed passes at the last result that runs it."""
-    failed = {k for r in results if not r.passed for k in r.keys}
-
-    def runs(r: Result, key: str) -> bool:
-        if key in r.keys:
-            return True
-        if not r.runner or key == _WHOLE or key.startswith("/"):
-            return False
-        return any(reruns(k, key) for k in r.keys)
-
-    for key in failed:
-        last = [r for r in results if runs(r, key)][-1]
-        if not last.passed or any(not r.passed and r.step == last.step and runs(r, key) for r in results):
-            return False
-    return True
+    """Every test that failed passed again, by the rule every workflow shares (``workflow_rubric/results.py``): a later
+    passing run of the same file, of a directory or label above it, or of the whole suite -- not one narrowed below
+    what failed (``-k``, a ``file::test`` id the failing run did not use)."""
+    return not R.standing_failures(results)
 
 
 def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
-    """Item -> (score, whether the item applies to the run); outside its pool an item scores :data:`OUTSIDE`."""
-    out = {name: (score, False) for name, score in OUTSIDE.items()}
+    """Item -> (value, whether the item was judged on the run). A run an item stands outside of gets what the common
+    rule gives (``workflow_rubric/penalty.py``): 0 when it never did what the item is about -- it changed no source,
+    it never reached PHASE 3, it ran no test in the stretch -- and 1 when it ran its tests there and the item's
+    condition, a failure, did not arise."""
+    out: dict[str, tuple[float, bool]] = {}
     edits = sorted(tl.src + tl.test_edits)
 
     def put(name: str, ok: bool) -> None:
         out[name] = (float(ok), True)
 
+    def outside(name: str, premise: bool) -> None:
+        out[name] = (1.0 if premise else 0.0, False)
+
     # PHASE 2
     src2 = [s for s in tl.src if s < tl.p2_end]
-    if src2:
+    if not src2:
+        for name in (P2_RUN, P2_EDITED, P2_LAST):
+            outside(name, False)
+    else:
         first, last = src2[0], src2[-1]
         put(P2_RUN, _ran(tl, last, tl.p2_end))
         res = [r for r in tl.results if first < r.step < tl.p2_end]
@@ -402,24 +349,41 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
                 a = b
             put(P2_EDITED, handled)
             put(P2_LAST, _last_of_each_failed_test_passes(res))
+        else:
+            ran = bool(res) or bool(_between(tl.own_runs, first, tl.p2_end))
+            outside(P2_EDITED, ran)
+            outside(P2_LAST, ran)
 
     # PHASE 3
-    if tl.p3 is not None and tl.report is not None:
+    if tl.p3 is None or tl.report is None:
+        for name in (P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST):
+            outside(name, False)
+    else:
         a, b = tl.p3, tl.report
         put(P3_RUN, _ran(tl, a, b))
         res = [r for r in tl.results if a < r.step < b]
         fails = [r for r in res if not r.passed]
+        ran = bool(res) or bool(_between(tl.own_runs, a, b))
+        runner_fails = [r.step for r in fails if r.runner]
+        checked = [r.passed for r in tl.stash_results if a < r.step < b]
+        if runner_fails:
+            put(P3_CAUSE, bool(_between(tl.check_runs, runner_fails[0], b)))
+        else:
+            outside(P3_CAUSE, ran)
+        if fails and (not runner_fails or (checked and all(checked))):
+            put(P3_EDITED, bool(_between(edits, fails[0].step, b)))
+        else:  # no failure, or one that is not the change's to fix: the tests ran, the item's condition did not arise
+            outside(P3_EDITED, ran)
         if fails:
-            runner_fails = [r.step for r in fails if r.runner]
-            checked = [r.passed for r in tl.stash_results if a < r.step < b]
-            if runner_fails:
-                put(P3_CAUSE, bool(_between(tl.check_runs, runner_fails[0], b)))
-            if not runner_fails or (checked and all(checked)):
-                put(P3_EDITED, bool(_between(edits, fails[0].step, b)))
             put(P3_LAST, res[-1].passed)
+        else:
+            outside(P3_LAST, ran)
     return out
 
 
-def measure(ctx: Any) -> dict[str, tuple[float, bool]]:
-    """The seven items of one run: item -> (score, applies)."""
+def measure(ctx: Any) -> dict[str, tuple[float, bool]] | None:
+    """The seven items of one run: item -> (value, judged). None when the code root is not known: which writes are
+    repository writes and which targets are repository tests cannot be told, so nothing here can be judged."""
+    if not ctx.collected.workdir:
+        return None
     return judge(timeline(ctx))

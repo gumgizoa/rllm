@@ -3,8 +3,8 @@
 The ``speckit_bug/*`` signals come from the rubric (``speckit_bug/compliance`` is the reward signal); the
 ``speckit_bug.*`` plugin kinds the rubric uses (the Checks Performed table, the check scripts, the report reads,
 the repository's new files, URL fetches) live next to it in ``checks.py``, with the ``inputs`` hook that
-looks up the task's gold source files and the ``post`` hook that folds the log-only ``*.penalty.*`` items into
-``speckit_bug/penalty`` (the D term; never part of ``speckit_bug/compliance``).
+looks up the task's gold source files. The ``post`` hook is the common one (``workflow_rubric/penalty.py``): it folds
+the log-only ``*.penalty.*`` items into ``speckit_bug/penalty`` (never part of ``speckit_bug/compliance``).
 """
 
 from pathlib import Path
