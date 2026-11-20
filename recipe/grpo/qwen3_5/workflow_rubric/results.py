@@ -36,6 +36,10 @@ FAIL_TEXT = re.compile(
     r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b",
     re.M,
 )
+# A verdict line a script prints about itself: read against an exit code of 0 only when the output is the script's alone.
+VERDICT_TEXT = re.compile(r"^\s*(?:FAIL|FAILED)\b|\b[1-9]\d* failed\b|\bFAILED \(", re.M)
+# What python prints at start-up when the environment holds a broken .pth file: the environment's, not the script's.
+PTH_NOISE = re.compile(r"Error processing line \d+ of [^\n]*\.pth:\n.*?Remainder of file ignored\n?", re.S)
 PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b", re.M | re.I)
 MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b")
 WHOLE = "*"  # the key of a runner run that names no file
@@ -89,16 +93,46 @@ def exit_code(observation: str) -> int | None:
         return None
 
 
+def own_exit_known(segs: list[shell.Segment], i: int, code: int | None) -> bool:
+    """The call's exit code ``code`` is segment ``i``'s own: ``i`` is the command's last segment, or the call ended with
+    0 and every list operator after ``i`` is ``&&`` (had ``i`` failed, nothing after it would have run and the call
+    could not end with 0). A segment that feeds a pipe, or is followed by ``;`` / ``||`` / a new line, has no known
+    code of its own."""
+    if code is None:
+        return False
+    if i == len(segs) - 1:
+        return True
+    if code != 0 or segs[i + 1].op_before == "|":
+        return False
+    return all(s.op_before in ("&&", "|") for s in segs[i + 1 :])
+
+
+def runs_something(seg: shell.Segment) -> bool:
+    """The segment invokes a test runner or executes a script."""
+    try:
+        return E.classify(seg) is not None or any(F._executed(seg))
+    except Exception:  # noqa: BLE001 -- agent text
+        return False
+
+
 def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "") -> str | None:
-    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output: the exit code when the
-    segment is the command's last, failure or pass text when no other segment could have printed such words."""
+    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output.
+
+    When the call's exit code is the segment's own (:func:`own_exit_known`) it decides: not 0 is a failure, 0 a pass --
+    unless the output is the segment's alone (no other runner or script in the call, no other segment that could print
+    such words) and holds a verdict line (``FAIL...`` / ``N failed`` / ``FAILED (``). Otherwise the output's words are
+    read: failure text when no other segment could have printed such words, pass text when there is no failure text.
+    The start-up errors python prints for a broken ``.pth`` file in the environment are not read."""
     obs = E.clean_observation(observation or "", command)
-    body = EXIT.sub("", obs)[-MAX_TEXT:]
-    code = exit_code(obs) if i == len(segs) - 1 else None
+    body = PTH_NOISE.sub("", EXIT.sub("", obs))[-MAX_TEXT:]
+    code = exit_code(obs)
     foreign = others_print(segs, i, MARK_WORDS)
+    if own_exit_known(segs, i, code):
+        if code != 0:
+            return "fail"
+        alone = not foreign and not any(runs_something(s) for j, s in enumerate(segs) if j != i)
+        return "fail" if alone and VERDICT_TEXT.search(body) else "pass"
     failed_text = bool(FAIL_TEXT.search(body)) and not foreign
-    if code is not None:
-        return "fail" if code != 0 or failed_text else "pass"
     if failed_text:
         return "fail"
     if not foreign and PASS_TEXT.search(body) and not FAIL_TEXT.search(body):
@@ -249,6 +283,8 @@ __all__ = [
     "EXIT",
     "FAIL_TEXT",
     "PASS_TEXT",
+    "VERDICT_TEXT",
+    "PTH_NOISE",
     "MARK_WORDS",
     "WHOLE",
     "TestResult",
@@ -256,6 +292,8 @@ __all__ = [
     "executed_by",
     "others_print",
     "exit_code",
+    "own_exit_known",
+    "runs_something",
     "outcome",
     "executions",
     "selection",

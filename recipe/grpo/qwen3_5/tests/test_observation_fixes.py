@@ -96,3 +96,52 @@ def test_a_command_that_prints_per_test_lines_is_an_output_producer():
     cmd = "cd /testbed && python -m unittest tests.test_x -v; echo 'test_z (x.T) ... ok'"
     runs = _runs(Action("shell", "terminal", command=cmd, observation="test_a (x.T) ... ok\ntest_z (x.T) ... ok\n"))
     assert runs and not runs[0].valid and "output producer" in runs[0].reason
+
+
+# ---- H-4: a check script's result is its own exit code when the call shows it -----------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric import results  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.trace import shell  # noqa: E402
+
+CHECK = "python /tmp/agent-os/specs/s/checks/check_fix.py"
+PTH = (
+    "Error processing line 1 of /opt/conda/lib/python3.9/site-packages/distutils-precedence.pth:\n\n"
+    "  Traceback (most recent call last):\n    File \"<frozen site>\", line 186, in addpackage\n  ModuleNotFoundError: No module named '_distutils_hack'\n\n"
+    "Remainder of file ignored\n"
+)
+
+
+def _read(cmd, text, code, script=CHECK):
+    segs = shell.flat(shell.split(cmd, "/testbed")[0])
+    (i,) = [k for k, s in enumerate(segs) if s.text.startswith(script)]
+    obs = text + (f"\n[Command finished with exit code {code}]" if code is not None else "")
+    return results.outcome(segs, i, obs, cmd)
+
+
+def test_the_last_segment_is_read_by_its_exit_code():
+    assert _read(CHECK, "Error: expected message printed\nAll checks passed", 0) == "pass"
+    assert _read("cd /testbed && " + CHECK, "Traceback (most recent call last):\nValueError: expected\nok", 0) == "pass"
+    assert _read(CHECK, "all good", 1) == "fail"
+    # a verdict line in the script's own output stands against exit code 0
+    for verdict in ("FAIL: test_x", "FAILED (failures=1)", "3 passed, 1 failed"):
+        assert _read(CHECK, verdict, 0) == "fail", verdict
+
+
+def test_python_start_up_noise_from_a_pth_file_is_not_read():
+    assert _read(CHECK + " | tail -5", PTH + "All tests passed!", 0) == "pass"
+    assert _read(CHECK + " | tail -5", "Traceback (most recent call last):\nboom", 0) == "fail"
+
+
+def test_a_script_followed_only_by_and_shows_its_exit_code_when_the_call_ended_with_zero():
+    cmd = CHECK + " && python -m pytest tests/test_x.py | tail -20"
+    # the pytest after && printed the failure words; the script itself must have ended with 0
+    assert _read(cmd, "ok\nE       AssertionError\n1 failed, 2 passed in 0.1s", 0) == "pass"
+    cmd = CHECK + ' && echo "---" && python -m pytest tests/test_x.py | tail -20'
+    assert _read(cmd, "ok\n---\nFAILED tests/test_x.py::t\n1 failed in 0.1s", 0) == "pass"
+    # a pipe or a ';' after the script hides its exit code: the words decide, as before
+    assert _read(CHECK + " | head -150", "E       AssertionError", 0) == "fail"
+    assert _read(CHECK + "; echo done", "Traceback (most recent call last):\nx", 0) == "fail"
+    # a non-zero call after && may be the script's failure or a later one: not read from the code
+    assert results.own_exit_known(shell.flat(shell.split(cmd, "/testbed")[0]), 0, 1) is False
+    # with another runner in the call, a verdict line may be the runner's: exit code 0 decides
+    assert _read(CHECK + " && python -m pytest tests/test_x.py", "FAILED (failures=1)", 0) == "pass"
