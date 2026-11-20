@@ -1835,13 +1835,28 @@ items:
           group: 1
           level: 2
           pattern: (.+)
+          levels:
+          - 2
+          - 3
+          skip_sections:
+          - Initial Description
+          tag_level: true
       normalize: text
       relation: subset
       right:
         literal:
-        - Initial Description
-        - Requirements Discussion
-        - Requirements Summary
+        - 2:Initial Description
+        - 2:Requirements Discussion
+        - 2:Requirements Summary
+        - 3:Initial Description
+        - 3:Requirements Discussion
+        - 3:Requirements Summary
+        - 3:First Round Questions
+        - 3:Existing Code to Reference
+        - 3:Functional Requirements
+        - 3:Reusability Opportunities
+        - 3:Scope Boundaries
+        - 3:Technical Considerations
   requirement: must
   modality_evidence: statement ss-070 (must); dict must ('imperative:Include' at SS:210)
   none_allowed: '-'
@@ -1860,7 +1875,7 @@ items:
   derived_by: llm_extract
   template: C-F11
   log_only: false
-  note: Second-level headings of requirements.md must be limited to the ones the template defines. votes 2/2
+  note: 'the ## and ### headings of requirements.md, outside Initial Description, are the template''s'
 - id: agentos_bugfix.shape_spec.requirements.agentos_bugfix_requirements.answers
   scope: specific
   class: content

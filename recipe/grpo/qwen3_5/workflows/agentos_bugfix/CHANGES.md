@@ -283,6 +283,9 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   출처 낱말(task, issue, description, repository, codebase, grep, search, traceback, error, test, docs)이 없고, 낱말 셋 이하이거나
   "Standard testing practice" 같은 일반론뿐)을 맞지 않은 답으로 셈(비율 점수). 문서 core-workflow.md 71 ~ 72행, shape-spec.md 149행:
   근거는 과제 설명이나 저장소에서 옴. requirements 규칙의 선택 설정값 `basis_check`. 평가 499런: 9런이 통과에서 실패(답 10개).
+- E-4 행 8 requirements.md의 ### 절: 절 제목 항목(`shape_spec.requirements.cross_ref.2`)이 ## 제목만 보던 것을, Initial Description 밖의
+  ##·### 제목이 모두 템플릿의 이름이어야 통과하게 함(## 제목은 지금처럼 ## 셋, ### 제목은 템플릿의 아홉 이름 가운데 하나)(shape-spec.md 136행 "Include ONLY the items
+  specified"). 공용 `headings` 선택자에 `levels`, `skip_sections`, `tag_level`을 더함(없으면 지금 동작). 평가 499런: 3런이 통과에서 실패.
 
 
 ## 확인

@@ -431,6 +431,11 @@ RESIDUE_ITEMS = {"shape_spec.requirements.no_template_residue": FOLDER_PLACEHOLD
 TASK_RESIDUE_ITEMS = ("shape_spec.initialization.no_template_residue.fill_marks", "shape_spec.requirements.no_template_residue.fill_marks")
 # E-4 row 2: initialization.md holds the task description itself, not a summary of it: half of its words, in order.
 TASK_TEXT_SHARE = 0.5
+# E-4 row 8: requirements.md has only the template's sections (shape-spec.md 136 "Include ONLY the items specified"); the
+# heading check covers ### as well as ##, outside the quoted task description. ## stays as it was (the template's ##
+# names); a ### heading may carry any template name (a ## section written at ### is a separate matter, left as it is).
+REQ_H2 = ("Initial Description", "Requirements Discussion", "Requirements Summary")
+REQ_H3 = ("First Round Questions", "Existing Code to Reference", "Functional Requirements", "Reusability Opportunities", "Scope Boundaries", "Technical Considerations")
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
@@ -462,6 +467,10 @@ def _review_fixes(it: dict) -> None:
         p["strict_prefix"] = True
     if kind == f"{NEW}.requirements" and p.get("rule") == "answers":  # E-4 row 6
         p["basis_check"] = True
+    if it["id"].endswith("shape_spec.requirements.cross_ref.2"):  # E-4 row 8
+        p["left"]["headings"].update(levels=[2, 3], skip_sections=["Initial Description"], tag_level=True)
+        p["right"]["literal"] = [f"2:{x}" for x in REQ_H2] + [f"3:{x}" for x in (*REQ_H2, *REQ_H3)]
+        it["note"] = "the ## and ### headings of requirements.md, outside Initial Description, are the template's"
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

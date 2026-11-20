@@ -240,3 +240,17 @@ def test_an_answer_needs_a_basis_that_names_a_source():
     assert _answers(good + bad + path).status == "pass"  # without the parameter, as before
 
 
+
+
+# ---- E-4 row 8: ### sections of requirements.md outside the template ------------------------------------------
+
+
+def test_level_three_headings_outside_the_task_text_are_checked():
+    p = _item_params("shape_spec.requirements.cross_ref.2")
+    text = ("# Spec Requirements: x\n## Initial Description\nissue\n### Expected behavior\nquoted from the task\n"
+            "## Requirements Discussion\n### First Round Questions\n### Existing Code to Reference\n"
+            "## Requirements Summary\n### Functional Requirements\n### Reusability Opportunities\n### Scope Boundaries\n### Technical Considerations\n")
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": text, collected=SimpleNamespace(workdir="/testbed"))
+    assert A.cross_ref(_item(p), ctx).status == "pass"
+    ctx2 = SimpleNamespace(artifact_text=lambda aid, state="final": text + "### Research Findings\n", collected=SimpleNamespace(workdir="/testbed"))
+    assert A.cross_ref(_item(p), ctx2).status == "fail"
