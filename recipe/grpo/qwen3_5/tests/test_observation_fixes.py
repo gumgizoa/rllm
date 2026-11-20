@@ -259,6 +259,10 @@ def test_a_change_that_cannot_be_dated_stays_outside_the_trace():
     f = _repo_facts([(5, "cat data/old.txt"), (9, "python gen.py > data/old.txt")], {"data/old.txt": "M", "lib/b.py": "M"})
     assert f.unseen_repo_paths == ["data/old.txt", "lib/b.py"] and f.repo_writes == []
     assert f.first_repo_write is UNKNOWN_STEP and any("outside the trace" in n for n in f.notes)
+    # an existing file the change modified is named by reading commands first; even a command that writes it is not
+    # taken as its time (speckit_bug django__django-11239: a find -exec cat dated a modified client.py)
+    f = _repo_facts([(14, "find /testbed -name client.py -exec cat {} \\;"), (20, "python fix.py client.py")], {"pg/client.py": "M"})
+    assert f.unseen_repo_paths == ["pg/client.py"] and f.repo_writes == [] and f.first_repo_write is UNKNOWN_STEP
 
 
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN as UNKNOWN_STEP  # noqa: E402

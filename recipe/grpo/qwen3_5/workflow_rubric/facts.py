@@ -671,12 +671,15 @@ def _only_reads(seg: shell.Segment, base: str) -> bool:
 
 
 def _date_unseen(f: Facts, unseen: list[str], diff: Mapping[str, str], pre: str) -> list[WriteEvent]:
-    """A write event, content unknown, for each repo change the trace shows no write of, at the first shell command
-    whose text names the file (its base name): the command that made it as a side effect (a script writing a data
-    file, a test leaving output). A path whose first naming command only reads it existed before that command, and a
-    path no command names, keep no time (they stay ``unseen_repo_paths``)."""
+    """A write event, content unknown, for each file the change created (diff status ``A`` / ``?``) that the trace
+    shows no write of, at the first shell command whose text names the file (its base name): the command that made it
+    as a side effect (a script writing a data file, a test leaving output). A file that existed before is named by
+    many reading commands before it is edited, so a modified or deleted path is never dated this way; nor is a created
+    path whose first naming command only reads it, or one no command names (they all stay ``unseen_repo_paths``)."""
     out: list[WriteEvent] = []
     for path in unseen:
+        if diff.get(path) not in ("A", "?"):
+            continue
         base = posixpath.basename(path)
         if not base:
             continue
@@ -689,9 +692,7 @@ def _date_unseen(f: Facts, unseen: list[str], diff: Mapping[str, str], pre: str)
                 segs = []
             if segs and all(_only_reads(sg, base) for sg in segs):
                 break  # the file was there already: its change cannot be dated
-            st = diff.get(path)
-            op = "create" if st in ("A", "?") else "delete" if st == "D" else "edit"
-            out.append(WriteEvent(path=path, step=cmd.step, op=op, content=None, source="other", action_index=cmd.action_index))
+            out.append(WriteEvent(path=path, step=cmd.step, op="create", content=None, source="other", action_index=cmd.action_index))
             break
     return out
 
