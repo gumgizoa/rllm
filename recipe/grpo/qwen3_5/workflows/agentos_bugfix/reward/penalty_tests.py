@@ -98,9 +98,6 @@ P3_EDITED = f"{STAGE}.phase3_fail.edited_after_fail"
 P3_LAST = f"{STAGE}.phase3_fail.last_result_pass"
 ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
 
-_STASH = re.compile(r"\bgit\s+stash\b(?:[ \t]+(?:-\S+[ \t]+)*([a-z]+)\b)?")
-_STASH_BACK = frozenset({"pop", "apply"})
-_STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
 _WRITES_FILES = re.compile(r"\.write\(|write_text\(|writelines\(|\bsed\s+-i\b|\bpatch\s")
 _WHOLE = R.WHOLE  # the key of a runner run that names no file
 _NEVER = 10**9  # a step no run reaches: the end of a stretch whose closing event did not happen
@@ -133,54 +130,8 @@ def _int(v) -> int | None:
 selects, reruns = R.selects, R.reruns  # which test a runner target names, and when a later run reruns it: the common rule
 
 
-def stash_marks(command: str) -> list[tuple[int, bool]]:
-    """(position, stashed away after it) for every ``git stash`` of a command that moves the change: push forms put it
-    away, ``pop`` / ``apply`` bring it back; ``list`` / ``show`` / ``drop`` and the like move nothing."""
-    out = []
-    for m in _STASH.finditer(command or ""):
-        sub = m.group(1)
-        if sub in _STASH_NOTHING:
-            continue
-        out.append((m.start(), sub not in _STASH_BACK))
-    return out
-
-
-def stash_states(commands: list, edit_steps: tuple[int, ...] | list[int] = ()) -> tuple[dict, dict]:
-    """Per command ``(step, action_index)``: whether the change is stashed away when it starts, and its marks.
-
-    The change stays away until a ``pop`` / ``apply`` -- or until the run edits the repository again (``edit_steps``):
-    a stash that is never popped has thrown the change away, and what the run writes next is a new change, not the
-    old code. A ``git stash`` that found nothing to save stashed nothing."""
-    before, marks, away, since = {}, {}, False, 0
-    edits = sorted(edit_steps)
-    for c in sorted(commands, key=lambda c: (c.step, c.action_index)):
-        key = (int(c.step), c.action_index)
-        if away and any(since < w <= key[0] for w in edits):
-            away = False
-        ms = stash_marks(c.command)
-        if "No local changes to save" in (getattr(c, "observation", "") or ""):
-            ms = [m for m in ms if not m[1]]
-        before[key], marks[key] = away, ms
-        if ms:
-            away = ms[-1][1]
-            since = key[0]
-    return before, marks
-
-
-def run_stashed(r: Any, before: dict, marks: dict) -> bool:
-    """The runner run ``r`` runs with the change stashed away."""
-    key = (int(r.step), r.action_index)
-    ms = marks.get(key) or []
-    state = before.get(key, False)
-    if not ms:
-        return state
-    at = (r.command or "").find(r.segment) if r.segment else -1
-    if at < 0:  # cannot place the run in its command: a command that stashes runs it stashed
-        return state or any(on for _, on in ms)
-    for pos, on in ms:
-        if pos < at:
-            state = on
-    return state
+# where the change is stashed away (``git stash`` ... ``pop``): the common rule, moved to ``workflow_rubric/results.py``
+stash_marks, stash_states, run_stashed = R.stash_marks, R.stash_states, R.run_stashed
 
 
 def fix_scripts(runs_of: dict, repo_writes_at: dict, text: dict) -> set[str]:

@@ -145,3 +145,36 @@ def test_a_script_followed_only_by_and_shows_its_exit_code_when_the_call_ended_w
     assert results.own_exit_known(shell.flat(shell.split(cmd, "/testbed")[0]), 0, 1) is False
     # with another runner in the call, a verdict line may be the runner's: exit code 0 decides
     assert _read(CHECK + " && python -m pytest tests/test_x.py", "FAILED (failures=1)", 0) == "pass"
+
+
+# ---- H-5: a run with the change stashed away is not a result of the change ------------------------------------
+
+from types import SimpleNamespace  # noqa: E402
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import CommandFact, RunFact, WriteEvent  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as PT  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C  # noqa: E402
+
+
+def _cmd(step, command):
+    return CommandFact(step=step, action_index=0, command=command)
+
+
+def _test_run(step, command, segment="python -m pytest tests/test_a.py"):
+    return RunFact(step=step, action_index=0, command=command, segment=segment, runner="pytest", kind="test", valid=True, passed=1)
+
+
+def test_the_stash_rule_is_shared_and_the_penalty_keeps_it():
+    assert PT.stash_marks is results.stash_marks and PT.stash_states is results.stash_states and PT.run_stashed is results.run_stashed
+
+
+def test_agentos_rules_read_only_runs_with_the_change_in_place():
+    one = "git stash && python -m pytest tests/test_a.py; git stash pop"
+    cmds = [_cmd(3, "python -m pytest tests/test_a.py"), _cmd(5, one), _cmd(7, "git stash"), _cmd(8, "python -m pytest tests/test_a.py"),
+            _cmd(10, "python -m pytest tests/test_a.py"), _cmd(12, "python -m pytest tests/test_a.py")]
+    runs = [_test_run(c.step, c.command) for c in cmds if "pytest" in c.command]
+    # the change goes away at step 7 and is never popped; the edit of step 9 is a new change, so step 10 tests it
+    writes = [WriteEvent(path="src/a.py", step=2, op="edit"), WriteEvent(path="src/a.py", step=9, op="edit"),
+              WriteEvent(path="src/a.py", step=11, op="unknown")]  # git putting content back: no edit of the agent's
+    ctx = SimpleNamespace(facts=SimpleNamespace(repo_writes=writes, commands=cmds, runs=runs), cache={})
+    assert [r.step for r in C.change_runs(ctx)] == [3, 10, 12]

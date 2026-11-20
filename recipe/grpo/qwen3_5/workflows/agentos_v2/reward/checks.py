@@ -182,6 +182,20 @@ _segments, _executed_by, _others_print, _exit_code = R.segments, R.executed_by, 
 outcome, executions = R.outcome, R.executions
 
 
+def change_runs(ctx: EvalContext) -> list:
+    """The valid test runs made with the change in place: a run while the change is stashed away (from a ``git stash``
+    to the next ``pop`` / ``apply``, or to the next repository write the agent authors) tested the old code, and says
+    nothing of the code the report, the ticks and the PHASE 2 / 3 checks are about (the common rule,
+    ``results.stash_states``)."""
+    key = "agentos_v2.change_runs"
+    if key not in ctx.cache:
+        fx = ctx.facts
+        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
+        before, marks = R.stash_states(fx.commands, edits)
+        ctx.cache[key] = [r for r in fx.runs if r.valid and r.kind == "test" and not R.run_stashed(r, before, marks)]
+    return ctx.cache[key]
+
+
 def _content_events(ctx: EvalContext, path: str) -> list:
     return [e for e in ctx.facts.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
 
@@ -594,7 +608,7 @@ def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
     """(step, ``pass`` | ``fail``) of every test result the trace shows, in order: a check script's run whose outcome can
     be read, a valid test run by its counts. Within one step a failure comes last."""
     out = _script_results(ctx, d)
-    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass") for r in ctx.facts.runs if r.valid and r.kind == "test"]
+    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass") for r in change_runs(ctx)]
     return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
 
 
@@ -918,7 +932,7 @@ def _phase3_edits(ctx: EvalContext) -> list:
 def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
     """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
     w = phase3_window(ctx)
-    runs = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w)] if w else []
+    runs = [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
     late = _phase3_edits(ctx) if after_fix else []
     return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
 
@@ -952,7 +966,7 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         changes = [c for c in _change_steps(ctx, w, authored=True) if c < end]
         if not changes:
             return Result.not_applicable(item, "no code change before PHASE 3")
-        runs = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and changes[-1] < r.step < end]
+        runs = [r for r in change_runs(ctx) if changes[-1] < r.step < end]
         if runs:
             return Result.ok(item, f"{len(runs)} valid test run(s) after the code change of step {changes[-1]}, first at step {runs[0].step}")
         return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")
