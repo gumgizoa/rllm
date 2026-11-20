@@ -3483,6 +3483,7 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: test_first
+      wide_words: true
   requirement: must
   modality_evidence: imperative (CT:214 'Use a focused test-driven approach where each task group starts with writing 2-8
     tests (x.1 sub-task) and ends with running ONLY those tests (final sub-task)')

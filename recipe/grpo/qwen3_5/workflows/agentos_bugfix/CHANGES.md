@@ -369,6 +369,12 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   `group_subtasks`를 더하고 이 항목의 kind를 바꿈(id는 그대로). 그룹마다의 Acceptance Criteria는 `group_parts`가 이미 봄.
   평가 499런: 11런이 통과에서 실패(x.0 줄만 있는 검증·문서 그룹).
 
+- B-3 "그룹은 테스트 작성으로 시작하고 테스트 실행으로 끝남"(`test_first`, 필수)의 낱말: 문서는 예시 문구만 주고(create-tasks.md 58, 67, 77행)
+  구조를 바꾸라고 하므로(111행) 넓게 읽음. 판정에서 빼는 그룹에 테스트 검증 그룹(제목에 test와 verify·validation, 또는 Verify로 시작)과
+  코드 변경을 말하지 않는 문서 그룹을 더함(122행 "implementation task group"). 첫 하위 task는 "Test that …", "Extend tests …"(동사 extend·update
+  추가)도 테스트 작성. 마지막 하위 task는 "Test the …"와 세부 줄에 적은 테스트 실행도 실행. 테스트 낱말에서 단수 `check`는 뺌("Add check for …"는
+  코드 변경). 선택 설정값 `wide_words`. 평가 499런: 37런이 실패에서 통과, 8런이 통과에서 실패(x.1이 "Add … check …" 꼴의 코드 변경).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

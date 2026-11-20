@@ -122,3 +122,32 @@ def test_a_group_without_a_sub_task_is_counted():
     assert r.status == "fail" and r.score == 0.5
     assert _tasks_rule(two + "  - [ ] 2.1 Read docs/a.rst\n", p).status == "pass"
     assert _tasks_rule("- [ ] 1.1 x\n", p).status == "fail"  # no group heading
+
+
+# ---- B-3: test_first reads the plan's wording widely ---------------------------------------------------------------
+
+
+def _groups(*groups):
+    return "\n".join(f"#### Task Group {n}: {title}\n- [ ] {n}.0 Do it\n" + "".join(f"  - [ ] {n}.{k} {line}\n" for k, line in enumerate(lines, 1)) for n, (title, lines) in enumerate(groups, 1))
+
+
+def test_test_first_takes_other_wordings_and_leaves_out_check_and_docs_groups():
+    p = _item_params("create_tasks.tasks.agentos_bugfix_tasks.test_first")
+    assert p.get("wide_words") is True
+    impl = ("Fix the parser", ["Test that the parser keeps the sign", "Change parse in src/a.py", "Test the implementation"])
+    verify = ("Test Verification", ["Run tests for tests/test_a.py"])
+    docs = ("Update documentation", ["Edit docs/a.rst"])
+    assert _tasks_rule(_groups(impl, verify, docs), p).status == "pass"
+    assert _tasks_rule(_groups(impl, verify, docs), {"rule": "test_first"}).score < 1.0  # as before: three groups judged, two wordings missed
+    details = _groups(("Fix", ["Extend tests in tests/test_a.py", "Change src/a.py", "Make the group pass"])) + "    - Run tests/test_a.py with pytest\n"
+    assert _tasks_rule(details, p).status == "pass"  # the run is named in the details of the last sub-task
+    code_check = _groups(("Fix", ["Add check for db_table in src/a.py", "Run the tests"]))
+    assert _tasks_rule(code_check, p).status == "fail"  # "Add check for ..." is code, not a test
+    assert _tasks_rule(code_check, {"rule": "test_first"}).status == "pass"  # as before
+
+
+def test_wide_words_off_keeps_the_word_lists():
+    assert C.writes_tests("Write 2-8 focused tests") and not C.writes_tests("Test that x holds")
+    assert C.writes_tests("Test that x holds", wide=True) and not C.writes_tests("Add check for x", wide=True)
+    assert C.implementation_group("Test Verification") and not C.implementation_group("Test Verification", wide=True)
+    assert not C.implementation_group("Test Review & Gap Analysis")

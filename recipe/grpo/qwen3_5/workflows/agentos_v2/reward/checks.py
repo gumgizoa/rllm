@@ -121,6 +121,65 @@ _TEST_WORD = re.compile(r"(?i)\b(?:tests?|checks?|check\s+scripts?)\b")
 _WRITE_WORD = re.compile(r"(?i)\b(?:write|add|create|author|draft)\b")
 _RUN_WORD = re.compile(r"(?i)\b(?:run|ensure|verify|execute|confirm|re-?run)\b")
 _REVIEW_GROUP = re.compile(r"(?i)\btest(?:s|ing)?\b.*\b(?:review|gap|coverage)\b|\b(?:review|gap|coverage)\b.*\btest")
+# the wider reading of tasks.md's test sub-tasks (``wide_words``, the reward review's B-3): create-tasks.md 58, 67 and 77
+# give example wordings only and 111 has the structure adapted, so a test-review or verification group, a documentation
+# group (122: "Each implementation task group"), "Test that ..." / "Extend test ..." and a run named in the details count
+_CHECK_GROUP = re.compile(
+    r"(?i)\btest(?:s|ing)?\b.*\b(?:review|gaps?|coverage|verif\w*|validat\w*)\b|\b(?:review|gaps?|coverage|verif\w*|validat\w*)\b.*\btest"
+    r"|^\s*(?:final\s+)?(?:verif\w*|validat\w*)\b"
+)
+_DOCS_GROUP = re.compile(r"(?i)\b(?:documentation|docs?|changelog|release\s+notes?|docstrings?)\b")
+_CODE_GROUP = re.compile(r"(?i)\b(?:fix\w*|implement\w*|change|modify)\b")
+_TEST_NOUN = re.compile(r"(?i)\b(?:tests?|check\s+scripts?|checks)\b")  # "check" alone is code: "Add check for db_table"
+_WRITE_WIDE = re.compile(r"(?i)\b(?:write|add|create|author|draft|extend|update)\b")
+_STARTS_TEST = re.compile(r"(?i)^\s*(?:\*\*)?tests?\b")
+
+
+def check_group(title: str, wide: bool = False) -> bool:
+    """A task group that checks tests rather than implements: a test-review group (and, ``wide``, a verification group)."""
+    return bool((_CHECK_GROUP if wide else _REVIEW_GROUP).search(title or ""))
+
+
+def implementation_group(title: str, wide: bool = False) -> bool:
+    """A task group the test-first rule applies to: not a test-review group (``wide``: nor a verification group, nor a
+    documentation group that names no code change)."""
+    if check_group(title, wide):
+        return False
+    return not (wide and _DOCS_GROUP.search(title or "") and not _CODE_GROUP.search(title or ""))
+
+
+def writes_tests(text: str, wide: bool = False) -> bool:
+    """A sub-task text that writes tests."""
+    if not wide:
+        return bool(_TEST_WORD.search(text)) and bool(_WRITE_WORD.search(text))
+    return (bool(_TEST_NOUN.search(text)) and bool(_WRITE_WIDE.search(text))) or bool(_STARTS_TEST.match(text))
+
+
+def runs_tests(text: str, details: list[str] = (), wide: bool = False) -> bool:
+    """A sub-task text that runs tests (``wide``: also "Test the ..." and a detail line under it that runs them)."""
+    if _TEST_WORD.search(text) and _RUN_WORD.search(text):
+        return True
+    return wide and (bool(_STARTS_TEST.match(text)) or any(_TEST_WORD.search(d) and _RUN_WORD.search(d) for d in details))
+
+
+def task_details(text: str | None) -> dict[str, list[str]]:
+    """Task id -> the lines under its task line up to the next task line or heading (first occurrence of an id)."""
+    out: dict[str, list[str]] = {}
+    cur: list[str] | None = None
+    for line in M.text_lines((text or "")[:MAX_TEXT]):
+        line = line[:2000]
+        if _HEAD.match(line):
+            cur = None
+            continue
+        m = _TASK.match(line)
+        if m:
+            cur = None if m.group("id") in out else out.setdefault(m.group("id"), [])
+            continue
+        if cur is not None and line.strip():
+            cur.append(line)
+    return out
+
+
 _Q = re.compile(r"^\s*(?:[-*+]\s+)?\*\*\s*(?P<q>Q\s*\d+|Follow-?up\s*\d+)\s*:?\s*\*\*\s*:?", re.I)
 _ANSWER = re.compile(r"^\s*(?:[-*+]\s+)?\*\*\s*Answer\s*:?\s*\*\*\s*:?\s*(?P<v>.*)$", re.I)
 _ANSWER_OK = re.compile(r"^\(assumed\)\s+\S.*?\s(?:—|–|--?)\s+\S", re.I)
@@ -739,7 +798,7 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
@@ -775,14 +834,16 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             return Result.ratio(item, len(gs) - len(empty), len(gs), f"task groups without a sub-task: {empty[:4]}" if empty else f"{len(gs)} groups with sub-tasks")
         if rule == "test_first":
             ts = task_lines(text)
+            wide = bool(p.get("wide_words"))
+            details = task_details(text) if wide else {}
             pool = [(g, [t for t in ts if t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0")]) for g, _ in gs]
-            pool = [(g, subs) for g, subs in pool if not _REVIEW_GROUP.search(g["title"])]
+            pool = [(g, subs) for g, subs in pool if implementation_group(g["title"], wide)]
             if not pool:
                 return Result.no(item, "no implementation task group")
             good, bad = 0, []
             for g, subs in pool:
-                first_ok = bool(subs) and bool(_TEST_WORD.search(subs[0]["rest"])) and bool(_WRITE_WORD.search(subs[0]["rest"]))
-                last_ok = len(subs) >= 2 and bool(_TEST_WORD.search(subs[-1]["rest"])) and bool(_RUN_WORD.search(subs[-1]["rest"]))
+                first_ok = bool(subs) and writes_tests(subs[0]["rest"], wide)
+                last_ok = len(subs) >= 2 and runs_tests(subs[-1]["rest"], details.get(subs[-1]["id"], []), wide)
                 good += first_ok + last_ok
                 if not first_ok:
                     bad.append(f"group {g['n']}: first sub-task writes no tests")

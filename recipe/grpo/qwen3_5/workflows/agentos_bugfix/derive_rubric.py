@@ -515,6 +515,8 @@ def _review_fixes(it: dict) -> None:
         it["check"]["params"] = {"rule": "group_subtasks"}
         it["scope"] = "specific"  # a workflow plugin kind
         it["note"] = "every task group of tasks.md (as create-tasks left it) has a sub-task line N.M (ratio over the groups)"
+    if kind == f"{NEW}.tasks" and p.get("rule") == "test_first":  # B-3
+        p["wide_words"] = True
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge
