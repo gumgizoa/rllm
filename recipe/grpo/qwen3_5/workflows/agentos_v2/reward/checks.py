@@ -26,7 +26,8 @@ repository prohibitions and the test runs. What they cannot say:
       {rule: group_parts}        every task group has its **Dependencies:** and **Acceptance Criteria:** (ratio)
       {rule: test_first}         every task group but a test-review one starts with a test-writing sub-task (x.1) and
                                  ends with a sub-task that runs those tests (ratio)
-      {rule: total}              ``Total Tasks: N`` counts the task lines (all, the sub-tasks or the groups)
+      {rule: total}              ``Total Tasks: N`` counts the task lines (all, the sub-tasks or the groups); with ``impl_counts``
+                                 also those three counted over the groups that are not test-review groups
       {rule: group_subtasks}     every task group has a sub-task line (``N.M``, M > 0) (ratio over the groups)
       {rule: ticked}             share of the task lines ticked ``[x]`` (or marked ⚠️) when the window ends
       {rule: ticked_after_work}  every task ticked in the window was ticked inside it, after a write or a run of a
@@ -798,7 +799,7 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
@@ -856,6 +857,10 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             return Result.no(item, "no 'Total Tasks: N' line")
         n = int(m.group(1))
         counts = {len(ts), len([t for t in ts if not t["id"].endswith(".0")]), len(gs)}
+        if p.get("impl_counts"):  # the same three counts over the implementation groups (the test-review group left out)
+            wide = bool(p.get("wide_words"))
+            impl = [t for t in ts if t["group"] and not check_group(t["group"]["title"], wide)]
+            counts |= {len(impl), len([t for t in impl if not t["id"].endswith(".0")]), len([g for g, _ in gs if not check_group(g["title"], wide)])}
         return Result.ok(item, f"Total Tasks {n}") if n in counts and n > 0 else Result.no(item, f"Total Tasks {n} counts none of {sorted(counts)}")
     w = _window(item, ctx)
     path = ctx.facts.artifact_paths.get(aid)

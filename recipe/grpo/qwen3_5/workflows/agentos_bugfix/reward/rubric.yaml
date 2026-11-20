@@ -3386,6 +3386,8 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: total
+      impl_counts: true
+      wide_words: true
   requirement: should
   modality_evidence: 'CT:47-48 the Overview''s ''Total Tasks: [count]'' (example format: should)'
   none_allowed: '-'

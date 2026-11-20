@@ -375,6 +375,10 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   추가)도 테스트 작성. 마지막 하위 task는 "Test the …"와 세부 줄에 적은 테스트 실행도 실행. 테스트 낱말에서 단수 `check`는 뺌("Add check for …"는
   코드 변경). 선택 설정값 `wide_words`. 평가 499런: 37런이 실패에서 통과, 8런이 통과에서 실패(x.1이 "Add … check …" 꼴의 코드 변경).
 
+- B-6 행 3 Total Tasks의 셈: 문서는 "Total Tasks: [count]"만 줌(create-tasks.md 48행). 받아 주는 세 셈(task 줄 수, x.0을 뺀 줄 수, 그룹 수)에
+  테스트 검토·검증 그룹을 뺀 같은 세 셈을 더함(구현 그룹만 센 런). 선택 설정값 `impl_counts`. 평가 499런: 55런이 실패에서 통과. 받는 값이
+  여섯이 되어 작은 수에서 우연히 맞을 수 있음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

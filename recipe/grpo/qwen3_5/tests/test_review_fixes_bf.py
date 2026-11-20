@@ -151,3 +151,17 @@ def test_wide_words_off_keeps_the_word_lists():
     assert C.writes_tests("Test that x holds", wide=True) and not C.writes_tests("Add check for x", wide=True)
     assert C.implementation_group("Test Verification") and not C.implementation_group("Test Verification", wide=True)
     assert not C.implementation_group("Test Review & Gap Analysis")
+
+
+# ---- B-6 row 3: Total Tasks may count the implementation groups only -------------------------------------------------
+
+
+def test_total_tasks_may_leave_the_review_group_out():
+    p = _item_params("create_tasks.tasks.agentos_bugfix_tasks.total")
+    assert p.get("impl_counts") is True
+    text = "Total Tasks: {}\n" + _groups(("Fix", ["Write tests", "Change src/a.py", "Run the tests"]), ("Test Review & Gap Analysis", ["Review tests", "Run tests"]))
+    # task lines 7, sub-tasks 5, groups 2; the implementation group alone: 4 lines, 3 sub-tasks, 1 group
+    for n in (7, 5, 2, 4, 3, 1):
+        assert _tasks_rule(text.format(n), p).status == "pass", n
+    assert _tasks_rule(text.format(6), p).status == "fail"
+    assert _tasks_rule(text.format(3), {"rule": "total"}).status == "fail"  # as before: only the three counts
