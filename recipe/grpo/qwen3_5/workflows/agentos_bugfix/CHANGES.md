@@ -249,6 +249,10 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   보여 주므로 `` `(assumed) <경로>` — <근거>``처럼 (assumed)와 경로를 한 코드 구간에 넣은 줄도 받음. Existing Code to Reference 줄 형식
   항목도 같은 표기들을 받음 (같은 130행을 인용함). 평가 499런: Reusability Opportunities 항목 59런, Existing Code to Reference 항목 18런이
   실패에서 통과, 통과에서 실패 0런.
+- E-4 행 4 Existing Code to Reference의 모든 Feature 줄: 줄 형식 항목이 (assumed) 표기 줄 하나만 있으면 통과하던 것을, 템플릿 160행의
+  `- Feature: … - Path: …` 줄이 모두 그 표기여야 통과하게 함(그 줄들에 대한 비율 점수). 템플릿 161 ~ 162행의 다른 줄은 보지 않음.
+  공용 `item_format`에 선택 설정값 `each_of`를 더해 구현함(없으면 지금 동작). 평가 499런: 11런이 통과에서 실패(Feature 줄에 (assumed)가 없음).
+
 
 ## 확인
 

@@ -1399,6 +1399,7 @@ items:
     params:
       section: Existing Code to Reference
       pattern: (?i)No similar existing features identified for reference|`?\(assumed\)`?\s+(?:`[^`\n]+`|[^\s`]+`?)\s+(?:—|–|--?)\s+\S
+      each_of: ^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b
   requirement: must
   modality_evidence: imperative (SS:177 'Record each as (assumed) <path> — <basis>; if you find none, record "No similar existing
     features identified for reference."')

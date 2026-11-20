@@ -75,3 +75,17 @@ def test_the_assumed_notation_copied_as_one_code_span_counts():
     assert _existing("- Feature: x - Path: `(assumed)` `/testbed/src/a.py` — reads x").status == "pass"
     assert _reuse("- `(assumed) src/a.py` — has the parser").status == "pass"
     assert _existing("- Feature: x - Path: /testbed/src/a.py — reads x").status == "fail"  # no (assumed)
+
+
+def test_every_feature_line_of_existing_code_is_in_the_assumed_notation():
+    good = "- Feature: parser - Path: (assumed) `src/a.py` — reads x\n- Components to potentially reuse: the tokenizer in src/b.py"
+    assert _existing(good).status == "pass"
+    r = _existing(good + "\n- Feature: lexer - Path: src/c.py")
+    assert r.status == "fail" and r.score == 0.5
+    assert _existing("No similar existing features identified for reference.").status == "pass"
+
+
+def test_each_of_off_keeps_item_format_as_it_was():
+    p = {"pattern": r"\(assumed\)\s+`[^`\n]+`\s+—\s+\S", "section": "Existing Code to Reference"}
+    half = "- Feature: parser - Path: (assumed) `src/a.py` — reads x\n- Feature: lexer - Path: src/c.py"
+    assert _existing(half, p).status == "pass"  # one matching line is enough without each_of

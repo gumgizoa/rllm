@@ -791,7 +791,7 @@ def field_type(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # Repeated items, cross references, template residue
 # --------------------------------------------------------------------------------------------
-@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False})
+@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False, "each_of": False})
 def item_format(item: Item, ctx: EvalContext) -> Result:
     """Lines matching ``pattern`` in the section (or document): ``min``/``max`` count (default min 1
     unless ``max``/``of_pattern`` is given), ``sequence`` (captured ints +1 from ``start``),
@@ -799,7 +799,8 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
     matches ``pattern`` as written or with its ``**``/``__`` emphasis removed: bold is markup, not another
     format (``- **Step 1 [R4]**: complete`` is the template's ``- Step 1 [R4]: complete``). The
     ``of_pattern`` population is read as written (a bold legend line such as ``- **[P]**: parallel`` is
-    no task line for being bold)."""
+    no task line for being bold). ``each_of``: every line matching it must match ``pattern`` too (ratio over those
+    lines); without such a line only ``min``/``max`` decide."""
     p = _params(item)
     text = _text(item, ctx)
     if text is None:
@@ -835,6 +836,12 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
         dup = sorted({str(x) for x in vals if vals.count(x) > 1})
         if dup:
             return Result.no(item, f"duplicates {dup[:5]}")
+    if p.get("each_of"):
+        erx = re.compile(str(p["each_of"]))
+        base = [line for line in lines if erx.search(line)]
+        if base:
+            good = sum(1 for line in base if _line_search(rx, line))
+            return Result.ratio(item, good, len(base), f"{good}/{len(base)} of the lines it covers in format")
     if p.get("of_pattern"):
         orx = re.compile(str(p["of_pattern"]))
         base = [line for line in lines if orx.search(line)]

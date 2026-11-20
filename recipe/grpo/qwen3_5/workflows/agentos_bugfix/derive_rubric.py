@@ -426,8 +426,9 @@ def _review_fixes(it: dict) -> None:
         p["substantive"] = ORDER_SUBSTANTIVE
     if it["id"].endswith("shape_spec.requirements.item_format.reusability_opportunities"):  # E-2
         p["pattern"] = REUSE_PATTERN
-    if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2
+    if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2, E-4 row 4
         p["pattern"] = EXISTING_PATTERN
+        p["each_of"] = FEATURE_LINE
 
 
 def _locate(src: dict, docs: dict[str, Doc]) -> tuple[int, int] | None:
