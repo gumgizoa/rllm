@@ -42,7 +42,7 @@ from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, Complianc
 from rllm.eval.types import EvalOutput, Signal
 from rllm.hooks import FromTaskEvaluation
 
-from . import checks, schema
+from . import checks, penalty, schema
 from . import collect as C
 from .collect import TaskInfo
 from .context import Collected
@@ -77,9 +77,15 @@ class UnknownHarness(ValueError):
     """The episode came from a harness with no trace front end: an infrastructure error."""
 
 
-def failure_signals(prefix: str, total: str = "compliance") -> dict[str, float]:
-    """What a run gets when scoring it failed: the reward signal at 0, the failure counted."""
-    return {f"{prefix}/{total}": 0.0, f"{prefix}/engine_errors": 1.0}
+def failure_signals(prefix: str, total: str = "compliance", rubric: Rubric | None = None) -> dict[str, float]:
+    """What a run gets when scoring it failed: the reward signal at 0, the failure counted -- and, for a rubric with
+    penalty items, ``{prefix}/penalty`` at 0. The trainer reads a rollout without the penalty signal as P = 1 (a
+    workflow with no penalty items, in a mix), so a run nothing could be read of would otherwise be paid as one that
+    kept every rule."""
+    out = {f"{prefix}/{total}": 0.0, f"{prefix}/engine_errors": 1.0}
+    if rubric is not None and any(penalty.names(item.id) for item in rubric.items):
+        out[f"{prefix}/penalty"] = 0.0
+    return out
 
 
 def total_name(rubric: Rubric) -> str:
@@ -202,7 +208,7 @@ class RubricEvaluator(ComplianceEvaluator):
                 logger.warning("%s compliance: collection raised for %s; compliance 0", self.name, tid, exc_info=True)
         extra_data = self._collect_extra()
         out = self.inner.evaluate(task, episode)
-        signals = failure_signals(self.prefix, total_name(self.rubric))
+        signals = failure_signals(self.prefix, total_name(self.rubric), self.rubric if self.post is not None else None)
         if run is not None and collected is not None:
             try:
                 if self.inputs is not None:

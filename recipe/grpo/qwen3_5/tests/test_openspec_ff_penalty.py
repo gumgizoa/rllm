@@ -419,3 +419,26 @@ def test_a_critical_heading_with_items_counts_as_listed():
     assert P.lists_critical("### CRITICAL\n- tests/test_values.py fails\n### WARNING\nNone")
     assert not P.lists_critical("### CRITICAL\nNone\n### WARNING\n- x")
     assert not P.lists_critical("1. **CRITICAL** (Must fix before archive): None")
+
+
+def test_a_run_that_could_not_be_scored_keeps_no_penalty_rule(rubric, monkeypatch):
+    """The trainer reads a rollout without the penalty signal as P = 1, so a failed scoring says 0 itself."""
+    from types import SimpleNamespace
+
+    from recipe.grpo.qwen3_5.workflow_rubric import evaluation as EV
+    from rllm.eval.types import EvalOutput
+
+    assert EV.failure_signals("openspec_ff", "compliance", rubric) == {"openspec_ff/compliance": 0.0, "openspec_ff/engine_errors": 1.0, "openspec_ff/penalty": 0.0}
+    assert "openspec_ff/penalty" not in EV.failure_signals("openspec_ff")  # no rubric with penalty items: nothing said of them
+
+    def boom(*a, **k):
+        raise RuntimeError("the episode cannot be parsed")
+
+    monkeypatch.setattr(EV, "parse_run", boom)
+    inner = SimpleNamespace(name="verifier", evaluate=lambda task, episode: EvalOutput(reward=1.0, is_correct=True, signals=[], metadata={}))
+    for post, want in ((P.post, 0.0), (None, None)):  # None: an evaluation with no penalty hook reports no penalty at all
+        ev = EV.RubricEvaluator(inner, None, rubric, "openspec_ff", None, post=post)
+        out = ev.evaluate(SimpleNamespace(id="t"), SimpleNamespace())
+        got = {s.name: s.value for s in out.signals}
+        assert out.reward == 1.0 and got["openspec_ff/compliance"] == 0.0 and got["openspec_ff/engine_errors"] == 1.0
+        assert got.get("openspec_ff/penalty") == want
