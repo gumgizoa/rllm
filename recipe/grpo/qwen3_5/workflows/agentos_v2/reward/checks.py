@@ -86,7 +86,8 @@ repository prohibitions and the test runs. What they cannot say:
                                  failing (a workflow whose documents give that Status to a failing test the agent wrote)
       {rule: tasks_status}       the Tasks Verification Status agrees with tasks.md: All Complete only when every task
                                  is ticked and none is marked ⚠️
-      {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None")
+      {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None"); with
+                                 ``open_tasks`` a task left unticked (a checkbox line) too
       {rule: spec_name}          the **Spec:** field names the spec folder
       {rule: overall_status}     the Status at the top follows from the two section Statuses: Failed with Critical
                                  Failures, Passed with Issues with Issues Found or Some Failures, Passed with All
@@ -896,7 +897,8 @@ def _group_ends(ctx: EvalContext, aid: str, text: str, w, d: str | None) -> list
 def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
     """(group end, attempts shown) for every test sub-task marked ⚠️ instead of ticked: two failing test results after
     the group's first code change, with an attempt between the first and the last of them -- a code change, or an edit
-    of a check script under ``d`` (the failing test may be the thing to fix)."""
+    of a check script under ``d`` (the failing test may be the thing to fix). A mark in a group whose stretch holds no
+    failing result after its first code change is a task found not done (PHASE 3 Step 1), not this rule's."""
     text = _window_end_text(ctx, aid, w)
     if text is None:
         return []
@@ -908,6 +910,8 @@ def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[di
         if not t["warned"] or first_warn.get(t["id"]) != first_done.get(t["id"]):
             continue  # ticked first and marked later is PHASE 3's mark (a task found incomplete), not this rule's
         fails = [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]
+        if not fails:
+            continue  # no failing result to mark: a task found not done (implement-tasks.md 127), not a test left failing (40)
         out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in (*g["changes"], *script_edits))))
     return out
 
@@ -1461,7 +1465,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1565,11 +1569,14 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 return Result.no(item, "Issues Found, but every task is ticked")
             return Result.no(item, f"Status {st[:40]!r} is neither All Complete nor Issues Found")
         warned = [t["id"] for t in ts if t["warned"]]
+        if p.get("open_tasks"):  # a task left open is as incomplete as one marked ⚠️ (implement-tasks.md 127); a line
+            # without a checkbox ("- 0.009125 formats as ...") has nothing to tick and is not left open
+            warned = [t["id"] for t in ts if t["warned"] or (not t["checked"] and t["box"] is not None)]
         if not warned:
             return Result.not_applicable(item, "no task marked ⚠️")
         sec = M.section(text, "Incomplete or Issues")
         lines = [ln for ln in M.content_lines(sec or "") if ln.strip() and not M.is_none(ln.strip("-* \"'"))]
-        return Result.ok(item, f"{len(lines)} line(s) listed") if lines else Result.no(item, f"tasks marked ⚠️ {warned[:3]}, but Incomplete or Issues lists none")
+        return Result.ok(item, f"{len(lines)} line(s) listed") if lines else Result.no(item, f"tasks open or marked ⚠️ {warned[:3]}, but Incomplete or Issues lists none")
     if rule == "spec_name":
         path = ctx.facts.artifact_paths.get("spec_dir") or ""
         name = posixpath.basename(path.rstrip("/"))

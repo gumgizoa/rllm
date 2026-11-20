@@ -144,7 +144,7 @@ generated:
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9733
+      compliance: 0.9786
     - mutation: glob_read
       kind: exploit
       status: ok
@@ -156,7 +156,7 @@ generated:
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.7101
+      compliance: 0.6931
     - mutation: invisible_write
       kind: exploit
       status: ok
@@ -5189,6 +5189,7 @@ items:
     kind: agentos_bugfix.report
     params:
       rule: incomplete_listed
+      open_tasks: true
   requirement: should
   modality_evidence: 'IT:229 ''note it''s incompleteness in your verification report'' (against tasks.md, the agent''s own:
     should)'

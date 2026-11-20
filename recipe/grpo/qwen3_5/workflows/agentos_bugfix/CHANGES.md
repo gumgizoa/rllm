@@ -420,6 +420,15 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   평가 499런: 4런이 통과에서 실패(django__django-11066, django__django-13315, django__django-16429, psf__requests-1142), 이미 실패였던 8런의
   비율이 낮아짐. 카드의 6런 가운데 2런(matplotlib__matplotlib-23314, psf__requests-5414)은 새 하위 task 줄과 그 세부 줄을 더한 것이라 통과로 남음.
 
+- B-5 ⚠️ 표시의 두 뜻과 열린 task의 보고: (1) `warned_after_attempts`(agentos_bugfix 전용 규칙)는 ⚠️를 단 테스트 하위 task마다 두 번의 실패와
+  그 사이의 수정을 요구했음. 이제 그 그룹 구간에 첫 코드 변경 뒤의 실패한 테스트 결과가 하나도 없으면 그 ⚠️는 "테스트가 통과하지 못해 단
+  ⚠️"(implement-tasks.md 40행)가 아니라 "미완료로 드러난 task의 ⚠️"(127행)로 보고 이 규칙의 대상에서 뺌. 실패가 하나라도 있으면 전처럼
+  두 번의 시도를 물음(A-5의 "고쳐 보지 않고 바로 ⚠️"는 계속 실패, 자체 점검의 `warn_no_attempt`도 실패 그대로). (2) `incomplete_listed`는
+  ⚠️ task가 있을 때만 판정했음. 선택 설정값 `open_tasks`(agentos_bugfix만 켬)를 켜면 체크되지 않은 task(체크박스가 있는 줄)도 미완료로 보고,
+  그런 task가 있는데 Incomplete or Issues 절이 "None"이면 실패(127행). 체크박스 없는 글머리("- 0.009125 formats as …")는 열린 task로 보지
+  않음. 평가 499런: `incomplete_listed` 38런이 해당 없음에서 실패, 6런이 해당 없음에서 통과. `warned_after_attempts` 1런
+  (sphinx-doc__sphinx-8459: 모든 변경을 `git checkout`으로 되돌린 뒤 모든 task에 ⚠️)이 실패에서 해당 없음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

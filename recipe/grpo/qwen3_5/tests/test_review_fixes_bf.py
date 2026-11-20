@@ -339,3 +339,38 @@ def test_added_lines_are_tasks_groups_or_execution_order_items():
     assert len(C.added_lines_ok(prev, notes)) == 2
     status = prev[:2] + ["  Status: done, all tests pass"] + prev[2:]
     assert C.added_lines_ok(prev, status) == ["Status: done, all tests pass"]
+
+
+# ---- B-5: a group marked not done is not a test left failing; open tasks are listed too ------------------------------
+
+
+def test_a_mark_without_a_failing_result_is_not_judged_as_two_attempts(window):
+    plan = "#### Task Group 1: A\n- [{a}] 1.1 Change `src/a.py`\n- [{a}] 1.2 Run the tests\n#### Task Group 2: B\n- [{b}] 2.1 Change `src/b.py`\n- [{b}] 2.2 Run the tests\n"
+    item = _item({"rule": "warned_after_attempts"})
+
+    def ctx(b, runs, code):
+        c = _tick_ctx([(5, plan.format(a=" ", b=" ")), (40, plan.format(a="x", b=" ")), (60, plan.format(a="x", b=b))],
+                      repo_writes=[WriteEvent(path="src/a.py", step=s, op="edit") for s in code])
+        c.facts.runs = list(runs)
+        return c
+
+    # group 2 never worked on and marked ⚠️: a task found not done (implement-tasks.md 127), not a test left failing (40)
+    assert C.tasks(item, ctx("⚠️", [_run(30)], (20,))).status == "not_applicable"
+    # group 2 changed the code, one failing run, then ⚠️ with no second attempt: still this rule's, and a fail (A-5)
+    r = C.tasks(item, ctx("⚠️", [_run(30), _run(50, failed=1)], (20, 45)))
+    assert r.status == "fail" and "2.2" in r.detail
+    # two failing runs with a change between them: the mark is earned
+    assert C.tasks(item, ctx("⚠️", [_run(30), _run(48, failed=1), _run(55, failed=1)], (20, 45, 52))).status == "pass"
+
+
+def test_open_tasks_are_listed_as_incomplete_too():
+    rep = "## 1. Tasks Verification\n**Status:** ✅ All Complete\n### Incomplete or Issues\nNone\n"
+    tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- [ ] 1.2 Run the tests\n"
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": tasks if aid == "tasks" else rep)
+    item = _item({"rule": "incomplete_listed"}, ref="final_verification")
+    assert C.report(item, ctx).status == "not_applicable"  # as before: nothing marked ⚠️
+    item = _item({"rule": "incomplete_listed", "open_tasks": True}, ref="final_verification")
+    assert C.report(item, ctx).status == "fail"
+    tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- 0.009125 formats as \"0.009125\"\n- [x] 1.2 Run the tests\n"
+    assert C.report(item, ctx).status == "not_applicable"  # a bullet without a checkbox is no open task
+    assert _item_params("agentos_bugfix_report.incomplete_listed").get("open_tasks") is True
