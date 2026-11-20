@@ -232,6 +232,18 @@ PHASE 3에서 실패를 보지 않은 실행이 PHASE 3 실패 항목 3개(`phas
 - 평가 에피소드 499개(t6-full-floor27) 재채점: PHASE 3에서 테스트를 돌리지 않은 322개 중 247개가 항목 3개를 되찾고 75개는
   0 그대로. penalty 평균 0.456 → 0.591 (통일 이전 0.669). compliance가 바뀐 에피소드는 없음.
 
+## 보상 검토 반영: 단계 구간·순서와 산출물 형식 (2026-11-21)
+
+`tasks/2026-11-20-agentos-bugfix-reward-fixes/03-D-E-G-계획.md`의 문제를 하나씩 고침. 문서는 바꾸지 않음.
+rubric의 바뀐 값은 모두 `derive_rubric.py`의 `_review_fixes`가 넣음. 공용 코드에 둔 새 설정값은 기본값이 지금 동작이라
+agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
+
+- D-2 순서 항목의 품질 문턱: 순서 항목(`global.run.order.commands`)이 산출물의 쓰기를 "없음"으로 세는 품질 점수의 문턱을
+  0.5에서 0.1로 낮춤(`params.substantive`). 필수 항목 하나가 실패해 단계 점수가 0.1로 묶인 산출물(자리표시 하나, "..." 줄 하나)도
+  쓴 것으로 셈. 그 형식 문제는 그 산출물의 단계 점수가 이미 깎음. 0.1 미만(빈 파일, 단계 점수를 0으로 만드는 필수 항목 실패)은
+  지금처럼 없음. 평가 499런: 순서 항목이 실패에서 통과로 바뀐 런 114개(실패 207런에서 93런). 자체 점검의 template_copy 변이
+  준수율 0.1204에서 0.2315(상한은 단계 점수 0.10이라 지킴), frontmatter_stub 0.0469 그대로.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

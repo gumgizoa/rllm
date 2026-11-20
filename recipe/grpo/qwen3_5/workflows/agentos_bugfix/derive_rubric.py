@@ -196,6 +196,7 @@ def derive() -> tuple[dict, dict]:
         if it.get("target", {}).get("ref") in DROP_ARTIFACTS:
             raise SystemExit(f"{it['id']} targets a removed artifact; add it to DROP")
         _params(it, docs, report)
+        _review_fixes(it)
         _sources(it, docs, report)
         if not it["sources"] and it["check"]["kind"] == "unimplemented":
             report["dropped_items"].append(it["id"])  # a statement without a check whose text was cut
@@ -394,6 +395,20 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
         it["note"] = "after create-tasks, every write of tasks.md only ticks boxes, marks them ⚠️ or adds task lines; no earlier line is reworded or removed"
     if "six" in (it.get("note") or "") and kind == "cross_ref":
         it["note"] = it["note"].replace("the template's six", "the template's four")
+
+
+# The reward review of 2026-11-20 (tasks/2026-11-20-agentos-bugfix-reward-fixes/03-D-E-G-계획.md): item rules that
+# failed a run doing what the documents say, or passed one that did not. Each fix names its problem.
+# D-2: the order item counts an artifact's write unless the artifact scores below the 0.1 that one failed must item
+# leaves (an empty or skeleton-only file still earns no order); a format problem is the artifact's own stage's to count.
+ORDER_SUBSTANTIVE = 0.1
+
+
+def _review_fixes(it: dict) -> None:
+    p = it["check"].setdefault("params", {}) if it["check"].get("params") is not None else None
+    kind = it["check"]["kind"]
+    if kind == "order" and p is not None:  # D-2
+        p["substantive"] = ORDER_SUBSTANTIVE
 
 
 def _locate(src: dict, docs: dict[str, Doc]) -> tuple[int, int] | None:

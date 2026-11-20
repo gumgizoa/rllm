@@ -100,7 +100,7 @@ generated:
     - mutation: template_copy
       kind: exploit
       status: ok
-      compliance: 0.1204
+      compliance: 0.2315
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
@@ -108,11 +108,11 @@ generated:
     - mutation: x_fill
       kind: exploit
       status: ok
-      compliance: 0.1204
+      compliance: 0.25
     - mutation: x_fill_bare
       kind: exploit
       status: ok
-      compliance: 0.081
+      compliance: 0.1921
     - mutation: none_expl
       kind: exploit
       status: ok
@@ -6018,6 +6018,7 @@ items:
       - write:final_verification
       invalidate:
       - read_ahead
+      substantive: 0.1
   requirement: must
   modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
     SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
