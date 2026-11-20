@@ -486,6 +486,8 @@ def _review_fixes(it: dict) -> None:
     if it["id"].endswith("implement_tasks.run.code_change"):  # E-5 row 18: a source file, not only a test or a backup, is changed
         p["predicate"]["exists"]["source"] = True
         it["note"] = "a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the final change"
+    if kind == f"{NEW}.read":  # D-4: a file the run never wrote is not read either
+        p["absent_unread"] = True
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

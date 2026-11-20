@@ -248,22 +248,25 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-@register("agentos_v2.read", params={"artifacts": True, "window": False}, availability=("trace", "sandbox_file"), common=False)
+@register("agentos_v2.read", params={"artifacts": True, "window": False, "absent_unread": False}, availability=("trace", "sandbox_file"), common=False)
 def read(item: Item, ctx: EvalContext) -> Result:
     """Every listed artifact that exists at the end was read in the window (default: the item's stage).
 
-    not_applicable when none of them exists."""
+    not_applicable when none of them exists. ``absent_unread``: an artifact absent at the end counts as not read (a run
+    that never wrote the file has not read it), so the ratio is over every listed artifact and none existing fails."""
     p = item.check.params or {}
     w = _window(item, ctx)
-    want = {a: ctx.facts.artifact_paths.get(a) for a in (p.get("artifacts") or []) if isinstance(a, str)}
-    want = {a: q for a, q in want.items() if q}
+    listed = {a: ctx.facts.artifact_paths.get(a) for a in (p.get("artifacts") or []) if isinstance(a, str)}
+    want = {a: q for a, q in listed.items() if q}
+    absent = [a for a, q in listed.items() if not q] if p.get("absent_unread") else []
     if not want:
-        return Result.not_applicable(item, "none of the artifacts exists")
+        return Result.no(item, f"absent, so not read: {absent}") if absent else Result.not_applicable(item, "none of the artifacts exists")
     if w is None:
         return Result.no(item, "window empty")
     hits = read_steps(ctx, sorted(set(want.values())), w)
-    missing = [a for a, q in want.items() if not hits.get(q)]
-    return Result.ratio(item, len(want) - len(missing), len(want), f"not read: {missing}" if missing else f"read: {sorted(want)}")
+    missing = [a for a, q in want.items() if not hits.get(q)] + absent
+    total = len(want) + len(absent)
+    return Result.ratio(item, total - len(missing), total, f"not read: {missing}" if missing else f"read: {sorted(want)}")
 
 
 def _repo_reads(ctx: EvalContext, w) -> list[tuple[int, str]]:

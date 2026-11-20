@@ -369,3 +369,16 @@ def test_code_change_needs_a_source_file_of_the_final_change():
     assert not list(REFS.matching(ctx, {"fact": "repo_edit", "final": True, "source": True}))
     ctx = _repo_ctx({"src/a.py": "M"}, [WriteEvent(path="src/a.py", step=5, op="edit")])
     assert list(REFS.matching(ctx, {"fact": "repo_edit", "final": True, "source": True}))
+
+
+# ---- D-4: a file the run never wrote is not read ------------------------------------------------------------
+
+
+def test_an_absent_artifact_counts_as_not_read():
+    ctx = SimpleNamespace(facts=SimpleNamespace(artifact_paths={}, n_steps=10), run=SimpleNamespace(steps=[]), collected=SimpleNamespace(workdir="/testbed"))
+    item = SimpleNamespace(id="x", stage="global", check=SimpleNamespace(params={"artifacts": ["requirements"]}), target=SimpleNamespace(type="action", ref="run"))
+    assert C.read(item, ctx).status == "not_applicable"  # as before
+    item.check.params["absent_unread"] = True
+    assert C.read(item, ctx).status == "fail"
+
+

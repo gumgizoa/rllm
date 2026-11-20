@@ -2071,6 +2071,7 @@ items:
       - stage_start:shape_spec
       - - first_write:requirements
         - stage_end:shape_spec
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (SS:90 'Read the raw idea from [spec-path]/planning/initialization.md'; SS:61 'PHASE 2 reads
     the raw idea from this file')
@@ -2892,6 +2893,7 @@ items:
       - stage_start:write_spec
       - - first_write:spec
         - stage_end:write_spec
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (WS:15 'Read and understand all inputs'; WS:17-18 the cat of requirements.md)
   none_allowed: '-'
@@ -3674,6 +3676,7 @@ items:
       - stage_start:create_tasks
       - - first_write:tasks
         - stage_end:create_tasks
+      absent_unread: true
   requirement: should
   modality_evidence: 'CT:32-34 ''Read each of these files (whichever are available)''; CT:13 reads only what is not in context
     (conflict below): should'
@@ -5567,6 +5570,7 @@ items:
             fact: repo_edit
             window: stage:implement_tasks
         - stage_end:implement_tasks
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (IT:19 'Read .../tasks.md to review the available task groups')
   none_allowed: '-'
@@ -5601,6 +5605,7 @@ items:
       artifacts:
       - spec
       - requirements
+      absent_unread: true
   requirement: should
   modality_evidence: 'IT:29 ''Analyze the provided spec.md, requirements.md'' (provided: already in context -- should)'
   none_allowed: '-'
@@ -5875,6 +5880,7 @@ items:
       - last_change_write
       - - first_write:final_verification
         - end
+      absent_unread: true
   requirement: should
   modality_evidence: 'IT:222 ''Check .../tasks.md'' (the run has just ticked it: should)'
   none_allowed: '-'
