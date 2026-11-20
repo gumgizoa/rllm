@@ -117,6 +117,11 @@ class Timeline:
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
     own_runs: list[int] = field(default_factory=list)  # a checks/ script ran (read or not), or the runner on an own test file
     existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place
+    # steps of the runs above that come after a repository write of their own call (``sed -i ... && pytest``): at the step
+    # of the last source change they still ran after it (``RunFact.after_write_same_call``)
+    results_late: set[int] = field(default_factory=set)
+    own_late: set[int] = field(default_factory=set)
+    existing_late: set[int] = field(default_factory=set)
     group_ends: list[int] = field(default_factory=list)  # steps at which a task group becomes fully ticked
     p2_end: int = 0
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
@@ -236,9 +241,15 @@ def timeline(ctx: Any) -> Timeline:
             continue
         tl.results.append(res)
         tl.existing_runs.append(res.step)
+        late = bool(getattr(r, "after_write_same_call", False))
+        if late:
+            tl.results_late.add(res.step)
+            tl.existing_late.add(res.step)
         # a test of the run's own: a test file it had already written to when this run named it
         if runs_own_test(res.step, files, whole, own_tests):
             tl.own_runs.append(res.step)
+            if late:
+                tl.own_late.add(res.step)
     tl.results.sort(key=lambda x: (x.step, not x.passed))  # at one step, a failing result is read last
 
     # phases
@@ -257,8 +268,17 @@ def _between(xs: list[int], a: int, b: int) -> list[int]:
     return [x for x in xs if a < x < b]
 
 
-def _ran(tl: Timeline, a: int, b: int) -> bool:
-    """existing_and_own over the open stretch (a, b)."""
+def _after(xs: list[int], late: set[int], a: int, b: int) -> list[int]:
+    """The steps of ``xs`` after a change at step ``a`` and before ``b``: later steps, and runs of the change's own call
+    that come after a write in it (``late``)."""
+    return [x for x in xs if a < x < b or (x == a < b and x in late)]
+
+
+def _ran(tl: Timeline, a: int, b: int, after_change: bool = False) -> bool:
+    """existing_and_own over the open stretch (a, b); ``after_change``: ``a`` is a source change, and a run of its own
+    call that comes after the write counts."""
+    if after_change:
+        return bool(_after(tl.existing_runs, tl.existing_late, a, b)) and bool(_after(tl.own_runs, tl.own_late, a, b))
     return bool(_between(tl.existing_runs, a, b)) and bool(_between(tl.own_runs, a, b))
 
 
@@ -291,7 +311,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             outside(name, False)
     else:
         first, last = src2[0], src2[-1]
-        put(P2_RUN, _ran(tl, last, tl.p2_end))
+        put(P2_RUN, _ran(tl, last, tl.p2_end, after_change=True))
         res = [r for r in tl.results if first < r.step < tl.p2_end]
         fails = [r.step for r in res if not r.passed]
         if fails:
@@ -316,7 +336,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     # shown no failure the run had not seen. The run item is what it loses for not running them again.
     end = tl.report if tl.report is not None else _NEVER
     src = [s for s in tl.src if s < end]
-    tested = bool(src) and (any(src[-1] < r.step < end for r in tl.results) or bool(_between(tl.own_runs, src[-1], end)))
+    tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, src[-1], end)) or bool(_after(tl.own_runs, tl.own_late, src[-1], end)))
     if tl.p3 is None or tl.report is None:
         outside(P3_RUN, False)
         for name in (P3_CAUSE, P3_EDITED, P3_LAST):

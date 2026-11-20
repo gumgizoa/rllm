@@ -966,7 +966,8 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         changes = [c for c in _change_steps(ctx, w, authored=True) if c < end]
         if not changes:
             return Result.not_applicable(item, "no code change before PHASE 3")
-        runs = [r for r in change_runs(ctx) if changes[-1] < r.step < end]
+        # a run of the same call as the last change counts when the change comes first in the command (``sed -i ... && pytest``)
+        runs = [r for r in change_runs(ctx) if (changes[-1] < r.step or (changes[-1] == r.step and r.after_write_same_call)) and r.step < end]
         if runs:
             return Result.ok(item, f"{len(runs)} valid test run(s) after the code change of step {changes[-1]}, first at step {runs[0].step}")
         return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")

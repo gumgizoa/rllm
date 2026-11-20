@@ -446,10 +446,34 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
     _doc_reads(f, rubric, run, cwd_track, split, docs)
     created = _created(run, rep, cwd_track, split)
     f.runs = evidence.runs_from(run, cwd_track, collected.base_present, created, workdir=workdir, writes=rep.writes, split=split)
+    _same_call_order(f, workdir)
     _windows(f, rubric, collected)
     f._created = created  # type: ignore[attr-defined]
     f._cwd_track = cwd_track  # type: ignore[attr-defined]
     return f
+
+
+def _same_call_order(f: Facts, workdir: str | None) -> None:
+    """Mark the runs that come after a repository write of their own call (``RunFact.after_write_same_call``): the
+    written path (absolute, or relative to the repository) appears in the command's text before the run's segment.
+    Git putting content back (an ``unknown`` write) is no write of the agent's."""
+    if not workdir or not f.runs or not f.repo_writes:
+        return
+    pre = workdir.rstrip("/") + "/"
+    by_call: dict[tuple[int, int], set[str]] = {}
+    for e in f.repo_writes:
+        if e.ok is not False and e.op != "unknown":
+            by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
+    for r in f.runs:
+        paths = by_call.get((int(r.step), r.action_index))
+        if not paths or not r.segment:
+            continue
+        cmd = r.command or ""
+        at = cmd.find(r.segment)
+        if at < 0:
+            continue
+        pos = [i for p in paths for i in (cmd.find(pre + p) if cmd.find(pre + p) >= 0 else cmd.find(p),) if i >= 0]
+        r.after_write_same_call = bool(pos) and min(pos) < at
 
 
 def _normdir(p: str | None) -> str | None:

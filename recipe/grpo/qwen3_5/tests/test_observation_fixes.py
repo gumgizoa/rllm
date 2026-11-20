@@ -178,3 +178,43 @@ def test_agentos_rules_read_only_runs_with_the_change_in_place():
               WriteEvent(path="src/a.py", step=11, op="unknown")]  # git putting content back: no edit of the agent's
     ctx = SimpleNamespace(facts=SimpleNamespace(repo_writes=writes, commands=cmds, runs=runs), cache={})
     assert [r.step for r in C.change_runs(ctx)] == [3, 10, 12]
+
+
+# ---- H-6: a test run after an edit in the same call is a run after that edit ----------------------------------
+
+import pickle  # noqa: E402
+
+from recipe.grpo.qwen3_5.workflow_rubric import facts as F  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.context import Facts  # noqa: E402
+
+
+def _facts_with(command, *writes, segment="python -m pytest tests/test_a.py"):
+    f = Facts(n_steps=10)
+    f.runs = [_test_run(5, command, segment)]
+    f.repo_writes = [WriteEvent(path=p, step=5, op=op, action_index=0) for p, op in writes]
+    F._same_call_order(f, "/testbed")
+    return f.runs[0]
+
+
+def test_a_run_placed_after_a_write_of_its_own_call_is_marked():
+    edit_then_test = "sed -i 's/a/b/' src/a.py && python -m pytest tests/test_a.py"
+    assert _facts_with(edit_then_test, ("src/a.py", "edit")).after_write_same_call
+    assert _facts_with("sed -i 's/a/b/' /testbed/src/a.py && python -m pytest tests/test_a.py", ("src/a.py", "edit")).after_write_same_call
+    # the run comes first, the write is git putting content back, or the write is another call's: not marked
+    assert not _facts_with("python -m pytest tests/test_a.py && sed -i 's/a/b/' src/a.py", ("src/a.py", "edit")).after_write_same_call
+    assert not _facts_with("git checkout src/a.py && python -m pytest tests/test_a.py", ("src/a.py", "unknown")).after_write_same_call
+    assert not _facts_with(edit_then_test).after_write_same_call
+    # the field has a default, so a RunFact pickled before it existed still loads with it
+    r = pickle.loads(pickle.dumps(_test_run(1, "x")))
+    assert r.after_write_same_call is False
+
+
+def test_the_penalty_counts_a_same_call_run_after_the_last_source_change():
+    tl = PT.Timeline(src=[5], existing_runs=[5], own_runs=[5], results=[results.TestResult(5, True, True, ("tests/test_a.py",))], p2_end=9)
+    got = PT.judge(tl)
+    assert got[PT.P2_RUN] == (0.0, True)  # same step, order unknown: not after the change
+    tl.existing_late, tl.own_late, tl.results_late = {5}, {5}, {5}
+    got = PT.judge(tl)
+    assert got[PT.P2_RUN] == (1.0, True)
+    # the run of the change's own call also tested the final code: PHASE 3's failure items keep their outside value
+    assert got[PT.P3_LAST] == (1.0, False)

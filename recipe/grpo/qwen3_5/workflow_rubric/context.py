@@ -152,6 +152,9 @@ class RunFact:
     collected: int = 0
     ids: list[str] = field(default_factory=list)  # test ids / files that appear in the output
     observation: str = ""
+    # a repository write the agent authored in the same call comes before this run in the command's text
+    # (``sed -i ... && pytest``): the run is after that write although both have the same step
+    after_write_same_call: bool = False
 
 
 @dataclass
