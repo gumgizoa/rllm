@@ -4,7 +4,7 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50"
  },
- "rubric_sha256": "1c320352222a7f45c29ea3acb79b247e53bd783a04a7c93d294116a42242a327",
+ "rubric_sha256": "0b747abed81aa943834ba63bbe4afc9014d11fc32b5a25d1ee41ae03576857ab",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "be578e8e5c59fd1e53fcb78aedc7da050b8bb16b4491ec7993054e68a975139b",
   "docs/commands/implement-tasks/implement-tasks.md": "30b0d403047cfab8eb3c4977e311755e95c8c5f4db6226ae472a6c2b4e0686c9",
@@ -40,6 +40,7 @@
    "agentos_bugfix.create_tasks.unimplemented.unimplemented.5",
    "agentos_bugfix.implement_tasks.final_verification.item_format.roadmap_reason",
    "agentos_bugfix.implement_tasks.final_verification.item_format.roadmap_status",
+   "agentos_bugfix.implement_tasks.run.agentos_bugfix_read.spec_inputs",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.3",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.4",
    "agentos_bugfix.implement_tasks.unimplemented.unimplemented.5",
@@ -322,7 +323,7 @@
    }
   ],
   "items_without_source": [],
-  "reworded_quotes": 44,
+  "reworded_quotes": 43,
   "residue_patterns_dropped": 39
  }
 }

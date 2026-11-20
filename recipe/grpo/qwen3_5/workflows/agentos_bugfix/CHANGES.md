@@ -333,6 +333,15 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
     실패 목록), 통과에서 실패 0개
 
 
+## 보상 검토 반영: tasks.md의 계획과 체크, 문서가 허용하는 다른 방식 (2026-11-21)
+
+`tasks/2026-11-20-agentos-bugfix-reward-fixes/04-B-F-계획.md`의 문제(묶음 B·F)와 미뤄 둔 D-6 행 12·21을 하나씩 고침.
+rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 둔 새 설정값은 기본값이 지금 동작이라 agentos_v2와 다른 워크플로의
+판정은 바뀌지 않음 (예외는 그 줄에 적음).
+
+- F-1 구현 단계의 spec.md·requirements.md 읽기 항목을 뺌(`DROP`, 2026-11-20 사용자 결정 2): 두 파일은 런이 같은 대화의 앞 단계에서 직접
+  쓴 것이라 다시 여는 명령이 "분석했는가"를 알려 주지 못하고, 평가 499런 모두 실패함. 문서 29행은 그대로. 항목 수 164개에서 163개.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

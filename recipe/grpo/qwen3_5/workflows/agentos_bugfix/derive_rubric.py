@@ -66,6 +66,9 @@ DROP = {
     # B6 implementation/ folder (and B2: the two folders that had to stay empty)
     "shape_spec.implementation_dir.artifact_exists",
     "global.run.agentos_bugfix_paths_written.empty_folders",
+    # F-1 (reward review 2026-11-20, user decision 2): "Analyze the provided spec.md and requirements.md" -- the run wrote
+    # both files itself earlier in the same conversation, so a command that opens them again tells nothing; no run passed
+    "implement_tasks.run.agentos_bugfix_read.spec_inputs",
 }
 DROP_ARTIFACTS = ("visuals_dir", "implementation_dir")
 CUT_SECTIONS = ("Visual Assets", "User Stories", "Visual Design")

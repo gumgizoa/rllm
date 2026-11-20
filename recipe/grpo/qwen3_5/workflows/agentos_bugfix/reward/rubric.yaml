@@ -116,11 +116,11 @@ generated:
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9174
+      compliance: 0.9172
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9279
+      compliance: 0.9277
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -136,15 +136,15 @@ generated:
     - mutation: echo_evidence
       kind: exploit
       status: ok
-      compliance: 0.9789
+      compliance: 0.9786
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.9733
+      compliance: 0.973
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9789
+      compliance: 0.9786
     - mutation: glob_read
       kind: exploit
       status: ok
@@ -156,15 +156,15 @@ generated:
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.8948
+      compliance: 0.8947
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6609
+      compliance: 0.6603
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6858
+      compliance: 0.6879
     - mutation: no_artifacts
       kind: exploit
       status: ok
@@ -180,11 +180,11 @@ generated:
     - mutation: full_suite_rerun
       kind: exploit
       status: ok
-      compliance: 0.9974
+      compliance: 0.9973
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9631
+      compliance: 0.9626
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -212,7 +212,7 @@ generated:
     - mutation: hidden_failure
       kind: exploit
       status: ok
-      compliance: 0.99
+      compliance: 0.9898
     - mutation: precheck_tasks
       kind: exploit
       status: ok
@@ -237,8 +237,8 @@ generated:
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
-    dropped_items: 47
-    kept_items: 175
+    dropped_items: 48
+    kept_items: 174
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -5597,41 +5597,6 @@ items:
   template: ''
   log_only: false
   note: tasks.md read before the first repository edit
-- id: agentos_bugfix.implement_tasks.run.agentos_bugfix_read.spec_inputs
-  scope: specific
-  class: evidence
-  stage: implement_tasks
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: agentos_bugfix.read
-    params:
-      artifacts:
-      - spec
-      - requirements
-      absent_unread: true
-  requirement: should
-  modality_evidence: 'IT:29 ''Analyze the provided spec.md, requirements.md'' (provided: already in context -- should)'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: IT
-    lines:
-    - 29
-    - 29
-    quote: 1. Analyze the provided spec.md and requirements.md
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: ''
 - id: agentos_bugfix.implement_tasks.run.code_change
   scope: specific
   class: evidence
