@@ -122,6 +122,9 @@ CHECKS_DIR = "{artifact}/{SPEC}/checks"
 # tasks.md's task lines: agentos_v2's pattern, and the same with a box or a line marked ⚠️
 BOX_OLD = r"^\s*[-*+]\s+\[[ xX]\]\s+\d+\.\d+\s+\S"
 BOX_NEW = r"^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S"
+# B-4: a task split finer than the example (create-tasks.md 111-114 allows adapting the structure): a deeper number
+# (``1.2.1``) is a task line too, and an unnumbered checkbox indented under a task line is a step of it (``nested_under``)
+BOX_FINER = r"^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+(?:\.\d+)+\.?\s+\S"
 # The placeholders of the one-group tasks example (build.py _TASKS_EXAMPLE), for the tasks.md residue item.
 # Self-check bounds that differ from the defaults. The whole-suite mutation is caught by one item, a should
 # (``implement_tasks.run.prohibited_action.full_suite_phase2``, weight 0.25): it is held to the bound of a should
@@ -504,6 +507,9 @@ def _review_fixes(it: dict) -> None:
         p["script_results"] = True
     if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
         p["phase3_fallback"] = True
+    if it["id"].endswith("create_tasks.tasks.item_format.checkbox_lines"):  # B-4
+        p["pattern"] = BOX_FINER
+        p["nested_under"] = True
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge

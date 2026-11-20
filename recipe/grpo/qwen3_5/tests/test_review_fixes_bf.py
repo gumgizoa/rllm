@@ -68,3 +68,39 @@ def test_create_tasks_format_items_read_the_stage_end_file():
         if i.startswith("create_tasks.tasks.") and it["check"]["kind"] != "unimplemented":
             want = "final" if i.endswith(".artifact_exists") else "stage_end"
             assert it["target"]["state"] == want, i
+
+
+# ---- B-4: a task split finer than the example is in format ----------------------------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.checks import artifacts as A  # noqa: E402
+
+FINER = """## Task List
+#### Task Group 1: Fix
+- [ ] 1.0 Complete the fix
+  - [ ] 1.1 Write 2-8 focused tests
+    - [ ] Test the empty input
+    - [ ] Test the long input
+  - [ ] 1.2 Change parse in src/a.py
+    - [ ] 1.2.1 Handle the empty input
+  - [ ] 1.3 Ensure the tests of this group pass
+"""
+
+
+def _ctx_text(text):
+    return SimpleNamespace(artifact_text=lambda aid, state="final": text)
+
+
+def test_finer_numbers_and_steps_under_a_task_line_are_in_format():
+    p = _item_params("create_tasks.tasks.item_format.checkbox_lines")
+    assert A.item_format(_item(p), _ctx_text(FINER)).score == 1.0
+    top = FINER + "- [ ] Clean up afterwards\n"  # an unnumbered checkbox at the top level is still out of format
+    r = A.item_format(_item(p), _ctx_text(top))
+    assert r.status == "fail" and round(r.score, 4) == round(7 / 8, 4)
+
+
+def test_nested_under_off_keeps_item_format_as_it_was():
+    p = {k: v for k, v in _item_params("create_tasks.tasks.item_format.checkbox_lines").items() if k != "nested_under"}
+    r = A.item_format(_item(p), _ctx_text(FINER))
+    assert r.status == "fail" and round(r.score, 4) == round(5 / 7, 4)  # the two unnumbered steps
+    p["pattern"] = D.BOX_NEW
+    assert round(A.item_format(_item(p), _ctx_text(FINER)).score, 4) == round(4 / 7, 4)  # and 1.2.1

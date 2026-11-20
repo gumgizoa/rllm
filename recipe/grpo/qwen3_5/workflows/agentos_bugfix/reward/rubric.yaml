@@ -3229,8 +3229,9 @@ items:
   check:
     kind: item_format
     params:
-      pattern: ^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S
+      pattern: ^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+(?:\.\d+)+\.?\s+\S
       of_pattern: ^\s*[-*+]\s+\[[^\]\n]{0,4}\]
+      nested_under: true
   requirement: should
   modality_evidence: CT:57-58 the example's task lines (should)
   none_allowed: '-'

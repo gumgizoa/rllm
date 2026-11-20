@@ -861,7 +861,7 @@ def field_type(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # Repeated items, cross references, template residue
 # --------------------------------------------------------------------------------------------
-@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False, "each_of": False})
+@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False, "each_of": False, "nested_under": False})
 def item_format(item: Item, ctx: EvalContext) -> Result:
     """Lines matching ``pattern`` in the section (or document): ``min``/``max`` count (default min 1
     unless ``max``/``of_pattern`` is given), ``sequence`` (captured ints +1 from ``start``),
@@ -870,7 +870,9 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
     format (``- **Step 1 [R4]**: complete`` is the template's ``- Step 1 [R4]: complete``). The
     ``of_pattern`` population is read as written (a bold legend line such as ``- **[P]**: parallel`` is
     no task line for being bold). ``each_of``: every line matching it must match ``pattern`` too (ratio over those
-    lines); without such a line only ``min``/``max`` decide."""
+    lines); without such a line only ``min``/``max`` decide. ``nested_under`` (with ``of_pattern``): a line of the population
+    that does not match ``pattern`` still counts when the nearest earlier population line indented less than it counts
+    (a finer step written as a checkbox under a task line)."""
     p = _params(item)
     text = _text(item, ctx)
     if text is None:
@@ -915,9 +917,29 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
     if p.get("of_pattern"):
         orx = re.compile(str(p["of_pattern"]))
         base = [line for line in lines if orx.search(line)]
-        good = sum(1 for line in base if _line_search(rx, line))
+        if p.get("nested_under"):
+            good = sum(_nested_marks(base, rx))
+        else:
+            good = sum(1 for line in base if _line_search(rx, line))
         return Result.ratio(item, good, len(base), f"{good}/{len(base)} lines in format")
     return Result.ok(item, f"{len(hits)} items")
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip(" \t"))
+
+
+def _nested_marks(base: list[str], rx: re.Pattern) -> list[bool]:
+    """Per line of ``base``: it matches ``rx``, or the nearest earlier line indented less than it counts."""
+    out: list[bool] = []
+    for i, line in enumerate(base):
+        ok = bool(_line_search(rx, line))
+        if not ok:
+            ind = _indent(line)
+            parent = next((j for j in range(i - 1, -1, -1) if _indent(base[j]) < ind), None)
+            ok = parent is not None and out[parent]
+        out.append(ok)
+    return out
 
 
 _EMPHASIS = re.compile(r"\*\*|__")

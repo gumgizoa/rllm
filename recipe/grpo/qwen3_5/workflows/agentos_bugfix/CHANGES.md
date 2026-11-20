@@ -359,6 +359,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   Execution Order 3, 하위 task 2, 그룹 제목 1, 그 결과로 순서 항목 1), 3런에서 5개가 통과에서 실패(create-tasks 끝에는 자리표시
   `[details]`가 남아 있다가 구현 중에 지운 2런, create-tasks 끝에는 형식 밖 체크박스 줄이 16개였다가 줄인 1런).
 
+- B-4 task를 예시보다 잘게 나눈 tasks.md: 체크박스 줄 형식 항목이 `1.2.1`처럼 더 깊은 번호와, 번호 있는 task 줄 아래 들여쓴 번호 없는
+  체크박스(그 task의 단계)를 형식에 맞는 줄로 봄. create-tasks.md 111 ~ 114행이 구조를 과제에 맞게 바꾸라고 하고 더 나눈 줄을 막지 않음
+  (잘게 나눈 런의 해결률이 더 높았음, 카드 6-1). 맨 바깥의 번호 없는 체크박스는 그대로 형식 밖. 공용 `item_format`에 선택 설정값
+  `nested_under`를 더함(없으면 지금 동작). 평가 499런: 50런이 실패에서 통과.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
