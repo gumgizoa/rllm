@@ -78,6 +78,7 @@ class Collected:
     snapshot: frozenset[str] = frozenset()
     inputs: dict[str, Any] = field(default_factory=dict)
     related_tests: dict[str, list[str]] | None = None
+    today: str | None = None  # the sandbox's date when the rollout began (``collect.TaskInfo.today``); None offline
 
 
 # --------------------------------------------------------------------------------------------

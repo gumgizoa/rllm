@@ -254,3 +254,43 @@ def test_level_three_headings_outside_the_task_text_are_checked():
     assert A.cross_ref(_item(p), ctx).status == "pass"
     ctx2 = SimpleNamespace(artifact_text=lambda aid, state="final": text + "### Research Findings\n", collected=SimpleNamespace(workdir="/testbed"))
     assert A.cross_ref(_item(p), ctx2).status == "fail"
+
+
+# ---- E-4 row 7: the spec folder's date is the run's date ------------------------------------------------------
+
+import datetime  # noqa: E402
+import pickle  # noqa: E402
+import subprocess  # noqa: E402
+
+from recipe.grpo.qwen3_5.workflow_rubric import collect as COL  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.context import Collected  # noqa: E402
+
+
+def test_the_task_info_script_reports_the_sandbox_date(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q", "--allow-empty", "-m", "x"], check=True)
+    out = subprocess.run(["bash", "-c", COL._task_info_script(str(tmp_path))], capture_output=True, text=True, check=True).stdout
+    info = COL.parse_task_info(out, str(tmp_path))
+    assert info.today == datetime.date.today().isoformat() and info.base_sha and not info.errors
+    # an output without the record (an older script) still parses, without a date
+    old = "\n".join(ln for ln in out.splitlines() if " DATE " not in ln)
+    assert COL.parse_task_info(old, str(tmp_path)).today is None and COL.parse_task_info(old, str(tmp_path)).base_sha == info.base_sha
+    # a Collected pickled before the field existed loads with today None (the dataclass default)
+    assert pickle.loads(pickle.dumps(Collected())).today is None
+
+
+def test_the_spec_folder_date_is_the_runs_when_known(monkeypatch):
+    monkeypatch.setattr(A, "_root", lambda c, name: "/tmp/agent-os/specs")
+    p = {"pattern": r"\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*"}
+
+    def judge(name, date, **extra):
+        ctx = SimpleNamespace(facts=SimpleNamespace(artifact_paths={"spec_dir": f"/tmp/agent-os/specs/{name}"}), collected=SimpleNamespace(today=date))
+        return A.path_match(_item({**p, **extra}, ref="spec_dir"), ctx).status
+
+    assert judge("2026-11-13-fix-x", "2026-11-13", today=True) == "pass"
+    assert judge("2026-11-14-fix-x", "2026-11-13", today=True) == "pass"  # past midnight
+    assert judge("2024-01-01-fix-x", "2026-11-13", today=True) == "fail"
+    assert judge("2024-01-01-fix-x", None, today=True) == "pass"  # offline: the shape only
+    assert judge("2024-01-01-fix-x", "2026-11-13") == "pass"  # without the parameter, as before
+
+

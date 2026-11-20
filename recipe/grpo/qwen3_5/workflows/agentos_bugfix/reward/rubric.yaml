@@ -427,6 +427,7 @@ items:
     kind: path_match
     params:
       pattern: \d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*
+      today: true
   requirement: must
   modality_evidence: SS:65 'Always use dated folder names (YYYY-MM-DD-spec-name)'; SS:29 kebab-case
   none_allowed: '-'

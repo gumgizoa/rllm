@@ -286,6 +286,11 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
 - E-4 행 8 requirements.md의 ### 절: 절 제목 항목(`shape_spec.requirements.cross_ref.2`)이 ## 제목만 보던 것을, Initial Description 밖의
   ##·### 제목이 모두 템플릿의 이름이어야 통과하게 함(## 제목은 지금처럼 ## 셋, ### 제목은 템플릿의 아홉 이름 가운데 하나)(shape-spec.md 136행 "Include ONLY the items
   specified"). 공용 `headings` 선택자에 `levels`, `skip_sections`, `tag_level`을 더함(없으면 지금 동작). 평가 499런: 3런이 통과에서 실패.
+- E-4 행 7 spec 폴더 날짜: 라이브 수집(`workflow_rubric/collect.py`의 task_info 셸 조각)이 롤아웃 시작 때 샌드박스의 날짜(`date +%Y-%m-%d`)를
+  `TaskInfo.today` → `Collected.today`로 넘기고, 폴더 이름 항목(`shape_spec.spec_dir.path_match.dated`)은 그 날짜를 알면 폴더 이름의 날짜가
+  그날이거나 다음 날(자정을 넘긴 런)이어야 통과함(core-workflow.md 44행, shape-spec.md 33행: 오늘 날짜). 날짜를 모르면(오프라인 재채점,
+  그 줄이 없는 옛 수집 출력) 지금처럼 꼴만 봄. 공용 `path_match`의 선택 설정값 `today`. 저장된 평가 499런은 오프라인이라 판정이 바뀌지 않음.
+  날짜 2026-11-13(평가일)을 넣어 다시 채점하면 4런이 통과에서 실패(2024·2025년 날짜의 폴더).
 
 
 ## 확인

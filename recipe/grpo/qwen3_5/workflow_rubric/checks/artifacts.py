@@ -22,6 +22,7 @@ or ``{heading, level, match}``.
 
 from __future__ import annotations
 
+import datetime
 import fnmatch
 import re
 
@@ -188,10 +189,11 @@ def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | N
     return Result.no(item, "only written after its stage")
 
 
-@register("path_match", params={"pattern": True, "artifact": False, "relative_to": False})
+@register("path_match", params={"pattern": True, "artifact": False, "relative_to": False, "today": False})
 def path_match(item: Item, ctx: EvalContext) -> Result:
     """The resolved path, relative to root ``relative_to`` (default ``artifact``), fully matches
-    ``pattern`` (a regex; ``glob:<pattern>`` for a glob)."""
+    ``pattern`` (a regex; ``glob:<pattern>`` for a glob). ``today``: when the sandbox's date is known
+    (``Collected.today``, online), the path's leading ``YYYY-MM-DD`` is that day or the next (a run past midnight)."""
     p = _params(item)
     path = ctx.facts.artifact_paths.get(_artifact_id(item))
     if not path:
@@ -200,6 +202,16 @@ def path_match(item: Item, ctx: EvalContext) -> Result:
     rel = path[len(base) + 1 :] if base and path.startswith(base + "/") else path
     pat = str(p["pattern"])
     ok = fnmatch.fnmatchcase(rel, pat[5:]) if pat.startswith("glob:") else re.fullmatch(pat, rel) is not None
+    today = getattr(ctx.collected, "today", None) if p.get("today") else None
+    if ok and today:
+        m = re.match(r"(\d{4}-\d{2}-\d{2})", rel)
+        try:
+            day = datetime.date.fromisoformat(today)
+            days = {day.isoformat(), (day + datetime.timedelta(days=1)).isoformat()}
+        except ValueError:
+            days = set()
+        if days and (m is None or m.group(1) not in days):
+            return Result.no(item, f"{rel}: the date is not the run's ({today})")
     return Result.ok(item, rel) if ok else Result.no(item, f"{rel} does not match")
 
 

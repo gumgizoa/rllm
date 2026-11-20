@@ -471,6 +471,8 @@ def _review_fixes(it: dict) -> None:
         p["left"]["headings"].update(levels=[2, 3], skip_sections=["Initial Description"], tag_level=True)
         p["right"]["literal"] = [f"2:{x}" for x in REQ_H2] + [f"3:{x}" for x in (*REQ_H2, *REQ_H3)]
         it["note"] = "the ## and ### headings of requirements.md, outside Initial Description, are the template's"
+    if it["id"].endswith("shape_spec.spec_dir.path_match.dated"):  # E-4 row 7: today's date (core-workflow.md 44, shape-spec.md 33)
+        p["today"] = True
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]
