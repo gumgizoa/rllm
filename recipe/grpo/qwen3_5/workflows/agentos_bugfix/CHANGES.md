@@ -379,6 +379,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   테스트 검토·검증 그룹을 뺀 같은 세 셈을 더함(구현 그룹만 센 런). 선택 설정값 `impl_counts`. 평가 499런: 55런이 실패에서 통과. 받는 값이
   여섯이 되어 작은 수에서 우연히 맞을 수 있음.
 
+- F-2 자기 테스트의 형태: 문서는 자기 테스트를 checks/ 스크립트이거나 기존 저장소 테스트 모듈에 더한 테스트 함수로 쓰게 함(create-tasks.md 127행,
+  core-workflow.md 85행). 준수율의 테스트 항목 셋(`checks.written`, `before_code`, `pass_last`)이 기준 커밋에 있던 테스트 모듈에 테스트 함수(`def test_…`,
+  `class Test…`)를 더한 쓰기도 자기 테스트로 봄. 더한 이름은 그 호출이 넣은 글(편집기의 새 글에서 옛 글을 뺀 것, 만든 파일, `cat >> … <<EOF` 같은
+  셸 명령)에서 읽고, 기존 줄을 바꾸거나 지운 쓰기(`removed_existing`)는 세지 않음. `pass_last`는 그 모듈을 고르는(경로, 위 디렉터리, 점 표기,
+  전체) 변경이 제자리에 있는 유효 실행 가운데 마지막 것이 마지막 코드 변경 뒤에 있고, 실패가 없거나 실패한 테스트 id에 더한 함수 이름이 없어야
+  맞음. `before_code`의 구간 끝은 첫 비테스트 최종 변경(`test_paths: false`)이 됨. 선택 설정값 `module_tests`, 공개 함수 `test_names`,
+  `added_test_functions`, `module_tests`. 평가 499런: `written` 63런, `pass_last` 35런, `before_code` 7런이 실패에서 통과, 통과에서 실패 0.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

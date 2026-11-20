@@ -5666,6 +5666,7 @@ items:
       dir: '{artifact}/{SPEC}/checks'
       warned: true
       fix_round: true
+      module_tests: true
   requirement: must
   modality_evidence: imperative (IT:39 'Running ONLY the tests you've written ... and ensuring those tests pass')
   none_allowed: '-'
@@ -5778,6 +5779,7 @@ items:
     params:
       rule: written
       dir: '{artifact}/{SPEC}/checks'
+      module_tests: true
   requirement: must
   modality_evidence: CT:215 every test a task group writes is a script under checks/ or a function added to an existing test
     module; CW:84-85 likewise
@@ -5824,7 +5826,9 @@ items:
             fact: repo_edit
             final: true
             window: stage:implement_tasks
+            test_paths: false
         - stage_end:implement_tasks
+      module_tests: true
   requirement: must
   modality_evidence: imperative (CT:214 'each task group starts with writing 2-8 tests (x.1 sub-task)')
   none_allowed: '-'

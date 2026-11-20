@@ -165,3 +165,35 @@ def test_total_tasks_may_leave_the_review_group_out():
         assert _tasks_rule(text.format(n), p).status == "pass", n
     assert _tasks_rule(text.format(6), p).status == "fail"
     assert _tasks_rule(text.format(3), {"rule": "total"}).status == "fail"  # as before: only the three counts
+
+
+# ---- F-2: a test function added to an existing test module is the run's own test ------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import Collected, WriteEvent  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Run, Step  # noqa: E402
+
+ADDED = "    def test_keeps_sign(self):\n        self.assertEqual(parse('-1'), -1)\n"
+
+
+def _module_ctx(old="    def test_old(self):\n        pass\n", removed=False):
+    run = Run("t", [Step(5, [Action("replace", "file_editor", path="/testbed/tests/test_a.py", old=old, text=old + ADDED)]),
+                    Step(6, [Action("shell", "terminal", command="cat >> /testbed/tests/test_b.py <<'EOF'\ndef test_b_new():\n    assert 1\nEOF")])])
+    writes = [WriteEvent(path="tests/test_a.py", step=5, op="edit", action_index=0, removed_existing=removed),
+              WriteEvent(path="tests/test_b.py", step=6, op="append", action_index=0),
+              WriteEvent(path="tests/test_new.py", step=7, op="create", content="def test_x():\n    pass\n")]
+    facts = SimpleNamespace(repo_writes=writes, _created={"/testbed/tests/test_new.py": 7})
+    return SimpleNamespace(run=run, facts=facts, collected=Collected(workdir="/testbed"), cache={})
+
+
+def test_a_test_function_added_to_an_existing_module_counts():
+    mods = C.module_tests(_module_ctx())
+    assert mods == {"tests/test_a.py": (5, {"test_keeps_sign"}), "tests/test_b.py": (6, {"test_b_new"})}  # not the new test file
+    assert C.module_tests(_module_ctx(removed=True)).keys() == {"tests/test_b.py"}  # an edit that changed an existing line adds none
+    assert C.test_names("class TestX:\n    async def test_y(self): ...\n") == {"TestX", "test_y"}
+
+
+def test_the_checks_items_take_module_tests():
+    for suffix in ("agentos_bugfix_checks.written", "agentos_bugfix_checks.before_code", "agentos_bugfix_checks.pass_last"):
+        assert _item_params(suffix).get("module_tests") is True, suffix
+    first = _item_params("agentos_bugfix_checks.before_code")["window"][1][0]["first"]
+    assert first["fact"] == "repo_edit" and first["test_paths"] is False

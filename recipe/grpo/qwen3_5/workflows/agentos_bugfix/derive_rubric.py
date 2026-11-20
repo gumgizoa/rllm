@@ -520,6 +520,11 @@ def _review_fixes(it: dict) -> None:
     if kind == f"{NEW}.tasks" and p.get("rule") == "total":  # B-6 row 3: "Total Tasks: [count]" (create-tasks.md 48) says not what to count
         p["impl_counts"] = True
         p["wide_words"] = True
+    if kind == f"{NEW}.checks":  # F-2: a test function added to an existing test module is the run's test too (CT 127, CW 85)
+        p["module_tests"] = True
+        first = ((p.get("window") or [None, [None]])[1] or [None])[0] if isinstance(p.get("window"), list) else None
+        if isinstance(first, dict) and isinstance(first.get("first"), dict) and first["first"].get("fact") == "repo_edit":
+            first["first"]["test_paths"] = False  # before_code: the window ends at the first code change, not at a test written first
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge

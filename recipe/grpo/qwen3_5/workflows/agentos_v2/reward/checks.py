@@ -965,6 +965,80 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # agentos_v2.checks
 # --------------------------------------------------------------------------------------------
+# a test function or class definition (create-tasks.md 127: "a new test function added to the existing repository test
+# module that covers the changed code")
+_TEST_DEF = re.compile(r"(?m)^\s*(?:async\s+)?def\s+(test\w*)\s*\(|^\s*class\s+(Test\w*)\b")
+
+
+def test_names(text: str | None) -> set[str]:
+    """The test functions and classes ``text`` defines."""
+    return {a or b for a, b in _TEST_DEF.findall(text or "")}
+
+
+def _action_of(ctx: EvalContext, step: int, index: int | None):
+    for st in ctx.run.steps:
+        if st.n == step:
+            acts = st.actions
+            if index is not None and 0 <= index < len(acts):
+                return acts[index]
+            return acts[0] if len(acts) == 1 else None
+    return None
+
+
+def added_test_functions(ctx: EvalContext, e) -> set[str]:
+    """The test functions / classes a repository write ``e`` adds: named in the text its call put into the file and not in
+    the text it replaced (an editor replace or insert, a created file, a shell command such as ``cat >> f <<EOF``). A
+    write that changed or removed an existing line (``removed_existing``) adds none: the documents never change an
+    existing test line."""
+    if getattr(e, "removed_existing", None):
+        return set()
+    a = _action_of(ctx, int(e.step), getattr(e, "action_index", None))
+    if a is None:
+        return test_names(e.content) if e.op == "create" else set()
+    if a.kind in ("replace", "insert", "create", "write"):
+        return test_names(a.text) - test_names(a.old)
+    if a.kind == "shell":
+        return test_names(a.command)
+    return set()
+
+
+def module_tests(ctx: EvalContext, w=None) -> dict[str, tuple[int, set[str]]]:
+    """Repository test modules that existed at BASE_SHA and to which a write in the window added a test function:
+    repo-relative path -> (step of the first such write, the names added). The run's own tests besides its check scripts
+    (create-tasks.md 127, core-workflow.md 85)."""
+    out: dict[str, tuple[int, set[str]]] = {}
+    for e in ctx.facts.repo_writes:
+        if e.ok is False or (w is not None and not refs.in_window(e.step, w)) or not F.is_test_path(e.path) or F.is_new_path(ctx, e.path):
+            continue
+        names = added_test_functions(ctx, e)
+        if not names:
+            continue
+        first, have = out.get(e.path, (int(e.step), set()))
+        out[e.path] = (min(first, int(e.step)), have | names)
+    return out
+
+
+def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) -> dict[str, list[tuple[int, str]]]:
+    """Per module of :func:`module_tests`: (step, pass | fail) of the valid runs with the change in place that select it
+    (its path, a directory or label above it, or the whole suite) after the first added function. A run fails it when it
+    has failures and a failing test id names one of the added functions (or, the ids unknown, when it has failures)."""
+    wd = ctx.collected.workdir
+    out: dict[str, list[tuple[int, str]]] = {}
+    for r in change_runs(ctx):
+        if not refs.in_window(r.step, w):
+            continue
+        files = R.run_files(r, wd)
+        whole = bool(_whole(r, wd))
+        bad = r.failed + r.errors > 0
+        ids = E.failing_ids(r.observation or "") if bad else []
+        for m, (first, names) in mods.items():
+            if r.step <= first or not (whole or any(R.selects(t, m) for t in files)):
+                continue
+            fails = bad and (not ids or any(n in i for i in ids for n in names))
+            out.setdefault(m, []).append((int(r.step), "fail" if fails else "pass"))
+    return out
+
+
 def check_scripts(ctx: EvalContext, d: str, upto: int | None = None) -> list[str]:
     """Script files under ``d`` the trace wrote (a content write at or before ``upto``)."""
     pre = d.rstrip("/") + "/"
@@ -977,9 +1051,13 @@ def check_scripts(ctx: EvalContext, d: str, upto: int | None = None) -> list[str
     return sorted(out)
 
 
-@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
+@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False, "module_tests": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
 def checks(item: Item, ctx: EvalContext) -> Result:
-    """rule: written | pass_last -- the check scripts under ``dir``: written in the window; each one run in the window last ran passing, after the window's last code change."""
+    """rule: written | pass_last -- the check scripts under ``dir``: written in the window; each one run in the window last ran passing, after the window's last code change.
+
+    ``module_tests``: a test function added to a repository test module that existed at BASE_SHA (:func:`module_tests`) is
+    a test of the run's own as well: it counts as written, and its module's last run with the change in place
+    (:func:`_module_results`) is judged like a script's last run."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     d = _expand_dir(ctx, str(p["dir"]))
@@ -989,13 +1067,15 @@ def checks(item: Item, ctx: EvalContext) -> Result:
     if w is None:
         return Result.no(item, "window empty")
     end = w[1] if w[1] is not None else ctx.facts.n_steps + 2
+    mods = module_tests(ctx, w) if p.get("module_tests") else {}
     if rule == "written":
-        got = [s for s in check_scripts(ctx, d) if any(refs.in_window(e.step, w) for e in _content_events(ctx, s))]
+        got = [s for s in check_scripts(ctx, d) if any(refs.in_window(e.step, w) for e in _content_events(ctx, s))] + sorted(mods)
         return Result.ok(item, f"{len(got)} written: {[posixpath.basename(s) for s in got][:3]}") if got else Result.no(item, f"no script written under {d}/ in the window")
     scripts = check_scripts(ctx, d, upto=end - 1)
     runs = executions(ctx, set(scripts))
     runs = {s: [(st, o) for st, o in r if refs.in_window(st, w)] for s, r in runs.items()}
-    pool = [s for s in scripts if runs.get(s)]
+    runs.update(_module_results(ctx, mods, w))
+    pool = [s for s in scripts if runs.get(s)] + [m for m in sorted(mods) if runs.get(m)]
     if not pool:
         return Result.no(item, f"no check script under {d}/ run in the window")
     changes = _change_steps(ctx, w, authored=bool(p.get("fix_round")))  # the documents' check of a failure against the unchanged code is a stash and a pop
