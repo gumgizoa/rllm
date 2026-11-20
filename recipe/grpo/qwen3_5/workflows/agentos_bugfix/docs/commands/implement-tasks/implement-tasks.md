@@ -36,7 +36,7 @@ Implement all tasks assigned to you and ONLY those task(s) that have been assign
 - **User Standards & Preferences** which are defined below.
 
 ## Self-verify and test your work by:
-- Running the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.
+- Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.
 - IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again before you tick the task group's last sub-task. After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.
 
 ## Next step

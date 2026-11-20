@@ -253,7 +253,8 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "one task group per pass of PHASE 2. If, while implementing, you find work the change needs that no task covers (another file to change, a case the tasks miss), "
          "add it to `agent-os/specs/[this-spec]/tasks.md` first, as a new sub-task of the current task group or as a new task group at the end, and implement it as an assigned task. "
          "Add lines only: do not reword or remove the tasks that are there.", "T3: a missing task is added to tasks.md, then implemented"),
-        ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (if any;", "T1: test scope"),
+        ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task;",
+         "T1: test scope; T9: every implementation task group writes its tests (create-tasks), so there is no 'if any'"),
         ("sub", "run through that module with the test runner) and ensuring those tests pass.",
          "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "
          "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.",

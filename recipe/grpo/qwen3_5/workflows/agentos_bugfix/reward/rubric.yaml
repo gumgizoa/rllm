@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 30b0d403047cfab8eb3c4977e311755e95c8c5f4db6226ae472a6c2b4e0686c9
+  sha256: c9834f6f133f8ccde077acda72223475619bbd6d8630d4448c4c607737d8a75f
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -5669,9 +5669,10 @@ items:
     lines:
     - 38
     - 39
-    quote: '## Self-verify and test your work by: - Running the tests you''ve written (if any; they are check scripts under
-      `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through
-      that module with the test runner) and the existing tests of the code you changed, and ensuring they pass.'
+    quote: '## Self-verify and test your work by: - Running the tests you''ve written (each implementation task group writes
+      them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions
+      you added to an existing repository test module, run through that module with the test runner) and the existing tests
+      of the code you changed, and ensuring they pass.'
   impl_refs: []
   derived_by: manual
   template: ''

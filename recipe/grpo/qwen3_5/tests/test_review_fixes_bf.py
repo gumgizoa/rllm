@@ -37,3 +37,14 @@ def _item(params: dict, ref: str = "tasks", state: str = "final", iid: str = "x"
 def test_the_implement_stage_spec_read_is_dropped():
     assert "implement_tasks.run.agentos_bugfix_read.spec_inputs" not in ITEMS
     assert "create_tasks.run.agentos_bugfix_read.spec_inputs" in ITEMS
+
+
+# ---- F-3, decision 1: implement-tasks no longer says a task group may write no tests ------------------------------
+
+
+def test_implement_tasks_says_every_implementation_group_writes_its_tests_first():
+    it = (WF / "docs" / "commands" / "implement-tasks" / "implement-tasks.md").read_text(encoding="utf-8")
+    assert "(if any" not in it.split("## Self-verify")[1].split("## Next step")[0]
+    assert "each implementation task group writes them first, as its x.1 sub-task;" in it
+    src = next(s for s in ITEMS["implement_tasks.run.agentos_bugfix_checks.pass_last"]["sources"] if "Running the tests" in s["quote"])
+    assert "each implementation task group writes them first" in src["quote"]

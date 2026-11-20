@@ -111,6 +111,8 @@ REWORD = (
     ("There are no repeat rounds.", "There are no repeat rounds,"),
     # T1 test scope
     ("- Running ONLY the tests you've written", "- Running the tests you've written"),
+    # T9 (reward review 2026-11-20, user decision 1): "(if any; ...)" -> every implementation task group writes its tests
+    ("(if any; they are check scripts under", "(each implementation task group writes them first, as its x.1 sub-task; they are check scripts under"),
     ("Test verification should run ONLY the newly written tests, not the entire suite", "Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite"),
     ("and ends with running ONLY those tests (fin", "and ends with running those tests and the existing tests of the changed code (fin"),
     ("ends with running ONLY those tests (final sub-task)", "ends with running those tests and the existing tests of the changed code (final sub-task)"),
