@@ -230,6 +230,7 @@ def derive() -> tuple[dict, dict]:
     }
     rub["generated"].pop("cache", None)
     rub["scoring"]["selftest"] = {**(rub["scoring"].get("selftest") or {}), **SELFTEST}
+    rub["scoring"]["close_on_artifact"] = True  # D-3: reading the next document early does not close a stage before its file is written
     return rub, report
 
 

@@ -7170,6 +7170,7 @@ scoring:
     x_fill_no_real_test_compliance_max: 0.5
     honest_golden_min: 0.95
     full_suite_rerun_min_drop: 0.00125
+  close_on_artifact: true
 conflicts:
 - type: documented
   description: create-tasks PHASE 1 reads spec.md / requirements.md only when they are not in the conversation context (CT:13),

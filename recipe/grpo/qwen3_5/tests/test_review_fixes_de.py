@@ -399,3 +399,37 @@ def test_an_absent_first_repository_write_leaves_the_chain():
     assert ACT.order(_item(dict(p)), ctx).score == 0.0
     r = ACT.order(_item({**p, "skip_if_absent": ["first_repo_write"]}), ctx)
     assert r.score == 0.0 and r.detail.startswith("0/1")  # one pair left (read:IT, read:IT), not two
+
+
+# ---- D-3: reading the next document early does not close a stage before its file is written --------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric import facts as F  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.context import Collected, DocRead, Facts, WriteEvent  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward.eval import Evaluation as BugfixEvaluation  # noqa: E402
+
+SPEC = "/tmp/agent-os/specs/2026-11-13-x"
+
+
+def _windows(close: bool):
+    rubric = BugfixEvaluation().rubric
+    if not close:
+        rubric = SimpleNamespace(**{**vars(rubric), "scoring": {k: v for k, v in rubric.scoring.items() if k != "close_on_artifact"}})
+    f = Facts(n_steps=60)
+    w = lambda path, step, op="create": WriteEvent(path=SPEC + path, step=step, op=op, content="x")  # noqa: E731
+    f.writes = {SPEC + "/planning/initialization.md": [w("/planning/initialization.md", 5)],
+                SPEC + "/planning/requirements.md": [w("/planning/requirements.md", 8), w("/planning/requirements.md", 9, "append"), w("/planning/requirements.md", 20, "edit")],
+                SPEC + "/spec.md": [w("/spec.md", 26)], SPEC + "/tasks.md": [w("/tasks.md", 30)]}
+    f.doc_reads = {d: [DocRead(doc=d, step=s, via="command", coverage=1.0)] for d, s in (("SS", 2), ("WS", 7), ("CT", 28), ("IT", 31))}
+    f.repo_writes = [WriteEvent(path="src/a.py", step=35, op="edit")]
+    F._windows(f, rubric, Collected(workdir="/testbed"))
+    return f.windows
+
+
+def test_a_stage_whose_next_document_was_read_early_ends_after_its_file():
+    assert _windows(close=False)["shape_spec"] == (2, 7)  # as before: closed by the early read of write-spec
+    w = _windows(close=True)
+    assert w["shape_spec"] == (2, 21)  # the writes of requirements.md up to spec.md's first write belong to shape-spec
+    assert w["write_spec"][0] == 7  # write-spec keeps its start: the early read is the order item's to count
+    assert w["create_tasks"] == _windows(close=False)["create_tasks"]
+
+

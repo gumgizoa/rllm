@@ -915,6 +915,34 @@ def _sequential_reads(f: Facts, rubric: Rubric, c: Collected, oa) -> None:
         f.windows[st.id] = (starts[k], next((s for s in starts[k + 1 :] if s is not None), None))
 
 
+def _close_on_artifact(f: Facts, rubric: Rubric, c: Collected, oa) -> None:
+    """``scoring.close_on_artifact``: a stage whose closing artifact (its order artifact) is first written only after the
+    next stage's document was opened -- the next document read ahead -- ends after that artifact's last write before the
+    next stage's work: the first write of one of the next stage's artifacts, the first read of a later stage's document,
+    or the first repository write, whichever comes first. The next stage keeps its start, so the two windows overlap:
+    the run is judged as if it had opened the next document just before starting that stage's work, and the early read
+    is left to the order item."""
+    stages = rubric.stages
+    for k in range(len(stages) - 1):
+        w, nxt = f.windows.get(stages[k].id), f.windows.get(stages[k + 1].id)
+        aid = oa(k)
+        if not w or not nxt or w[1] is None or not aid or aid not in rubric.artifacts:
+            continue
+        first = _first_write_from(f, rubric, c, aid, w[0])
+        if first is None or first < w[1]:
+            continue
+        stops = [_own_first_write(f, rubric, c, stages[k + 1], first + 1)]
+        for st in stages[k + 2 :]:
+            if st.doc:
+                rs = [r.step for r in f.doc_reads.get(st.doc, []) if r.step > first]
+                stops.append(min(rs) if rs else None)
+        stops.append(next((e.step for e in f.repo_writes if e.ok is not False and e.step > first), None))
+        stop = min((x for x in stops if x is not None), default=f.n_steps + 1)
+        steps = [e.step for p in location_paths(rubric, f, c, rubric.artifacts[aid]) for e in f.writes.get(p, [])
+                 if e.ok is not False and e.op in WRITE_OPS and e.op != "move_in" and first <= e.step < stop]
+        f.windows[stages[k].id] = (w[0], max(steps) + 1)
+
+
 def _windows(f: Facts, rubric: Rubric, c: Collected) -> None:
     mode = str((rubric.scoring or {}).get("windows", "reads"))
     after_start = (rubric.scoring or {}).get("next_read") == "after_start"
@@ -929,6 +957,8 @@ def _windows(f: Facts, rubric: Rubric, c: Collected) -> None:
 
     if mode != "writes" and after_start:
         _sequential_reads(f, rubric, c, oa)
+        if (rubric.scoring or {}).get("close_on_artifact"):
+            _close_on_artifact(f, rubric, c, oa)
         return
     reads_start: list[int | None] = []
     for st in stages:
