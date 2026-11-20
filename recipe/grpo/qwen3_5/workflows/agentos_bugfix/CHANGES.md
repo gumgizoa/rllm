@@ -460,6 +460,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   matplotlib__matplotlib-21568 한 런이 통과에서 실패(checks/ 스크립트 test_datetime_spacing.py가 값을 출력만 함). 이 런의 implement_tasks 단계
   점수는 이미 0이라 준수율은 그대로.
 
+- D-6 행 12 보강: 그룹별 판정이 기존 테스트 모듈에 대해서는 모듈마다 첫 함수 추가만 "테스트를 처음 쓴 기록"으로 셌음. 그래서 그룹 2가 그룹 1이
+  쓴 모듈에 자기 테스트 함수를 더하는 F-2의 문서 허용 형태가 실패했음(가짜 런 `branches_implement.py` 분기 지점 5·20·22의 "기존 테스트 모듈에 함수로
+  추가함" 준수율 0.9893). 함수 하나하나가 자기 테스트이므로, 전에 더하지 않은 이름의 테스트 함수를 더한 쓰기마다 그 테스트의 첫 쓰기로 셈.
+  checks/ 스크립트는 그대로 스크립트마다 첫 쓰기. 평가 499런: 판정 변화 0. 그 가짜 런 선택지는 준수율 1.0이 됨.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

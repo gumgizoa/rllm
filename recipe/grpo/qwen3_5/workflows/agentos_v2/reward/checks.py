@@ -1255,12 +1255,21 @@ def has_verdict(ctx: EvalContext, script: str) -> bool:
 
 
 def own_test_first_writes(ctx: EvalContext, d: str, w=None, modules: bool = True, verdict: bool = False) -> list[int]:
-    """Steps at which the run first wrote one of its own tests: a check script under ``d`` (``verdict``: one that has a
-    verdict, :func:`has_verdict`), or (``modules``) the first test function it added in the window to an existing
-    repository test module (:func:`module_tests`)."""
+    """Steps at which the run first wrote one of its own tests: a check script under ``d`` (its first write; ``verdict``:
+    one that has a verdict, :func:`has_verdict`), or (``modules``) a test function added in the window to an existing
+    repository test module (as :func:`module_tests` finds them) -- each function is a test of its own, so every write
+    that adds a name not added before counts, not only the module's first."""
     out = [min(e.step for e in _content_events(ctx, s_)) for s_ in check_scripts(ctx, d) if _content_events(ctx, s_) and (not verdict or has_verdict(ctx, s_))]
     if modules:
-        out += [first for first, _ in module_tests(ctx, w).values()]
+        mods = module_tests(ctx, w)
+        seen: dict[str, set[str]] = {}
+        for e in sorted(ctx.facts.repo_writes, key=lambda e: int(e.step)):
+            if e.path not in mods or e.ok is False or (w is not None and not refs.in_window(e.step, w)):
+                continue
+            new = added_test_functions(ctx, e) - seen.setdefault(e.path, set())
+            if new:
+                seen[e.path] |= new
+                out.append(int(e.step))
     return sorted(out)
 
 

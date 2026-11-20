@@ -464,3 +464,18 @@ def test_an_exploring_script_is_not_a_test_written_first(monkeypatch):
     assert C.checks(item, ctx).status == "pass"
     assert _item_params("agentos_bugfix_checks.before_code").get("verdict") is True
     assert not _item_params("agentos_bugfix_checks.written").get("verdict")
+
+
+def test_each_test_function_added_to_a_module_is_a_test_written(monkeypatch):
+    # D-6 row 12 with F-2's module form: group 2 adds its test function to the module group 1 added to first
+    ctx = _group_ctx(monkeypatch, [], [20, 40])
+    mod = "tests/test_a.py"
+    ctx.facts.repo_writes += [WriteEvent(path=mod, step=12, op="edit"), WriteEvent(path=mod, step=35, op="edit"), WriteEvent(path=mod, step=50, op="edit")]
+    added = {12: {"test_one"}, 35: {"test_two"}, 50: {"test_two"}}  # step 50 rewrites test_two: no new test
+    monkeypatch.setattr(C, "module_tests", lambda ctx, w=None: {mod: (12, {"test_one", "test_two"})})
+    monkeypatch.setattr(C, "added_test_functions", lambda ctx, e: set(added.get(int(e.step), set())))
+    assert C.own_test_first_writes(ctx, CHECKS, w=(10, 100)) == [12, 35]
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x", "module_tests": True, "per_group": True}, ref="run")
+    assert C.checks(item, ctx).status == "pass"
+    added[35] = set()  # group 2 adds no test before its code change
+    assert C.checks(item, ctx).status == "fail"
