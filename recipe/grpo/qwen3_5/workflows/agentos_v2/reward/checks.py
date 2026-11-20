@@ -1029,7 +1029,7 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         if text is None:
             return Result.no(item, "tasks.md unknown at the end of the window")
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
-        changes = _change_steps(ctx, w, authored=True)
+        changes = sorted(x for x in F.source_change_steps(ctx) if refs.in_window(x, w))  # source, not a byproduct of a run (.fits)
         results = timed_results(ctx, d)
         details = task_details(text)
         pool, bad, untested = 0, [], []
