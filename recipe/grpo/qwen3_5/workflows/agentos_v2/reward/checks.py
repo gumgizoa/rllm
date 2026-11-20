@@ -36,7 +36,9 @@ repository prohibitions and the test runs. What they cannot say:
                                  by its reads, a task naming no file by any work in the window before the tick, and a
                                  tick after unreplayable writes at the earliest step it can have been made
       {rule: groups_in_order}    the groups are ticked in order: group k's last tick is not after group k+1's first
-                                 (ratio over adjacent pairs)
+                                 (ratio over adjacent pairs); with ``work_between`` there is also some work (a repository or
+                                 checks write, a test or script run) between group k's last tick and group k+1's last
+                                 ``[x]`` tick
       {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio);
                                  with ``additions: true`` a write may also add lines (new tasks) and change the
                                  ``Total Tasks`` line, as long as every earlier line is still there, in order
@@ -883,7 +885,7 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False, "work_between": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
@@ -982,6 +984,14 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
                 return Result.not_applicable(item, "fewer than two groups ticked")
             pairs = list(zip(ns, ns[1:], strict=False))
             good = [a for a, b in pairs if max(by[a]) <= min(by[b]) and (max(by[a]) < min(by[b]) or len(by[a]) + len(by[b]) <= 2)]
+            if p.get("work_between"):  # one task group per pass of PHASE 2: some work between a group's last tick and the next one's
+                ws = work_steps(ctx, _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None)
+                done: dict[int, list[int]] = {}  # [x] ticks only: a group marked ⚠️ throughout says it was not implemented
+                for t in pool:
+                    s_ = when.get(t["id"])
+                    if t["group"] and t["checked"] and s_ is not None and s_ is not UNKNOWN:
+                        done.setdefault(t["group"]["n"], []).append(s_)
+                good = [a for a, b in pairs if a in good and (b not in done or any(max(by[a]) < x <= max(done[b]) for x in ws))]
             return Result.ratio(item, len(good), len(pairs), f"{len(good)}/{len(pairs)} adjacent groups ticked in order")
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
         nf = bool(p.get("name_files"))

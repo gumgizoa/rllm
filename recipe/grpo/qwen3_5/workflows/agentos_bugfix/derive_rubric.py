@@ -529,6 +529,9 @@ def _review_fixes(it: dict) -> None:
         p["written_before"] = True
     if kind == f"{NEW}.tasks" and p.get("rule") == "ticked_after_work":  # B-1, B-8 row 2
         p["name_files"] = True
+    if kind == f"{NEW}.tasks" and p.get("rule") == "groups_in_order":  # B-8 row 3: one task group per pass of PHASE 2 (IT 25, 46)
+        p["work_between"] = True
+        p["dir"] = CHECKS_DIR
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge

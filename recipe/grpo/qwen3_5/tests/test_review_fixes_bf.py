@@ -279,3 +279,19 @@ def test_a_tick_after_an_unreplayable_write_is_placed_at_its_earliest_step(windo
     assert C.tick_bounds(ctx, "tasks") == {"1.1": (30, 40)}
     assert C.tasks(_item({"rule": "ticked_after_work"}), ctx).status == "fail"  # as before: UNKNOWN
     assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), ctx).status == "pass"
+
+
+# ---- B-8 row 3: some work between one task group's ticks and the next one's -----------------------------------------
+
+
+def test_groups_ticked_in_a_row_after_all_the_work_fail_with_work_between(window):
+    plan = "#### Task Group 1: A\n- [{a}] 1.1 Change `src/a.py`\n#### Task Group 2: B\n- [{b}] 2.1 Change `src/b.py`\n"
+    writes = [WriteEvent(path="src/a.py", step=20, op="edit"), WriteEvent(path="src/b.py", step=25, op="edit")]
+    batch = _tick_ctx([(5, plan.format(a=" ", b=" ")), (40, plan.format(a="x", b=" ")), (41, plan.format(a="x", b="x"))], repo_writes=writes)
+    p = {"rule": "groups_in_order"}
+    assert C.tasks(_item(dict(p)), batch).status == "pass"  # as before: the ticks are in group order
+    assert C.tasks(_item({**p, "work_between": True}), batch).status == "fail"
+    passes = _tick_ctx([(5, plan.format(a=" ", b=" ")), (22, plan.format(a="x", b=" ")), (41, plan.format(a="x", b="x"))], repo_writes=writes)
+    assert C.tasks(_item({**p, "work_between": True}), passes).status == "pass"
+    warned = _tick_ctx([(5, plan.format(a=" ", b=" ")), (40, plan.format(a="x", b=" ")), (41, plan.format(a="x", b="⚠️"))], repo_writes=writes)
+    assert C.tasks(_item({**p, "work_between": True}), warned).status == "pass"  # group 2 marked not done: no work asked for

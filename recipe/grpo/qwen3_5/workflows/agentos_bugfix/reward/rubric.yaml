@@ -3785,6 +3785,8 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: groups_in_order
+      work_between: true
+      dir: '{artifact}/{SPEC}/checks'
   requirement: must
   modality_evidence: imperative (IT:19 'all task groups in tasks.md, in order'; IT:25 'one task group per pass of PHASE 2';
     IT:45)

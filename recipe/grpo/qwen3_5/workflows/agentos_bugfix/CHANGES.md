@@ -399,6 +399,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   `name_files`, 공개 이름 `FILE_EXT`, `READ_VERB`, `named_files`, `file_evidence_steps`, `work_steps`, `tick_bounds`.
   평가 499런: 204런이 실패에서 통과, 1런(django__django-13449: 코드를 모두 구현 단계 전에 고치고 구현 단계에서 체크만 함)이 통과에서 실패.
 
+- B-8 행 3 그룹마다 한 번의 구현 (`groups_in_order`, 필수): 이웃한 두 그룹의 체크 순서만 보던 것을, 앞 그룹의 마지막 체크 뒤부터 다음 그룹의
+  마지막 `[x]` 체크까지 일(저장소·checks/ 쓰기, 테스트·스크립트·인터프리터 실행)이 하나라도 있어야 그 쌍이 맞게 함(implement-tasks.md 25행
+  "one task group per pass of PHASE 2", 46행). 구현을 모두 끝낸 뒤 그룹 체크만 이어 쓴 런이 잡힘. 다음 그룹이 모두 ⚠️(구현하지 않았다고
+  표시)이면 일은 묻지 않음. 선택 설정값 `work_between`. 평가 499런: 47런이 통과에서 실패.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
