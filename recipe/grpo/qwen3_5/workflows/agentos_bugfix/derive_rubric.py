@@ -416,6 +416,15 @@ REUSE_PATTERN = (
 EXISTING_PATTERN = r"(?i)No similar existing features identified for reference|`?\(assumed\)`?\s+(?:`[^`\n]+`|[^\s`]+`?)\s+(?:—|–|--?)\s+\S"
 # E-4 row 4: every "- Feature: ... Path: ..." line of Existing Code to Reference (template 160) is in that notation,
 # not only one of them; the template's other lines (161-162) are free text.
+# E-4 row 5: placeholders the documents use that no template residue list had. core-workflow.md 44-45: [this-spec],
+# [current-spec] and [spec-path] each mean the one spec folder, so written as such they are a path left unfilled;
+# shape-spec.md 103-108 is the question frame whose bracketed parts are to be replaced.
+FOLDER_PLACEHOLDERS = ("[this-spec]", "[current-spec]", "[spec-path]")
+QUESTION_PLACEHOLDERS = ("[specific assumption]", "[specific approach]", "[Continue with numbered questions...]", "[Last numbered question about exclusions]")
+RESIDUE_ITEMS = {"shape_spec.requirements.no_template_residue": FOLDER_PLACEHOLDERS + QUESTION_PLACEHOLDERS,
+                 "write_spec.spec.no_template_residue": FOLDER_PLACEHOLDERS,
+                 "create_tasks.tasks.no_template_residue": FOLDER_PLACEHOLDERS,
+                 "implement_tasks.final_verification.no_template_residue": FOLDER_PLACEHOLDERS}
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
@@ -429,6 +438,9 @@ def _review_fixes(it: dict) -> None:
     if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2, E-4 row 4
         p["pattern"] = EXISTING_PATTERN
         p["each_of"] = FEATURE_LINE
+    extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
+    if extra:  # E-4 row 5
+        p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]
 
 
 def _locate(src: dict, docs: dict[str, Doc]) -> tuple[int, int] | None:

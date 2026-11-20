@@ -252,6 +252,10 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
 - E-4 행 4 Existing Code to Reference의 모든 Feature 줄: 줄 형식 항목이 (assumed) 표기 줄 하나만 있으면 통과하던 것을, 템플릿 160행의
   `- Feature: … - Path: …` 줄이 모두 그 표기여야 통과하게 함(그 줄들에 대한 비율 점수). 템플릿 161 ~ 162행의 다른 줄은 보지 않음.
   공용 `item_format`에 선택 설정값 `each_of`를 더해 구현함(없으면 지금 동작). 평가 499런: 11런이 통과에서 실패(Feature 줄에 (assumed)가 없음).
+- E-4 행 5 문서의 자리표시: 잔재 항목(필수, 단계 점수 상한 0.1)에 문서가 쓰는 자리표시를 더함. tasks.md·spec.md·requirements.md·보고서에
+  `[this-spec]`, `[current-spec]`, `[spec-path]`(core-workflow.md 44 ~ 45행: 모두 spec 폴더 하나를 뜻함), requirements.md에 shape-spec Step 2 질문
+  틀의 `[specific assumption]`, `[specific approach]`, `[Continue with numbered questions...]`, `[Last numbered question about exclusions]`.
+  평가 499런: 9런이 통과에서 실패 (tasks.md 7, spec.md 1, requirements.md 1).
 
 
 ## 확인

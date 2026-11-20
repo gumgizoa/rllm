@@ -1578,6 +1578,13 @@ items:
       - \[Existing\ system\ constraints\]
       - \[Technology\ preferences\ stated\]
       - \[Similar\ code\ patterns\ to\ follow\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
+      - \[specific\ assumption\]
+      - \[specific\ approach\]
+      - \[Continue\ with\ numbered\ questions\.\.\.\]
+      - \[Last\ numbered\ question\ about\ exclusions\]
   requirement: must
   modality_evidence: 'binding docs/commands/shape-spec/shape-spec.md:210-210 ''Use the following structure and do not deviate
     from this structure when writing your ga...'' (prohibition: do not); dict prohibition (''do not'' at SS:210)'
@@ -2597,6 +2604,9 @@ items:
       - \[repeat\ for\ up\ to\ 5\ existing\ code\ areas\]
       - \[up\ to\ 10\ concise\ descriptions\ of\ specific\ features\ that\ are\ out\ of\ scope\ and\ MUST\ NOT\ be\ built\
         in\ this\ spec\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: 'binding docs/commands/write-spec/write-spec.md:57-57 ''Follow this structure exactly when creating the
     content of `spec.md`:'' (must: exactly); dict prohibition (''MUST NOT'' at WS:92)'
@@ -3267,6 +3277,9 @@ items:
       - \[existing\ code\ if\ applicable\]
       - \[Next\ change\ to\ make\]
       - \[what\ works\ once\ this\ group\ is\ done\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: CT:42 'adapt the content of the tasks list to match what THIS feature actually needs'
   none_allowed: '-'
@@ -5019,6 +5032,9 @@ items:
       - \[count\]
       - \[List\ any\ failing\ tests\ with\ their\ descriptions,\ or\ note\ "None\ \-\ all\ tests\ passing"\]
       - \[Any\ additional\ context\ about\ test\ results,\ known\ issues,\ or\ regressions\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: 'binding docs/commands/implement-tasks/implement-tasks.md:249-249 ''The content of this report should
     follow this structure:'' (should: should); dict must (''checkbox'' at IT:272)'

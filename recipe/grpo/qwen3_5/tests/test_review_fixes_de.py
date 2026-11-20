@@ -89,3 +89,15 @@ def test_each_of_off_keeps_item_format_as_it_was():
     p = {"pattern": r"\(assumed\)\s+`[^`\n]+`\s+—\s+\S", "section": "Existing Code to Reference"}
     half = "- Feature: parser - Path: (assumed) `src/a.py` — reads x\n- Feature: lexer - Path: src/c.py"
     assert _existing(half, p).status == "pass"  # one matching line is enough without each_of
+
+
+# ---- E-4 row 5: the documents' folder placeholders and question frame ------------------------------------------
+
+
+def test_document_placeholders_are_template_residue():
+    for suffix, ref in (("create_tasks.tasks.no_template_residue", "tasks"), ("write_spec.spec.no_template_residue", "spec"),
+                        ("shape_spec.requirements.no_template_residue", "requirements"), ("implement_tasks.final_verification.no_template_residue", "final_verification")):
+        p = _item_params(suffix)
+        assert A.no_template_residue(_item(p, ref=ref), _ctx("- [x] 1.1 Create `/tmp/agent-os/specs/[spec-path]/checks/t.py`\n")).status == "fail", suffix
+    p = _item_params("shape_spec.requirements.no_template_residue")
+    assert A.no_template_residue(_item(p), _ctx("**Q6:** x\n[Last numbered question about exclusions]\n")).status == "fail"
