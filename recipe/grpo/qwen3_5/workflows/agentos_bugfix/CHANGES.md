@@ -256,6 +256,10 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   `[this-spec]`, `[current-spec]`, `[spec-path]`(core-workflow.md 44 ~ 45행: 모두 spec 폴더 하나를 뜻함), requirements.md에 shape-spec Step 2 질문
   틀의 `[specific assumption]`, `[specific approach]`, `[Continue with numbered questions...]`, `[Last numbered question about exclusions]`.
   평가 499런: 9런이 통과에서 실패 (tasks.md 7, spec.md 1, requirements.md 1).
+- E-1 과제 문장의 "..." 줄: initialization.md와 requirements.md의 빈칸 표시 항목(필수)이, 과제 문장(task의 `instruction`. `<issue_description>`
+  태그가 있으면 그 안)의 줄과 같은 줄(공백을 하나로, 앞의 목록 기호를 떼고 비교)을 빼고 판정함. 문서가 과제 문장을 그대로 옮기라고 하므로
+  트레이스백의 `    ...` 줄은 빈칸이 아님. 새 kind `agentos_bugfix.task_residue`(`reward/task_text.py`), 과제 문장을 받지 못하면 지금 규칙.
+  평가 499런: initialization.md 28런, requirements.md 23런이 실패에서 통과.
 
 
 ## 확인

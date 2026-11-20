@@ -425,6 +425,10 @@ RESIDUE_ITEMS = {"shape_spec.requirements.no_template_residue": FOLDER_PLACEHOLD
                  "write_spec.spec.no_template_residue": FOLDER_PLACEHOLDERS,
                  "create_tasks.tasks.no_template_residue": FOLDER_PLACEHOLDERS,
                  "implement_tasks.final_verification.no_template_residue": FOLDER_PLACEHOLDERS}
+# E-1: shape-spec.md 58 has the task description copied "exactly as given"; a "..." line of it (an elided traceback)
+# is the task's text, not a blank. The two fill-mark items of the files that quote it read the file without the
+# task description's lines (reward/task_text.py; the common rule when no task is handed in).
+TASK_RESIDUE_ITEMS = ("shape_spec.initialization.no_template_residue.fill_marks", "shape_spec.requirements.no_template_residue.fill_marks")
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
@@ -438,6 +442,9 @@ def _review_fixes(it: dict) -> None:
     if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2, E-4 row 4
         p["pattern"] = EXISTING_PATTERN
         p["each_of"] = FEATURE_LINE
+    if it["id"].removeprefix(NEW + ".") in TASK_RESIDUE_ITEMS:  # E-1
+        it["check"]["kind"] = f"{NEW}.task_residue"
+        it["scope"] = "specific"  # a workflow plugin kind
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

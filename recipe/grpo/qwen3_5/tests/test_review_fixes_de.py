@@ -101,3 +101,34 @@ def test_document_placeholders_are_template_residue():
         assert A.no_template_residue(_item(p, ref=ref), _ctx("- [x] 1.1 Create `/tmp/agent-os/specs/[spec-path]/checks/t.py`\n")).status == "fail", suffix
     p = _item_params("shape_spec.requirements.no_template_residue")
     assert A.no_template_residue(_item(p), _ctx("**Q6:** x\n[Last numbered question about exclusions]\n")).status == "fail"
+
+
+# ---- E-1: a fill-in mark that is a line of the task description -------------------------------------------------
+
+from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import task_text as TT  # noqa: E402
+
+TRACEBACK = "e.subs fails\n    >>> print(e.subs(x, 2))\n    ...\n    NameError: name 'cotm' is not defined\n"
+
+
+def _with_task(text, task):
+    return SimpleNamespace(artifact_text=lambda aid, state="final": text, collected=SimpleNamespace(inputs={"task": task}))
+
+
+def test_a_fill_mark_line_copied_from_the_task_is_not_a_blank():
+    p = _item_params("shape_spec.initialization.no_template_residue.fill_marks")
+    item = _item(p, ref="initialization")
+    live = SimpleNamespace(instruction=TRACEBACK)  # rllm Task: the text is its instruction
+    offline = SimpleNamespace(metadata={"instruction": TRACEBACK})  # a stored episode's task row
+    for task in (live, offline):
+        assert TT.task_residue(item, _with_task(TRACEBACK, task)).status == "pass"
+    assert TT.task_residue(item, _with_task(TRACEBACK + "- ...\n", live)).status == "pass"  # the same line under a list marker
+    assert TT.task_residue(item, _with_task(TRACEBACK + "- Notes: xxx\n", live)).status == "fail"  # a blank the task lacks
+    # no task handed in: the common rule, which reads the traceback's "..." as a blank
+    assert TT.task_residue(item, _with_task(TRACEBACK, None)).status == "fail"
+    assert TT.task_residue(item, _with_task(TRACEBACK, None)).score == A.no_template_residue(item, _ctx(TRACEBACK)).score
+
+
+def test_the_task_description_is_the_issue_inside_its_tags():
+    wrapped = "<uploaded_files>\n/testbed\n</uploaded_files>\n<issue_description>\nthe bug\n...\n</issue_description>\nPlease fix."
+    ctx = _with_task("", SimpleNamespace(instruction=wrapped))
+    assert TT.task_description(ctx) == "the bug\n..."
