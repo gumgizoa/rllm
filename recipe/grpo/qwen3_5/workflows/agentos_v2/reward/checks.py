@@ -1243,16 +1243,28 @@ def group_end_steps(ctx: EvalContext, aid: str = "tasks") -> list[int]:
     return sorted(ends)
 
 
-def own_test_first_writes(ctx: EvalContext, d: str, w=None, modules: bool = True) -> list[int]:
-    """Steps at which the run first wrote one of its own tests: a check script under ``d``, or (``modules``) the first
-    test function it added in the window to an existing repository test module (:func:`module_tests`)."""
-    out = [min(e.step for e in _content_events(ctx, s_)) for s_ in check_scripts(ctx, d) if _content_events(ctx, s_)]
+# what makes a script a test (D-6 row 21): it can come out failing -- an assertion, a raise, an exit status, a test
+# framework, or a printed verdict; a script that only prints what it finds explores
+_VERDICT = re.compile(r"\bassert\b|\braise\b|\bsys\.exit\(|\bexit\(\s*[1-9]|\bunittest\b|\bpytest\b|\bdef\s+test_|\b(?:PASS(?:ED)?|FAIL(?:ED|URE)?|OK)\b")
+
+
+def has_verdict(ctx: EvalContext, script: str) -> bool:
+    """The script's last known content has a verdict construct (:data:`_VERDICT`); a script whose content is not known counts."""
+    text = next((e.content for e in reversed(_content_events(ctx, script)) if e.content is not None), None)
+    return text is None or bool(_VERDICT.search(text))
+
+
+def own_test_first_writes(ctx: EvalContext, d: str, w=None, modules: bool = True, verdict: bool = False) -> list[int]:
+    """Steps at which the run first wrote one of its own tests: a check script under ``d`` (``verdict``: one that has a
+    verdict, :func:`has_verdict`), or (``modules``) the first test function it added in the window to an existing
+    repository test module (:func:`module_tests`)."""
+    out = [min(e.step for e in _content_events(ctx, s_)) for s_ in check_scripts(ctx, d) if _content_events(ctx, s_) and (not verdict or has_verdict(ctx, s_))]
     if modules:
         out += [first for first, _ in module_tests(ctx, w).values()]
     return sorted(out)
 
 
-@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False, "module_tests": False, "per_group": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
+@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False, "module_tests": False, "per_group": False, "verdict": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
 def checks(item: Item, ctx: EvalContext) -> Result:
     """rule: written | pass_last -- the check scripts under ``dir``: written in the window; each one run in the window last ran passing, after the window's last code change.
 
@@ -1270,11 +1282,11 @@ def checks(item: Item, ctx: EvalContext) -> Result:
     end = w[1] if w[1] is not None else ctx.facts.n_steps + 2
     mods = module_tests(ctx, w) if p.get("module_tests") else {}
     if rule == "written":
-        got = [s for s in check_scripts(ctx, d) if any(refs.in_window(e.step, w) for e in _content_events(ctx, s))] + sorted(mods)
+        got = [s for s in check_scripts(ctx, d) if any(refs.in_window(e.step, w) for e in _content_events(ctx, s)) and (not p.get("verdict") or has_verdict(ctx, s))] + sorted(mods)
         if not got:
             return Result.no(item, f"no script written under {d}/ in the window")
         if p.get("per_group"):  # D-6 row 12: every task group that changes code writes its tests first (create-tasks.md 126)
-            late = _groups_coding_first(ctx, d, bool(p.get("module_tests")))
+            late = _groups_coding_first(ctx, d, bool(p.get("module_tests")), bool(p.get("verdict")))
             if late:
                 return Result.no(item, late)
         return Result.ok(item, f"{len(got)} written: {[posixpath.basename(s) for s in got][:3]}")
@@ -1303,7 +1315,7 @@ def checks(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # agentos_v2.verify / report (implement-tasks PHASE 3)
 # --------------------------------------------------------------------------------------------
-def _groups_coding_first(ctx: EvalContext, d: str, modules: bool) -> str | None:
+def _groups_coding_first(ctx: EvalContext, d: str, modules: bool, verdict: bool = False) -> str | None:
     """The first task-group stretch of implement-tasks -- from the previous group's end (the stage's start for the first)
     to this group's end, :func:`group_end_steps`; nothing after the last end -- that changes source and has no test of the
     run's own first written inside it before its first source change. None when every such stretch has, or when no group
@@ -1313,7 +1325,7 @@ def _groups_coding_first(ctx: EvalContext, d: str, modules: bool) -> str | None:
     if w is None or not ends:
         return None
     edits = sorted({x for x in F.source_change_steps(ctx) if refs.in_window(x, w)})
-    firsts = own_test_first_writes(ctx, d, w=w, modules=modules)
+    firsts = own_test_first_writes(ctx, d, w=w, modules=modules, verdict=verdict)
     a = w[0] - 1
     for b in ends:
         inside = [x for x in edits if a < x <= b]

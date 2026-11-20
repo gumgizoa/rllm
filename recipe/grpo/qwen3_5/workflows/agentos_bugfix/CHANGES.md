@@ -453,6 +453,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   점수는 통과 또는 실패. 선택 설정값 `per_group`, 새 함수 `group_end_steps`(penalty의 `_group_ends`가 이것을 부름, 같은 값), `own_test_first_writes`.
   평가 499런: 12런(해결한 런 5)이 통과에서 실패. 묶음 D 계획의 시험 채점(`dg/rescore_d6_groups.jsonl`)이 낸 12런과 같은 런들임. penalty 변화 0.
 
+- D-6 행 21 판정 없는 탐색 스크립트 (`before_code`만): checks/ 아래에 쓴 스크립트는 내용과 상관없이 자기 테스트로 셌음. 이제 마지막으로 아는
+  내용에 판정 구문(`assert`, `raise`, `sys.exit(`, 0 아닌 `exit(`, `unittest`, `pytest`, `def test_`, PASS·FAIL·OK 출력)이 있을 때만 셈
+  (implement-tasks.md 39행 "ensuring they pass": 통과·실패가 나올 수 있어야 테스트). 내용을 모르는 스크립트는 셈. 그룹별 판정(행 12)의 첫 쓰기에도
+  같은 기준을 씀. 선택 설정값 `verdict`(`checks.written`·`pass_last`에는 켜지 않음), 새 함수 `has_verdict`. 평가 499런:
+  matplotlib__matplotlib-21568 한 런이 통과에서 실패(checks/ 스크립트 test_datetime_spacing.py가 값을 출력만 함). 이 런의 implement_tasks 단계
+  점수는 이미 0이라 준수율은 그대로.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

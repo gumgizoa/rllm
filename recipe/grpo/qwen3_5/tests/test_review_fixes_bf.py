@@ -446,3 +446,21 @@ def test_each_group_writes_its_tests_before_its_code(monkeypatch):
     assert C.checks(item, _group_ctx(monkeypatch, [12, 35], [20, 40])).status == "pass"
     assert _item_params("agentos_bugfix_checks.before_code").get("per_group") is True
     assert C.group_end_steps(first_only) == [30, 60]
+
+
+
+
+# ---- D-6 row 21: a script with no verdict is no test --------------------------------------------------------------
+
+
+def test_an_exploring_script_is_not_a_test_written_first(monkeypatch):
+    ctx = _group_ctx(monkeypatch, [12], [20])
+    ctx.facts.writes[f"{CHECKS}/check_0.py"][0].content = "import a\nprint(a.parse('-1'))\n"
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x"}, ref="run")
+    assert C.checks(item, ctx).status == "pass"  # as before
+    item.check.params["verdict"] = True
+    assert C.checks(item, ctx).status == "fail"
+    ctx.facts.writes[f"{CHECKS}/check_0.py"][0].content = "import a\nassert a.parse('-1') == -1\n"
+    assert C.checks(item, ctx).status == "pass"
+    assert _item_params("agentos_bugfix_checks.before_code").get("verdict") is True
+    assert not _item_params("agentos_bugfix_checks.written").get("verdict")
