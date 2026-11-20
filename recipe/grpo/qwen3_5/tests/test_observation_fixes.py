@@ -69,3 +69,30 @@ def test_text_test_runner_inside_python_is_a_valid_test_run():
     fake = TTR.replace('.run(s)"', '.run(s); print(\'Ran 2 tests\')"')
     (r,) = _runs(Action("shell", "terminal", command=fake, observation=TTR_OUT))
     assert not r.valid
+
+
+# ---- H-3: per-test lines of unittest and sympy stand in for a summary line that was cut --------------------
+
+
+def test_unittest_and_sympy_per_test_lines_count_when_the_summary_was_cut():
+    (s,) = evidence.summaries("test_a (x.T) ... ok\ntest_b (x.T) ... FAIL\ntest_c (x.T) ... skipped 'no db'\n")
+    assert (s.family, s.passed, s.failed, s.skipped) == ("unittest", 1, 1, 1)
+    (s,) = evidence.summaries("test_one ok\ntest_two F\ntest_three E\n")
+    assert (s.family, s.passed, s.failed, s.errors) == ("sympy", 1, 1, 1)
+    # progress dots count only next to a unittest failure header or the django runner's first lines
+    (s,) = evidence.summaries("Found 5 test(s).\nSystem check identified no issues (0 silenced).\n..F..\n")
+    assert (s.passed, s.failed) == (4, 1)
+    assert evidence.summaries("..F..\n") == []
+    # a lone result word is not a run of one test or more
+    assert evidence.summaries("OK\n") == [] and evidence.summaries("FAILED (failures=1)\n") == []
+    # an output with a real summary keeps it alone
+    (s,) = evidence.summaries("test_a (x.T) ... ok\n\n" + "-" * 70 + "\nRan 3 tests in 0.1s\n\nOK\n")
+    assert s.passed == 3
+
+
+def test_a_command_that_prints_per_test_lines_is_an_output_producer():
+    assert evidence.shaped('print("test_a (x.T) ... ok")') and evidence.shaped("echo test_foo ok")
+    assert not evidence.shaped("x = 1  # see test_foo ok later") and not evidence.shaped("loading ... okay")
+    cmd = "cd /testbed && python -m unittest tests.test_x -v; echo 'test_z (x.T) ... ok'"
+    runs = _runs(Action("shell", "terminal", command=cmd, observation="test_a (x.T) ... ok\ntest_z (x.T) ... ok\n"))
+    assert runs and not runs[0].valid and "output producer" in runs[0].reason

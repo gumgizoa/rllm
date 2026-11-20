@@ -559,12 +559,22 @@ _PHPUNIT = re.compile(r"^Tests: (\d+), Assertions: \d+(?P<rest>[^\n]*)", re.M)
 _MAVEN = re.compile(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+), Skipped: (\d+)", re.M)
 _CTEST = re.compile(r"(\d+)% tests passed, (\d+) tests? failed out of (\d+)", re.M)
 _COUNT_WORD = re.compile(r"(\d+) ([a-z ]+)")
+# Per-test lines of unittest (-v) and sympy, read only when an output holds no summary of any kind (the summary
+# line was cut off): ``test_x (mod.Class) ... ok`` / ``... FAIL`` / ``... ERROR`` / ``... skipped '...'``,
+# unittest's progress dots (only next to a unittest failure header or the django runner's first lines), and
+# sympy's ``test_x ok`` / ``test_x F``. A lone result word (``OK``, ``FAILED (failures=1)``) is not read: it
+# cannot tell a run of zero tests from one of many.
+_UT_LINE = re.compile(r"\.\.\. (ok|FAIL|ERROR|skipped\b[^\n]*|expected failure|unexpected success)\s*$", re.M)
+_UT_DOTS = re.compile(r"^([.FEsxu]{3,})\s*$", re.M)
+_UT_CONTEXT = re.compile(r"^(?:ERROR|FAIL): \w+ \(|^Found \d+ test|^Testing against Django installed|^System check identified", re.M)
+_SYMPY_LINE = re.compile(r"^(test_\w+) (ok|E|F|f|s|X|w)\s*(?:\[(?:OK|FAIL)\])?\s*$", re.M)
 
 # Unanchored shapes of every summary above: what an output producer must not be able to print.
 _SHAPES = re.compile(
     rf"\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))* in {_N}(?:s| seconds)\b|\bRan \d+ tests? in {_N}s|tests finished: \d+ passed"
     rf"|\b\d+ passing\b|test result: ok\. \d+ passed|\b\d+ examples?, \d+ failures?|^Tests:\s+\d+|Tests run: \d+, Failures|tests passed, \d+ tests? failed out of"
-    rf"|\bOK \(\d+ tests?|\.py::\S+ PASSED\b|^PASSED \S+::|--- PASS: \S+|\bok\s+[\w./-]+\s+{_N}s\b",
+    rf"|\bOK \(\d+ tests?|\.py::\S+ PASSED\b|^PASSED \S+::|--- PASS: \S+|\bok\s+[\w./-]+\s+{_N}s\b"
+    r"|\.\.\. (?:ok|FAIL|ERROR|skipped|expected failure|unexpected success)\b|\btest_\w+ (?:ok|[EFfsXw])(?:\s*\[(?:OK|FAIL)\])?(?=\s*$|\s*[\"'\\])",
     re.M,
 )
 _REWRITE_VOCAB = re.compile(r"pass|fail|error|\bRan\b|tests?\b|\bOK\b|finished|PASS|FAIL", re.I)
@@ -775,8 +785,53 @@ def summaries(text: str) -> list[Summary]:
     for m in _CTEST.finditer(text):
         total, failed = int(m.group(3)), int(m.group(2))
         out.append(Summary("ctest", m.start(), passed=max(0, total - failed), failed=failed, phrases=[m.group(0)] if total else [], zero="" if total else "zero tests"))
+    if not out:
+        extra = _per_test_summary(text)
+        if extra is not None:
+            out.append(extra)
     out.sort(key=lambda s: s.pos)
     return out
+
+
+def _per_test_summary(text: str) -> Summary | None:
+    """A summary counted from unittest's / sympy's per-test lines, for an output whose summary line was cut."""
+    ut = list(_UT_LINE.finditer(text))
+    if ut:
+        s = Summary("unittest", ut[-1].start())
+        for m in ut:
+            o = m.group(1)
+            if o == "ok":
+                s.passed += 1
+            elif o == "FAIL":
+                s.failed += 1
+            elif o == "ERROR":
+                s.errors += 1
+            elif o.startswith("skipped"):
+                s.skipped += 1
+            else:
+                s.xfail += 1
+    elif (dots := list(_UT_DOTS.finditer(text))) and _UT_CONTEXT.search(text):
+        d = "".join(m.group(1) for m in dots)
+        s = Summary("unittest", dots[-1].start(), passed=d.count("."), failed=d.count("F"), errors=d.count("E"), skipped=d.count("s"), xfail=d.count("x") + d.count("u"))
+    elif sy := list(_SYMPY_LINE.finditer(text)):
+        s = Summary("sympy", sy[-1].start())
+        for m in sy:
+            o = m.group(2)
+            if o == "ok":
+                s.passed += 1
+            elif o == "F":
+                s.failed += 1
+            elif o == "E":
+                s.errors += 1
+            elif o in ("s", "w"):
+                s.skipped += 1
+            else:
+                s.xfail += 1
+    else:
+        return None
+    if s.ran == 0:
+        s.zero = "only skipped"
+    return s
 
 
 def shaped(text: str | None) -> bool:
