@@ -132,7 +132,7 @@ _GENERIC_ARG = frozenset({"-t", "--testNamePattern", "-g", "--grep", "--reporter
 _NO_RUN = frozenset({"--help", "-h", "--version", "-V", "--collect-only", "--co", "--fixtures", "--markers", "--setup-plan", "--dry-run", "--list", "-list", "--help-all"})
 _MAKE_SKIP = frozenset({"clean", "distclean", "install", "uninstall", "help", "dist", "lint", "format", "fmt", "docs", "doc"})
 
-TEST_CALL = re.compile(r"\bpytest\.main\s*\(|\bunittest\.main\s*\(|\bsympy\.(?:test|doctest)\s*\(|\bcall_command\(\s*['\"]test['\"]|\bruntests\s*\(|\bget_runner\s*\(")
+TEST_CALL = re.compile(r"\bpytest\.main\s*\(|\bunittest\.main\s*\(|\bsympy\.(?:test|doctest)\s*\(|\bcall_command\(\s*['\"]test['\"]|\bruntests\s*\(|\bget_runner\s*\(|\bTextTestRunner\s*\(")
 
 
 @dataclass

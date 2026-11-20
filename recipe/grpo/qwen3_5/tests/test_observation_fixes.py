@@ -43,3 +43,29 @@ def test_the_same_words_inside_a_commands_output_do_not_count():
         assert a.kind == "shell" and a.command == "grep -r x /testbed"
     a = openhands.parse("file_editor", {"command": "create", "path": "/testbed/x.py", "file_text": "x"}, "File created successfully at: /testbed/x.py")
     assert a.kind == "create" and a.status == "ok"
+
+
+# ---- H-2: unittest.TextTestRunner inside python is a test runner ---------------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric import evidence  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Run, Step  # noqa: E402
+
+TTR = (
+    "cd /testbed && python -c \"import unittest; s = unittest.defaultTestLoader.loadTestsFromName('tests.test_x'); "
+    'unittest.TextTestRunner(verbosity=2).run(s)"'
+)
+TTR_OUT = "test_a (tests.test_x.T) ... ok\ntest_b (tests.test_x.T) ... ok\n\n" + "-" * 70 + "\nRan 2 tests in 0.001s\n\nOK\n[Command finished with exit code 0]"
+
+
+def _runs(*actions, workdir="/testbed"):
+    run = Run("t", [Step(n, [a]) for n, a in enumerate(actions, 1)] + [Step(len(actions) + 1, [Action("other", "finish")])])
+    return evidence.runs_from(run, {}, None, set(), workdir=workdir)
+
+
+def test_text_test_runner_inside_python_is_a_valid_test_run():
+    (r,) = _runs(Action("shell", "terminal", command=TTR, observation=TTR_OUT))
+    assert r.runner == "python-inline" and r.valid and r.passed == 2, r.reason
+    # the code that prints the summary line itself stays invalid, as with the other inline runners
+    fake = TTR.replace('.run(s)"', '.run(s); print(\'Ran 2 tests\')"')
+    (r,) = _runs(Action("shell", "terminal", command=fake, observation=TTR_OUT))
+    assert not r.valid
