@@ -295,3 +295,32 @@ def test_groups_ticked_in_a_row_after_all_the_work_fail_with_work_between(window
     assert C.tasks(_item({**p, "work_between": True}), passes).status == "pass"
     warned = _tick_ctx([(5, plan.format(a=" ", b=" ")), (40, plan.format(a="x", b=" ")), (41, plan.format(a="x", b="⚠️"))], repo_writes=writes)
     assert C.tasks(_item({**p, "work_between": True}), warned).status == "pass"  # group 2 marked not done: no work asked for
+
+
+# ---- B-8 row 1: a test sub-task ticked with no test result of the code it ticks -------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import RunFact  # noqa: E402
+
+
+def _run(step, failed=0, same_call=False):
+    return RunFact(step=step, action_index=0, command="python -m pytest tests/test_a.py", segment="python -m pytest tests/test_a.py", runner="pytest",
+                   kind="test", valid=True, passed=3, failed=failed, after_write_same_call=same_call)
+
+
+def _passing_ctx(runs, code=(20,)):
+    plan = "#### Task Group 1: Fix\n- [{b}] 1.1 Write tests\n- [{b}] 1.2 Change `src/a.py`\n- [{b}] 1.3 Ensure the tests of this group pass\n"
+    ctx = _tick_ctx([(5, plan.format(b=" ")), (40, plan.format(b="x"))], repo_writes=[WriteEvent(path="src/a.py", step=s, op="edit") for s in code])
+    ctx.facts.runs = list(runs)
+    ctx.collected.diff = {"src/a.py": "M"}
+    return ctx
+
+
+def test_a_test_sub_task_ticked_without_running_the_tests_fails(window):
+    p = _item_params("implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing")
+    item = _item({k: v for k, v in p.items() if k != "dir"})
+    assert C.tasks(item, _passing_ctx([_run(30)])).status == "pass"
+    r = C.tasks(item, _passing_ctx([_run(15)]))  # the only run came before the code change
+    assert r.status == "fail" and "no test result" in r.detail
+    assert C.tasks(item, _passing_ctx([_run(30, failed=1)])).status == "fail"  # as before: ticked over a failure
+    assert C.tasks(item, _passing_ctx([_run(20, same_call=True)])).status == "pass"  # sed -i ... && pytest in one call
+    assert C.tasks(item, _passing_ctx([_run(20)])).status == "fail"  # the same step without the order known

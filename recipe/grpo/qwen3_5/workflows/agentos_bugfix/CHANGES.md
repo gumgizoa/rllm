@@ -404,6 +404,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   "one task group per pass of PHASE 2", 46행). 구현을 모두 끝낸 뒤 그룹 체크만 이어 쓴 런이 잡힘. 다음 그룹이 모두 ⚠️(구현하지 않았다고
   표시)이면 일은 묻지 않음. 선택 설정값 `work_between`. 평가 499런: 47런이 통과에서 실패.
 
+- B-8 행 1 테스트를 돌리지 않고 체크한 테스트 하위 task (`ticked_passing`, agentos_bugfix 전용 규칙): 테스트 하위 task마다 그 체크 전의
+  마지막 코드 변경(그룹 구간이 아니라 구현 단계 전체에서) 뒤부터 체크까지의 테스트 결과를 봄. 결과가 하나도 없는데 그 하위 task의 문구가
+  테스트 실행을 말하면(B-3과 같은 판별) 틀린 체크로 셈(implement-tasks.md 40행). 전에는 그런 그룹이 판정에서 빠졌음. 같은 호출 안에서 고치고
+  돌린 실행(`sed -i … && pytest`)은 변경 뒤의 결과로 셈(H-6의 `after_write_same_call`). 보고서의 테스트 결과에 실패가 적혀 있으면 봐주는 예외는
+  실패 결과 위의 체크에만 적용하고, 결과 없는 체크에는 적용하지 않음. 새 함수 `timed_results`. 평가 499런: 100런이 해당 없음에서 실패,
+  36런이 통과에서 실패.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

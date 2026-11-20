@@ -45,7 +45,9 @@ repository prohibitions and the test runs. What they cannot say:
       {rule: ticked_passing}     no task group's test sub-task (the one that runs its tests) is ticked ``[x]`` while
                                  the last test result since the code last changed is a failure, unless the report's
                                  test results show a failure (ratio over the groups with such a result; a workflow
-                                 whose documents say to fix a failing test before the tick)
+                                 whose documents say to fix a failing test before the tick); a sub-task that says it runs the
+                                 tests and is ticked with no test result since the last code change before the tick
+                                 counts against the rule too
       {rule: warned_after_attempts}  a test sub-task marked ⚠️ instead of ticked has, in its group's stretch, two failing
                                  test results after the group's first code change with a code change or a check-script edit between them
                                  (ratio; same workflows)
@@ -797,6 +799,14 @@ def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
     return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
 
 
+def timed_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str, bool]]:
+    """:func:`_test_results` with, per result, whether its run came after a repository write of its own call
+    (``RunFact.after_write_same_call``: ``sed -i ... && pytest``). Within one step a failure comes last."""
+    out = [(st, o, False) for st, o in _script_results(ctx, d)]
+    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass", bool(getattr(r, "after_write_same_call", False))) for r in change_runs(ctx)]
+    return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
+
+
 def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
     """(step, ``pass`` | ``fail``) of every run of a check script under ``d`` whose outcome can be read."""
     if not d:
@@ -1019,13 +1029,23 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         if text is None:
             return Result.no(item, "tasks.md unknown at the end of the window")
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
-        pool, bad = 0, []
+        changes = _change_steps(ctx, w, authored=True)
+        results = timed_results(ctx, d)
+        details = task_details(text)
+        pool, bad, untested = 0, [], []
         for g in _group_ends(ctx, aid, text, w, d):
             t = g["task"]
             if g["step"] is None or not t["checked"] or t["warned"]:
                 continue
-            rs = [x for x in g["results"] if not g["changes"] or x[0] > g["changes"][-1]]  # of the code as it was at the tick
+            # the results of the code as it was at the tick: after the last code change before it (anywhere in the window; a
+            # run of the same call placed after its write counts), up to the tick
+            last = max((c for c in changes if c < g["step"]), default=None)
+            rs = [x for x in results if w[0] <= x[0] < g["step"] and (last is None or x[0] > last or (x[0] == last and x[2]))]
             if not rs:
+                # a sub-task that says it runs the tests (implement-tasks.md 40), ticked with no result of the code it ticks
+                if runs_tests(t["rest"], details.get(t["id"], []), wide=True):
+                    pool += 1
+                    untested.append(f"{t['id']} ticked at step {g['step']} with no test result since the code change of step {last}")
                 continue
             pool += 1
             if rs[-1][1] == "fail":
@@ -1033,7 +1053,10 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         if not pool:
             return Result.not_applicable(item, "no test result between a code change and a test sub-task's tick")
         if bad and _report_failures(ctx, str(p.get("suite_section") or "3. Test Suite Results")):
-            return Result.ok(item, f"{len(bad)} tick(s) over a failing result, which the report's test results show")
+            if not untested:
+                return Result.ok(item, f"{len(bad)} tick(s) over a failing result, which the report's test results show")
+            bad = []  # the report's test results show the failures; a tick with no result at all is not excused by them
+        bad = untested + bad
         return Result.ratio(item, pool - len(bad), pool, "; ".join(bad[:2]) if bad else f"{pool} test sub-task(s) ticked over a passing result")
     if rule == "warned_after_attempts":
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None

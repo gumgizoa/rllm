@@ -144,7 +144,7 @@ generated:
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9786
+      compliance: 0.9733
     - mutation: glob_read
       kind: exploit
       status: ok
