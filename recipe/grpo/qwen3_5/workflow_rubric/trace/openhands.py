@@ -33,7 +33,26 @@ def _status(observation: str):
     return "ok" if _OK.search(observation) else "fail" if _FAIL.search(observation) else None
 
 
+# The harness refused the call, so nothing in it ran: the terminal reads two commands where one
+# was meant, or a previous command is still running, or the arguments failed validation. The
+# refusal is always the very start of the observation (after the optional error banner); the same
+# words later in an observation are a command's own output and do not count.
+_REJECTED = re.compile(
+    r"\A\s*(?:\[An error occurred during execution\.\]\s*)?"
+    r"(?:Cannot execute multiple commands at once"
+    r"|\[Below is the output of the previous command\.\]\s*\[Your command \"[\s\S]*?\" is NOT executed\."
+    r"|Error validating tool ')"
+)
+
+
+def rejected(observation: str) -> bool:
+    """True when the harness answered the call with a refusal: the call did not run."""
+    return bool(_REJECTED.match(observation or ""))
+
+
 def parse(name: str, args: dict, observation: str) -> Action:
+    if (name in _SHELL or name in _EDITOR) and rejected(observation):
+        return Action("other", name, observation=observation)
     if name in _SHELL:
         cmd = args.get("command")
         if args.get("is_input") or not isinstance(cmd, str) or not cmd.strip():
