@@ -353,6 +353,12 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   출처에 이 문장을 더함(`derive_rubric.py`의 `KEEP_SECTIONS_QUOTE`, 문장이 없으면 derive가 멈춤). create-tasks.md가 두 줄 늘어
   그 뒤를 인용하는 출처의 줄 번호가 밀림. 저장된 평가 499런의 판정은 바뀌지 않음.
 
+- B-2 create-tasks 단계의 tasks.md 형식 항목 9개(절 둘, 줄 형식 다섯, 잔재 둘)가 런 끝이 아니라 create-tasks가 끝났을 때의 tasks.md를 읽음
+  (T3 때 바꾼 `total`·`group_parts`·`test_first`와 같게). 구현 단계에서 task를 더하거나 줄을 고친 것은 `later_edits` 한 곳에서만 판정됨.
+  `artifact_exists`(단계 점수를 0으로 만드는 존재 항목)는 런 끝 그대로. 평가 499런: 14런에서 판정 17개가 실패에서 통과(체크박스 줄 10,
+  Execution Order 3, 하위 task 2, 그룹 제목 1, 그 결과로 순서 항목 1), 3런에서 5개가 통과에서 실패(create-tasks 끝에는 자리표시
+  `[details]`가 남아 있다가 구현 중에 지운 2런, create-tasks 끝에는 형식 밖 체크박스 줄이 16개였다가 줄인 1런).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

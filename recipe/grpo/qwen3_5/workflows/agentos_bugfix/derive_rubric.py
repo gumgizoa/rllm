@@ -504,6 +504,9 @@ def _review_fixes(it: dict) -> None:
         p["script_results"] = True
     if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
         p["phase3_fallback"] = True
+    tgt = it.get("target") or {}
+    if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
+        tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge
     if it["id"].endswith("create_tasks.tasks.section_present.execution_order"):  # B-6 row 5
         it["sources"] = list(it.get("sources") or []) + [{"doc": "CT", "lines": [], "quote": KEEP_SECTIONS_QUOTE}]
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))

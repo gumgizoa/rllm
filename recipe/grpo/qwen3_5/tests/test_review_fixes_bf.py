@@ -58,3 +58,13 @@ def test_create_tasks_says_the_sections_stay_and_the_section_item_cites_it():
     assert "every tasks.md keeps the example's three sections" in ct
     quotes = [s["quote"] for s in ITEMS["create_tasks.tasks.section_present.execution_order"]["sources"]]
     assert D.KEEP_SECTIONS_QUOTE in quotes
+
+
+# ---- B-2: create-tasks' format items read tasks.md as create-tasks left it -----------------------------------------
+
+
+def test_create_tasks_format_items_read_the_stage_end_file():
+    for i, it in ITEMS.items():
+        if i.startswith("create_tasks.tasks.") and it["check"]["kind"] != "unimplemented":
+            want = "final" if i.endswith(".artifact_exists") else "stage_end"
+            assert it["target"]["state"] == want, i
