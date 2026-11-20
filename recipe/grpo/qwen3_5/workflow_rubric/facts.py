@@ -634,6 +634,53 @@ def _counts_as_edit(rel: str, status: str) -> bool:
     return _CODE_EXT.search(rel) is not None and _GENERATED.search(rel) is None
 
 
+# What ``patch`` leaves next to a file it patched (the original, the rejected hunks): no edit of the agent's.
+_BYPRODUCT = re.compile(r"\.(?:orig|rej)$")
+# Verbs that only look at a file: a command naming a path only through them did not make it.
+_LOOK_VERBS = frozenset(shell._READ_VERBS) | {"ls", "find", "stat", "file", "wc", "diff", "cmp", "test", "[", "git", "du", "realpath", "readlink", "md5sum", "sha256sum"}
+
+
+def _only_reads(seg: shell.Segment, base: str) -> bool:
+    """``seg`` names ``base`` only to look at it: a reading verb, no ``sed -i`` / ``find -delete`` / ``-exec``, and no
+    output redirection to it."""
+    if seg.verb not in _LOOK_VERBS:
+        return False
+    if any(">" in op and base in (t or "") for op, t in seg.redirects):
+        return False
+    args = seg.argv[1:]
+    if seg.verb == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args):
+        return False
+    if seg.verb == "find" and any(a in ("-delete", "-exec", "-execdir") for a in args):
+        return False
+    return True
+
+
+def _date_unseen(f: Facts, unseen: list[str], diff: Mapping[str, str], pre: str) -> list[WriteEvent]:
+    """A write event, content unknown, for each repo change the trace shows no write of, at the first shell command
+    whose text names the file (its base name): the command that made it as a side effect (a script writing a data
+    file, a test leaving output). A path whose first naming command only reads it existed before that command, and a
+    path no command names, keep no time (they stay ``unseen_repo_paths``)."""
+    out: list[WriteEvent] = []
+    for path in unseen:
+        base = posixpath.basename(path)
+        if not base:
+            continue
+        for cmd in f.commands:
+            if base not in (cmd.command or ""):
+                continue
+            try:
+                segs = [sg for sg in shell.flat(shell.split(cmd.command, cmd.cwd)[0]) if base in sg.text or base in (sg.heredoc or "")]
+            except Exception:  # noqa: BLE001 -- agent text
+                segs = []
+            if segs and all(_only_reads(sg, base) for sg in segs):
+                break  # the file was there already: its change cannot be dated
+            st = diff.get(path)
+            op = "create" if st in ("A", "?") else "delete" if st == "D" else "edit"
+            out.append(WriteEvent(path=path, step=cmd.step, op=op, content=None, source="other", action_index=cmd.action_index))
+            break
+    return out
+
+
 def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | None) -> None:
     if not workdir:
         if c.diff:
@@ -660,6 +707,20 @@ def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | N
         if rel == ".git" or rel.startswith(".git/") or is_artifact(path):
             continue
         repo.extend(replace(e, path=rel) for e in evs)
+    unseen: list[str] = []
+    if c.diff is not None:
+        touched = {e.path for e in repo if e.ok is not False}
+        dirty_before = set(_status_paths(c.pre_status))  # setup leftovers, not the agent's edits
+        unseen = sorted(
+            p
+            for p, st in c.diff.items()
+            if p not in touched and p not in dirty_before and _counts_as_edit(p, st) and not _BYPRODUCT.search(p) and not is_artifact(pre + p)
+        )
+        dated = _date_unseen(f, unseen, c.diff, pre)
+        if dated:
+            repo.extend(dated)
+            unseen = [p for p in unseen if p not in {e.path for e in dated}]
+            f.notes.append(f"repo changes dated by the first command naming them: {[(e.path, e.step) for e in dated[:5]]}" + (f" (+{len(dated) - 5})" if len(dated) > 5 else ""))
     repo.sort(key=lambda e: (e.step, e.action_index))
     f.repo_writes = repo
     ok = [e for e in repo if e.ok is not False]
@@ -669,16 +730,11 @@ def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | N
             steps.append(e.step)
     f.first_repo_write = ok[0].step if ok else None
     f.last_repo_write = ok[-1].step if ok else None
-    unseen: list[str] = []
-    if c.diff is not None:
-        touched = {e.path for e in ok}
-        dirty_before = set(_status_paths(c.pre_status))  # setup leftovers, not the agent's edits
-        unseen = sorted(p for p, st in c.diff.items() if p not in touched and p not in dirty_before and _counts_as_edit(p, st) and not is_artifact(pre + p))
-        if unseen:
-            f.first_repo_write = UNKNOWN
-            if not ok:
-                f.last_repo_write = UNKNOWN
-            f.notes.append(f"repo changed outside the trace: {unseen[:5]}" + (f" (+{len(unseen) - 5})" if len(unseen) > 5 else ""))
+    if unseen:
+        f.first_repo_write = UNKNOWN
+        if not ok:
+            f.last_repo_write = UNKNOWN
+        f.notes.append(f"repo changed outside the trace: {unseen[:5]}" + (f" (+{len(unseen) - 5})" if len(unseen) > 5 else ""))
     f.unseen_repo_paths = unseen
     f._unseen_repo_paths = unseen  # type: ignore[attr-defined]  -- legacy name
 

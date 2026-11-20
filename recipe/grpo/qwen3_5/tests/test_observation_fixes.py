@@ -218,3 +218,38 @@ def test_the_penalty_counts_a_same_call_run_after_the_last_source_change():
     assert got[PT.P2_RUN] == (1.0, True)
     # the run of the change's own call also tested the final code: PHASE 3's failure items keep their outside value
     assert got[PT.P3_LAST] == (1.0, False)
+
+
+# ---- H-7: a repository change the trace shows no write of gets the time of the first command naming it ----------
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import Collected  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward.eval import Evaluation as BugfixEvaluation  # noqa: E402
+
+
+def _repo_facts(commands, diff):
+    f = Facts(n_steps=20)
+    f.commands = [CommandFact(step=s, action_index=0, command=c, cwd="/testbed") for s, c in commands]
+    rubric = BugfixEvaluation().rubric
+    F._repo_writes(f, rubric, Collected(diff=diff, workdir="/testbed"), F.roots_of(rubric, "/testbed"), "/testbed")
+    return f
+
+
+def test_a_side_effect_file_is_dated_to_the_first_command_naming_it():
+    f = _repo_facts(
+        [(3, "cat setup.cfg"), (12, "python -c \"open('out.fits', 'w').write('x')\""), (14, "ls out.fits")],
+        {"out.fits": "A", "src/a.py.orig": "A", "src/a.py.rej": "A"},
+    )
+    # patch's .orig / .rej are no edit; the data file is a write of step 12, content unknown
+    assert f.unseen_repo_paths == [] and f.first_repo_write == 12
+    (e,) = f.repo_writes
+    assert (e.path, e.step, e.op, e.content) == ("out.fits", 12, "create", None)
+
+
+def test_a_change_that_cannot_be_dated_stays_outside_the_trace():
+    # the first command naming it only reads it (it was there already), or no command names it
+    f = _repo_facts([(5, "cat data/old.txt"), (9, "python gen.py > data/old.txt")], {"data/old.txt": "M", "lib/b.py": "M"})
+    assert f.unseen_repo_paths == ["data/old.txt", "lib/b.py"] and f.repo_writes == []
+    assert f.first_repo_write is UNKNOWN_STEP and any("outside the trace" in n for n in f.notes)
+
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN as UNKNOWN_STEP  # noqa: E402
