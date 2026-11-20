@@ -438,6 +438,7 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
     cwd_track, f.commands = _track(run, start, split)
     rep = replay(run, start)
     f.writes = rep.writes
+    f.dir_steps = rep.dir_steps
     roots = roots_of(rubric, workdir)
     _bind_vars(f, rubric, collected, roots, rep)
     _resolve_artifacts(f, rubric, collected, roots, rep)

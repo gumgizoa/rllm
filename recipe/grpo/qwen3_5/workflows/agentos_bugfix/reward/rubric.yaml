@@ -104,7 +104,7 @@ generated:
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
-      compliance: 0.0469
+      compliance: 0.0429
     - mutation: x_fill
       kind: exploit
       status: ok
@@ -569,7 +569,7 @@ items:
   target:
     type: artifact
     ref: verifications_dir
-    state: final
+    state: stage_end
   check:
     kind: artifact_exists
     params: {}

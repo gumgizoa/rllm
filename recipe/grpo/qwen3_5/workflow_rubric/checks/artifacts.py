@@ -174,6 +174,26 @@ def artifact_exists(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, path)
 
 
+_SUBST = re.compile(r"\$\([^()]*\)|\$\{[^}]*\}|\$\w+")
+
+
+def _mkdir_steps(ctx: EvalContext, dirs: list[str]) -> list[int]:
+    """Steps of ``mkdir`` commands whose target, with a command substitution or a variable the replay could not expand
+    (``/tmp/agent-os/specs/$(date +%Y-%m-%d)-x/verifications``) read as any text within one path part, is one of ``dirs``."""
+    out = []
+    for c in getattr(ctx.facts, "commands", None) or []:
+        cmd = c.command or ""
+        if "mkdir" not in cmd or "$" not in cmd:
+            continue
+        for tok in re.findall(r"[^\s;&|'\"]+", _SUBST.sub("\x00", cmd)):
+            if "\x00" not in tok:
+                continue
+            rx = re.escape(tok.rstrip("/")).replace("\x00", "[^/]*")
+            if any(re.fullmatch(rx, d) for d in dirs):
+                out.append(c.step)
+    return out
+
+
 def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | None) -> Result:
     if not path:
         return Result.no(item, "absent")
@@ -182,6 +202,9 @@ def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | N
 
     prefixes = tuple(dict.fromkeys(p.rstrip("/") + "/" for p in [path, *location_paths(ctx.rubric, ctx.facts, ctx.collected, art)] if p))
     steps = [e.step for p, evs in ctx.facts.writes.items() if p.startswith(prefixes) for e in evs if e.ok is not False and e.op not in ("delete", "move_out")]
+    made = getattr(ctx.facts, "dir_steps", None) or {}  # when the replay saw the directory appear (mkdir, a file in it)
+    steps += [made[p.rstrip("/")] for p in prefixes if p.rstrip("/") in made]
+    steps += _mkdir_steps(ctx, [p.rstrip("/") for p in prefixes])
     w = ctx.facts.windows.get(_owning_stage(ctx, art.id) or "")
     end = w[1] if w else None
     if not steps or end is None or any(s < end for s in steps):

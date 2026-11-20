@@ -263,7 +263,7 @@ import pickle  # noqa: E402
 import subprocess  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflow_rubric import collect as COL  # noqa: E402
-from recipe.grpo.qwen3_5.workflow_rubric.context import Collected  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.context import Collected, WriteEvent  # noqa: E402
 
 
 def test_the_task_info_script_reports_the_sandbox_date(tmp_path):
@@ -294,3 +294,40 @@ def test_the_spec_folder_date_is_the_runs_when_known(monkeypatch):
     assert judge("2024-01-01-fix-x", "2026-11-13") == "pass"  # without the parameter, as before
 
 
+
+
+# ---- E-4 row 9: verifications/ made during shape-spec --------------------------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.replay import replay  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Run, Step  # noqa: E402
+
+SPEC = "/tmp/agent-os/specs/2026-11-13-x"
+
+
+def test_the_replay_records_when_a_directory_appeared():
+    run = Run("t", [Step(1, [Action("shell", "terminal", command=f"mkdir -p {SPEC}/planning")]),
+                    Step(2, [Action("shell", "terminal", command=f"mkdir -p {SPEC}/verifications")]),
+                    Step(9, [Action("shell", "terminal", command=f"echo x > {SPEC}/checks/t.py")])])
+    rep = replay(run, "/testbed")
+    assert rep.dir_steps[SPEC + "/verifications"] == 2 and rep.dir_steps[SPEC + "/planning"] == 1 and rep.dir_steps[SPEC + "/checks"] == 9
+
+
+def test_a_directory_made_after_its_stage_fails_at_stage_end(monkeypatch):
+    from recipe.grpo.qwen3_5.workflow_rubric import facts as FF  # noqa: PLC0415
+
+    monkeypatch.setattr(FF, "location_paths", lambda *a: [])
+    art = SimpleNamespace(id="verifications_dir", kind="dir", locations=[])
+    item = _item({}, ref="verifications_dir", state="stage_end")
+
+    def judge(made, writes=(), commands=()):
+        facts = SimpleNamespace(dir_steps={SPEC + "/verifications": made} if made else {}, writes={SPEC + "/verifications/r.md": [WriteEvent(path="", step=s, op="create") for s in writes]},
+                                windows={"shape_spec": (2, 10)}, artifact_paths={"verifications_dir": SPEC + "/verifications"}, commands=commands)
+        ctx = SimpleNamespace(facts=facts, rubric=SimpleNamespace(stages=[SimpleNamespace(id="shape_spec", artifacts=["verifications_dir"])], artifacts={"verifications_dir": art}),
+                              collected=SimpleNamespace(workdir="/testbed", files={}))
+        return A._dir_at_stage_end(item, ctx, art, SPEC + "/verifications").status
+
+    assert judge(4, writes=(50,)) == "pass"  # made in shape-spec, the report written later
+    assert judge(50, writes=(50,)) == "fail"  # first made with the report
+    # a mkdir the replay could not expand ($(date ...)) still dates the directory
+    made_by_date = [SimpleNamespace(step=6, command="mkdir -p /tmp/agent-os/specs/$(date +%Y-%m-%d)-x/verifications")]
+    assert judge(None, writes=(50,), commands=made_by_date) == "pass"

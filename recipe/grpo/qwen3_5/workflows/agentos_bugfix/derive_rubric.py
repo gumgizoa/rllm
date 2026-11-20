@@ -473,6 +473,8 @@ def _review_fixes(it: dict) -> None:
         it["note"] = "the ## and ### headings of requirements.md, outside Initial Description, are the template's"
     if it["id"].endswith("shape_spec.spec_dir.path_match.dated"):  # E-4 row 7: today's date (core-workflow.md 44, shape-spec.md 33)
         p["today"] = True
+    if it["id"].endswith("shape_spec.verifications_dir.artifact_exists"):  # E-4 row 9: made during shape-spec (SS 52), not at the end
+        it["target"]["state"] = "stage_end"
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

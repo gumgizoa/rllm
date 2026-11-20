@@ -212,6 +212,7 @@ class Facts:
     edits_by_path: dict[str, list[Step]] = field(default_factory=dict)
     location_counts: dict[str, int] = field(default_factory=dict)
     unseen_repo_paths: list[str] = field(default_factory=list)
+    dir_steps: dict[str, int] = field(default_factory=dict)  # directory -> step it first appeared at (replay.Replay.dir_steps)
     notes: list[str] = field(default_factory=list)
 
     # ---------------------------------------------------------------------------------------

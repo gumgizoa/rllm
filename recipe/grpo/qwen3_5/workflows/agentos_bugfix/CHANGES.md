@@ -291,6 +291,12 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   그날이거나 다음 날(자정을 넘긴 런)이어야 통과함(core-workflow.md 44행, shape-spec.md 33행: 오늘 날짜). 날짜를 모르면(오프라인 재채점,
   그 줄이 없는 옛 수집 출력) 지금처럼 꼴만 봄. 공용 `path_match`의 선택 설정값 `today`. 저장된 평가 499런은 오프라인이라 판정이 바뀌지 않음.
   날짜 2026-11-13(평가일)을 넣어 다시 채점하면 4런이 통과에서 실패(2024·2025년 날짜의 폴더).
+- E-4 행 9 verifications 폴더: 폴더 항목(`shape_spec.verifications_dir.artifact_exists`)을 런 끝이 아니라 shape-spec 구간 끝 기준으로 봄
+  (shape-spec.md 52행: shape-spec에서 만듦). 기록 재생이 폴더가 처음 생긴 단계(`mkdir`, 파일 쓰기로 생긴 부모 폴더)를
+  `Replay.dir_steps` → `Facts.dir_steps`로 남기고, 폴더 산출물의 구간 끝 판정(`_dir_at_stage_end`)이 그 단계와, 재생이 풀지 못한
+  `$(date ...)`·변수를 아무 글자로 읽은 `mkdir` 명령의 단계도 봄. 폴더 산출물을 구간 끝으로
+  보는 항목은 다른 워크플로에 없음. 평가 499런: 3런이 통과에서 실패(django__django-16527은 shape-spec 중 날짜가 다른 둘째 폴더에만
+  verifications를 만들고, 끝에 남은 폴더의 것은 34단계에 처음 만듦).
 
 
 ## 확인
