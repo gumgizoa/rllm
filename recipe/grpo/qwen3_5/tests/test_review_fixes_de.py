@@ -222,3 +222,21 @@ def test_strict_prefix_rejects_mixed_and_contradicted_values():
     assert A.field_enum(_item(p, ref="final_verification"), _ctx("# R\n**Status:** ✅ Passed with Issues\n")).status == "fail"
 
 
+
+
+# ---- E-4 row 6: an answer whose basis names no source -----------------------------------------------------------
+
+
+def _answers(lines: str, **extra):
+    return C.requirements(_item({"rule": "answers", **extra}), _ctx("## Requirements Discussion\n" + lines))
+
+
+def test_an_answer_needs_a_basis_that_names_a_source():
+    good = "**Q1:** Fix x?\n**Answer:** (assumed) Yes — the traceback in the task description shows it\n"
+    bad = "**Q2:** Tests?\n**Answer:** (assumed) Add regression tests — Standard testing practice.\n"
+    path = "**Q3:** Where?\n**Answer:** (assumed) In the parser — `src/parse.py` line 40\n"
+    r = _answers(good + bad + path, basis_check=True)
+    assert r.status == "fail" and abs(r.score - 2 / 3) < 1e-9
+    assert _answers(good + bad + path).status == "pass"  # without the parameter, as before
+
+

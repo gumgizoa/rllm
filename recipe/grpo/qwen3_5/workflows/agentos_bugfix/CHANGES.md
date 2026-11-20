@@ -279,6 +279,10 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   낱말은 Passed with Issues)과 첫 값(Passed, All Complete, All Passing) 뒤에 실패를 덧붙인 값(`✅ All Passing (excluding pre-existing
   failures)`, 바로 앞 세 낱말에 no·0·zero·without가 없는 fail·error·issue·exclud·except)을 실패로 봄. 설명만 덧붙인 값은 그대로 통과.
   공용 `field_enum`의 선택 설정값 `strict_prefix`. 평가 499런: 7런이 통과에서 실패(섞음 3, 실패 덧붙임 4).
+- E-4 행 6 답의 근거: requirements.md의 답 항목이 `(assumed) <답> — <근거>` 꼴만 보던 것을, 근거가 출처를 대지 않는 답(경로·코드 구간·식별자·
+  출처 낱말(task, issue, description, repository, codebase, grep, search, traceback, error, test, docs)이 없고, 낱말 셋 이하이거나
+  "Standard testing practice" 같은 일반론뿐)을 맞지 않은 답으로 셈(비율 점수). 문서 core-workflow.md 71 ~ 72행, shape-spec.md 149행:
+  근거는 과제 설명이나 저장소에서 옴. requirements 규칙의 선택 설정값 `basis_check`. 평가 499런: 9런이 통과에서 실패(답 10개).
 
 
 ## 확인

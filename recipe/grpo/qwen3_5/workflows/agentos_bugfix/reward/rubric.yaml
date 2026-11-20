@@ -1873,6 +1873,7 @@ items:
     kind: agentos_bugfix.requirements
     params:
       rule: answers
+      basis_check: true
   requirement: must
   modality_evidence: CW:70-72 'answer each one yourself ... record the answer with its basis'; SS:223 the answer line; SS:298
     'Record each assumed answer and its basis'

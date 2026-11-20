@@ -346,7 +346,25 @@ def _norm_lines(text: str) -> list[str]:
     return [re.sub(r"\s+", " ", ln).strip() for ln in (text or "").splitlines() if ln.strip()]
 
 
-@register("agentos_v2.requirements", params={"rule": True, "artifact": False}, availability=("sandbox_file",), common=False, choices={"rule": ("answers", "initial_description")})
+# a basis that names no source: a path, a code span, an identifier or a word for the task or the repository would be one
+_SOURCE_WORD = re.compile(r"(?i)\b(?:task|issue|description|repository|repo|codebase|grep|search|traceback|error|test|docs?)\b")
+_CODEISH = re.compile(r"`[^`]+`|[\w.]*\w/[\w./-]+|\b\w+\.\w+\b|\b\w+_\w+\b|\w+\(\)")
+_GENERIC = re.compile(
+    r"(?i)^(?:(?:standard|common|best|general|generic|usual|typical|comprehensive)\b[\w\s-]{0,30}?\b(?:practices?|approach|patterns?|conventions?|testing)"
+    r"|(?:correct|yes|no|n/?a|none|needed|assumed|obvious(?:ly)?|i think so|makes sense|reasonable|need to verify)(?: [\w-]+){0,3})\.?$"
+)
+
+
+def _no_basis(value: str) -> bool:
+    """An answer's basis (after the dash) names nothing in the task description or the repository: no path, code span,
+    identifier or source word, and three words or fewer or a generic phrase only ("Standard testing practice")."""
+    basis = re.split(r"\s(?:—|–|--?)\s", value, maxsplit=1)[-1].strip()
+    if _SOURCE_WORD.search(basis) or _CODEISH.search(basis):
+        return False
+    return len(re.findall(r"[\w'/.()-]+", basis)) <= 3 or _GENERIC.match(basis) is not None
+
+
+@register("agentos_v2.requirements", params={"rule": True, "artifact": False, "basis_check": False}, availability=("sandbox_file",), common=False, choices={"rule": ("answers", "initial_description")})
 def requirements(item: Item, ctx: EvalContext) -> Result:
     """rule: answers | initial_description -- each question's assumed answer with its basis; the raw idea quoted."""
     p = item.check.params or {}
@@ -371,7 +389,7 @@ def requirements(item: Item, ctx: EvalContext) -> Result:
                 qs[-1] = (qs[-1][0], M.clean_value(a.group("v")) if a.group("v") else a.group("v"))
         if not qs:
             return Result.no(item, "no **Qn:** question")
-        bad = [q for q, v in qs if not v or not _ANSWER_OK.match(v.strip())]
+        bad = [q for q, v in qs if not v or not _ANSWER_OK.match(v.strip()) or (p.get("basis_check") and _no_basis(v.strip()))]
         return Result.ratio(item, len(qs) - len(bad), len(qs), f"without '(assumed) <answer> — <basis>': {bad[:5]}" if bad else f"{len(qs)} answers assumed with a basis")
     if rule == "initial_description":
         init = _text(ctx, "initialization")

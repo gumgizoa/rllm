@@ -460,6 +460,8 @@ def _review_fixes(it: dict) -> None:
         p["top_level"] = True
     if kind == "field_enum" and p.get("prefix_ok"):  # E-4 row 14
         p["strict_prefix"] = True
+    if kind == f"{NEW}.requirements" and p.get("rule") == "answers":  # E-4 row 6
+        p["basis_check"] = True
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]
