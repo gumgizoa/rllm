@@ -490,6 +490,11 @@ def _review_fixes(it: dict) -> None:
         it["note"] = "a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the final change"
     if kind == f"{NEW}.read":  # D-4: a file the run never wrote is not read either
         p["absent_unread"] = True
+    if kind == f"{NEW}.report" and p.get("rule") in ("test_counts", "failed_listed", "suite_status"):  # D-1
+        p["phase3_fallback"] = True
+        p["script_results"] = True
+    if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
+        p["phase3_fallback"] = True
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

@@ -320,6 +320,17 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   첫 저장소 쓰기 가운데 이른 것 전) 다음 단계까지 늘림. 다음 단계의 시작은 그대로라 두 구간이 겹침. 문서를 일찍 연 것은 순서 항목이 셈.
   `workflow_rubric/facts.py`의 `_close_on_artifact`. 같은 구간 규칙을 쓰는 agentos_v2·openspec_ff·speckit_sdd는 키가 없어 그대로.
   평가 499런: 60런에서 판정 134개가 실패에서 통과(`shape_files_left_alone` 58런, initialization 읽기 35런, 재사용 검색 32런 등).
+- D-1 보고서 항목과 `suite_run`의 비교 대상 실행 (1-9)
+  - 대신 구간: 모든 task가 체크된 쓰기가 없거나 보고서보다 늦어 PHASE 3 구간이 없으면, 보고서 첫 쓰기 전의 마지막 코드 변경과 tasks.md의
+    마지막 쓰기 가운데 늦은 것 다음 단계부터 보고서 첫 쓰기 전까지를 비교 구간으로 씀(`fallback_window`, `comparison_window`,
+    `comparison_runs`). 모든 task를 체크한 런과 같이, 그 뒤에 테스트를 돌려야 함. `code_frozen`과 penalty는 지금처럼 `phase3_start`를 씀.
+    선택 설정값 `phase3_fallback`(보고서 세 규칙과 `suite_run`)
+  - 스크립트 결과: 비교 구간에 유효한 저장소 테스트 실행이 없고 checks/ 스크립트 실행만 있으면, 보고서 세 규칙을 스크립트들의 구간 안
+    마지막 결과와 비교함(`comparison_script_results`, `_report_on_scripts`). Status는 모두 통과일 때만 All Passing, Failing + Errors가 0인지가
+    모두 통과인지와 맞아야 함(Total·Passing은 보지 않음), 실패한 스크립트는 이름이 보고서에 있어야 함. `suite_run`은 스크립트를 세지 않음
+    (바꾼 코드의 테스트 모듈을 돌리지 않은 것은 그 항목이 셈). 선택 설정값 `script_results`
+  - 평가 499런: 58런에서 판정 167개가 바뀜(실패에서 통과 116개: Status 53, 개수 44, `suite_run` 16, 실패 목록 3. 실패에서 해당 없음 51개:
+    실패 목록), 통과에서 실패 0개
 
 
 ## 확인

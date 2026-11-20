@@ -433,3 +433,30 @@ def test_a_stage_whose_next_document_was_read_early_ends_after_its_file():
     assert w["create_tasks"] == _windows(close=False)["create_tasks"]
 
 
+
+
+# ---- D-1: the runs a report is compared with when PHASE 3 cannot be placed --------------------------------------
+
+
+def test_the_fallback_window_starts_after_the_last_code_change_and_tasks_write(monkeypatch):
+    tasks = "/tmp/agent-os/specs/s/tasks.md"
+    monkeypatch.setattr(C.refs, "event", lambda ctx, ev: 40)  # the report's first write
+    monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: [12, 20])
+    ctx = SimpleNamespace(facts=SimpleNamespace(artifact_paths={"tasks": tasks}, writes={tasks: [WriteEvent(path=tasks, step=s, op="edit") for s in (25, 30, 45)]}, n_steps=50),
+                          rubric=SimpleNamespace(artifacts={"final_verification": None}))
+    assert C.fallback_window(ctx) == (31, 40)  # after the last tasks.md write before the report (30), not the code change (20)
+    monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: [])
+    assert C.fallback_window(ctx) is None
+
+
+def test_a_report_on_check_scripts_is_read_against_their_last_results():
+    rep = "## 2. Test Suite Results\n**Status:** {}\n### Test Summary\n- **Total Tests:** 3 test groups\n- **Passing:** 3\n- **Failing:** {}\n- **Errors:** 0\n"
+    item = lambda rule: _item({"rule": rule}, ref="final_verification")  # noqa: E731
+    passed = {"/s/checks/test_a.py": "pass"}
+    failed = {"/s/checks/test_a.py": "fail"}
+    assert C._report_on_scripts(item("suite_status"), "suite_status", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "pass"
+    assert C._report_on_scripts(item("suite_status"), "suite_status", rep.format("✅ All Passing", 0), "2. Test Suite Results", failed).status == "fail"
+    assert C._report_on_scripts(item("test_counts"), "test_counts", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "pass"
+    assert C._report_on_scripts(item("test_counts"), "test_counts", rep.format("❌ Critical Failures", 0), "2. Test Suite Results", failed).status == "fail"
+    assert C._report_on_scripts(item("failed_listed"), "failed_listed", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "not_applicable"
+    assert C._report_on_scripts(item("failed_listed"), "failed_listed", rep.format("❌ Critical Failures", 1) + "test_a.py fails\n", "2. Test Suite Results", failed).status == "pass"
