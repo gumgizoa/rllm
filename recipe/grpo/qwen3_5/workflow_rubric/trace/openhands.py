@@ -36,11 +36,12 @@ def _status(observation: str):
 # The harness refused the call, so nothing in it ran: the terminal reads two commands where one
 # was meant, or a previous command is still running, or the arguments failed validation. The
 # refusal is always the very start of the observation (after the optional error banner); the same
-# words later in an observation are a command's own output and do not count.
+# words later in an observation are a command's own output and do not count. The previous command's
+# output may stand between the "[Below is the output ...]" header and the "is NOT executed" notice.
 _REJECTED = re.compile(
     r"\A\s*(?:\[An error occurred during execution\.\]\s*)?"
     r"(?:Cannot execute multiple commands at once"
-    r"|\[Below is the output of the previous command\.\]\s*\[Your command \"[\s\S]*?\" is NOT executed\."
+    r"|\[Below is the output of the previous command\.\][\s\S]*?\[Your command \"[\s\S]*?\" is NOT executed\."
     r"|Error validating tool ')"
 )
 

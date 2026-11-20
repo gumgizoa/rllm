@@ -37,6 +37,15 @@ def test_each_refusal_makes_a_call_that_does_nothing():
     assert a.kind == "other" and a.path is None
 
 
+def test_a_refusal_with_the_previous_commands_output_before_the_notice():
+    obs = (
+        "[Below is the output of the previous command.]\n...\ntest_a PASSED\ntest_b PASSED\n\n"
+        '[Your command "cat x" is NOT executed. The previous command is still running - You CANNOT send new commands.'
+    )
+    assert openhands.parse("terminal", {"command": "cat x"}, obs).kind == "other"
+    assert openhands.parse("terminal", {"command": "cat x"}, "out\n" + obs).kind == "shell"  # the header must open the observation
+
+
 def test_the_same_words_inside_a_commands_output_do_not_count():
     for obs in ("ok\nCannot execute multiple commands at once.", "log:\n[Your command \"x\" is NOT executed.", "grep hit: Error validating tool 'x'"):
         a = openhands.parse("terminal", {"command": "grep -r x /testbed"}, obs)
