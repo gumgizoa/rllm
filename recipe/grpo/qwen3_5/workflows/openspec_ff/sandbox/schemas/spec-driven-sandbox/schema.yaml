@@ -238,10 +238,22 @@ artifacts:
         first exercises work from an early one, the failures cascade back through every
         group in between and force rework. A group whose work calls for no verification,
         such as scaffolding, carries none. A final group is for integration checks only.
+      - Before any code is changed, run the existing repository tests for the files the
+        change will touch (test files named after them, or test files that import them)
+        and record the result in a `## Baseline` section at the top of tasks.md, as
+        plain bullets: the command as you ran it, in backticks, and the tests that fail
+        in it, or `none`. A test that fails here was failing before the change; verify
+        reads its runs against this section. A run of those tests made during explore
+        counts: record it instead of running it again.
 
       Example:
       ```
       # Tasks
+
+      ## Baseline
+
+      - Command: `python -m pytest tests/test_export.py -q`
+      - Failing before the change: none
 
       ## 1. Setup
 

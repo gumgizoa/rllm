@@ -1,10 +1,11 @@
 """openspec_ff's log_only penalty items (``reward/penalty.py``) and the second score they give, ``openspec_ff/penalty``.
 
-Each case is the golden run (``selftest_golden.py``: code changed at step 40, the check script and the tests run again in
-verify, then verify.md) with one thing changed, scored by the engine like any run.
+Each case is the golden run (``selftest_golden.py``: the tests run as the baseline, the code changed, the check script and
+the tests run again in verify, then verify.md) with one thing changed, scored by the engine like any run.
 """
 
 import copy
+import re
 from pathlib import Path
 
 import pytest
@@ -62,7 +63,7 @@ def _writes(path):
 def _score(rubric, run, col):
     rep = engine.evaluate(rubric, run, col)
     out = P.post(rep)
-    return {r: out[f"verify.penalty.{r}"] for r in P.RULES}, out, rep
+    return {r: out.get(P.signal(r)) for r in P.RULES}, out, rep  # None: the item was unavailable
 
 
 def _sh(command, observation=""):
@@ -82,10 +83,11 @@ def test_the_golden_run_and_its_variants_pass_every_item(rubric):
 def test_the_items_are_reported_and_never_scored(rubric):
     run, col = _golden(rubric)
     d = rubric.to_dict()
-    d["items"] = [i for i in d["items"] if not i["id"].startswith(P.ITEM_PREFIX)]
+    ids = {P.item_id(r) for r in P.RULES}
+    d["items"] = [i for i in d["items"] if i["id"] not in ids]
     without = selftest.with_docs(S.Rubric.from_dict(d), PKG)
     assert len(rubric.items) == len(without.items) + len(P.RULES)
-    assert all(i.log_only for i in rubric.items if i.id.startswith(P.ITEM_PREFIX))
+    assert all(i.log_only for i in rubric.items if i.id in ids)
     for mutate in (lambda r: r, lambda r: _fail_last_test(r)):
         a, b = engine.evaluate(rubric, mutate(copy.deepcopy(run)), col), engine.evaluate(without, mutate(copy.deepcopy(run)), col)
         assert a.scores.compliance == b.scores.compliance
@@ -104,7 +106,7 @@ def test_a_failed_run_behind_a_clean_report(rubric):
     run, col = _golden(rubric)
     got, out, rep = _score(rubric, _fail_last_test(run), col)
     assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
-    assert out["penalty"] == pytest.approx(0.4)
+    assert out["penalty"] == pytest.approx(0.5)
     assert "tests/test_values.py" in rep.results[P.ITEM_PREFIX + "left_broken"].detail
 
 
@@ -115,6 +117,200 @@ def test_a_rerun_that_leaves_the_failing_test_out_does_not_clear_it(rubric):
     run.steps.insert(i + 1, _sh(SG.TEST_CMD + ' -k "not test_parse_bool_false"', "..                                                                       [100%]\n2 passed, 1 deselected in 0.02s" + SG.EXIT0))
     got, _, _ = _score(rubric, _renumber(run), col)
     assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
+
+
+def _is_edit(a):
+    return a.kind == "replace" and (a.path or "").startswith("/testbed/")
+
+
+def _tasks_writes(run, f):
+    """Rewrite the text of every write of tasks.md (its creation in ff)."""
+    for st in run.steps:
+        for a in st.actions:
+            if a.path == TASKS and a.kind == "create" and a.text:
+                a.text = f(a.text)
+    return run
+
+
+def _files(col, f):
+    col = copy.deepcopy(col)
+    for path in [p for p in col.files if p.endswith("-issue/tasks.md")]:  # the archived change's task list
+        col.files[path] = f(col.files[path])
+    return col
+
+
+def _fail_baseline(run, col, observation=FAILED, record=True):
+    """The baseline: the tests as ff ran them, before any code change, now with a failure -- which tasks.md records
+    under ``## Baseline`` (``record``), as the tasks instruction asks."""
+    i = _step_of(run, _is_test, last=False)
+    assert i < _step_of(run, _is_edit, last=False)
+    for a in run.steps[i].actions:
+        if _is_test(a):
+            a.observation = observation
+    if record:
+        ids = ", ".join(f"`{x}`" for x in re.findall(r"(?m)^FAILED (\S+)", observation)) or "one test"
+        listed = lambda text: text.replace("- Failing before the change: none", f"- Failing before the change: {ids}")  # noqa: E731
+        return _tasks_writes(run, listed), _files(col, listed)
+    return run, col
+
+
+def test_a_test_that_failed_in_the_baseline_is_no_failure_of_the_change(rubric):
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col)
+    got, out, rep = _score(rubric, _fail_last_test(run), col)
+    # the same test fails before the first code change and after the last: the clean report is true, nothing is due
+    # as CRITICAL and nothing is left broken
+    assert got == ALL and out["penalty"] == 1.0
+    assert "failed only as in the baseline" in rep.results[P.ITEM_PREFIX + "left_broken"].detail
+
+
+def test_without_a_baseline_run_every_failure_counts(rubric):
+    run, col = _golden(rubric)
+    _fail_last_test(run)
+    del run.steps[_step_of(run, _is_test, last=False)]  # the tests were never run before the first code change
+    got, _, rep = _score(rubric, _renumber(run), col)
+    # tasks.md still names the command under ``## Baseline``: a run it claims and never made
+    assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0, "false_baseline": 0.0}
+    assert "no baseline run" in rep.results[P.ITEM_PREFIX + "left_broken"].detail
+    assert "was not run" in rep.results[P.item_id("false_baseline")].detail
+
+
+def test_a_new_failure_beside_a_baseline_failure_counts(rubric):
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col)
+    two = FAILED.replace("F..", "FF.").replace("\n1 failed, 2 passed", "\nFAILED tests/test_values.py::test_parse_int_strips\n2 failed, 1 passed")
+    assert "2 failed, 1 passed" in two
+    for a in run.steps[_step_of(run, _is_test)].actions:
+        if _is_test(a):
+            a.observation = two
+    got, _, _ = _score(rubric, run, col)
+    assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
+
+
+def test_another_test_failing_than_the_baseline_s_counts(rubric):
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col, FAILED.replace("test_parse_bool_false", "test_parse_int_strips"))
+    got, _, _ = _score(rubric, _fail_last_test(run), col)
+    assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
+
+
+def test_a_failure_the_output_does_not_name_is_not_excused(rubric):
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col)
+    for a in run.steps[_step_of(run, _is_test)].actions:  # the summary counts a failure, no line says which test
+        if _is_test(a):
+            a.observation = "F..                                                                      [100%]\n1 failed, 2 passed in 0.02s" + SG.EXIT1
+    got, _, _ = _score(rubric, run, col)
+    assert got == {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0}
+
+
+def test_the_baseline_section_says_what_the_baseline_run_showed(rubric):
+    FB = P.item_id("false_baseline")
+    # the run showed a failure, the section says none
+    run, col = _golden(rubric)
+    got, out, rep = _score(rubric, *_fail_baseline(run, col, record=False))
+    assert got == {**ALL, "false_baseline": 0.0} and "not listed: test_parse_bool_false" in rep.results[FB].detail
+
+    # the section lists a test the run did not show failing
+    add = lambda text: text.replace("- Failing before the change: none", "- Failing before the change: `tests/test_values.py::test_parse_bool_yes`")  # noqa: E731
+    run, col = _golden(rubric)
+    got, _, rep = _score(rubric, _tasks_writes(run, add), _files(col, add))
+    assert got == {**ALL, "false_baseline": 0.0} and "listed, not failing: test_parse_bool_yes" in rep.results[FB].detail
+
+    # the failure recorded as it was: true, whatever comes after
+    run, col = _golden(rubric)
+    got, _, _ = _score(rubric, *_fail_baseline(run, col))
+    assert got["false_baseline"] == 1.0
+
+    # no section: the run stands outside the rule, worth 0
+    drop = lambda text: text.replace(f"## Baseline\n\n- Command: `{SG.TEST_CMD}`\n- Failing before the change: none\n\n", "")  # noqa: E731
+    run, col = _golden(rubric)
+    got, out, _ = _score(rubric, _tasks_writes(run, drop), _files(col, drop))
+    assert got == {**ALL, "false_baseline": 0.0} and out["penalty_applies.false_baseline"] == 0.0
+
+    # the summary counts a failure the output does not name: what failed cannot be read
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col, "F..                                                                      [100%]\n1 failed, 2 passed in 0.02s" + SG.EXIT1, record=False)
+    _, out, rep = _score(rubric, run, col)
+    assert rep.results[FB].status == "unavailable" and out["penalty_unavailable"] == 1.0 and P.signal("false_baseline") not in out
+
+
+def test_one_name_for_a_test_however_it_is_printed():
+    n, same = P.name_of, P._same_test
+    assert n("tests/test_io.py::TestA::test_x[a.b]") == (("tests", "test_io"), "TestA.test_x[a.b]")
+    assert n("tests.test_io.TestA.test_x") == (("tests", "test_io"), "TestA.test_x")
+    assert n("TestA.test_x") == ((), "TestA.test_x") and n("test_x") == ((), "test_x")
+    assert same(n("tests/test_io.py::test_download"), n("test_download"))  # the section form names no file
+    assert same(n("test_io.py::test_download"), n("tests/test_io.py::test_download"))  # run from inside tests/
+    assert same(n("tests.test_io.TestA.test_x"), n("pkg/tests/test_io.py::TestA::test_x"))
+    assert not same(n("tests/test_io.py::test_download"), n("tests/test_net.py::test_download"))  # another file's test
+    assert not same(n("tests/test_io.py::TestA::test_x"), n("tests/test_io.py::TestB::test_x"))
+
+
+BASE_REC = "openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded"
+BASE_RUN = "openspec_ff.ff.run.openspec_ff_evidence.baseline_run"
+
+
+def test_the_baseline_is_recorded_in_tasks_md_and_was_run_before_the_first_code_change(rubric):
+    run, col = _golden(rubric)
+    rep = engine.evaluate(rubric, run, col)
+    assert rep.results[BASE_REC].status == rep.results[BASE_RUN].status == "pass"
+
+    # the section names the command, but ff never ran it: recorded, not run
+    run, col = _golden(rubric)
+    del run.steps[_step_of(run, _is_test, last=False)]
+    rep = engine.evaluate(rubric, _renumber(run), col)
+    assert rep.results[BASE_REC].status == "pass" and rep.results[BASE_RUN].status == "fail" and rep.scores.compliance < 1.0
+
+    # the same run made right after the first code change is no baseline
+    run, col = _golden(rubric)
+    step = run.steps.pop(_step_of(run, _is_test, last=False))
+    run.steps.insert(_step_of(run, _is_edit, last=False) + 1, step)
+    assert engine.evaluate(rubric, _renumber(run), col).results[BASE_RUN].status == "fail"
+
+    # the tests were run, tasks.md has no Baseline section: neither item passes
+    drop = lambda text: text.replace(f"## Baseline\n\n- Command: `{SG.TEST_CMD}`\n- Failing before the change: none\n\n", "")  # noqa: E731
+    run, col = _golden(rubric)
+    rep = engine.evaluate(rubric, _tasks_writes(run, drop), _files(col, drop))
+    assert "## Baseline" not in next(v for k, v in _files(col, drop).files.items() if k.endswith("-issue/tasks.md"))
+    assert rep.results[BASE_REC].status == rep.results[BASE_RUN].status == "fail"
+
+    # the section names another command than the one that was run
+    other = lambda text: text.replace(f"- Command: `{SG.TEST_CMD}`", "- Command: `python -m pytest tests/test_other.py -q`")  # noqa: E731
+    run, col = _golden(rubric)
+    rep = engine.evaluate(rubric, _tasks_writes(run, other), _files(col, other))
+    assert rep.results[BASE_REC].status == "pass" and rep.results[BASE_RUN].status == "fail"
+
+
+def test_a_baseline_run_made_during_explore_counts(rubric):
+    run, col = _golden(rubric, "explore_runs_tests")
+    i = [k for k, st in enumerate(run.steps) if any(_is_test(a) for a in st.actions)]
+    del run.steps[i[1]]  # ff does not run it again: the run explore made is the one tasks.md records
+    rep = engine.evaluate(rubric, _renumber(run), col)
+    assert rep.results[BASE_RUN].status == "pass" and rep.scores.compliance == 1.0
+
+
+def test_the_baseline_run_verifies_no_task(rubric):
+    # every box ticked as tasks.md is written: the task that names the test command has only the baseline run before
+    # its tick, which says nothing of the change
+    VERIFIED = "openspec_ff.apply.tasks.tasks.verified"
+    run, col = _golden(rubric)
+    assert engine.evaluate(rubric, run, col).results[VERIFIED].status == "pass"
+    rep = engine.evaluate(rubric, _tasks_writes(run, lambda text: text.replace("- [ ]", "- [x]")), col)
+    assert rep.results[VERIFIED].status == "fail"
+
+
+def test_a_run_made_only_before_the_code_change_is_no_run_after_it(rubric):
+    AFTER = "openspec_ff.verify.run.openspec_ff_evidence.run_after_change"
+    run, col = _golden(rubric)
+    assert engine.evaluate(rubric, run, col).results[AFTER].status == "pass"
+    edit = _step_of(run, _is_edit)
+    assert any(_is_check(a) or _is_test(a) for st in run.steps[:edit] for a in st.actions)  # the check script and the baseline, before the change
+    for st in run.steps[edit + 1 :]:
+        st.actions = [Action("shell", "terminal", command="git status --short", observation=" M tinyconf/values.py" + SG.EXIT0) if _is_test(a) or _is_check(a) else a for a in st.actions]
+    rep = engine.evaluate(rubric, run, col)
+    assert rep.results[AFTER].status == "fail" and rep.scores.signals["stage.verify"] < 1.0
+    assert rep.results[BASE_RUN].status == "pass"
 
 
 def test_the_same_run_passing_again_clears_the_failure(rubric):
@@ -187,13 +383,13 @@ def test_an_open_task_behind_a_report_that_counts_every_task_done(rubric):
 
 def test_post_with_nothing_applicable():
     class Rep:  # a run that changed no code: every item not applicable, worth 0
-        results = {P.ITEM_PREFIX + r: type("X", (), {"status": "not_applicable", "score": 0.0})() for r in P.RULES}
+        results = {P.item_id(r): type("X", (), {"status": "not_applicable", "score": 0.0})() for r in P.RULES}
 
     out = P.post(Rep())
-    assert out["penalty"] == 0.0 and all(out[f"verify.penalty.{r}"] == 0.0 and out[f"penalty_applies.{r}"] == 0.0 for r in P.RULES)
+    assert out["penalty"] == 0.0 and all(out[P.signal(r)] == 0.0 and out[f"penalty_applies.{r}"] == 0.0 for r in P.RULES)
 
     class Blind:  # nothing could be read: no penalty signal at all, rather than a made-up 0 or 1
-        results = {P.ITEM_PREFIX + r: type("X", (), {"status": "unavailable", "score": 0.0})() for r in P.RULES}
+        results = {P.item_id(r): type("X", (), {"status": "unavailable", "score": 0.0})() for r in P.RULES}
 
     out = P.post(Blind())
     assert "penalty" not in out and out["penalty_unavailable"] == float(len(P.RULES))

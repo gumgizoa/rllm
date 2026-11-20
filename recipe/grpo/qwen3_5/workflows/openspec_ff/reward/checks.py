@@ -26,10 +26,15 @@ vendored as ``openspec_kinds.py`` (that port is not on this branch) and used as 
 
 * ``openspec_ff.delta`` -- ``{rule: added_only}``: every delta section of every delta spec is ``## ADDED
   Requirements`` (``/openspec/specs/`` starts empty, core-workflow.md:69-70; the project rules).
-* ``openspec_ff.evidence`` -- ``{rule: test_or_check}``: in the window, a valid run of the repository's tests
-  (``evidence.py``) or the execution of a script the run wrote under the change's ``checks/`` directory
-  (schema.yaml tasks instruction: "run the existing repository tests ... or write a check script ... and run it").
-* ``openspec_ff.tasks`` -- the task list's history across its two locations (active, archived):
+* ``openspec_ff.evidence`` -- what the run executed, read against its code changes (``facts.source_change_steps``):
+  ``{rule: baseline_run}`` -- a command the ``## Baseline`` section of tasks.md names (a code span) is a valid run of
+  the repository's tests (``evidence.py``) made before the first code change, in any stage (schema.yaml tasks
+  instruction: "Before any code is changed, run the existing repository tests ... and record the result");
+  ``{rule: run_after_change}`` -- after the last code change, a valid run of the repository's tests or the execution
+  of a script the run wrote under the change's ``checks/`` directory, anywhere up to the end of the run
+  (03-verify.md step 8, "Run the Evidence"). A run that changed no code stands outside ``run_after_change``.
+* ``openspec_ff.tasks`` -- ``{rule: baseline_recorded}``: tasks.md has a ``## Baseline`` section that names a command
+  in a code span; and the task list's history across its two locations (active, archived):
   ``{rule: written}`` -- a content write of it in the window; ``{rule: rerun_after_tick}`` -- each write that
   ticks a box is followed by an ``openspec instructions apply`` call before the next ticking write (or the end
   of the window) (ratio; 02-apply.md:98); ``{rule: done_or_reasoned}`` -- at the end every task is ticked or
@@ -54,8 +59,10 @@ import posixpath
 import re
 
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
+from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
+from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_run
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
@@ -279,23 +286,63 @@ def written_checks(ctx: EvalContext, w=None) -> set[str]:
     return out
 
 
-@register("openspec_ff.evidence", params={"rule": True, "window": False}, availability=("trace",), common=False, choices={"rule": ("test_or_check",)})
+_CODE = re.compile(r"`([^`\n]+)`")
+
+
+def tasks_text(ctx: EvalContext, aid: str = "tasks") -> str | None:
+    """tasks.md as it stands at the end: the sandbox file, else (offline) its last content the replay knows."""
+    text = ctx.artifact_text(aid, "final")
+    if text is None:
+        known = [e.content for e in _content_events(ctx, aid) if e.content is not None]
+        text = known[-1] if known else None
+    return text
+
+
+def baseline_commands(text: str | None) -> list[str] | None:
+    """The commands (code spans) the ``## Baseline`` section of tasks.md names; None when there is no such section."""
+    try:
+        body = M.section(M.strip_fence((text or "")[:MAX_TEXT])[0], "Baseline")
+    except Exception:  # noqa: BLE001 -- agent text
+        body = None
+    if body is None:
+        return None
+    body = re.sub(r"(?s)<!--.*?-->", "", body)
+    return [c.strip() for c in _CODE.findall(body) if c.strip() and c.strip().lower() not in ("none", "n/a")]
+
+
+@register("openspec_ff.evidence", params={"rule": True, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("baseline_run", "run_after_change")})
 def evidence(item: Item, ctx: EvalContext) -> Result:
-    """rule ``test_or_check``: a valid repository test run, or the execution of a check script written under the change's checks/, in the window."""
-    p = item.check.params or {}
-    if str(p.get("rule")) != "test_or_check":
-        return Result.no(item, f"unknown rule {p.get('rule')!r}")
-    w = _window(item, ctx)
-    if w is None:
-        return Result.no(item, "window empty")
-    runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and refs.in_window(r.step, w)]
-    if runs:
-        return Result.ok(item, f"valid test run at step {runs[0].step}")
-    scripts = written_checks(ctx)
-    ran = sorted({path for step, path in F.executed_paths(ctx) if refs.in_window(step, w) and path in scripts})
-    if ran:
-        return Result.ok(item, f"ran {ran[0]}")
-    return Result.no(item, f"no valid test run and no check script executed in {list(w)}")
+    """rule ``baseline_run``: a command tasks.md's ``## Baseline`` section names is a valid repository test run made before the first code change.
+    rule ``run_after_change``: after the last code change, a valid repository test run or the execution of a check script written under the change's checks/."""
+    rule = str((item.check.params or {}).get("rule"))
+    if rule == "baseline_run":
+        cmds = baseline_commands(tasks_text(ctx))
+        if cmds is None:
+            return Result.no(item, "tasks.md has no Baseline section")
+        if not cmds:
+            return Result.no(item, "the Baseline section names no command")
+        changes = F.source_change_steps(ctx)
+        if not changes and ctx.facts.unseen_repo_paths:  # the code changed at a step the trace does not show: "before it" cannot be shown
+            return Result.no(item, "the code change is not in the trace: no run can be placed before it")
+        before = (1, changes[0] if changes else ctx.facts.n_steps + 2)
+        where = f"before the first code change (step {changes[0]})" if changes else "(the run changed no code)"
+        for c in cmds:
+            if _command_run(item, ctx, c, before, "test").status == "pass":
+                return Result.ok(item, f"baseline {c[:50]!r} run {where}")
+        return Result.no(item, f"no command of the Baseline section is a valid test run {where}")
+    if rule == "run_after_change":
+        last = F.last_change_write(ctx)
+        if last is None:
+            return Result.not_applicable(item, "the run changed no code")
+        runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and r.step > last]
+        if runs:
+            return Result.ok(item, f"valid test run at step {runs[0].step}, after the last code change (step {last})")
+        scripts = written_checks(ctx)
+        ran = sorted({(step, path) for step, path in F.executed_paths(ctx) if step > last and path in scripts})
+        if ran:
+            return Result.ok(item, f"ran {ran[0][1]} at step {ran[0][0]}, after the last code change (step {last})")
+        return Result.no(item, f"no valid test run and no check script executed after the last code change (step {last})")
+    return Result.no(item, f"unknown rule {rule!r}")
 
 
 # --------------------------------------------------------------------------------------------
@@ -337,12 +384,20 @@ def open_without_reason(text: str | None) -> tuple[int, list[str]]:
     return total, bad
 
 
-@register("openspec_ff.tasks", params={"rule": True, "artifact": False, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("written", "rerun_after_tick", "done_or_reasoned")})
+@register("openspec_ff.tasks", params={"rule": True, "artifact": False, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("written", "rerun_after_tick", "done_or_reasoned", "baseline_recorded")})
 def tasks(item: Item, ctx: EvalContext) -> Result:
-    """rule: written | rerun_after_tick | done_or_reasoned -- the task list written in the window (any location); each ticking write followed by ``openspec instructions apply``; at the end each task ticked or with its one-line reason."""
+    """rule: written | rerun_after_tick | done_or_reasoned | baseline_recorded -- the task list written in the window (any location); each ticking write followed by ``openspec instructions apply``; at the end each task ticked or with its one-line reason; a ``## Baseline`` section that names a command."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     aid = str(p.get("artifact") or item.target.ref or "tasks")
+    if rule == "baseline_recorded":
+        text = tasks_text(ctx, aid)
+        if text is None:
+            return Result.no(item, "task list absent")
+        cmds = baseline_commands(text)
+        if cmds is None:
+            return Result.no(item, "no Baseline section")
+        return Result.ok(item, f"Baseline names {cmds[0][:50]!r}") if cmds else Result.no(item, "the Baseline section names no command")
     if rule == "done_or_reasoned":
         text = ctx.artifact_text(aid, "final")
         if text is None:

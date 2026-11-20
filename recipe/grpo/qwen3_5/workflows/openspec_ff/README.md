@@ -86,7 +86,7 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 | 단계 | 시작 명령 | 하는 일 | 남기는 것 |
 |---|---|---|---|
 | explore | `openspec list --json`, `openspec list --specs`, `config.yaml` 읽기 | issue와 코드를 읽고, 기존 코드·기존 테스트를 실행하고 issue 예시나 그 변형을 한 줄 `python -c`·stdin snippet으로 실행해 문제와 바꿀 위치를 파악. 파일 쓰기 금지 | 파일 없음. ff 문서를 여는 turn에 "What We Figured Out" 요약(문제, 동작 방식, 바꿀 위치·대안, 가정, 남은 질문 + 근거) |
-| ff | `openspec new change "issue"` → `openspec status` → 산출물마다 `openspec instructions <산출물>` | issue와 저장소 코드를 읽고 계획 산출물 작성 | `proposal.md`, `specs/<기능>/spec.md`, `design.md`(필요할 때만), `tasks.md` |
+| ff | `openspec new change "issue"` → `openspec status` → 산출물마다 `openspec instructions <산출물>` | issue와 저장소 코드를 읽고 계획 산출물 작성. tasks.md를 쓰기 전에 바꿀 파일의 기존 테스트를 실행해 `## Baseline` 절에 기록 | `proposal.md`, `specs/<기능>/spec.md`, `design.md`(필요할 때만), `tasks.md` |
 | apply | `openspec instructions apply` | tasks.md의 작업을 하나씩 구현하고 체크박스 갱신. 확인 스크립트 작성·실행 | `/testbed` 코드 변경, `tasks.md`의 `- [x]`, `checks/*.py` |
 | verify | `openspec status`로 맥락 확인 후 직접 점검 (verify를 대신하는 CLI 명령은 없음) | 구현을 산출물과 대조해 완전성·정확성·일관성 점검 | `verify.md` |
 | archive | `openspec archive issue --yes` | delta spec 형식 검증 → 메인 spec에 병합 → change 폴더 보관 | `/openspec/specs/<기능>/spec.md`, `/openspec/changes/archive/<날짜>-issue/` |
@@ -96,6 +96,7 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 - explore는 요약의 "문제"와 "바꿀 위치"를 근거와 함께 말할 수 있으면 끝남. 남은 질문은 열린 채로 둬도 됨. step 상한은 없음.
 - ff는 원문 그대로이고, explore 요약을 근거로 proposal의 Why와 design의 Context·Decisions를 씀. 요약의 가정은 proposal에 옮김.
 
+- verify는 마지막 코드 수정 뒤에 저장소 테스트와 check script를 실행하고, 실패한 실행을 CRITICAL로 적음. `tasks.md`의 baseline에서 이미 실패하던 테스트는 CRITICAL이 아니고 보고서에 수정 전부터 실패로 적음. baseline이 없으면 실패는 모두 이번 수정의 것으로 봄.
 - verify 보고서에 CRITICAL이 있으면 apply로 돌아가 고친 뒤 다시 verify하고 `verify.md`를 다시 씀(최대 2회). 그 뒤에는 보고서 상태 그대로 archive하고, 남은 문제는 보고서에 기록됨.
 - archive는 `verify.md`가 있을 때만 실행함.
 - archive가 실패하면(종료 코드 1) 오류가 가리키는 delta spec 형식만 고쳐 한 번 더 실행함.
@@ -114,7 +115,7 @@ change 이름은 항상 `issue`로 고정이고, change 폴더는 `/openspec/cha
 | `proposal.md` | `## Why`, `## What Changes`, `## Capabilities`(New / Modified Capabilities), `## Impact` |
 | `specs/<기능>/spec.md` | delta spec: `## ADDED Requirements` → `### Requirement: <이름>` (SHALL·MUST 문장) → `#### Scenario: <이름>` (`- **WHEN**`, `- **THEN**`) |
 | `design.md` | 원본 조건(여러 모듈에 걸침, 새 의존성, 보안·성능, 모호함 등)에 해당할 때만. Context, Goals, Decisions, Risks 등 |
-| `tasks.md` | `## 1. <묶음>` 아래 `- [ ] 1.1 <작업과 확인 방법>`. 완료 시 `[x]`. 작업 해석 메모는 체크박스가 아닌 일반 줄 |
+| `tasks.md` | 맨 위 `## Baseline`(수정 전 테스트 명령과 그때 실패한 테스트). `## 1. <묶음>` 아래 `- [ ] 1.1 <작업과 확인 방법>`. 완료 시 `[x]`. 작업 해석 메모는 체크박스가 아닌 일반 줄 |
 | `verify.md` | Summary 표(Completeness / Correctness / Coherence), Issues by Priority(CRITICAL / WARNING / SUGGESTION), Final Assessment |
 | `checks/*.py` 등 | 재현·확인 스크립트. 저장소 테스트 대신 여기에 씀 |
 

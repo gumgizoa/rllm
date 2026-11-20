@@ -590,7 +590,8 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
     (each task says what to do and how to verify it), ``unchecked_at_plan`` (as the planning stage left it, every task
     is ``- [ ]``), ``all_checked`` (at the end every task is ``- [x]``), ``checked_after_edit`` (no task is ticked
     before the first code change of the final change), ``verified`` (a task whose description names a test command is
-    ticked only after a valid run of that command, made after the task's last code change)."""
+    ticked only after a valid run of that command, made after the task's last code change and after the run's
+    first code change: an earlier run is the baseline)."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     aid = str(p.get("artifact") or item.target.ref)
@@ -700,13 +701,17 @@ def _verified(item: Item, ctx: EvalContext, aid: str) -> Result:
         desc.update({k: d for _, k, d in ents})
         prev = cur
     wd = ctx.collected.workdir
+    changes = F.source_change_steps(ctx)
+    first_change = changes[0] if changes else 0
     good, bad = [], []
     for k, step in sorted(ticks.items(), key=lambda kv: kv[1]):
         want = _runner_spans(desc.get(k, ""), wd)
         if not want:
             continue
         edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.step < step]
-        after = max(edits) if edits else 0
+        # a run made before the run's first code change is the baseline (tasks.md `## Baseline`): it shows what the
+        # tests said of the unchanged code, so it verifies no task -- one ticked before any code changed included
+        after = max([*edits, first_change])
         cmds = {w[0] for w in want}
         sels = {(w[1], w[2]) for w in want if w[2]}
         ok = any(
@@ -717,7 +722,7 @@ def _verified(item: Item, ctx: EvalContext, aid: str) -> Result:
             for r in ctx.facts.runs
         )
         (good if ok else bad).append(k)
-    return _ratio(item, good, bad, "ticked tasks verified by a valid run of their command after their last code change")
+    return _ratio(item, good, bad, "ticked tasks verified by a valid run of their command after their last code change (the baseline run aside)")
 
 
 # --------------------------------------------------------------------------------------------

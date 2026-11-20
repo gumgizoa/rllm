@@ -83,7 +83,7 @@ delta spec you write is therefore an `## ADDED Requirements` delta for a new cap
 
 Before it writes the report, verify runs the repository tests that cover the change and every check
 script under `/openspec/changes/issue/checks/`, after the last code change. A run that fails is a
-CRITICAL issue.
+CRITICAL issue, unless every test failing in it already failed in the baseline `tasks.md` records.
 
 Verify writes `/openspec/changes/issue/verify.md`. If the report holds a CRITICAL issue, go back
 to apply, fix what the report names, and run verify again, rewriting `verify.md`. Go back at most

@@ -102,6 +102,36 @@ Replaces the example lines 1.2, 2.2, 2.3 (`schema.yaml:245,249-250`); 1.1 and 2.
 - [ ] 2.3 Run the test module covering the export code and verify no existing test regresses
 ```
 
+Added after that item (G8-8, 2026-11-20), the baseline:
+
+```text
+- Before any code is changed, run the existing repository tests for the files the
+  change will touch (test files named after them, or test files that import them)
+  and record the result in a `## Baseline` section at the top of tasks.md, as
+  plain bullets: the command as you ran it, in backticks, and the tests that fail
+  in it, or `none`. A test that fails here was failing before the change; verify
+  reads its runs against this section. A run of those tests made during explore
+  counts: record it instead of running it again.
+```
+
+Added to the example, between `# Tasks` and `## 1. Setup`:
+
+```text
+## Baseline
+
+- Command: `python -m pytest tests/test_export.py -q`
+- Failing before the change: none
+```
+
+Added to `templates/tasks.md`, between `# Tasks` and the first group:
+
+```text
+## Baseline
+
+- Command: <!-- the test command, as run before any code change -->
+- Failing before the change: <!-- test ids, or none -->
+```
+
 ## Explore extension (stage 3, from 2026-10-15)
 
 Process becomes explore → ff → apply → verify → archive (user 2026-10-15); explore's no-code rule kept as
@@ -165,9 +195,12 @@ Rubric: revised by hand again, not regenerated. `openspec_ff.note` reads a turn'
 |---|---|---|---|---|
 | G8-7 | `03-verify.md` gains step 8 "Run the Evidence" (report writing becomes step 9): after the last code change, run the repository tests that cover the changed code and every check script under `checks/`; name each command and its result in the report; a failing run is CRITICAL; a failing test left out of a re-run still counts as failing; with nothing run, mark the affected checks `Not verified` and do not claim readiness. `core-workflow.md` "Verify, Then Fix What It Finds" opens with the same rule | semantic | user 2026-11-19 | replaces G8-3's "It asks for no new run". wf-floor-tcx-wf1114 training rollouts: of 204 first reports written with a failed run standing, 6 list a CRITICAL issue and 177 claim a clean result; 10.4% of runs that changed code ran nothing after the last change |
 | G9-7 | the three sentences giving the reason for "do not add or edit test files" no longer say the tests are in the repository: `core-workflow.md` "The Repository" ("the grading tests are added after you finish"), the tasks instruction in `schema.yaml` (agreed text below), `openspec-config.yaml` `context` | env | user 2026-11-19 | the tests that grade a task are applied after the run, so "already exist" / "already in place" was false. The ban itself is unchanged |
+| G8-8 | the tasks instruction of `schema.yaml` gains the baseline (agreed text below): before any code is changed, run the existing repository tests of the files the change will touch and record the command and the tests that fail in it in a `## Baseline` section at the top of `tasks.md`; a run made during explore counts. The instruction's example and `templates/tasks.md` open with that section. `03-verify.md` step 8 and its CRITICAL list, and `core-workflow.md` "Verify, Then Fix What It Finds", read verify's runs against it: a test that also failed in the baseline is not a CRITICAL issue and is named in the report as failing before the change; without a baseline run every failing test counts as a failure of the change | semantic | user 2026-11-20 | a test that fails for a reason the change cannot touch (no network in the sandbox) made the honest path the costly one: CRITICAL, two returns to apply with nothing to fix, and the penalty items still read the run as left broken, while a run that skipped the repository tests lost nothing. ff rather than apply: ff is where the change is planned and the tests that cover it are chosen, and the result belongs in an artifact verify reads (aidlc_v5 records its baseline in its first stage's artifact, speckit_bug in the fix report); `tasks.md` rather than a new artifact, so the schema keeps upstream's artifact set. wf-floor-tcx-wf1114 training rollouts: 454 of 2,184 code-changing runs end with a test left failing and 364 of them are resolved; 300 ran a test before their first code change (282 of them in explore) |
 
 Rubric: revised by hand again, not regenerated. Cited lines after the two insertions moved by four (`03-verify.md` from 143, `core-workflow.md` from 84), the three reworded quotes follow, and `penalty.no_run_after_change` cites the new step and is a must (the other penalty items gain the new sentences as sources; `left_broken` stays a should, since the documents allow the archive after two returns). No item checks "name each command and its result". Golden: the `critical_fixed` report lists the failing check script as a third CRITICAL issue; self-test results unchanged. `build --check` was not run (no upstream checkout on this machine): the new `Edit` was applied to the committed `03-verify.md` and gives the new file.
 
 Penalty items (2026-11-18, user): five `log_only` items under verify, `openspec_ff.verify.penalty.{no_run_after_change, false_clean_claim, task_count_mismatch, critical_missing, left_broken}` (kind `openspec_ff.penalty`, `reward/penalty.py`). The scored items say whether the form was followed; these say whether verify.md is true of what the run did and whether what it found was fixed (wf-floor-tcx-wf1114 training rollouts: of 256 reports written with a failed run or an open task behind them, 7 list a CRITICAL issue). They are evaluated and reported with every run and never enter `openspec_ff/compliance`; `reward/eval.py` reports their mean as a second score, `openspec_ff/penalty`. Names follow `<stage>.penalty.<item>`, shared across workflows; a value of 1 still means "did it right" -- direction and the way the items enter the reward are settled for all workflows together. No document changed for them: each cites lines already there.
 
 Penalty unification (2026-11-19, user): the three workflows with penalty items (speckit_bug, openspec_ff, agentos_bugfix) judge the shared questions with shared code. Whether a failed test passed again and how a check script's run came out are read by `workflow_rubric/results.py`; the last change to the code is `facts.last_change_write` over `facts.source_change_steps` (a throwaway script left at the repository root is no source change). The items make one score by `workflow_rubric/penalty.py`: every item stays in the mean, a rule the run stands outside of is worth 0 when the run never did what the rule is about and 1 when it did and the rule's condition did not arise, a rule that cannot be read is left out. `WorkflowSpec.penalty_signal` is set, so `compliance_reward.penalty_weight` reaches this workflow.
+
+Baseline (2026-11-20, user): three scored items take the place of apply's `test_or_check`, which any valid run in the apply window passed, one made before the code change included. `openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded` (must, structure): `tasks.md` has a `## Baseline` section naming a command in a code span. `openspec_ff.ff.run.openspec_ff_evidence.baseline_run` (must): a command that section names is a valid repository test run made before the first code change, in any stage. `openspec_ff.verify.run.openspec_ff_evidence.run_after_change` (must): after the last code change, up to the end of the run, a valid repository test run or the execution of a check script; not applicable to a run that changed no code -- the measurement of the `log_only` `penalty.no_run_after_change`, now also scored. `ff.tasks.item_format.groups` accepts `## Baseline` beside `## Workflow follow-up` as an unnumbered heading. `apply.tasks.tasks.verified` no longer counts a run made before the run's first code change: with the baseline in ff, a task ticked as tasks.md is written would otherwise have its test command "run before the tick" (the self-test's `precheck_tasks` showed it). The penalty items read a test run that fails only in tests the baseline showed failing as a run with no failure (`reward/penalty.py`: every failure named in the output, as many as the summary counts, each one failing in a valid test run before the first code change -- read from the runs, whether or not `tasks.md` records them); a run with no baseline keeps every failure. A sixth `log_only` penalty item, `openspec_ff.ff.penalty.false_baseline`, says whether the section is true: a command it names was run, validly, before the first code change, and the tests it lists as failing are the ones the last such run showed failing (none left out, none added; `none` when none failed). With no section or no command the run stands outside the rule, worth 0; when the run's summary counts failures its output does not name the item is unavailable. Not judged: which tests the baseline or the later run covers -- a run that executes only its own check script after the change still passes `run_after_change` and leaves nothing failed. Rubric edited by script, not regenerated: cited lines of `schema.yaml` from 241 on and of `templates/tasks.md` from 3 on moved; the self-test was run again and recorded (golden 1.0, 42 mutations, none failing).
