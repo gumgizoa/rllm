@@ -31,7 +31,10 @@ repository prohibitions and the test runs. What they cannot say:
       {rule: group_subtasks}     every task group has a sub-task line (``N.M``, M > 0) (ratio over the groups)
       {rule: ticked}             share of the task lines ticked ``[x]`` (or marked ⚠️) when the window ends
       {rule: ticked_after_work}  every task ticked in the window was ticked inside it, after a write or a run of a
-                                 path it names (ratio; a box ticked untraceably fails)
+                                 path it names (ratio; a box ticked untraceably fails); with ``name_files`` only names
+                                 with a file extension are files, matched by path suffix, a reading task (Review ...)
+                                 by its reads, a task naming no file by any work in the window before the tick, and a
+                                 tick after unreplayable writes at the earliest step it can have been made
       {rule: groups_in_order}    the groups are ticked in order: group k's last tick is not after group k+1's first
                                  (ratio over adjacent pairs)
       {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio);
@@ -602,6 +605,28 @@ def tick_steps(ctx: EvalContext, aid: str) -> dict[str, int | None]:
     return out
 
 
+def tick_bounds(ctx: EvalContext, aid: str) -> dict[str, tuple[int, int]]:
+    """Task id -> (earliest, latest) step its box can have been first ticked or marked at. The latest is the write after
+    which it is first seen done; the earliest is the same write, or -- when writes whose content cannot be replayed come
+    between it and the last known content -- the first of those writes (:func:`tick_steps` gives ``UNKNOWN`` there)."""
+    path = ctx.facts.artifact_paths.get(aid)
+    out: dict[str, tuple[int, int]] = {}
+    if not path:
+        return out
+    blind_from = None
+    for e in ctx.facts.writes.get(path, []):
+        if e.ok is False or e.op in ("delete", "move_out"):
+            continue
+        if e.content is None:
+            blind_from = e.step if blind_from is None else blind_from
+            continue
+        for t in task_lines(e.content):
+            if _done(t) and t["id"] not in out:
+                out[t["id"]] = (blind_from if blind_from is not None else e.step, e.step)
+        blind_from = None
+    return out
+
+
 def all_done_step(ctx: EvalContext, aid: str = "tasks"):
     """The first write of tasks.md after which it has task lines and every one is ticked or marked ⚠️ (None: never;
     ``UNKNOWN``: only the sandbox's final file shows it). A write whose content cannot be replayed is passed over: the
@@ -660,6 +685,60 @@ def named_paths(desc: str, workdir: str | None) -> set[str]:
             continue
         out.add(q)
     return out
+
+
+# what a task line names as a file (``name_files``, the reward review's B-1): the last part of the name ends with one of
+# these extensions -- ``subprocess.run``, ``content_type.save``, ``wspace/hspace`` are code, not files
+FILE_EXT = re.compile(r"\.(?:py|pyx|pyi|c|h|cpp|js|ts|txt|rst|md|cfg|toml|ini|json|ya?ml|html|css|sh|in|po|mo|csv|xml|tex)$", re.I)
+# a task whose work is reading: its text starts with one of these verbs (Review tests from Task Group 1, Analyze ...)
+READ_VERB = re.compile(r"(?i)^\s*(?:\*\*)?\s*(?:analy[sz]e|review|investigate|identify|locate|examine|inspect|understand|read|study|explore|find|look|trace)\b")
+_INTERPRETERS = re.compile(r"^(?:python[0-9.]*|bash|sh|node)$")
+
+
+def named_files(desc: str, workdir: str | None) -> set[str]:
+    """The paths of :func:`named_paths` that name a file: the last part ends with a known extension (:data:`FILE_EXT`)."""
+    return {q for q in named_paths(desc, workdir) if "@" not in q and FILE_EXT.search(posixpath.basename(q.rstrip("/")))}
+
+
+def _same_file(name: str, path: str) -> bool:
+    """``path`` (repository-relative or absolute) is the file ``name`` names: the same, or it ends with ``/`` + name."""
+    name = name.strip("/")
+    path = path.rstrip("/")
+    return bool(name) and (path == name or path.endswith("/" + name))
+
+
+def file_evidence_steps(ctx: EvalContext, names: set[str], w, reads: bool = False) -> list[int]:
+    """Steps that wrote or ran a file a task names, matched by :func:`_same_file` (``table.py`` is
+    ``astropy/table/table.py``); with ``reads`` also steps that read it in the window."""
+    steps = [e.step for path, evs in ctx.facts.writes.items() if any(_same_file(n, path) for n in names) for e in evs if e.ok is not False]
+    steps += [e.step for e in ctx.facts.repo_writes if e.ok is not False and any(_same_file(n, e.path) for n in names)]
+    steps += [st for st, path in F.executed_paths(ctx) if any(_same_file(n, path) for n in names)]
+    if reads:
+        steps += [st for st, rel in _repo_reads(ctx, w) if any(_same_file(n, rel) for n in names)]
+    return steps
+
+
+def work_steps(ctx: EvalContext, d: str | None) -> list[int]:
+    """Steps that did some work: a repository write, a write under the checks folder ``d``, a test-runner call (valid or
+    not), a script run, an interpreter call (python, bash, sh, node in command position)."""
+    key = ("agentos_v2.work_steps", d)
+    if key in ctx.cache:
+        return ctx.cache[key]
+    out = {int(e.step) for e in ctx.facts.repo_writes if e.ok is not False}
+    if d:
+        pre = d.rstrip("/") + "/"
+        out |= {int(e.step) for path, evs in ctx.facts.writes.items() if path.startswith(pre) for e in evs if e.ok is not False}
+    out |= {int(r.step) for r in ctx.facts.runs}
+    out |= {int(st) for st, _ in F.executed_paths(ctx)}
+    for c in ctx.facts.commands:
+        try:
+            segs = shell.flat(shell.split((c.command or "")[:MAX_CMD], c.cwd)[0])
+        except Exception:  # noqa: BLE001 -- agent text
+            continue
+        if any(seg.verb and _INTERPRETERS.match(seg.verb) for seg in segs):
+            out.add(int(c.step))
+    ctx.cache[key] = sorted(out)
+    return ctx.cache[key]
 
 
 def _evidence_steps(ctx: EvalContext, paths: set[str], checks_dir: str | None) -> list[int]:
@@ -804,7 +883,7 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
@@ -905,11 +984,21 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             good = [a for a, b in pairs if max(by[a]) <= min(by[b]) and (max(by[a]) < min(by[b]) or len(by[a]) + len(by[b]) <= 2)]
             return Result.ratio(item, len(good), len(pairs), f"{len(good)}/{len(pairs)} adjacent groups ticked in order")
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
+        nf = bool(p.get("name_files"))
+        bounds = tick_bounds(ctx, aid) if nf else {}
         bad = []
         for t in pool:
             s = when.get(t["id"])
+            if nf and s is UNKNOWN and t["id"] in bounds:
+                s = bounds[t["id"]][0]  # evidence before the earliest step the tick can have been made at
             if s is None or s is UNKNOWN or not refs.in_window(s, w):
                 bad.append(t["id"])
+                continue
+            if nf:  # B-1 / B-8 row 2: files by name and path suffix, reading tasks by their reads, other tasks by any work
+                files = named_files(t["rest"], ctx.collected.workdir)
+                steps = file_evidence_steps(ctx, files, w, reads=bool(READ_VERB.match(t["rest"]))) if files else work_steps(ctx, d)
+                if not any(w[0] <= x <= s for x in steps):
+                    bad.append(t["id"])
                 continue
             named = named_paths(t["rest"], ctx.collected.workdir)
             if named and not any(w[0] <= x <= s for x in _evidence_steps(ctx, named, d)):

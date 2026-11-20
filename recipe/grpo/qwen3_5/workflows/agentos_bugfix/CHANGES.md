@@ -391,6 +391,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   직접 쓴(내용 쓰기) 파일은 읽은 것으로 봄(create-tasks.md 13행: 대화에 없을 때만 읽음). 쓰지 않은 파일은 D-4대로 읽지 않은 것. 읽기 규칙의
   선택 설정값 `written_before`. 평가 499런: 392런이 실패에서 통과.
 
+- B-1과 B-8 행 2 "작업을 한 뒤에 체크했는가"(`ticked_after_work`, 필수): task 줄에서 뽑은 이름 가운데 알려진 확장자(py, rst, txt, cfg 등)로
+  끝나는 것만 파일로 봄(`subprocess.run`, `content_type.save`는 코드 이름). 파일은 경로 뒤쪽이 같으면 같은 파일(`table.py`는
+  `astropy/table/table.py`). 읽기 동사(Review, Analyze 등)로 시작하는 task는 그 파일을 읽은 것도 근거. 파일을 적지 않은 task는 체크 시점만 보던
+  것을, 구현 단계 시작부터 체크까지 일(저장소 쓰기, checks/ 쓰기, 테스트·스크립트·인터프리터 실행)이 하나라도 있어야 통과하게 함.
+  내용을 모르는 tasks.md 쓰기 뒤에 처음 보인 체크는 그 체크가 있었을 수 있는 가장 이른 단계까지의 근거를 봄(`tick_bounds`). 선택 설정값
+  `name_files`, 공개 이름 `FILE_EXT`, `READ_VERB`, `named_files`, `file_evidence_steps`, `work_steps`, `tick_bounds`.
+  평가 499런: 204런이 실패에서 통과, 1런(django__django-13449: 코드를 모두 구현 단계 전에 고치고 구현 단계에서 체크만 함)이 통과에서 실패.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

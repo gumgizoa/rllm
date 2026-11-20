@@ -213,3 +213,69 @@ def test_a_file_written_before_create_tasks_counts_as_read(monkeypatch):
     r = C.read(_item({**p, "written_before": True}), ctx)
     assert r.status == "fail" and r.score == 0.5  # spec.md is in the conversation; requirements.md was never written (D-4)
     assert _item_params("create_tasks.run.agentos_bugfix_read.spec_inputs").get("written_before") is True
+
+
+# ---- B-1 / B-8 row 2: ticked_after_work reads file names, path suffixes, reads and work -----------------------------
+
+import pytest  # noqa: E402
+
+from recipe.grpo.qwen3_5.workflow_rubric.context import CommandFact, Facts  # noqa: E402
+
+TASKS = "/tmp/agent-os/specs/2026-11-13-x/tasks.md"
+
+
+def _tick_ctx(tasks_writes, repo_writes=(), commands=(), steps=()):
+    f = Facts(n_steps=100)
+    f.artifact_paths = {"tasks": TASKS}
+    f.writes = {TASKS: [WriteEvent(path=TASKS, step=s, op="overwrite" if k else "create", content=c) for k, (s, c) in enumerate(tasks_writes)]}
+    f.repo_writes = list(repo_writes)
+    f.commands = list(commands)
+    final = next((c for _, c in reversed(tasks_writes) if c is not None), "")
+    return SimpleNamespace(facts=f, run=Run("t", list(steps)), collected=Collected(workdir="/testbed", files={TASKS: final}), cache={},
+                           artifact_text=lambda aid, state="final": final, rubric=SimpleNamespace(artifacts={}))
+
+
+@pytest.fixture
+def window(monkeypatch):
+    monkeypatch.setattr(C, "_window", lambda item, ctx: (10, 100))
+
+
+TICK_PLAN = "#### Task Group 1: Fix\n- [{b}] 1.0 Fix\n  - [{b}] 1.1 Replace subprocess.check_call with subprocess.run\n  - [{b}] 1.2 Add FutureWarning at table.py line 12\n"
+
+
+def test_code_names_are_not_files_and_a_path_suffix_is_the_same_file(window):
+    plan = lambda b: TICK_PLAN.format(b=b)  # noqa: E731
+    ctx = _tick_ctx([(5, plan(" ")), (40, plan("x"))], repo_writes=[WriteEvent(path="astropy/table/table.py", step=20, op="edit")])
+    p = {"rule": "ticked_after_work"}
+    assert C.tasks(_item(dict(p)), ctx).status == "fail"  # as before: subprocess.run and table.py at the top are not found
+    assert C.tasks(_item({**p, "name_files": True}), ctx).status == "pass"
+    early = _tick_ctx([(5, plan(" ")), (15, plan("x"))], repo_writes=[WriteEvent(path="astropy/table/table.py", step=20, op="edit")])
+    r = C.tasks(_item({**p, "name_files": True}), early)
+    assert r.status == "fail" and "1.2" in r.detail  # ticked before the file was written; 1.0 and 1.1 had no work either
+    assert "1.0" in r.detail
+
+
+def test_a_reading_task_is_done_by_reading_its_file(window, monkeypatch):
+    plan = "#### Task Group 1: Fix\n- [{b}] 1.1 Review `tests/test_a.py`\n"
+    ctx = _tick_ctx([(5, plan.format(b=" ")), (40, plan.format(b="x"))])
+    monkeypatch.setattr(C, "_repo_reads", lambda ctx, w: [(30, "tests/test_a.py")])
+    assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), ctx).status == "pass"
+    monkeypatch.setattr(C, "_repo_reads", lambda ctx, w: [])
+    assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), ctx).status == "fail"
+
+
+def test_a_task_naming_no_file_needs_some_work_before_its_tick(window):
+    plan = "#### Task Group 1: Fix\n- [{b}] 1.1 Make the parser keep the sign\n"
+    idle = _tick_ctx([(5, plan.format(b=" ")), (40, plan.format(b="x"))])
+    assert C.tasks(_item({"rule": "ticked_after_work"}), idle).status == "pass"  # as before: only the tick time
+    assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), idle).status == "fail"
+    worked = _tick_ctx([(5, plan.format(b=" ")), (40, plan.format(b="x"))], commands=[CommandFact(step=30, action_index=0, command="python -c 'import a'", cwd="/testbed")])
+    assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), worked).status == "pass"
+
+
+def test_a_tick_after_an_unreplayable_write_is_placed_at_its_earliest_step(window):
+    plan = "#### Task Group 1: Fix\n- [{b}] 1.1 Change `src/a.py`\n"
+    ctx = _tick_ctx([(5, plan.format(b=" ")), (30, None), (40, plan.format(b="x"))], repo_writes=[WriteEvent(path="src/a.py", step=20, op="edit")])
+    assert C.tick_bounds(ctx, "tasks") == {"1.1": (30, 40)}
+    assert C.tasks(_item({"rule": "ticked_after_work"}), ctx).status == "fail"  # as before: UNKNOWN
+    assert C.tasks(_item({"rule": "ticked_after_work", "name_files": True}), ctx).status == "pass"

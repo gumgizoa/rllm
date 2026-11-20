@@ -527,6 +527,8 @@ def _review_fixes(it: dict) -> None:
             first["first"]["test_paths"] = False  # before_code: the window ends at the first code change, not at a test written first
     if it["id"].endswith("create_tasks.run.agentos_bugfix_read.spec_inputs"):  # F-2 (user decision 2): files written earlier are in the conversation
         p["written_before"] = True
+    if kind == f"{NEW}.tasks" and p.get("rule") == "ticked_after_work":  # B-1, B-8 row 2
+        p["name_files"] = True
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge
