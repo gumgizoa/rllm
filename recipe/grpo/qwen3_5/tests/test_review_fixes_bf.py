@@ -324,3 +324,18 @@ def test_a_test_sub_task_ticked_without_running_the_tests_fails(window):
     assert C.tasks(item, _passing_ctx([_run(30, failed=1)])).status == "fail"  # as before: ticked over a failure
     assert C.tasks(item, _passing_ctx([_run(20, same_call=True)])).status == "pass"  # sed -i ... && pytest in one call
     assert C.tasks(item, _passing_ctx([_run(20)])).status == "fail"  # the same step without the order known
+
+
+# ---- B-8 row 13: what implement-tasks may add to tasks.md is tasks ---------------------------------------------------
+
+
+def test_added_lines_are_tasks_groups_or_execution_order_items():
+    prev = ["#### Task Group 1: Fix", "- [ ] 1.1 Write tests", "", "## Execution Order", "1. Fix (Task Group 1)"]
+    sub = prev[:2] + ["- [ ] 1.2 Change `src/b.py`", "  - also the caller"] + prev[2:]
+    assert C.added_lines_ok(prev, sub) == []
+    group = prev[:3] + ["#### Task Group 2: Docs", "**Dependencies:** Task Group 1", "- [ ] 2.1 Update docs/a.rst", "**Acceptance Criteria:**", "- docs build"] + prev[3:] + ["2. Docs (Task Group 2)"]
+    assert C.added_lines_ok(prev, group) == []
+    notes = prev + ["", "## Implementation Notes", "- the fix also covers negative numbers"]
+    assert len(C.added_lines_ok(prev, notes)) == 2
+    status = prev[:2] + ["  Status: done, all tests pass"] + prev[2:]
+    assert C.added_lines_ok(prev, status) == ["Status: done, all tests pass"]

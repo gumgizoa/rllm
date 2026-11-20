@@ -412,6 +412,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   36런이 통과에서 실패. 뒤이어 "마지막 코드 변경"을 최종 변경의 모든 쓰기가 아니라 소스 변경(`facts.source_change_steps`: 테스트 파일,
   문서(CHANGES.rst), 실행이 남긴 부산물(.fits), 런의 스크립트 제외)으로 좁힘. 평가 499런: 5런이 실패에서 통과, 다른 판정 변화 0.
 
+- B-8 행 13 구현 중 tasks.md에 더한 줄 (`later_edits`의 `additions` 갈래, agentos_bugfix만 켬): 있던 줄이 모두 순서대로 남으면 무엇을 더해도
+  통과하던 것을, 더한 줄이 task 목록의 줄일 때만 통과하게 함(implement-tasks.md 25행: 빠진 것은 "new sub-task" 또는 "new task group at the
+  end"로 더함). 받는 줄은 빈 줄, `Total Tasks` 줄, task 줄, `Task Group` 머리글, 더한 task 줄이나 머리글 바로 뒤에 이어 더한 줄(세부 글머리,
+  Dependencies, Acceptance Criteria), Execution Order 절의 번호 줄. 있던 task 밑에 붙인 메모, 상태 절, 요약은 "adds lines that are no task"로
+  나쁜 쓰기. 비교할 쓰기 고르기(H-9 `_known_before`)는 그대로. 새 함수 `added_lines_ok`, 설정값은 이미 있던 `additions`.
+  평가 499런: 4런이 통과에서 실패(django__django-11066, django__django-13315, django__django-16429, psf__requests-1142), 이미 실패였던 8런의
+  비율이 낮아짐. 카드의 6런 가운데 2런(matplotlib__matplotlib-23314, psf__requests-5414)은 새 하위 task 줄과 그 세부 줄을 더한 것이라 통과로 남음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

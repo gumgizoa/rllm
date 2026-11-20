@@ -41,7 +41,9 @@ repository prohibitions and the test runs. What they cannot say:
                                  ``[x]`` tick
       {rule: later_edits}        every write of tasks.md in the window only ticks boxes or adds ⚠️ marks (ratio);
                                  with ``additions: true`` a write may also add lines (new tasks) and change the
-                                 ``Total Tasks`` line, as long as every earlier line is still there, in order
+                                 ``Total Tasks`` line, as long as every earlier line is still there, in order; the added
+                                 lines are task lines, Task Group headings with the lines under them, or Execution
+                                 Order items -- not notes or status sections
       {rule: ticked_passing}     no task group's test sub-task (the one that runs its tests) is ticked ``[x]`` while
                                  the last test result since the code last changed is a failure, unless the report's
                                  test results show a failure (ratio over the groups with such a result; a workflow
@@ -780,6 +782,36 @@ def _only_adds(prev: list[str], new: list[str]) -> bool:
     return all(any(ln == x for x in it) for ln in prev if not _TOTAL_LINE.match(ln))
 
 
+_ORDER_ITEM = re.compile(r"^\s*\d+[.)]\s+\S")
+
+
+def added_lines_ok(prev: list[str], new: list[str]) -> list[str]:
+    """The lines ``new`` adds to ``prev`` (:func:`_only_adds` holds) that are not task-list lines: what implement-tasks.md 25
+    lets a run add is a new sub-task or a new task group at the end. Allowed: a blank line, the ``Total Tasks`` line, a
+    task line, a ``Task Group`` heading, the lines that follow an added task line or heading without an earlier line
+    between (its details, Dependencies, Acceptance Criteria), and a numbered line of the Execution Order section."""
+    bad, j, block, section = [], 0, False, ""
+    keep = [ln for ln in prev if not _TOTAL_LINE.match(ln)]
+    for ln in new:
+        if _HEAD.match(ln):
+            section = ln
+        if j < len(keep) and ln == keep[j]:
+            j += 1
+            block = False
+            continue
+        if not ln.strip() or _TOTAL_LINE.match(ln):
+            continue
+        if _TASK.match(ln) or _GROUP.match(ln.strip()):
+            block = True
+            continue
+        if _HEAD.match(ln):
+            block = False  # another added heading (Implementation Notes, Status) is no task
+        if block or (re.search(r"(?i)execution\s+order", section) and _ORDER_ITEM.match(ln)):
+            continue
+        bad.append(ln.strip()[:60])
+    return bad
+
+
 def _known_before(evs: list, e) -> str | None:
     """The last known content among the events of ``evs`` before ``e`` (None when none is known)."""
     prev = None
@@ -1081,8 +1113,14 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             if prev is None:
                 bad.append(f"step {e.step}: content before it unknown")
                 continue
-            if _norm_box(prev) == _norm_box(new) or (p.get("additions") and _only_adds(_norm_box(prev), _norm_box(new))):
+            if _norm_box(prev) == _norm_box(new):
                 good += 1
+            elif p.get("additions") and _only_adds(_norm_box(prev), _norm_box(new)):
+                extra = added_lines_ok(_norm_box(prev), _norm_box(new))  # B-8 row 13: only tasks are added, no notes
+                if extra:
+                    bad.append(f"step {e.step}: adds lines that are no task: {extra[:2]}")
+                else:
+                    good += 1
             else:
                 bad.append(f"step {e.step}: {e.op} changes the tasks")
         return Result.ratio(item, good, len(known), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only" + (" or added tasks" if p.get("additions") else ""))
