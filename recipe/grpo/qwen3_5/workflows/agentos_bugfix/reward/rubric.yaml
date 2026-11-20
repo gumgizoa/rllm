@@ -5834,6 +5834,7 @@ items:
             test_paths: false
         - stage_end:implement_tasks
       module_tests: true
+      per_group: true
   requirement: must
   modality_evidence: imperative (CT:214 'each task group starts with writing 2-8 tests (x.1 sub-task)')
   none_allowed: '-'

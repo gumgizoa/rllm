@@ -156,19 +156,9 @@ def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dic
 
 
 def _group_ends(ctx: Any) -> list[int]:
-    """The steps at which a task group of the final tasks.md has its last sub-task ticked or marked."""
-    if not ctx.facts.artifact_paths.get("tasks"):
-        return []
-    text = C._text(ctx, "tasks")
-    lines = C.task_lines(text)
-    ticks = C.tick_steps(ctx, "tasks")
-    ends = set()
-    for g, _ in C.groups(text):
-        steps = [_int(ticks.get(t["id"])) for t in lines if t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0")]
-        steps = [s for s in steps if s is not None]
-        if steps:
-            ends.add(max(steps))
-    return sorted(ends)
+    """The steps at which a task group of the final tasks.md has its last sub-task ticked or marked: the rule
+    ``before_code``'s task-group stretches use too (``agentos_v2.reward.checks.group_end_steps``)."""
+    return C.group_end_steps(ctx)
 
 
 def timeline(ctx: Any) -> Timeline:

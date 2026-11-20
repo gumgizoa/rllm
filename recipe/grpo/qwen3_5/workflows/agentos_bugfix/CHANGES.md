@@ -445,6 +445,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   정리로 보고 세지 않음(core-workflow.md 88 ~ 89행: 워크플로의 것은 저장소에 두지 않음). 저장소에 파일을 만든 것은 전처럼 `created_files`
   항목이 잡음. 평가 499런: django__django-13569(54단계에 자기가 만든 tests/test_fix.py를 지움) 한 런의 `code_frozen`이 실패에서 통과, 다른 판정 변화 0.
 
+- D-6 행 12 그룹마다 테스트를 먼저 (`before_code`, 필수): 구현 단계의 첫 코드 변경 전에 자기 테스트가 하나라도 있으면 통과였음. 이제 그 조건을
+  통과한 런에서 task group 구간마다 더 봄(create-tasks.md 126행 "each task group starts with writing 2-8 tests (x.1 sub-task)", implement-tasks.md
+  39행). 그룹 끝은 최종 tasks.md에서 그 그룹의 마지막 하위 task(x.0 제외)가 체크된 단계, 구간은 앞 그룹 끝 다음부터 이 그룹 끝까지(첫 그룹은 구현
+  단계 시작부터, 마지막 그룹 끝 뒤는 보지 않음). 소스 변경(`facts.source_change_steps`)이 있는 구간마다 그 구간의 첫 소스 변경 전에, 같은 구간
+  안에 자기 테스트의 첫 쓰기(checks/ 스크립트의 첫 쓰기, F-2의 기존 테스트 모듈에 더한 첫 함수)가 있어야 함. 그룹 끝을 하나도 모르면 전의 규칙만 씀.
+  점수는 통과 또는 실패. 선택 설정값 `per_group`, 새 함수 `group_end_steps`(penalty의 `_group_ends`가 이것을 부름, 같은 값), `own_test_first_writes`.
+  평가 499런: 12런(해결한 런 5)이 통과에서 실패. 묶음 D 계획의 시험 채점(`dg/rescore_d6_groups.jsonl`)이 낸 12런과 같은 런들임. penalty 변화 0.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

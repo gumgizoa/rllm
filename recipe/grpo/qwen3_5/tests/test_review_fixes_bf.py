@@ -414,3 +414,35 @@ def test_removing_a_file_the_run_made_is_no_phase3_code_change(monkeypatch):
     ctx.collected.diff = {"src/a.py": "M", "src/b.py": "D"}
     ctx.cache.clear()
     assert [e.step for e in C._phase3_edits(ctx)] == [36, 37]
+
+
+
+
+# ---- D-6 row 12: every task group that changes code writes a test of its own first ----------------------------------
+
+CHECKS = "/tmp/agent-os/specs/2026-11-13-x/checks"
+
+
+def _group_ctx(monkeypatch, script_steps, code_steps):
+    plan = "#### Task Group 1: A\n- [{a}] 1.1 Write tests\n- [{a}] 1.2 Change `src/a.py`\n#### Task Group 2: B\n- [{b}] 2.1 Write tests\n- [{b}] 2.2 Change `src/b.py`\n"
+    ctx = _tick_ctx([(5, plan.format(a=" ", b=" ")), (30, plan.format(a="x", b=" ")), (60, plan.format(a="x", b="x"))],
+                    repo_writes=[WriteEvent(path="src/a.py" if s < 30 else "src/b.py", step=s, op="edit") for s in code_steps])
+    for k, s in enumerate(script_steps):
+        path = f"{CHECKS}/check_{k}.py"
+        ctx.facts.writes[path] = [WriteEvent(path=path, step=s, op="create", content="assert f() == 1\n")]
+    ctx.collected.diff = {"src/a.py": "M", "src/b.py": "M"}
+    monkeypatch.setattr(C, "_expand_dir", lambda ctx, t: CHECKS)
+    monkeypatch.setattr(C.refs, "window", lambda ctx, spec: (10, 100) if spec == "stage:implement_tasks" else (10, min(code_steps)))
+    return ctx
+
+
+def test_each_group_writes_its_tests_before_its_code(monkeypatch):
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x"}, ref="run")
+    first_only = _group_ctx(monkeypatch, [12], [20, 40])
+    assert C.checks(item, first_only).status == "pass"  # as before: a script before the first code change
+    item.check.params.update(per_group=True, module_tests=True)
+    r = C.checks(item, first_only)
+    assert r.status == "fail" and "step 40" in r.detail  # group 2 changed code with no test written in its stretch
+    assert C.checks(item, _group_ctx(monkeypatch, [12, 35], [20, 40])).status == "pass"
+    assert _item_params("agentos_bugfix_checks.before_code").get("per_group") is True
+    assert C.group_end_steps(first_only) == [30, 60]
