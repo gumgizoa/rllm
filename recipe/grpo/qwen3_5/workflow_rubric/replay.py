@@ -253,7 +253,8 @@ class _Replayer:
             self._set(dst, None)
             self._event(dst, step, idx, "move_in" if move else "overwrite", ok, None, op.source)
             return
-        into = op.dir_target if op.dir_target is not None else self._is_dir(dst)
+        # a path that holds a file record is no directory, whatever a past move registered (H-8)
+        into = op.dir_target if op.dir_target is not None else (self._is_dir(dst) and dst not in self.state)
         if into:
             dst = posixpath.join(dst, posixpath.basename(src))
         pairs = [(src, dst)] if src in self.state else []
@@ -281,7 +282,11 @@ class _Replayer:
             pre = src.rstrip("/") + "/"
             moved_dirs = {d for d in self.dirs if d == src or d.startswith(pre)}
             self.dirs = (self.dirs - moved_dirs) | {dst + d[len(src) :] for d in moved_dirs}
-            self._add_parents(dst + "/x")
+            # the destination becomes a directory only when a directory was moved; a moved file is a file
+            if moved_dirs or any(old != src for old, _ in pairs):
+                self._add_parents(dst + "/x")
+            else:
+                self._add_parents(dst)
             self.out.moves.append((step, src, dst))
 
 

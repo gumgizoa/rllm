@@ -253,3 +253,29 @@ def test_a_change_that_cannot_be_dated_stays_outside_the_trace():
 
 
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN as UNKNOWN_STEP  # noqa: E402
+
+
+# ---- H-8: a second mv onto the same file is not a move into a directory --------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.replay import replay  # noqa: E402
+
+
+def _replayed(*commands):
+    run = Run("t", [Step(n, [Action("shell", "terminal", command=c)]) for n, c in enumerate(commands, 1)])
+    return replay(run, "/testbed")
+
+
+def test_moving_onto_the_same_file_twice_lands_on_the_file():
+    spec = "/tmp/agent-os/specs/s"
+    rep = _replayed(f"mkdir -p {spec}", f"echo a > /tmp/x.md && mv /tmp/x.md {spec}/tasks.md", f"echo b > /tmp/x.md && mv /tmp/x.md {spec}/tasks.md")
+    assert rep.final[f"{spec}/tasks.md"] == "b\n" and f"{spec}/tasks.md/x.md" not in rep.writes
+    assert [e.step for e in rep.writes[f"{spec}/tasks.md"] if e.op == "move_in"] == [2, 3]
+    # a file the replay cannot see being written (python made it) is moved onto the same path twice as well
+    py = "python -c \"open('/tmp/y.md', 'w').write('x')\""
+    rep = _replayed(f"mkdir -p {spec}", f"{py} && mv /tmp/y.md {spec}/tasks.md", f"{py} && mv /tmp/y.md {spec}/tasks.md")
+    assert f"{spec}/tasks.md/y.md" not in rep.writes and [e.step for e in rep.writes[f"{spec}/tasks.md"]] == [2, 3]
+
+
+def test_moving_a_directory_still_makes_a_directory():
+    rep = _replayed("mkdir -p /tmp/d && echo a > /tmp/d/f.txt", "mv /tmp/d /tmp/e", "echo b > /tmp/g.txt && mv /tmp/g.txt /tmp/e")
+    assert rep.final["/tmp/e/f.txt"] == "a\n" and rep.final["/tmp/e/g.txt"] == "b\n"
