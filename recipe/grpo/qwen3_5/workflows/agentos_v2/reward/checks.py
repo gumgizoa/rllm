@@ -309,12 +309,14 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-@register("agentos_v2.read", params={"artifacts": True, "window": False, "absent_unread": False}, availability=("trace", "sandbox_file"), common=False)
+@register("agentos_v2.read", params={"artifacts": True, "window": False, "absent_unread": False, "written_before": False}, availability=("trace", "sandbox_file"), common=False)
 def read(item: Item, ctx: EvalContext) -> Result:
     """Every listed artifact that exists at the end was read in the window (default: the item's stage).
 
     not_applicable when none of them exists. ``absent_unread``: an artifact absent at the end counts as not read (a run
-    that never wrote the file has not read it), so the ratio is over every listed artifact and none existing fails."""
+    that never wrote the file has not read it), so the ratio is over every listed artifact and none existing fails.
+    ``written_before``: an artifact the run itself wrote before the window counts as read -- it is in the conversation
+    (create-tasks.md 13: read the files only if they are not in the current conversation)."""
     p = item.check.params or {}
     w = _window(item, ctx)
     listed = {a: ctx.facts.artifact_paths.get(a) for a in (p.get("artifacts") or []) if isinstance(a, str)}
@@ -325,7 +327,10 @@ def read(item: Item, ctx: EvalContext) -> Result:
     if w is None:
         return Result.no(item, "window empty")
     hits = read_steps(ctx, sorted(set(want.values())), w)
-    missing = [a for a, q in want.items() if not hits.get(q)] + absent
+    missing = [a for a, q in want.items() if not hits.get(q)]
+    if p.get("written_before") and w[0] is not None:
+        missing = [a for a in missing if not any(e.step < w[0] for e in _content_events(ctx, want[a]))]
+    missing += absent
     total = len(want) + len(absent)
     return Result.ratio(item, total - len(missing), total, f"not read: {missing}" if missing else f"read: {sorted(want)}")
 

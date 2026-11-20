@@ -387,6 +387,10 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   맞음. `before_code`의 구간 끝은 첫 비테스트 최종 변경(`test_paths: false`)이 됨. 선택 설정값 `module_tests`, 공개 함수 `test_names`,
   `added_test_functions`, `module_tests`. 평가 499런: `written` 63런, `pass_last` 35런, `before_code` 7런이 실패에서 통과, 통과에서 실패 0.
 
+- F-2 앞 단계 산출물 다시 읽기 (2026-11-20 사용자 결정 2): create-tasks의 spec.md·requirements.md 읽기 항목이, 런이 create-tasks 구간 전에
+  직접 쓴(내용 쓰기) 파일은 읽은 것으로 봄(create-tasks.md 13행: 대화에 없을 때만 읽음). 쓰지 않은 파일은 D-4대로 읽지 않은 것. 읽기 규칙의
+  선택 설정값 `written_before`. 평가 499런: 392런이 실패에서 통과.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

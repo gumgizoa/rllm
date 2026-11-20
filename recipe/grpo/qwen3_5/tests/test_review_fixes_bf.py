@@ -197,3 +197,19 @@ def test_the_checks_items_take_module_tests():
         assert _item_params(suffix).get("module_tests") is True, suffix
     first = _item_params("agentos_bugfix_checks.before_code")["window"][1][0]["first"]
     assert first["fact"] == "repo_edit" and first["test_paths"] is False
+
+
+# ---- F-2: create-tasks need not reread the files the run wrote itself ----------------------------------------------
+
+
+def test_a_file_written_before_create_tasks_counts_as_read(monkeypatch):
+    spec = "/tmp/agent-os/specs/s/spec.md"
+    monkeypatch.setattr(C, "_window", lambda item, ctx: (30, 40))
+    f = SimpleNamespace(artifact_paths={"spec": spec, "requirements": None}, writes={spec: [WriteEvent(path=spec, step=12, op="create", content="x")]}, n_steps=50)
+    ctx = SimpleNamespace(facts=f, run=SimpleNamespace(steps=[]), collected=SimpleNamespace(workdir="/testbed"))
+    p = {"artifacts": ["spec", "requirements"], "absent_unread": True}
+    r = C.read(_item(dict(p), ref="run"), ctx)
+    assert r.status == "fail" and r.score == 0.0  # as before: spec.md not read in the window, requirements.md absent
+    r = C.read(_item({**p, "written_before": True}), ctx)
+    assert r.status == "fail" and r.score == 0.5  # spec.md is in the conversation; requirements.md was never written (D-4)
+    assert _item_params("create_tasks.run.agentos_bugfix_read.spec_inputs").get("written_before") is True

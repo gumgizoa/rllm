@@ -525,6 +525,8 @@ def _review_fixes(it: dict) -> None:
         first = ((p.get("window") or [None, [None]])[1] or [None])[0] if isinstance(p.get("window"), list) else None
         if isinstance(first, dict) and isinstance(first.get("first"), dict) and first["first"].get("fact") == "repo_edit":
             first["first"]["test_paths"] = False  # before_code: the window ends at the first code change, not at a test written first
+    if it["id"].endswith("create_tasks.run.agentos_bugfix_read.spec_inputs"):  # F-2 (user decision 2): files written earlier are in the conversation
+        p["written_before"] = True
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge
