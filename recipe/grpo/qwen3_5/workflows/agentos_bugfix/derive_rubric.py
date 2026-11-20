@@ -452,6 +452,12 @@ def _review_fixes(it: dict) -> None:
         it["scope"] = "specific"
         p["min_share"] = TASK_TEXT_SHARE
         it["note"] = "the file holds the task description: at least half of its words, in order (without a task description: some text)"
+    if kind == f"{NEW}.report" and p.get("rule") == "tasks_status":  # E-3 row 10
+        p["issues_listed"] = True
+    if it["id"].endswith("implement_tasks.final_verification.section_present.notes"):  # E-3 row 12
+        p["optional"] = True
+    if kind == f"{NEW}.blocks":  # E-3 row 13, E-4 row 12
+        p["top_level"] = True
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

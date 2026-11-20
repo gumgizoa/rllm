@@ -387,11 +387,13 @@ def requirements(item: Item, ctx: EvalContext) -> Result:
     return Result.no(item, f"unknown rule {rule!r}")
 
 
-@register("agentos_v2.blocks", params={"section": True, "artifact": False, "min_blocks": False, "max_blocks": False, "max_bullets": False}, availability=("sandbox_file",), common=False)
+@register("agentos_v2.blocks", params={"section": True, "artifact": False, "min_blocks": False, "max_blocks": False, "max_bullets": False, "top_level": False}, availability=("sandbox_file",), common=False)
 def blocks(item: Item, ctx: EvalContext) -> Result:
     """The section's bold-named blocks (a ``**name**`` line, then bullets) number min_blocks (1) .. max_blocks, each with 1 .. max_bullets bullets.
 
-    Ratio over the blocks; a block count out of range fails."""
+    Ratio over the blocks; a block count out of range fails. ``top_level``: a bullet indented deeper than its block's
+    first bullet is a sub-bullet and not counted, and bullets before the first name, in a section that has named
+    blocks, are a block of their own (a workflow whose documents count "bullets" of a block, not their sub-bullets)."""
     p = item.check.params or {}
     text = _text(ctx, _artifact(item))
     if text is None:
@@ -400,12 +402,30 @@ def blocks(item: Item, ctx: EvalContext) -> Result:
     if sec is None:
         return Result.no(item, f"no {p['section']!r} section")
     found: list[tuple[str, int]] = []
-    for ln in M.text_lines(sec):
+    lines = M.text_lines(sec)
+    top = bool(p.get("top_level"))
+    lead = top and any(_BLOCK.match(ln) for ln in lines)
+    indent: list[int | None] = []
+    for ln in lines:
         m = _BLOCK.match(ln)
         if m:
             found.append((m.group("name").strip(), 0))
-        elif _BULLET.match(ln) and found:
-            found[-1] = (found[-1][0], found[-1][1] + 1)
+            indent.append(None)
+            continue
+        if not _BULLET.match(ln):
+            continue
+        if not found:
+            if not lead:
+                continue
+            found.append(("(bullets before the first name)", 0))
+            indent.append(None)
+        if top:
+            ind = len(ln) - len(ln.lstrip())
+            if indent[-1] is None:
+                indent[-1] = ind
+            elif ind > indent[-1]:
+                continue
+        found[-1] = (found[-1][0], found[-1][1] + 1)
     lo, hi = int(p.get("min_blocks", 1)), p.get("max_blocks")
     if len(found) < lo:
         return Result.no(item, f"{len(found)} blocks < {lo}")
@@ -1027,7 +1047,7 @@ def _status(text: str, section: str) -> str:
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1045,7 +1065,9 @@ def report(item: Item, ctx: EvalContext) -> Result:
         tasks_st, suite_st = _status(text, "1. Tasks Verification"), _status(text, suite)
         if not head:
             return Result.no(item, "no Status at the top of the report")
-        if re.search(r"(?i)critical\s+failures", suite_st):
+        if re.search(r"(?i)critical\s+failures", suite_st) and re.search(r"(?i)issues\s+found", tasks_st):
+            want = ("Failed", "Passed with Issues")  # both rules of the documents hold; they do not say which wins
+        elif re.search(r"(?i)critical\s+failures", suite_st):
             want = "Failed"
         elif re.search(r"(?i)issues\s+found", tasks_st) or re.search(r"(?i)some\s+failures", suite_st):
             want = "Passed with Issues"
@@ -1054,7 +1076,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         else:
             return Result.no(item, f"section Statuses {tasks_st[:30]!r} / {suite_st[:30]!r} give no overall Status")
         got = "Passed with Issues" if re.search(r"(?i)with\s+issues", head) else "Failed" if re.search(r"(?i)fail", head) else "Passed" if re.search(r"(?i)pass", head) else head[:30]
-        return Result.ok(item, f"Status {got}, as the sections give") if got == want else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
+        return Result.ok(item, f"Status {got}, as the sections give") if got in ((want,) if isinstance(want, str) else want) else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
     if rule in ("test_counts", "failed_listed", "suite_status"):
         runs = _phase3_runs(ctx, after_fix=bool(p.get("fix_round")))  # after a fix round the report is about the re-run
         if not runs:
@@ -1115,7 +1137,13 @@ def report(item: Item, ctx: EvalContext) -> Result:
             if re.search(r"(?i)all\s+complete", st):
                 return Result.ok(item, "All Complete, every task ticked") if not open_ else Result.no(item, f"All Complete, but open / marked: {open_[:4]}")
             if re.search(r"(?i)issues\s+found", st):
-                return Result.ok(item, "Issues Found") if open_ else Result.no(item, "Issues Found, but every task is ticked")
+                if open_:
+                    return Result.ok(item, "Issues Found")
+                if p.get("issues_listed"):  # the template's Incomplete or Issues lists tasks that "have issues" too
+                    sec = M.section(text, "Incomplete or Issues")
+                    if [ln for ln in M.content_lines(sec or "") if ln.strip() and not M.is_none(ln.strip("-* \"'"))]:
+                        return Result.ok(item, "Issues Found, with issues listed")
+                return Result.no(item, "Issues Found, but every task is ticked")
             return Result.no(item, f"Status {st[:40]!r} is neither All Complete nor Issues Found")
         warned = [t["id"] for t in ts if t["warned"]]
         if not warned:

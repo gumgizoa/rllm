@@ -100,7 +100,7 @@ generated:
     - mutation: template_copy
       kind: exploit
       status: ok
-      compliance: 0.2315
+      compliance: 0.25
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
@@ -2729,6 +2729,7 @@ items:
       min_blocks: 1
       max_blocks: 10
       max_bullets: 8
+      top_level: true
   requirement: must
   modality_evidence: WS:57 'Follow this structure exactly'; WS:72 'Up to 8 CONCISE sub-bullet points'; WS:74 'up to a max
     of 10 specific requirements'
@@ -2766,6 +2767,7 @@ items:
       min_blocks: 0
       max_blocks: 5
       max_bullets: 5
+      top_level: true
   requirement: must
   modality_evidence: WS:57 'Follow this structure exactly'; WS:87 'up to 5 bullets'; WS:89 'up to 5 existing code areas'
   none_allowed: '-'
@@ -4101,6 +4103,7 @@ items:
     params:
       heading: Notes
       level: 3
+      optional: true
   requirement: should
   modality_evidence: 'binding docs/commands/implement-tasks/implement-tasks.md:249-249 ''The content of this report should
     follow this structure:'' (should: should); dict should (''should'' at IT:249)'
@@ -5297,6 +5300,7 @@ items:
     kind: agentos_bugfix.report
     params:
       rule: tasks_status
+      issues_listed: true
   requirement: should
   modality_evidence: 'IT:269 the status choices against tasks.md (both the agent''s: should)'
   none_allowed: '-'

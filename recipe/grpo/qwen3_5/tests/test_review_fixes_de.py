@@ -146,3 +146,59 @@ def test_initialization_holds_the_task_description():
     assert r.status == "fail" and 0 < r.score < 1  # a summary: failed, scored by how much of the text is there
     # without a task description: the common rule (some text)
     assert TT.task_text(item, _with_task("Parser drops a token.", None)).status == "pass"
+
+
+# ---- E-3: report statuses, an optional Notes section, top-level bullets ---------------------------------------
+
+from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C  # noqa: E402
+
+TICKED = "#### Task Group 1: Fix\n- [x] 1.0 Fix\n  - [x] 1.1 Write tests\n  - [x] 1.2 Change src/a.py\n"
+
+
+def _report(rule: str, report: str, tasks: str = TICKED, **extra):
+    texts = {"final_verification": report, "tasks": tasks}
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": texts.get(aid))
+    return C.report(_item({"rule": rule, "suite_section": "2. Test Suite Results", **extra}, ref="final_verification"), ctx)
+
+
+ISSUES = "# R\n**Status:** ⚠️ Passed with Issues\n## 1. Tasks Verification\n**Status:** ⚠️ Issues Found\n### Incomplete or Issues\n{}\n## 2. Test Suite Results\n**Status:** {}\n"
+
+
+def test_issues_found_with_every_task_ticked_needs_a_listed_issue():
+    listed = ISSUES.format("- The fix of query.py does not work for joins", "✅ All Passing")
+    assert _report("tasks_status", listed, issues_listed=True).status == "pass"
+    assert _report("tasks_status", ISSUES.format("None", "✅ All Passing"), issues_listed=True).status == "fail"
+    assert _report("tasks_status", listed).status == "fail"  # without the parameter, as before
+
+
+def test_overall_status_takes_either_value_when_both_rules_hold():
+    both = ISSUES.format("- x", "❌ Critical Failures")
+    assert _report("overall_status", both).status == "pass"
+    assert _report("overall_status", both.replace("⚠️ Passed with Issues", "❌ Failed")).status == "pass"
+    assert _report("overall_status", both.replace("⚠️ Passed with Issues", "✅ Passed")).status == "fail"
+
+
+def test_notes_may_be_left_out_when_optional():
+    p = {"heading": "Notes", "level": 3}
+    no_notes, wrong_level = "## 2. Test Suite Results\n### Failed Tests\nNone\n", "## 2. Test Suite Results\n## Notes\nx\n"
+    assert A.section_present(_item({**p, "optional": True}, ref="final_verification"), _ctx(no_notes)).status == "not_applicable"
+    assert A.section_present(_item({**p, "optional": True}, ref="final_verification"), _ctx(wrong_level)).status == "fail"
+    numbered = "## 2. Test Suite Results\n## 3. Notes\nx\n"
+    assert A.section_present(_item({**p, "optional": True}, ref="final_verification"), _ctx(numbered)).status == "fail"
+    assert A.section_present(_item(p, ref="final_verification"), _ctx(no_notes)).status == "fail"
+
+
+def _blocks(section: str, **extra):
+    p = {"section": "Existing Code to Leverage", "min_blocks": 0, "max_blocks": 5, "max_bullets": 5, **extra}
+    return C.blocks(_item(p, ref="spec"), _ctx("## Existing Code to Leverage\n" + section))
+
+
+def test_blocks_count_top_level_bullets_and_leading_ones():
+    nested = "**Timezone**\n- a\n- b\n  - b1\n  - b2\n  - b3\n- c\n"
+    assert _blocks(nested, top_level=True).status == "pass"  # 3 top-level bullets
+    assert _blocks(nested).status == "fail"  # as before: 6 bullets
+    leading = "".join(f"- point {i}\n" for i in range(10)) + "**Search**\n- a\n"
+    assert _blocks(leading, top_level=True).status == "fail"  # the 10 bullets before the first name are a block
+    assert _blocks(leading).status == "pass"
+    unnamed = "".join(f"- point {i}\n" for i in range(10))
+    assert _blocks(unnamed, top_level=True).status == "pass"  # no named block at all: as before

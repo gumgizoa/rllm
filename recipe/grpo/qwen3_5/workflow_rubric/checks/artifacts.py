@@ -248,14 +248,24 @@ def frontmatter(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, ",".join(fm.keys))
 
 
-@register("section_present", params={"heading": True, "level": False, "match": False}, choices={"match": M.MATCHES})
+def _named_anywhere(text: str, heading: str) -> bool:
+    """A heading of that name at any level, numbered or not (``## 3. Notes`` is a Notes section)."""
+    want = re.sub(r"\s+", " ", heading).strip().casefold()
+    return any(re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", re.sub(r"\s+", " ", t).strip()).casefold() == want for _, t in M.headings(text))
+
+
+@register("section_present", params={"heading": True, "level": False, "match": False, "optional": False}, choices={"match": M.MATCHES})
 def section_present(item: Item, ctx: EvalContext) -> Result:
-    """The heading exists (at ``level`` if given), matched by ``match`` (exact_ci | norm | prefix | regex)."""
+    """The heading exists (at ``level`` if given), matched by ``match`` (exact_ci | norm | prefix | regex). ``optional``:
+    a heading that is nowhere in the document, at any level and numbered or not, is not applicable; one at another
+    level still fails."""
     p = _params(item)
     text = _text(item, ctx)
     if text is None:
         return Result.no(item, "artifact absent")
     found = M.section(text, str(p["heading"]), p.get("level"), p.get("match", "exact_ci")) is not None
+    if not found and p.get("optional") and not _named_anywhere(text, str(p["heading"])):
+        return Result.not_applicable(item, f"no heading {p['heading']!r} (optional)")
     return Result.ok(item) if found else Result.no(item, f"no heading {p['heading']!r}")
 
 
