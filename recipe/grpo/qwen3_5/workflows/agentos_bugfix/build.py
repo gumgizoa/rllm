@@ -155,6 +155,13 @@ _NAME_THE_FILE = (
     "A task added while implementing does the same, and is added before that file is edited.\n"
 )
 
+# T10: what is adapted is the content of tasks.md's sections, not the sections themselves (the Execution Order is where the
+# plan's order is written down, create-tasks' Core Responsibility 2).
+_KEEP_SECTIONS = (
+    "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, "
+    "and `## Execution Order` (the order in which the task groups are implemented).\n"
+)
+
 # T4: which overall Status holds when, stated after the report template.
 _STATUS_RULE = """
 
@@ -231,6 +238,7 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite", "T1: test scope"),
         ("sub", "and ends with running ONLY those tests (final sub-task)", "and ends with running those tests and the existing tests of the changed code (final sub-task)", "T1: test scope"),
         ("sub", "- **Create tasks that are specific and verifiable**\n", "- **Create tasks that are specific and verifiable**\n" + _NAME_THE_FILE, "T7: a change task names the file it changes"),
+        ("sub", "- More or fewer sub-tasks per group\n", "- More or fewer sub-tasks per group\n\n" + _KEEP_SECTIONS, "T10: tasks.md keeps the example's three sections"),
     ),
     "std/testing/test-writing": (
         ("span", "- **Write Minimal Tests During Development**", "- **Test Behavior, Not Implementation**", "", "T2: the three lines that hold tests back"),

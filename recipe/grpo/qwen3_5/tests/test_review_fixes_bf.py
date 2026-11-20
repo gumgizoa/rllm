@@ -48,3 +48,13 @@ def test_implement_tasks_says_every_implementation_group_writes_its_tests_first(
     assert "each implementation task group writes them first, as its x.1 sub-task;" in it
     src = next(s for s in ITEMS["implement_tasks.run.agentos_bugfix_checks.pass_last"]["sources"] if "Running the tests" in s["quote"])
     assert "each implementation task group writes them first" in src["quote"]
+
+
+# ---- B-6 row 5: create-tasks says tasks.md keeps its three sections ----------------------------------------------
+
+
+def test_create_tasks_says_the_sections_stay_and_the_section_item_cites_it():
+    ct = (WF / "docs" / "commands" / "create-tasks" / "create-tasks.md").read_text(encoding="utf-8")
+    assert "every tasks.md keeps the example's three sections" in ct
+    quotes = [s["quote"] for s in ITEMS["create_tasks.tasks.section_present.execution_order"]["sources"]]
+    assert D.KEEP_SECTIONS_QUOTE in quotes

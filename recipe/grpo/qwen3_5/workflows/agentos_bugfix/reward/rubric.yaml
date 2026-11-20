@@ -243,7 +243,7 @@ sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
   role: command
-  sha256: be578e8e5c59fd1e53fcb78aedc7da050b8bb16b4491ec7993054e68a975139b
+  sha256: 43819fdbfe309dcddcb80faa12e1bf81e4d26e2f20e64a3dd7f8ad0d573709d8
   container_path: /agent-os/commands/create-tasks/create-tasks.md
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
@@ -3022,6 +3022,12 @@ items:
     - 24
     quote: '2. **Plan task execution order**: Break the requirements into a list of tasks in an order that takes their dependencies
       into account.'
+  - doc: CT
+    lines:
+    - 116
+    - 116
+    quote: 'Whatever you adapt, every tasks.md keeps the example''s three sections: `## Overview` with its `Total Tasks:`
+      line, `## Task List`, and `## Execution Order`'
   impl_refs: []
   derived_by: manual
   template: C-F4
@@ -3267,8 +3273,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 128
-    - 128
+    - 130
+    - 130
     quote: '- **Include acceptance criteria** for each task group'
   impl_refs: []
   derived_by: manual
@@ -3359,8 +3365,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 118
-    - 118
+    - 120
+    - 120
     quote: '- **Create tasks that are specific and verifiable**'
   impl_refs: []
   derived_by: manual
@@ -3421,8 +3427,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 128
-    - 128
+    - 130
+    - 130
     quote: '- **Include acceptance criteria** for each task group'
   - doc: CT
     lines:
@@ -3456,8 +3462,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 122
-    - 122
+    - 124
+    - 124
     quote: Each implementation task group should write 2-8 focused tests maximum
   impl_refs: []
   derived_by: llm_extract
@@ -3488,8 +3494,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 126
-    - 126
+    - 128
+    - 128
     quote: '- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and
       ends with running those tests and the existing tests of the changed code (final sub-task)'
   impl_refs: []
@@ -3721,8 +3727,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 125
-    - 125
+    - 127
+    - 127
     quote: If there is a dedicated test coverage group ... this group should add only a maximum of 10 additional tests IF
       NECESSARY to fill critical gaps
   impl_refs: []
@@ -5447,8 +5453,8 @@ items:
     quote: '4. **implement-tasks**: `/agent-os/commands/implement-tasks/implement-tasks.md`'
   - doc: CT
     lines:
-    - 132
-    - 132
+    - 134
+    - 134
     quote: Once the tasks list has been created at `/tmp/agent-os/specs/[this-spec]/tasks.md`, open `/agent-os/commands/implement-tasks/implement-tasks.md`
       and continue with that command.
   impl_refs: []
@@ -5487,8 +5493,8 @@ items:
     quote: '- Running the tests you''ve written'
   - doc: CT
     lines:
-    - 124
-    - 124
+    - 126
+    - 126
     quote: '- Test verification should run the newly written tests and the existing tests of the changed code, not the entire
       suite'
   impl_refs: []
@@ -5780,8 +5786,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script
       under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
   - doc: CW
@@ -5826,8 +5832,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 126
-    - 126
+    - 128
+    - 128
     quote: where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running those tests and the existing
       tests of the changed code (final sub-task)
   impl_refs: []
@@ -6125,8 +6131,8 @@ items:
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
       (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
       run on its own, or a new test function added to the existing repository test module that covers the changed code; never
@@ -6711,8 +6717,8 @@ items:
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
       (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
       run on its own, or a new test function added to the existing repository test module that covers the changed code; never
@@ -6780,8 +6786,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
@@ -6812,8 +6818,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
@@ -6845,8 +6851,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
@@ -6878,8 +6884,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
@@ -7817,16 +7823,16 @@ appendix:
   - statement: ct-019
     doc: CT
     lines:
-    - 118
-    - 118
+    - 120
+    - 120
     quote: '**Create tasks that are specific and verifiable**'
     modality: must
     reason: 'G4: not checkable by rule (Quality requirement on each task)'
   - statement: ct-022
     doc: CT
     lines:
-    - 123
-    - 123
+    - 125
+    - 125
     quote: Tests should cover only critical behaviors, not exhaustive coverage
     modality: should
     reason: 'G4: not checkable by rule ()'
@@ -8401,8 +8407,8 @@ appendix:
   - statement: ct-020
     doc: CT
     lines:
-    - 120
-    - 120
+    - 122
+    - 122
     quote: '**Group related tasks:** For example, group back-end engineering tasks together and front-end UI tasks together.'
     modality: must
     reason: Whether tasks are grouped by specialty (backend vs. UI) is a judgment about meaning, so no kind can check it.

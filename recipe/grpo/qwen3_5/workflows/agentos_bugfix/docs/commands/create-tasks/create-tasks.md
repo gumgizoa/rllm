@@ -113,6 +113,8 @@ Recommended implementation sequence:
 - Different execution order based on dependencies
 - More or fewer sub-tasks per group
 
+Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order` (the order in which the task groups are implemented).
+
 ## Important Constraints
 
 - **Create tasks that are specific and verifiable**

@@ -203,6 +203,8 @@ def derive() -> tuple[dict, dict]:
         _params(it, docs, report)
         _review_fixes(it)
         _sources(it, docs, report)
+        if it["id"].endswith("create_tasks.tasks.section_present.execution_order") and not any(x["quote"] == KEEP_SECTIONS_QUOTE for x in it["sources"]):
+            raise SystemExit("create-tasks.md no longer says tasks.md keeps its three sections (build.py T10)")
         if not it["sources"] and it["check"]["kind"] == "unimplemented":
             report["dropped_items"].append(it["id"])  # a statement without a check whose text was cut
             report["items_without_source"].remove(it["id"])
@@ -446,6 +448,8 @@ REQ_H3 = ("First Round Questions", "Existing Code to Reference", "Functional Req
 # and a script in the spec folder outside checks/ (as before).
 SCRATCH_PATTERN = r"^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$"
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
+# B-6 row 5: create-tasks.md now says tasks.md keeps its three sections (build.py T10); the section item cites it.
+KEEP_SECTIONS_QUOTE = "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order`"
 
 
 def _review_fixes(it: dict) -> None:
@@ -500,6 +504,8 @@ def _review_fixes(it: dict) -> None:
         p["script_results"] = True
     if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
         p["phase3_fallback"] = True
+    if it["id"].endswith("create_tasks.tasks.section_present.execution_order"):  # B-6 row 5
+        it["sources"] = list(it.get("sources") or []) + [{"doc": "CT", "lines": [], "quote": KEEP_SECTIONS_QUOTE}]
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

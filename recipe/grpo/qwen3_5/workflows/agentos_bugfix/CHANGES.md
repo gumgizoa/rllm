@@ -33,6 +33,7 @@
 | T7 | 수정 task에 고칠 파일을 적음 | create-tasks: "task는 구체적이고 확인 가능하게"만 있고, 예시의 수정 하위 task(1.2, 1.3)에는 파일 자리가 없음 | 제약에 한 줄을 넣음: "코드를 고치는 하위 task는 그 task 줄에 고칠 파일의 저장소 경로를 적는다. 구현 중에 추가하는 task도 같고, 그 파일을 고치기 전에 추가한다". 예시의 1.2, 1.3 줄을 `[First change to make] in [path of the file to change]` 꼴로 바꿈 | 평가(t6-full-floor27) 499런 중 31.9%(159런)가 수정 task에 파일을 하나도 적지 않음. 적은 파일과 실제 수정을 대조하는 채점(`ticked_after_work`, penalty 항목)은 파일이 적혀 있어야 판정할 수 있음. 파일을 적은 런의 해결률이 더 높다는 근거는 없음(난이도를 뺀 차이 +6.3, 구간 −1.1 ~ +13.9). 모델이 이 줄을 따를지는 확인되지 않음(이 문서로 돌린 런 없음) |
 | T8 | 실패 뒤 고칠 대상에 자기 테스트를 넣음 | implement-tasks PHASE 2 (T5): "내 변경 때문에 테스트가 실패하면 변경을 고치고 테스트를 다시 돌린다" | "내 변경 때문에, 또는 내가 쓴 테스트 자체가 틀려서 실패하면 변경이나 그 테스트를 고치고 다시 돌린다"로 바꿈. 기존 테스트 줄은 바꾸지 않는다는 규칙(create-tasks)과 PHASE 3의 "PHASE 2로 한 번 돌아가 변경을 고친다"는 그대로 | 문서에는 테스트를 고치라는 말이 없었는데, 평가(t6-full-floor27)에서 PHASE 2에 실패를 본 런의 81%가 그 뒤에 테스트를 고침. 실패 뒤 소스 또는 테스트를 고친 런의 해결률이 안 고친 런보다 높음(49.7% 대 30.8%, 단순 비교). 이 문구로 돌린 런은 없음 |
 | T9 | 구현 중 자기 테스트 실행 문장의 "(if any …)" | implement-tasks PHASE 2 (T1 문장): "Running the tests you've written (if any; they are check scripts …)" — 자기 테스트가 없을 수 있다고 읽힘 | "(each implementation task group writes them first, as its x.1 sub-task; they are check scripts …)"로 바꿈 | create-tasks의 "각 구현 그룹은 테스트 2–8개를 씀"(122행), "그룹은 테스트 작성(x.1)으로 시작함"(126행)과 어긋났음. 2026-11-20 사용자 결정 1: 항목은 그대로 두고 문서를 맞춤. 자기 테스트를 쓰지 않은 런(평가 102런)과 그룹 안에서 코드를 먼저 고친 런(104런)은 맞는 실패로 남음 |
+| T10 | tasks.md의 절 | create-tasks: 예시 뒤 "Adapt this structure …"만 있고 절을 빼도 되는지 말하지 않음 | 그 목록 뒤에 한 문장: "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order` …" | 실행 순서 계획(Core Responsibilities 2)이 적히는 곳은 Execution Order 절뿐인데, 평가 499런 중 41런이 절을 뺐고 "절이 있음" 항목이 문서에 없는 규칙으로 실패시켰음. 이 문장으로 항목이 문서가 말한 것을 봄. 저장된 평가 런은 이 문장을 받지 않았으므로 판정은 그대로 |
 
 ## 문구 일반화 (G)
 
@@ -346,6 +347,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 - F-3 결정 1의 문서 고침 (T9): implement-tasks.md 39행의 "(if any; …)"를 "(each implementation task group writes them first, as its x.1
   sub-task; …)"로 바꿈(`build.py`의 T1 항목). `derive_rubric.py`의 `REWORD`에 같은 바꿈을 넣어 그 줄을 인용하는 출처를 다시 찾음.
   판정은 바뀌지 않음.
+
+- B-6 행 5 tasks.md의 Execution Order 절 (T10): create-tasks.md 116행에 "tasks.md는 예시의 세 절(Overview와 Total Tasks 줄, Task List,
+  Execution Order)을 남긴다"는 문장을 더함(`build.py`의 `_KEEP_SECTIONS`). 절 항목(`create_tasks.tasks.section_present.execution_order`)의
+  출처에 이 문장을 더함(`derive_rubric.py`의 `KEEP_SECTIONS_QUOTE`, 문장이 없으면 derive가 멈춤). create-tasks.md가 두 줄 늘어
+  그 뒤를 인용하는 출처의 줄 번호가 밀림. 저장된 평가 499런의 판정은 바뀌지 않음.
 
 ## 확인
 

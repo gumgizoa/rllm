@@ -4,9 +4,9 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50"
  },
- "rubric_sha256": "4cf3f5a8f303ffc781fb71a85dcdc80ba247a1ddfd6a9bb9746a5bddfb80b84b",
+ "rubric_sha256": "15e8ebc41aaa48f0c79130b39b3af59d2e0b4402942b1a5d94e92353f0675cca",
  "sources": {
-  "docs/commands/create-tasks/create-tasks.md": "be578e8e5c59fd1e53fcb78aedc7da050b8bb16b4491ec7993054e68a975139b",
+  "docs/commands/create-tasks/create-tasks.md": "43819fdbfe309dcddcb80faa12e1bf81e4d26e2f20e64a3dd7f8ad0d573709d8",
   "docs/commands/implement-tasks/implement-tasks.md": "c9834f6f133f8ccde077acda72223475619bbd6d8630d4448c4c607737d8a75f",
   "docs/commands/shape-spec/shape-spec.md": "0301c3615e50cfb4460fe1e2dbb5d1bb60e63edcc4eb8c22c12052e571d96d76",
   "docs/commands/write-spec/write-spec.md": "9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10",
