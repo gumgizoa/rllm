@@ -3108,7 +3108,7 @@ items:
   log_only: false
   note: task groups numbered from 1
 - id: agentos_bugfix.create_tasks.tasks.item_format.subtasks
-  scope: common
+  scope: specific
   class: content
   stage: create_tasks
   target:
@@ -3116,9 +3116,9 @@ items:
     ref: tasks
     state: stage_end
   check:
-    kind: item_format
+    kind: agentos_bugfix.tasks
     params:
-      pattern: ^\s*[-*+]\s+\[[ xX]\]\s+\d+\.[1-9]\d*\b\s*\S
+      rule: group_subtasks
   requirement: must
   modality_evidence: imperative (CT:26 'broken into groups with sub-tasks'); CT:57-58 the checkbox lines
   none_allowed: '-'
@@ -3142,7 +3142,7 @@ items:
   derived_by: manual
   template: C-F10
   log_only: false
-  note: checkbox sub-tasks `- [ ] N.M ...`
+  note: every task group of tasks.md (as create-tasks left it) has a sub-task line N.M (ratio over the groups)
 - id: agentos_bugfix.create_tasks.tasks.item_format.unchecked
   scope: common
   class: content

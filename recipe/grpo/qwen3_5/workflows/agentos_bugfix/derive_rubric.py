@@ -510,6 +510,11 @@ def _review_fixes(it: dict) -> None:
     if it["id"].endswith("create_tasks.tasks.item_format.checkbox_lines"):  # B-4
         p["pattern"] = BOX_FINER
         p["nested_under"] = True
+    if it["id"].endswith("create_tasks.tasks.item_format.subtasks"):  # B-7: every task group has a sub-task, not one line somewhere
+        it["check"]["kind"] = f"{NEW}.tasks"
+        it["check"]["params"] = {"rule": "group_subtasks"}
+        it["scope"] = "specific"  # a workflow plugin kind
+        it["note"] = "every task group of tasks.md (as create-tasks left it) has a sub-task line N.M (ratio over the groups)"
     tgt = it.get("target") or {}
     if it["stage"] == "create_tasks" and tgt.get("ref") == "tasks" and tgt.get("state", "final") == "final" and kind != "unimplemented" and not it["id"].endswith(".artifact_exists"):
         tgt["state"] = "stage_end"  # B-2: the format items read what create-tasks wrote; implement-tasks' additions are later_edits' to judge

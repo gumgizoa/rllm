@@ -104,3 +104,21 @@ def test_nested_under_off_keeps_item_format_as_it_was():
     assert r.status == "fail" and round(r.score, 4) == round(5 / 7, 4)  # the two unnumbered steps
     p["pattern"] = D.BOX_NEW
     assert round(A.item_format(_item(p), _ctx_text(FINER)).score, 4) == round(4 / 7, 4)  # and 1.2.1
+
+
+# ---- B-7: every task group has a sub-task ---------------------------------------------------------------------------
+
+
+def _tasks_rule(text: str, params: dict, state: str = "stage_end"):
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": text)
+    return C.tasks(_item(params, state=state, stage="create_tasks"), ctx)
+
+
+def test_a_group_without_a_sub_task_is_counted():
+    p = _item_params("create_tasks.tasks.item_format.subtasks")
+    assert p == {"rule": "group_subtasks"}
+    two = "#### Task Group 1: Fix\n- [ ] 1.0 Fix\n  - [ ] 1.1 Write tests\n#### Task Group 2: Verify Documentation Updates\n- [ ] 2.0 Check the docs\n"
+    r = _tasks_rule(two, p)
+    assert r.status == "fail" and r.score == 0.5
+    assert _tasks_rule(two + "  - [ ] 2.1 Read docs/a.rst\n", p).status == "pass"
+    assert _tasks_rule("- [ ] 1.1 x\n", p).status == "fail"  # no group heading

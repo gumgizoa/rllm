@@ -27,6 +27,7 @@ repository prohibitions and the test runs. What they cannot say:
       {rule: test_first}         every task group but a test-review one starts with a test-writing sub-task (x.1) and
                                  ends with a sub-task that runs those tests (ratio)
       {rule: total}              ``Total Tasks: N`` counts the task lines (all, the sub-tasks or the groups)
+      {rule: group_subtasks}     every task group has a sub-task line (``N.M``, M > 0) (ratio over the groups)
       {rule: ticked}             share of the task lines ticked ``[x]`` (or marked ⚠️) when the window ends
       {rule: ticked_after_work}  every task ticked in the window was ticked inside it, after a write or a run of a
                                  path it names (ratio; a box ticked untraceably fails)
@@ -741,14 +742,14 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
     params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False},
     availability=("sandbox_file", "trace"),
     common=False,
-    choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts")},
+    choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
 )
 def tasks(item: Item, ctx: EvalContext) -> Result:
     """rule: group_parts | test_first | total | ticked | ticked_after_work | groups_in_order | later_edits | ticked_passing | warned_after_attempts -- tasks.md's task groups, test sub-tasks, count, and its ticks and ⚠️ marks against the work and the test results."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
     aid = _artifact(item, "tasks")
-    if rule in ("group_parts", "test_first", "total"):
+    if rule in ("group_parts", "test_first", "total", "group_subtasks"):
         text = _text(ctx, aid, item.target.state or "final")
         if text is None:
             return Result.no(item, "tasks.md absent")
@@ -766,6 +767,12 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
                     else:
                         miss.append(f"{g['n']}:{lab}")
             return Result.ratio(item, have, 2 * len(gs), f"missing {miss[:4]}" if miss else f"{len(gs)} groups with Dependencies and Acceptance Criteria")
+        if rule == "group_subtasks":  # every task group has a sub-task (create-tasks.md 26: "groups with sub-tasks")
+            if not gs:
+                return Result.no(item, "no '#### Task Group N:' heading")
+            ts = task_lines(text)
+            empty = [g["n"] for g, _ in gs if not any(t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0") for t in ts)]
+            return Result.ratio(item, len(gs) - len(empty), len(gs), f"task groups without a sub-task: {empty[:4]}" if empty else f"{len(gs)} groups with sub-tasks")
         if rule == "test_first":
             ts = task_lines(text)
             pool = [(g, [t for t in ts if t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0")]) for g, _ in gs]

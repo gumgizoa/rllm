@@ -364,6 +364,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   (잘게 나눈 런의 해결률이 더 높았음, 카드 6-1). 맨 바깥의 번호 없는 체크박스는 그대로 형식 밖. 공용 `item_format`에 선택 설정값
   `nested_under`를 더함(없으면 지금 동작). 평가 499런: 50런이 실패에서 통과.
 
+- B-7 그룹마다의 하위 task: 하위 task 항목(`create_tasks.tasks.item_format.subtasks`, 필수)이 파일 어디에든 `N.M` 줄이 하나 있으면 통과하던
+  것을, task group마다 하위 task 줄이 있는지의 비율로 봄(create-tasks.md 26행: "groups with sub-tasks"). agentos_v2의 tasks 검사에 규칙
+  `group_subtasks`를 더하고 이 항목의 kind를 바꿈(id는 그대로). 그룹마다의 Acceptance Criteria는 `group_parts`가 이미 봄.
+  평가 499런: 11런이 통과에서 실패(x.0 줄만 있는 검증·문서 그룹).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
