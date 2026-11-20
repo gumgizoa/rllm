@@ -382,3 +382,20 @@ def test_an_absent_artifact_counts_as_not_read():
     assert C.read(item, ctx).status == "fail"
 
 
+
+
+# ---- D-5: a run with no repository write is judged on the rest of the order chain -----------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.checks import actions as ACT  # noqa: E402
+from recipe.grpo.qwen3_5.workflow_rubric.context import DocRead, Facts  # noqa: E402
+
+
+def test_an_absent_first_repository_write_leaves_the_chain():
+    f = Facts(n_steps=20)
+    f.doc_reads = {"IT": [DocRead(doc="IT", step=3, via="command", coverage=1.0)]}
+    rubric = SimpleNamespace(artifacts={}, scoring={}, items=[])
+    ctx = SimpleNamespace(facts=f, rubric=rubric, quality={}, cache={}, collected=Collected(workdir="/testbed"))
+    p = {"chain": ["read:IT", "first_repo_write", "read:IT"]}
+    assert ACT.order(_item(dict(p)), ctx).score == 0.0
+    r = ACT.order(_item({**p, "skip_if_absent": ["first_repo_write"]}), ctx)
+    assert r.score == 0.0 and r.detail.startswith("0/1")  # one pair left (read:IT, read:IT), not two
