@@ -253,6 +253,12 @@ _segments, _executed_by, _others_print, _exit_code = R.segments, R.executed_by, 
 outcome, executions = R.outcome, R.executions
 
 
+def edited_sources(ctx: EvalContext) -> set[str]:
+    """Repository files other than tests the run edited itself (not git putting content back): the files a
+    ``git checkout`` / ``git restore`` can put the change of away (``results.stash_marks``)."""
+    return {e.path for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_test_path(e.path) and not F.is_generated(e.path)}
+
+
 def change_runs(ctx: EvalContext) -> list:
     """The valid test runs made with the change in place: a run while the change is stashed away (from a ``git stash``
     to the next ``pop`` / ``apply``, or to the next repository write the agent authors) tested the old code, and says
@@ -262,7 +268,7 @@ def change_runs(ctx: EvalContext) -> list:
     if key not in ctx.cache:
         fx = ctx.facts
         edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
-        before, marks = R.stash_states(fx.commands, edits)
+        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))  # a checkout of an edited source file too (F-3)
         ctx.cache[key] = [r for r in fx.runs if r.valid and r.kind == "test" and not R.run_stashed(r, before, marks)]
     return ctx.cache[key]
 

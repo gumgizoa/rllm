@@ -374,3 +374,25 @@ def test_open_tasks_are_listed_as_incomplete_too():
     tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- 0.009125 formats as \"0.009125\"\n- [x] 1.2 Run the tests\n"
     assert C.report(item, ctx).status == "not_applicable"  # a bullet without a checkbox is no open task
     assert _item_params("agentos_bugfix_report.incomplete_listed").get("open_tasks") is True
+
+
+
+
+# ---- F-3 row 14: a git checkout of an edited source file puts the change away -----------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric import results as RES  # noqa: E402
+
+
+def test_a_checkout_of_an_edited_source_file_puts_the_change_away():
+    cmd = "git checkout sklearn/model_selection/_split.py && python -m pytest sklearn/model_selection/tests/test_split.py"
+    assert RES.stash_marks(cmd) == []  # as before: only git stash moves the change
+    assert [on for _, on in RES.stash_marks(cmd, {"sklearn/model_selection/_split.py"})] == [True]
+    assert RES.stash_marks("git checkout tests/test_a.py", {"src/a.py"}) == []  # a test file the run edited is no source
+    assert RES.stash_marks("git checkout -b fix", {"src/a.py"}) == []  # a branch
+    assert [on for _, on in RES.stash_marks("git restore --source=HEAD -- src/a.py", {"src/a.py"})] == [True]
+    assert [on for _, on in RES.stash_marks("git checkout HEAD -- .", {"src/a.py"})] == [True]
+    assert [on for _, on in RES.stash_marks("cd /testbed && git checkout src/", {"src/a.py"})] == [True]  # a folder above it
+    assert RES.stash_marks("git restore --staged src/a.py", {"src/a.py"}) == []  # unstages only
+    cmds = [CommandFact(step=5, action_index=0, command="git checkout src/a.py"), CommandFact(step=6, action_index=0, command="pytest tests/test_a.py")]
+    before, _ = RES.stash_states(cmds, edit_steps=[3, 8], checkout_paths={"src/a.py"})
+    assert before[(6, 0)] is True and RES.stash_states(cmds, edit_steps=[3, 8])[0][(6, 0)] is False

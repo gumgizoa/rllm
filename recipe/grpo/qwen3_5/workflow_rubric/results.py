@@ -148,19 +148,47 @@ _STASH_BACK = frozenset({"pop", "apply"})
 _STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
 
 
-def stash_marks(command: str) -> list[tuple[int, bool]]:
+_CHECKOUT = re.compile(r"\bgit\s+(checkout|restore)\b([^;&|\n]*)")
+_BRANCHING = frozenset({"-b", "-B", "--orphan", "--detach", "-"})
+
+
+def _checkout_moves(sub: str, args: str, paths: set[str]) -> bool:
+    """``git checkout [<rev>] [--] <paths>`` / ``git restore [--source=<rev>] <paths>`` that names a path of ``paths``
+    (or ``.``): it puts the working copy of a changed file back to an older version. A branch switch moves nothing here."""
+    words = [w.strip("'\"") for w in args.split()]
+    if any(w in _BRANCHING for w in words):
+        return False
+    if sub == "restore" and any(w in ("--staged", "-S") for w in words) and not any(w in ("--worktree", "-W") for w in words):
+        return False  # unstages only: the working copy keeps the change
+    if "--" in words:
+        words = words[words.index("--") + 1 :]
+    targets = [w for w in words if w and not w.startswith("-")]
+    for t in targets:
+        t = t[2:] if t.startswith("./") else t
+        t = t.rstrip("/")
+        if t in (".", "") or any(q == t or q.endswith("/" + t) or t.endswith("/" + q) or q.startswith(t + "/") for q in paths):
+            return True
+    return False
+
+
+def stash_marks(command: str, checkout_paths: set[str] | None = None) -> list[tuple[int, bool]]:
     """(position, stashed away after it) for every ``git stash`` of a command that moves the change: push forms put it
-    away, ``pop`` / ``apply`` bring it back; ``list`` / ``show`` / ``drop`` and the like move nothing."""
+    away, ``pop`` / ``apply`` bring it back; ``list`` / ``show`` / ``drop`` and the like move nothing. With
+    ``checkout_paths`` (the repository files other than tests the run edited itself), a ``git checkout`` / ``git restore`` of one of them puts the
+    change away too (implement-tasks.md 135 names ``git stash`` as an example of running a test without the change)."""
     out = []
     for m in _STASH.finditer(command or ""):
         sub = m.group(1)
         if sub in _STASH_NOTHING:
             continue
         out.append((m.start(), sub not in _STASH_BACK))
+    if checkout_paths:
+        out += [(m.start(), True) for m in _CHECKOUT.finditer(command or "") if _checkout_moves(m.group(1), m.group(2), checkout_paths)]
+        out.sort()
     return out
 
 
-def stash_states(commands: list, edit_steps: tuple[int, ...] | list[int] = ()) -> tuple[dict, dict]:
+def stash_states(commands: list, edit_steps: tuple[int, ...] | list[int] = (), checkout_paths: set[str] | None = None) -> tuple[dict, dict]:
     """Per command ``(step, action_index)``: whether the change is stashed away when it starts, and its marks.
 
     The change stays away until a ``pop`` / ``apply`` -- or until the run edits the repository again (``edit_steps``):
@@ -172,7 +200,7 @@ def stash_states(commands: list, edit_steps: tuple[int, ...] | list[int] = ()) -
         key = (int(c.step), c.action_index)
         if away and any(since < w <= key[0] for w in edits):
             away = False
-        ms = stash_marks(c.command)
+        ms = stash_marks(c.command, checkout_paths)
         if "No local changes to save" in (getattr(c, "observation", "") or ""):
             ms = [m for m in ms if not m[1]]
         before[key], marks[key] = away, ms

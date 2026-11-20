@@ -224,7 +224,7 @@ def timeline(ctx: Any) -> Timeline:
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
 
-    before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}))  # where the change is stashed away
+    before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
     for r in fx.runs:
         if r.kind != "test":
             continue

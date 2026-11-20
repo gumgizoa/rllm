@@ -429,6 +429,17 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   않음. 평가 499런: `incomplete_listed` 38런이 해당 없음에서 실패, 6런이 해당 없음에서 통과. `warned_after_attempts` 1런
   (sphinx-doc__sphinx-8459: 모든 변경을 `git checkout`으로 되돌린 뒤 모든 task에 ⚠️)이 실패에서 해당 없음.
 
+- F-3 행 14 `git checkout`으로 변경을 치우고 돌린 테스트 (공용 `workflow_rubric/results.py`): "변경이 치워진 상태"는 `git stash`(push 꼴)부터
+  `pop`·`apply` 또는 다음 저장소 편집까지였음. 이제 `git checkout [<rev>] [--] <경로>`와 `git restore [--source=…] <경로>`도 그 경로 가운데
+  하나가 런이 직접 편집한 테스트 아닌 저장소 파일이거나 그 위 폴더(`.` 포함)일 때 치우는 표시로 셈(implement-tasks.md 135행은 `git stash`를
+  변경 없이 테스트를 돌리는 한 예로 듦). 브랜치 전환(`-b`, `-B`, `--orphan`, `--detach`, `-`)과 `git restore --staged`(작업 사본은 그대로)는
+  세지 않음. 계획은 "최종 변경의 소스 경로"였으나 checkout으로 버린 파일이 최종 변경에 남지 않을 수 있어 편집한 파일로 함. `stash_marks`와
+  `stash_states`의 선택 인자 `checkout_paths`(기본값 없음 = 전과 같음)를 agentos_v2의 `change_runs`(agentos_v2와 agentos_bugfix 공용)와
+  penalty의 `penalty_tests`가 넘김(새 함수 `checks.edited_sources`). 평가 499런: scikit-learn__scikit-learn-13124 한 런에서
+  `phase3_fail.cause_checked` 실패에서 통과(72단계 checkout, 78단계에 실패하던 테스트를 옛 코드로 돌림), 같은 런의
+  `phase3_fail.edited_after_fail` 해당 없음에서 통과(옛 코드에서 통과했으므로 변경이 고칠 실패가 됨). penalty 평균 0.59719에서 0.59738.
+  저장된 agentos_v2 평가 499런의 재채점: 판정 변화 0.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
