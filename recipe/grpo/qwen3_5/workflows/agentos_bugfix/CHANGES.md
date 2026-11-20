@@ -243,6 +243,12 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   쓴 것으로 셈. 그 형식 문제는 그 산출물의 단계 점수가 이미 깎음. 0.1 미만(빈 파일, 단계 점수를 0으로 만드는 필수 항목 실패)은
   지금처럼 없음. 평가 499런: 순서 항목이 실패에서 통과로 바뀐 런 114개(실패 207런에서 93런). 자체 점검의 template_copy 변이
   준수율 0.1204에서 0.2315(상한은 단계 점수 0.10이라 지킴), frontmatter_stub 0.0469 그대로.
+- E-2 재사용 코드의 (assumed) 표기: Reusability Opportunities 줄 형식 항목이 `shape-spec.md` 130행의 표기(`(assumed) <경로> — <근거>`,
+  경로에 백틱 없음)와 템플릿 175행의 표기(백틱)를 둘 다 받고, 찾은 것이 없을 때의 130행 문장("No similar existing features identified
+  for reference.")과 없음만 적은 줄(None, None found, N/A, "No similar … identified")도 받음. 130행이 표기 전체를 코드 구간 하나로
+  보여 주므로 `` `(assumed) <경로>` — <근거>``처럼 (assumed)와 경로를 한 코드 구간에 넣은 줄도 받음. Existing Code to Reference 줄 형식
+  항목도 같은 표기들을 받음 (같은 130행을 인용함). 평가 499런: Reusability Opportunities 항목 59런, Existing Code to Reference 항목 18런이
+  실패에서 통과, 통과에서 실패 0런.
 
 ## 확인
 

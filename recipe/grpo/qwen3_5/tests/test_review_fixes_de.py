@@ -1,0 +1,77 @@
+"""Item-rule fixes of groups D and E (tasks/2026-11-20-agentos-bugfix-reward-fixes/03-D-E-G-계획.md), checked on small
+synthetic artifacts and runs. Every new parameter of shared code is also shown to leave the default behaviour as it was.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+RECIPE = Path(__file__).resolve().parents[1]
+REPO = RECIPE.parents[2]
+sys.path.insert(0, str(REPO))
+
+import yaml  # noqa: E402
+
+from recipe.grpo.qwen3_5.workflow_rubric.checks import artifacts as A  # noqa: E402
+from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D  # noqa: E402
+
+RUBRIC = yaml.safe_load((RECIPE / "workflows" / "agentos_bugfix" / "reward" / "rubric.yaml").read_text(encoding="utf-8"))
+
+
+def _item_params(suffix: str) -> dict:
+    return next(it["check"]["params"] for it in RUBRIC["items"] if it["id"].endswith(suffix))
+
+
+def _item(params: dict, ref: str = "requirements", state: str = "final", iid: str = "x"):
+    return SimpleNamespace(id=iid, check=SimpleNamespace(params=params), target=SimpleNamespace(ref=ref, state=state, type="artifact"))
+
+
+def _ctx(text: str | None, **kw):
+    return SimpleNamespace(artifact_text=lambda aid, state="final": text, **kw)
+
+
+# ---- D-2: the order item's quality threshold -----------------------------------------------------------------------
+
+
+def test_order_item_counts_a_write_capped_by_one_must_item():
+    assert _item_params("global.run.order.commands")["substantive"] == D.ORDER_SUBSTANTIVE == 0.1
+
+
+# ---- E-2 / E-4 row 4: the (assumed) notations and every Feature line ---------------------------------------------
+
+
+def _reuse(lines: str):
+    p = _item_params("shape_spec.requirements.item_format.reusability_opportunities")
+    return A.item_format(_item(p), _ctx("## Requirements Summary\n\n### Reusability Opportunities\n" + lines + "\n"))
+
+
+def test_reusability_accepts_both_documented_notations_and_a_none_line():
+    for ok in ("- (assumed) `src/a.py` — has the parser", "- (assumed) src/a.py — has the parser",
+               "No similar existing features identified for reference.", "- None found", "- No similar features identified"):
+        assert _reuse(ok).status == "pass", ok
+    for bad in ("- src/a.py has the parser", "- Similar patterns may exist elsewhere"):
+        assert _reuse(bad).status == "fail", bad
+
+
+def _existing(lines: str, params: dict | None = None):
+    p = params or _item_params("shape_spec.requirements.item_format.existing_code")
+    return A.item_format(_item(p), _ctx("## Requirements Discussion\n\n### Existing Code to Reference\n" + lines + "\n"))
+
+
+def test_existing_code_accepts_the_notation_without_backticks():
+    assert _existing("- Feature: lexer - Path: (assumed) src/c.py — reads y").status == "pass"
+    assert _existing("No similar existing features identified for reference.").status == "pass"
+
+
+def test_reusability_keeps_a_backtick_path_followed_by_more_code():
+    assert _reuse("- (assumed) `sympy/core/mul.py`'s `as_coeff_Mul` — the pattern to follow").status == "pass"
+
+
+def test_the_assumed_notation_copied_as_one_code_span_counts():
+    assert _existing("- Feature: x - Path: `(assumed) /testbed/src/a.py` — reads x").status == "pass"
+    assert _existing("- Feature: x - Path: `(assumed)` `/testbed/src/a.py` — reads x").status == "pass"
+    assert _reuse("- `(assumed) src/a.py` — has the parser").status == "pass"
+    assert _existing("- Feature: x - Path: /testbed/src/a.py — reads x").status == "fail"  # no (assumed)

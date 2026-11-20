@@ -120,7 +120,7 @@ generated:
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9174
+      compliance: 0.9279
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -1398,7 +1398,7 @@ items:
     kind: item_format
     params:
       section: Existing Code to Reference
-      pattern: (?i)No similar existing features identified for reference|\(assumed\)\s+`[^`\n]+`\s+(?:—|–|--?)\s+\S
+      pattern: (?i)No similar existing features identified for reference|`?\(assumed\)`?\s+(?:`[^`\n]+`|[^\s`]+`?)\s+(?:—|–|--?)\s+\S
   requirement: must
   modality_evidence: imperative (SS:177 'Record each as (assumed) <path> — <basis>; if you find none, record "No similar existing
     features identified for reference."')
@@ -1475,7 +1475,9 @@ items:
     kind: item_format
     params:
       section: Reusability Opportunities
-      pattern: ^\s*(?:[-*+]|\d+[.)])\s+\(assumed\)\s+`.+?`\s+(?:—|–|-{1,2}|\|)\s+.+?
+      pattern: ^\s*(?:[-*+]|\d+[.)])\s+`?\(assumed\)`?\s+(?:`.+?`|[^\s`]+`?)\s+(?:—|–|-{1,2}|\|)\s+\S|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?No
+        similar existing features? (?:were )?identified for reference\.?\s*$)|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?(?:none|none
+        (?:found|identified)|n/?a|no (?:similar|reusable|existing)\b[\w\s-]{0,40}?\b(?:found|identified))\.?\s*$)
       min: 1
   requirement: must
   modality_evidence: 'binding docs/commands/shape-spec/shape-spec.md:210-210 ''Use the following structure and do not deviate

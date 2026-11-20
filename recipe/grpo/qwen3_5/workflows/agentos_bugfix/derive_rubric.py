@@ -402,6 +402,21 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
 # D-2: the order item counts an artifact's write unless the artifact scores below the 0.1 that one failed must item
 # leaves (an empty or skeleton-only file still earns no order); a format problem is the artifact's own stage's to count.
 ORDER_SUBSTANTIVE = 0.1
+# E-2: shape-spec.md 130 records a found path as `(assumed) <path> — <basis>` (no backticks: the whole notation is one code
+# span) and, when nothing is found, "No similar existing features identified for reference."; the template (160, 175)
+# puts the path in backticks. Both notations count, and so does a line that only says nothing was found.
+# The path in backticks (as agentos_v2 reads it), bare, or "(assumed) <path>" as one code span -- 130 shows the notation
+# inside one code span, and runs copy that span around "(assumed)" and the path.
+_ASSUMED = r"`?\(assumed\)`?\s+(?:`.+?`|[^\s`]+`?)\s+(?:—|–|-{1,2}|\|)\s+\S"
+REUSE_PATTERN = (
+    r"^\s*(?:[-*+]|\d+[.)])\s+" + _ASSUMED
+    + r"|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?No similar existing features? (?:were )?identified for reference\.?\s*$)"
+    + r"|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?(?:none|none (?:found|identified)|n/?a|no (?:similar|reusable|existing)\b[\w\s-]{0,40}?\b(?:found|identified))\.?\s*$)"
+)
+EXISTING_PATTERN = r"(?i)No similar existing features identified for reference|`?\(assumed\)`?\s+(?:`[^`\n]+`|[^\s`]+`?)\s+(?:—|–|--?)\s+\S"
+# E-4 row 4: every "- Feature: ... Path: ..." line of Existing Code to Reference (template 160) is in that notation,
+# not only one of them; the template's other lines (161-162) are free text.
+FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
 def _review_fixes(it: dict) -> None:
@@ -409,6 +424,10 @@ def _review_fixes(it: dict) -> None:
     kind = it["check"]["kind"]
     if kind == "order" and p is not None:  # D-2
         p["substantive"] = ORDER_SUBSTANTIVE
+    if it["id"].endswith("shape_spec.requirements.item_format.reusability_opportunities"):  # E-2
+        p["pattern"] = REUSE_PATTERN
+    if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2
+        p["pattern"] = EXISTING_PATTERN
 
 
 def _locate(src: dict, docs: dict[str, Doc]) -> tuple[int, int] | None:
