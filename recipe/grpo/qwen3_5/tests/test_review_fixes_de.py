@@ -132,3 +132,17 @@ def test_the_task_description_is_the_issue_inside_its_tags():
     wrapped = "<uploaded_files>\n/testbed\n</uploaded_files>\n<issue_description>\nthe bug\n...\n</issue_description>\nPlease fix."
     ctx = _with_task("", SimpleNamespace(instruction=wrapped))
     assert TT.task_description(ctx) == "the bug\n..."
+
+
+# ---- E-4 row 2: initialization.md holds the task description, not a summary -------------------------------------
+
+
+def test_initialization_holds_the_task_description():
+    p = _item_params("shape_spec.initialization.item_format.text")
+    item = _item(p, ref="initialization")
+    task = SimpleNamespace(instruction="The parser drops the last token when the input ends with a comma, so a, b, becomes a, b.")
+    assert TT.task_text(item, _with_task(task.instruction, task)).status == "pass"
+    r = TT.task_text(item, _with_task("Parser drops a token.", task))
+    assert r.status == "fail" and 0 < r.score < 1  # a summary: failed, scored by how much of the text is there
+    # without a task description: the common rule (some text)
+    assert TT.task_text(item, _with_task("Parser drops a token.", None)).status == "pass"

@@ -260,6 +260,11 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
   태그가 있으면 그 안)의 줄과 같은 줄(공백을 하나로, 앞의 목록 기호를 떼고 비교)을 빼고 판정함. 문서가 과제 문장을 그대로 옮기라고 하므로
   트레이스백의 `    ...` 줄은 빈칸이 아님. 새 kind `agentos_bugfix.task_residue`(`reward/task_text.py`), 과제 문장을 받지 못하면 지금 규칙.
   평가 499런: initialization.md 28런, requirements.md 23런이 실패에서 통과.
+- E-4 행 2 initialization.md의 과제 문장: 형식 항목(`shape_spec.initialization.item_format.text`, 필수)이 라틴 글자 셋이 든 줄만 보던 것을,
+  과제 문장의 낱말 가운데 절반 이상이 initialization.md에 같은 순서로 있어야 통과하게 함(새 kind `agentos_bugfix.task_text`, difflib의
+  일치 구간). 요약하거나 앞부분만 옮긴 파일이 실패함. 실패의 점수는 그 비율 ÷ 0.5라서, 요약한 파일도 순서 항목에는 쓴 파일로 남음
+  (0점이면 산출물 품질이 0이 되어 순서 항목이 두 쌍을 더 깎았음: 평가 499런 중 23런). 과제 문장을 받지 못하면 지금 규칙.
+  평가 499런: 27런이 통과에서 실패.
 
 
 ## 확인

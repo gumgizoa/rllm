@@ -6,6 +6,9 @@ requirements.md's Initial Description quotes it again. Two common item rules can
 * ``agentos_bugfix.task_residue`` -- ``no_template_residue`` (the fill-in marks: a line holding only ``...``, ``x`` or ``?``)
   with the lines that are lines of the task description taken out first: a ``    ...`` line of a quoted traceback is the
   task's own text, not a blank left in the file (E-1).
+* ``agentos_bugfix.task_text`` -- initialization.md holds the task description: at least ``min_share`` (0.5) of its
+  words appear in the file in their order (a summary or the first lines only do not), not only some text (E-4 row 2).
+  A failure scores share / ``min_share``.
 
 Without a task description (a stored episode or a caller that passes no task) each kind is exactly the common rule it
 extends. The task description is the task's ``instruction``; when it wraps the issue in ``<issue_description>`` tags
@@ -14,12 +17,13 @@ extends. The task description is the task's ``instruction``; when it wraps the i
 
 from __future__ import annotations
 
+import difflib
 import re
 from typing import Any
 
 from ....workflow_rubric.checks import artifacts as A
 from ....workflow_rubric.checks import register
-from ....workflow_rubric.context import EvalContext
+from ....workflow_rubric.context import EvalContext, Result
 from ....workflow_rubric.schema import Item
 
 _ISSUE = re.compile(r"<issue_description>\s*(.*?)\s*</issue_description>", re.S)
@@ -67,3 +71,28 @@ def task_residue(item: Item, ctx: EvalContext):
         return A.no_template_residue(item, ctx)
     lines = {_ws(x) for x in desc.splitlines() if _ws(x)}
     return A.no_template_residue(item, _WithoutTaskLines(ctx, lines))
+
+
+@register("agentos_bugfix.task_text", params={"pattern": True, "min_share": False}, availability=("sandbox_file",), common=False)
+def task_text(item: Item, ctx: EvalContext):
+    """The file holds the task description: the share of its words (split on whitespace) that the file has in the same
+    order (difflib's matching blocks) is at least ``min_share``. Without a task description: ``item_format`` with
+    ``pattern`` (some text)."""
+    desc = task_description(ctx)
+    if desc is None:
+        return A.item_format(item, ctx)
+    text = A._text(item, ctx)
+    if text is None:
+        return Result.no(item, "artifact absent")
+    want, got = desc.split(), text.split()
+    if not want:
+        return A.item_format(item, ctx)
+    sm = difflib.SequenceMatcher(None, want, got, autojunk=False)
+    share = sum(m.size for m in sm.get_matching_blocks()) / len(want)
+    need = float((item.check.params or {}).get("min_share", 0.5))
+    detail = f"{share:.2f} of the task description's {len(want)} words, in order"
+    if share >= need:
+        return Result.ok(item, detail)
+    # a failure scored by how much of the text is there: a summary is a poor copy, not an absent file (the order item
+    # reads the file's quality, and a format problem is this stage's to count, not the order's)
+    return Result(item.id, "fail", share / need if need > 0 else 0.0, detail + f" < {need:g}")

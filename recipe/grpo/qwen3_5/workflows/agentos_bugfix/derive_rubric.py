@@ -429,6 +429,8 @@ RESIDUE_ITEMS = {"shape_spec.requirements.no_template_residue": FOLDER_PLACEHOLD
 # is the task's text, not a blank. The two fill-mark items of the files that quote it read the file without the
 # task description's lines (reward/task_text.py; the common rule when no task is handed in).
 TASK_RESIDUE_ITEMS = ("shape_spec.initialization.no_template_residue.fill_marks", "shape_spec.requirements.no_template_residue.fill_marks")
+# E-4 row 2: initialization.md holds the task description itself, not a summary of it: half of its words, in order.
+TASK_TEXT_SHARE = 0.5
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
@@ -445,6 +447,11 @@ def _review_fixes(it: dict) -> None:
     if it["id"].removeprefix(NEW + ".") in TASK_RESIDUE_ITEMS:  # E-1
         it["check"]["kind"] = f"{NEW}.task_residue"
         it["scope"] = "specific"  # a workflow plugin kind
+    if it["id"].endswith("shape_spec.initialization.item_format.text"):  # E-4 row 2
+        it["check"]["kind"] = f"{NEW}.task_text"
+        it["scope"] = "specific"
+        p["min_share"] = TASK_TEXT_SHARE
+        it["note"] = "the file holds the task description: at least half of its words, in order (without a task description: some text)"
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

@@ -488,7 +488,7 @@ items:
   log_only: false
   note: ''
 - id: agentos_bugfix.shape_spec.initialization.item_format.text
-  scope: common
+  scope: specific
   class: content
   stage: shape_spec
   target:
@@ -496,9 +496,10 @@ items:
     ref: initialization
     state: final
   check:
-    kind: item_format
+    kind: agentos_bugfix.task_text
     params:
       pattern: '[A-Za-z]{3,}'
+      min_share: 0.5
   requirement: must
   modality_evidence: SS:61 the issue text written (CW:51 'the issue text, unchanged')
   none_allowed: '-'
@@ -523,7 +524,7 @@ items:
   derived_by: manual
   template: C-F10
   log_only: false
-  note: the file holds text (whether it is the issue verbatim needs the issue, which the engine does not have)
+  note: 'the file holds the task description: at least half of its words, in order (without a task description: some text)'
 - id: agentos_bugfix.shape_spec.initialization.no_template_residue.fill_marks
   scope: specific
   class: content
