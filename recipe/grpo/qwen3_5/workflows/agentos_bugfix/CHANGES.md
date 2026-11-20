@@ -440,6 +440,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   `phase3_fail.edited_after_fail` 해당 없음에서 통과(옛 코드에서 통과했으므로 변경이 고칠 실패가 됨). penalty 평균 0.59719에서 0.59738.
   저장된 agentos_v2 평가 499런의 재채점: 판정 변화 0.
 
+- F-3 행 16 검증 단계의 정리 (`_phase3_edits`, `code_frozen`의 `fix_round` 갈래만 씀, agentos_bugfix만): PHASE 3이 시작된 뒤의 저장소 쓰기는
+  모두 코드 변경으로 셌음. 이제 런이 만든 파일(`facts.is_new_path`)이고 최종 변경에 남지 않은 경로를 지우는 쓰기(op `delete`, `move_out`)는
+  정리로 보고 세지 않음(core-workflow.md 88 ~ 89행: 워크플로의 것은 저장소에 두지 않음). 저장소에 파일을 만든 것은 전처럼 `created_files`
+  항목이 잡음. 평가 499런: django__django-13569(54단계에 자기가 만든 tests/test_fix.py를 지움) 한 런의 `code_frozen`이 실패에서 통과, 다른 판정 변화 0.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

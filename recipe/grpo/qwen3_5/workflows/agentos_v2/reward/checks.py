@@ -1297,7 +1297,11 @@ def _phase3_edits(ctx: EvalContext) -> list:
     if start is None:
         return []
     s = 1 if start is UNKNOWN else start
-    return [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.step > s and not F.is_generated(e.path)]
+    keep = F.change_paths(ctx)
+    # removing a file the run made that the final change does not keep is clean-up (core-workflow.md 88-89: nothing of the
+    # workflow stays in the repository), no code change (F-3, 1-4 row 16)
+    return [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.step > s and not F.is_generated(e.path)
+            and not (e.op in ("delete", "move_out") and F.is_new_path(ctx, e.path) and e.path not in keep)]
 
 
 def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:

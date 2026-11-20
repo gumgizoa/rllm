@@ -396,3 +396,21 @@ def test_a_checkout_of_an_edited_source_file_puts_the_change_away():
     cmds = [CommandFact(step=5, action_index=0, command="git checkout src/a.py"), CommandFact(step=6, action_index=0, command="pytest tests/test_a.py")]
     before, _ = RES.stash_states(cmds, edit_steps=[3, 8], checkout_paths={"src/a.py"})
     assert before[(6, 0)] is True and RES.stash_states(cmds, edit_steps=[3, 8])[0][(6, 0)] is False
+
+
+# ---- F-3 row 16: removing a file the run made in PHASE 3 is clean-up --------------------------------------------------
+
+
+def test_removing_a_file_the_run_made_is_no_phase3_code_change(monkeypatch):
+    monkeypatch.setattr(C, "phase3_start", lambda ctx: 30)
+    writes = [WriteEvent(path="tests/test_mine.py", step=10, op="create"), WriteEvent(path="src/a.py", step=12, op="edit"),
+              WriteEvent(path="tests/test_mine.py", step=35, op="delete")]
+    f = SimpleNamespace(repo_writes=writes, _created={"/testbed/tests/test_mine.py": 10})
+    ctx = SimpleNamespace(facts=f, collected=Collected(workdir="/testbed", diff={"src/a.py": "M"}), cache={})
+    assert C._phase3_edits(ctx) == []
+    writes.append(WriteEvent(path="src/b.py", step=36, op="delete"))  # a file that was there before: a code change
+    writes.append(WriteEvent(path="src/a.py", step=37, op="edit"))
+    f.repo_writes = writes
+    ctx.collected.diff = {"src/a.py": "M", "src/b.py": "D"}
+    ctx.cache.clear()
+    assert [e.step for e in C._phase3_edits(ctx)] == [36, 37]
