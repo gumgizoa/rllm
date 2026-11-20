@@ -178,6 +178,15 @@ def is_new_path(ctx: EvalContext, rel: str) -> bool:
     return (wd + rel) in (getattr(ctx.facts, "_created", None) or {})
 
 
+def source_paths(ctx: EvalContext) -> set[str]:
+    """The source files of the final change: non-test code or config files of :func:`change_paths` that are not one of
+    the run's own scripts (what :func:`source_change_steps` counts writes of)."""
+    cached = ctx.cache.get("source_paths")
+    if cached is None:
+        cached = ctx.cache["source_paths"] = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+    return cached
+
+
 def source_change_steps(ctx: EvalContext) -> list[int]:
     """Steps of the run's source changes, in order: repo writes to a non-test code or config file of the final
     change (:func:`change_paths`). Not a source change: a test file the agent wrote or edited (judged by the
@@ -187,7 +196,7 @@ def source_change_steps(ctx: EvalContext) -> list[int]:
     cached = ctx.cache.get("source_change_steps")
     if cached is not None:
         return cached
-    keep = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+    keep = source_paths(ctx)
     out = sorted(int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep)
     ctx.cache["source_change_steps"] = out
     return out
@@ -978,6 +987,7 @@ __all__ = [
     "is_scratch_name",
     "is_run_script",
     "source_change_steps",
+    "source_paths",
     "last_change_write",
     "executed_paths",
     "roots_of",

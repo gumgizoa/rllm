@@ -152,7 +152,7 @@ generated:
     - mutation: cp_read
       kind: exploit
       status: ok
-      compliance: 0.8889
+      compliance: 0.8831
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
@@ -5637,6 +5637,7 @@ items:
           fact: repo_edit
           final: true
           window: stage:implement_tasks
+          source: true
   requirement: must
   modality_evidence: imperative (IT:31 'Implement the assigned task group'); CW:81 implement-tasks PHASE 2 changes /testbed
   none_allowed: '-'
@@ -5662,7 +5663,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: a repository edit in implement-tasks that stays in the final change
+  note: a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the
+    final change
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_checks.pass_last
   scope: specific
   class: evidence
@@ -6381,7 +6383,7 @@ items:
   check:
     kind: agentos_bugfix.paths_written
     params:
-      pattern: ^/tmp/(?!agent-os/specs/[^/]+/checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
+      pattern: ^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
   requirement: should
   modality_evidence: 'CW:87 ''scratch files to S/checks/'' (where, not a prohibition: should)'
   none_allowed: '-'
@@ -6405,7 +6407,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: no script written under /tmp outside the spec folder's checks/
+  note: no scratch file written under /tmp outside the spec folder, and no script in the spec folder outside checks/
 - id: agentos_bugfix.global.run.agentos_bugfix_holds.shape_files_left_alone
   scope: specific
   class: evidence
@@ -6752,6 +6754,7 @@ items:
     kind: agentos_bugfix.created_files
     params:
       pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
+      scratch: true
   requirement: must
   modality_evidence: CW:87-88 'Nothing that belongs to the workflow goes into /testbed'
   none_allowed: '-'

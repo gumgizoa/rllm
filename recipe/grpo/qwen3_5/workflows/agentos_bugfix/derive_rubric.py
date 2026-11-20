@@ -436,6 +436,9 @@ TASK_TEXT_SHARE = 0.5
 # names); a ### heading may carry any template name (a ## section written at ### is a separate matter, left as it is).
 REQ_H2 = ("Initial Description", "Requirements Discussion", "Requirements Summary")
 REQ_H3 = ("First Round Questions", "Existing Code to Reference", "Functional Requirements", "Reusability Opportunities", "Scope Boundaries", "Technical Considerations")
+# E-5 row 10: core-workflow.md 56, 89: scratch files go to S/checks/ -- any file under /tmp outside the spec folder,
+# and a script in the spec folder outside checks/ (as before).
+SCRATCH_PATTERN = r"^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$"
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 
 
@@ -475,6 +478,14 @@ def _review_fixes(it: dict) -> None:
         p["today"] = True
     if it["id"].endswith("shape_spec.verifications_dir.artifact_exists"):  # E-4 row 9: made during shape-spec (SS 52), not at the end
         it["target"]["state"] = "stage_end"
+    if it["id"].endswith("global.run.agentos_bugfix_paths_written.scratch_outside_checks"):  # E-5 row 10
+        p["pattern"] = SCRATCH_PATTERN
+        it["note"] = "no scratch file written under /tmp outside the spec folder, and no script in the spec folder outside checks/"
+    if it["id"].endswith("global.run.agentos_bugfix_created_files.workflow_files"):  # E-5 row 11
+        p["scratch"] = True
+    if it["id"].endswith("implement_tasks.run.code_change"):  # E-5 row 18: a source file, not only a test or a backup, is changed
+        p["predicate"]["exists"]["source"] = True
+        it["note"] = "a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the final change"
     extra = RESIDUE_ITEMS.get(it["id"].removeprefix(NEW + "."))
     if extra:  # E-4 row 5
         p["patterns"] = list(p.get("patterns") or []) + [re.escape(x) for x in extra if re.escape(x) not in (p.get("patterns") or [])]

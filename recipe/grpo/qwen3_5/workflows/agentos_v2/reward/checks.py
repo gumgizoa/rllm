@@ -1185,21 +1185,28 @@ def report(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # agentos_v2.created_files / paths_written
 # --------------------------------------------------------------------------------------------
-@register("agentos_v2.created_files", params={"pattern": False, "test_paths": False, "window": False}, availability=("trace",), common=False)
+@register("agentos_v2.created_files", params={"pattern": False, "test_paths": False, "window": False, "scratch": False}, availability=("trace",), common=False)
 def created_files(item: Item, ctx: EvalContext) -> Result:
-    """No file the run created in the repository (absent at BASE_SHA) is a test file (``test_paths``) or matches ``pattern``, written in the window."""
+    """No file the run created in the repository (absent at BASE_SHA) is a test file (``test_paths``) or matches ``pattern``, written in the window.
+    ``scratch``: besides ``pattern``, a created file that is one of the run's own scripts (``facts.is_run_script``) or that
+    the run's own last write removed (made and removed again: ``rm``, ``mv`` away) counts too."""
     p = item.check.params or {}
     w = _window(item, ctx)
     if w is None:
         return Result.ok(item, "window empty")
     rx = re.compile(str(p["pattern"])) if p.get("pattern") else None
+    removed: dict[str, bool] = {}  # path -> the run's own last write removed it (made and removed again)
+    for e in ctx.facts.repo_writes:
+        if e.ok is not False:
+            removed[e.path] = e.op in ("delete", "move_out")
     hits = []
     for e in ctx.facts.repo_writes:
         if e.ok is False or not refs.in_window(e.step, w) or not F.is_new_path(ctx, e.path):
             continue
         if p.get("test_paths") is not None and F.is_test_path(e.path) != bool(p["test_paths"]):
             continue
-        if rx is not None and not rx.search(e.path):
+        scratch = bool(p.get("scratch")) and not F.is_generated(e.path) and (F.is_run_script(ctx, e.path) or removed.get(e.path, False))
+        if rx is not None and not rx.search(e.path) and not scratch:
             continue
         hits.append(f"step {e.step}: {e.op} {e.path}")
     return Result.no(item, f"{len(hits)} created: {hits[0]}") if hits else Result.ok(item, "none created")

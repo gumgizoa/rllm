@@ -331,3 +331,41 @@ def test_a_directory_made_after_its_stage_fails_at_stage_end(monkeypatch):
     # a mkdir the replay could not expand ($(date ...)) still dates the directory
     made_by_date = [SimpleNamespace(step=6, command="mkdir -p /tmp/agent-os/specs/$(date +%Y-%m-%d)-x/verifications")]
     assert judge(None, writes=(50,), commands=made_by_date) == "pass"
+
+
+# ---- E-5: scratch files outside checks/, temporary files in the repository, a change without a source file -------
+
+from recipe.grpo.qwen3_5.workflow_rubric import refs as REFS  # noqa: E402
+
+
+def test_scratch_files_anywhere_under_tmp_outside_the_spec_folder():
+    rx = re.compile(_item_params("global.run.agentos_bugfix_paths_written.scratch_outside_checks")["pattern"])
+    for bad in ("/tmp/questions.txt", "/tmp/fix_mod.patch", "/tmp/repro.py", f"{SPEC}/notes.py"):
+        assert rx.search(bad), bad
+    for ok in (f"{SPEC}/checks/test_a.py", f"{SPEC}/checks/notes.txt", f"{SPEC}/planning/requirements.md", f"{SPEC}/spec.md"):
+        assert not rx.search(ok), ok
+
+
+def _repo_ctx(diff, writes, created=()):
+    facts = SimpleNamespace(repo_writes=writes, n_steps=20, _created={"/testbed/" + p: 1 for p in created}, windows={})
+    return SimpleNamespace(facts=facts, collected=Collected(diff=diff, workdir="/testbed"), cache={}, rubric=SimpleNamespace(artifacts={}))
+
+
+def test_temporary_repository_files_count_with_scratch():
+    writes = [WriteEvent(path="fix_test.py", step=3, op="create"), WriteEvent(path="tests/tmp_x.py", step=4, op="create"),
+              WriteEvent(path="tests/tmp_x.py", step=6, op="delete"), WriteEvent(path="src/a.py", step=5, op="edit")]
+    ctx = _repo_ctx({"fix_test.py": "?", "src/a.py": "M"}, writes, created=["tests/tmp_x.py"])
+    item = SimpleNamespace(id="x", stage="global", check=SimpleNamespace(params={"pattern": r"(?:^|/)repro[^/]*\.py$"}), target=SimpleNamespace(type="action"))
+    assert C.created_files(item, ctx).status == "pass"  # as before: neither name matches the pattern
+    item.check.params["scratch"] = True
+    r = C.created_files(item, ctx)
+    assert r.status == "fail" and r.detail.startswith("3 created")  # fix_test.py (a top-level throwaway), tests/tmp_x.py (made and removed)
+
+
+def test_code_change_needs_a_source_file_of_the_final_change():
+    writes = [WriteEvent(path="tests/test_a.py", step=3, op="edit"), WriteEvent(path="src/a.py.bak", step=4, op="create")]
+    ctx = _repo_ctx({"tests/test_a.py": "M", "src/a.py.bak": "?"}, writes)
+    assert list(REFS.matching(ctx, {"fact": "repo_edit", "final": True}))  # as before: any final repository edit
+    assert not list(REFS.matching(ctx, {"fact": "repo_edit", "final": True, "source": True}))
+    ctx = _repo_ctx({"src/a.py": "M"}, [WriteEvent(path="src/a.py", step=5, op="edit")])
+    assert list(REFS.matching(ctx, {"fact": "repo_edit", "final": True, "source": True}))
