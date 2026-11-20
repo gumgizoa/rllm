@@ -441,6 +441,7 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
     roots = roots_of(rubric, workdir)
     _bind_vars(f, rubric, collected, roots, rep)
     _resolve_artifacts(f, rubric, collected, roots, rep)
+    _fill_last_write(collected, rep)
     _final_mismatch(f, collected, rep)
     _repo_writes(f, rubric, collected, roots, workdir)
     _doc_reads(f, rubric, run, cwd_track, split, docs)
@@ -580,6 +581,20 @@ def _resolve_artifacts(f: Facts, rubric: Rubric, c: Collected, roots, rep: Repla
 
 def _norm_text(s: str) -> str:
     return "\n".join(ln.rstrip() for ln in s.replace("\r\n", "\n").split("\n")).rstrip()
+
+
+def _fill_last_write(c: Collected, rep: Replay) -> None:
+    """A file the sandbox holds whose last write the replay could not follow (a python edit, an ``mv`` of a file it never
+    saw written): nothing wrote it afterwards, so its content after that write is the sandbox's. A file the sandbox
+    copy cut short is left unknown."""
+    for path, text in c.files.items():
+        if text is None or path in c.truncated:
+            continue
+        evs = [e for e in rep.writes.get(path, []) if e.ok is not False]
+        if not evs or evs[-1].op not in WRITE_OPS or evs[-1].content is not None:
+            continue
+        evs[-1].content = text
+        rep.final[path] = text
 
 
 def _final_mismatch(f: Facts, c: Collected, rep: Replay) -> None:

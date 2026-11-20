@@ -279,3 +279,30 @@ def test_moving_onto_the_same_file_twice_lands_on_the_file():
 def test_moving_a_directory_still_makes_a_directory():
     rep = _replayed("mkdir -p /tmp/d && echo a > /tmp/d/f.txt", "mv /tmp/d /tmp/e", "echo b > /tmp/g.txt && mv /tmp/g.txt /tmp/e")
     assert rep.final["/tmp/e/f.txt"] == "a\n" and rep.final["/tmp/e/g.txt"] == "b\n"
+
+
+# ---- H-9: a tasks.md write of unknown content is not a rewrite of the tasks -------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric.replay import Replay  # noqa: E402
+
+TASKS = "/tmp/agent-os/specs/s/tasks.md"
+OPEN = "## Tasks\n\n#### Task Group 1: Fix\n- [ ] 1.0 Fix it\n  - [ ] 1.1 Write tests\n  - [ ] 1.2 Change code\n"
+DONE = OPEN.replace("[ ]", "[x]")
+
+
+def test_the_last_unknown_write_takes_the_sandbox_content():
+    rep = Replay()
+    rep.writes = {TASKS: [WriteEvent(TASKS, 3, "create", content=OPEN), WriteEvent(TASKS, 9, "move_in", content=None)],
+                  "/x/cut.md": [WriteEvent("/x/cut.md", 4, "create", content=None)]}
+    rep.final = {TASKS: None, "/x/cut.md": None}
+    F._fill_last_write(Collected(files={TASKS: DONE, "/x/cut.md": "a"}, truncated={"/x/cut.md"}), rep)
+    assert rep.writes[TASKS][-1].content == DONE and rep.final[TASKS] == DONE
+    assert rep.writes["/x/cut.md"][-1].content is None  # a file the sandbox copy cut short stays unknown
+
+
+def test_all_done_is_the_first_known_done_write_even_after_an_unknown_one():
+    evs = [WriteEvent(TASKS, 3, "create", content=OPEN), WriteEvent(TASKS, 5, "edit", content=None), WriteEvent(TASKS, 8, "edit", content=DONE)]
+    ctx = SimpleNamespace(facts=SimpleNamespace(artifact_paths={"tasks": TASKS}, writes={TASKS: evs}, final_mismatch={}), cache={})
+    assert C.all_done_step(ctx) == 8
+    # the content before a known write is the last known one: an unknown write between is passed over
+    assert C._known_before(evs, evs[2]) == OPEN and C._known_before(evs, evs[0]) is None

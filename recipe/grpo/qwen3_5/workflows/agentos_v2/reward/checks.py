@@ -497,20 +497,17 @@ def tick_steps(ctx: EvalContext, aid: str) -> dict[str, int | None]:
 
 def all_done_step(ctx: EvalContext, aid: str = "tasks"):
     """The first write of tasks.md after which it has task lines and every one is ticked or marked ⚠️ (None: never;
-    ``UNKNOWN``: a write that cannot be replayed comes first)."""
+    ``UNKNOWN``: only the sandbox's final file shows it). A write whose content cannot be replayed is passed over: the
+    first write whose known content has every task done gives the step, even when such a write comes before it."""
     path = ctx.facts.artifact_paths.get(aid)
     if not path:
         return None
-    blind = False
     for e in ctx.facts.writes.get(path, []):
-        if e.ok is False or e.op in ("delete", "move_out"):
-            continue
-        if e.content is None:
-            blind = True
+        if e.ok is False or e.op in ("delete", "move_out") or e.content is None:
             continue
         ts = task_lines(e.content)
         if ts and all(_done(t) for t in ts):
-            return UNKNOWN if blind else e.step
+            return e.step
     if ctx.facts.final_mismatch.get(path):
         ts = task_lines(_text(ctx, aid))
         if ts and all(_done(t) for t in ts):
@@ -593,15 +590,15 @@ def _only_adds(prev: list[str], new: list[str]) -> bool:
     return all(any(ln == x for x in it) for ln in prev if not _TOTAL_LINE.match(ln))
 
 
-def _prior(ctx: EvalContext, path: str, e) -> str | None:
+def _known_before(evs: list, e) -> str | None:
+    """The last known content among the events of ``evs`` before ``e`` (None when none is known)."""
     prev = None
-    for x in ctx.facts.writes.get(path, []):
-        if x.ok is False:
-            continue
+    for x in evs:
         if x is e:
             break
-        prev = x
-    return None if prev is None else prev.content
+        if x.content is not None:
+            prev = x.content
+    return prev
 
 
 def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
@@ -832,17 +829,22 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         edits = [e for e in evs if refs.in_window(e.step, w) and e is not evs[0]]
         if not edits:
             return Result.ok(item, "tasks.md not edited in the window")
+        # a write whose content the replay does not know is passed over: the next known content is compared with the
+        # last known one before it, so a change the unknown write made shows there. Only unknown writes: as before, a fail.
+        known = [e for e in edits if e.content is not None]
+        if not known:
+            return Result.ratio(item, 0, len(edits), "; ".join(f"step {e.step}: content unknown" for e in edits[:2]))
         good, bad = 0, []
-        for e in edits:
-            prev, new = _prior(ctx, path, e), e.content
-            if prev is None or new is None:
-                bad.append(f"step {e.step}: content unknown")
+        for e in known:
+            prev, new = _known_before(evs, e), e.content
+            if prev is None:
+                bad.append(f"step {e.step}: content before it unknown")
                 continue
             if _norm_box(prev) == _norm_box(new) or (p.get("additions") and _only_adds(_norm_box(prev), _norm_box(new))):
                 good += 1
             else:
                 bad.append(f"step {e.step}: {e.op} changes the tasks")
-        return Result.ratio(item, good, len(edits), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only" + (" or added tasks" if p.get("additions") else ""))
+        return Result.ratio(item, good, len(known), "; ".join(bad[:2]) if bad else f"{good} write(s): ticks only" + (" or added tasks" if p.get("additions") else ""))
     return Result.no(item, f"unknown rule {rule!r}")
 
 
