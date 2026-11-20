@@ -4342,6 +4342,7 @@ items:
       - ⚠️ Passed with Issues
       - ❌ Failed
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:257 the value choices
   none_allowed: '-'
@@ -4378,6 +4379,7 @@ items:
       - ✅ All Complete
       - ⚠️ Issues Found
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:269 the value choices
   none_allowed: '-'
@@ -4415,6 +4417,7 @@ items:
       - ⚠️ Some Failures
       - ❌ Critical Failures
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:297 the value choices
   none_allowed: '-'

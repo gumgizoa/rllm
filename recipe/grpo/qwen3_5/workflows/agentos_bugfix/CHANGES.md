@@ -275,6 +275,10 @@ agentos_v2와 다른 워크플로의 판정은 바뀌지 않음.
     둘이 겹칠 때를 정하지 않음). 이 규칙은 agentos_bugfix만 써서 설정값 없이 고침
   - 평가 499런: Tasks Verification 6런 실패에서 통과, Notes 5런 실패에서 해당 없음, 블록 4런 실패에서 통과와 1런(첫 이름 앞 글머리 10개)
     통과에서 실패, 맨 위 Status 1런 실패에서 통과
+- E-4 행 14 Status 값의 섞음: 보고서 Status 칸 세 항목(앞부분 일치 허용)이, 두 허용 값을 섞은 값(`✅ Passed with Issues`: 이모지는 Passed,
+  낱말은 Passed with Issues)과 첫 값(Passed, All Complete, All Passing) 뒤에 실패를 덧붙인 값(`✅ All Passing (excluding pre-existing
+  failures)`, 바로 앞 세 낱말에 no·0·zero·without가 없는 fail·error·issue·exclud·except)을 실패로 봄. 설명만 덧붙인 값은 그대로 통과.
+  공용 `field_enum`의 선택 설정값 `strict_prefix`. 평가 499런: 7런이 통과에서 실패(섞음 3, 실패 덧붙임 4).
 
 
 ## 확인

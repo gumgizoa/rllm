@@ -403,10 +403,34 @@ def _norm_enum(v: str) -> str:
     return re.sub(r"\s+", " ", M.clean_value(v)).strip().rstrip(".").strip().casefold()
 
 
-@register("field_enum", params={"section": True, "label": True, "values": True, "prefix_ok": False})
+_BAD_WORD = re.compile(r"fail|error|issue|exclud|except")
+_NEGATION = re.compile(r"\b(?:no|0|zero|without)\b")
+
+
+def _mixed_or_contradicted(nv: str, start: str, vals: list[str]) -> str:
+    """Why a value that passed by its prefix is not that value ('' when it is): its words without the leading emoji are
+    those of a longer allowed value (``✅ passed with issues``), or it starts with the first, all-good value and goes on
+    to name a failure not negated just before (``✅ all passing (excluding pre-existing failures)``)."""
+    bare = lambda v: re.sub(r"^\W+", "", v)  # noqa: E731
+    w = bare(nv)
+    for y in vals:
+        yw = bare(y)
+        if y != start and len(yw) > len(bare(start)) and (w == yw or (w.startswith(yw) and not w[len(yw) : len(yw) + 1].isalnum())):
+            return f"mixes {start!r} and {y!r}"
+    if vals and start == vals[0]:
+        rest = nv[len(start) :]
+        for m in _BAD_WORD.finditer(rest):
+            before = re.findall(r"\w+", rest[: m.start()])[-3:]
+            if not any(_NEGATION.fullmatch(x) for x in before):
+                return f"{start!r} with a failure after it"
+    return ""
+
+
+@register("field_enum", params={"section": True, "label": True, "values": True, "prefix_ok": False, "strict_prefix": False})
 def field_enum(item: Item, ctx: EvalContext) -> Result:
     """The value is one of ``values`` (case-insensitive); ``prefix_ok``: starts with one at a word
-    boundary (``failure (missing module)``) -- a copied ``a | b`` choice never passes."""
+    boundary (``failure (missing module)``) -- a copied ``a | b`` choice never passes. ``strict_prefix``: such a value
+    also fails when it mixes two allowed values or adds a failure to the first (all-good) one."""
     p = _params(item)
     body, err = _body(item, ctx, p["section"])
     if err:
@@ -425,7 +449,8 @@ def field_enum(item: Item, ctx: EvalContext) -> Result:
         present = [x for x in vals if x and re.search(rf"(?<!\w){re.escape(x)}(?!\w)", nv)]
         starts = [x for x in vals if x and nv.startswith(x) and (len(nv) == len(x) or not nv[len(x)].isalnum())]
         if starts and not ("|" in nv and len(present) > 1):
-            return Result.ok(item, nv)
+            why = _mixed_or_contradicted(nv, max(starts, key=len), vals) if p.get("strict_prefix") else ""
+            return Result.no(item, f"{label}: {_short(v)!r} {why}") if why else Result.ok(item, nv)
     return Result.no(item, f"{label}: {_short(v)!r}")
 
 

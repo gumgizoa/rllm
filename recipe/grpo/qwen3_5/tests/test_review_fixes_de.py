@@ -202,3 +202,23 @@ def test_blocks_count_top_level_bullets_and_leading_ones():
     assert _blocks(leading).status == "pass"
     unnamed = "".join(f"- point {i}\n" for i in range(10))
     assert _blocks(unnamed, top_level=True).status == "pass"  # no named block at all: as before
+
+
+# ---- E-4 row 14: a Status that mixes two values or adds a failure -----------------------------------------------
+
+
+def _status(value: str, **extra):
+    p = {"section": "2. Test Suite Results", "label": "Status", "values": ["✅ All Passing", "⚠️ Some Failures", "❌ Critical Failures"], "prefix_ok": True, **extra}
+    return A.field_enum(_item(p, ref="final_verification"), _ctx(f"## 2. Test Suite Results\n**Status:** {value}\n"))
+
+
+def test_strict_prefix_rejects_mixed_and_contradicted_values():
+    for bad in ("✅ All Passing (excluding pre-existing failures)", "✅ All Passing (except 2 pre-existing failures unrelated)"):
+        assert _status(bad, strict_prefix=True).status == "fail", bad
+        assert _status(bad).status == "pass", bad  # without the parameter, as before
+    for ok in ("✅ All Passing", "✅ All Passing (for feature-specific tests)", "✅ All Passing (no failures)", "⚠️ Some Failures (pre-existing issues)"):
+        assert _status(ok, strict_prefix=True).status == "pass", ok
+    p = {"section": "*", "label": "Status", "values": ["✅ Passed", "⚠️ Passed with Issues", "❌ Failed"], "prefix_ok": True, "strict_prefix": True}
+    assert A.field_enum(_item(p, ref="final_verification"), _ctx("# R\n**Status:** ✅ Passed with Issues\n")).status == "fail"
+
+
