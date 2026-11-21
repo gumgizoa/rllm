@@ -26,6 +26,7 @@ from __future__ import annotations
 import re
 
 from .. import aggregate, evidence, refs
+from .. import patch as final_patch
 from ..context import UNKNOWN, EvalContext, Result
 from ..facts import WRITE_OPS, executed_paths, is_new_path, is_test_path, location_paths
 from ..schema import Item
@@ -348,7 +349,7 @@ def _install(seg: shell.Segment) -> bool:
     return bool(seg.cmd) and _INSTALL.match(" ".join(seg.cmd)) is not None
 
 
-@register("prohibited_action", params={"action": True, "window": False, "pattern": False, "selector": False, "paths_in": False}, availability=("trace",), choices={"action": PROHIBITED_ACTIONS})
+@register("prohibited_action", params={"action": True, "window": False, "pattern": False, "selector": False, "paths_in": False, "final_patch": False}, availability=("trace",), choices={"action": PROHIBITED_ACTIONS})
 def prohibited_action(item: Item, ctx: EvalContext) -> Result:
     """No action of class ``action`` in the window: ``execute`` (a test-runner invocation, or running
     a path ``selector`` names), ``repo_write`` / ``test_file_write`` (an existing test file: one at
@@ -360,7 +361,14 @@ def prohibited_action(item: Item, ctx: EvalContext) -> Result:
     --, ``install`` (pip/npm/apt ... install),
     ``full_suite`` (a test runner at the repository root that selects no path, id, label or filter),
     ``command`` (any command matching ``pattern``). ``pattern`` also filters the other classes
-    (commands for execute/install/full_suite, repo paths for writes)."""
+    (commands for execute/install/full_suite, repo paths for writes).
+
+    ``final_patch`` (``test_file_modify`` only, off by default): the final patch is judged too -- a test file that
+    existed at BASE_SHA whose section in it changes or removes a line (:func:`workflow_rubric.patch.changed_lines`:
+    whitespace-only changes, blank lines and lines moved within the file do not count) is a hit, whatever tool made
+    the change. The sections come from ``Collected.inputs["test_patch"]`` (the workflow's ``inputs`` hook, built
+    with :func:`workflow_rubric.patch.test_sections`); without it, or for a file it omits, the item is judged as
+    without the parameter. The patch is the end of the run, so ``window`` does not limit this part."""
     p = _params(item)
     action = str(p["action"])
     f = ctx.facts
@@ -399,6 +407,14 @@ def prohibited_action(item: Item, ctx: EvalContext) -> Result:
         hits += [f"step {e.step}: {e.op} {e.path}" for e in f.repo_writes if e.ok is not False and refs.in_window(e.step, w) and wanted(e.path) and event_ok(e)]
         if action != "test_file_modify":
             hits += [f"changed outside the trace: {path}" for path in getattr(f, "_unseen_repo_paths", []) if wanted(path)]
+        elif p.get("final_patch"):
+            tp = (ctx.collected.inputs or {}).get("test_patch") or {}
+            for path, body in (tp.get("files") or {}).items():
+                if not wanted(path):
+                    continue
+                lines = final_patch.changed_lines(body)
+                if lines:
+                    hits.append(f"final patch changes or removes {len(lines)} existing line(s) of {path}: {lines[0].strip()[:60]!r}")
     elif action == "install":
         for c in f.commands:
             if refs.in_window(c.step, w) and (rx is None or rx.search(c.command)):

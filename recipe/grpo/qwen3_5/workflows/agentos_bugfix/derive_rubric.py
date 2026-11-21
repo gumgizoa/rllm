@@ -541,6 +541,10 @@ def _review_fixes(it: dict) -> None:
     if kind == f"{NEW}.tasks" and p.get("rule") == "total":  # B-6 row 3: "Total Tasks: [count]" (create-tasks.md 48) says not what to count
         p["impl_counts"] = True
         p["wide_words"] = True
+    if it["id"].endswith("global.run.prohibited_action.test_file_write"):  # 14: an existing test line changed by any tool (CT 129, IT 39)
+        p["final_patch"] = True
+        it["note"] = ("an existing test file's prior line changed or removed, by an edit the trace shows or in the final patch "
+                      "(whitespace-only changes, blank lines and moved lines do not count); added lines are allowed")
     if kind == f"{NEW}.checks":  # F-2: a test function added to an existing test module is the run's test too (CT 127, CW 85)
         p["module_tests"] = True
         first = ((p.get("window") or [None, [None]])[1] or [None])[0] if isinstance(p.get("window"), list) else None

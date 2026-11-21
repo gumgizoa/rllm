@@ -58,6 +58,7 @@ import re
 from typing import Any
 
 from ....workflow_rubric import facts as F
+from ....workflow_rubric import patch as PATCH
 from ....workflow_rubric import penalty as PEN
 from ....workflow_rubric.checks import register
 from ....workflow_rubric.context import EvalContext, Result
@@ -265,8 +266,17 @@ def penalty(item: Item, ctx: EvalContext) -> Result:
 # Hooks of the evaluation policy (``RubricEvaluation(inputs=..., post=...)``)
 # --------------------------------------------------------------------------------------------
 def inputs(task: Any, episode: Any) -> dict[str, Any]:
-    """``Collected.inputs``: the task, for its description (``task_text.py``). Nothing reads its reference fix."""
-    return {"task": task}
+    """``Collected.inputs``: the task, for its description (``task_text.py``), and the test-file sections of the
+    patch the harness recorded at the end of the run (``episode.artifacts["patch"]``, live and offline alike), for
+    ``global.run.prohibited_action.test_file_write`` (``final_patch``; ``workflow_rubric/patch.py``). No patch
+    recorded: no ``test_patch`` (the item is judged as before). Nothing reads the task's reference fix."""
+    out: dict[str, Any] = {"task": task}
+    art = getattr(episode, "artifacts", None)
+    if isinstance(art, dict):
+        tp = PATCH.test_sections(art.get("patch"), art.get("patch_bytes"))
+        if tp is not None:
+            out["test_patch"] = tp
+    return out
 
 
 def post(report: Any) -> dict[str, float]:
