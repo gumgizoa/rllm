@@ -236,3 +236,22 @@ def test_a_script_outside_checks_is_no_result_and_writing_it_no_test_edit():
     steps = {st.n for st in ctx.run.steps if any("/tmp/repro.py" in (a.command or a.path or "") for a in st.actions)}
     assert len(steps) == 2 and not steps & {r.step for r in tl.results} and not steps & set(tl.test_edits)
     assert all(v == 1.0 for k, (v, _) in T.judge(tl).items())
+
+
+# ---- A-9 row 20: a run of only the run's own tests is no run of the existing tests -----------------------------------
+
+
+def test_a_run_of_only_added_test_functions_or_created_test_files_is_no_existing_run():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    ctx = SimpleNamespace(collected=SimpleNamespace(diff={"tests/test_new.py": "A", "tests/test_slug.py": "M"}, base_present=None, workdir="/testbed"), facts=SimpleNamespace(_created={}))
+    run = lambda seg: SimpleNamespace(segment=seg)  # noqa: E731
+    added = {"test_sep_kw", "TestSep"}
+    slug = ("tests/test_slug.py",)
+    assert T.only_own_tests(ctx, run("python -m pytest tests/test_slug.py::test_sep_kw -q"), slug, False, added)
+    assert T.only_own_tests(ctx, run("pytest /testbed/tests/test_slug.py::TestSep::test_a[1]"), slug, False, added)
+    assert not T.only_own_tests(ctx, run("pytest tests/test_slug.py::test_sep_kw tests/test_slug.py::test_old"), slug, False, added)
+    assert not T.only_own_tests(ctx, run("pytest tests/test_slug.py"), slug, False, added)  # the whole module: its existing tests too
+    assert not T.only_own_tests(ctx, run("pytest tests/test_slug.py::test_sep_kw tests/test_wrap.py"), slug + ("tests/test_wrap.py",), False, added)
+    assert T.only_own_tests(ctx, run("pytest tests/test_new.py"), ("tests/test_new.py",), False, added)  # a test file the run created
+    assert not T.only_own_tests(ctx, run("pytest"), (), True, added)  # the whole suite

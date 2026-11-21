@@ -512,6 +512,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   실패에서 통과, 각 3런이 실패에서 해당 없음 1점, `edited_after_fail` 구현 단계 2런과 검증 단계 1런이 통과에서 실패(실패 뒤의 편집이 /tmp의 테스트
   스크립트 쓰기뿐이었음). 대부분 django 런(저장소 밖 스크립트로 확인함). 준수율 변화 0, penalty 점수 평균 0.49633에서 0.48475.
 
+- A-9 행 20 기존 테스트 실행 (`penalty_tests.py`의 `existing_runs`, `phase2_run`·`phase3_run`의 "기존 테스트 실행"): 변경을 치우지 않은 유효
+  러너 실행은 모두 저장소의 기존 테스트 실행으로 셌음. 이제 런이 쓴 테스트만 고른 실행은 빼고 자기 테스트 실행으로만 셈: 이름한 파일이 모두
+  `file::name` id로 이름되고 그 이름이 모두 런이 기존 모듈에 더한 테스트 함수·클래스(F-2의 `module_tests`)인 실행, 또는 이름한 파일이 모두 런이 만든
+  테스트 파일(`facts.is_new_path`)인 실행. implement-tasks.md 39행 "the existing tests of the code you changed". 새 함수 `only_own_tests`. `-k`로 고른
+  실행은 보지 않음. 평가 499런: astropy__astropy-13398 한 런의 `phase2_run.existing_and_own`이 통과에서 실패(구현 단계의 실행이 모두 런이 더한 함수의
+  id만 고름). 준수율 변화 0.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

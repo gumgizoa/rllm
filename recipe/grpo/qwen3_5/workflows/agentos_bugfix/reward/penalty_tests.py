@@ -15,7 +15,9 @@ write; without either, the end of the run)
              test of its own (a script under checks/, or the runner on a test file it wrote to -- named by its path,
              a directory above it or a dotted label of it, ``utils_tests.test_duration``). One runner run of an
              existing test module the run added tests to is both -- when it comes after the run's first write to that
-             module. A run without the change (see the cause check below) is neither
+             module. A run without the change (see the cause check below) is neither, and a run that selects only
+             tests the run wrote itself -- ``file::name`` ids of test functions it added, or test files it created --
+             is no run of the repository's tests (A-9 row 20)
         outside (0.0): the run changed no source in PHASE 2
     agentos_bugfix.implement_tasks.penalty.phase2_fail.edited_after_fail
         judged: a failing result after the first source change
@@ -112,7 +114,7 @@ class Timeline:
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
     own_runs: list[int] = field(default_factory=list)  # a checks/ script ran (read or not), or the runner on an own test file
-    existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place
+    existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place (not only the run's own tests)
     # steps of the runs above that come after a repository write of their own call (``sed -i ... && pytest``): at the step
     # of the last source change they still ran after it (``RunFact.after_write_same_call``)
     results_late: set[int] = field(default_factory=set)
@@ -139,6 +141,21 @@ def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dic
     """A runner run at ``step`` runs a test of the run's own: it names (or, as the whole suite, includes) a test file
     the run had already written to."""
     return any(first < step and (whole or any(selects(t, f) for t in files)) for f, first in own_tests.items())
+
+
+def only_own_tests(ctx: Any, r: Any, files: tuple[str, ...], whole: bool, added: set[str]) -> bool:
+    """The runner run ``r`` selects only tests the run wrote itself (A-9 row 20): every target is a ``file::name`` id of a
+    test function or class the run added to an existing module (``added``, F-2's reading), or every file it names is a
+    test file the run created. Such a run is a run of the run's own tests, not of the repository's existing ones."""
+    if whole or not files:
+        return False
+    ids = [s for s in R.selection(getattr(r, "segment", "") or "") if "::" in s and not s.startswith("-")]
+    named = {s.split("::")[0].lstrip("./") for s in ids}
+    # every file it names is named through ids (``file::name``), and every id names a test the run added
+    by_ids = bool(ids) and all(any(n == f or n.endswith("/" + f) or f.endswith("/" + n) for n in named) for f in files)
+    if by_ids and all(any(part.split("[")[0] in added for part in s.split("::")[1:]) for s in ids):
+        return True
+    return all(F.is_test_path(f) and F.is_new_path(ctx, f) for f in files)
 
 
 def _group_ends(ctx: Any) -> list[int]:
@@ -174,6 +191,7 @@ def timeline(ctx: Any) -> Timeline:
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
 
+    added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
     before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
     for r in fx.runs:
         if r.kind != "test":
@@ -190,11 +208,14 @@ def timeline(ctx: Any) -> Timeline:
             tl.stash_results.append(res)
             continue
         tl.results.append(res)
-        tl.existing_runs.append(res.step)
+        existing = not only_own_tests(ctx, r, files, whole, added)
+        if existing:
+            tl.existing_runs.append(res.step)
         late = bool(getattr(r, "after_write_same_call", False))
         if late:
             tl.results_late.add(res.step)
-            tl.existing_late.add(res.step)
+            if existing:
+                tl.existing_late.add(res.step)
         # a test of the run's own: a test file it had already written to when this run named it
         if runs_own_test(res.step, files, whole, own_tests):
             tl.own_runs.append(res.step)
