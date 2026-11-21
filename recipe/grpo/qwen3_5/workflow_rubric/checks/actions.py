@@ -228,21 +228,16 @@ def _event(ctx: EvalContext, ev: str, inv: set[str], substantive: float, prev_wr
     return step, step, ""
 
 
-@register("order", params={"chain": False, "before": False, "after": False, "invalidate": False, "substantive": False, "skip_if_absent": False}, availability=("trace",), choices={"invalidate": INVALIDATIONS})
+@register("order", params={"chain": False, "before": False, "after": False, "invalidate": False, "substantive": False}, availability=("trace",), choices={"invalidate": INVALIDATIONS})
 def order(item: Item, ctx: EvalContext) -> Result:
     """Share of adjacent ``chain`` pairs (or ``before`` x ``after`` pairs) with both events resolved,
     neither at an unknown time, the first strictly earlier. ``write:A`` resolves only when A is
     substantive (``ctx.quality`` >= ``substantive``; artifacts no item grades are exempt) and, with
     ``invalidate: [rewrite]``, written once and matching the sandbox. ``invalidate: [multi_read]``
-    skips reads in multi-read steps; ``[read_ahead]`` voids a read first seen before the previous write.
-    ``skip_if_absent``: chain events that, when they never happened (not: happened at an unknown time), leave the chain
-    and its neighbours are paired with each other (a run that changed nothing has no first repository write)."""
+    skips reads in multi-read steps; ``[read_ahead]`` voids a read first seen before the previous write."""
     p = _params(item)
     if p.get("chain"):
         seq = [str(e) for e in p["chain"]]
-        skip = {str(x) for x in _as_list(p.get("skip_if_absent"))}
-        if skip:
-            seq = [e for e in seq if not (e in skip and refs.event(ctx, e) is None)]
         pairs = [(i, i + 1) for i in range(len(seq) - 1)]
     elif p.get("before") and p.get("after"):
         before, after = [str(e) for e in _as_list(p["before"])], [str(e) for e in _as_list(p["after"])]

@@ -463,7 +463,6 @@ def _review_fixes(it: dict) -> None:
     kind = it["check"]["kind"]
     if kind == "order" and p is not None:  # D-2
         p["substantive"] = ORDER_SUBSTANTIVE
-        p["skip_if_absent"] = ["first_repo_write"]  # D-5 row 11: a run that changed nothing is judged on the rest of the chain
     if it["id"].endswith("shape_spec.requirements.item_format.reusability_opportunities"):  # E-2
         p["pattern"] = REUSE_PATTERN
     if it["id"].endswith("shape_spec.requirements.item_format.existing_code"):  # E-2, E-4 row 4
