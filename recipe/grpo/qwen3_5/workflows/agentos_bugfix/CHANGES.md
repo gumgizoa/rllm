@@ -597,6 +597,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   안에서만 찾고, 그 절이 없으면 Test Suite Results 절에서 찾음(implement-tasks.md 133행, 보고서 양식 188 ~ 189행). 평가 499런: astropy__astropy-8707,
   astropy__astropy-8872 두 런이 통과에서 실패(둘 다 해결한 런). 기준 런 `suite_failures` 변형은 그대로 만점.
 
+- A-5 실패 위의 체크 (`ticked_passing`, agentos_bugfix 전용 규칙): 테스트 하위 task를 실패 결과 위에 체크해도, 보고서의 테스트 결과에 실패가 적혀
+  있으면 항목 전체를 통과로 봤음. 그래서 변경 탓인 실패 위에 체크하고 보고서에 적은 런이 문서대로 ⚠️로 표시한 런과 같은 점수였음. 이제 예외를 그룹마다
+  R2로 좁힘: 체크 직전의 마지막 결과가 실패인 그룹은, 그 실패 결과의 실패 단위가 모두 문서가 고치라고 하지 않는 실패(R2: 옛 동작을 단언한다고 보고서에
+  적은 기존 테스트, 변경 없이도 실패하는 테스트)일 때만 맞음. 보고서에 실패가 적혀 있다는 것만으로는 맞지 않음(implement-tasks.md 40행). 결과 없는
+  체크(B-8 행 1)에는 그대로 예외가 없음. `_report_failures`는 쓸 데가 없어 지움, 새 함수 `_failing_results_at`. 평가 499런: 19런이 통과에서 실패(해결 7),
+  2런이 실패에서 통과(matplotlib__matplotlib-14623, sphinx-doc__sphinx-7440: 체크 위의 실패가 변경 없이도 실패하는 테스트였는데 보고서에 적지 않아
+  전에는 예외를 받지 못했음).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

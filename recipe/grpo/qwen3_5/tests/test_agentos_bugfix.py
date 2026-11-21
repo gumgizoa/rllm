@@ -258,9 +258,9 @@ def test_a_test_sub_task_is_not_ticked_over_a_failing_test():
     assert _scored(None)[4]["ticked_passing"].status == "pass"
     rub, run, col, rep, res = _scored("tick_failing")  # 2.3 ticked right after the existing tests failed; the report says All Passing
     assert res["ticked_passing"].status == "fail" and "2.3 ticked" in res["ticked_passing"].detail
-    # an existing test that asserts the behavior the task changes is left failing and listed in the report
+    # an existing test that asserts the behavior the task changes is left failing and listed in the report as such (A-5: R2)
     rub, run, col, rep, res = _scored("expected_failure")
-    assert res["ticked_passing"].status == "pass" and "report" in res["ticked_passing"].detail and rep.scores.compliance == 1.0
+    assert res["ticked_passing"].status == "pass" and "do not ask to fix" in res["ticked_passing"].detail and rep.scores.compliance == 1.0
 
 
 def test_a_warning_mark_needs_two_failed_attempts():

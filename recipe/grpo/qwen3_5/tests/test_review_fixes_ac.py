@@ -507,3 +507,19 @@ def test_a_failing_test_named_only_in_notes_is_not_listed():
     assert _report_rule("failed_listed", [x], notes_only, in_section=True).status == "fail"
     listed = REPORT.format(notes="").replace("None - all tests passing", "- tests/test_a.py::test_x - assert 1")
     assert _report_rule("failed_listed", [x], listed, in_section=True, standing=True).status == "pass"
+
+
+# ---- A-5: a tick over a failing test is right only over a failure the documents do not ask to fix ------------------
+
+
+def test_a_tick_over_a_failure_is_excused_only_by_r2_not_by_the_report_listing_it():
+    tp = "implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing"
+    _, rep, _ = _golden_with("expected_failure")
+    assert rep.results["agentos_bugfix." + tp].status == "pass"  # the existing test of the old behavior, reported as such
+
+    def plain(col):  # the report lists the failure, with no reason
+        path = next(p for p in col.files if p.endswith("final-verification.md"))
+        col.files[path] = col.files[path].replace("It asserts the edge hyphen this task removes, so the change was left as it is.", "The change was left as it is.")
+
+    _, rep, _ = _golden_with("expected_failure", edit=plain)
+    assert rep.results["agentos_bugfix." + tp].status == "fail"

@@ -853,6 +853,15 @@ def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
     return [(st, o) for rs in executions(ctx, set(check_scripts(ctx, d))).values() for st, o in rs if o in ("pass", "fail")]
 
 
+def _failing_results_at(ctx: EvalContext, d: str | None, step: int) -> list[R.TestResult]:
+    """The failing results of ``step`` (as :func:`timed_results` reads them): valid runner runs with the change in place,
+    and check-script runs under ``d``."""
+    out = [runner_result(r, ctx.collected.workdir) for r in change_runs(ctx) if r.step == step and r.failed + r.errors > 0]
+    if d:
+        out += [R.TestResult(step, False, False, (s_,)) for s_, rs in executions(ctx, set(check_scripts(ctx, d))).items() if any(st == step and o == "fail" for st, o in rs)]
+    return out
+
+
 def _test_subtasks(ts: list[dict]) -> list[dict]:
     """Per task group, in order, the sub-task that runs its tests: the last one whose text says so, else its last sub-task."""
     by: dict[int, list[dict]] = {}
@@ -920,19 +929,6 @@ def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[di
             continue  # no failing result to mark: a task found not done (implement-tasks.md 127), not a test left failing (40)
         out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in (*g["changes"], *script_edits))))
     return out
-
-
-def _report_failures(ctx: EvalContext, suite: str) -> bool:
-    """The report's test results show a failure: a Failing / Errors count above zero, a Status of failures, or a failed test listed."""
-    text = _text(ctx, "final_verification") if "final_verification" in ctx.rubric.artifacts else None
-    if not text:
-        return False
-    summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
-    if any((_num(M.field_value(summ, k)) or 0) > 0 for k in ("Failing", "Errors")):
-        return True
-    if re.search(r"(?i)some\s+failures|critical\s+failures", _status(text, suite)):
-        return True
-    return any(ln.strip() and not M.is_none(ln.strip("-* ")) for ln in M.content_lines(M.section(text, "Failed Tests") or ""))
 
 
 # --------------------------------------------------------------------------------------------
@@ -1182,7 +1178,7 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         changes = sorted(x for x in F.source_change_steps(ctx) if refs.in_window(x, w))  # source, not a byproduct of a run (.fits)
         results = timed_results(ctx, d)
         details = task_details(text)
-        pool, bad, untested = 0, [], []
+        pool, bad, untested, left = 0, [], [], 0
         for g in _group_ends(ctx, aid, text, w, d):
             t = g["task"]
             if g["step"] is None or not t["checked"] or t["warned"]:
@@ -1199,15 +1195,19 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
                 continue
             pool += 1
             if rs[-1][1] == "fail":
-                bad.append(f"{t['id']} ticked at step {g['step']} after the failing result of step {rs[-1][0]}")
+                # A-5: a tick over a failure the documents do not ask to fix (R2: an existing test of the old behavior,
+                # reported as such; a failure there without the change) is right; over any other failure it is not,
+                # whatever the report says
+                units = [(u, r) for r in _failing_results_at(ctx, d, rs[-1][0]) for u in R.failure_units(r)]
+                if not units or excused_failures(ctx, units) != {u for u, _ in units}:
+                    bad.append(f"{t['id']} ticked at step {g['step']} after the failing result of step {rs[-1][0]}")
+                else:
+                    left += 1
         if not pool:
             return Result.not_applicable(item, "no test result between a code change and a test sub-task's tick")
-        if bad and _report_failures(ctx, str(p.get("suite_section") or "3. Test Suite Results")):
-            if not untested:
-                return Result.ok(item, f"{len(bad)} tick(s) over a failing result, which the report's test results show")
-            bad = []  # the report's test results show the failures; a tick with no result at all is not excused by them
         bad = untested + bad
-        return Result.ratio(item, pool - len(bad), pool, "; ".join(bad[:2]) if bad else f"{pool} test sub-task(s) ticked over a passing result")
+        why = f"{pool} test sub-task(s) ticked over a passing result" + (f" or ({left}) a failure the documents do not ask to fix" if left else "")
+        return Result.ratio(item, pool - len(bad), pool, "; ".join(bad[:2]) if bad else why)
     if rule == "warned_after_attempts":
         d = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
         marks = warned_groups(ctx, aid, w, d)
