@@ -1651,6 +1651,14 @@ def verify(item: Item, ctx: EvalContext) -> Result:
             failed_before = failed_before or any(st < late[0].step and o == "fail" for st, o in scripts)
             rerun_after = rerun_after or any(st > late[-1].step for st, _ in scripts)
         if failed_before and rerun_after:
+            # A-9 row 14: one return to PHASE 2 (implement-tasks.md 137 "Go back once only"): the PHASE 3 writes are one
+            # batch, not split by a test result (a valid run with the change in place, or a check-script run)
+            split = [r.step for r in runs if late[0].step < r.step < late[-1].step]
+            d3 = _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None
+            if d3 and w3:
+                split += [st for rs in executions(ctx, set(check_scripts(ctx, d3))).values() for st, _o in rs if refs.in_window(st, w3) and late[0].step < st < late[-1].step]
+            if split:
+                return Result.no(item, f"fix round in more than one batch: PHASE 3 writes at steps {late[0].step} and {late[-1].step}, a test result at step {min(split)} between them")
             return Result.ok(item, f"fix round: a failing run before step {late[0].step}, a run after step {late[-1].step}")
         return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began, " + ("no failing test run before it" if not failed_before else "no test run after it"))
     if rule == "code_frozen":

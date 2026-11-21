@@ -618,6 +618,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   행의 런 대부분을 잡지 못함(05 계획). 평가 499런: 18런이 통과에서 비율(실패)로(해결 9). 예: django__django-11095(27단계 그룹 1의 코드, 28단계 체크,
   30단계 그룹 2의 코드, 그 사이 테스트 없음).
 
+- A-9 행 14 검증 단계의 고침은 한 번 (`code_frozen`의 `fix_round` 갈래, agentos_bugfix 전용): PHASE 3이 시작된 뒤의 쓰기는 앞에 실패한 실행, 뒤에 다시
+  돌린 실행이 있으면 몇 번이든 받았음. 이제 그 쓰기(F-3 행 16의 정리 삭제 제외)가 테스트 결과로 나뉘지 않은 한 묶음이어야 함. 나누는 결과는 변경이
+  제자리에 있는 유효 러너 실행과 checks/ 스크립트 실행(변경을 치운 원인 확인 실행은 나누지 않음). implement-tasks.md 137행 "Go back once only",
+  core-workflow.md 29행. 평가 499런: 7런이 통과에서 실패(해결 0). 앞 task의 "묶음 2개 이상" 6런 가운데 5런과, django__django-16612,
+  django__django-16950(검증 단계에 테스트 파일을 두 번 다시 쓰고 그 사이에 테스트를 돌림). 그 6런의 django__django-15554는 151 ~ 154단계 쓰기 사이의
+  152단계 `runtests.py` 실행이 유효한 실행으로 읽히지 않아 한 묶음으로 남음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

@@ -557,3 +557,22 @@ def test_each_group_that_changes_code_is_tested_before_the_next_one(monkeypatch)
     assert r.status == "fail" and round(r.score, 2) == 0.5
     assert verdict([22]).status == "fail" and verdict([22]).score == 0.0  # the last group untested: fails as before
     assert verdict([32], ends=(35,)).status == "pass"  # everything ticked in one write: one stretch, as before
+
+
+# ---- A-9 row 14: one return to PHASE 2 is one batch of writes -----------------------------------------------------------
+
+
+def test_the_fix_round_is_one_batch_of_writes(monkeypatch):
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    def verdict(edit_steps, run_steps):
+        monkeypatch.setattr(C, "phase3_start", lambda ctx: 30)
+        monkeypatch.setattr(C, "phase3_window", lambda ctx: (30, 60))
+        monkeypatch.setattr(C, "_phase3_edits", lambda ctx: [SimpleNamespace(step=s, op="replace", path="pkg/a.py") for s in edit_steps])
+        monkeypatch.setattr(C, "_phase3_runs", lambda ctx, after_fix=False: [SimpleNamespace(step=s, failed=f, errors=0) for s, f in run_steps])
+        ctx = SimpleNamespace(facts=SimpleNamespace(unseen_repo_paths=[]))
+        return C.verify(_item({"rule": "code_frozen", "fix_round": True}), ctx)
+
+    assert verdict([35, 36], [(32, 1), (40, 0)]).status == "pass"  # fail, fix (two writes), run again
+    r = verdict([35, 38], [(32, 1), (36, 1), (40, 0)])  # fix, run, fix again: two rounds
+    assert r.status == "fail" and "more than one batch" in r.detail
