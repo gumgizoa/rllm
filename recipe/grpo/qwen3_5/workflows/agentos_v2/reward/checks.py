@@ -1611,9 +1611,28 @@ def verify(item: Item, ctx: EvalContext) -> Result:
             return Result.not_applicable(item, "no code change before PHASE 3")
         # a run of the same call as the last change counts when the change comes first in the command (``sed -i ... && pytest``)
         runs = [r for r in change_runs(ctx) if (changes[-1] < r.step or (changes[-1] == r.step and r.after_write_same_call)) and r.step < end]
-        if runs:
+        if not runs:
+            return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")
+        # A-9 row 9: every task group that changes code is tested before the next group's code (implement-tasks.md 39-40:
+        # each group's last sub-task runs the tests). The stretches are cut at the group ends (``group_end_steps``)
+        ends = [e for e in group_end_steps(ctx) if e < end] + [end]
+        coded, a = [], (w[0] - 1 if w[0] is not None else 0)
+        for b in ends:
+            inside = [c for c in changes if a < c <= b]
+            if inside:
+                coded.append((inside[0], inside[-1]))
+            a = b
+        if len(coded) <= 1:
             return Result.ok(item, f"{len(runs)} valid test run(s) after the code change of step {changes[-1]}, first at step {runs[0].step}")
-        return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")
+        every = change_runs(ctx)
+        good, bad = 0, []
+        for i, (_, last) in enumerate(coded):
+            until = coded[i + 1][0] if i + 1 < len(coded) else end
+            if any((last < r.step or (last == r.step and r.after_write_same_call)) and r.step < until for r in every):
+                good += 1
+            else:
+                bad.append(f"code changed at step {last}, next group's code at step {until} with no valid test run between")
+        return Result.ratio(item, good, len(coded), "; ".join(bad[:2]) if bad else f"{len(coded)} task groups that change code, each tested before the next")
     if start is None:
         return Result.no(item, "PHASE 3 never began (tasks not all ticked, no report)")
     if rule == "code_frozen" and fix_round:

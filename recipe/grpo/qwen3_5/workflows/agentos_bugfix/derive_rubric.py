@@ -262,7 +262,7 @@ ADDED = (
     (f"{NEW}_verify.suite_run", "phase2_run", {},
      ("- Running the tests you've written ... and the existing tests of the code you changed, and ensuring they pass.",),
      "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
-     "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1)"),
+     "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row 9)"),
     (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": CHECKS_DIR, "suite_section": SUITE_NEW},
      (_T5_FIX, _T1_EXPECTED),
      "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",

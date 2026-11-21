@@ -5964,7 +5964,8 @@ items:
   template: ''
   log_only: false
   note: while implementing (before every task is ticked), a valid run of the repository's tests after the last code change
-    (T1)
+    (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row
+    9)
 - id: agentos_bugfix.global.tasks.agentos_bugfix_tasks.later_edits
   scope: specific
   class: evidence

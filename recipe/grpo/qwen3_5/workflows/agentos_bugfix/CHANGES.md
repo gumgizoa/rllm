@@ -610,6 +610,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   더 깊이 들여 쓴 줄까지를 그 항목으로 읽음(`_entries`). 평가 499런: sphinx-doc__sphinx-9698 한 런(해결)의 `ticked_passing`이 실패에서 통과,
   penalty 항목 셋이 실패에서 해당 없음 1점.
 
+- A-9 행 9 그룹마다 테스트 (`implement_tasks.run.agentos_bugfix_verify.phase2_run`, agentos_bugfix 전용 규칙): 구현 단계의 마지막 코드 변경 뒤에 유효한
+  러너 실행이 하나 있으면 통과였음. 그래서 앞 그룹은 테스트 없이 체크하고 마지막 그룹 뒤에만 한 번 돌린 런도 통과했음. 이제 그에 더해, 그룹 끝(`group_end_steps`)
+  으로 자른 구간 가운데 코드 변경이 있는 그룹마다 그 그룹의 마지막 코드 변경 뒤, 다음 코드 변경 그룹의 첫 코드 변경 전(마지막 그룹은 PHASE 3 전)에 유효
+  러너 실행이 있어야 함(implement-tasks.md 39 ~ 40행: 그룹의 마지막 하위 task가 테스트를 돌림). 마지막 그룹이 맞지 않으면 전처럼 실패, 맞으면 맞는 그룹 수
+  ÷ 코드 변경 그룹 수. B·F 계획은 이 행을 B-8 행 1(`ticked_passing`의 결과 없음)로 처리하라고 했으나, 그 규칙은 테스트 실행을 말하는 하위 task만 보아 이
+  행의 런 대부분을 잡지 못함(05 계획). 평가 499런: 18런이 통과에서 비율(실패)로(해결 9). 예: django__django-11095(27단계 그룹 1의 코드, 28단계 체크,
+  30단계 그룹 2의 코드, 그 사이 테스트 없음).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

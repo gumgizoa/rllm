@@ -536,3 +536,24 @@ def test_the_reason_may_follow_on_the_lines_under_the_failed_test():
     report = "## 2. Test Suite Results\n\n### Failed Tests\n" + section + "\n### Notes\nnone\n"
     ctx = SimpleNamespace(artifact_text=lambda aid, state="final": report, rubric=SimpleNamespace(artifacts={"final_verification": None}), cache={})
     assert C.reported_as_expected(ctx, tid) and not C.reported_as_expected(ctx, "tests/test_d.py::test_n")
+
+
+# ---- A-9 row 9: each task group's code is tested before the next group's code ---------------------------------------
+
+
+def test_each_group_that_changes_code_is_tested_before_the_next_one(monkeypatch):
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    def verdict(run_steps, changes=(20, 30), ends=(25, 35)):
+        monkeypatch.setattr(C, "phase3_start", lambda ctx: 40)
+        monkeypatch.setattr(C, "_window", lambda item, ctx: (10, None))
+        monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: list(changes))
+        monkeypatch.setattr(C, "group_end_steps", lambda ctx, aid="tasks": list(ends))
+        monkeypatch.setattr(C, "change_runs", lambda ctx: [SimpleNamespace(step=s, after_write_same_call=False) for s in run_steps])
+        return C.verify(_item({"rule": "phase2_run"}), SimpleNamespace(facts=SimpleNamespace(n_steps=50)))
+
+    assert verdict([22, 32]).status == "pass"
+    r = verdict([32])  # group 1's code went untested until group 2 had changed the code again
+    assert r.status == "fail" and round(r.score, 2) == 0.5
+    assert verdict([22]).status == "fail" and verdict([22]).score == 0.0  # the last group untested: fails as before
+    assert verdict([32], ends=(35,)).status == "pass"  # everything ticked in one write: one stretch, as before
