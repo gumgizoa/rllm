@@ -34,7 +34,8 @@ repository prohibitions and the test runs. What they cannot say:
                                  path it names (ratio; a box ticked untraceably fails); with ``name_files`` only names
                                  with a file extension are files, matched by path suffix, a reading task (Review ...)
                                  by its reads, a task naming no file by any work in the window before the tick, and a
-                                 tick after unreplayable writes at the earliest step it can have been made
+                                 tick after unreplayable writes at the earliest step it can have been made; with
+                                 ``not_done_out`` a task whose ⚠️ marks it found not done (:func:`found_not_done`) is left out
       {rule: groups_in_order}    the groups are ticked in order: group k's last tick is not after group k+1's first
                                  (ratio over adjacent pairs); with ``work_between`` there is also some work (a repository or
                                  checks write, a test or script run) between group k's last tick and group k+1's last
@@ -923,6 +924,23 @@ def _marked_in_phase3(ctx: EvalContext, warn_step) -> bool:
     return start is not None and warn_step >= start
 
 
+def found_not_done(ctx: EvalContext, aid: str, w, d: str | None) -> set[str]:
+    """B-5: the ids of the task lines whose ⚠️ is PHASE 3 Step 1's "task found not done" mark (implement-tasks.md 127):
+    the line was first seen done with ⚠️ (marked, not ticked first), (a) its task group's stretch holds no failing test
+    result after the group's first code change, and (b) the mark first appears in PHASE 3 or at the write that starts it
+    (:func:`_marked_in_phase3`). A group whose test sub-task was never traceably ticked or marked has no stretch: its
+    lines are not counted here."""
+    text = _window_end_text(ctx, aid, w)
+    if text is None:
+        return set()
+    first_done, first_warn = tick_steps(ctx, aid), _warn_steps(ctx, aid)
+    clean = {g["task"]["group"]["heading"] for g in _group_ends(ctx, aid, text, w, d)
+             if g["step"] is not None and g["task"]["group"] and not [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]}
+    return {t["id"] for t in task_lines(text)
+            if t["warned"] and first_warn.get(t["id"]) == first_done.get(t["id"]) and t["group"] and t["group"]["heading"] in clean
+            and _marked_in_phase3(ctx, first_warn.get(t["id"]))}
+
+
 def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
     """(group end, attempts shown) for every test sub-task marked ⚠️ instead of ticked: two failing test results after
     the group's first code change, with an attempt between the first and the last of them -- a code change, or an edit
@@ -1080,7 +1098,7 @@ def excused_failures(ctx: EvalContext, units) -> set:
 
 @register(
     "agentos_v2.tasks",
-    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False, "work_between": False},
+    params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False, "work_between": False, "not_done_out": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("group_parts", "test_first", "total", "ticked", "ticked_after_work", "groups_in_order", "later_edits", "ticked_passing", "warned_after_attempts", "group_subtasks")},
@@ -1165,6 +1183,11 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         before = _text_at(ctx, path, w[0] - 1) or ""
         was = {t["id"] for t in task_lines(before) if _done(t)}
         pool = [t for t in task_lines(text) if _done(t) and t["id"] not in was]
+        if rule == "ticked_after_work" and p.get("not_done_out") and pool:  # B-5: a task marked found not done claims no work
+            out = found_not_done(ctx, aid, w, _expand_dir(ctx, str(p["dir"])) if p.get("dir") else None)
+            pool = [t for t in pool if t["id"] not in out]
+            if not pool:
+                return Result.not_applicable(item, "no task ticked in the window (only tasks marked ⚠️ as found not done)")
         if not pool:
             return Result.not_applicable(item, "no task ticked in the window")
         when = tick_steps(ctx, aid)
@@ -1974,6 +1997,7 @@ __all__ = [
     "groups",
     "tick_steps",
     "all_done_step",
+    "found_not_done",
     "phase3_window",
     "outcome",
     "executions",

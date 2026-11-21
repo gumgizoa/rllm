@@ -385,6 +385,27 @@ def test_a_mark_made_while_implementing_is_the_attempts_mark_even_without_a_fail
     assert r.status == "not_applicable"
 
 
+def test_a_task_marked_found_not_done_asks_for_no_work(window):
+    # B-5 addition (user decision 2026-11-21): group 2 not implemented, marked ⚠️ at the write where every task is first
+    # done (implement-tasks.md 127): with not_done_out its tasks leave ticked_after_work's pool
+    plan = ("#### Task Group 1: A\n- [{a}] 1.1 Change `src/a.py`\n- [{a}] 1.2 Run the tests\n"
+            "#### Task Group 2: B\n- [{b}] 2.1 Change `src/b.py`\n- [{b}] 2.2 Run the tests\n")
+
+    def ctx(writes):
+        c = _tick_ctx([(5, plan.format(a=" ", b=" "))] + [(s, plan.format(**m)) for s, m in writes],
+                      repo_writes=[WriteEvent(path="src/a.py", step=20, op="edit")])
+        c.facts.runs = [_run(30)]
+        return c
+
+    p = {"rule": "ticked_after_work", "name_files": True}
+    honest = ctx([(40, dict(a="x", b=" ")), (60, dict(a="x", b="⚠️"))])
+    assert C.tasks(_item(dict(p)), honest).score < 1.0  # as before: 2.1 names src/b.py, never written
+    assert C.tasks(_item({**p, "not_done_out": True}), honest).status == "pass"
+    # the same mark made while implementing (before the write where every task is first done) is PHASE 2's: judged as before
+    early = ctx([(45, dict(a=" ", b="⚠️")), (60, dict(a="x", b="⚠️"))])
+    assert C.tasks(_item({**p, "not_done_out": True}), early).score < 1.0
+
+
 def test_open_tasks_are_listed_as_incomplete_too():
     rep = "## 1. Tasks Verification\n**Status:** ✅ All Complete\n### Incomplete or Issues\nNone\n"
     tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- [ ] 1.2 Run the tests\n"

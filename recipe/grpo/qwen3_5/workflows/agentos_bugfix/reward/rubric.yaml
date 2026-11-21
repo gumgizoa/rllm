@@ -3877,6 +3877,7 @@ items:
       rule: ticked_after_work
       dir: '{artifact}/{SPEC}/checks'
       name_files: true
+      not_done_out: true
   requirement: must
   modality_evidence: IT:32 'update the tasks you've implemented to mark that as done'
   none_allowed: '-'

@@ -435,6 +435,9 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   쓰기(모든 task가 처음 체크나 ⚠️로 보이는 쓰기, `phase3_start`)에서 처음 나타나야 함. 그보다 앞서 나타난 ⚠️는 실패 결과가 없어도 40행의 표시로
   보아 시도를 묻고 실패함(⚠️가 처음 나타난 단계를 모르면 실패 결과 조건만 봄). 평가 499런: 판정 변화 0(⚠️가 있는 런이 2개뿐이고 sphinx-doc__sphinx-8459의
   ⚠️는 PHASE 3을 여는 155단계 쓰기에서 처음 나타나 해당 없음 그대로).
+  2026-11-21 덧붙임 (사용자 결정): `ticked_after_work`는 선택 설정값 `not_done_out`(agentos_bugfix만 켬)을 켜면 위와 같은 정의로 127행의
+  "미완료로 드러난 task" ⚠️를 단 task(새 함수 `found_not_done`)를 작업 근거를 묻는 대상에서 뺌. 실패 결과가 있는 그룹의 ⚠️(40행)는 전처럼 판정.
+  평가 499런: 판정 변화 0(그런 task가 있는 런은 sphinx-doc__sphinx-8459 하나이고, 빼기 전에도 아홉 task 모두 작업 근거가 있어 통과).
 
 - F-3 행 14 `git checkout`으로 변경을 치우고 돌린 테스트 (공용 `workflow_rubric/results.py`): "변경이 치워진 상태"는 `git stash`(push 꼴)부터
   `pop`·`apply` 또는 다음 저장소 편집까지였음. 이제 `git checkout [<rev>] [--] <경로>`와 `git restore [--source=…] <경로>`도 그 경로 가운데
