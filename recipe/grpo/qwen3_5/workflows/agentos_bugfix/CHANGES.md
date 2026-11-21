@@ -651,6 +651,174 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   지운 스크립트(`head … > x_fixed.py && mv x_fixed.py x.py`의 임시 파일)는 넣지 않음. 평가 499런: django__django-13346 한 런이 통과에서 비율로(실패)
   (`tests/model_fields/test_jsonfield.py`에 `test_key_in`을 더하고 그 모듈의 유효 실행이 없음).
 
+## 보상 검토 반영 요약 (2026-11-21)
+
+### 변경 내역
+
+`b0152ada` 뒤의 커밋을 문제(`tasks/2026-11-20-agentos-bugfix-reward-fixes/`의 문제 번호)마다 한 행에 하나씩 적음. H-1 ~ H-10은 여러 워크플로가 같이 쓰는 관측 코드(`workflow_rubric/`)를 고친 것임.
+
+| 문제 | 바꾼 것 | 커밋 |
+|---|---|---|
+| H-1 | 하네스가 거부해 실행되지 않은 도구 호출을 아무 행동도 아닌 것으로 읽음. | `dcbee819` |
+| H-1 보강 | 거부 머리 문구와 거부 문구 사이에 앞 명령의 출력이 끼어도 거부로 읽음. | `99160721` |
+| H-2 | python 안에서 `unittest.TextTestRunner`로 돌린 테스트를 테스트 실행으로 셈. | `179fcbda` |
+| H-3 | 요약 줄이 잘린 unittest·sympy 출력은 테스트별 결과 줄을 세어 요약을 만듦. | `cae4d242` |
+| H-4 | check 스크립트의 결과를 알 수 있으면 스크립트 자신의 종료 코드로 읽고, .pth 오류 묶음은 빼고 읽음. | `d0df7c3b` |
+| H-5 | 변경을 `git stash`로 치운 사이의 실행을 보고서 비교, 체크 시점의 결과, 테스트 실행 항목에서 뺌. | `a9a30d51` |
+| H-6 | 한 호출 안에서 저장소를 고친 뒤 돌린 테스트를 고친 뒤의 실행으로 셈. | `15179724` |
+| H-7 | trace에 쓰기 기록이 없는 저장소 변경을 그 파일 이름을 적은 첫 명령의 단계에 기록하고 `.orig`·`.rej`는 편집으로 세지 않음. | `de53cf60` |
+| H-7 보강 | 첫 명령으로 시점을 정하는 경로를 이 변경이 만든 파일로 좁힘. | `b134a774` |
+| H-8 | 같은 파일로의 두 번째 `mv`를 디렉터리 안으로의 이동이 아닌 그 파일의 쓰기로 읽음. | `5b6ad79d` |
+| H-9 | 내용을 모르는 tasks.md 쓰기는 건너뛰고 아는 내용끼리 비교하며, 마지막 쓰기의 내용은 샌드박스 파일로 채움. | `bb347609` |
+| H-10 | 도구 이름 `str_replace`처럼 하네스가 편집기로 돌린 호출을 편집으로 읽음. | `a425043e` |
+| D-1 | 모든 상자를 체크한 쓰기가 없으면 마지막 코드 변경과 tasks.md 마지막 쓰기 가운데 늦은 것 다음 단계부터 보고서의 첫 쓰기 전까지를 보고서 항목과 `suite_run`의 비교 구간으로 쓰고, 그 구간에 checks/ 스크립트 결과만 있으면 보고서 항목을 그 결과와 비교함. | `475b9a17` |
+| D-2 | 순서 항목이 산출물의 쓰기를 없는 것으로 보는 품질 문턱을 0.5에서 0.1로 낮춤. | `f65d0fa6` |
+| D-3 | 다음 명령 문서를 일찍 열어도 앞 단계는 그 닫는 산출물을 쓸 때까지 이어짐. | `11248db8` |
+| D-4 | 런이 만들지 않은 산출물은 읽기 항목에서 읽지 않은 것으로 셈. | `93d0188c` |
+| D-4 예외 | create-tasks의 읽기 항목만 만들지 않은 산출물을 D-4 전처럼 읽어야 할 목록에서 뺌. | `67f39c31` |
+| D-5 | 저장소를 한 번도 고치지 않은 런의 순서 항목에서 "첫 저장소 쓰기"를 사슬에서 뺌. | `78880006` |
+| D-5 되돌림 | 사용자 결정으로 D-5를 되돌려 저장소를 고치지 않은 런의 순서 항목이 다시 실패함. | `2ffc7330` |
+| D-6 행 12 | 코드를 바꾼 task group마다 그 그룹의 첫 코드 변경 전에 그 그룹의 테스트를 써야 `before_code`가 통과함. | `5d6e9f77` |
+| D-6 행 12 보강 | 기존 테스트 모듈에 더한 테스트 함수는 함수마다 그 테스트의 첫 쓰기로 셈. | `909d02c4` |
+| D-6 행 21 | 판정 구문이 있는 checks/ 스크립트만 테스트를 쓴 것으로 셈. | `901680d7` |
+| E-1 | 과제 문장에 있는 "..." 줄은 템플릿 빈칸으로 보지 않음. | `361b0c3e` |
+| E-2 | 재사용 코드 줄의 (assumed) 표기를 백틱 없는 경로, 한 코드 구간, "찾은 것이 없음" 문장까지 받음. | `7c214b6c` |
+| E-3 | 보고서의 Issues Found와 겹친 전체 상태를 받고, Notes 절이 없으면 해당 없음, spec.md 글머리 한도에서 하위 글머리는 세지 않음. | `380a58b0` |
+| E-4 행 2 | initialization.md에 과제 문장의 낱말 절반 이상이 순서대로 있어야 통과함. | `6b8949cf` |
+| E-4 행 4 | Existing Code to Reference의 Feature 줄이 모두 (assumed) 표기여야 하고 맞는 줄의 비율이 점수임. | `bcccf14f` |
+| E-4 행 5 | 문서의 폴더 자리표시와 질문 틀이 남으면 잔재 항목이 실패함. | `db9dc7f4` |
+| E-4 행 6 | 답의 근거에 경로·코드 이름·출처가 없으면 틀린 답으로 셈. | `41f1dbe8` |
+| E-4 행 7 | spec 폴더 날짜가 런을 돌린 날이어야 통과하고, 날짜를 모르는 저장된 런은 꼴만 봄. | `9b48ab24` |
+| E-4 행 8 | requirements.md의 ### 절 이름도 템플릿의 이름이어야 함. | `159ade80` |
+| E-4 행 9 | verifications 폴더가 shape-spec 단계가 끝났을 때 있어야 통과함. | `dc2c54ce` |
+| E-4 행 12 | spec.md에서 첫 굵은 이름 앞의 글머리들을 블록 하나로 세어 한도에 넣음. | `380a58b0` |
+| E-4 행 14 | Status 값에 다른 허용 값을 섞거나 실패를 덧붙이면 실패함. | `4c1b7162` |
+| E-5 | spec 폴더 밖 /tmp의 모든 파일과 저장소에 만들었다 지운 임시 파일을 잡고, 코드 변경 항목은 소스 파일 변경을 요구함. | `73e13534` |
+| F-1 | 구현 단계에서 spec.md와 requirements.md를 다시 여는지 보는 항목을 채점에서 뺌. | `ec8b9ab3` |
+| F-2 (자기 테스트의 형태) | 기존 테스트 모듈에 더한 테스트 함수도 런의 자기 테스트로 셈. | `2fa3ff98` |
+| F-2 (다시 읽기) | create-tasks에서 런이 앞 단계에 직접 쓴 문서는 다시 읽지 않아도 읽은 것으로 봄. | `d26d0633` |
+| F-3 (문서) | implement-tasks.md 39행의 "(if any;"를 구현 그룹마다 x.1 하위 task로 테스트를 먼저 쓴다는 말로 바꿈. | `81fc0437` |
+| F-3 행 14 | 런이 고친 파일을 `git checkout`이나 `git restore`로 되돌린 것도 변경을 치운 것으로 봄. | `364312bc` |
+| F-3 행 16 | 런이 만들었고 최종 변경에 남지 않는 파일을 검증 단계에서 지우는 것은 코드 변경으로 세지 않음. | `f4d56587` |
+| B-1, B-8 행 2 | `ticked_after_work`가 task 줄의 파일 이름을 알려진 확장자와 경로 뒤쪽으로 맞추고, 파일 없는 task는 구현 단계 안의 일을 근거로 봄. | `cee90f83` |
+| B-2 | create-tasks의 tasks.md 형식 항목 9개가 create-tasks 단계가 끝났을 때의 tasks.md를 봄. | `07f02abe` |
+| B-3 | `test_first`가 테스트 하위 task의 다른 낱말을 받고 문서 그룹과 테스트 확인 그룹을 뺌. | `0665466c` |
+| B-4 | 세 단계 이상의 번호와 번호 있는 task 줄 아래의 번호 없는 체크박스도 맞는 줄로 봄. | `8f201d03` |
+| B-5 | 그룹에 실패 결과가 없는 ⚠️는 두 번 고쳐 본 기록을 요구하지 않고, 열린 task가 있으면 ⚠️가 없어도 미완료 보고를 판정함. | `80b23fce` |
+| B-5 보강 (⚠️가 처음 나타난 때) | 실패 결과가 없는 ⚠️도 검증 단계나 그것을 여는 쓰기에서 처음 나타나야 미완료 표시로 봄. | `cacff4b2` |
+| B-5 보강 (`ticked_after_work`) | 미완료로 드러나 ⚠️를 단 task에는 작업 근거를 묻지 않음. | `611b6367` |
+| B-5 보강 (`tasks_status`) | 보고서의 tasks Status 항목이 체크박스가 있는 줄만 열린 task로 셈. | `a37faeef` |
+| B-5 보강 (한 줄씩 단 ⚠️) | 검증 단계를 여는 쓰기 바로 앞의, 사이에 작업이 없는 tasks.md 쓰기들도 여는 쓰기로 봄. | `d4549e61` |
+| B-6 행 3 | Total Tasks가 테스트 검토 그룹을 빼고 센 값이어도 통과함. | `dbdda80b` |
+| B-6 행 5 (문서) | create-tasks.md에 tasks.md가 Overview, Task List, Execution Order 세 절을 남긴다는 문장을 더함. | `49e0c677` |
+| B-7 | task group마다 하위 task 줄이 있는지 보고 그 비율을 점수로 줌. | `d9a11f15` |
+| B-8 행 1 | 테스트 실행을 말하는 하위 task를 마지막 코드 변경 뒤 테스트 결과 없이 체크하면 `ticked_passing`이 실패함. | `af260be3` |
+| B-8 행 1 보강 | `ticked_passing`의 마지막 코드 변경을 소스 변경으로 좁힘. | `606401c2` |
+| B-8 행 3 | 앞 그룹을 체크한 뒤 다음 그룹을 체크하기 전에 일이 있어야 `groups_in_order`가 통과함. | `144651da` |
+| B-8 행 13 | 구현 중 tasks.md에 더한 줄이 task 줄, 그 세부 줄, 새 그룹 제목이 아니면 task를 바꾼 것으로 봄. | `6c05c0ab` |
+| C-1 | 코드를 바꾸는 하위 task마다 그 task 줄에 저장소 경로가 있어야 계획한 파일 penalty 항목이 통과함. | `45a20841` |
+| C-2 | 정답 패치와 비교하던 penalty 항목 둘을 빼 penalty 항목이 9개가 됨. | `e79b0476` |
+| R1 | 실패를 테스트 하나하나의 단위로 보고, 그 단위를 돌린 통과만 실패를 지우는 공용 함수를 더함. | `b2450cae` |
+| A-9 행 8 (R3) | penalty 테스트 항목이 checks/ 스크립트와 저장소 테스트 파일만 테스트 결과와 테스트 편집으로 셈. | `34ce790e` |
+| A-9 행 20 | 런이 더한 자기 테스트만 고른 러너 실행은 기존 테스트 실행으로 세지 않음. | `a69057c2` |
+| A-3 (R2) | 변경을 치워도 실패하는 테스트와 보고서가 예상된 실패라고 밝힌 테스트를 penalty의 고쳐야 할 실패에서 빼고, 문서 39행을 그에 맞춤. | `43ea15ee` |
+| A-4, A-9 행 7 | 실패한 테스트마다 고치고 다시 돌린 횟수를 세어 한 번에서 두 번이면 맞음으로 봄. | `c5aba7d4` |
+| A-9 행 17 | 그룹을 체크하기 전에 그 그룹의 실패가 다시 통과했거나 그룹에 ⚠️가 있어야 함. | `2c85b468` |
+| A-7 행 8, A-2 (구현 단계 penalty) | 실패한 테스트는 그 테스트를 돌린 실행의 통과로만 해결되고, 빼고 돌린 통과는 해결로 치지 않음. | `625ee3a2` |
+| A-1, A-2 (검증 단계 penalty) | 검증 단계의 실패를 테스트마다 따로 보아, 다시 통과했거나 변경 탓인 실패를 고치고 다시 돌렸으면 맞음으로 봄. | `cc6eafd3` |
+| A-9 행 22 | 검증 단계의 변경 탓인 실패마다 그것을 고친 편집이 있는지 봄. | `61f6fc3f` |
+| A-2 (`suite_status`) | Status를 All Passing으로 적었으면 검증 단계에 해결되지 않은 실패가 없어야 통과함. | `b95b76bc` |
+| A-7 행 7 | Failed Tests를 검증 단계에서 고치고 다시 통과하지 않은 실패 전부와 대조해 적힌 비율을 점수로 줌. | `9bb67666` |
+| A-8 | 실패한 테스트 이름이 Failed Tests 절 안에 있어야 적은 것으로 봄. | `d57863be` |
+| A-5 | 실패한 채로 한 체크는 그 실패가 모두 고칠 필요 없는 실패일 때만 맞음으로 봄. | `9a1ca32f` |
+| R2 보강 | 예상된 실패의 이유 문구를 Failed Tests 항목의 들여 쓴 이어지는 줄에서도 찾음. | `ea9bba61` |
+| A-9 행 9 | 코드를 바꾼 그룹마다 다음 그룹의 코드를 고치기 전에 테스트 실행이 있어야 하고 맞는 그룹의 비율이 점수임. | `08efdde7` |
+| A-9 행 14 | 검증 단계의 코드 고침은 사이에 테스트 결과가 끼지 않은 한 묶음이어야 함. | `c2afaf14` |
+| A-9 행 19 | 써 놓고 돌리지 않은 판정 있는 checks/ 스크립트와 돌리지 않은 자기 테스트 모듈을 통과하지 못한 것으로 셈. | `c1ecf1f0` |
+| A-6 (문서) | implement-tasks.md 40행에 자기 테스트는 확인을 느슨하게 하거나 지워서 통과시키지 않는다는 두 문장을 더함. | `6b7a276b` |
+| A-4, A-9 행 7 (시도 상한 5) | 사용자 결정으로 시도 상한을 두 번에서 다섯 번으로 올리고 여섯 번째 시도를 실패로 보며 문서 40행도 고침. | `cb377258` |
+| 학습 설정 | agentos_bugfix의 penalty 항목 9개를 넣은 보상식(바닥 0.7, penalty 가중치 0.3)의 학습 설정 파일을 더함. | `51d0e77d` |
+
+### 문서 변경
+
+`git diff b0152ada HEAD -- docs`의 문장 단위 변경임. 위치는 `workflows/agentos_bugfix/` 아래의 새 글의 줄임.
+
+| 문서 위치 | 전 | 후 |
+|---|---|---|
+| `docs/commands/create-tasks/create-tasks.md:116` | 없음 | "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order` (the order in which the task groups are implemented)." |
+| `docs/commands/implement-tasks/implement-tasks.md:39` | "Running the tests you've written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass." | "Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass." |
+| `docs/commands/implement-tasks/implement-tasks.md:39` | "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report." | "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change)." |
+| `docs/commands/implement-tasks/implement-tasks.md:40` | "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on." | "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt." |
+| `docs/commands/implement-tasks/implement-tasks.md:40` | 없음 | "A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. Never make a failing test pass by loosening or removing what it checks." |
+
+### rubric 변경
+
+`reward/rubric.yaml`을 `b0152ada`와 `HEAD`에서 항목 id마다 비교한 것이고, 출처의 줄 번호만 바뀐 항목과 `generated:` 자체 점검 값은 넣지 않음. 항목 밖의 변경은 `scoring.close_on_artifact: true`(D-3) 하나임.
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `shape_spec.spec_dir.path_match.dated` | 설정값을 바꿈 | `today: true`를 더해 폴더 날짜를 런을 돌린 날과 대조함 (E-4 행 7). |
+| `shape_spec.verifications_dir.artifact_exists` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (E-4 행 9). |
+| `shape_spec.initialization.item_format.text` | 규칙을 바꿈 | kind를 `agentos_bugfix.task_text`로, `min_share: 0.5`를 더하고 note를 바꿈 (E-4 행 2). |
+| `shape_spec.initialization.no_template_residue.fill_marks` | 규칙을 바꿈 | kind를 `agentos_bugfix.task_residue`로 바꿔 과제 문장에 있는 줄을 빈칸으로 보지 않음 (E-1). |
+| `shape_spec.requirements.no_template_residue.fill_marks` | 규칙을 바꿈 | kind를 `agentos_bugfix.task_residue`로 바꿈 (E-1). |
+| `shape_spec.requirements.no_template_residue` | 설정값을 바꿈 | `patterns`에 폴더 자리표시 셋과 질문 틀 넷을 더함 (E-4 행 5). |
+| `shape_spec.requirements.agentos_bugfix_requirements.answers` | 설정값을 바꿈 | `basis_check: true`를 더함 (E-4 행 6). |
+| `shape_spec.requirements.cross_ref.2` | 설정값을 바꿈 | `levels`, `skip_sections`, `tag_level`과 ### 절 이름을 더하고 note를 바꿈 (E-4 행 8). |
+| `shape_spec.requirements.item_format.existing_code` | 설정값을 바꿈 | `pattern`을 넓히고 (E-2) `each_of`로 모든 Feature 줄을 봄 (E-4 행 4). |
+| `shape_spec.requirements.item_format.reusability_opportunities` | 설정값을 바꿈 | `pattern`이 백틱 없는 경로, 한 코드 구간, "찾은 것이 없음" 줄을 받음 (E-2). |
+| `shape_spec.run.agentos_bugfix_read.initialization` | 설정값을 바꿈 | `absent_unread: true`를 더함 (D-4). |
+| `write_spec.run.agentos_bugfix_read.requirements` | 설정값을 바꿈 | `absent_unread: true`를 더함 (D-4). |
+| `write_spec.spec.no_template_residue` | 설정값을 바꿈 | `patterns`에 폴더 자리표시 셋을 더함 (E-4 행 5). |
+| `write_spec.spec.agentos_bugfix_blocks.existing_code` | 설정값을 바꿈 | `top_level: true`를 더함 (E-3, E-4 행 12). |
+| `write_spec.spec.agentos_bugfix_blocks.specific_requirements` | 설정값을 바꿈 | `top_level: true`를 더함 (E-3, E-4 행 12). |
+| `create_tasks.run.agentos_bugfix_read.spec_inputs` | 설정값을 바꿈 | `written_before: true`를 더함 (F-2), D-4의 `absent_unread`는 켜지 않음 (D-4 예외). |
+| `create_tasks.tasks.agentos_bugfix_tasks.test_first` | 설정값을 바꿈 | `wide_words: true`를 더함 (B-3). |
+| `create_tasks.tasks.agentos_bugfix_tasks.total` | 설정값을 바꿈 | `impl_counts: true`, `wide_words: true`를 더함 (B-6 행 3). |
+| `create_tasks.tasks.item_format.acceptance_criteria` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.item_format.checkbox_lines` | 설정값을 바꿈 | `pattern`이 세 단계 이상의 번호를 받고 `nested_under: true`를 더하며 (B-4) 대상 상태를 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.item_format.groups` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.item_format.subtasks` | 규칙을 바꿈 | kind를 `agentos_bugfix.tasks`(`rule: group_subtasks`)로 바꾸고 note를 바꾸며 (B-7) 대상 상태를 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.item_format.title` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.no_template_residue` | 설정값을 바꿈 | `patterns`에 폴더 자리표시 셋을 더하고 (E-4 행 5) 대상 상태를 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.no_template_residue.fill_marks` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (B-2). |
+| `create_tasks.tasks.section_present.execution_order` | 설정값을 바꿈 | 대상 상태를 `stage_end`로 바꾸고 (B-2) 출처에 create-tasks.md 116행의 새 문장을 더함 (B-6 행 5). |
+| `create_tasks.tasks.section_present.task_list` | 설정값을 바꿈 | 대상 상태를 `final`에서 `stage_end`로 바꿈 (B-2). |
+| `implement_tasks.run.agentos_bugfix_read.spec_inputs` | 뺌 | 구현 단계의 spec.md·requirements.md 다시 읽기 항목을 채점에서 뺌 (F-1). |
+| `implement_tasks.run.agentos_bugfix_read.tasks` | 설정값을 바꿈 | `absent_unread: true`를 더함 (D-4). |
+| `implement_tasks.run.agentos_bugfix_read.tasks_phase3` | 설정값을 바꿈 | `absent_unread: true`를 더함 (D-4). |
+| `implement_tasks.run.agentos_bugfix_checks.written` | 설정값을 바꿈 | `module_tests: true`를 더함 (F-2). |
+| `implement_tasks.run.agentos_bugfix_checks.before_code` | 설정값을 바꿈 | 구간 끝 `repo_edit`에 `test_paths: false`, `module_tests: true`를 더하고 (F-2) `per_group: true` (D-6 행 12), `verdict: true` (D-6 행 21)를 더함. |
+| `implement_tasks.run.agentos_bugfix_checks.pass_last` | 설정값을 바꿈 | `unrun: true` (A-9 행 19), `module_tests: true` (F-2)를 더하고 note의 "after two attempts"를 "after the attempts"로 바꿈 (A-4 상한 5). |
+| `implement_tasks.run.agentos_bugfix_verify.phase2_run` | 설명만 바꿈 | note에 그룹마다 다음 그룹의 코드 전에 테스트했는지의 비율을 적음 (A-9 행 9). |
+| `implement_tasks.run.agentos_bugfix_verify.suite_run` | 설정값을 바꿈 | `phase3_fallback: true`를 더함 (D-1). |
+| `implement_tasks.run.code_change` | 설정값을 바꿈 | `repo_edit`에 `source: true`를 더하고 note를 바꿈 (E-5 행 18). |
+| `implement_tasks.tasks.agentos_bugfix_tasks.groups_in_order` | 설정값을 바꿈 | `work_between: true`와 `dir`를 더함 (B-8 행 3). |
+| `implement_tasks.tasks.agentos_bugfix_tasks.ticked_after_work` | 설정값을 바꿈 | `name_files: true` (B-1)와 `not_done_out: true` (B-5 보강)를 더함. |
+| `implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing` | 설명만 바꿈 | 출처 인용문을 문서 39행의 새 문장으로 바꿈 (A-3). |
+| `implement_tasks.tasks.agentos_bugfix_tasks.warned_after_attempts` | 설명만 바꿈 | `modality_evidence`와 출처 인용문을 "Make up to five attempts" 문장으로 바꿈 (A-4 상한 5). |
+| `implement_tasks.final_verification.agentos_bugfix_report.test_counts` | 설정값을 바꿈 | `phase3_fallback: true`, `script_results: true`를 더함 (D-1). |
+| `implement_tasks.final_verification.agentos_bugfix_report.failed_listed` | 설정값을 바꿈 | `phase3_fallback`, `script_results` (D-1), `standing` (A-7 행 7), `in_section` (A-8)을 더함. |
+| `implement_tasks.final_verification.agentos_bugfix_report.suite_status` | 설정값을 바꿈 | `phase3_fallback`, `script_results` (D-1)와 `standing` (A-2)을 더함. |
+| `implement_tasks.final_verification.agentos_bugfix_report.tasks_status` | 설정값을 바꿈 | `issues_listed: true` (E-3)와 `open_tasks: true` (B-5 보강)를 더함. |
+| `implement_tasks.final_verification.agentos_bugfix_report.incomplete_listed` | 설정값을 바꿈 | `open_tasks: true`를 더함 (B-5). |
+| `implement_tasks.final_verification.field_enum.status` | 설정값을 바꿈 | `strict_prefix: true`를 더함 (E-4 행 14). |
+| `implement_tasks.final_verification.field_enum.suite_status` | 설정값을 바꿈 | `strict_prefix: true`를 더함 (E-4 행 14). |
+| `implement_tasks.final_verification.field_enum.tasks_status` | 설정값을 바꿈 | `strict_prefix: true`를 더함 (E-4 행 14). |
+| `implement_tasks.final_verification.no_template_residue` | 설정값을 바꿈 | `patterns`에 폴더 자리표시 셋을 더함 (E-4 행 5). |
+| `implement_tasks.final_verification.section_present.notes` | 설정값을 바꿈 | `optional: true`를 더함 (E-3). |
+| `implement_tasks.penalty.phase2_fail.edited_after_fail` | 설명만 바꿈 | note를 실패마다 최대 다섯 번의 시도로 바꾸고 출처에 문서 40행의 새 문장을 더함 (A-4, A-9 행 7, 규칙은 `reward/penalty_tests.py`). |
+| `implement_tasks.penalty.phase2_fail.last_result_pass` | 설명만 바꿈 | note를 그룹마다 그 테스트를 돌린 실행의 재통과나 ⚠️로 바꿈 (A-7 행 8, A-9 행 17, 규칙은 `reward/penalty_tests.py`). |
+| `implement_tasks.penalty.phase3_fail.edited_after_fail` | 설명만 바꿈 | note를 변경 탓인 실패마다 고쳤는지로 바꿈 (A-9 행 22, 규칙은 `reward/penalty_tests.py`). |
+| `implement_tasks.penalty.phase3_fail.last_result_pass` | 설명만 바꿈 | note를 실패마다 다시 통과했거나 고치고 다시 돌렸는지로 바꿈 (A-1, A-2, 규칙은 `reward/penalty_tests.py`). |
+| `global.run.order.commands` | 설정값을 바꿈 | `substantive: 0.1`을 더함 (D-2). D-5의 `skip_if_absent`는 되돌려 남지 않음. |
+| `global.run.agentos_bugfix_created_files.workflow_files` | 설정값을 바꿈 | `scratch: true`를 더함 (E-5 행 11). |
+| `global.run.agentos_bugfix_paths_written.scratch_outside_checks` | 설정값을 바꿈 | `pattern`을 spec 폴더 밖 /tmp의 모든 파일과 spec 폴더 안 checks/ 밖 스크립트로 넓히고 note를 바꿈 (E-5 행 10). |
+| `global.penalty.plan_files.named` | 설명만 바꿈 | note를 코드를 바꾸는 하위 task 줄마다 경로를 적는 규칙으로 바꿈 (C-1, 규칙은 `reward/penalty.py`). |
+| `global.penalty.plan_files.named_equals_patch` | 설명만 바꿈 | note를 그 task 줄이 적은 소스 파일로 바꿈 (C-1, 규칙은 `reward/penalty.py`). |
+| `global.penalty.plan_files.named_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
+| `global.penalty.plan_files.patch_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
