@@ -320,7 +320,7 @@ PENALTY = (
     ("implement_tasks", "phase3_fail.edited_after_fail", "IT", (_P3_FIX,), "imperative (IT: 'go back to PHASE 2 once, fix the change')",
      "after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed away), source or a test is edited before the report; " + _OUT3),
     ("implement_tasks", "phase3_fail.last_result_pass", "IT", (_P3_FIX,), "imperative (IT: 'fix the change, then carry out PHASE 3 again from Step 1')",
-     "when a result failed in PHASE 3, the last result before the report passes; " + _OUT3),
+     "every failure of PHASE 3 that the documents ask about passed again before the report (a run that ran that test), or -- one the change causes -- was fixed and run again after the fix; " + _OUT3),
 )
 
 

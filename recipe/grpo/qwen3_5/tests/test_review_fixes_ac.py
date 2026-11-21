@@ -376,3 +376,35 @@ def test_a_narrowed_rerun_of_the_failed_test_clears_it_and_one_that_leaves_it_ou
     whole = _r(12, False, "tests/test_a.py")
     assert _p2([whole, picked], src=(10, 13))[last] == (0.0, True)
     assert _p2([whole, _r(14, True, "tests")], src=(10, 13))[last] == (1.0, True)
+
+
+# ---- A-1 and A-2 (PHASE 3): every failure is judged, not the last run ---------------------------------------------------
+
+
+def _p3(results, src=(10,), **kw):
+    kw.setdefault("p2_end", 30)
+    kw.setdefault("p3", 30)
+    kw.setdefault("report", 50)
+    return _p2(results, src=src, **kw)
+
+
+def test_the_last_run_of_phase_3_does_not_decide():
+    last = "phase3_fail.last_result_pass"
+    a, b = "tests/test_a.py::test_x", "tests/test_b.py::test_y"
+    full = _r(32, False, "tests", ids=(a, b))
+    stash = [_r(33, False, "tests", ids=(a, b))]  # both fail without the change as well: not the change's
+    own = _r(34, True, "/s/checks/c.py", runner=False)
+    # the whole suite last, or the run's own test last: the same verdict (both failures were there before the change)
+    pre = {("test", a), ("test", b)}  # what checks.excused_failures finds from those stashed runs (R2)
+    assert _p3([full], stash_results=stash, check_runs=[33], excused=pre)[last] == (1.0, False)
+    assert _p3([full, own], stash_results=stash, check_runs=[33], excused=pre)[last] == (1.0, False)
+    # never checked: the failures stand whatever ran last
+    assert _p3([full, own])[last] == (0.0, True)
+    # left out of a later passing run: still standing (A-2)
+    assert _p3([full, _r(36, True, "tests", sel=(f"--deselect {a}", f"--deselect {b}"))])[last] == (0.0, True)
+    # the change causes one (it passes with the change stashed away): fixed once and run again, still failing -- reported
+    caused = [_r(33, True, "tests/test_a.py")]
+    one = _r(32, False, "tests/test_a.py", ids=(a,))
+    assert _p3([one, _r(36, False, "tests/test_a.py", ids=(a,))], src=(10, 35), stash_results=caused, check_runs=[33])[last] == (1.0, True)
+    assert _p3([one], src=(10,), stash_results=caused, check_runs=[33])[last] == (0.0, True)  # not fixed
+    assert _p3([one], src=(10, 35), stash_results=caused, check_runs=[33])[last] == (0.0, True)  # fixed, not run again

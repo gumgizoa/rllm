@@ -559,6 +559,15 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   `test_skycoord_representation`이 실패하고, 뒤의 통과는 `::test_ndarray_mixin`만 고른 실행). 앞 task의 행 8 목록(실패한 테스트와 다른 테스트를
   고르거나 `-k "not …"`로 뺀 실행이 대부분)의 런 가운데 이 커밋에서 통과로 바뀐 것은 없음.
 
+- A-1과 A-2(검증 단계 penalty) 검증 단계의 실패 (`phase3_fail.last_result_pass`): 검증 단계에 실패가 있으면 보고서 전 마지막 결과 하나가 통과인지만
+  봤음. 그래서 같은 일을 하고 같은 보고를 해도 전체 테스트를 마지막에 돌리면 잃고, 자기 테스트를 마지막에 돌리면 지켰음. 이제 검증 단계의 실패 단위(R1,
+  R2로 빠진 것 제외)마다 봄: 보고서 전에 그 단위를 지우는 통과(`clears`: 그 테스트를 돌린 실행, 뺀 실행은 아님)가 있거나, 변경 탓인 실패(A-9 행 22의
+  정의: 자기 테스트, 또는 변경을 치운 실행에서 통과한 테스트)이고 첫 실패 뒤에 고침(소스 변경, 자기 테스트는 그 테스트의 편집도)이 있고 마지막 고침 뒤에
+  그 단위를 돌린 결과(통과든 실패든)가 있으면 맞음(implement-tasks.md 137행: 한 번 돌아가 고치고 PHASE 3을 다시 함, 남은 실패는 보고서에 적음).
+  모두 맞으면 1.0. 원인 확인을 하지 않은 실패는 R2에 들지 않아 남음. 새 함수 `own_test`, `change_caused`, `fix_edits`, `_p3_left_right`. 기준 런
+  `warn_attempts`의 penalty가 1.0이 됨. 평가 499런: 12런이 통과에서 실패(해결 6; 마지막 결과는 통과였으나 앞의 실패가 남은 런. 예:
+  django__django-11815는 39단계 `tests/migrations` 실패를 원인 확인도 재실행도 하지 않고 58단계 자기 스크립트 통과로 끝냄).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

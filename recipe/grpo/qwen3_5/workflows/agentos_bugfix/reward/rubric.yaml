@@ -7083,9 +7083,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: when a result failed in PHASE 3, the last result before the report passes; a run that saw no such failure is worth
-    1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when
-    it never was
+  note: every failure of PHASE 3 that the documents ask about passed again before the report (a run that ran that test), or
+    -- one the change causes -- was fixed and run again after the fix; a run that saw no such failure is worth 1 when its
+    final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never
+    was
 scoring:
   item_weight:
     must: 1.0

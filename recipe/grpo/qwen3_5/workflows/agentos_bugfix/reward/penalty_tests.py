@@ -62,8 +62,11 @@ never tested loses all four.
              failure the check showed to exist without the change, or one that was never checked, is not this
              item's); 0.0 when it was not
     agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
-        judged: a failing result in PHASE 3
-        1.0: the last result before the report passes
+        judged: a failing result in PHASE 3 that the documents ask about (R2's aside)
+        1.0: every failure unit of it passed again before the report (a run that ran that test, not one that left it
+             out: A-2), or -- a failure the change causes (see edited_after_fail) -- it was fixed after its first
+             failure and run again after the last fix (implement-tasks.md 137: go back once, fix, carry out PHASE 3
+             again; what still fails goes into the report). Which run came last does not matter (A-1)
         outside: 1.0 when the final code was tested and no result failed in PHASE 3; 0.0 when it was not
 
 A result is a run whose outcome can be read: a script under the spec folder's checks/ that ran, or a valid runner run.
@@ -129,7 +132,10 @@ class Timeline:
     existing_late: set[int] = field(default_factory=set)
     group_ends: list[int] = field(default_factory=list)  # steps at which a task group becomes fully ticked
     group_marked: dict[int, bool] = field(default_factory=dict)  # group end -> a group ending there carries ⚠️
-    excused: set = field(default_factory=set)  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
+    excused: set = field(default_factory=set)
+    test_edits_of: dict[str, list[int]] = field(default_factory=dict)  # test file (repository-relative) or check script -> its edits
+    added_tests: set[str] = field(default_factory=set)  # test functions / classes the run added to existing modules (F-2)
+    new_test_files: set[str] = field(default_factory=set)  # repository test files the run created  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
     p2_end: int = 0
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
     report: int | None = None
@@ -212,12 +218,15 @@ def timeline(ctx: Any) -> Timeline:
         if F.is_test_path(e.path):
             own_tests.setdefault(e.path, int(e.step))
             tl.test_edits.append(int(e.step))
+            tl.test_edits_of.setdefault(e.path, []).append(int(e.step))
 
     # the run's check scripts under the spec folder's checks/: a script anywhere else is no test (A-9 row 8)
     cdir = C._expand_dir(ctx, "{artifact}/{SPEC}/checks")
     checks = set(C.check_scripts(ctx, cdir)) if cdir else set()
     for path in checks:
-        tl.test_edits += [int(e.step) for e in fx.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
+        steps = [int(e.step) for e in fx.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
+        tl.test_edits += steps
+        tl.test_edits_of[path] = steps
     tl.test_edits.sort()
     for path, runs in C.executions(ctx, checks).items():
         for step, out in runs:
@@ -227,6 +236,8 @@ def timeline(ctx: Any) -> Timeline:
     tl.script_late = _scripts_after_a_write(ctx, checks)
 
     added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
+    tl.added_tests = added
+    tl.new_test_files = {p for p in own_tests if F.is_new_path(ctx, p)}
     before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
     for r in fx.runs:
         if r.kind != "test":
@@ -297,6 +308,39 @@ def _standing(tl: Timeline, results: list[Result]) -> list[tuple[str, str]]:
     out (``--deselect``, ``-k "not ..."``, ``--ignore``) is not (A-2); a file the output named no test of, or a script,
     by the rule every workflow shares (``workflow_rubric/results.py``)."""
     return [u for u, _ in R.standing_units(results) if u not in tl.excused]
+
+
+def own_test(tl: Timeline, unit: tuple[str, str], failing: Result) -> bool:
+    """The failure unit is a test of the run's own: a check script, a test file the run created, or a test function /
+    class it added to an existing module (F-2)."""
+    kind, what = unit
+    if not failing.runner:
+        return True
+    file_part = what.split("::")[0]
+    if any(file_part == f or file_part.endswith("/" + f) for f in tl.new_test_files):
+        return True
+    names = {x.split("[")[0] for x in what.split("::")[1:]} if kind == "test" else set()
+    return bool(names & tl.added_tests)
+
+
+def change_caused(tl: Timeline, unit: tuple[str, str], failing: Result) -> bool:
+    """A failure the change causes (A-9 row 22): not one the documents leave (R2), and a test of the run's own (a) or one
+    that a valid runner run with the change stashed away ran and passed (b)."""
+    if unit in tl.excused:
+        return False
+    return own_test(tl, unit, failing) or any(outcome_for(s, unit) == "pass" for s in tl.stash_results)
+
+
+def fix_edits(tl: Timeline, unit: tuple[str, str], failing: Result) -> list[int]:
+    """The edits that fix a failure the change causes: a source change (implement-tasks.md 137 "fix the change"); for a
+    test of the run's own, also an edit of that test (40: "or that test")."""
+    out = list(tl.src)
+    if own_test(tl, unit, failing):
+        what = unit[1].split("::")[0]
+        for path, steps in tl.test_edits_of.items():
+            if path == what or what.endswith("/" + path) or path.endswith("/" + what):
+                out += steps
+    return sorted(out)
 
 
 def _stretches(tl: Timeline, first: int) -> list[tuple[int, int]]:
@@ -374,6 +418,28 @@ def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]
     return True
 
 
+def _p3_left_right(tl: Timeline, every: list[Result], fails: list[Result], b: int) -> bool:
+    """A-1 (with A-2's PHASE 3 side): every failure unit of PHASE 3 that the documents ask about (R2's aside) either passed
+    again before the report (``results.clears``: a run that ran the test, not one that left it out), or is one the change
+    causes (A-9 row 22) that was fixed once after its first failure and run again after that fix -- what is still
+    failing then goes into the report (implement-tasks.md 137). Which run came last does not matter."""
+    standing = {u for u, _ in R.standing_units(every)}
+    units: dict[tuple[str, str], Result] = {}
+    for r in fails:
+        for u in R.failure_units(r):
+            if u not in tl.excused:
+                units.setdefault(u, r)
+    for u, first in units.items():
+        if u not in standing:
+            continue
+        if not change_caused(tl, u, first):
+            return False
+        fixes = [e for e in fix_edits(tl, u, first) if first.step < e < b]
+        if not fixes or not any((r.step > fixes[-1] or (r.step == fixes[-1] and r.step in (tl.results_late | tl.script_late))) and outcome_for(r, u) for r in every):
+            return False
+    return True
+
+
 def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     """Item -> (value, whether the item was judged on the run). A run an item stands outside of gets what the common
     rule gives (``workflow_rubric/penalty.py``): 0 when it never did what the item is about -- it changed no source,
@@ -440,7 +506,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         else:  # no failure, or one that is not the change's to fix: the tests ran, the item's condition did not arise
             outside(P3_EDITED, ran)
         if fails:
-            put(P3_LAST, res[-1].passed)
+            put(P3_LAST, _p3_left_right(tl, every, fails, b))
         else:
             outside(P3_LAST, ran)
     return out
