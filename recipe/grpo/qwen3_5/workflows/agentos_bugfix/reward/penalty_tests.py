@@ -125,6 +125,7 @@ class Timeline:
     script_late: set[int] = field(default_factory=set)  # steps of check-script runs that come after a repository write of their own call
     existing_late: set[int] = field(default_factory=set)
     group_ends: list[int] = field(default_factory=list)  # steps at which a task group becomes fully ticked
+    group_marked: dict[int, bool] = field(default_factory=dict)  # group end -> a group ending there carries ⚠️
     excused: set = field(default_factory=set)  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
     p2_end: int = 0
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
@@ -265,6 +266,7 @@ def timeline(ctx: Any) -> Timeline:
     if start is not None and tl.report is not None and _int(all_done) == start and start < tl.report:
         tl.p3 = start
     tl.group_ends = _group_ends(ctx)
+    tl.group_marked = C.group_end_marks(ctx)
     return tl
 
 
@@ -335,6 +337,18 @@ def attempts(tl: Timeline, seq: list[tuple[Result, str]], edits: list[int]) -> i
     return n
 
 
+def _passed_or_marked(tl: Timeline, res: list[Result], first: int) -> bool:
+    """A-9 row 17: in every task-group stretch, every test that failed there (and that the documents ask to fix) passed
+    again before the stretch ends -- or the task group that ends it carries ⚠️ (two attempts did not get it to pass;
+    implement-tasks.md 40). A failure left standing while its group is ticked is not undone by a pass in a later group."""
+    for a, b in _stretches(tl, first):
+        inside = [r for r in res if a < r.step <= b and r.step < tl.p2_end]
+        if _last_of_each_failed_test_passes(inside) or tl.group_marked.get(b):
+            continue
+        return False
+    return True
+
+
 def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]) -> bool:
     """A-4 / A-9 row 7 (implement-tasks.md 40: "fix the change or that test and run the tests again ... After two attempts
     that do not get it to pass, mark ... ⚠️ ... and go on"): in every task-group stretch, every failure unit that fails
@@ -388,7 +402,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         if fails:
             every = [r for r in tl.results if first < r.step < tl.p2_end]
             put(P2_EDITED, _attempts_ok(tl, every, first, edits))
-            put(P2_LAST, _last_of_each_failed_test_passes(res))
+            put(P2_LAST, _passed_or_marked(tl, res, first))
         else:
             ran = bool(res) or bool(_between(tl.own_runs, first, tl.p2_end))
             outside(P2_EDITED, ran)

@@ -1351,6 +1351,24 @@ def group_end_steps(ctx: EvalContext, aid: str = "tasks") -> list[int]:
     return sorted(ends)
 
 
+def group_end_marks(ctx: EvalContext, aid: str = "tasks") -> dict[int, bool]:
+    """For every step of :func:`group_end_steps`: whether a task group ending there carries ⚠️ on one of its task lines
+    (in the final tasks.md) -- a test that two attempts did not get to pass, marked and left (implement-tasks.md 40)."""
+    if not ctx.facts.artifact_paths.get(aid):
+        return {}
+    text = _text(ctx, aid)
+    lines = task_lines(text)
+    ticks = tick_steps(ctx, aid)
+    out: dict[int, bool] = {}
+    for g, _ in groups(text):
+        mine = [t for t in lines if t["group"] and t["group"]["heading"] == g["heading"]]
+        steps = [ticks.get(t["id"]) for t in mine if not t["id"].endswith(".0")]
+        steps = [x for x in steps if x is not None and x is not UNKNOWN]
+        if steps:
+            out[max(steps)] = out.get(max(steps), False) or any(t["warned"] for t in mine)
+    return out
+
+
 # what makes a script a test (D-6 row 21): it can come out failing -- an assertion, a raise, an exit status, a test
 # framework, or a printed verdict; a script that only prints what it finds explores
 _VERDICT = re.compile(r"\bassert\b|\braise\b|\bsys\.exit\(|\bexit\(\s*[1-9]|\bunittest\b|\bpytest\b|\bdef\s+test_|\b(?:PASS(?:ED)?|FAIL(?:ED|URE)?|OK)\b")

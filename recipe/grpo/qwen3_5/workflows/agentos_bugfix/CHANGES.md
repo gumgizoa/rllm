@@ -544,6 +544,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   평가 499런: 101런이 통과에서 실패(해결 46; 시도 3번 이상인 단위가 있는 런 83, 편집 뒤 다시 돌리지 않은 단위가 있는 런 21, 겹침 있음; 시도 3번 이상
   단위 101개 가운데 63개가 checks/ 스크립트), 9런이 실패에서 통과(해결 7). 기준 런의 `warn_attempts`·`script_failing` 변형이 이 항목을 지킴.
 
+- A-9 행 17 그룹 안에서 다시 통과 (`phase2_fail.last_result_pass`): 구현 단계 전체에서 실패한 테스트가 뒤에 다시 통과했는지만 봤음. 그래서 앞 그룹의
+  실패를 남긴 채 그 그룹을 체크하고 뒤 그룹에서 통과시켜도 지켰음. 이제 task group 구간마다, 그 구간에서 실패한 것(R2로 빠진 것 제외)이 그 구간이
+  끝나기 전에 다시 통과하거나, 그 구간을 끝낸 그룹의 task 줄에 ⚠️가 있어야 함(implement-tasks.md 40행: 체크 전에 고쳐 다시 돌리고, 두 번 해도 안 되면
+  ⚠️). 한 쓰기로 모든 그룹을 체크한 런은 구간이 하나. 새 함수 `checks.group_end_marks`(그룹 끝 단계마다 ⚠️ 여부, 공용 파일에 더하나 agentos_v2는 쓰지
+  않음), `Timeline.group_marked`. 평가 499런: 4런이 통과에서 실패(django__django-11239, django__django-12155, matplotlib__matplotlib-20826,
+  pytest-dev__pytest-10356; 해결 2). 기준 런 `warn_attempts`가 이 항목을 지킴.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

@@ -343,3 +343,19 @@ def test_attempts_at_a_failure_while_implementing():
     assert _p2([f(12), f(22), ok(24)], src=(10, 20, 23), group_ends=(15,))[edited] == (0.0, True)
     # a run of the same call after its write is a run after the edit
     assert _p2([f(12), ok(14)], src=(10, 14), results_late={14})[edited] == (1.0, True)
+
+
+# ---- A-9 row 17: a failure passes again inside its own task group, or the group is marked ⚠️ -----------------------
+
+
+def test_a_failure_left_when_its_group_is_ticked_is_not_undone_by_a_later_group():
+    last = "phase2_fail.last_result_pass"
+    f = lambda s: _r(s, False, "/s/checks/a.py", runner=False)  # noqa: E731
+    ok = lambda s: _r(s, True, "/s/checks/a.py", runner=False)  # noqa: E731
+    # group 1 (ends 15) leaves a.py failing; it passes only in group 2's stretch
+    assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(15, 30))[last] == (0.0, True)
+    assert _p2([f(12), ok(14)], src=(10, 13), group_ends=(15, 30))[last] == (1.0, True)
+    # ... unless group 1 is marked ⚠️
+    assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(15, 30), group_marked={15: True})[last] == (1.0, True)
+    # everything ticked in one write: one stretch, as before
+    assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(30,))[last] == (1.0, True)
