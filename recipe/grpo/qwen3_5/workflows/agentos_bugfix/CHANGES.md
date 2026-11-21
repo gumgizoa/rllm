@@ -431,6 +431,10 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   그런 task가 있는데 Incomplete or Issues 절이 "None"이면 실패(127행). 체크박스 없는 글머리("- 0.009125 formats as …")는 열린 task로 보지
   않음. 평가 499런: `incomplete_listed` 38런이 해당 없음에서 실패, 6런이 해당 없음에서 통과. `warned_after_attempts` 1런
   (sphinx-doc__sphinx-8459: 모든 변경을 `git checkout`으로 되돌린 뒤 모든 task에 ⚠️)이 실패에서 해당 없음.
+  2026-11-21 덧붙임 (사용자 결정): (1)의 ⚠️가 127행의 표시로 빠지려면 실패 결과가 없을 뿐 아니라 그 ⚠️가 PHASE 3에서, 또는 PHASE 3을 여는
+  쓰기(모든 task가 처음 체크나 ⚠️로 보이는 쓰기, `phase3_start`)에서 처음 나타나야 함. 그보다 앞서 나타난 ⚠️는 실패 결과가 없어도 40행의 표시로
+  보아 시도를 묻고 실패함(⚠️가 처음 나타난 단계를 모르면 실패 결과 조건만 봄). 평가 499런: 판정 변화 0(⚠️가 있는 런이 2개뿐이고 sphinx-doc__sphinx-8459의
+  ⚠️는 PHASE 3을 여는 155단계 쓰기에서 처음 나타나 해당 없음 그대로).
 
 - F-3 행 14 `git checkout`으로 변경을 치우고 돌린 테스트 (공용 `workflow_rubric/results.py`): "변경이 치워진 상태"는 `git stash`(push 꼴)부터
   `pop`·`apply` 또는 다음 저장소 편집까지였음. 이제 `git checkout [<rev>] [--] <경로>`와 `git restore [--source=…] <경로>`도 그 경로 가운데

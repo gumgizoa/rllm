@@ -363,6 +363,28 @@ def test_a_mark_without_a_failing_result_is_not_judged_as_two_attempts(window):
     assert C.tasks(item, ctx("⚠️", [_run(30), _run(48, failed=1), _run(55, failed=1)], (20, 45, 52))).status == "pass"
 
 
+
+def test_a_mark_made_while_implementing_is_the_attempts_mark_even_without_a_failing_result(window):
+    # B-5, user decision 2026-11-21: the mark is a task found not done (127) only when it first appears in PHASE 3 or at
+    # the write that starts it (every task ticked or marked); before that, it is PHASE 2's mark (40) and needs attempts
+    plan = ("#### Task Group 1: A\n- [{a}] 1.1 Change `src/a.py`\n- [{a}] 1.2 Run the tests\n#### Task Group 2: B\n- [{b}] 2.1 Change `src/b.py`\n"
+            "- [{b}] 2.2 Run the tests\n#### Task Group 3: C\n- [{c}] 3.1 Change `src/c.py`\n- [{c}] 3.2 Run the tests\n")
+    item = _item({"rule": "warned_after_attempts"})
+
+    def ctx(writes):
+        c = _tick_ctx([(5, plan.format(a=" ", b=" ", c=" "))] + [(s, plan.format(**m)) for s, m in writes],
+                      repo_writes=[WriteEvent(path=p_, step=s, op="edit") for p_, s in (("src/a.py", 20), ("src/c.py", 62))])
+        c.facts.runs = [_run(30), _run(64)]
+        return c
+
+    # group 2 marked at step 50, group 3 implemented and ticked after it (step 70): marked while implementing, no test failed
+    r = C.tasks(item, ctx([(40, dict(a="x", b=" ", c=" ")), (50, dict(a="x", b="⚠️", c=" ")), (70, dict(a="x", b="⚠️", c="x"))]))
+    assert r.status == "fail" and "2.2" in r.detail
+    # the same mark made at the write where every task is first done: PHASE 3's mark, not this rule's
+    r = C.tasks(item, ctx([(40, dict(a="x", b=" ", c=" ")), (66, dict(a="x", b=" ", c="x")), (70, dict(a="x", b="⚠️", c="x"))]))
+    assert r.status == "not_applicable"
+
+
 def test_open_tasks_are_listed_as_incomplete_too():
     rep = "## 1. Tasks Verification\n**Status:** ✅ All Complete\n### Incomplete or Issues\nNone\n"
     tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- [ ] 1.2 Run the tests\n"

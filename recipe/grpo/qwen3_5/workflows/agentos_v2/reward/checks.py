@@ -909,11 +909,27 @@ def _group_ends(ctx: EvalContext, aid: str, text: str, w, d: str | None) -> list
     return out
 
 
+def _marked_in_phase3(ctx: EvalContext, warn_step) -> bool:
+    """B-5 (user decision 2026-11-21): whether a ⚠️ first seen at ``warn_step`` can be PHASE 3 Step 1's mark (a task found
+    not done, implement-tasks.md 127): it first appears at or after PHASE 3's start (:func:`phase3_start`: the write at
+    which every task first appears ticked or marked, else the report's first write). A mark first seen before that is
+    PHASE 2's (implement-tasks.md 40: a test the attempts did not get to pass). When either step is unknown (a write whose
+    content cannot be replayed) the mark is given the benefit of the doubt; with no PHASE 3 start at all it is PHASE 2's."""
+    if warn_step is None or warn_step is UNKNOWN:
+        return True
+    start = phase3_start(ctx)
+    if start is UNKNOWN:
+        return True
+    return start is not None and warn_step >= start
+
+
 def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
     """(group end, attempts shown) for every test sub-task marked ⚠️ instead of ticked: two failing test results after
     the group's first code change, with an attempt between the first and the last of them -- a code change, or an edit
-    of a check script under ``d`` (the failing test may be the thing to fix). A mark in a group whose stretch holds no
-    failing result after its first code change is a task found not done (PHASE 3 Step 1), not this rule's."""
+    of a check script under ``d`` (the failing test may be the thing to fix). A mark is a task found not done (PHASE 3
+    Step 1, implement-tasks.md 127), not this rule's, only when (a) its group's stretch holds no failing result after the
+    group's first code change and (b) it first appears in PHASE 3 or at the write that starts it (B-5, user decision
+    2026-11-21: :func:`_marked_in_phase3`); a mark made earlier without a failing result shows no attempt."""
     text = _window_end_text(ctx, aid, w)
     if text is None:
         return []
@@ -926,7 +942,10 @@ def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[di
             continue  # ticked first and marked later is PHASE 3's mark (a task found incomplete), not this rule's
         fails = [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]
         if not fails:
-            continue  # no failing result to mark: a task found not done (implement-tasks.md 127), not a test left failing (40)
+            if _marked_in_phase3(ctx, first_warn.get(t["id"])):
+                continue  # no failing result to mark, marked in PHASE 3: a task found not done (127), not a test left failing (40)
+            out.append((g, False))  # marked while implementing with no failing result behind it: no attempt shown (40)
+            continue
         out.append((g, len(fails) >= 2 and any(fails[0] < c < fails[-1] for c in (*g["changes"], *script_edits))))
     return out
 
