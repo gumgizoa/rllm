@@ -319,3 +319,64 @@ def test_all_done_is_the_first_known_done_write_even_after_an_unknown_one():
     assert C.all_done_step(ctx) == 8
     # the content before a known write is the last known one: an unknown write between is passed over
     assert C._known_before(evs, evs[2]) == OPEN and C._known_before(evs, evs[0]) is None
+
+
+# ---- H-10: a call the harness runs under another tool name ------------------------------------------------------
+# openhands-sdk rewrites these before it runs them (agent/utils.py normalize_tool_call); the episode keeps the call as
+# the model wrote it, so the parser reads the name and the sub-command the same way.
+
+EDITED = "The file /testbed/x.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/x.py:\n     1\tb\n"
+REPLACE = {"path": "/testbed/x.py", "old_str": "a", "new_str": "b"}
+
+
+def test_the_editor_sub_command_used_as_the_tool_name_is_an_editor_call():
+    for name in ("str_replace", "str_replace_editor", "str_replace </parameter", "file_editor</function>"):
+        a = openhands.parse(name, dict(REPLACE, command="str_replace"), EDITED)
+        assert (a.kind, a.path, a.old, a.text, a.status) == ("replace", "/testbed/x.py", "a", "b", "ok"), name
+    # the name says nothing about the sub-command: the call's own `command` decides
+    a = openhands.parse("str_replace", {"command": "create", "path": "/testbed/y.py", "file_text": "x"}, "File created successfully at: /testbed/y.py")
+    assert (a.kind, a.text, a.status) == ("create", "x", "ok")
+    assert openhands.parse("str_replace", {"command": "view", "path": "/testbed/x.py"}, "1\ta").kind == "view"
+
+
+def test_an_editor_call_without_command_gets_it_from_its_arguments():
+    cases = (
+        (REPLACE, "replace"),
+        ({"path": "/testbed/x.py", "insert_line": 3, "new_str": "b"}, "insert"),
+        ({"path": "/testbed/x.py", "file_text": "x"}, "create"),
+        ({"path": "/testbed/x.py"}, "view"),
+        ({"path": "/testbed/x.py", "view_range": [1, 9]}, "view"),
+        (dict(REPLACE, file_text="x", insert_line=1), "replace"),  # old_str is looked at first, as in the harness
+        (dict(REPLACE, command=None), "replace"),  # the harness drops a null argument before it looks
+    )
+    for name in ("file_editor", "str_replace"):
+        for args, kind in cases:
+            assert openhands.parse(name, args, EDITED).kind == kind, (name, args)
+    a = openhands.parse("str_replace", {"path": "/testbed/x.py", "insert_line": 3, "new_str": "b"}, "The file /testbed/x.py has been edited.")
+    assert (a.kind, a.line, a.text) == ("insert", 3, "b")
+    # nothing to infer from, or a sub-command the editor does not have: no action
+    assert openhands.parse("str_replace", {"old_str": "a", "new_str": "b"}, "").kind == "other"
+    assert openhands.parse("str_replace", dict(REPLACE, command="replace"), "").kind == "other"
+    assert openhands.parse("file_editor", dict(REPLACE, command=["str_replace"]), "").kind == "other"
+
+
+def test_a_refused_call_under_another_name_did_not_run():
+    obs = "Error validating tool 'str_replace': 1 validation error for FileEditorAction\nold_str\n  Field required"
+    assert openhands.parse("str_replace", dict(REPLACE, command="str_replace"), obs).kind == "other"
+    obs = "Error validating tool 'file_editor': Cannot infer 'command' for tool 'file_editor' from empty arguments {}."
+    assert openhands.parse("str_replace", {"path": "/testbed/x.py"}, obs).kind == "other"
+    # an edit the editor tried and could not make is still an edit attempt, with a failed status
+    obs = "[An error occurred during execution.]\n\nNo replacement was performed, old_str `a` did not appear verbatim in /testbed/x.py."
+    a = openhands.parse("str_replace", REPLACE, obs)
+    assert (a.kind, a.status) == ("replace", "fail")
+
+
+def test_a_broken_terminal_name_is_read_by_its_leading_identifier():
+    a = openhands.parse("terminal</function>", {"command": "ls /testbed"}, "x.py")
+    assert (a.kind, a.command) == ("shell", "ls /testbed")
+
+
+def test_names_the_harness_does_not_run_as_the_editor_stay_no_action():
+    args = {"command": "create", "path": "/testbed/x.py", "file_text": "x", "old_str": "a", "new_str": "b"}
+    for name in ("write", "view", "python", "tool_call", "tool_editor", "command", "editor", "str_replaced", ""):
+        assert openhands.parse(name, args, f"Tool '{name}' not found. Available: ['terminal', 'file_editor']").kind == "other", name
