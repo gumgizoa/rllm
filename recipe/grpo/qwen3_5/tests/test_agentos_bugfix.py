@@ -663,7 +663,7 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     own = _res(32, False, "/s/a.py")
     v, a = _test_items(**base, results=[own])
     assert (v[cause], a[cause]) == (1.0, False) and (v[edited], a[edited]) == (0.0, True) and v[last] == 0.0
-    v, a = _test_items(**base, test_edits=[33], results=[own, _res(34, True, "/s/a.py")])
+    v, a = _test_items(**base, test_edits=[33], test_edits_of={"/s/a.py": [33]}, results=[own, _res(34, True, "/s/a.py")])  # an edit of that test (A-9 row 22)
     assert v[edited] == 1.0 and v[last] == 1.0
 
 

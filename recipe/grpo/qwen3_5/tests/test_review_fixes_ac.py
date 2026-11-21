@@ -408,3 +408,23 @@ def test_the_last_run_of_phase_3_does_not_decide():
     assert _p3([one, _r(36, False, "tests/test_a.py", ids=(a,))], src=(10, 35), stash_results=caused, check_runs=[33])[last] == (1.0, True)
     assert _p3([one], src=(10,), stash_results=caused, check_runs=[33])[last] == (0.0, True)  # not fixed
     assert _p3([one], src=(10, 35), stash_results=caused, check_runs=[33])[last] == (0.0, True)  # fixed, not run again
+
+
+# ---- A-9 row 22: each failure the change causes is fixed; the ones that were there before are not asked -------------
+
+
+def test_each_failure_the_change_causes_is_fixed_by_a_source_change():
+    edited = "phase3_fail.edited_after_fail"
+    a, b = "tests/test_a.py::test_x", "tests/test_b.py::test_y"
+    both = _r(32, False, "tests", ids=(a, b))
+    # a passes without the change (the change causes it), b fails without it as well (there before: R2)
+    stash = [_r(33, False, "tests", ids=(b,))]
+    kw = dict(stash_results=stash, check_runs=[33], excused={("test", b)})
+    assert _p3([both], src=(10,), **kw)[edited] == (0.0, True)  # a not fixed
+    assert _p3([both], src=(10,), test_edits=(34,), test_edits_of={"tests/test_a.py": [34]}, **kw)[edited] == (0.0, True)  # an existing test: only a source change fixes it
+    assert _p3([both], src=(10, 35), **kw)[edited] == (1.0, True)
+    # nothing the change causes: not judged
+    assert _p3([both], src=(10,), stash_results=[_r(33, False, "tests", ids=(a, b))], check_runs=[33], excused={("test", a), ("test", b)})[edited] == (1.0, False)
+    # a check script of the run's own: its own edit fixes it
+    own = _r(32, False, "/s/checks/c.py", runner=False)
+    assert _p3([own], src=(10,), test_edits=(34,), test_edits_of={"/s/checks/c.py": [34]})[edited] == (1.0, True)

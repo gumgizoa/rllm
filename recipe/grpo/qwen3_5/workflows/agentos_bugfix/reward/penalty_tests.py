@@ -55,9 +55,12 @@ never tested loses all four.
         1.0: after that failure and before the report, the runner is invoked with the change stashed away
         outside: 1.0 when the final code was tested and no runner run failed in PHASE 3; 0.0 when it was not
     agentos_bugfix.implement_tasks.penalty.phase3_fail.edited_after_fail
-        judged: a failing result in PHASE 3 that the document says to fix -- only tests of the run's own failed (no
-                runner failure), or the runner passed with the change stashed away (the change causes it)
-        1.0: source or a test is edited after the first failing result, before the report
+        judged: a failure unit in PHASE 3 that the change causes (A-9 row 22) -- not one the documents leave (R2), and a
+                test of the run's own (a check script, a test file it created, a test function it added) or one that a
+                valid runner run with the change stashed away ran and passed
+        1.0: each such unit is fixed after its first failure, before the report: by a source change (implement-tasks.md
+             137 "fix the change"), or for a test of the run's own also by an edit of that test (40). Failures the change
+             does not cause, in the same run, are left out
         outside: 1.0 when the final code was tested and nothing failed in PHASE 3 that is the change's to fix (a
              failure the check showed to exist without the change, or one that was never checked, is not this
              item's); 0.0 when it was not
@@ -496,14 +499,18 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         fails = [r for r in res if not r.passed]
         ran = bool(every) or bool(_between(tl.own_runs, a, b)) or tested
         runner_fails = [r.step for r in every if not r.passed and r.runner]  # the cause check is asked of every runner failure
-        checked = [r.passed for r in tl.stash_results if a < r.step < b]
         if runner_fails:
             put(P3_CAUSE, bool(_between(tl.check_runs, runner_fails[0], b)))
         else:
             outside(P3_CAUSE, ran)
-        if fails and (not any(r.runner for r in fails) or (checked and all(checked))):
-            put(P3_EDITED, bool(_between(edits, fails[0].step, b)))
-        else:  # no failure, or one that is not the change's to fix: the tests ran, the item's condition did not arise
+        caused: dict[tuple[str, str], Result] = {}
+        for r in fails:
+            for u in R.failure_units(r):
+                if u not in caused and change_caused(tl, u, r):
+                    caused[u] = r
+        if caused:  # A-9 row 22: each failure the change causes is fixed after its first failure, the others aside
+            put(P3_EDITED, all(any(r.step < e < b for e in fix_edits(tl, u, r)) for u, r in caused.items()))
+        else:  # no failure, or none the change's to fix: the tests ran, the item's condition did not arise
             outside(P3_EDITED, ran)
         if fails:
             put(P3_LAST, _p3_left_right(tl, every, fails, b))

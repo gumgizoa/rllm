@@ -7050,9 +7050,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
-    away), source or a test is edited before the report; a run that saw no such failure is worth 1 when its final code was
-    tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was
+  note: each failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
+    away) is fixed before the report -- by a source change, or for a test of the run's own also by an edit of that test; a
+    run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source
+    change in whichever phase) and 0 when it never was
 - id: agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
   scope: specific
   class: evidence

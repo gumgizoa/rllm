@@ -318,7 +318,7 @@ PENALTY = (
     ("implement_tasks", "phase3_fail.cause_checked", "IT", (_P3_CAUSE,), "imperative (IT: 'An existing test: run it once without your change, in one command')",
      "after a failing runner run in PHASE 3 and before the report, the runner is invoked with the change stashed away; " + _OUT3),
     ("implement_tasks", "phase3_fail.edited_after_fail", "IT", (_P3_FIX,), "imperative (IT: 'go back to PHASE 2 once, fix the change')",
-     "after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed away), source or a test is edited before the report; " + _OUT3),
+     "each failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed away) is fixed before the report -- by a source change, or for a test of the run's own also by an edit of that test; " + _OUT3),
     ("implement_tasks", "phase3_fail.last_result_pass", "IT", (_P3_FIX,), "imperative (IT: 'fix the change, then carry out PHASE 3 again from Step 1')",
      "every failure of PHASE 3 that the documents ask about passed again before the report (a run that ran that test), or -- one the change causes -- was fixed and run again after the fix; " + _OUT3),
 )
