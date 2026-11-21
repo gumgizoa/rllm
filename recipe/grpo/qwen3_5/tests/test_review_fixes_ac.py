@@ -433,11 +433,14 @@ def test_each_failure_the_change_causes_is_fixed_by_a_source_change():
 # ---- report items (A-2, A-7 row 7, A-8) -----------------------------------------------------------------------------
 
 
-def _report_rule(rule, runs, report_text, **params):
-    """``agentos_v2.report`` rule ``rule`` on PHASE 3 runs ``runs`` and the report ``report_text``."""
+def _report_rule(rule, runs, report_text, edits=(), **params):
+    """``agentos_v2.report`` rule ``rule`` on PHASE 3 runs ``runs`` and the report ``report_text``; ``edits``: steps of
+    repository writes."""
     from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
 
-    ctx = SimpleNamespace(collected=SimpleNamespace(workdir="/testbed"), artifact_text=lambda aid, state="final": report_text, cache={})
+    writes = [SimpleNamespace(step=s, ok=True, op="replace", path="pkg/a.py") for s in edits]
+    ctx = SimpleNamespace(collected=SimpleNamespace(workdir="/testbed"), artifact_text=lambda aid, state="final": report_text, cache={},
+                          facts=SimpleNamespace(repo_writes=writes, writes={}))
     orig = C.comparison_runs
     C.comparison_runs = lambda ctx, after_fix=False, fallback=False: runs
     try:
@@ -478,3 +481,20 @@ def test_all_passing_needs_no_failure_left_standing():
     assert _report_rule("suite_status", [fail, left_out], text).status == "pass"  # the best match alone: as before
     assert _report_rule("suite_status", [fail, left_out], text, standing=True).status == "fail"
     assert _report_rule("suite_status", [fail, rerun], text, standing=True).status == "pass"
+
+
+def test_failed_tests_lists_every_failure_left_standing_over_the_verification_runs():
+    x = _run(10, "pytest tests/test_a.py", failed=1, passed=4, observation="FAILED tests/test_a.py::test_x - assert 1\n1 failed, 4 passed")
+    y = _run(12, "pytest tests/test_b.py", failed=1, passed=4, observation="FAILED tests/test_b.py::test_y - assert 1\n1 failed, 4 passed", targets=("tests/test_b.py",))
+    only_y = REPORT.format(notes="").replace("None - all tests passing", "- tests/test_b.py::test_y")
+    assert _report_rule("failed_listed", [x, y], only_y).status == "pass"  # the last failing run alone: as before
+    r = _report_rule("failed_listed", [x, y], only_y, standing=True)
+    assert r.status == "fail" and round(r.score, 2) == 0.5
+    # x is fixed and passes again: only y is left to list; nothing left is not applicable
+    x_again = _run(14, "pytest tests/test_a.py", passed=5)
+    assert _report_rule("failed_listed", [x, y, x_again], only_y, edits=(13,), standing=True).status == "pass"
+    y_again = _run(16, "pytest tests/test_b.py", passed=5, targets=("tests/test_b.py",))
+    assert _report_rule("failed_listed", [x, y, x_again, y_again], only_y, edits=(13, 15), standing=True).status == "not_applicable"
+    # x passes again with nothing changed in between: it failed all the same (a flaky test) and is listed
+    r = _report_rule("failed_listed", [x, y, x_again], only_y, standing=True)
+    assert r.status == "fail" and round(r.score, 2) == 0.5

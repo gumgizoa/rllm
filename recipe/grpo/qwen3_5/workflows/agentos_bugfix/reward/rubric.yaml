@@ -5275,6 +5275,7 @@ items:
       fix_round: true
       phase3_fallback: true
       script_results: true
+      standing: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include ... the list of failed tests'; IT:243 'Just note their failures')
   none_allowed: '-'

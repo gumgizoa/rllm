@@ -1646,6 +1646,27 @@ def _status(text: str, section: str) -> str:
     return M.clean_value(v or "")
 
 
+def _left_unfixed(ctx: EvalContext, results: list) -> list:
+    """The failure units of ``results`` (R1) the report has to list: each with its last failing result, unless a later
+    passing result ran it again *after a fix* -- a repository write or a check-script write between the failure and the
+    pass. A test that fails and then passes the same run again with nothing changed was not fixed: it failed (a flaky
+    test), and the report lists it. Failures fixed and run passing again are not listed (implement-tasks.md 133: the
+    failed tests of the verification)."""
+    edits = sorted({int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)}
+                   | {int(e.step) for evs in ctx.facts.writes.values() for e in evs if e.ok is not False and e.op in F.WRITE_OPS and "/checks/" in (e.path or "")})
+    last: dict = {}
+    for r in sorted(results, key=lambda x: (x.step, not x.passed)):
+        if not r.passed:
+            for u in R.failure_units(r):
+                last[u] = r
+    out = []
+    for u, f in sorted(last.items(), key=lambda x: (x[0], x[1].step)):
+        fixed = any(p_.step > f.step and R.clears(p_, u, f) and any(f.step < e <= p_.step for e in edits) for p_ in results)
+        if not fixed:
+            out.append((u, f))
+    return out
+
+
 def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: dict[str, str]) -> Result:
     """``test_counts`` / ``suite_status`` / ``failed_listed`` against the run's own check scripts' last outcomes, for a
     verification that ran no repository test: the Status and whether Failing + Errors is 0 agree with "every script
@@ -1755,6 +1776,17 @@ def report(item: Item, ctx: EvalContext) -> Result:
                         return Result.ok(item, f"{st[:30]}: check script(s) last ran failing: {failing[:3]}")
                 return Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
             return Result.no(item, f"Status {st[:40]!r} is none of the three")
+        if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
+            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs])
+            if not left:
+                return Result.not_applicable(item, "no failure left standing in the PHASE 3 runs")
+            want = [what for (kind, what), _ in left if kind == "test"]
+            if not want:  # the outputs name no failed test: Failed Tests has to list something
+                sec = M.section(text, "Failed Tests") or ""
+                listed = [ln for ln in M.content_lines(sec) if ln.strip() and not M.is_none(ln.strip("-* "))]
+                return Result.ok(item, "failures named in the report") if listed else Result.no(item, f"{left[0][0][1]} failed at step {left[0][1].step}, Failed Tests lists nothing")
+            good = [i for i in want if any(form in text for form in refs.id_forms(i))]
+            return Result.ratio(item, len(good), len(want), f"{len(good)}/{len(want)} failing tests left standing named")
         fails = [r for r in runs if r.failed + r.errors > 0]
         if not fails:
             return Result.not_applicable(item, "no failing test in the PHASE 3 runs")

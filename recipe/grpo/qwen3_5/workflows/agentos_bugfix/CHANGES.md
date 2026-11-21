@@ -583,6 +583,15 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   `test_counts`는 그대로. 평가 499런: 12런이 통과에서 실패(해결 6). 예: astropy__astropy-8707(69단계 `-k card`의 실패를 다시 돌리지 않음),
   matplotlib__matplotlib-24149(56단계 `test_cbook.py`의 18개 실패를 `-k safe_first_finite or flatiter`로만 다시 돌림).
 
+- A-7 행 7 보고서의 Failed Tests (`implement_tasks.final_verification.agentos_bugfix_report.failed_listed`, `report`의 선택 설정값 `standing`,
+  agentos_bugfix만 켬): 검증 단계에서 실패한 실행 가운데 마지막 것 하나의 실패 id와만 대조했음. 이제 검증 단계 러너 실행 전체의 실패 단위(R1) 가운데
+  고친 뒤 다시 통과하지 않은 것을 모두 적어야 함(implement-tasks.md 133행). "고친 뒤 다시 통과"는 실패 뒤 저장소나 checks/ 스크립트에 쓰기가 있고 그
+  뒤의 통과가 그 단위를 지움(`clears`). 아무것도 바꾸지 않고 다시 돌려 통과한 실패(흔들리는 테스트)는 실패한 테스트로 적어야 함. 남은 것이 없으면
+  해당 없음, id를 읽지 못한 실패만 남았으면 Failed Tests 절에 무엇이든 적혀 있으면 통과. 새 함수 `_left_unfixed`. 계획은 "남은 실패"(standing)만
+  말했으나 그대로 넣으면 자체 점검 변이 `hidden_failure`(마지막 실행 직전에 같은 명령이 한 번 실패하고 다시 돌린 통과가 뒤따름)를 잡는 항목이 없어져
+  자체 점검이 실패함. 고친 실패를 적지 않아도 된다는 계획의 뜻은 그대로 두고 고치지 않은 실패는 적게 함. `test_counts`는 그대로. 평가 499런:
+  matplotlib__matplotlib-20488 한 런이 실패에서 통과(실패 id가 온전한 id와 pytest 실패 구역 머리 줄의 맨 이름으로 두 번 읽히던 것이 R1에서 하나로 됨).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
