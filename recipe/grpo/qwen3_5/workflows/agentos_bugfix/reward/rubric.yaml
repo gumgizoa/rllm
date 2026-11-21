@@ -3686,7 +3686,6 @@ items:
       - stage_start:create_tasks
       - - first_write:tasks
         - stage_end:create_tasks
-      absent_unread: true
       written_before: true
   requirement: should
   modality_evidence: 'CT:32-34 ''Read each of these files (whichever are available)''; CT:13 reads only what is not in context

@@ -503,7 +503,10 @@ def _review_fixes(it: dict) -> None:
     if it["id"].endswith("implement_tasks.run.code_change"):  # E-5 row 18: a source file, not only a test or a backup, is changed
         p["predicate"]["exists"]["source"] = True
         it["note"] = "a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the final change"
-    if kind == f"{NEW}.read":  # D-4: a file the run never wrote is not read either
+    # D-4: a file the run never wrote is not read either. Not in create-tasks (user decision 2026-11-21): there a file the
+    # run never wrote leaves the list as before D-4 (none written: not applicable); the stage that should have written it
+    # already loses its must item, and the read item would take the same miss a second time
+    if kind == f"{NEW}.read" and not it["id"].endswith("create_tasks.run.agentos_bugfix_read.spec_inputs"):
         p["absent_unread"] = True
     if kind == f"{NEW}.report" and p.get("rule") in ("test_counts", "failed_listed", "suite_status"):  # D-1
         p["phase3_fallback"] = True

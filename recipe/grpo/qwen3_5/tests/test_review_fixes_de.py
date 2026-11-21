@@ -382,6 +382,29 @@ def test_an_absent_artifact_counts_as_not_read():
     assert C.read(item, ctx).status == "fail"
 
 
+def test_the_create_tasks_read_item_keeps_the_old_reading_of_an_absent_artifact():
+    """User decision 2026-11-21: D-4 is on for every read item but the create-tasks one."""
+    reads = {it["id"]: it["check"]["params"] for it in RUBRIC["items"] if it["check"]["kind"] == "agentos_bugfix.read"}
+    assert len(reads) == 5
+    assert [i for i, p in reads.items() if not p.get("absent_unread")] == ["agentos_bugfix.create_tasks.run.agentos_bugfix_read.spec_inputs"]
+    p = reads["agentos_bugfix.create_tasks.run.agentos_bugfix_read.spec_inputs"]
+    assert p.get("written_before") is True and p["artifacts"] == ["spec", "requirements"]
+    # the rule under those parameters: an artifact that was never written leaves the list, none written is not applicable
+    spec = "/tmp/agent-os/specs/s/spec.md"
+    f = SimpleNamespace(artifact_paths={"spec": spec, "requirements": None}, writes={spec: [WriteEvent(path=spec, step=12, op="create", content="x")]}, n_steps=50)
+    ctx = SimpleNamespace(facts=f, run=SimpleNamespace(steps=[]), collected=SimpleNamespace(workdir="/testbed"))
+    item = SimpleNamespace(id="x", stage="create_tasks", check=SimpleNamespace(params={"artifacts": ["spec", "requirements"], "written_before": True, "window": [30, 40]}), target=SimpleNamespace(type="action", ref="run"))
+    old = C._window
+    C._window = lambda item, ctx: (30, 40)
+    try:
+        r = C.read(item, ctx)
+        assert r.status == "pass" and r.score == 1.0  # spec.md is in the conversation; requirements.md is not asked for
+        f.artifact_paths = {"spec": None, "requirements": None}
+        assert C.read(item, ctx).status == "not_applicable"
+    finally:
+        C._window = old
+
+
 
 
 # ---- D-5: a run with no repository write is judged on the rest of the order chain -----------------------------
