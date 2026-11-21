@@ -536,6 +536,8 @@ def _review_fixes(it: dict) -> None:
         p["dir"] = CHECKS_DIR
     if kind == f"{NEW}.report" and p.get("rule") == "incomplete_listed":  # B-5
         p["open_tasks"] = True
+    if kind == f"{NEW}.report" and p.get("rule") == "suite_status":  # A-2: All Passing only with no failure left standing
+        p["standing"] = True
     if it["id"].endswith("implement_tasks.run.agentos_bugfix_checks.before_code"):  # D-6 row 12: per task group
         p["per_group"] = True
         p["verdict"] = True  # D-6 row 21: a script with no verdict (one that only explores) is no test

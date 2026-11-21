@@ -428,3 +428,53 @@ def test_each_failure_the_change_causes_is_fixed_by_a_source_change():
     # a check script of the run's own: its own edit fixes it
     own = _r(32, False, "/s/checks/c.py", runner=False)
     assert _p3([own], src=(10,), test_edits=(34,), test_edits_of={"/s/checks/c.py": [34]})[edited] == (1.0, True)
+
+
+# ---- report items (A-2, A-7 row 7, A-8) -----------------------------------------------------------------------------
+
+
+def _report_rule(rule, runs, report_text, **params):
+    """``agentos_v2.report`` rule ``rule`` on PHASE 3 runs ``runs`` and the report ``report_text``."""
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    ctx = SimpleNamespace(collected=SimpleNamespace(workdir="/testbed"), artifact_text=lambda aid, state="final": report_text, cache={})
+    orig = C.comparison_runs
+    C.comparison_runs = lambda ctx, after_fix=False, fallback=False: runs
+    try:
+        return C.report(_item({"rule": rule, "suite_section": "2. Test Suite Results", **params}, ref="final_verification"), ctx)
+    finally:
+        C.comparison_runs = orig
+
+
+def _run(step, segment, failed=0, passed=5, observation="", targets=("tests/test_a.py",)):
+    return SimpleNamespace(step=step, segment=segment, command=segment, targets=list(targets), failed=failed, errors=0, passed=passed, skipped=0, collected=passed + failed, observation=observation)
+
+
+REPORT = """# Verification Report
+
+## 2. Test Suite Results
+
+**Status:** ✅ All Passing
+
+### Test Summary
+- **Total Tests:** 5
+- **Passing:** 5
+- **Failing:** 0
+- **Errors:** 0
+
+### Failed Tests
+None - all tests passing
+
+### Notes
+{notes}
+"""
+
+
+def test_all_passing_needs_no_failure_left_standing():
+    fail = _run(10, "pytest tests/test_a.py", failed=1, passed=4, observation="FAILED tests/test_a.py::test_x - assert 1\n1 failed, 4 passed")
+    left_out = _run(12, "pytest tests/test_a.py --deselect tests/test_a.py::test_x", passed=4)
+    rerun = _run(12, "pytest tests/test_a.py::test_x", passed=1)
+    text = REPORT.format(notes="")
+    assert _report_rule("suite_status", [fail, left_out], text).status == "pass"  # the best match alone: as before
+    assert _report_rule("suite_status", [fail, left_out], text, standing=True).status == "fail"
+    assert _report_rule("suite_status", [fail, rerun], text, standing=True).status == "pass"

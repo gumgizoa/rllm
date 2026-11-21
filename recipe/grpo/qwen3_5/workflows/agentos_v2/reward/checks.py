@@ -1674,7 +1674,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1732,7 +1732,14 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 return Result.no(item, "no Test Suite Results Status")
             bad = best.failed + best.errors
             if re.search(r"(?i)all\s+passing", st):
-                return Result.ok(item, "All Passing, no failure") if bad == 0 else Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
+                if bad:
+                    return Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
+                if p.get("standing"):  # A-2: no failure of the verification left standing -- a run that left the test out does not clear it
+                    left = R.standing_units([runner_result(r, ctx.collected.workdir) for r in runs])
+                    if left:
+                        (kind, what), f = left[0]
+                        return Result.no(item, f"All Passing, but {what} failed at step {f.step} and no later run ran it passing ({len(left)} left)")
+                return Result.ok(item, "All Passing, no failure")
             if re.search(r"(?i)some\s+failures|critical\s+failures", st):
                 if bad > 0:
                     return Result.ok(item, f"{st[:30]}: {bad} failures / errors")

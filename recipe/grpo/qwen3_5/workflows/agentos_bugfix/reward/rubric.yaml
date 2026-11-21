@@ -5380,6 +5380,7 @@ items:
       dir: '{artifact}/{SPEC}/checks'
       phase3_fallback: true
       script_results: true
+      standing: true
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)
   none_allowed: '-'

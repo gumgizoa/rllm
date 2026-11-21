@@ -576,6 +576,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   실패 2런(astropy__astropy-13236: 변경 탓인 기존 테스트 실패 뒤 테스트 파일만 고침; django__django-13658: 실패한 자기 스크립트를 고치지 않고 다른
   스크립트만 고침), 해당 없음 1점에서 실패 1런, 실패에서 해당 없음 1점 1런.
 
+- A-2 보고서의 All Passing (`implement_tasks.final_verification.agentos_bugfix_report.suite_status`, 공용 `report` 규칙의 선택 설정값 `standing`,
+  agentos_bugfix만 켬): Status가 All Passing이면 보고서와 개수가 가장 잘 맞는 실행 하나에 실패가 없는지만 봤음. 그래서 실패한 테스트를 빼고
+  (`--deselect`, `-k "not …"`) 다시 돌린 통과를 내세워 All Passing으로 적어도 맞았음. 이제 그에 더해 검증 단계 러너 실행(고침 뒤의 것, 변경을 치운
+  실행 제외)의 실패 단위(R1)가 모두 다시 통과했어야 함(implement-tasks.md 133행: 보고서의 실패 목록과 상태). Some Failures·Critical Failures 갈래와
+  `test_counts`는 그대로. 평가 499런: 12런이 통과에서 실패(해결 6). 예: astropy__astropy-8707(69단계 `-k card`의 실패를 다시 돌리지 않음),
+  matplotlib__matplotlib-24149(56단계 `test_cbook.py`의 18개 실패를 `-k safe_first_finite or flatiter`로만 다시 돌림).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
