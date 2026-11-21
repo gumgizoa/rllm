@@ -523,3 +523,16 @@ def test_a_tick_over_a_failure_is_excused_only_by_r2_not_by_the_report_listing_i
 
     _, rep, _ = _golden_with("expected_failure", edit=plain)
     assert rep.results["agentos_bugfix." + tp].status == "fail"
+
+
+def test_the_reason_may_follow_on_the_lines_under_the_failed_test():
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    tid = "tests/test_d.py::test_m"
+    section = "- `tests/test_d.py::test_m`\n  - **Reason:** Test was asserting the buggy behavior\n- `tests/test_d.py::test_n`\n  - unrelated\n"
+    entries = C._entries(section, {"tests/test_d.py::test_m"})
+    assert entries == ["- `tests/test_d.py::test_m`\n  - **Reason:** Test was asserting the buggy behavior"]
+    assert any(rx.search(entries[0]) for rx in C.EXPECTED_WORDS)
+    report = "## 2. Test Suite Results\n\n### Failed Tests\n" + section + "\n### Notes\nnone\n"
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": report, rubric=SimpleNamespace(artifacts={"final_verification": None}), cache={})
+    assert C.reported_as_expected(ctx, tid) and not C.reported_as_expected(ctx, "tests/test_d.py::test_n")

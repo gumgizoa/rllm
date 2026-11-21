@@ -605,6 +605,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   2런이 실패에서 통과(matplotlib__matplotlib-14623, sphinx-doc__sphinx-7440: 체크 위의 실패가 변경 없이도 실패하는 테스트였는데 보고서에 적지 않아
   전에는 예외를 받지 못했음).
 
+- R2 보강 Failed Tests의 항목: R2의 첫째(옛 동작을 단언하는 기존 테스트)가 보고서의 이유 문구를 그 테스트 이름이 있는 줄에서만 찾았음. 이유를 이름 줄
+  아래에 들여 이어 적은 보고서("- `…::test_m`" 아래 "  - **Reason:** Test was asserting the buggy behavior")는 빠지지 않았음. 이제 이름 줄과 그 아래
+  더 깊이 들여 쓴 줄까지를 그 항목으로 읽음(`_entries`). 평가 499런: sphinx-doc__sphinx-9698 한 런(해결)의 `ticked_passing`이 실패에서 통과,
+  penalty 항목 셋이 실패에서 해당 없음 1점.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

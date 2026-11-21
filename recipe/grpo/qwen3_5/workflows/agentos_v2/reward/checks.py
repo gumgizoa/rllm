@@ -979,6 +979,25 @@ def _paragraphs(text: str) -> list[str]:
     return out
 
 
+def _entries(section: str, forms: set[str]) -> list[str]:
+    """Each entry of a list section that names one of ``forms``: the line with the name and the lines under it that are
+    indented deeper (a reason on the next line, ``- **Reason:** ...`` sub-bullets), up to the next line at the same or a
+    shallower indent."""
+    lines = section.splitlines()
+    out = []
+    for i, ln in enumerate(lines):
+        if not any(f in ln for f in forms):
+            continue
+        ind = len(ln) - len(ln.lstrip())
+        block = [ln]
+        for nxt in lines[i + 1 :]:
+            if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= ind:
+                break
+            block.append(nxt)
+        out.append("\n".join(block))
+    return out
+
+
 def _test_names_of(test_id: str) -> set[str]:
     """The function / class names of a test id (``file::Class::test_x[1]`` -> Class, test_x; ``mod.Class.test_x`` too)."""
     parts = test_id.split("::")[1:] if "::" in test_id else test_id.split(".")[-2:]
@@ -986,14 +1005,15 @@ def _test_names_of(test_id: str) -> set[str]:
 
 
 def reported_as_expected(ctx: EvalContext, test_id: str) -> bool:
-    """The final report lists ``test_id`` under Failed Tests, and that line -- or a paragraph of Notes that names the
-    test or its file -- says it asserts the behavior the task changes (:data:`EXPECTED_WORDS`)."""
+    """The final report lists ``test_id`` under Failed Tests, and that entry (its line and the lines indented under it)
+    -- or a paragraph of Notes that names the test or its file -- says it asserts the behavior the task changes
+    (:data:`EXPECTED_WORDS`)."""
     text = _text(ctx, "final_verification") if "final_verification" in ctx.rubric.artifacts else None
     if not text:
         return False
     forms = refs.id_forms(test_id)
     failed = M.section(text, "Failed Tests", match="prefix") or ""
-    lines = [ln for ln in failed.splitlines() if any(f in ln for f in forms)]
+    lines = _entries(failed, forms)
     if not lines:
         return False
     file_part = test_id.split("::")[0] if "::" in test_id else None
