@@ -1695,7 +1695,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1776,6 +1776,9 @@ def report(item: Item, ctx: EvalContext) -> Result:
                         return Result.ok(item, f"{st[:30]}: check script(s) last ran failing: {failing[:3]}")
                 return Result.no(item, f"{st[:30]}, but step {best.step} has no failure")
             return Result.no(item, f"Status {st[:40]!r} is none of the three")
+        # A-8 (``in_section``): a failing test counts as named only inside the Failed Tests section (the Test Suite Results
+        # section when the report has none), not in Notes or elsewhere
+        hay = ((M.section(text, "Failed Tests", match="prefix") or M.section(text, suite, match="prefix") or "") if p.get("in_section") else text)
         if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
             left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs])
             if not left:
@@ -1785,8 +1788,8 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 sec = M.section(text, "Failed Tests") or ""
                 listed = [ln for ln in M.content_lines(sec) if ln.strip() and not M.is_none(ln.strip("-* "))]
                 return Result.ok(item, "failures named in the report") if listed else Result.no(item, f"{left[0][0][1]} failed at step {left[0][1].step}, Failed Tests lists nothing")
-            good = [i for i in want if any(form in text for form in refs.id_forms(i))]
-            return Result.ratio(item, len(good), len(want), f"{len(good)}/{len(want)} failing tests left standing named")
+            good = [i for i in want if any(form in hay for form in refs.id_forms(i))]
+            return Result.ratio(item, len(good), len(want), f"{len(good)}/{len(want)} failing tests left standing named" + (" in Failed Tests" if p.get("in_section") else ""))
         fails = [r for r in runs if r.failed + r.errors > 0]
         if not fails:
             return Result.not_applicable(item, "no failing test in the PHASE 3 runs")
@@ -1796,7 +1799,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
             sec = M.section(text, "Failed Tests") or ""
             listed = [ln for ln in M.content_lines(sec) if ln.strip() and not M.is_none(ln.strip("-* "))]
             return Result.ok(item, "failures named in the report") if listed else Result.no(item, f"step {r.step} failed, Failed Tests lists nothing")
-        good = [i for i in ids if any(form in text for form in refs.id_forms(i))]
+        good = [i for i in ids if any(form in hay for form in refs.id_forms(i))]
         return Result.ratio(item, len(good), len(ids), f"{len(good)}/{len(ids)} failing tests named")
     if rule in ("tasks_status", "incomplete_listed"):
         ts = task_lines(_text(ctx, "tasks"))

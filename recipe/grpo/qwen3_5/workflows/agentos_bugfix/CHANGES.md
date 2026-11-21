@@ -592,6 +592,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   자체 점검이 실패함. 고친 실패를 적지 않아도 된다는 계획의 뜻은 그대로 두고 고치지 않은 실패는 적게 함. `test_counts`는 그대로. 평가 499런:
   matplotlib__matplotlib-20488 한 런이 실패에서 통과(실패 id가 온전한 id와 pytest 실패 구역 머리 줄의 맨 이름으로 두 번 읽히던 것이 R1에서 하나로 됨).
 
+- A-8 실패한 테스트는 Failed Tests 절에 (`failed_listed`, `report`의 선택 설정값 `in_section`, agentos_bugfix만 켬): 실패한 테스트의 이름을 보고서
+  어디에서든 찾았음. 그래서 Failed Tests에 "None - all tests passing"을 적고 Notes에만 "무관한 실패"로 적은 보고서가 통과했음. 이제 Failed Tests 절
+  안에서만 찾고, 그 절이 없으면 Test Suite Results 절에서 찾음(implement-tasks.md 133행, 보고서 양식 188 ~ 189행). 평가 499런: astropy__astropy-8707,
+  astropy__astropy-8872 두 런이 통과에서 실패(둘 다 해결한 런). 기준 런 `suite_failures` 변형은 그대로 만점.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

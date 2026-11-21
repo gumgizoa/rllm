@@ -498,3 +498,12 @@ def test_failed_tests_lists_every_failure_left_standing_over_the_verification_ru
     # x passes again with nothing changed in between: it failed all the same (a flaky test) and is listed
     r = _report_rule("failed_listed", [x, y, x_again], only_y, standing=True)
     assert r.status == "fail" and round(r.score, 2) == 0.5
+
+
+def test_a_failing_test_named_only_in_notes_is_not_listed():
+    x = _run(10, "pytest tests/test_a.py", failed=1, passed=4, observation="FAILED tests/test_a.py::test_x - assert 1\n1 failed, 4 passed")
+    notes_only = REPORT.format(notes="- tests/test_a.py::test_x fails, unrelated to this change")
+    assert _report_rule("failed_listed", [x], notes_only).status == "pass"  # anywhere in the report: as before
+    assert _report_rule("failed_listed", [x], notes_only, in_section=True).status == "fail"
+    listed = REPORT.format(notes="").replace("None - all tests passing", "- tests/test_a.py::test_x - assert 1")
+    assert _report_rule("failed_listed", [x], listed, in_section=True, standing=True).status == "pass"

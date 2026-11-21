@@ -538,6 +538,8 @@ def _review_fixes(it: dict) -> None:
         p["open_tasks"] = True
     if kind == f"{NEW}.report" and p.get("rule") in ("suite_status", "failed_listed"):  # A-2, A-7 row 7: the failures left standing
         p["standing"] = True
+    if kind == f"{NEW}.report" and p.get("rule") == "failed_listed":  # A-8: named inside Failed Tests (implement-tasks.md 133, the template)
+        p["in_section"] = True
     if it["id"].endswith("implement_tasks.run.agentos_bugfix_checks.before_code"):  # D-6 row 12: per task group
         p["per_group"] = True
         p["verdict"] = True  # D-6 row 21: a script with no verdict (one that only explores) is no test
