@@ -935,6 +935,114 @@ def _report_failures(ctx: EvalContext, suite: str) -> bool:
     return any(ln.strip() and not M.is_none(ln.strip("-* ")) for ln in M.content_lines(M.section(text, "Failed Tests") or ""))
 
 
+# --------------------------------------------------------------------------------------------
+# Failures the documents do not ask the run to fix (R2 of the agentos_bugfix reward review; agentos_v2's rubric uses none)
+# --------------------------------------------------------------------------------------------
+# how a report says that a failing test asserts the behavior the task changes (implement-tasks.md of agentos_bugfix, T1:
+# "list that test under Failed Tests ..., noting that it is an expected failure")
+EXPECTED_WORDS = (
+    re.compile(r"(?i)\b(?:asserts?|expects?|checks?|tests?|encodes?)\b[^.\n]{0,120}\b(?:old|previous|prior|former|original|buggy|legacy)\s+behaviou?r"),
+    re.compile(r"(?i)\b(?:asserts?|expects?|checks?)\b[^.\n]{0,120}\b(?:this|the)\s+(?:task|change|fix|issue)\s+(?:removes|changes|fixes|asks)"),
+    re.compile(r"(?i)\bexpected\s+(?:to\s+fail|failure)\b"),
+    re.compile(r"(?i)\btest\s+(?:should|needs?\s+to)\s+be\s+updated\b"),
+)
+_BULLET_START = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+
+
+def runner_result(r, workdir: str | None) -> R.TestResult:
+    """A valid runner run as a :class:`results.TestResult`: its files (``WHOLE`` for the whole suite), what narrows it,
+    and the ids of its failed tests when its output names them all."""
+    files = R.run_files(r, workdir)
+    whole = bool(_whole(r, workdir))
+    return R.TestResult(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (R.WHOLE,), R.selection(r.segment), R.run_failed_ids(r.failed, r.errors, r.observation or ""))
+
+
+def stashed_results(ctx: EvalContext) -> list[R.TestResult]:
+    """The valid runner runs made with the change stashed away (the complement of :func:`change_runs`), as results."""
+    key = "agentos_v2.stashed_results"
+    if key not in ctx.cache:
+        fx = ctx.facts
+        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
+        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))
+        ctx.cache[key] = [runner_result(r, ctx.collected.workdir) for r in fx.runs if r.valid and r.kind == "test" and R.run_stashed(r, before, marks)]
+    return ctx.cache[key]
+
+
+def _paragraphs(text: str) -> list[str]:
+    """Blocks of ``text`` split at blank lines and at the start of a bullet or numbered item."""
+    out, cur = [], []
+    for ln in text.splitlines():
+        if not ln.strip() or _BULLET_START.match(ln):
+            if cur:
+                out.append("\n".join(cur))
+            cur = [ln] if ln.strip() else []
+        else:
+            cur.append(ln)
+    if cur:
+        out.append("\n".join(cur))
+    return out
+
+
+def _test_names_of(test_id: str) -> set[str]:
+    """The function / class names of a test id (``file::Class::test_x[1]`` -> Class, test_x; ``mod.Class.test_x`` too)."""
+    parts = test_id.split("::")[1:] if "::" in test_id else test_id.split(".")[-2:]
+    return {p.split("[")[0] for p in parts if p}
+
+
+def reported_as_expected(ctx: EvalContext, test_id: str) -> bool:
+    """The final report lists ``test_id`` under Failed Tests, and that line -- or a paragraph of Notes that names the
+    test or its file -- says it asserts the behavior the task changes (:data:`EXPECTED_WORDS`)."""
+    text = _text(ctx, "final_verification") if "final_verification" in ctx.rubric.artifacts else None
+    if not text:
+        return False
+    forms = refs.id_forms(test_id)
+    failed = M.section(text, "Failed Tests", match="prefix") or ""
+    lines = [ln for ln in failed.splitlines() if any(f in ln for f in forms)]
+    if not lines:
+        return False
+    file_part = test_id.split("::")[0] if "::" in test_id else None
+    notes = M.section(text, "Notes", match="prefix") or ""
+    paras = [b for b in _paragraphs(notes) if any(f in b for f in forms) or (file_part and file_part.lstrip("./") in b)]
+    return any(rx.search(x) for x in (*lines, *paras) for rx in EXPECTED_WORDS)
+
+
+def excused_failures(ctx: EvalContext, units) -> set:
+    """Of ``units`` -- (failure unit, the result that failed it), as :func:`results.standing_units` gives them -- the ones
+    the documents do not ask the run to fix (implement-tasks.md of agentos_bugfix 39, 135-138):
+
+    * an existing test that asserts the behavior the task asks to change: a test unit of a runner run, in a test file the
+      run did not create, not a test function the run added (F-2's reading), that the final report lists under Failed
+      Tests and says asserts the old behavior (:func:`reported_as_expected`);
+    * a failure that is there without the change: a valid runner run with the change stashed away ran the unit and
+      failed it -- the test among its failed ids, or (a file unit) a run of that file that failed. When the check was made
+      does not matter: it is what the run itself found out.
+    """
+    out = set()
+    stashed = [s for s in stashed_results(ctx) if not s.passed]
+    added = None
+    wd = (ctx.collected.workdir or "").rstrip("/") + "/"
+    for unit, failing in units:
+        kind, what = unit
+        if kind == "test":
+            if any(any(R._under(what, i) and R._under(i, what) for i in s.failed_ids) for s in stashed):
+                out.add(unit)
+                continue
+            if not failing.runner:
+                continue
+            if added is None:
+                added = {n for _, names in module_tests(ctx).values() for n in names}
+            rel = what.split("::")[0].removeprefix(wd).lstrip("./") if "::" in what else None
+            if rel and F.is_new_path(ctx, rel):
+                continue
+            if _test_names_of(what) & added:
+                continue
+            if reported_as_expected(ctx, what):
+                out.add(unit)
+        elif any(R.runs_key(s, what) for s in stashed):
+            out.add(unit)
+    return out
+
+
 @register(
     "agentos_v2.tasks",
     params={"rule": True, "artifact": False, "window": False, "dir": False, "additions": False, "suite_section": False, "wide_words": False, "impl_counts": False, "name_files": False, "work_between": False},

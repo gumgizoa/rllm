@@ -24,7 +24,7 @@
 
 | # | 대상 | agentos_v2 | agentos_bugfix | 이유 |
 |---|---|---|---|---|
-| T1 | 테스트 실행 범위 | 구현 중(implement-tasks PHASE 2, create-tasks 예시·제약): "자기가 쓴 테스트만 실행". 최종 검증(PHASE 3): "전체 테스트를 실행" | 두 곳 모두 "자기가 쓴 테스트 + 수정한 코드의 기존 테스트". 전체 테스트는 몇 분 안에 끝날 때만 추가로. 구현 중 문장에 "task가 바꾸라고 한 동작을 기대하는 기존 테스트는 실패하는 것이 맞으니 수정을 그대로 두고 그 테스트를 최종 보고서에 적는다"를 덧붙임. "이 단계에서 전체 테스트를 돌리지 말 것"은 그대로 | 구현 중에는 기존 테스트가 안 돌고, 마지막의 전체 테스트는 거의 지켜지지 않음. 평가(wf-floor-tcx): 정답 test patch가 건드리는 파일을 실행한 런 73.8% → 58.9%, 편집 뒤 테스트 횟수 7.2 → 4.5, 전체 테스트를 돌린 런 6.8%(34런 중 시간 초과 12) |
+| T1 | 테스트 실행 범위 | 구현 중(implement-tasks PHASE 2, create-tasks 예시·제약): "자기가 쓴 테스트만 실행". 최종 검증(PHASE 3): "전체 테스트를 실행" | 두 곳 모두 "자기가 쓴 테스트 + 수정한 코드의 기존 테스트". 전체 테스트는 몇 분 안에 끝날 때만 추가로. 구현 중 문장에 "task가 바꾸라고 한 동작을 기대하는 기존 테스트는 실패하는 것이 맞으니 수정을 그대로 두고 그 테스트를 최종 보고서에 적는다"를 덧붙임. (2026-11-21 A-3: "최종 보고서의 Failed Tests에 적고, 예상된 실패(과제가 바꾸라는 동작을 단언함)라고 밝힌다"로 바꿈. 그 실패를 penalty 항목에서 빼는 규칙이 보고서의 말을 읽기 때문) "이 단계에서 전체 테스트를 돌리지 말 것"은 그대로 | 구현 중에는 기존 테스트가 안 돌고, 마지막의 전체 테스트는 거의 지켜지지 않음. 평가(wf-floor-tcx): 정답 test patch가 건드리는 파일을 실행한 런 73.8% → 58.9%, 편집 뒤 테스트 횟수 7.2 → 4.5, 전체 테스트를 돌린 런 6.8%(34런 중 시간 초과 12) |
 | T2 | 테스트 작성 기준 | implement-tasks의 test-writing standard 7줄 | "개발 중 테스트는 최소로", "핵심 사용자 흐름만 테스트", "edge case 테스트는 미룸" 세 줄을 뺌. 나머지 4줄(동작을 테스트, 이름, mock, 속도)은 그대로 | 버그 수정은 특정 입력의 예외 동작이 대상인 경우가 많고, 그것을 재현하는 테스트가 곧 edge case 테스트임. 따로 잰 수치는 없음. create-tasks 예시의 "Skip exhaustive coverage of all methods and edge cases" 등 같은 취지의 4줄은 손대지 않음 |
 | T3 | 구현 중에 찾은 작업 | 명령이 끝난 파일은 고치지 않음. tasks.md는 체크박스만 예외. "배정된 task만 구현" | 구현 중에 task에 없는 필요한 작업(고칠 다른 파일, 빠진 경우)을 찾으면 tasks.md에 먼저 추가한 뒤 배정된 task로 구현함. 줄 추가만 허용하고 있던 task는 고치거나 지우지 않음. spec.md·requirements.md는 그대로 고치지 않음 | 계획에 적힌 것이 곧 고쳐지는 범위임(평가 wf-floor-tcx: 계획이 정답 파일을 모두 담은 런은 정답 파일을 모두 고친 비율 89.5%, 다 담지 못한 런은 24.1%). 새로 찾은 작업을 정식으로 구현할 길을 둠. 모델이 이 길을 쓸지는 확인되지 않음 |
 | T4 | 보고서의 전체 Status | 머리의 Status 칸에 세 값(Passed / Passed with Issues / Failed)만 있고 언제 무엇을 적는지 기준이 없음 | 보고서 양식 뒤에 기준을 적음: 두 절의 Status에서 정해짐. All Complete + All Passing이면 Passed, ⚠️로 표시한 task가 있거나 이 변경을 위해 쓴 것이 아닌 테스트가 실패하면(Some Failures) Passed with Issues, 이 변경을 위해 쓴 테스트가 실패하면(Critical Failures) Failed | 평가(wf-floor-tcx)에서 보고서의 96.2%가 Passed이고, 그중 61런은 마지막 검증이 실패, 42런은 같은 보고서의 Failing 칸이 1 이상. 해결률보다 보고서 정확도의 문제 |
@@ -518,6 +518,21 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   테스트 파일(`facts.is_new_path`)인 실행. implement-tasks.md 39행 "the existing tests of the code you changed". 새 함수 `only_own_tests`. `-k`로 고른
   실행은 보지 않음. 평가 499런: astropy__astropy-13398 한 런의 `phase2_run.existing_and_own`이 통과에서 실패(구현 단계의 실행이 모두 런이 더한 함수의
   id만 고름). 준수율 변화 0.
+
+- R2와 A-3 문서가 고치라고 하지 않는 실패 (`agentos_v2/reward/checks.py`의 새 함수 `excused_failures`, agentos_v2의 rubric은 쓰지 않음; `penalty_tests.py`):
+  penalty의 실패 항목 넷(구현 단계 `edited_after_fail`·`last_result_pass`, 검증 단계 `edited_after_fail`·`last_result_pass`)은 모든 실패를 고칠 대상으로
+  봤음. 이제 두 가지 실패 단위(R1)를 뺌. (1) 과제가 바꾸라는 동작을 단언하는 기존 테스트(implement-tasks.md 39행, 137행): 러너 실행의 테스트 단위이고,
+  런이 만든 테스트 파일도 런이 더한 테스트 함수도 아니며, 최종 보고서의 Failed Tests 절에 그 이름이 있고 그 줄이나 Notes에서 그 이름·파일을 담은
+  문단이 "옛 동작을 단언함"을 말함(`EXPECTED_WORDS`의 네 문구, `reported_as_expected`). (2) 변경 없이도 실패하는 테스트(135, 138행): 변경을 치운
+  유효 러너 실행(`stashed_results`)이 그 테스트를 실패 id로 냈거나 그 파일을 돌려 실패함. 시점은 보지 않음. 실패 단위가 모두 빠진 결과는 네 항목에서
+  실패가 아니고, 빼고 나서 실패가 없으면 해당 없음(테스트를 돌렸으므로 1점). `cause_checked`는 그대로(모든 러너 실패에 원인 확인을 물음). 문서도
+  맞춤(T1 행): 39행 끝을 "list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts
+  the behavior the task asks to change)."로 바꿔(`build.py`; `derive_rubric.py`의 `_T1_EXPECTED`와 `REWORD`), 문서대로 쓴 보고서가 늘 셋째 문구에
+  맞게 함. 새 함수 `runner_result`, `stashed_results`, `reported_as_expected`. 기준 런의 `expected_failure` 변형의 penalty가 0.5556에서 1.0.
+  평가 499런: 14런. 구현 단계 `edited_after_fail` 6런·`last_result_pass` 5런이 실패에서 통과, 각 5런이 실패에서 해당 없음 1점, 각 1런이 실패에서
+  해당 없음 0점(django__django-15037: 남은 결과가 없음), 검증 단계 `last_result_pass` 3런이 실패에서 해당 없음 1점, 1런이 통과에서 해당 없음 1점.
+  빠진 단위는 22런의 47개(변경을 치운 실행으로 41개, 보고서의 말로 6개: django__django-15315, matplotlib__matplotlib-22871, pylint-dev__pylint-4661,
+  scikit-learn__scikit-learn-26194. 넷 다 보고서가 그 테스트를 옛 동작이나 버그를 단언한다고 적음). 준수율 변화 0, penalty 점수 평균 0.48452에서 0.48987.
 
 ## 확인
 

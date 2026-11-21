@@ -255,3 +255,59 @@ def test_a_run_of_only_added_test_functions_or_created_test_files_is_no_existing
     assert not T.only_own_tests(ctx, run("pytest tests/test_slug.py::test_sep_kw tests/test_wrap.py"), slug + ("tests/test_wrap.py",), False, added)
     assert T.only_own_tests(ctx, run("pytest tests/test_new.py"), ("tests/test_new.py",), False, added)  # a test file the run created
     assert not T.only_own_tests(ctx, run("pytest"), (), True, added)  # the whole suite
+
+
+# ---- R2 and A-3: failures the documents do not ask the run to fix ------------------------------------------------------
+
+
+def test_implement_tasks_says_the_expected_failure_is_listed_under_failed_tests_as_one():
+    assert ("leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an "
+            "expected failure (it asserts the behavior the task asks to change).") in IT_DOC.replace("\n", " ")
+    quotes = [s["quote"] for s in ITEMS["implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing"]["sources"]]
+    assert D._T1_EXPECTED in quotes
+    # the report written as the document says always carries the third wording
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    assert any(rx.search("noting that it is an expected failure") for rx in C.EXPECTED_WORDS)
+
+
+def _penalty_of(rep):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
+
+    got = penalty.post(rep)
+    return got["penalty"], {k.split(".penalty.", 1)[1] for k, v in got.items() if ".penalty." in k and not k.startswith("penalty") and v == 0.0}
+
+
+def test_an_existing_test_of_the_old_behaviour_left_failing_and_reported_as_such_is_excused():
+    _, rep, ctx = _golden_with("expected_failure")
+    assert _penalty_of(rep) == (1.0, set())
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    tid = golden.EDGE_TEST[0]
+    assert C.reported_as_expected(ctx, tid)
+    # the report names it but gives no reason: the failure stands, the four items are lost as before
+    def plain(col):
+        path = next(p for p in col.files if p.endswith("final-verification.md"))
+        col.files[path] = col.files[path].replace("It asserts the edge hyphen this task removes, so the change was left as it is.", "The change was left as it is.")
+
+    _, rep, ctx = _golden_with("expected_failure", edit=plain)
+    assert not C.reported_as_expected(ctx, tid)
+    pen, zero = _penalty_of(rep)
+    assert {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_fail.last_result_pass"} <= zero
+
+
+def test_a_failure_the_change_stashed_away_also_shows_is_excused_and_one_it_does_not_is_not():
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    tid = "tests/test_a.py::test_x"
+    fail = R.TestResult(10, False, True, ("tests/test_a.py",), (), (tid,))
+    ctx = SimpleNamespace(cache={"agentos_v2.stashed_results": [R.TestResult(12, False, True, ("tests/test_a.py",), (), (tid,))]},
+                          collected=SimpleNamespace(workdir="/testbed", diff={}, base_present=None, files={}), facts=SimpleNamespace(_created={}, repo_writes=[]),
+                          rubric=SimpleNamespace(artifacts={}))
+    assert C.excused_failures(ctx, [(("test", tid), fail)]) == {("test", tid)}
+    assert C.excused_failures(ctx, [(("test", "tests/test_a.py::test_y"), fail)]) == set()
+    ctx.cache["agentos_v2.stashed_results"] = [R.TestResult(12, False, True, ("tests",))]
+    assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == {("key", "tests/test_a.py")}
+    ctx.cache["agentos_v2.stashed_results"] = [R.TestResult(12, True, True, ("tests",))]
+    assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == set()

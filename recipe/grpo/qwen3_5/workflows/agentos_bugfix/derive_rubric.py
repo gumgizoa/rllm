@@ -103,6 +103,8 @@ REWORD = (
     # quotes agentos_v2's rubric still carries from before its 2026-11-07 / 11-13 wording fixes
     ("leave a file alone once its command is over, except for the checkboxes in `tasks.md`.", "leave a file alone once its command is over."),
     ("with the test runner) and ensuring those tests pass.", "with the test runner) and the existing tests of the code you changed, and ensuring they pass."),
+    # T1 with A-3 (reward review 2026-11-21): the expected failure is listed under Failed Tests, said to be one
+    ("leave your change as it is and list that test in the final verification report.", "leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change)."),
     # T6 fix round
     ("DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.", "DO NOT attempt to fix it.  Just note it in your final verification report."),
     ("DO NOT attempt to fix any failing tests.", "DO NOT attempt to fix it."),
@@ -247,6 +249,10 @@ def derive() -> tuple[dict, dict]:
 # Items for rules only this workflow's documents state: (sibling item to copy and insert after, new rule, extra params,
 # quotes of implement-tasks.md, modality evidence, note).
 _T5_FIX = "IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again before you tick the task group's last sub-task."
+# T1 with A-3 of the reward review (2026-11-21): the expected failure is listed under Failed Tests and said to be one, so
+# the report's words name it (the rule that leaves such a failure out of the penalty items reads them)
+_T1_EXPECTED = ("An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests "
+                "in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change).")
 _T5_WARN = "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on."
 ADDED = (
     (f"{NEW}_report.suite_status", "overall_status", {"suite_section": SUITE_NEW},
@@ -258,7 +264,7 @@ ADDED = (
      "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
      "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1)"),
     (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": CHECKS_DIR, "suite_section": SUITE_NEW},
-     (_T5_FIX, "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report."),
+     (_T5_FIX, _T1_EXPECTED),
      "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
      "no task group's test sub-task ticked while the last test result since the code last changed is a failure, unless the report's test results show a failure (T5)"),
     (f"{NEW}_tasks.ticked_passing", "warned_after_attempts", {"dir": CHECKS_DIR},

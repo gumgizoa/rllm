@@ -265,10 +265,11 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "T1: test scope; T9: every implementation task group writes its tests (create-tasks), so there is no 'if any'"),
         ("sub", "run through that module with the test runner) and ensuring those tests pass.",
          "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "
-         "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.",
-         "T1: test scope; an existing test of the old behavior is not a reason to undo the change"),
-        ("sub", "and list that test in the final verification report.",
-         "and list that test in the final verification report.\n"
+         "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final "
+         "verification report, noting that it is an expected failure (it asserts the behavior the task asks to change).",
+         "T1: test scope; an existing test of the old behavior is not a reason to undo the change; A-3: it is listed under Failed Tests as an expected failure"),
+        ("sub", "(it asserts the behavior the task asks to change).",
+         "(it asserts the behavior the task asks to change).\n"
          "- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. "
          "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.",
          "T5: a failing test is fixed before the tick; ⚠️ after two attempts"),

@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: b8ad5f8139c184098f06c21daac0ac1cc5b183e0c866de8d4cad57adb57cdf6c
+  sha256: b0eda78bce8127f1fbe0c7967f8ce216bc6749dc98e69e831e5360a0122f12d4
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -3933,7 +3933,8 @@ items:
     - 39
     - 39
     quote: 'An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it
-      is and list that test in the final verification report.'
+      is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it
+      asserts the behavior the task asks to change).'
   impl_refs: []
   derived_by: manual
   template: ''

@@ -121,6 +121,7 @@ class Timeline:
     own_late: set[int] = field(default_factory=set)
     existing_late: set[int] = field(default_factory=set)
     group_ends: list[int] = field(default_factory=list)  # steps at which a task group becomes fully ticked
+    excused: set = field(default_factory=set)  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
     p2_end: int = 0
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
     report: int | None = None
@@ -203,7 +204,7 @@ def timeline(ctx: Any) -> Timeline:
             continue
         files = R.run_files(r, wd)
         whole = bool(C._whole(r, wd))
-        res = Result(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (_WHOLE,), R.selection(r.segment))
+        res = C.runner_result(r, wd)  # with the ids of its failed tests when the output names them all
         if away_now:
             tl.stash_results.append(res)
             continue
@@ -222,6 +223,8 @@ def timeline(ctx: Any) -> Timeline:
             if late:
                 tl.own_late.add(res.step)
     tl.results.sort(key=lambda x: (x.step, not x.passed))  # at one step, a failing result is read last
+    # the failures the documents do not ask the run to fix (R2): left out of the failure items
+    tl.excused = C.excused_failures(ctx, [(u, r) for r in tl.results if not r.passed for u in R.failure_units(r)])
 
     # phases
     has_tasks = bool(fx.artifact_paths.get("tasks"))
@@ -269,6 +272,10 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     out: dict[str, tuple[float, bool]] = {}
     edits = sorted(tl.src + tl.test_edits)
 
+    def bad(r: Result) -> bool:
+        """A failing result the failure items ask about: one with a failure unit the documents ask the run to fix (R2)."""
+        return not r.passed and not all(u in tl.excused for u in R.failure_units(r))
+
     def put(name: str, ok: bool) -> None:
         out[name] = (float(ok), True)
 
@@ -283,7 +290,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     else:
         first, last = src2[0], src2[-1]
         put(P2_RUN, _ran(tl, last, tl.p2_end, after_change=True))
-        res = [r for r in tl.results if first < r.step < tl.p2_end]
+        res = [r for r in tl.results if first < r.step < tl.p2_end and (r.passed or bad(r))]  # an excused failure is no failure here
         fails = [r.step for r in res if not r.passed]
         if fails:
             bounds = [b for b in tl.group_ends if b <= tl.p2_end]
@@ -315,16 +322,17 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     else:
         a, b = tl.p3, tl.report
         put(P3_RUN, _ran(tl, a, b))
-        res = [r for r in tl.results if a < r.step < b]
+        every = [r for r in tl.results if a < r.step < b]
+        res = [r for r in every if r.passed or bad(r)]  # an excused failure is no failure for the fix items
         fails = [r for r in res if not r.passed]
-        ran = bool(res) or bool(_between(tl.own_runs, a, b)) or tested
-        runner_fails = [r.step for r in fails if r.runner]
+        ran = bool(every) or bool(_between(tl.own_runs, a, b)) or tested
+        runner_fails = [r.step for r in every if not r.passed and r.runner]  # the cause check is asked of every runner failure
         checked = [r.passed for r in tl.stash_results if a < r.step < b]
         if runner_fails:
             put(P3_CAUSE, bool(_between(tl.check_runs, runner_fails[0], b)))
         else:
             outside(P3_CAUSE, ran)
-        if fails and (not runner_fails or (checked and all(checked))):
+        if fails and (not any(r.runner for r in fails) or (checked and all(checked))):
             put(P3_EDITED, bool(_between(edits, fails[0].step, b)))
         else:  # no failure, or one that is not the change's to fix: the tests ran, the item's condition did not arise
             outside(P3_EDITED, ran)
