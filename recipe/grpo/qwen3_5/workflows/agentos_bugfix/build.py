@@ -275,6 +275,10 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "- IF a test fails because of your change, fix the change and run the tests again",
          "- IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again",
          "T8: a test the run wrote may be the thing to fix"),
+        ("sub", "instead of ticking it, and go on.",
+         "instead of ticking it, and go on. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
+         "Never make a failing test pass by loosening or removing what it checks.",
+         "A-6: correcting a test you wrote keeps what it checks"),
     ),
     "impl-2": (
         ("sub", "IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in",

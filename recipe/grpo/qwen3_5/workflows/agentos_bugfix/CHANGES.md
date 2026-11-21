@@ -34,6 +34,7 @@
 | T8 | 실패 뒤 고칠 대상에 자기 테스트를 넣음 | implement-tasks PHASE 2 (T5): "내 변경 때문에 테스트가 실패하면 변경을 고치고 테스트를 다시 돌린다" | "내 변경 때문에, 또는 내가 쓴 테스트 자체가 틀려서 실패하면 변경이나 그 테스트를 고치고 다시 돌린다"로 바꿈. 기존 테스트 줄은 바꾸지 않는다는 규칙(create-tasks)과 PHASE 3의 "PHASE 2로 한 번 돌아가 변경을 고친다"는 그대로 | 문서에는 테스트를 고치라는 말이 없었는데, 평가(t6-full-floor27)에서 PHASE 2에 실패를 본 런의 81%가 그 뒤에 테스트를 고침. 실패 뒤 소스 또는 테스트를 고친 런의 해결률이 안 고친 런보다 높음(49.7% 대 30.8%, 단순 비교). 이 문구로 돌린 런은 없음 |
 | T9 | 구현 중 자기 테스트 실행 문장의 "(if any …)" | implement-tasks PHASE 2 (T1 문장): "Running the tests you've written (if any; they are check scripts …)" — 자기 테스트가 없을 수 있다고 읽힘 | "(each implementation task group writes them first, as its x.1 sub-task; they are check scripts …)"로 바꿈 | create-tasks의 "각 구현 그룹은 테스트 2–8개를 씀"(122행), "그룹은 테스트 작성(x.1)으로 시작함"(126행)과 어긋났음. 2026-11-20 사용자 결정 1: 항목은 그대로 두고 문서를 맞춤. 자기 테스트를 쓰지 않은 런(평가 102런)과 그룹 안에서 코드를 먼저 고친 런(104런)은 맞는 실패로 남음 |
 | T10 | tasks.md의 절 | create-tasks: 예시 뒤 "Adapt this structure …"만 있고 절을 빼도 되는지 말하지 않음 | 그 목록 뒤에 한 문장: "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order` …" | 실행 순서 계획(Core Responsibilities 2)이 적히는 곳은 Execution Order 절뿐인데, 평가 499런 중 41런이 절을 뺐고 "절이 있음" 항목이 문서에 없는 규칙으로 실패시켰음. 이 문장으로 항목이 문서가 말한 것을 봄. 저장된 평가 런은 이 문장을 받지 않았으므로 판정은 그대로 |
+| T11 | 자기 테스트를 고치는 것 | implement-tasks PHASE 2 (T5, T8): "내가 쓴 테스트 자체가 틀려서 실패하면 그 테스트를 고친다"만 있고 무엇이 틀린 테스트인지, 어떻게 고치는지 말하지 않음 | 40행 끝에 두 문장: "A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. Never make a failing test pass by loosening or removing what it checks." | 보상 검토 카드 7-7: 실패하는 자기 테스트를 늘 통과하게 고쳐 써도 만점이었고, 평가 499런 중 16런이 검증 단계에서 자기 check 스크립트를 고쳤음. 테스트를 약하게 했는지는 테스트의 뜻을 읽어야 알 수 있어 규칙으로 판정하지 않고 문서로만 정함. 저장된 평가 런은 이 문장을 받지 않았으므로 판정은 그대로 |
 
 ## 문구 일반화 (G)
 
@@ -464,6 +465,16 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   쓴 모듈에 자기 테스트 함수를 더하는 F-2의 문서 허용 형태가 실패했음(가짜 런 `branches_implement.py` 분기 지점 5·20·22의 "기존 테스트 모듈에 함수로
   추가함" 준수율 0.9893). 함수 하나하나가 자기 테스트이므로, 전에 더하지 않은 이름의 테스트 함수를 더한 쓰기마다 그 테스트의 첫 쓰기로 셈.
   checks/ 스크립트는 그대로 스크립트마다 첫 쓰기. 평가 499런: 판정 변화 0. 그 가짜 런 선택지는 준수율 1.0이 됨.
+
+## 보상 검토 반영: 테스트 실패 다루기와 계획한 파일 (2026-11-21)
+
+`tasks/2026-11-20-agentos-bugfix-reward-fixes/05-A-C-계획.md`의 문제(묶음 A·C)를 하나씩 고침. rubric의 바뀐 값은 `derive_rubric.py`가 넣고,
+문서는 `build.py`로 다시 만듦. 공용 규칙 함수에 둔 새 설정값은 기본값이 지금 동작이라 agentos_v2와 다른 워크플로의 판정은 바뀌지 않음
+(예외는 그 줄에 적음). 평가 499런의 수는 커밋마다 다시 채점해 바로 앞 커밋과 비교한 값임.
+
+- A-6 자기 테스트를 고치는 것 (T11): implement-tasks.md 40행 끝에 "자기 테스트는 과제가 묻지 않는 것을 확인할 때만 틀린 것이고, 그때는 확인하는
+  것을 바로잡는다. 확인을 느슨하게 하거나 지워서 실패하는 테스트를 통과시키지 않는다"를 더함(`build.py`의 implement-tasks 항목). 규칙은 바꾸지
+  않음. 40행 앞 두 문장을 인용하는 출처(`_T5_FIX`, `_T5_WARN`)는 그대로 찾아짐. 평가 499런: 판정 변화 0.
 
 ## 확인
 
