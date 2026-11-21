@@ -126,7 +126,7 @@
 - rubric 밖의 penalty 항목 4개(2026-11-18, `reward/penalty.py`): tasks.md 수정 task에 적은 파일을 최종 patch, 과제의 정답 patch와 대조함.
   `agentos_bugfix/penalty`와 항목별 신호로 기록만 하고 compliance와 학습 reward에는 들어가지 않음.
   - `named`: 수정 task에 파일을 하나도 적지 않으면 감점. `named_equals_patch`: 적은 파일과 최종 patch의 파일이 다르면 감점.
-    `named_covers_gold`: 적은 파일에 정답 파일이 빠지면 감점. `patch_covers_gold`: 최종 patch에 정답 파일이 빠지면 감점(다른 파일이 더 있는 것은 허용).
+    `named_covers_gold`: 적은 파일에 정답 파일이 빠지면 감점. `patch_covers_gold`: 최종 patch에 정답 파일이 빠지면 감점(다른 파일이 더 있는 것은 허용). (두 항목은 2026-11-21 C-2에서 뺌: 아래 "테스트 실패 다루기와 계획한 파일" 절)
   - 적은 파일은 tasks.md의 모든 버전에서 모음. 한 번 적으면 지워도 남고, 이미 고친 뒤에 처음 적은 파일은 세지 않음. 파일을 적지 않은 런은 앞의 세 항목이 모두 감점.
 - T8에 따라 `ticked_passing` 항목의 인용문과 근거 문구를 새 문장으로 바꿈(2026-11-19). 판정은 그대로, 항목 수 164개 그대로.
   `warned_after_attempts`는 두 실패 사이의 저장소 코드 수정뿐 아니라 checks/ 스크립트 수정도 시도로 셈(T8: 자기 테스트가 고칠 대상일 수 있음).
@@ -187,7 +187,7 @@
 
 speckit_bug·openspec_ff와 같은 규칙으로 맞춤. 문서는 바꾸지 않음.
 
-- penalty 항목 11개(파일 4, 테스트 7)를 `post` 밖 계산에서 rubric의 `log_only` 항목으로 옮김 (`derive_rubric.py`의
+- penalty 항목 11개(파일 4, 테스트 7. 2026-11-21 C-2 뒤 9개: 파일 2, 테스트 7)를 `post` 밖 계산에서 rubric의 `log_only` 항목으로 옮김 (`derive_rubric.py`의
   `PENALTY`, kind `agentos_bugfix.penalty`). compliance에는 들어가지 않으며, 다시 만든 rubric에서 golden과 변이 실행의
   compliance는 이전과 같음. 엔진 `Report`에 더했던 `collected`, `ctx`, `shell_vars` 필드는 없앰 (항목이 엔진 안에서
   판정되므로 `$SPEC_PATH` 값을 다시 설정할 필요가 없음).
@@ -475,6 +475,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 - A-6 자기 테스트를 고치는 것 (T11): implement-tasks.md 40행 끝에 "자기 테스트는 과제가 묻지 않는 것을 확인할 때만 틀린 것이고, 그때는 확인하는
   것을 바로잡는다. 확인을 느슨하게 하거나 지워서 실패하는 테스트를 통과시키지 않는다"를 더함(`build.py`의 implement-tasks 항목). 규칙은 바꾸지
   않음. 40행 앞 두 문장을 인용하는 출처(`_T5_FIX`, `_T5_WARN`)는 그대로 찾아짐. 평가 499런: 판정 변화 0.
+
+- C-2 정답 패치를 보는 penalty 항목 둘을 뺌 (`plan_files.named_covers_gold`, `plan_files.patch_covers_gold`): 두 항목은 과제의 정답 패치(에이전트가 볼 수
+  없는 것)를 기준으로 판정해, 바꾼 파일을 그대로 적고 고쳤어도 정답 패치가 다른 파일을 고쳤으면 실패했음(카드 1-6). 항목 안에서 고칠 수 없어 뺌.
+  `penalty.py`에서 정답 패치 읽기(`gold_patch`, `patch_files`)와 `penalty_gold_unknown` 신호를 지움. `inputs`는 과제를 `task_text.py`(E-1)에 넘기므로
+  그대로 둠. penalty 항목은 11개에서 9개(파일 2, 테스트 7)가 되어, penalty 가중치 0.3에서 항목 하나의 보상 크기가 0.3 × 1/11 = 0.0273에서
+  0.3 × 1/9 = 0.0333이 됨. 파일 항목의 무게는 penalty 점수의 4/11에서 2/9로, 테스트 항목은 7/11에서 7/9로 바뀜. 평가 499런: 두 항목의 판정 998개가
+  없어짐(통과였던 것 617개, 실패였던 것 381개). 다른 항목의 판정 변화 0. penalty 점수 평균 0.59738에서 0.59274 (점수가 바뀐 런 479개).
 
 ## 확인
 

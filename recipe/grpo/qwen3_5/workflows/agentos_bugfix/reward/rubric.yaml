@@ -238,7 +238,7 @@ generated:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 48
-    kept_items: 174
+    kept_items: 172
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -6842,73 +6842,6 @@ items:
   template: ''
   log_only: true
   note: the files tasks.md names are the source files of the final change, no more and no fewer
-- id: agentos_bugfix.global.penalty.plan_files.named_covers_gold
-  scope: specific
-  class: content
-  stage: global
-  target:
-    type: artifact
-    ref: tasks
-    state: final
-  check:
-    kind: agentos_bugfix.penalty
-    params:
-      rule: plan_files.named_covers_gold
-  requirement: must
-  modality_evidence: 'CT: ''every sub-task that changes code names ... the file it changes''; judged against the task''s reference
-    fix, which the agent cannot see'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CT
-    lines:
-    - 121
-    - 121
-    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
-      the repository of the file it changes.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: true
-  note: every source file of the task's reference fix is named in tasks.md; unavailable (left out of the mean) for a task
-    with no reference fix to read
-- id: agentos_bugfix.global.penalty.plan_files.patch_covers_gold
-  scope: specific
-  class: content
-  stage: global
-  target:
-    type: artifact
-    ref: tasks
-    state: final
-  check:
-    kind: agentos_bugfix.penalty
-    params:
-      rule: plan_files.patch_covers_gold
-  requirement: must
-  modality_evidence: judged against the task's reference fix, which the agent cannot see
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CT
-    lines:
-    - 121
-    - 121
-    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
-      the repository of the file it changes.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: true
-  note: every source file of the task's reference fix is in the final change (more files are fine); unavailable (left out
-    of the mean) for a task with no reference fix to read
 - id: agentos_bugfix.implement_tasks.penalty.phase2_run.existing_and_own
   scope: specific
   class: evidence

@@ -403,7 +403,7 @@ def test_the_self_check_passes_on_the_reformatted_run_and_the_whole_suite_run():
 
 
 # --------------------------------------------------------------------------------------------
-# penalty items (reward/penalty.py): the files tasks.md names, the final patch, the reference fix
+# penalty items (reward/penalty.py): the files tasks.md names, the final patch
 # --------------------------------------------------------------------------------------------
 def _diff(*paths, new=()):
     out = []
@@ -413,8 +413,9 @@ def _diff(*paths, new=()):
 
 
 def _penalty(variant, tmp_path, patch, gold=None, errors=0, before_scoring=None):
-    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``.
-    ``before_scoring``: called once the golden run is at hand, before it is scored again with the patch."""
+    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``
+    (written to the task folder: no item reads it). ``before_scoring``: called once the golden run is at hand, before it
+    is scored again with the patch."""
     from types import SimpleNamespace
 
     from recipe.grpo.qwen3_5.workflow_rubric import engine, evaluation
@@ -437,33 +438,33 @@ def _penalty(variant, tmp_path, patch, gold=None, errors=0, before_scoring=None)
 
 def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
-    assert got["penalty"] == got["penalty_plan_files"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
+    assert items == {"named": 1.0, "named_equals_patch": 1.0}
+    assert got["penalty"] == got["penalty_plan_files"] == 1.0 and got["penalty_named_files"] == 1.0 and "penalty_gold_unknown" not in got
     # a task added to tasks.md before its file is edited (implement-tasks PHASE 2) names that file in time
     got, items = _penalty("added_task", tmp_path, _diff("textkit/slug.py", "textkit/__init__.py"), gold=_diff("textkit/slug.py"))
     assert got["penalty_named_files"] == 2.0 and got["penalty_named_late"] == 0.0 and set(items.values()) == {1.0}
 
 
-def test_penalty_items_against_the_patch_and_the_reference_fix(tmp_path):
-    # the patch changes a file no task names; the reference fix is covered all the same (more files are fine)
+def test_penalty_items_against_the_patch_and_never_the_reference_fix(tmp_path):
+    # the patch changes a file no task names
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0} and got["penalty_plan_files"] == 0.75
-    assert got["penalty_tests"] == 1.0 and got["penalty"] == (3 + 7) / 11  # the mean of the four file items and the seven test items
-    # the reference fix changes another file: named and changed as planned, but neither covers it
+    assert items == {"named": 1.0, "named_equals_patch": 0.0} and got["penalty_plan_files"] == 0.5
+    assert got["penalty_tests"] == 1.0 and got["penalty"] == (1 + 7) / 9  # the mean of the two file items and the seven test items
+    # the reference fix changes another file: named and changed as planned, so nothing is lost (C-2: the agent cannot see it)
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0, "patch_covers_gold": 0.0} and got["penalty_plan_files"] == 0.5
+    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0
     # tests, the run's scratch scripts and non-source files are on neither side
     patch = _diff("textkit/slug.py", "tests/test_slug.py", "repro_edges.py", "docs/changes.rst", new=("repro_edges.py",))
     got, items = _penalty(None, tmp_path, patch, gold=_diff("textkit/slug.py", "docs/changes.rst"))
     assert set(items.values()) == {1.0} and got["penalty_patch_files"] == 1.0
     # no code change at all: the named file is not in the patch
     got, items = _penalty(None, tmp_path, "", gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 0.0}
+    assert items == {"named": 1.0, "named_equals_patch": 0.0}
 
 
-def test_penalty_without_a_reference_fix_scores_the_two_items_that_need_none(tmp_path):
+def test_penalty_without_a_reference_fix_scores_the_same_items(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0 and got["penalty_gold_unknown"] == 1.0
+    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0 and got["penalty"] == 1.0
 
 
 def test_named_files_are_collected_over_every_version_of_tasks_md():
@@ -487,34 +488,26 @@ def test_named_files_are_collected_over_every_version_of_tasks_md():
     removed = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`"))]
     named, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", known)
     assert named == {"pkg/a.py", "pkg/d.py"} and not late
-    assert P.judge(named, ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
+    assert P.judge(named, ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 0.0}
     # a bare file name and a dotted module name denote the file; the run's own check script is not a source file
     text = "- [ ] 1.2 Fix `a.py` (pkg.b.Parser.feed) and rerun check_a.py"
     assert P.names_in(text, "/testbed", known, frozenset({"check_a.py"})) == {"a.py", "pkg/b.py"}
     assert P.match("a.py", "pkg/a.py") and not P.match("a.py", "pkg/ba.py")
 
 
-def test_a_run_that_names_no_file_fails_the_three_items_about_named_files():
+def test_a_run_that_names_no_file_fails_both_items_about_named_files():
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
-    assert P.judge(set(), ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": 0.0, "patch_covers_gold": 1.0}
-    assert P.judge(set(), [], [], None) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": None, "patch_covers_gold": None}
+    assert P.judge(set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0}
+    assert P.judge(set(), []) == {"named": 0.0, "named_equals_patch": 0.0}
 
 
-def test_penalty_reads_the_reference_fix_of_both_task_layouts_and_never_raises(tmp_path):
-    import json
+def test_penalty_reads_no_reference_fix_and_never_raises():
     from types import SimpleNamespace
 
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
-    gym, bench = tmp_path / "gym", tmp_path / "bench"
-    (gym / "solution").mkdir(parents=True)
-    (gym / "solution" / "gold.patch").write_text(_diff("pkg/a.py"), encoding="utf-8")
-    (bench / "tests").mkdir(parents=True)
-    (bench / "tests" / "config.json").write_text(json.dumps({"patch": _diff("pkg/b.py"), "test_patch": _diff("tests/test_b.py")}), encoding="utf-8")
-    assert P.patch_files(P.gold_patch(SimpleNamespace(task_dir=str(gym))))[0] == ["pkg/a.py"]
-    assert P.patch_files(P.gold_patch(SimpleNamespace(metadata={"task_path": str(bench)})))[0] == ["pkg/b.py"]
-    assert P.gold_patch(SimpleNamespace(metadata={})) is None and P.gold_patch(SimpleNamespace(task_dir=str(tmp_path / "none"))) is None
+    assert not hasattr(P, "gold_patch") and P.RULES == ("named", "named_equals_patch")
     # a report without a penalty item has no penalty signal (a kind that raises is a failed item: the engine's rule,
     # see test_a_failure_of_the_test_items_leaves_the_file_items_standing)
     assert P.post(SimpleNamespace(results={}, cache={})) == {}
@@ -531,7 +524,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert SPEC.reward_signal == "agentos_bugfix/compliance" and SPEC.penalty_signal == "agentos_bugfix/penalty"
     # the penalty items are rubric items, as in the other workflows -- log_only, so compliance is untouched
     pen = [it for it in ev.rubric.items if ".penalty." in it.id]
-    assert len(pen) == 11 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
+    assert len(pen) == 9 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
     assert {it.check.params["rule"] for it in pen} == {*penalty.FILE_RULES, *penalty.TEST_RULES}
 
 
@@ -736,10 +729,10 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
         raise RuntimeError("unexpected trace")
 
     # a kind that raises is a failed item and an engine error, as everywhere in the engine: the seven test items are
-    # 0.0, the four file items stand, and nothing reaches compliance
+    # 0.0, the two file items stand, and nothing reaches compliance
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=7, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
     assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0
-    assert got["penalty_tests"] == 0.0 and got["penalty"] == 4 / 11
+    assert got["penalty_tests"] == 0.0 and got["penalty"] == 2 / 9
     assert all(got[name.split(".", 1)[1]] == 0.0 for name in penalty_tests.ITEMS)
 
 

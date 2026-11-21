@@ -40,3 +40,18 @@ def test_implement_tasks_says_a_test_you_wrote_is_corrected_not_loosened():
                          "Never make a failing test pass by loosening or removing what it checks.")
     # the T5 quotes of the derived items are still found in that line
     assert D._T5_FIX in line and D._T5_WARN in line
+
+
+# ---- C-2: no penalty item reads the task's reference fix ---------------------------------------------------------------
+
+
+def test_the_two_reference_fix_items_are_gone_and_nine_penalty_items_remain():
+    pen = [i for i in ITEMS if ".penalty." in i]
+    assert len(pen) == 9
+    assert not any(i.endswith(("named_covers_gold", "patch_covers_gold")) for i in pen)
+    assert {i for i in pen if ".plan_files." in i} == {"global.penalty.plan_files.named", "global.penalty.plan_files.named_equals_patch"}
+    # the task still reaches the kinds that read its description (task_text.py)
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
+
+    task = SimpleNamespace(id="t")
+    assert penalty.inputs(task, None) == {"task": task}

@@ -5,28 +5,26 @@ judged and reported with every run, never part of ``agentos_bugfix/compliance``)
 workflows are. Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
 (``penalty_tests.py``: seven items, ``agentos_bugfix.implement_tasks.penalty.*``).
 
-The files tasks.md names, against the files the run changed and the reference fix -- four items:
+The files tasks.md names, against the files the run changed -- two items:
 
     agentos_bugfix.global.penalty.plan_files.named               the change tasks of tasks.md name a source file
     agentos_bugfix.global.penalty.plan_files.named_equals_patch  the named files are the source files of the final change
-    agentos_bugfix.global.penalty.plan_files.named_covers_gold   every source file of the reference fix is named
-    agentos_bugfix.global.penalty.plan_files.patch_covers_gold   every source file of the reference fix is in the final
-                                                                 change (more files are fine)
+
+Nothing here reads the task's reference fix: an item judged against a file the agent cannot see would penalise a run
+that names and changes the files it found (C-2 of the reward review, 2026-11-21, dropped the two items that did).
 
 ``agentos_bugfix/penalty`` is made by the rule every workflow shares (``workflow_rubric/penalty.py``): the mean of the
-eleven items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
+nine items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
 item is about and 1 when it did and the item's condition did not arise (``penalty_tests.py``) -- with what cannot be
-judged left out: the two gold items when the task has no reference fix to read (``penalty_gold_unknown``), the seven
-test items when the code root is not known. ``penalty_plan_files`` and ``penalty_tests`` are the means of each group.
-A run that names no file fails the first three. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
+judged left out: the seven test items when the code root is not known. ``penalty_plan_files`` and ``penalty_tests``
+are the means of each group. A run that names no file fails both file items. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
 ``compliance_reward.penalty_weight`` is set (``WorkflowSpec.penalty_signal``).
 
 The named files
     Every version of tasks.md the trace can replay is read (a write whose content cannot be replayed is skipped; when
     that is the last write, the file as it was collected stands in for it). From each, the change tasks -- the
     sub-tasks that are not about tests, with the lines under them -- give file names: path tokens with a source
-    extension, and dotted module names that denote a file the run wrote, the final change holds or the reference fix
-    changes. A name counts from the first version it appears in, and stays once written, removed later or not. One
+    extension, and dotted module names that denote a file the run wrote or the final change holds. A name counts from the first version it appears in, and stays once written, removed later or not. One
     name does not count: a file the run had already edited when the name first appeared (written down after the fact).
     A name the run never edited stays -- it is a planned file that was not changed.
 
@@ -46,10 +44,8 @@ matches ``textkit/slug.py``). Source files only, on every side: test files, gene
 
 from __future__ import annotations
 
-import json
 import posixpath
 import re
-from pathlib import Path
 from typing import Any
 
 from ....workflow_rubric import facts as F
@@ -60,7 +56,7 @@ from ....workflow_rubric.schema import Item
 from . import penalty_tests
 
 GROUP = "agentos_bugfix.global.penalty.plan_files"
-RULES = ("named", "named_equals_patch", "named_covers_gold", "patch_covers_gold")
+RULES = ("named", "named_equals_patch")
 
 _EXT = r"(?:py|pyx|pxd|pxi|pyi|c|cc|cpp|h|hpp|js|jsx|ts|tsx|mjs|cjs|go|rs|java|kt|rb|php)"
 _SOURCE = re.compile(rf"\.{_EXT}$")
@@ -84,48 +80,11 @@ def source_file(path: str) -> bool:
     return bool(path) and _SOURCE.search(path) is not None and not F.is_test_path(path) and not F.is_generated(path) and not _TABLES.search(path)
 
 
-def patch_files(patch: str | None) -> tuple[list[str], set[str]]:
-    """(paths a patch touches, those it adds), in the patch's order."""
-    files: list[str] = []
-    new: set[str] = set()
-    cur: str | None = None
-    for line in (patch or "").splitlines():
-        if line.startswith("diff --git "):
-            m = re.match(r"diff --git a/(\S+) b/(\S+)$", line)
-            cur = m.group(2) if m else None
-            if cur is not None and cur not in files:
-                files.append(cur)
-        elif cur is not None and line.startswith("new file mode"):
-            new.add(cur)
-    return files, new
-
-
 match = F.same_file  # ``name`` (as tasks.md wrote it) denotes repository file ``path``: the rule every workflow shares
 
 
 def _module(path: str) -> str:
     return re.sub(r"^(?:lib|src)\.", "", re.sub(r"\.\w+$", "", path).replace("/", "."))
-
-
-def gold_patch(task: Any) -> str | None:
-    """The task's reference fix: ``solution/gold.patch`` (SWE-Gym tasks) or ``tests/config.json``'s ``patch``
-    (SWE-bench tasks) in the task directory; None when the task has neither. The agent's sandbox never holds either."""
-    task_dir = getattr(task, "task_dir", None)
-    if not task_dir:
-        meta = getattr(task, "metadata", None)
-        task_dir = (meta.get("task_path") or meta.get("task_dir")) if isinstance(meta, dict) else None
-    if not task_dir:
-        return None
-    root = Path(str(task_dir))
-    try:
-        return (root / "solution" / "gold.patch").read_text(encoding="utf-8")
-    except (OSError, ValueError):
-        pass
-    try:
-        patch = json.loads((root / "tests" / "config.json").read_text(encoding="utf-8")).get("patch")
-    except (OSError, ValueError, TypeError, AttributeError):
-        return None
-    return patch if isinstance(patch, str) else None
 
 
 # --------------------------------------------------------------------------------------------
@@ -232,24 +191,13 @@ def named_files(vers: list[tuple[int, str]], edits: dict[str, int], workdir: str
 # --------------------------------------------------------------------------------------------
 # The items
 # --------------------------------------------------------------------------------------------
-def judge(named: set[str], patch: list[str], patch_all: list[str], gold: list[str] | None) -> dict[str, float | None]:
-    """The four items: 1.0 / 0.0, or None for a gold item when the reference fix is unknown.
-
-    ``patch``: the source files of the final patch without the run's scratch scripts; ``patch_all``: every file of it."""
-
-    def covers(files: list[str]) -> bool:
-        return all(any(match(n, f) for n in named) for f in files)
-
-    out: dict[str, float | None] = {
+def judge(named: set[str], patch: list[str]) -> dict[str, float]:
+    """The two items, 1.0 / 0.0. ``patch``: the source files of the final patch without the run's scratch scripts."""
+    covers = all(any(match(n, f) for n in named) for f in patch)
+    return {
         "named": float(bool(named)),
-        "named_equals_patch": float(bool(named) and all(any(match(n, f) for f in patch) for n in named) and covers(patch)),
-        "named_covers_gold": None,
-        "patch_covers_gold": None,
+        "named_equals_patch": float(bool(named) and all(any(match(n, f) for f in patch) for n in named) and covers),
     }
-    if gold:
-        out["named_covers_gold"] = float(bool(named) and covers(gold))
-        out["patch_covers_gold"] = float(all(g in patch_all for g in gold))
-    return out
 
 
 FILES = "agentos_bugfix.penalty.files"  # ``ctx.cache`` keys of the two measurements, one per run
@@ -260,14 +208,11 @@ TEST_RULES = tuple(name.split(".penalty.", 1)[1] for name in penalty_tests.ITEMS
 
 
 def measure(ctx: EvalContext) -> dict[str, Any]:
-    """The four file items of one run (``items``: rule -> 1.0 / 0.0, or None for a gold item when the task has no
-    reference fix) and what they were judged on."""
+    """The two file items of one run (``items``: rule -> 1.0 / 0.0) and what they were judged on."""
     c, facts = ctx.collected, ctx.facts
     workdir = c.workdir
     patch_all = sorted(F.change_paths(ctx))
     patch = [p for p in patch_all if source_file(p) and not F.is_run_script(ctx, p)]
-    gold_text = gold_patch((c.inputs or {}).get("task"))
-    gold = [p for p in patch_files(gold_text)[0] if source_file(p)] if gold_text is not None else None
     edits = first_edits(facts, workdir)
     # the run's own scripts: what it wrote outside the repository (check scripts), and inside it the script files the
     # final change does not keep or that carry a throwaway name at the repository root
@@ -275,13 +220,12 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
     left_repo = {f for f in edits if F.is_run_script(ctx, f)}
     outside = {p for p in facts.writes if _SOURCE.search(p) and not (pre and p.startswith(pre))}
     own_scripts = frozenset(posixpath.basename(p) for p in (*left_repo, *outside))
-    known = {f for f in (*edits, *patch, *(gold or ())) if source_file(f) and f not in left_repo}
+    known = {f for f in (*edits, *patch) if source_file(f) and f not in left_repo}
     vers, skipped = versions(facts, c)
     named, late = named_files(vers, edits, workdir, known, own_scripts)
     return {
-        "items": judge(named, patch, patch_all, gold),
-        "detail": f"named {sorted(named)[:4]}; final change {patch[:4]}; reference fix {'unknown' if gold is None else gold[:4]}",
-        "gold_unknown": not gold,
+        "items": judge(named, patch),
+        "detail": f"named {sorted(named)[:4]}; final change {patch[:4]}",
         "patch_unknown": c.diff is None,
         "skipped": skipped,
         "named": len(named),
@@ -292,20 +236,17 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
 
 @register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
 def penalty(item: Item, ctx: EvalContext) -> Result:
-    """rule: plan_files.<named | named_equals_patch | named_covers_gold | patch_covers_gold>, or a test item of
+    """rule: plan_files.<named | named_equals_patch>, or a test item of
     implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase3_run.existing_and_own, phase3_fail.<...>) --
     passes when the run did it right (see this module's docstring and ``penalty_tests.py``). A test item the run
     stands outside of is not applicable, worth 0 when the run never did what the item is about and 1 when it did and
-    the item's condition did not arise; a gold item without a reference fix, and a test item without a known code
-    root, is unavailable."""
+    the item's condition did not arise; a test item without a known code root is unavailable."""
     rule = str((item.check.params or {}).get("rule"))
     if rule in FILE_RULES:
         m = ctx.cache.get(FILES)
         if m is None:
             m = ctx.cache[FILES] = measure(ctx)
         v = m["items"][rule.split(".", 1)[1]]
-        if v is None:
-            return Result.unavailable(item, "the task has no reference fix to read")
         return Result.ok(item, m["detail"]) if v else Result.no(item, m["detail"])
     if rule not in TEST_RULES:
         return Result.no(item, f"unknown rule {rule!r}")
@@ -325,7 +266,7 @@ def penalty(item: Item, ctx: EvalContext) -> Result:
 # Hooks of the evaluation policy (``RubricEvaluation(inputs=..., post=...)``)
 # --------------------------------------------------------------------------------------------
 def inputs(task: Any, episode: Any) -> dict[str, Any]:
-    """``Collected.inputs``: the task, for its reference fix."""
+    """``Collected.inputs``: the task, for its description (``task_text.py``). Nothing reads its reference fix."""
     return {"task": task}
 
 
@@ -342,7 +283,6 @@ def post(report: Any) -> dict[str, float]:
     if m is not None:
         out.update(
             {
-                "penalty_gold_unknown": float(m["gold_unknown"]),
                 "penalty_patch_unknown": float(m["patch_unknown"]),
                 "penalty_tasks_write_skipped": float(m["skipped"]),
                 "penalty_named_files": float(m["named"]),
