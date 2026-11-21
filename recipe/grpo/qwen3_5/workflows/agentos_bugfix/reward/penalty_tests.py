@@ -12,7 +12,7 @@ write; without either, the end of the run)
 
     agentos_bugfix.implement_tasks.penalty.phase2_run.existing_and_own
         1.0: after the last source change the run has a valid runner run of the repository's tests AND a run of a
-             test of its own (a script under checks/, or the runner on a test file it wrote to -- named by its path,
+             test of its own (a script under verify/, or the runner on a test file it wrote to -- named by its path,
              a directory above it or a dotted label of it, ``utils_tests.test_duration``). One runner run of an
              existing test module the run added tests to is both -- when it comes after the run's first write to that
              module. A run without the change (see the cause check below) is neither, and a run that selects only
@@ -72,8 +72,8 @@ never tested loses all four.
              again; what still fails goes into the report). Which run came last does not matter (A-1)
         outside: 1.0 when the final code was tested and no result failed in PHASE 3; 0.0 when it was not
 
-A result is a run whose outcome can be read: a script under the spec folder's checks/ that ran, or a valid runner run.
-The run's own tests are check scripts or test functions in the repository's test modules (core-workflow.md 85-89,
+A result is a run whose outcome can be read: a script under the spec folder's verify/ that ran, or a valid runner run.
+The run's own tests are check scripts or test functions in the repository's test modules (overview.md 85-89,
 create-tasks.md 127): a script elsewhere -- at the repository root, under /tmp -- is no test, its run no result and
 writing it no test edit (A-9 row 8 of the reward review). A check-script run whose outcome cannot be read ran (it counts
 for the run items, and as "a test ran") and is no result. The cause check is no result either: a runner run while the
@@ -84,7 +84,7 @@ A source change is what every workflow means by it (``facts.source_change_steps`
 config file of the final change, one of the run's own scripts aside (``facts.is_run_script``: a new script file that
 the final change does not keep, or one with a throwaway name -- ``repro_x.py``, ``check_fix.py`` -- at the repository
 root) and git putting content back aside. A test edit is a write to a repository test file or to one of the run's
-scripts under checks/. Nothing here reads the task's reference fix or its test patch: every item is about what the run
+scripts under verify/. Nothing here reads the task's reference fix or its test patch: every item is about what the run
 can know.
 """
 
@@ -98,6 +98,9 @@ from ....workflow_rubric import refs
 from ....workflow_rubric import results as R
 from ....workflow_rubric.context import UNKNOWN
 from ...agentos_v2.reward import checks as C
+
+# the spec folder's folder of the run's own test scripts (agentos_v2: checks/; renamed 2026-11-21)
+OWN_TESTS_DIR = "{artifact}/{SPEC}/verify"
 
 STAGE = "agentos_bugfix.implement_tasks.penalty"
 P2_RUN = f"{STAGE}.phase2_run.existing_and_own"
@@ -125,7 +128,7 @@ class Timeline:
     results: list[Result] = field(default_factory=list)  # readable results (check scripts, valid runner runs); cause checks aside
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
-    own_runs: list[int] = field(default_factory=list)  # a checks/ script ran (read or not), or the runner on an own test file
+    own_runs: list[int] = field(default_factory=list)  # a verify/ script ran (read or not), or the runner on an own test file
     existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place (not only the run's own tests)
     # steps of the runs above that come after a repository write of their own call (``sed -i ... && pytest``): at the step
     # of the last source change they still ran after it (``RunFact.after_write_same_call``)
@@ -163,7 +166,7 @@ def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dic
 
 def _scripts_after_a_write(ctx: Any, scripts: set[str]) -> set[int]:
     """Steps at which a check script runs after a repository write of its own call: the written path comes before the
-    script's path in the command's text (``sed -i ... && python checks/x.py``), as ``facts._same_call_order`` reads a
+    script's path in the command's text (``sed -i ... && python verify/x.py``), as ``facts._same_call_order`` reads a
     runner run."""
     fx, wd = ctx.facts, (ctx.collected.workdir or "").rstrip("/") + "/"
     by_call: dict[tuple[int, Any], set[str]] = {}
@@ -223,8 +226,8 @@ def timeline(ctx: Any) -> Timeline:
             tl.test_edits.append(int(e.step))
             tl.test_edits_of.setdefault(e.path, []).append(int(e.step))
 
-    # the run's check scripts under the spec folder's checks/: a script anywhere else is no test (A-9 row 8)
-    cdir = C._expand_dir(ctx, "{artifact}/{SPEC}/checks")
+    # the run's check scripts under the spec folder's verify/: a script anywhere else is no test (A-9 row 8)
+    cdir = C._expand_dir(ctx, OWN_TESTS_DIR)
     checks = set(C.check_scripts(ctx, cdir)) if cdir else set()
     for path in checks:
         steps = [int(e.step) for e in fx.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]

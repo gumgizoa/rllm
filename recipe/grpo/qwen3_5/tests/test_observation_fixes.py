@@ -112,7 +112,7 @@ def test_a_command_that_prints_per_test_lines_is_an_output_producer():
 from recipe.grpo.qwen3_5.workflow_rubric import results  # noqa: E402
 from recipe.grpo.qwen3_5.workflow_rubric.trace import shell  # noqa: E402
 
-CHECK = "python /tmp/agent-os/specs/s/checks/check_fix.py"
+CHECK = "python /tmp/agent-os/specs/s/verify/check_fix.py"
 PTH = (
     "Error processing line 1 of /opt/conda/lib/python3.9/site-packages/distutils-precedence.pth:\n\n"
     "  Traceback (most recent call last):\n    File \"<frozen site>\", line 186, in addpackage\n  ModuleNotFoundError: No module named '_distutils_hack'\n\n"

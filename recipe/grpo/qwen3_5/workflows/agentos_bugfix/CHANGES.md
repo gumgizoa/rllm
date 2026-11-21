@@ -651,6 +651,29 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   지운 스크립트(`head … > x_fixed.py && mv x_fixed.py x.py`의 임시 파일)는 넣지 않음. 평가 499런: django__django-13346 한 런이 통과에서 비율로(실패)
   (`tests/model_fields/test_jsonfield.py`에 `test_key_in`을 더하고 그 모듈의 유효 실행이 없음).
 
+## 이름 두 개 바꿈 (2026-11-21)
+
+같이 학습하는 세 워크플로(speckit_bug, openspec_ff, agentos_bugfix)가 같은 이름을 쓰게 하려고 이 워크플로에서만 두 이름을 바꿈(사용자 결정,
+`tasks/2026-11-20-agentos-bugfix-reward-fixes/12-세워크플로-공통점.md`). agentos_v2와 다른 워크플로의 문서, rubric, 판정은 그대로임.
+
+- 진입 문서 `core-workflow.md`를 `overview.md`로 바꿈(`/agent-os/overview.md`). `docs/core-workflow.md`를 `git mv`로 옮기고 instruction,
+  시스템 프롬프트, `__init__.py`의 `entry_doc`도 바꿈.
+- spec 폴더의 자기 테스트 스크립트 폴더 `checks/`를 `verify/`로 바꿈(`/tmp/agent-os/specs/<spec>/verify/`). `overview.md`의 네 곳은 손으로,
+  명령 문서 두 곳(create-tasks.md 129행, implement-tasks.md 39행)은 `build.py`의 `RENAME`으로 바꿈. 렌더한 명령 문서에 `checks/`가 남으면
+  build가 멈춤(`FORBIDDEN`).
+- rubric: `derive_rubric.py`가 agentos_v2의 rubric 글에 `RENAME`(진입 문서 이름, `/`가 뒤따르는 `checks`, `{SPEC}/checks`)을 적용함.
+  출처 `CW`의 경로와 컨테이너 경로, `dir` 설정값 9개, 스크래치 패턴과 note, 인용문과 근거 글이 바뀜. 항목 id와 규칙 이름(`agentos_bugfix_checks`,
+  `scratch_outside_checks`, `checks` 규칙)은 그대로 둠. 보고서 항목 6개에 `scripts_dir`을 줌.
+- 같이 쓰는 코드(`agentos_v2/reward/checks.py`): `checks`가 글자로 박힌 세 곳을 설정값으로 바꿈. task 줄의 상대 경로는 `dir` 폴더의 이름으로
+  읽고, 실패 뒤 고친 스크립트 쓰기와 보고서의 스크립트 결과 비교는 `report`의 새 선택 설정값 `scripts_dir`(기본값 `{artifact}/{SPEC}/checks`)을
+  씀. agentos_v2의 `dir`은 모두 `{artifact}/{SPEC}/checks`이고 `scripts_dir`을 쓰지 않으므로 agentos_v2의 판정은 같음.
+- 이 워크플로의 채점 코드: `penalty_tests.py`의 자기 테스트 스크립트 폴더(`OWN_TESTS_DIR`)와 `penalty.py`의 task 줄 경로 제외(`/verify/`)를 바꿈.
+- `verify/`와 upstream의 `verifications/`: 문서에서 두 폴더는 늘 끝의 `/`까지 적혀 서로 다른 줄에 나오고, 채점기의 패턴은 `verify/`를 `/`까지
+  맞추므로(`(?!verify/)`, `"/verify/"`, 폴더 이름의 마지막 부분 비교) `verifications/`와 섞이지 않음. `verif\w*` 정규식은 task 그룹 제목에만
+  쓰이고 경로에는 쓰이지 않음. 스크래치 패턴 시험에 `verifications/` 안의 스크립트를 넣음.
+- 평가 499런: 저장된 런은 옛 이름으로 돌았으므로, 재채점 때만 에피소드 글의 옛 이름을 새 이름으로 바꿔 읽음(채점기에는 그런 대응이 없음).
+  판정 변화 0. 대응 방법과 수는 `tasks/2026-11-20-agentos-bugfix-reward-fixes/13-이름-변경-구현.md`.
+
 ## 보상 검토 반영 요약 (2026-11-21)
 
 ### 변경 내역
@@ -738,6 +761,8 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | A-6 (문서) | implement-tasks.md 40행에 자기 테스트는 확인을 느슨하게 하거나 지워서 통과시키지 않는다는 두 문장을 더함. | `6b7a276b` |
 | A-4, A-9 행 7 (시도 상한 5) | 사용자 결정으로 시도 상한을 두 번에서 다섯 번으로 올리고 여섯 번째 시도를 실패로 보며 문서 40행도 고침. | `cb377258` |
 | 학습 설정 | agentos_bugfix의 penalty 항목 9개를 넣은 보상식(바닥 0.7, penalty 가중치 0.3)의 학습 설정 파일을 더함. | `51d0e77d` |
+| 이름 변경 (공통 코드) | agentos_v2와 같이 쓰는 규칙 코드에서 check 스크립트 폴더 이름을 설정값으로 바꿈(기본값은 `checks`). | `0a8cc464` |
+| 이름 변경 | 진입 문서를 `overview.md`로, spec 폴더의 자기 테스트 폴더를 `verify/`로 바꾸고 rubric과 채점 코드를 맞춤. | 이름 변경 커밋 |
 
 ### 문서 변경
 
@@ -750,6 +775,16 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | `docs/commands/implement-tasks/implement-tasks.md:39` | "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report." | "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change)." |
 | `docs/commands/implement-tasks/implement-tasks.md:40` | "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on." | "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt." |
 | `docs/commands/implement-tasks/implement-tasks.md:40` | 없음 | "A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. Never make a failing test pass by loosening or removing what it checks." |
+| `docs/overview.md` (파일) | `docs/core-workflow.md` | `docs/overview.md` |
+| `docs/overview.md:56` | "├── checks/                    the task groups' tests that are written as scripts; any scratch file" | "├── verify/                    the task groups' tests that are written as scripts; any scratch file" |
+| `docs/overview.md:61` | "No command creates `S/checks/`; make it the first time you need it." | "No command creates `S/verify/`; make it the first time you need it." |
+| `docs/overview.md:85` | "The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the existing repository test module that covers the changed code." | "The tests the task groups call for are scripts in `S/verify/`, or new test functions added to the existing repository test module that covers the changed code." |
+| `docs/overview.md:89` | "They go to `S/`, scratch files to `S/checks/`." | "They go to `S/`, scratch files to `S/verify/`." |
+| `docs/commands/create-tasks/create-tasks.md:129` | "... is a script under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own, or a new test function added to the existing repository test module that covers the changed code; ..." | "... is a script under `/tmp/agent-os/specs/[this-spec]/verify/`, run on its own, or a new test function added to the existing repository test module that covers the changed code; ..." |
+| `docs/commands/implement-tasks/implement-tasks.md:39` | "... they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, ..." | "... they are check scripts under `/tmp/agent-os/specs/[this-spec]/verify/`, or test functions you added to an existing repository test module, ..." |
+| `instruction.md:4` | "Before you look at the repository, open /agent-os/core-workflow.md; that is your first action." | "Before you look at the repository, open /agent-os/overview.md; that is your first action." |
+| `instruction.md:6` | "core-workflow.md gives the path of each command document, the spec folder the commands write to, and the point at which you call finish." | "overview.md gives the path of each command document, the spec folder the commands write to, and the point at which you call finish." |
+| `system-prompt.j2:68` | "1. The first thing you do is open /agent-os/core-workflow.md." | "1. The first thing you do is open /agent-os/overview.md." |
 
 ### rubric 변경
 
@@ -818,6 +853,11 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | `global.penalty.plan_files.named_equals_patch` | 설명만 바꿈 | note를 그 task 줄이 적은 소스 파일로 바꿈 (C-1, 규칙은 `reward/penalty.py`). |
 | `global.penalty.plan_files.named_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
 | `global.penalty.plan_files.patch_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
+| 출처 `CW` (항목 밖) | 설정값을 바꿈 | `path`를 `docs/overview.md`로, `container_path`를 `/agent-os/overview.md`로 바꿈 (이름 변경). |
+| `dir` 설정값이 있는 항목 9개 (`agentos_bugfix_tasks`의 `groups_in_order`·`ticked_after_work`·`ticked_passing`·`warned_after_attempts`, `agentos_bugfix_checks`의 `written`·`pass_last`·`before_code`, `agentos_bugfix_verify.code_frozen`, `agentos_bugfix_report.suite_status`) | 설정값을 바꿈 | `dir`을 `{artifact}/{SPEC}/checks`에서 `{artifact}/{SPEC}/verify`로 바꿈 (이름 변경). |
+| `agentos_bugfix_report`의 항목 6개 (`test_counts`, `failed_listed`, `suite_status`, `tasks_status`, `incomplete_listed`, `spec_name`) | 설정값을 바꿈 | `scripts_dir: '{artifact}/{SPEC}/verify'`를 더함 (이름 변경). |
+| `global.run.agentos_bugfix_paths_written.scratch_outside_checks` (이름 변경) | 설정값을 바꿈 | `pattern`의 `(?!checks/)`를 `(?!verify/)`로, note와 근거 글의 `checks/`를 `verify/`로 바꿈. |
+| 인용문이나 근거 글이 옛 이름을 적은 항목 (`agentos_bugfix_checks.written`·`pass_last`, `doc_read_first.cw`, `prohibited_action.test_file_write`, `unimplemented.5`, `agentos_bugfix_created_files.tests`·`workflow_files`) | 설명만 바꿈 | 인용문, note, 근거 글의 `core-workflow.md`를 `overview.md`로, `checks/`를 `verify/`로 바꿈 (이름 변경). 부록과 충돌 목록의 인용문도 같음. |
 
 ## 확인
 

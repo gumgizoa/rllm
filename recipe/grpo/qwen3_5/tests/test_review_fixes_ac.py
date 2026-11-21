@@ -222,7 +222,7 @@ def _after(steps, pred, *new):
     return steps[: at + 1] + list(new) + steps[at + 1 :]
 
 
-# ---- A-9 row 8 (R3): a script outside checks/ is no test --------------------------------------------------------------
+# ---- A-9 row 8 (R3): a script outside verify/ is no test --------------------------------------------------------------
 
 
 def test_a_script_outside_checks_is_no_result_and_writing_it_no_test_edit():
@@ -341,7 +341,7 @@ def test_attempts_at_a_failure_while_implementing():
     assert _p2([f(12)], src=(10,))[edited] == (0.0, True)
     assert _p2([f(12)], src=(10,), test_edits=(13,))[edited] == (0.0, True)
     # a test written first fails before the code it tests: that failure asks for no fix
-    script = lambda s, p: _r(s, p, "/s/checks/c.py", runner=False)  # noqa: E731
+    script = lambda s, p: _r(s, p, "/s/verify/c.py", runner=False)  # noqa: E731
     assert _p2([script(12, True), script(14, False), script(16, True)], src=(10, 15), group_ends=(13,))[edited] == (1.0, True)
     # each stretch on its own: a failure of group 1 left there is not fixed by group 2's attempts
     assert _p2([f(12), f(22), ok(24)], src=(10, 20, 23), group_ends=(15,))[edited] == (0.0, True)
@@ -354,8 +354,8 @@ def test_attempts_at_a_failure_while_implementing():
 
 def test_a_failure_left_when_its_group_is_ticked_is_not_undone_by_a_later_group():
     last = "phase2_fail.last_result_pass"
-    f = lambda s: _r(s, False, "/s/checks/a.py", runner=False)  # noqa: E731
-    ok = lambda s: _r(s, True, "/s/checks/a.py", runner=False)  # noqa: E731
+    f = lambda s: _r(s, False, "/s/verify/a.py", runner=False)  # noqa: E731
+    ok = lambda s: _r(s, True, "/s/verify/a.py", runner=False)  # noqa: E731
     # group 1 (ends 15) leaves a.py failing; it passes only in group 2's stretch
     assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(15, 30))[last] == (0.0, True)
     assert _p2([f(12), ok(14)], src=(10, 13), group_ends=(15, 30))[last] == (1.0, True)
@@ -397,7 +397,7 @@ def test_the_last_run_of_phase_3_does_not_decide():
     a, b = "tests/test_a.py::test_x", "tests/test_b.py::test_y"
     full = _r(32, False, "tests", ids=(a, b))
     stash = [_r(33, False, "tests", ids=(a, b))]  # both fail without the change as well: not the change's
-    own = _r(34, True, "/s/checks/c.py", runner=False)
+    own = _r(34, True, "/s/verify/c.py", runner=False)
     # the whole suite last, or the run's own test last: the same verdict (both failures were there before the change)
     pre = {("test", a), ("test", b)}  # what checks.excused_failures finds from those stashed runs (R2)
     assert _p3([full], stash_results=stash, check_runs=[33], excused=pre)[last] == (1.0, False)
@@ -430,8 +430,8 @@ def test_each_failure_the_change_causes_is_fixed_by_a_source_change():
     # nothing the change causes: not judged
     assert _p3([both], src=(10,), stash_results=[_r(33, False, "tests", ids=(a, b))], check_runs=[33], excused={("test", a), ("test", b)})[edited] == (1.0, False)
     # a check script of the run's own: its own edit fixes it
-    own = _r(32, False, "/s/checks/c.py", runner=False)
-    assert _p3([own], src=(10,), test_edits=(34,), test_edits_of={"/s/checks/c.py": [34]})[edited] == (1.0, True)
+    own = _r(32, False, "/s/verify/c.py", runner=False)
+    assert _p3([own], src=(10,), test_edits=(34,), test_edits_of={"/s/verify/c.py": [34]})[edited] == (1.0, True)
 
 
 # ---- report items (A-2, A-7 row 7, A-8) -----------------------------------------------------------------------------

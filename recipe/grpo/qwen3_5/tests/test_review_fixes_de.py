@@ -98,7 +98,7 @@ def test_document_placeholders_are_template_residue():
     for suffix, ref in (("create_tasks.tasks.no_template_residue", "tasks"), ("write_spec.spec.no_template_residue", "spec"),
                         ("shape_spec.requirements.no_template_residue", "requirements"), ("implement_tasks.final_verification.no_template_residue", "final_verification")):
         p = _item_params(suffix)
-        assert A.no_template_residue(_item(p, ref=ref), _ctx("- [x] 1.1 Create `/tmp/agent-os/specs/[spec-path]/checks/t.py`\n")).status == "fail", suffix
+        assert A.no_template_residue(_item(p, ref=ref), _ctx("- [x] 1.1 Create `/tmp/agent-os/specs/[spec-path]/verify/t.py`\n")).status == "fail", suffix
     p = _item_params("shape_spec.requirements.no_template_residue")
     assert A.no_template_residue(_item(p), _ctx("**Q6:** x\n[Last numbered question about exclusions]\n")).status == "fail"
 
@@ -333,16 +333,16 @@ def test_a_directory_made_after_its_stage_fails_at_stage_end(monkeypatch):
     assert judge(None, writes=(50,), commands=made_by_date) == "pass"
 
 
-# ---- E-5: scratch files outside checks/, temporary files in the repository, a change without a source file -------
+# ---- E-5: scratch files outside verify/, temporary files in the repository, a change without a source file -------
 
 from recipe.grpo.qwen3_5.workflow_rubric import refs as REFS  # noqa: E402
 
 
 def test_scratch_files_anywhere_under_tmp_outside_the_spec_folder():
     rx = re.compile(_item_params("global.run.agentos_bugfix_paths_written.scratch_outside_checks")["pattern"])
-    for bad in ("/tmp/questions.txt", "/tmp/fix_mod.patch", "/tmp/repro.py", f"{SPEC}/notes.py"):
+    for bad in ("/tmp/questions.txt", "/tmp/fix_mod.patch", "/tmp/repro.py", f"{SPEC}/notes.py", f"{SPEC}/verifications/check_a.py"):  # verifications/ is not verify/
         assert rx.search(bad), bad
-    for ok in (f"{SPEC}/checks/test_a.py", f"{SPEC}/checks/notes.txt", f"{SPEC}/planning/requirements.md", f"{SPEC}/spec.md"):
+    for ok in (f"{SPEC}/verify/test_a.py", f"{SPEC}/verify/notes.txt", f"{SPEC}/planning/requirements.md", f"{SPEC}/spec.md"):
         assert not rx.search(ok), ok
 
 
@@ -475,8 +475,8 @@ def test_the_fallback_window_starts_after_the_last_code_change_and_tasks_write(m
 def test_a_report_on_check_scripts_is_read_against_their_last_results():
     rep = "## 2. Test Suite Results\n**Status:** {}\n### Test Summary\n- **Total Tests:** 3 test groups\n- **Passing:** 3\n- **Failing:** {}\n- **Errors:** 0\n"
     item = lambda rule: _item({"rule": rule}, ref="final_verification")  # noqa: E731
-    passed = {"/s/checks/test_a.py": "pass"}
-    failed = {"/s/checks/test_a.py": "fail"}
+    passed = {"/s/verify/test_a.py": "pass"}
+    failed = {"/s/verify/test_a.py": "fail"}
     assert C._report_on_scripts(item("suite_status"), "suite_status", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "pass"
     assert C._report_on_scripts(item("suite_status"), "suite_status", rep.format("✅ All Passing", 0), "2. Test Suite Results", failed).status == "fail"
     assert C._report_on_scripts(item("test_counts"), "test_counts", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "pass"

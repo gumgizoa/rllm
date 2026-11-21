@@ -6,7 +6,7 @@ step and report section, the frontend and backend standards, the user-stories se
 wording that held for one dataset only (``<issue_description>``, "the issue", ``/testbed``) is neutral. The rest is
 agentos_v2's:
 
-    docs/              -> /agent-os: core-workflow.md + commands/<cmd>/<cmd>.md for the four commands
+    docs/              -> /agent-os: overview.md + commands/<cmd>/<cmd>.md for the four commands
     build.py           agentos_v2's render plus this workflow's cuts (``--list``; ``--check`` for drift)
     instruction.md     joined to the task text
     system-prompt.j2   openhands-sdk's system prompt with its procedure section rewritten
@@ -14,7 +14,7 @@ agentos_v2's:
     CHANGES.md         what differs from agentos_v2, and why
 
 Upstream, a person attaches one compiled command document per chat turn and answers the agent's questions
-in between; here one session runs the four commands, and ``core-workflow.md`` (hand-written, no upstream
+in between; here one session runs the four commands, and ``overview.md`` (hand-written, no upstream
 counterpart) strings them together. The coding standards are written out inside each command document,
 so they are not shipped separately. Spec files go to ``/tmp/agent-os/specs/<YYYY-MM-DD>-<name>/`` --
 upstream's dated folder with the name the agent picks, moved outside the repository so neither the diff
@@ -41,7 +41,7 @@ def _scorer():
 SPEC = WorkflowSpec(
     docs_dir=HERE / "docs",
     container_dir="/agent-os",
-    entry_doc="core-workflow.md",
+    entry_doc="overview.md",
     instruction_file=HERE / "instruction.md",
     system_prompt={"openhands-sdk": HERE / "system-prompt.j2"},
     output_dirs=("/tmp/agent-os",),

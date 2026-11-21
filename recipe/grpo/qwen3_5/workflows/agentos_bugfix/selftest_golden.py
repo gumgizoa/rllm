@@ -22,7 +22,7 @@ SPECS = "/tmp/agent-os/specs"
 TODAY = "2026-10-16"
 NAME = "slugify-edge-hyphens"
 S = f"{SPECS}/{TODAY}-{NAME}"
-CHECKS = f"{S}/checks"
+CHECKS = f"{S}/verify"
 # no follow-up questions in this workflow; "added_task": a sub-task the tasks missed is added to tasks.md while
 # implementing (implement-tasks PHASE 2), then implemented and ticked
 # "fix_round": PHASE 3 finds an existing test failing because of the change, checks it against the unchanged code
@@ -421,7 +421,7 @@ def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozense
         "    - Titles ending or starting with punctuation give no edge hyphen",
         t("1.2", "Trim the separator from both ends of the slug in textkit/slug.py"),
         t("1.3", "Ensure the edge tests pass"),
-        "    - Run checks/check_edges.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
+        "    - Run verify/check_edges.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
         "",
         "**Acceptance Criteria:**",
         "- check_edges.py passes",
@@ -437,7 +437,7 @@ def tasks_md(ticked: set[str], review: bool = False, warned: set[str] = frozense
         "    - A custom separator is used inside and trimmed at the ends",
         t("2.2", "Add the sep keyword argument to slugify in textkit/slug.py"),
         t("2.3", "Ensure the separator tests pass"),
-        "    - Run checks/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
+        "    - Run verify/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)",
         *([t("2.4", ADDED_TASK[4:])] if added else []),
         "",
         "**Acceptance Criteria:**",
@@ -500,12 +500,12 @@ def report_md(*, failures: bool = False, review: bool = False, warned: bool = Fa
     issues = "- ⚠️ 2.2: the spot check found the README still documents slugify without sep; left marked, not fixed in PHASE 3" if warned else "None"
     if warned_test:
         groups[7] = "  - ⚠️ 2.3 " + ("the separator check does not pass (see below)" if own_failure else "separator checks pass, an existing test does not (see below)")
-        issues = "- ⚠️ 2.3: " + ("checks/check_sep.py" if own_failure else "an existing test of slugify") + " still fails after two attempts in PHASE 2 and one more in PHASE 3; left marked"
+        issues = "- ⚠️ 2.3: " + ("verify/check_sep.py" if own_failure else "an existing test of slugify") + " still fails after two attempts in PHASE 2 and one more in PHASE 3; left marked"
     status = "❌ Failed" if own_failure else "⚠️ Passed with Issues" if (failures or warned or warned_test or slug_failure) else "✅ Passed"
     t_status = "⚠️ Issues Found" if (warned or warned_test) else "✅ All Complete"
     if own_failure:
         summary = ["- **Total Tests:** 9", "- **Passing:** 9", "- **Failing:** 0", "- **Errors:** 0"]
-        failed = ["- checks/check_sep.py - AssertionError: a custom separator is left at the end of the slug (the check written for task 2.1)"]
+        failed = ["- verify/check_sep.py - AssertionError: a custom separator is left at the end of the slug (the check written for task 2.1)"]
         notes = "The whole suite (tests/test_slug.py, tests/test_wrap.py) passes; the check script written for this change does not."
         s_status = "❌ Critical Failures"
     elif slug_failure:
@@ -607,7 +607,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     tasks_path = f"{S}/tasks.md"
     done: set[str] = set()
 
-    s.cat(f"{C}/core-workflow.md", docs[f"{C}/core-workflow.md"])
+    s.cat(f"{C}/overview.md", docs[f"{C}/overview.md"])
     # ---------------------------------------------------------------- shape-spec
     s.cat(f"{C}/commands/shape-spec/shape-spec.md", docs[f"{C}/commands/shape-spec/shape-spec.md"])
     s.sh("date +%Y-%m-%d", TODAY)
@@ -697,7 +697,7 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         tick("2.0")
     if added:
         # the package docstring describes slugify: no task covers it, so it is added to tasks.md, then done
-        last = "    - Run checks/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)"
+        last = "    - Run verify/check_sep.py and the existing tests of textkit/slug.py (tests/test_slug.py)"
         s.replace(tasks_path, last, f"{last}\n  - [ ] {ADDED_TASK}")
         s.replace(f"{WORKDIR}/textkit/__init__.py", '"""Small text helpers."""', '"""Small text helpers: slugify(text, sep="-") and wrap."""')
         tick("2.4")

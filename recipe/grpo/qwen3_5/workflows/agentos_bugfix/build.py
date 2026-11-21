@@ -52,8 +52,12 @@ And one rule is changed rather than cut:
   reproduces it is such a test.
 
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
-issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
+issue" -> the task description in the task message). ``docs/overview.md``, ``instruction.md`` and
 ``system-prompt.j2`` are hand-written copies of agentos_v2's with the same cuts and wording.
+
+Two names differ from agentos_v2 (2026-11-21, the names three workflows trained together share): the entry document
+is ``overview.md`` (agentos_v2's ``core-workflow.md``), and the spec folder's folder of the run's own test scripts is
+``verify/`` (agentos_v2's ``checks/``). The command documents get the folder's new name from :data:`RENAME`.
 """
 
 from __future__ import annotations
@@ -87,7 +91,7 @@ REMOVED = base.REMOVED + tuple(
 )
 
 # Wording that must not survive in a shipped command document.
-FORBIDDEN = ("visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "implementation/")
+FORBIDDEN = ("checks/", "visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "implementation/")
 
 _TASKS_EXAMPLE = """\
 ### [Area of the change]
@@ -299,6 +303,11 @@ CUTS: dict[str, tuple[tuple, ...]] = {
 }
 
 
+# The spec folder's test-script folder, renamed (``checks/`` -> ``verify/``) in every shipped command document after
+# agentos_v2's render: (old, new, how many times the four documents together hold it).
+RENAME = (("/tmp/agent-os/specs/[this-spec]/checks/", "/tmp/agent-os/specs/[this-spec]/verify/", 2),)
+
+
 def _once(key: str, text: str, needle: str) -> int:
     n = text.count(needle)
     if n != 1:
@@ -327,6 +336,8 @@ def convert(key: str, upstream: str) -> str:
 
 def finish(name: str, text: str, standards: Path) -> str:
     text = base.finish(name, text, standards)
+    for old, new, _n in RENAME:
+        text = text.replace(old, new)
     left = [w for w in FORBIDDEN if w in text]
     if left:
         raise ValueError(f"{name}: cut wording left after conversion: {left}")
@@ -370,6 +381,10 @@ def build(upstream: Path) -> dict[str, str]:
         for cmd in COMMANDS:
             name = f"commands/{cmd}/{cmd}.md"
             out[name] = finish(name, (installed / name).read_text(encoding="utf-8"), installed / "standards")
+        for _old, new, n in RENAME:  # the old name is gone (FORBIDDEN); the new one stands where it stood
+            got = sum(t.count(new) for t in out.values())
+            if got != n:
+                raise ValueError(f"RENAME: {new!r} occurs {got} times in the shipped documents (want {n})")
         return out
 
 

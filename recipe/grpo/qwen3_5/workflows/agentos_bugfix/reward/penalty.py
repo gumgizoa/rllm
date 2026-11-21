@@ -124,14 +124,14 @@ def change_lines(tasks_md: str) -> list[str]:
 def line_paths(line: str, workdir: str | None, top: set[str]) -> set[str]:
     """The repository paths a task line names (repository-relative): tokens with a ``/`` whose last part has an
     extension, and bare file names of ``top`` (files at the repository's top level). Paths under /tmp, the agent-os
-    folder or a checks/ folder are the run's own, not the repository's."""
+    folder or a verify/ folder (the spec folder's test scripts) are the run's own, not the repository's."""
     wd = (workdir or "").strip("/")
     out: set[str] = set()
     for tok in _ANYPATH.findall(_URL.sub(" ", line)):
         p = tok.strip("`'\"()[],:;").lstrip("~./")
         if wd and p.startswith(wd + "/"):
             p = p[len(wd) + 1 :]
-        if not p or p.startswith(("tmp/", "agent-os/")) or "/checks/" in "/" + p:
+        if not p or p.startswith(("tmp/", "agent-os/")) or "/verify/" in "/" + p:
             continue
         if "/" in p or p in top:
             out.add(p)

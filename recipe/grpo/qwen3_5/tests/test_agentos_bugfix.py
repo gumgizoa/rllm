@@ -93,7 +93,7 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     assert "before you tick the task group's last sub-task" in impl and "or with ⚠️ where a test could not be made to pass" in impl
     # T3: a task the tasks miss is added to tasks.md, then implemented; the one file a later command adds to
     assert "ONLY those task(s) that have been assigned to you" in impl and "add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first" in impl
-    assert "`tasks.md` is the one exception" in docs["core-workflow.md"]
+    assert "`tasks.md` is the one exception" in docs["overview.md"]
     # T2: the test-writing standard without the three lines that hold tests back
     for gone in ("Write Minimal Tests During Development", "Test Only Core User Flows", "Defer Edge Case Testing"):
         assert gone not in impl, gone
@@ -109,8 +109,8 @@ def test_documents_point_only_at_documents_that_exist():
     for name, text in docs.items():
         for ref in re.findall(r"(?<![\w/])/agent-os/[\w./-]+\.md", text):
             assert ref.removeprefix("/agent-os/") in docs, f"{name} points at missing {ref}"
-    entry = docs["core-workflow.md"]
-    for artifact in ("initialization.md", "requirements.md", "spec.md", "tasks.md", "checks/", "verifications/final-verification.md"):
+    entry = docs["overview.md"]
+    for artifact in ("initialization.md", "requirements.md", "spec.md", "tasks.md", "verify/", "verifications/final-verification.md"):
         assert artifact in entry, artifact
     assert "finish" in entry and "task description in the task message" in entry
 
@@ -316,7 +316,7 @@ def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_th
     for st in run.steps:
         for a in st.actions:
             seen = seen or "[^a-z0-9—]+" in (a.text or "")
-            if seen and (a.command or "").endswith("checks/check_sep.py"):
+            if seen and (a.command or "").endswith("verify/check_sep.py"):
                 a.observation = "AssertionError: a—b\n[Command finished with exit code 1]"
     marked = engine.evaluate(rub, run, col).results[last.id]
     assert marked.status == "pass", marked.detail
@@ -708,7 +708,7 @@ def test_a_new_source_file_is_source_and_a_runner_run_of_an_own_test_file_is_an_
 
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
 
-    # (a script outside checks/ is no test at all since A-9 row 8: tests/test_review_fixes_ac.py)
+    # (a script outside verify/ is no test at all since A-9 row 8: tests/test_review_fixes_ac.py)
     # a new file the final change keeps is source whatever its name, unless it is a throwaway name at the repository
     # root (the rule every workflow shares, facts.is_run_script)
     from recipe.grpo.qwen3_5.workflow_rubric import facts as F

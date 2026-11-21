@@ -4,15 +4,15 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50"
  },
- "rubric_sha256": "248255eaa9e613dae21996cd1161829440fa5fa5270ccfe0cce3c985dce7ab51",
+ "rubric_sha256": "5168a2314e20b26610ec66447d7f9c70bd532c5cb8a833809951e35728e40a51",
  "sources": {
-  "docs/commands/create-tasks/create-tasks.md": "43819fdbfe309dcddcb80faa12e1bf81e4d26e2f20e64a3dd7f8ad0d573709d8",
-  "docs/commands/implement-tasks/implement-tasks.md": "2a3d741a38a919dd6bf459f662fc7c74b6039db797640b7ceeea23fad76ed539",
+  "docs/commands/create-tasks/create-tasks.md": "68e062d7b305a606dbe989ff3e9f93e3eb0caa8efae3cc895e9b4f229b69a64f",
+  "docs/commands/implement-tasks/implement-tasks.md": "ccff70682623db698e3a6e9636202fa57b90700cd33ae2df3fea1ae46b56bf82",
   "docs/commands/shape-spec/shape-spec.md": "0301c3615e50cfb4460fe1e2dbb5d1bb60e63edcc4eb8c22c12052e571d96d76",
   "docs/commands/write-spec/write-spec.md": "9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10",
-  "docs/core-workflow.md": "5400aa11e2f7bac6978be4983ca110e1f490ff4a16316b1ccbd49a8f9df98c82",
-  "instruction.md": "76787ecfcadab74198d959a430485f8588a18c460bdaf0cb4f659c0f5678a4e4",
-  "system-prompt.j2": "f686018786480a1ee24b1a5a426a321b67fbaf80a584b409240d3b6b282f5e7e"
+  "docs/overview.md": "aef0466011978f9f672ab2a3af0f1cbc1c24303b92b79cf3f491611429c395ce",
+  "instruction.md": "b4d200849e6e1be320bb3a970d9e9f58ae7a93b5ef40957f48f2d35d0e654fa9",
+  "system-prompt.j2": "1e6f80c3a2f29cfe00747855010a38ca377569d2a3452619d6e3dbc0b050cce2"
  },
  "report": {
   "dropped_items": [

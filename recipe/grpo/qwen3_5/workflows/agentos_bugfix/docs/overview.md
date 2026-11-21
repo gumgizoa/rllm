@@ -53,12 +53,12 @@ S/
 │   └── requirements.md        shape-spec PHASE 2: questions with your assumed answers, reuse findings
 ├── spec.md                    write-spec
 ├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes and may add tasks
-├── checks/                    the task groups' tests that are written as scripts; any scratch file
+├── verify/                    the task groups' tests that are written as scripts; any scratch file
 └── verifications/
     └── final-verification.md  implement-tasks PHASE 3
 ```
 
-No command creates `S/checks/`; make it the first time you need it. Write each file in the structure its
+No command creates `S/verify/`; make it the first time you need it. Write each file in the structure its
 document gives, and leave a file alone once its command is over. `tasks.md` is the one exception:
 implement-tasks ticks its checkboxes, and adds a task when the change needs work no task covers.
 
@@ -82,11 +82,11 @@ reply that calls no tool ends the session at once, with the work unfinished. So:
   repository and may run commands in it, but change nothing. implement-tasks PHASE 3 runs tests and writes
   its report and changes no code itself; when a test fails because of your change it sends you back to
   PHASE 2 once, and that is the only code change after PHASE 3 has begun.
-- The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the
+- The tests the task groups call for are scripts in `S/verify/`, or new test functions added to the
   existing repository test module that covers the changed code. No existing test line in the repository
   is changed or removed.
 - Nothing that belongs to the workflow goes into the repository: no spec files, notes, summaries or temporary
-  scripts. They go to `S/`, scratch files to `S/checks/`.
+  scripts. They go to `S/`, scratch files to `S/verify/`.
 
 ## Finishing
 

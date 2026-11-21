@@ -504,7 +504,7 @@ def test_removing_a_file_the_run_made_is_no_phase3_code_change(monkeypatch):
 
 # ---- D-6 row 12: every task group that changes code writes a test of its own first ----------------------------------
 
-CHECKS = "/tmp/agent-os/specs/2026-11-13-x/checks"
+CHECKS = "/tmp/agent-os/specs/2026-11-13-x/verify"
 
 
 def _group_ctx(monkeypatch, script_steps, code_steps):
@@ -521,7 +521,7 @@ def _group_ctx(monkeypatch, script_steps, code_steps):
 
 
 def test_each_group_writes_its_tests_before_its_code(monkeypatch):
-    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x"}, ref="run")
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/verify", "window": "x"}, ref="run")
     first_only = _group_ctx(monkeypatch, [12], [20, 40])
     assert C.checks(item, first_only).status == "pass"  # as before: a script before the first code change
     item.check.params.update(per_group=True, module_tests=True)
@@ -540,7 +540,7 @@ def test_each_group_writes_its_tests_before_its_code(monkeypatch):
 def test_an_exploring_script_is_not_a_test_written_first(monkeypatch):
     ctx = _group_ctx(monkeypatch, [12], [20])
     ctx.facts.writes[f"{CHECKS}/check_0.py"][0].content = "import a\nprint(a.parse('-1'))\n"
-    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x"}, ref="run")
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/verify", "window": "x"}, ref="run")
     assert C.checks(item, ctx).status == "pass"  # as before
     item.check.params["verdict"] = True
     assert C.checks(item, ctx).status == "fail"
@@ -559,7 +559,7 @@ def test_each_test_function_added_to_a_module_is_a_test_written(monkeypatch):
     monkeypatch.setattr(C, "module_tests", lambda ctx, w=None: {mod: (12, {"test_one", "test_two"})})
     monkeypatch.setattr(C, "added_test_functions", lambda ctx, e: set(added.get(int(e.step), set())))
     assert C.own_test_first_writes(ctx, CHECKS, w=(10, 100)) == [12, 35]
-    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/checks", "window": "x", "module_tests": True, "per_group": True}, ref="run")
+    item = _item({"rule": "written", "dir": "{artifact}/{SPEC}/verify", "window": "x", "module_tests": True, "per_group": True}, ref="run")
     assert C.checks(item, ctx).status == "pass"
     added[35] = set()  # group 2 adds no test before its code change
     assert C.checks(item, ctx).status == "fail"
