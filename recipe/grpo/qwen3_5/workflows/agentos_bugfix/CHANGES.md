@@ -438,6 +438,9 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   2026-11-21 덧붙임 (사용자 결정): `ticked_after_work`는 선택 설정값 `not_done_out`(agentos_bugfix만 켬)을 켜면 위와 같은 정의로 127행의
   "미완료로 드러난 task" ⚠️를 단 task(새 함수 `found_not_done`)를 작업 근거를 묻는 대상에서 뺌. 실패 결과가 있는 그룹의 ⚠️(40행)는 전처럼 판정.
   평가 499런: 판정 변화 0(그런 task가 있는 런은 sphinx-doc__sphinx-8459 하나이고, 빼기 전에도 아홉 task 모두 작업 근거가 있어 통과).
+  2026-11-21 덧붙임 (사용자 결정): 보고서의 `tasks_status`도 `open_tasks`(agentos_bugfix만 켬)를 켜면 `incomplete_listed`와 같이 체크박스가 있는
+  줄 가운데 체크하지 않은 것과 ⚠️를 단 것만 열린 task로 셈. 평가 499런: astropy__astropy-14508(모든 task 체크, 체크박스 없는 글머리
+  "- 0.009125 formats as …") 한 런이 실패에서 통과, 그 밖의 판정 변화 0.
 
 - F-3 행 14 `git checkout`으로 변경을 치우고 돌린 테스트 (공용 `workflow_rubric/results.py`): "변경이 치워진 상태"는 `git stash`(push 꼴)부터
   `pop`·`apply` 또는 다음 저장소 편집까지였음. 이제 `git checkout [<rev>] [--] <경로>`와 `git restore [--source=…] <경로>`도 그 경로 가운데

@@ -416,6 +416,20 @@ def test_open_tasks_are_listed_as_incomplete_too():
     assert C.report(item, ctx).status == "fail"
     tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- 0.009125 formats as \"0.009125\"\n- [x] 1.2 Run the tests\n"
     assert C.report(item, ctx).status == "not_applicable"  # a bullet without a checkbox is no open task
+
+
+
+def test_the_tasks_status_counts_only_checkbox_lines_as_open():
+    # B-5 addition (user decision 2026-11-21): astropy__astropy-14508, every task ticked, a bullet "- 0.009125 formats as ..."
+    rep = "## 1. Tasks Verification\n**Status:** ✅ All Complete\n### Incomplete or Issues\nNone\n"
+    tasks = "#### Task Group 1: A\n- [x] 1.1 Change\n- 0.009125 formats as \"0.009125\"\n- [x] 1.2 Run the tests\n"
+    ctx = SimpleNamespace(artifact_text=lambda aid, state="final": tasks if aid == "tasks" else rep)
+    assert C.report(_item({"rule": "tasks_status"}, ref="final_verification"), ctx).status == "fail"  # as before
+    item = _item({"rule": "tasks_status", "open_tasks": True}, ref="final_verification")
+    assert C.report(item, ctx).status == "pass"
+    for line in ("- [ ] 1.3 Add a test", "- [⚠️] 1.3 Add a test"):  # an open checkbox, or a mark: not All Complete
+        ctx = SimpleNamespace(artifact_text=lambda aid, state="final", x=tasks + line + "\n": x if aid == "tasks" else rep)
+        assert C.report(item, ctx).status == "fail"
     assert _item_params("agentos_bugfix_report.incomplete_listed").get("open_tasks") is True
 
 

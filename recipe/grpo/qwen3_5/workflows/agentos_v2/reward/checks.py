@@ -86,7 +86,8 @@ repository prohibitions and the test runs. What they cannot say:
                                  with ``dir``, Critical Failures is also right when a check script under it last ran
                                  failing (a workflow whose documents give that Status to a failing test the agent wrote)
       {rule: tasks_status}       the Tasks Verification Status agrees with tasks.md: All Complete only when every task
-                                 is ticked and none is marked ⚠️
+                                 is ticked and none is marked ⚠️; with ``open_tasks`` only a checkbox line left unticked
+                                 (or a line marked ⚠️) is an open task
       {rule: incomplete_listed}  a task marked ⚠️ in tasks.md is listed under Incomplete or Issues (not "None"); with
                                  ``open_tasks`` a task left unticked (a checkbox line) too
       {rule: spec_name}          the **Spec:** field names the spec folder
@@ -1903,6 +1904,8 @@ def report(item: Item, ctx: EvalContext) -> Result:
         if not ts:
             return Result.no(item, "tasks.md absent or without task lines")
         open_ = [t["id"] for t in ts if not t["checked"] or t["warned"]]
+        if p.get("open_tasks"):  # B-5 addition: as incomplete_listed, a line without a checkbox is no task left open
+            open_ = [t["id"] for t in ts if t["warned"] or (not t["checked"] and t["box"] is not None)]
         if rule == "tasks_status":
             st = _status(text, "1. Tasks Verification")
             if re.search(r"(?i)all\s+complete", st):

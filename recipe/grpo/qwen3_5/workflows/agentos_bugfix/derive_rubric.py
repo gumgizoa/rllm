@@ -538,7 +538,7 @@ def _review_fixes(it: dict) -> None:
     if kind == f"{NEW}.tasks" and p.get("rule") == "groups_in_order":  # B-8 row 3: one task group per pass of PHASE 2 (IT 25, 46)
         p["work_between"] = True
         p["dir"] = CHECKS_DIR
-    if kind == f"{NEW}.report" and p.get("rule") == "incomplete_listed":  # B-5
+    if kind == f"{NEW}.report" and p.get("rule") in ("incomplete_listed", "tasks_status"):  # B-5 (tasks_status: B-5 addition, 2026-11-21)
         p["open_tasks"] = True
     if kind == f"{NEW}.report" and p.get("rule") in ("suite_status", "failed_listed"):  # A-2, A-7 row 7: the failures left standing
         p["standing"] = True

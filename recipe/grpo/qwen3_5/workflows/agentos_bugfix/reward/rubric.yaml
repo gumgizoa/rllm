@@ -5346,6 +5346,7 @@ items:
     params:
       rule: tasks_status
       issues_listed: true
+      open_tasks: true
   requirement: should
   modality_evidence: 'IT:269 the status choices against tasks.md (both the agent''s: should)'
   none_allowed: '-'
