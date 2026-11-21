@@ -91,3 +91,68 @@ def test_named_needs_a_path_on_every_change_line_and_reads_the_last_tasks_md():
     assert P.line_paths("Describe sep in README.rst and docs/usage.rst", "/testbed", {"README.rst"}) == {"README.rst", "docs/usage.rst"}
     # no sub-task that changes code: nothing named
     assert P.judge([], set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0}
+
+
+# ---- R1: failure units, test by test where the output names the failed tests ----------------------------------------
+
+from recipe.grpo.qwen3_5.workflow_rubric import results as R  # noqa: E402
+
+
+def _r(step, passed, *keys, sel=(), ids=(), runner=True):
+    return R.TestResult(step, passed, runner, keys or (R.WHOLE,), tuple(sel), tuple(ids))
+
+
+def test_failed_ids_drop_a_section_header_name_that_a_full_id_names_and_need_the_whole_count():
+    out = "FAILED lib/t/test_image.py::test_huge[png] - AssertionError\n___ test_huge[png] ___\n1 failed, 3 passed"
+    assert R.run_failed_ids(1, 0, out) == ("lib/t/test_image.py::test_huge[png]",)
+    assert R.run_failed_ids(2, 0, out) == ()  # fewer ids than failures: judged by its files
+    assert R.run_failed_ids(0, 0, out) == ()
+
+
+def test_a_failure_with_ids_is_one_unit_per_test_else_one_per_file():
+    fail = _r(10, False, "tests/test_a.py", ids=("tests/test_a.py::test_x", "tests/test_a.py::test_y"))
+    assert R.failure_units(fail) == [("test", "tests/test_a.py::test_x"), ("test", "tests/test_a.py::test_y")]
+    assert R.failure_units(_r(10, False, "tests/test_a.py")) == [("key", "tests/test_a.py")]
+    assert R.failure_units(_r(10, False, "/s/check.py", runner=False)) == [("key", "/s/check.py")]
+    assert R.failure_units(_r(10, True, "tests/test_a.py")) == []
+
+
+def test_runs_test_reads_targets_ids_k_deselect_ignore_and_m():
+    tid = "tests/test_a.py::test_x[1]"
+    assert R.runs_test(_r(1, True, "tests/test_a.py"), tid)
+    assert R.runs_test(_r(1, True, "tests"), tid) and R.runs_test(_r(1, True), tid)
+    assert not R.runs_test(_r(1, True, "tests/test_b.py"), tid)
+    assert R.runs_test(_r(1, True, "tests/test_a.py", sel=("tests/test_a.py::test_x",)), tid)  # the failed test picked out
+    assert R.runs_test(_r(1, True, "tests/test_a.py", sel=("/testbed/tests/test_a.py::test_x[1]",)), tid)
+    assert not R.runs_test(_r(1, True, "tests/test_a.py", sel=("tests/test_a.py::test_y",)), tid)
+    assert R.runs_test(_r(1, True, "tests/test_a.py", sel=("-k test_x",)), tid)
+    assert not R.runs_test(_r(1, True, "tests/test_a.py", sel=("-k not test_x",)), tid)  # left out
+    assert R.runs_test(_r(1, True, "tests/test_a.py", sel=("-k (x or y) and not z",)), tid)
+    assert not R.runs_test(_r(1, True, "tests/test_a.py", sel=("-k x == y",)), tid)  # cannot be read: left out
+    assert not R.runs_test(_r(1, True, "tests", sel=("--deselect tests/test_a.py::test_x",)), tid)
+    assert not R.runs_test(_r(1, True, "tests", sel=("--ignore tests/test_a.py",)), tid)
+    assert R.runs_test(_r(1, True, "tests", sel=("--ignore tests/test_b.py",)), tid)
+    assert not R.runs_test(_r(1, True, "tests/test_a.py", sel=("-m slow",)), tid)
+    assert not R.runs_test(_r(1, True, "/s/check.py", runner=False), tid)
+    # a dotted label above a unittest id
+    assert R.runs_test(_r(1, True, "queries.test_q"), "queries.test_q.QTests.test_x")
+    assert not R.runs_test(_r(1, True, "queries.test_q.QTests.test_y"), "queries.test_q.QTests.test_x")
+
+
+def test_standing_units_rerunning_the_failed_test_clears_it_and_leaving_it_out_does_not():
+    ids = ("tests/test_a.py::test_x",)
+    fail = _r(10, False, "tests/test_a.py", ids=ids)
+    assert R.standing_units([fail, _r(12, True, "tests/test_a.py", sel=("tests/test_a.py::test_x",))]) == []  # A-7 row 8
+    left = R.standing_units([fail, _r(12, True, "tests/test_a.py", sel=("--deselect tests/test_a.py::test_x",))])
+    assert [u for u, _ in left] == [("test", "tests/test_a.py::test_x")]  # A-2
+    # the old rule (kept for the other workflows) does not clear a narrowed rerun
+    assert R.standing_failures([fail, _r(12, True, "tests/test_a.py", sel=("tests/test_a.py::test_x",))]) == ["tests/test_a.py"]
+    # a whole-file failure without ids, then a narrowed failure and a narrowed pass: the whole failure still stands
+    whole = _r(10, False, "tests/test_a.py")
+    narrow_f = _r(11, False, "tests/test_a.py", sel=("tests/test_a.py::test_x",))
+    narrow_p = _r(12, True, "tests/test_a.py", sel=("tests/test_a.py::test_x",))
+    assert [u for u, _ in R.standing_units([whole, narrow_f, narrow_p])] == [("key", "tests/test_a.py")]
+    assert R.standing_units([whole, narrow_f, narrow_p, _r(13, True, "tests/test_a.py")]) == []
+    # at one step a failure is read last; `until` stops the reading
+    assert [u for u, _ in R.standing_units([_r(10, True, "tests/test_a.py"), fail])] == [("test", ids[0])]
+    assert R.standing_units([fail, _r(12, True, "tests")], until=11)[0][1] is fail

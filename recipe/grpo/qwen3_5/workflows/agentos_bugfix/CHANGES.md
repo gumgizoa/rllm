@@ -495,6 +495,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   288런이 통과에서 실패(해결 152), `named_equals_patch` 160런이 통과에서 실패(해결 91)와 15런이 실패에서 통과("Reuse pattern from" 줄의 파일을
   더는 세지 않음). `named` 통과는 340런에서 52런. 평가 런은 119행 문장(2026-11-18에 들어감)을 받지 않았으므로 이 수는 위반 건수가 아님.
 
+- R1 실패 단위 (공용 `workflow_rubric/results.py`, 새 함수만): 실패한 결과가 남기는 "다시 통과해야 할 것"을 테스트 하나하나로 셈. 유효한 러너 실행의
+  출력이 실패한 테스트 id를 실패·오류 수만큼 이상 적으면 id마다 단위(`run_failed_ids`: pytest 실패 구역 머리 줄의 맨 이름 `test_x[png]`은 같은 끝
+  이름의 온전한 id가 있으면 버림), 아니면 지금처럼 파일마다, 스크립트는 그 경로(`failure_units`). 통과가 테스트 단위를 지우는 조건은 그 테스트를
+  돌린 유효 러너 실행일 것(`runs_test`: 대상이 그 테스트를 덮고, `file::test` id·`-k`(낱말 포함으로 계산, 못 읽으면 뺀 것)·`--deselect`·`--ignore`가
+  그 테스트를 빼지 않으며, `-m`은 뺀 것으로 봄). 파일 단위는 지금 규칙(`clears`). `standing_units`는 단위마다 실패한 실행을 모두 들고 있어, 파일
+  전체의 실패 뒤에 좁힌 실패와 좁힌 통과가 와도 앞의 넓은 실패가 지워지지 않음. `TestResult`에 칸 `failed_ids`(기본 빈 값). 기존
+  `standing_failures`는 그대로라 openspec_ff와 다른 워크플로는 바뀌지 않음. 이 커밋만으로는 판정 변화 0 (평가 499런).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

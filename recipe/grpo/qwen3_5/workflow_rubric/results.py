@@ -257,6 +257,7 @@ class TestResult:
     runner: bool  # a valid runner run; else a script of the run's own
     keys: tuple[str, ...]  # the script's path, or the test files the runner run names (``WHOLE`` when none)
     selection: tuple[str, ...] = ()  # what narrows a runner run below its files (:func:`selection`)
+    failed_ids: tuple[str, ...] = ()  # a failing valid runner run: the ids of its failed tests, when its output names them all (:func:`run_failed_ids`)
 
 
 def selection(segment: str) -> tuple[str, ...]:
@@ -365,6 +366,148 @@ def standing_failures(results: list[TestResult], until: int | None = None) -> li
     return sorted(failed)
 
 
+# --------------------------------------------------------------------------------------------
+# Failure units: what a failing result leaves to pass again, test by test where the output says
+# --------------------------------------------------------------------------------------------
+def _same_file(a: str, b: str) -> bool:
+    """Two test paths name the same file: equal, or one is the tail of the other (``tests/x.py``, ``/testbed/tests/x.py``)."""
+    a, b = a.lstrip("./"), b.lstrip("./")
+    return a == b or a.endswith("/" + b) or b.endswith("/" + a)
+
+
+def _under(tid: str, sel: str) -> bool:
+    """Test ``tid`` is ``sel`` or below it: the same file (a path tail) and, when ``sel`` names a test, the same test or
+    one of its parametrisations or methods (``sel::``, ``sel[``)."""
+    tf, _, tr = tid.partition("::")
+    sf, _, sr = sel.partition("::")
+    if not _same_file(tf, sf):
+        return False
+    return not sr or tr == sr or tr.startswith(sr + "::") or tr.startswith(sr + "[")
+
+
+def run_failed_ids(failed: int, errors: int, observation: str) -> tuple[str, ...]:
+    """The ids of the tests a failing valid runner run failed, when its output names at least as many as it counts
+    (``failed + errors``); else empty (the run is judged by its files). A bare name from a pytest failure section's
+    header (``test_x[png]``, ``Class.test_x``) is the same test as a full id with that name at its end and is dropped."""
+    n = failed + errors
+    if n <= 0:
+        return ()
+    ids = E.failing_ids(observation or "")
+    full = [i for i in ids if "::" in i]
+    out = []
+    for i in ids:
+        if "::" not in i:
+            tail = i.replace(".", "::")
+            if any(f.endswith("::" + tail) or f.endswith("::" + i) for f in full) or any(o != i and o.endswith("." + i) for o in ids if "::" not in o):
+                continue
+        out.append(i)
+    return tuple(out) if len(out) >= n else ()
+
+
+def failure_units(result: TestResult) -> list[tuple[str, str]]:
+    """What a failing result leaves to pass again: ``("test", id)`` for every failed test of a valid runner run whose
+    output names them all (:attr:`TestResult.failed_ids`); else ``("key", k)`` for every file it names (``WHOLE`` when
+    none), and for a script, its path."""
+    if result.passed:
+        return []
+    if result.runner and result.failed_ids:
+        return [("test", i) for i in result.failed_ids]
+    return [("key", k) for k in result.keys]
+
+
+_K_WORD = re.compile(r"\s*(\(|\)|and\b|or\b|not\b|[^\s()]+)")
+
+
+def _k_matches(expr: str, tid: str) -> bool | None:
+    """pytest's ``-k expr`` on test ``tid``: every word stands for "the word is in the id" (case ignored), joined by
+    ``and`` / ``or`` / ``not`` and brackets. None when the expression cannot be read."""
+    toks, pos = [], 0
+    expr = expr.strip()
+    while pos < len(expr):
+        m = _K_WORD.match(expr, pos)
+        if not m or not m.group(1):
+            return None
+        pos = m.end()
+        w = m.group(1)
+        if w in ("(", ")", "and", "or", "not"):
+            toks.append(w)
+        elif re.fullmatch(r"[\w.\[\]-]+", w):
+            toks.append("True" if w.lower() in tid.lower() else "False")
+        else:
+            return None
+    if not toks:
+        return None
+    try:
+        return bool(eval(" ".join(toks), {"__builtins__": {}}, {}))  # noqa: S307 -- only True / False / and / or / not / brackets
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def runs_test(result: TestResult, test_id: str) -> bool:
+    """The valid runner run ``result`` ran test ``test_id``: its targets cover the test (the same file, a directory or
+    dotted label above it, the whole suite) and nothing it selects leaves the test out -- a ``file::test`` id it names is
+    the test or above it; ``-k`` holds for it; ``--deselect`` / ``--ignore`` do not name it or its file; ``-m`` (marks
+    cannot be read) and a ``-k`` that cannot be read leave it out."""
+    if not result.runner:
+        return False
+    file_part = test_id.split("::")[0]
+    if not any(k == WHOLE or reruns(k, file_part) or reruns(k, test_id) for k in result.keys):
+        return False
+    ids = [s for s in result.selection if not s.startswith("-")]
+    if ids and not any(_under(test_id, s) for s in ids):
+        return False
+    for s in result.selection:
+        if not s.startswith("-"):
+            continue
+        opt, _, val = s.partition(" ")
+        if opt == "-m":
+            return False
+        if opt == "-k":
+            if not _k_matches(val, test_id):
+                return False
+        elif opt == "--deselect":
+            if _under(test_id, val):
+                return False
+        elif opt in ("--ignore", "--ignore-glob"):
+            v = val.rstrip("/").lstrip("./")
+            f = file_part.lstrip("./")
+            if v and (f == v or f.startswith(v + "/") or ("/" + f).endswith("/" + v) or ("/" + v + "/") in ("/" + f) or posixpath.basename(f) == v):
+                return False
+    return True
+
+
+def clears(passing: TestResult, unit: tuple[str, str], failing: TestResult) -> bool:
+    """The passing result ``passing`` makes failure unit ``unit`` (left by ``failing``) pass again: a test unit, when it
+    is a valid runner run that ran the test (:func:`runs_test`); a file or script unit, by :func:`standing_failures`' rule
+    -- it runs that key and is not narrower than the run that failed."""
+    if not passing.passed:
+        return False
+    kind, what = unit
+    if kind == "test":
+        return runs_test(passing, what)
+    return runs_key(passing, what) and (not passing.selection or passing.selection == failing.selection)
+
+
+def standing_units(results: list[TestResult], until: int | None = None) -> list[tuple[tuple[str, str], TestResult]]:
+    """The failure units left failing after the results at or before ``until``, each with the last result that failed
+    it. Results are read in step order, a failing one last within a step; a unit stands until a later passing result
+    :func:`clears` every failing run of it (a file that failed whole and then narrowed needs a pass that is not narrower
+    than the whole failure)."""
+    failed: dict[tuple[str, str], list[TestResult]] = {}
+    for r in sorted((r for r in results if until is None or r.step <= until), key=lambda x: (x.step, not x.passed)):
+        if not r.passed:
+            for u in failure_units(r):
+                failed.setdefault(u, []).append(r)
+            continue
+        for u in list(failed):
+            left = [f for f in failed[u] if not clears(r, u, f)]
+            if left:
+                failed[u] = left
+            else:
+                del failed[u]
+    return sorted(((u, fs[-1]) for u, fs in failed.items()), key=lambda x: (x[0], x[1].step))
+
+
 __all__ = [
     "EXIT",
     "FAIL_TEXT",
@@ -388,6 +531,11 @@ __all__ = [
     "reruns",
     "runs_key",
     "standing_failures",
+    "run_failed_ids",
+    "failure_units",
+    "runs_test",
+    "clears",
+    "standing_units",
     "stash_marks",
     "stash_states",
     "run_stashed",
