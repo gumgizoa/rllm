@@ -1419,7 +1419,7 @@ def own_test_first_writes(ctx: EvalContext, d: str, w=None, modules: bool = True
     return sorted(out)
 
 
-@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False, "module_tests": False, "per_group": False, "verdict": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
+@register("agentos_v2.checks", params={"rule": True, "window": False, "dir": True, "warned": False, "fix_round": False, "module_tests": False, "per_group": False, "verdict": False, "unrun": False}, availability=("trace",), common=False, choices={"rule": ("written", "pass_last")})
 def checks(item: Item, ctx: EvalContext) -> Result:
     """rule: written | pass_last -- the check scripts under ``dir``: written in the window; each one run in the window last ran passing, after the window's last code change.
 
@@ -1450,7 +1450,14 @@ def checks(item: Item, ctx: EvalContext) -> Result:
     runs = {s: [(st, o) for st, o in r if refs.in_window(st, w)] for s, r in runs.items()}
     runs.update(_module_results(ctx, mods, w))
     pool = [s for s in scripts if runs.get(s)] + [m for m in sorted(mods) if runs.get(m)]
-    if not pool:
+    unrun: list[str] = []
+    if p.get("unrun"):  # A-9 row 19: a test written in the window and never run is a test that did not pass
+        ever = executions(ctx, set(scripts))
+        gone = {s for s in scripts if [e.op for e in ctx.facts.writes.get(s, []) if e.ok is not False][-1:] in (["delete"], ["move_out"])}
+        # a script moved or removed afterwards (``head ... > x_fixed.py && mv x_fixed.py x.py``) is not left unrun
+        unrun = [s for s in scripts if s not in gone and not ever.get(s) and any(refs.in_window(e.step, w) for e in _content_events(ctx, s)) and has_verdict(ctx, s)]
+        unrun += [m for m in sorted(mods) if not runs.get(m)]  # a module whose added tests no run selected afterwards
+    if not pool and not unrun:
         return Result.no(item, f"no check script under {d}/ run in the window")
     changes = _change_steps(ctx, w, authored=bool(p.get("fix_round")))  # the documents' check of a failure against the unchanged code is a stash and a pop
     last_change = changes[-1] if changes else w[0]
@@ -1464,7 +1471,8 @@ def checks(item: Item, ctx: EvalContext) -> Result:
         good += ok
         if not ok:
             bad.append(posixpath.basename(s))
-    return Result.ratio(item, good, len(pool), f"not passing after the last code change (step {last_change}): {bad[:3]}" if bad else f"{good} script(s) pass after step {last_change}")
+    bad += [f"{posixpath.basename(s)} (never run)" for s in unrun]
+    return Result.ratio(item, good, len(pool) + len(unrun), f"not passing after the last code change (step {last_change}): {bad[:3]}" if bad else f"{good} script(s) pass after step {last_change}")
 
 
 # --------------------------------------------------------------------------------------------

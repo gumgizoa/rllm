@@ -395,6 +395,7 @@ def _params(it: dict, docs: dict[str, Doc], report: dict) -> None:
             it["note"] = "no repository write once every task is ticked (PHASE 3), except one fix round: a failing test run or check script before the writes and a run after them"
     if kind == f"{NEW}.checks" and p.get("rule") == "pass_last":  # T5: a test that two attempts did not get to pass is marked ⚠️
         p["warned"] = True
+        p["unrun"] = True  # A-9 row 19: a test written (with a verdict) and never run did not pass
         p["fix_round"] = True  # T6: checking a failure against the unchanged code (git stash, stash pop) changes no code
         it["note"] = "each check script run in implement-tasks last ran passing, after the last code change -- or was left failing under a ⚠️ mark made after two attempts"
     if it["id"].endswith("create_tasks.tasks.item_format.checkbox_lines"):  # a box marked ⚠️ (T5, PHASE 3 Step 1) is a task line too

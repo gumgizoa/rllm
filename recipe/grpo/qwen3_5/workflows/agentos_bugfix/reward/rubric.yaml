@@ -116,11 +116,11 @@ generated:
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9172
+      compliance: 0.9037
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9277
+      compliance: 0.9143
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -160,7 +160,7 @@ generated:
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.5215
+      compliance: 0.5108
     - mutation: no_reads
       kind: exploit
       status: ok
@@ -216,7 +216,7 @@ generated:
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.9913
+      compliance: 0.9779
     - mutation: archive_cp
       kind: exploit
       status: n/a
@@ -5674,6 +5674,7 @@ items:
       rule: pass_last
       dir: '{artifact}/{SPEC}/checks'
       warned: true
+      unrun: true
       fix_round: true
       module_tests: true
   requirement: must

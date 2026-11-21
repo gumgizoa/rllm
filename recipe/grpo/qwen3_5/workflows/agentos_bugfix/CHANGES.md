@@ -625,6 +625,13 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   django__django-16950(검증 단계에 테스트 파일을 두 번 다시 쓰고 그 사이에 테스트를 돌림). 그 6런의 django__django-15554는 151 ~ 154단계 쓰기 사이의
   152단계 `runtests.py` 실행이 유효한 실행으로 읽히지 않아 한 묶음으로 남음.
 
+- A-9 행 19 돌리지 않은 자기 테스트 (`implement_tasks.run.agentos_bugfix_checks.pass_last`, `checks` 규칙의 선택 설정값 `unrun`, agentos_bugfix만 켬):
+  구현 단계에서 돌린 checks/ 스크립트(와 F-2의 모듈)만 모집단에 넣었음. 그래서 써 놓고 한 번도 돌리지 않은 테스트는 판정에서 빠졌음. 이제 창 안에 쓴
+  checks/ 스크립트 가운데 한 번도 돌리지 않았고 마지막 내용에 판정 구문이 있는 것(D-6 행 21의 `has_verdict`)과, 기존 테스트 모듈에 테스트 함수를 더한 뒤
+  그 모듈을 고른 유효 러너 실행이 없는 모듈(F-2)을 "통과하지 않은 테스트"로 모집단에 넣음(implement-tasks.md 39행 "ensuring they pass"). 뒤에 옮기거나
+  지운 스크립트(`head … > x_fixed.py && mv x_fixed.py x.py`의 임시 파일)는 넣지 않음. 평가 499런: django__django-13346 한 런이 통과에서 비율로(실패)
+  (`tests/model_fields/test_jsonfield.py`에 `test_key_in`을 더하고 그 모듈의 유효 실행이 없음).
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

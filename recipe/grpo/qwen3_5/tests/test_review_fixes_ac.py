@@ -576,3 +576,21 @@ def test_the_fix_round_is_one_batch_of_writes(monkeypatch):
     assert verdict([35, 36], [(32, 1), (40, 0)]).status == "pass"  # fail, fix (two writes), run again
     r = verdict([35, 38], [(32, 1), (36, 1), (40, 0)])  # fix, run, fix again: two rounds
     assert r.status == "fail" and "more than one batch" in r.detail
+
+
+# ---- A-9 row 19: a check script written with a verdict and never run is a test that did not pass ----------------------
+
+
+def test_a_check_script_written_and_never_run_counts_against_pass_last():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    item = "agentos_bugfix.implement_tasks.run.agentos_bugfix_checks.pass_last"
+    first_check = lambda a: a.kind == "create" and (a.path or "").endswith("check_edges.py")  # noqa: E731
+    test = _create(f"{golden.CHECKS}/check_more.py", "from textkit import slugify\nassert slugify('a b') == 'a-b'\n")
+    _, rep, _ = _golden_with(insert=lambda s: _after(s, first_check, test))
+    r = rep.results[item]
+    assert r.status == "fail" and round(r.score, 2) == round(2 / 3, 2) and "check_more.py (never run)" in r.detail
+    # a scratch file without a verdict (it only prints what it finds) is not a test
+    scratch = _create(f"{golden.CHECKS}/look.py", "from textkit import slugify\nprint(slugify('a b'))\n")
+    _, rep, _ = _golden_with(insert=lambda s: _after(s, first_check, scratch))
+    assert rep.results[item].status == "pass"
