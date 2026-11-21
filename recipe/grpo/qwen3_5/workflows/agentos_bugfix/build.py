@@ -36,7 +36,7 @@ And one rule is changed rather than cut:
 * T4 the report's overall Status: the template offers three values and upstream never says which holds when. The
   rule is stated after the template: it follows from the two section Statuses.
 * T5 a failing test is not ticked over: while implementing, a failure the change causes is fixed before the task
-  group's last sub-task is ticked; after two attempts it is marked ⚠️ instead.
+  group's last sub-task is ticked; after at most five attempts it is marked ⚠️ instead.
 * T6 one fix round after verification: upstream's "DO NOT attempt to fix any failing tests" handed the failures to
   the person reading the report. Here nobody reads it, so a failure the change causes (checked against the
   unchanged code with ``git stash``) sends the run back to PHASE 2 once; every other failure is still only noted.
@@ -271,13 +271,13 @@ CUTS: dict[str, tuple[tuple, ...]] = {
         ("sub", "(it asserts the behavior the task asks to change).",
          "(it asserts the behavior the task asks to change).\n"
          "- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. "
-         "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.",
-         "T5: a failing test is fixed before the tick; ⚠️ after two attempts"),
+         "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt.",
+         "T5: a failing test is fixed before the tick; ⚠️ after at most five attempts"),
         ("sub", "- IF a test fails because of your change, fix the change and run the tests again",
          "- IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again",
          "T8: a test the run wrote may be the thing to fix"),
-        ("sub", "instead of ticking it, and go on.",
-         "instead of ticking it, and go on. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
+        ("sub", "instead of ticking it, and go on; do not make a sixth attempt.",
+         "instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
          "Never make a failing test pass by loosening or removing what it checks.",
          "A-6: correcting a test you wrote keeps what it checks"),
     ),

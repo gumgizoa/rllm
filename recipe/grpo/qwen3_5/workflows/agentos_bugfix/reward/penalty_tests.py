@@ -24,9 +24,9 @@ write; without either, the end of the run)
         1.0: per task group -- PHASE 2 is cut where a task group becomes fully ticked (a run that ticks everything in
              one write has one stretch). In every stretch, each failure unit (``results.failure_units``: a test, or a
              file / script when the output names no test) that fails after the stretch's first source change and that
-             the documents ask to fix (R2: ``checks.excused_failures``) had at most two attempts -- a failing result, an
+             the documents ask to fix (R2: ``checks.excused_failures``) had at most five attempts -- a failing result, an
              edit of source or a test, and the unit's next result in the stretch -- and passed again in the stretch or
-             had at least one attempt (implement-tasks.md 40: fix and run again; after two attempts, ⚠️ and go on)
+             had at least one attempt (implement-tasks.md 40: fix and run again, up to five attempts, then ⚠️ and go on)
         outside: 1.0 when a test ran after the first source change and none failed; 0.0 when none ran, or the run
              changed no source
     agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
@@ -374,6 +374,10 @@ def outcome_for(r: Result, unit: tuple[str, str]) -> str | None:
     return None
 
 
+# implement-tasks.md 40: "Make up to five attempts ... do not make a sixth attempt" (user decision 2026-11-21; was two)
+MAX_ATTEMPTS = 5
+
+
 def attempts(tl: Timeline, seq: list[tuple[Result, str]], edits: list[int]) -> int:
     """The attempts at a failure unit, over its results ``seq`` (in order): a failing result followed by an edit (a source
     change or a test edit) before the unit's next result -- a run of the same call placed after its write counts as after
@@ -390,7 +394,7 @@ def attempts(tl: Timeline, seq: list[tuple[Result, str]], edits: list[int]) -> i
 
 def _passed_or_marked(tl: Timeline, res: list[Result], first: int) -> bool:
     """A-9 row 17: in every task-group stretch, every test that failed there (and that the documents ask to fix) passed
-    again before the stretch ends -- or the task group that ends it carries ⚠️ (two attempts did not get it to pass;
+    again before the stretch ends -- or the task group that ends it carries ⚠️ (the attempts did not get it to pass;
     implement-tasks.md 40). A failure left standing while its group is ticked is not undone by a pass in a later group."""
     for a, b in _stretches(tl, first):
         inside = [r for r in res if a < r.step <= b and r.step < tl.p2_end]
@@ -401,10 +405,10 @@ def _passed_or_marked(tl: Timeline, res: list[Result], first: int) -> bool:
 
 
 def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]) -> bool:
-    """A-4 / A-9 row 7 (implement-tasks.md 40: "fix the change or that test and run the tests again ... After two attempts
-    that do not get it to pass, mark ... ⚠️ ... and go on"): in every task-group stretch, every failure unit that fails
+    """A-4 / A-9 row 7 (implement-tasks.md 40: "fix the change or that test and run the tests again ... Make up to five
+    attempts. If it still does not pass, mark ... ⚠️ ... and go on; do not make a sixth attempt"): in every task-group stretch, every failure unit that fails
     after the stretch's first source change (a test written first fails before the code it tests: that failure asks for
-    no fix) and that the documents ask to fix (R2) was fixed and run again at most twice, and passed again inside the
+    no fix) and that the documents ask to fix (R2) was fixed and run again at most :data:`MAX_ATTEMPTS` times, and passed again inside the
     stretch or was tried at least once."""
     for a, b in _stretches(tl, first):
         inside = [r for r in every if a < r.step <= b and r.step < tl.p2_end]
@@ -416,7 +420,7 @@ def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]
         for u in units:
             seq = [(r, o) for r in after if (o := outcome_for(r, u))]
             n = attempts(tl, seq, edits)
-            if n > 2 or not (u not in standing or n >= 1):
+            if n > MAX_ATTEMPTS or not (u not in standing or n >= 1):
                 return False
     return True
 

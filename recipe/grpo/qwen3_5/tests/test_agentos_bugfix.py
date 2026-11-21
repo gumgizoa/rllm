@@ -87,7 +87,9 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     # T6: a failure the change causes sends the run back to PHASE 2 once; any other failure is only noted, as upstream
     assert "go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1" in impl
     assert "`git stash -q && <the test command>; git stash pop -q`" in impl and "Any other failure: DO NOT attempt to fix it." in impl
-    # T5: a failing test is fixed before the tick, marked after two attempts
+    # T5: a failing test is fixed before the tick, marked after at most five attempts
+    assert "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when" in impl
+    assert "After two attempts" not in impl
     assert "before you tick the task group's last sub-task" in impl and "or with ⚠️ where a test could not be made to pass" in impl
     # T3: a task the tasks miss is added to tasks.md, then implemented; the one file a later command adds to
     assert "ONLY those task(s) that have been assigned to you" in impl and "add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first" in impl
@@ -294,6 +296,13 @@ def test_fixing_the_check_script_between_two_failing_runs_is_an_attempt():
     for st in run.steps:
         st.actions = [a for a in st.actions if not (a.kind == "replace" and a.path == script)]
     assert engine.evaluate(rub, run, col).results[item.id].status == "fail"
+
+
+def test_a_sixth_attempt_does_not_undo_the_warning_mark():
+    # implement-tasks.md 40: up to five attempts, then ⚠️; "warn_six_attempts" makes six: the mark still has attempts
+    # behind it (the cap is the penalty item's, test_test_items_of_the_golden_run_and_its_variants)
+    rub, run, col, rep, res = _scored("warn_six_attempts")
+    assert res["warned_after_attempts"].status == "pass"
 
 
 def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_the_run():
@@ -737,6 +746,8 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
         (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own"}),
         ("no_existing_run", {"phase2_run.existing_and_own"}, None),
         ("tick_failing", {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"}, None),
+        ("warn_attempts", set(), None),  # two attempts, then ⚠️ (implement-tasks.md 40: up to five)
+        ("warn_six_attempts", {"phase2_fail.edited_after_fail"}, None),  # a sixth attempt (A-4, user decision 2026-11-21)
         ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
     ],
 )

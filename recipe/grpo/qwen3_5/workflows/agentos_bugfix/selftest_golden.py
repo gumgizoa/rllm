@@ -36,8 +36,9 @@ CHECKS = f"{S}/checks"
 VARIANTS = ("review_group", "suite_failures", "sed_ticks", "heredoc_writes", "warn_task", "added_task", "fix_round", "expected_failure", "warn_attempts", "script_failing")
 # runs that do not do what the documents say, for the tests of the rules that catch them (not scored by the self-test):
 # no run of the existing tests while implementing; a test sub-task ticked over a failing test the report does not show;
-# a test sub-task marked ⚠️ after one failing run and no attempt to fix
-DISHONEST = ("no_existing_run", "tick_failing", "warn_no_attempt")
+# a test sub-task marked ⚠️ after one failing run and no attempt to fix; "warn_six_attempts": "warn_attempts" with six
+# attempts in PHASE 2 where the document allows five
+DISHONEST = ("no_existing_run", "tick_failing", "warn_no_attempt", "warn_six_attempts")
 ADDED_TASK = "2.4 Name the sep argument in the package docstring of textkit/__init__.py"
 
 ISSUE = """slugify() leaves hyphens at the edges: slugify("Hello, World!") returns "hello-world-" and
@@ -593,7 +594,9 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     review, follow, failures, warn = "review_group" in v, "followups" in v, "suite_failures" in v, "warn_task" in v
     added = "added_task" in v
     fix = "fix_round" in v
-    expected, attempts = "expected_failure" in v, "warn_attempts" in v
+    expected, attempts = "expected_failure" in v, "warn_attempts" in v or "warn_six_attempts" in v
+    # the versions the attempts go through: two attempts 0 -> 1 -> 2; six go back and forth between 1 and 2, ending at 2
+    dash_steps = (0, 1, 2, 1, 2, 1, 2) if "warn_six_attempts" in v else (0, 1, 2)
     dash = attempts or "tick_failing" in v or "warn_no_attempt" in v  # the group 2 change that fails an existing test
     own = "script_failing" in v  # the group 2 change that fails the check script written for it
     sep_fail = _traceback(f"{CHECKS}/check_sep.py", 8, *SEP_FAIL)
@@ -705,8 +708,8 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
         pass
     elif attempts:
         run_existing(DASH_TEST)  # an existing test fails because of the change
-        for a in (1, 2):  # two attempts: fix the change, run the tests again
-            s.replace(slug, G2_DASH[a - 1], G2_DASH[a])
+        for a, b in zip(dash_steps, dash_steps[1:]):  # two attempts (six in "warn_six_attempts"): fix the change, run the tests again
+            s.replace(slug, G2_DASH[a], G2_DASH[b])
             run_existing(DASH_TEST)
         run_check("check_sep.py", True, pass_obs="PASS: the separator is the caller's")
         run_check("check_edges.py", True, pass_obs="PASS: no hyphen at either end")

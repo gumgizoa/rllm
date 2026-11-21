@@ -35,7 +35,7 @@ def _item(params: dict, ref: str = "tasks", state: str = "final", iid: str = "x"
 
 
 def test_implement_tasks_says_a_test_you_wrote_is_corrected_not_loosened():
-    line = next(ln for ln in IT_DOC.splitlines() if "instead of ticking it, and go on." in ln)
+    line = next(ln for ln in IT_DOC.splitlines() if "instead of ticking it, and go on; do not make a sixth attempt." in ln)
     assert line.endswith("A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
                          "Never make a failing test pass by loosening or removing what it checks.")
     # the T5 quotes of the derived items are still found in that line
@@ -313,7 +313,7 @@ def test_a_failure_the_change_stashed_away_also_shows_is_excused_and_one_it_does
     assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == set()
 
 
-# ---- A-4 and A-9 row 7: one or two attempts at a failure, never three ------------------------------------------------
+# ---- A-4 and A-9 row 7: one to five attempts at a failure, never six --------------------------------------------------
 
 
 def _p2(results, src=(10,), test_edits=(), group_ends=(), p2_end=40, **kw):
@@ -328,11 +328,15 @@ def test_attempts_at_a_failure_while_implementing():
     tid = "tests/test_a.py::test_x"
     f = lambda s: _r(s, False, "tests/test_a.py", ids=(tid,))  # noqa: E731
     ok = lambda s: _r(s, True, "tests/test_a.py")  # noqa: E731
-    # fixed and passing after one attempt; two attempts that do not pass, then go on (⚠️)
+    # fixed and passing after one attempt; two or five attempts that do not pass, then go on (⚠️)
     assert _p2([f(12), ok(14)], src=(10, 13))[edited] == (1.0, True)
     assert _p2([f(12), f(14), f(16)], src=(10, 13, 15))[edited] == (1.0, True)
-    # a third attempt is beyond the document, whether it passes or not
-    assert _p2([f(12), f(14), f(16), ok(18)], src=(10, 13, 15, 17))[edited] == (0.0, True)
+    assert _p2([f(12), f(14), f(16), ok(18)], src=(10, 13, 15, 17))[edited] == (1.0, True)
+    five = [f(12 + 2 * k) for k in range(6)]  # results at 12 .. 22, an edit between each two: five attempts
+    assert _p2(five, src=(10, 13, 15, 17, 19, 21))[edited] == (1.0, True)
+    # a sixth attempt is beyond the document, whether it passes or not
+    assert _p2(five + [ok(24)], src=(10, 13, 15, 17, 19, 21, 23))[edited] == (0.0, True)
+    assert _p2(five + [f(24)], src=(10, 13, 15, 17, 19, 21, 23))[edited] == (0.0, True)
     # no attempt: not fixed, or fixed and not run again (an edit right before the mark)
     assert _p2([f(12)], src=(10,))[edited] == (0.0, True)
     assert _p2([f(12)], src=(10,), test_edits=(13,))[edited] == (0.0, True)

@@ -1373,7 +1373,7 @@ def group_end_steps(ctx: EvalContext, aid: str = "tasks") -> list[int]:
 
 def group_end_marks(ctx: EvalContext, aid: str = "tasks") -> dict[int, bool]:
     """For every step of :func:`group_end_steps`: whether a task group ending there carries ⚠️ on one of its task lines
-    (in the final tasks.md) -- a test that two attempts did not get to pass, marked and left (implement-tasks.md 40)."""
+    (in the final tasks.md) -- a test that the attempts did not get to pass, marked and left (agentos_bugfix's implement-tasks.md 40)."""
     if not ctx.facts.artifact_paths.get(aid):
         return {}
     text = _text(ctx, aid)
@@ -1461,7 +1461,7 @@ def checks(item: Item, ctx: EvalContext) -> Result:
         return Result.no(item, f"no check script under {d}/ run in the window")
     changes = _change_steps(ctx, w, authored=bool(p.get("fix_round")))  # the documents' check of a failure against the unchanged code is a stash and a pop
     last_change = changes[-1] if changes else w[0]
-    # the documents' way out of a test that cannot be made to pass: its sub-task is marked ⚠️ after two attempts
+    # the documents' way out of a test that cannot be made to pass: its sub-task is marked ⚠️ after the attempts (at least one)
     acks = [g["step"] for g, shown in warned_groups(ctx, "tasks", w, d) if shown] if p.get("warned") else []
     good, bad = 0, []
     for s in pool:

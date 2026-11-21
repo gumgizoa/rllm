@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: b0eda78bce8127f1fbe0c7967f8ce216bc6749dc98e69e831e5360a0122f12d4
+  sha256: 2a3d741a38a919dd6bf459f662fc7c74b6039db797640b7ceeea23fad76ed539
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -3954,7 +3954,7 @@ items:
       rule: warned_after_attempts
       dir: '{artifact}/{SPEC}/checks'
   requirement: must
-  modality_evidence: 'IT: ''After two attempts that do not get it to pass, mark that sub-task''s checkbox with ⚠️ instead
+  modality_evidence: 'IT: ''Make up to five attempts. If it still does not pass, mark that sub-task''s checkbox with ⚠️ instead
     of ticking it'''
   none_allowed: '-'
   applies_when: null
@@ -3967,8 +3967,8 @@ items:
     lines:
     - 40
     - 40
-    quote: After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and
-      go on.
+    quote: Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it,
+      and go on; do not make a sixth attempt.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -5698,7 +5698,7 @@ items:
   template: ''
   log_only: false
   note: each check script run in implement-tasks last ran passing, after the last code change -- or was left failing under
-    a ⚠️ mark made after two attempts
+    a ⚠️ mark made after the attempts
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.code_frozen
   scope: specific
   class: evidence
@@ -6911,14 +6911,14 @@ items:
     lines:
     - 40
     - 40
-    quote: After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and
-      go on.
+    quote: Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it,
+      and go on; do not make a sixth attempt.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
   note: in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most
-    two attempts (fail, edit, run again) and passed again or was tried at least once; a run the item stands outside of is
+    five attempts (fail, edit, run again) and passed again or was tried at least once; a run the item stands outside of is
     worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise
 - id: agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
   scope: specific

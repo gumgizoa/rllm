@@ -4,10 +4,10 @@
   "path": "../agentos_v2/reward/rubric.yaml",
   "sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50"
  },
- "rubric_sha256": "2550e4ecc179af74da0b2381d518d526672da32d2570657db380e203e44c3b6e",
+ "rubric_sha256": "350e8492912ebc787d0fadc6bb6464de2c49a199ac176c73f0ffc01454e0e7b8",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "43819fdbfe309dcddcb80faa12e1bf81e4d26e2f20e64a3dd7f8ad0d573709d8",
-  "docs/commands/implement-tasks/implement-tasks.md": "b0eda78bce8127f1fbe0c7967f8ce216bc6749dc98e69e831e5360a0122f12d4",
+  "docs/commands/implement-tasks/implement-tasks.md": "2a3d741a38a919dd6bf459f662fc7c74b6039db797640b7ceeea23fad76ed539",
   "docs/commands/shape-spec/shape-spec.md": "0301c3615e50cfb4460fe1e2dbb5d1bb60e63edcc4eb8c22c12052e571d96d76",
   "docs/commands/write-spec/write-spec.md": "9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10",
   "docs/core-workflow.md": "5400aa11e2f7bac6978be4983ca110e1f490ff4a16316b1ccbd49a8f9df98c82",
