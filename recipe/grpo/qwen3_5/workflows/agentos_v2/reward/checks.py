@@ -245,6 +245,11 @@ def _text(ctx: EvalContext, aid: str, state: str = "final") -> str | None:
     return None if t is None else M.strip_fence(t[:MAX_TEXT])[0]
 
 
+# the folder of the check scripts under the spec folder, where a rule names it without a ``dir`` parameter (``report``'s
+# ``scripts_dir`` overrides it: agentos_bugfix calls the folder ``verify/``)
+SCRIPTS_DIR = "{artifact}/{SPEC}/checks"
+
+
 def _expand_dir(ctx: EvalContext, template: str) -> str | None:
     s, left = F.expand(template, F.roots_of(ctx.rubric, ctx.collected.workdir), ctx.collected.workdir, ctx.facts.var_bindings)
     return posixpath.normpath(s) if s.startswith("/") and not left else None
@@ -757,13 +762,16 @@ def work_steps(ctx: EvalContext, d: str | None) -> list[int]:
 
 
 def _evidence_steps(ctx: EvalContext, paths: set[str], checks_dir: str | None) -> list[int]:
-    """Steps that wrote or ran one of ``paths`` (repository-relative, absolute, or ``checks/<name>`` under the checks dir)."""
+    """Steps that wrote or ran one of ``paths`` (repository-relative, absolute, or ``checks/<name>`` under the checks dir).
+    The relative form is the checks dir's own folder name (``checks`` here; a workflow that names the folder otherwise
+    passes that folder as ``checks_dir``)."""
     wd = (ctx.collected.workdir or "").rstrip("/")
+    own = posixpath.basename(checks_dir.rstrip("/")) + "/" if checks_dir else None
     absolute = set()
     for q in paths:
         if q.startswith("/"):
             absolute.add(q)
-        elif checks_dir and q.startswith("checks/"):
+        elif own and q.startswith(own):
             absolute.add(posixpath.join(posixpath.dirname(checks_dir), q))
         else:
             absolute.add(f"{wd}/{q}")
@@ -1764,14 +1772,15 @@ def _status(text: str, section: str) -> str:
     return M.clean_value(v or "")
 
 
-def _left_unfixed(ctx: EvalContext, results: list) -> list:
+def _left_unfixed(ctx: EvalContext, results: list, scripts_dir: str = SCRIPTS_DIR) -> list:
     """The failure units of ``results`` (R1) the report has to list: each with its last failing result, unless a later
     passing result ran it again *after a fix* -- a repository write or a check-script write between the failure and the
     pass. A test that fails and then passes the same run again with nothing changed was not fixed: it failed (a flaky
     test), and the report lists it. Failures fixed and run passing again are not listed (implement-tasks.md 133: the
-    failed tests of the verification)."""
+    failed tests of the verification). ``scripts_dir``: the folder of the check scripts (its last name is matched)."""
+    own = "/" + posixpath.basename(scripts_dir.rstrip("/")) + "/"
     edits = sorted({int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)}
-                   | {int(e.step) for evs in ctx.facts.writes.values() for e in evs if e.ok is not False and e.op in F.WRITE_OPS and "/checks/" in (e.path or "")})
+                   | {int(e.step) for evs in ctx.facts.writes.values() for e in evs if e.ok is not False and e.op in F.WRITE_OPS and own in (e.path or "")})
     last: dict = {}
     for r in sorted(results, key=lambda x: (x.step, not x.passed)):
         if not r.passed:
@@ -1813,7 +1822,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False, "scripts_dir": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1847,7 +1856,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         fallback = bool(p.get("phase3_fallback"))
         runs = comparison_runs(ctx, after_fix=bool(p.get("fix_round")), fallback=fallback)  # after a fix round the report is about the re-run
         if not runs and p.get("script_results"):
-            scripts = comparison_script_results(ctx, _expand_dir(ctx, "{artifact}/{SPEC}/checks"), fallback)
+            scripts = comparison_script_results(ctx, _expand_dir(ctx, str(p.get("scripts_dir") or SCRIPTS_DIR)), fallback)
             if scripts:
                 return _report_on_scripts(item, rule, text, suite, scripts)
         if not runs:
@@ -1898,7 +1907,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         # section when the report has none), not in Notes or elsewhere
         hay = ((M.section(text, "Failed Tests", match="prefix") or M.section(text, suite, match="prefix") or "") if p.get("in_section") else text)
         if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
-            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs])
+            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
             if not left:
                 return Result.not_applicable(item, "no failure left standing in the PHASE 3 runs")
             want = [what for (kind, what), _ in left if kind == "test"]
