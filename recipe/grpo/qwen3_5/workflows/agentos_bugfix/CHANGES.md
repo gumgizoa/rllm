@@ -551,6 +551,14 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   않음), `Timeline.group_marked`. 평가 499런: 4런이 통과에서 실패(django__django-11239, django__django-12155, matplotlib__matplotlib-20826,
   pytest-dev__pytest-10356; 해결 2). 기준 런 `warn_attempts`가 이 항목을 지킴.
 
+- A-7 행 8과 A-2(구현 단계 penalty) 실패한 테스트의 재통과 (`phase2_fail.last_result_pass`): 실패를 파일 단위로 보고, 실패한 실행과 같은 범위이거나
+  범위를 좁히지 않은 통과만 그 실패를 지웠음(같은 파일의 실패가 다시 나오면 앞 실패의 범위를 덮어씀). 이제 R1의 실패 단위로 판정함(`standing_units`):
+  출력이 실패한 테스트를 모두 적었으면 테스트마다, 그 테스트를 돌린 유효 러너 실행의 통과가 지움. 실패한 테스트를 `file::test`나 `-k`로 골라 다시 돌린
+  통과는 지우고, `--deselect`·`-k "not …"`·`--ignore`·`-m`으로 뺀 통과는 지우지 않음. 파일 단위는 실패한 실행을 모두 들고 있어 넓은 실패를 좁힌 실패와
+  통과가 지우지 못함. R2로 빠진 단위는 보지 않음. 평가 499런: astropy__astropy-13236 한 런이 통과에서 실패(57단계 파일 전체 실행에서
+  `test_skycoord_representation`이 실패하고, 뒤의 통과는 `::test_ndarray_mixin`만 고른 실행). 앞 task의 행 8 목록(실패한 테스트와 다른 테스트를
+  고르거나 `-k "not …"`로 뺀 실행이 대부분)의 런 가운데 이 커밋에서 통과로 바뀐 것은 없음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

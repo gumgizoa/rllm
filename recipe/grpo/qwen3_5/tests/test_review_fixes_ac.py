@@ -359,3 +359,20 @@ def test_a_failure_left_when_its_group_is_ticked_is_not_undone_by_a_later_group(
     assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(15, 30), group_marked={15: True})[last] == (1.0, True)
     # everything ticked in one write: one stretch, as before
     assert _p2([f(12), ok(22)], src=(10, 20), group_ends=(30,))[last] == (1.0, True)
+
+
+# ---- A-7 row 8 and A-2 (PHASE 2): picking the failed test out clears it, leaving it out does not ---------------------
+
+
+def test_a_narrowed_rerun_of_the_failed_test_clears_it_and_one_that_leaves_it_out_does_not():
+    last = "phase2_fail.last_result_pass"
+    tid = "tests/test_a.py::test_x"
+    fail = _r(12, False, "tests/test_a.py", ids=(tid,))
+    picked = _r(14, True, "tests/test_a.py", sel=(tid,))
+    left_out = _r(14, True, "tests/test_a.py", sel=(f"--deselect {tid}",))
+    assert _p2([fail, picked], src=(10, 13))[last] == (1.0, True)
+    assert _p2([fail, left_out], src=(10, 13))[last] == (0.0, True)
+    # a failure the output named no test of: the file has to pass again, not one test of it
+    whole = _r(12, False, "tests/test_a.py")
+    assert _p2([whole, picked], src=(10, 13))[last] == (0.0, True)
+    assert _p2([whole, _r(14, True, "tests")], src=(10, 13))[last] == (1.0, True)

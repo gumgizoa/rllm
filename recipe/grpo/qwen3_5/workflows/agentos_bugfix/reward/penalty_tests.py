@@ -31,10 +31,13 @@ write; without either, the end of the run)
              changed no source
     agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
         judged: a failing result after the first source change
-        1.0: every test that failed passed again -- a later passing run of the same file, of a directory or dotted
-             label above it, or of the whole suite; not one narrowed below what failed (``-k``, ``-m``,
-             ``--deselect``, ``--ignore``, a ``file::test`` id the failing run did not use). A script is rerun by
-             running that script. The rule is the common one (``workflow_rubric/results.py``)
+        1.0: per task-group stretch (as edited_after_fail), every failure unit that failed there and that the documents
+             ask to fix (R2) passed again before the stretch ends -- or the task group that ends it carries ⚠️ (A-9
+             row 17). A test passes again in a later valid runner run that ran it: the failed test picked out
+             (``file::test``, ``-k``) is enough (A-7 row 8), a run that left it out (``--deselect``, ``-k "not ..."``,
+             ``--ignore``, ``-m``) is not (A-2). A file whose failed tests the output did not name passes again in a run
+             of it, a directory or label above it or the whole suite, not narrowed below what failed; a script by
+             running it again (``results.standing_units``)
         outside: as edited_after_fail
 
 PHASE 3 -- from the write that ticks the last task to the report's first write; it can be placed only when both are
@@ -288,11 +291,12 @@ def _ran(tl: Timeline, a: int, b: int, after_change: bool = False) -> bool:
     return bool(_between(tl.existing_runs, a, b)) and bool(_between(tl.own_runs, a, b))
 
 
-def _last_of_each_failed_test_passes(results: list[Result]) -> bool:
-    """Every test that failed passed again, by the rule every workflow shares (``workflow_rubric/results.py``): a later
-    passing run of the same file, of a directory or label above it, or of the whole suite -- not one narrowed below
-    what failed (``-k``, a ``file::test`` id the failing run did not use)."""
-    return not R.standing_failures(results)
+def _standing(tl: Timeline, results: list[Result]) -> list[tuple[str, str]]:
+    """The failure units of ``results`` still failing at their end, R2's aside: a test passes again when a later valid
+    runner run ran it -- the failed test picked out (``file::test``, ``-k``) is enough (A-7 row 8), a run that left it
+    out (``--deselect``, ``-k "not ..."``, ``--ignore``) is not (A-2); a file the output named no test of, or a script,
+    by the rule every workflow shares (``workflow_rubric/results.py``)."""
+    return [u for u, _ in R.standing_units(results) if u not in tl.excused]
 
 
 def _stretches(tl: Timeline, first: int) -> list[tuple[int, int]]:
@@ -343,7 +347,7 @@ def _passed_or_marked(tl: Timeline, res: list[Result], first: int) -> bool:
     implement-tasks.md 40). A failure left standing while its group is ticked is not undone by a pass in a later group."""
     for a, b in _stretches(tl, first):
         inside = [r for r in res if a < r.step <= b and r.step < tl.p2_end]
-        if _last_of_each_failed_test_passes(inside) or tl.group_marked.get(b):
+        if not _standing(tl, inside) or tl.group_marked.get(b):
             continue
         return False
     return True

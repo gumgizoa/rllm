@@ -6949,9 +6949,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: 'every test that failed in PHASE 2 passed again: the same file, a directory or label above it or the whole suite,
-    not a run narrowed below what failed; a run the item stands outside of is worth 0 when it never did what the item is about
-    and 1 when it did and the item''s condition did not arise'
+  note: in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed
+    again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; a run
+    the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition
+    did not arise
 - id: agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
   scope: specific
   class: evidence

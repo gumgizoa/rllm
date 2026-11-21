@@ -312,7 +312,7 @@ PENALTY = (
     ("implement_tasks", "phase2_fail.edited_after_fail", "IT", (_T5_FIX, _T5_WARN), "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
      "in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most two attempts (fail, edit, run again) and passed again or was tried at least once; " + _OUT),
     ("implement_tasks", "phase2_fail.last_result_pass", "IT", (_T5_FIX,), "imperative (IT: 'fix the change or that test and run the tests again')",
-     "every test that failed in PHASE 2 passed again: the same file, a directory or label above it or the whole suite, not a run narrowed below what failed; " + _OUT),
+     "in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; " + _OUT),
     ("implement_tasks", "phase3_run.existing_and_own", "IT", (_P3_RUN,), "imperative (IT: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote')",
      "in PHASE 3 (from the last tick to the report), a valid run of the repository's tests and a run of a test of the run's own; worth 0 to a run whose PHASE 3 cannot be placed"),
     ("implement_tasks", "phase3_fail.cause_checked", "IT", (_P3_CAUSE,), "imperative (IT: 'An existing test: run it once without your change, in one command')",
