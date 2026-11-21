@@ -361,7 +361,7 @@ conflicts:
     sources:
       - {path: docs/core-workflow.md, lines: [20, 23], quote: "2. **Fix** and **test** then alternate in rounds, at most three: - Round 1: `fix.md`, then `test.md`. - Round 2: `fix-2.md`, then `test-2.md`. - Round 3: `fix-3.md`, then `test-3.md`."}
       - {path: docs/core-workflow.md, lines: [24, 28], quote: "After each verification report, its **Result** decides:"}
-    resolution: "seven stages (assess, fix, test, fix_2, test_2, fix_3, test_3); the round-2/3 reports are optional artifacts whose template items apply when they exist; their existence (zero_stage) and the round's run items apply when the previous Result is partial or failed (or the round was run); a stage with no applicable item is no signal, so a round-1 verified run is scored on assess, fix, test, order and process; a next round after a verified Result fails a global item"
+    resolution: "seven stages (assess, fix, test, fix_2, test_2, fix_3, test_3); the round-2/3 reports are optional artifacts whose template items apply when they exist; their existence (zero_stage) and the round's run items apply when the previous Result is partial or failed (or the round was run), the test stage's only once the round's fix report exists (a round never begun is one missing report, not two stages); a stage with no applicable item is no signal, so a round-1 verified run is scored on assess, fix, test, order and process; a next round after a verified Result fails a global item"
   - description: "The stage table says when to read each document (CW:9 'Read when the stage begins', CW:15) but no line forbids reading a later stage's document early"
     sources:
       - {path: docs/core-workflow.md, lines: [9, 9], quote: "| Stage | Read when the stage begins | Writes |"}
@@ -376,7 +376,7 @@ conflicts:
     sources:
       - {path: docs/stages/02-fix.md, lines: [32, 32], quote: "Run each check now. It must fail: a check that already passes does not detect the bug, so rewrite it until it fails for the reported reason."}
       - {path: docs/stages/03-test.md, lines: [43, 43], quote: "every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects"}
-    resolution: "the rubric judges the steps and the record: each check run on the code before the round's first repository edit, the checks left as they were after it, the baseline tests run before it, the fix report's Before column recording fail for a check the trace ran before the edit, its baseline command a valid test run before the edit. Whether a check really fails before and passes after the change is not scored (it needs the checks re-run on the base commit and the patch in the sandbox). The verdict is judged one way only: a verified Result its own Checks Performed table contradicts (a failed row; a skipped / not-run reproduction or fix-check row, TS:44, TS:106) fails; no item rewards or penalizes partial or failed"
+    resolution: "the rubric judges the steps and the record: each check run on the code before the round's first repository edit, the checks left as they were after it, the baseline tests run before it, the fix report's Before column recording fail for a check the trace ran before the edit, its baseline command a valid test run before the edit. Whether a check really fails before and passes after the change is not scored (it needs the checks re-run on the base commit and the patch in the sandbox). The repository's tests are another matter: their runner prints the outcome, so a row naming a valid test run is held to what that run printed (outcome), and a failure the same tests already had before the change is not a new one (TS:43). The verdict is judged one way only: a verified Result its own Checks Performed table contradicts (a failed row that is not such a baseline failure; a skipped / not-run reproduction or fix-check row, or the existing tests not run again, TS:44, TS:106) fails; no item rewards or penalizes partial or failed"
   - description: "Deviations from Assessment may be left empty (FX:90 'Empty if none'), while every other section of the skeleton holds a placeholder to fill"
     sources:
       - {path: docs/stages/02-fix.md, lines: [90, 90], quote: "<Empty if none. Otherwise, list any places where the actual fix departed from the proposed remediation and why.>"}
@@ -792,7 +792,7 @@ manual:
       - {path: docs/stages/01-assess.md, lines: [93, 93], quote: "**Files likely to change**:"}
       - {path: docs/stages/02-fix.md, lines: [64, 66], quote: "| File | Change | Notes | |------|--------|-------| | `path/to/file.py` | <added / modified / removed> | <short note> |"}
       - {path: docs/stages/02-fix.md, lines: [35, 35], quote: "Stay within the files listed by the assessment unless newly discovered evidence requires expanding scope (in which case, log the expansion explicitly in the report)."}
-    note: "1 when every gold source file is among assessment **Files likely to change** ∪ fix Changes table, else 0; the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; unavailable (left out of the mean) without a gold entry"
+    note: "1 when every gold source file is among assessment **Files likely to change** ∪ fix Changes table, else 0 (a named path is the gold path or a tail of it that still names a directory: a bare file name names no file); the ``penalty`` id segment routes it into speckit_bug/penalty (post hook), never into compliance; unavailable (left out of the mean) without a gold entry"
   - id: speckit_bug.test.penalty.related_test_run.after_last_edit
     stage: test
     target: {type: action, ref: run}
@@ -1038,30 +1038,44 @@ manual:
       - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
       - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
     note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test.md is written"
+  - id: speckit_bug.test.test.speckit_bug_checks_table.outcome
+    stage: test
+    target: {type: artifact, ref: test}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: outcome, window: [["stage_start:fix", {last: {fact: repo_edit, window: ["stage_start:fix", "write:test"]}}], "write:test"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'; TS:39 'instead of fabricating a result'); TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "a row claiming pass / fail whose command is a valid test run records what that run printed (the command's last run after this round's last repository edit and before test.md is written): pass for a run with no failure, or with none the same tests did not already have before round 1's first repository edit (TS:43 'no new failure'); fail for a run with a failure. Rows naming a check script are not judged (the trace has no exit status); not applicable when no row names a valid test run"
   - id: speckit_bug.test.test.speckit_bug_checks_table.consistent
     stage: test
     target: {type: artifact, ref: test}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent, window: [["stage_start:fix", {last: {fact: repo_edit, window: ["stage_start:fix", "write:test"]}}], "write:test"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
     modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
     sources:
       - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
       - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
-    note: "a verified Result has no failed row"
+    note: "a verified Result has no failed row, but a row of the existing tests whose failures the same tests already had before the change (TS:43 'no new failure': its command a valid test run after this round's last repository edit, and before round 1's first repository edit with the same failures or more); a failed reproduction / issue-example / fix-check row always fails (TS:45)"
   - id: speckit_bug.test.test.speckit_bug_checks_table.unrun
     stage: test
     target: {type: artifact, ref: test}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun, baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
-    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'; TS:38 the repository's tests are 'expected'"
     sources:
       - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
       - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
-    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions); when a baseline was run before round 1's first repository edit, its existing-tests rows (Regression suite) are not all skipped / not-run either (TS:43 the third condition)"
   - id: speckit_bug.test.test.section_present.checks_performed
     stage: test
     target: {type: artifact, ref: test}
@@ -1309,6 +1323,17 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
     note: "no write to a check script written before this round's first repository edit, after that edit and up to this round's verification report; not applicable when the round edits nothing"
+  - id: speckit_bug.fix_2.run.speckit_bug_check_scripts.run_after_change
+    stage: fix_2
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: run, window: [{first: {fact: repo_edit, window: "stage:fix_2"}}, "stage_end:fix_2"], written_in: ["start", "write:fix_2"], edit_in: "stage:fix_2"}}
+    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:36 'the change has to make them pass'): round 1's speckit_bug.fix.checks_run_after_change.speckit_bug_check_scripts, one per round"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
+    note: "a check script written up to this round's fix report is executed after this round's first repository edit and before the fix stage ends; not applicable when the round edits nothing"
   - id: speckit_bug.fix_2.fix_2.speckit_bug_checks_added.before_run
     stage: fix_2
     target: {type: artifact, ref: fix_2}
@@ -1353,13 +1378,13 @@ manual:
     class: structure
     requirement: must
     check: {kind: artifact_exists, params: {}}
-    applies_when: {field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    applies_when: {all: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
     modality_evidence: "imperative (CW:20 fix and test alternate; FX:100 'begin this round's test stage')"
     sources:
       - {path: docs/core-workflow.md, lines: [22, 22], quote: "Round 2: `fix-2.md`, then `test-2.md`."}
       - {path: docs/stages/03-test.md, lines: [13, 13], quote: "| 2 | `fix-2.md` | `test-2.md` |"}
       - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
-    note: "test-2.md exists when round 2 is due (the previous verification report's Result is partial or failed)"
+    note: "test-2.md exists when round 2 is due (the previous verification report's Result is partial or failed) and was begun (its fix report exists): a round never begun is the fix stage's missing report, counted once"
   - id: speckit_bug.test_2.test_2.write_discipline.once
     stage: test_2
     target: {type: artifact, ref: test_2}
@@ -1376,7 +1401,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: prohibited_action, params: {action: repo_write}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    applies_when: {artifact_exists: fix_2}
     availability: [trace]
     modality_evidence: "MUST NOT (TS:104); CW:54"
     sources:
@@ -1388,7 +1413,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: exec_evidence, params: {kind: test}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    applies_when: {artifact_exists: fix_2}
     availability: [trace]
     modality_evidence: "imperative (TS:37 'Execute each planned check'; TS:38 'is expected')"
     sources:
@@ -1401,7 +1426,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: speckit_bug.check_scripts, params: {rule: run, written_in: ["start", "write:fix_2"]}}
-    applies_when: {any: [{field_matches: {artifact: test, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_2}]}
+    applies_when: {artifact_exists: fix_2}
     availability: [trace]
     modality_evidence: "imperative (TS:30 'Run the checks added in the fix'; TS:37)"
     sources:
@@ -1444,30 +1469,44 @@ manual:
       - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
       - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
     note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test-2.md is written"
+  - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.outcome
+    stage: test_2
+    target: {type: artifact, ref: test_2}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: outcome, window: [["stage_start:fix_2", {last: {fact: repo_edit, window: ["stage_start:fix_2", "write:test_2"]}}], "write:test_2"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'; TS:39 'instead of fabricating a result'); TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "a row claiming pass / fail whose command is a valid test run records what that run printed (the command's last run after this round's last repository edit and before test-2.md is written): pass for a run with no failure, or with none the same tests did not already have before round 1's first repository edit (TS:43 'no new failure'); fail for a run with a failure. Rows naming a check script are not judged (the trace has no exit status); not applicable when no row names a valid test run"
   - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.consistent
     stage: test_2
     target: {type: artifact, ref: test_2}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent, window: [["stage_start:fix_2", {last: {fact: repo_edit, window: ["stage_start:fix_2", "write:test_2"]}}], "write:test_2"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
     modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
     sources:
       - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
       - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
-    note: "a verified Result has no failed row"
+    note: "a verified Result has no failed row, but a row of the existing tests whose failures the same tests already had before the change (TS:43 'no new failure': its command a valid test run after this round's last repository edit, and before round 1's first repository edit with the same failures or more); a failed reproduction / issue-example / fix-check row always fails (TS:45)"
   - id: speckit_bug.test_2.test_2.speckit_bug_checks_table.unrun
     stage: test_2
     target: {type: artifact, ref: test_2}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun, baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
-    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'; TS:38 the repository's tests are 'expected'"
     sources:
       - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
       - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
-    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions); when a baseline was run before round 1's first repository edit, its existing-tests rows (Regression suite) are not all skipped / not-run either (TS:43 the third condition)"
   - id: speckit_bug.test_2.test_2.section_present.checks_performed
     stage: test_2
     target: {type: artifact, ref: test_2}
@@ -1715,6 +1754,17 @@ manual:
     sources:
       - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
     note: "no write to a check script written before this round's first repository edit, after that edit and up to this round's verification report; not applicable when the round edits nothing"
+  - id: speckit_bug.fix_3.run.speckit_bug_check_scripts.run_after_change
+    stage: fix_3
+    class: evidence
+    requirement: must
+    check: {kind: speckit_bug.check_scripts, params: {rule: run, window: [{first: {fact: repo_edit, window: "stage:fix_3"}}, "stage_end:fix_3"], written_in: ["start", "write:fix_3"], edit_in: "stage:fix_3"}}
+    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    availability: [trace]
+    modality_evidence: "imperative (FX:36 'the change has to make them pass'): round 1's speckit_bug.fix.checks_run_after_change.speckit_bug_check_scripts, one per round"
+    sources:
+      - {path: docs/stages/02-fix.md, lines: [36, 36], quote: "The checks written before the change stay as they are; the change has to make them pass."}
+    note: "a check script written up to this round's fix report is executed after this round's first repository edit and before the fix stage ends; not applicable when the round edits nothing"
   - id: speckit_bug.fix_3.fix_3.speckit_bug_checks_added.before_run
     stage: fix_3
     target: {type: artifact, ref: fix_3}
@@ -1759,13 +1809,13 @@ manual:
     class: structure
     requirement: must
     check: {kind: artifact_exists, params: {}}
-    applies_when: {field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}
+    applies_when: {all: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
     modality_evidence: "imperative (CW:20 fix and test alternate; FX:100 'begin this round's test stage')"
     sources:
       - {path: docs/core-workflow.md, lines: [23, 23], quote: "Round 3: `fix-3.md`, then `test-3.md`."}
       - {path: docs/stages/03-test.md, lines: [14, 14], quote: "| 3 | `fix-3.md` | `test-3.md` |"}
       - {path: docs/stages/02-fix.md, lines: [100, 100], quote: "round's `FIX_REPORT` is written, read `/speckit/stages/03-test.md` and begin this round's test stage."}
-    note: "test-3.md exists when round 3 is due (the previous verification report's Result is partial or failed)"
+    note: "test-3.md exists when round 3 is due (the previous verification report's Result is partial or failed) and was begun (its fix report exists): a round never begun is the fix stage's missing report, counted once"
   - id: speckit_bug.test_3.test_3.write_discipline.once
     stage: test_3
     target: {type: artifact, ref: test_3}
@@ -1782,7 +1832,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: prohibited_action, params: {action: repo_write}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    applies_when: {artifact_exists: fix_3}
     availability: [trace]
     modality_evidence: "MUST NOT (TS:104); CW:54"
     sources:
@@ -1794,7 +1844,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: exec_evidence, params: {kind: test}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    applies_when: {artifact_exists: fix_3}
     availability: [trace]
     modality_evidence: "imperative (TS:37 'Execute each planned check'; TS:38 'is expected')"
     sources:
@@ -1807,7 +1857,7 @@ manual:
     class: evidence
     requirement: must
     check: {kind: speckit_bug.check_scripts, params: {rule: run, written_in: ["start", "write:fix_3"]}}
-    applies_when: {any: [{field_matches: {artifact: test_2, section: '*', label: Result, pattern: '^\W*(?:partial|failed)\b'}}, {artifact_exists: fix_3}]}
+    applies_when: {artifact_exists: fix_3}
     availability: [trace]
     modality_evidence: "imperative (TS:30 'Run the checks added in the fix'; TS:37)"
     sources:
@@ -1850,30 +1900,44 @@ manual:
       - {path: docs/stages/03-test.md, lines: [72, 72], quote: "| Regression suite | `<command>` | pass / fail / skipped | <short note> |"}
       - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
     note: "some row claiming pass / fail names a command that is a valid test run -- after this round's last repository edit and before test-3.md is written"
+  - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.outcome
+    stage: test_3
+    target: {type: artifact, ref: test_3}
+    class: content
+    requirement: must
+    check: {kind: speckit_bug.checks_table, params: {rule: outcome, window: [["stage_start:fix_3", {last: {fact: repo_edit, window: ["stage_start:fix_3", "write:test_3"]}}], "write:test_3"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (TS:37 'Capture command, exit status'; TS:39 'instead of fabricating a result'); TS:46 'Do not over-claim'"
+    sources:
+      - {path: docs/stages/03-test.md, lines: [37, 37], quote: "Execute each planned check. Capture command, exit status, and a short excerpt of relevant output"}
+      - {path: docs/stages/03-test.md, lines: [39, 39], quote: "record it as `not-run` with a reason instead of fabricating a result."}
+      - {path: docs/stages/03-test.md, lines: [46, 46], quote: "Do not over-claim."}
+    note: "a row claiming pass / fail whose command is a valid test run records what that run printed (the command's last run after this round's last repository edit and before test-3.md is written): pass for a run with no failure, or with none the same tests did not already have before round 1's first repository edit (TS:43 'no new failure'); fail for a run with a failure. Rows naming a check script are not judged (the trace has no exit status); not applicable when no row names a valid test run"
   - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.consistent
     stage: test_3
     target: {type: artifact, ref: test_3}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: consistent}}
+    check: {kind: speckit_bug.checks_table, params: {rule: consistent, window: [["stage_start:fix_3", {last: {fact: repo_edit, window: ["stage_start:fix_3", "write:test_3"]}}], "write:test_3"], baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
     modality_evidence: "definition (TS:43 'verified — only when all three hold'; TS:45 'failed — a check from the fix still fails ...')"
     sources:
       - {path: docs/stages/03-test.md, lines: [43, 43], quote: "- **verified** — only when all three hold: every check in the fix report passes now after failing before the change; every example from the issue behaves as the issue expects; the existing tests of the fix report's baseline show no new failure."}
       - {path: docs/stages/03-test.md, lines: [45, 45], quote: "- **failed** — a check from the fix still fails, an example from the issue still shows the reported behavior, or an existing test that passed in the baseline now fails."}
-    note: "a verified Result has no failed row"
+    note: "a verified Result has no failed row, but a row of the existing tests whose failures the same tests already had before the change (TS:43 'no new failure': its command a valid test run after this round's last repository edit, and before round 1's first repository edit with the same failures or more); a failed reproduction / issue-example / fix-check row always fails (TS:45)"
   - id: speckit_bug.test_3.test_3.speckit_bug_checks_table.unrun
     stage: test_3
     target: {type: artifact, ref: test_3}
     class: content
     requirement: must
-    check: {kind: speckit_bug.checks_table, params: {rule: unrun}}
+    check: {kind: speckit_bug.checks_table, params: {rule: unrun, baseline: ["start", [{first: {fact: repo_edit, window: "stage:fix"}}, "stage_end:fix"]]}}
     availability: [sandbox_file, trace]
-    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'"
+    modality_evidence: "definition (TS:43-44 'verified — only when all three hold' / 'partial — ... one of them was not run'); TS:106 'downgrade to partial'; TS:38 the repository's tests are 'expected'"
     sources:
       - {path: docs/stages/03-test.md, lines: [44, 44], quote: "- **partial** — none of those fails, but one of them was not run or is inconclusive."}
       - {path: docs/stages/03-test.md, lines: [106, 106], quote: "Never mark a fix as `verified` based on tests alone if the original assessment listed a reproduction that you did not actually exercise — downgrade to `partial` and say so."}
-    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions)"
+      - {path: docs/stages/03-test.md, lines: [38, 38], quote: "Running the repository's tests for the changed modules is neither, and is expected."}
+    note: "a verified Result has no skipped / not-run row for the reproduction, the issue's examples or the fix's checks (the lint / type-check row is not one of the verdict's conditions); when a baseline was run before round 1's first repository edit, its existing-tests rows (Regression suite) are not all skipped / not-run either (TS:43 the third condition)"
   - id: speckit_bug.test_3.test_3.section_present.checks_performed
     stage: test_3
     target: {type: artifact, ref: test_3}
