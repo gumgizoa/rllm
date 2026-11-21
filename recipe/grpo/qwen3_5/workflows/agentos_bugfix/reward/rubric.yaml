@@ -6809,7 +6809,9 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: the change tasks of tasks.md name a source file (a name written down after the file was already edited does not count)
+  note: every sub-task of tasks.md (as the run left it) that changes code -- numbered x.y, no test work, not begun with a
+    reading or checking verb -- names on its task line a repository path (a name written down after the file was already edited
+    does not count)
 - id: agentos_bugfix.global.penalty.plan_files.named_equals_patch
   scope: specific
   class: content
@@ -6841,7 +6843,7 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: the files tasks.md names are the source files of the final change, no more and no fewer
+  note: the source files those task lines name are the source files of the final change, no more and no fewer
 - id: agentos_bugfix.implement_tasks.penalty.phase2_run.existing_and_own
   scope: specific
   class: evidence

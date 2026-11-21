@@ -483,6 +483,18 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   0.3 × 1/9 = 0.0333이 됨. 파일 항목의 무게는 penalty 점수의 4/11에서 2/9로, 테스트 항목은 7/11에서 7/9로 바뀜. 평가 499런: 두 항목의 판정 998개가
   없어짐(통과였던 것 617개, 실패였던 것 381개). 다른 항목의 판정 변화 0. penalty 점수 평균 0.59738에서 0.59274 (점수가 바뀐 런 479개).
 
+- C-1 계획한 파일 (`plan_files.named`, `plan_files.named_equals_patch`): 전에는 tasks.md의 모든 판에서 테스트가 아닌 task와 그 아래 줄(세부 줄,
+  "Reuse pattern from" 줄, N.0 줄)에서 소스 파일 이름(맨 이름, 점 표기 모듈 이름 포함)을 모아, 하나라도 있으면 `named` 통과였음. 이제
+  create-tasks.md 119행("every sub-task that changes code names, on its task line, the path in the repository of the file it changes")대로 읽음:
+  런이 남긴 마지막 tasks.md에서 x.y 번호(x.0이 아님, x.y.z는 x.y의 단계)의 task 줄 가운데 테스트 작업(쓰기·실행·검토)이 아니고 읽기·확인 동사
+  (B-1의 `READ_VERB`와 verify, confirm, check, ensure, validate, test, run)로 시작하지 않는 줄이 코드를 바꾸는 하위 task. 이름은 그 줄에서만 뽑고,
+  `/`가 있고 끝 부분에 확장자가 있는 토큰이거나 저장소 최상위 파일(런이 쓴 것, 최종 변경에 있는 것)의 맨 이름만 경로로 셈. 점 표기 모듈 이름은
+  세지 않음. 테스트 작업 판별은 줄의 경로를 지운 뒤에 함("Run tests in foo.py"의 마침표가 `[^.]*`를 끊던 것). `named`는 그런 줄이 하나 이상이고
+  모든 줄이 경로를 하나 이상 적어야 통과(줄마다 확장자는 묻지 않음), `named_equals_patch`는 그 이름 중 소스 파일과 최종 변경의 소스 파일이 같아야
+  통과. 이름이 처음 나온 판과 늦은 이름(파일을 고친 뒤 처음 적은 이름) 판정은 전과 같음. 새 함수 `change_lines`, `line_paths`. 평가 499런: `named`
+  288런이 통과에서 실패(해결 152), `named_equals_patch` 160런이 통과에서 실패(해결 91)와 15런이 실패에서 통과("Reuse pattern from" 줄의 파일을
+  더는 세지 않음). `named` 통과는 340런에서 52런. 평가 런은 119행 문장(2026-11-18에 들어감)을 받지 않았으므로 이 수는 위반 건수가 아님.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

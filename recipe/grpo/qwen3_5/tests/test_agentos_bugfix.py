@@ -467,39 +467,38 @@ def test_penalty_without_a_reference_fix_scores_the_same_items(tmp_path):
     assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0 and got["penalty"] == 1.0
 
 
-def test_named_files_are_collected_over_every_version_of_tasks_md():
+def test_named_files_are_the_paths_on_the_change_task_lines_of_the_last_tasks_md():
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
     def tasks(*changes):
-        lines = ["#### Task Group 1: Core", "**Dependencies:** None", "", "- [ ] 1.0 Complete the fix", "  - [ ] 1.1 Write 2-8 focused tests for the fix", "    - a check script next to pkg/a.py"]
+        lines = ["#### Task Group 1: Core", "**Dependencies:** None", "", "- [ ] 1.0 Complete the fix in pkg/z.py", "  - [ ] 1.1 Write 2-8 focused tests for the fix", "    - a check script next to pkg/a.py"]
         lines += [f"  - [ ] 1.{i} {c}" for i, c in enumerate(changes, 2)]
         lines += ["  - [ ] 1.9 Ensure the tests of this group pass", "    - Run tests/test_a.py", "", "**Acceptance Criteria:**", "- pkg/z.py behaves"]
         return "\n".join(lines)
 
     draft = tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py")
-    # only the change tasks count: not the test tasks' files, not what follows a **Label:** line
-    assert P.names_in(P.change_text(draft), "/testbed", set()) == {"pkg/a.py", "pkg/d.py"}
-    known = {"pkg/a.py", "pkg/b.py", "pkg/d.py"}
+    # only the change sub-task lines count: not the x.0 line, not a test task, not the lines under a task
+    assert P.change_lines(draft) == ["Fix the parser in `/testbed/pkg/a.py`"]
+    assert P.line_paths(P.change_lines(draft)[0], "/testbed", set()) == {"pkg/a.py"}
     # b.py is added as a task at step 30: before its first edit it is a named file, after it it is not
-    added = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py", "Update the caller in pkg/b.py"))]
-    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 35}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py", "pkg/b.py"}, set())
-    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 25}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py"}, {"pkg/b.py"})
-    # a name removed later stays (d.py: named, never edited), so the plan still differs from the patch
-    removed = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`"))]
-    named, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", known)
-    assert named == {"pkg/a.py", "pkg/d.py"} and not late
-    assert P.judge(named, ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 0.0}
-    # a bare file name and a dotted module name denote the file; the run's own check script is not a source file
-    text = "- [ ] 1.2 Fix `a.py` (pkg.b.Parser.feed) and rerun check_a.py"
-    assert P.names_in(text, "/testbed", known, frozenset({"check_a.py"})) == {"a.py", "pkg/b.py"}
+    added = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`", "Update the caller in pkg/b.py"))]
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 35}, "/testbed", set()) == ([{"pkg/a.py"}, {"pkg/b.py"}], set())
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 25}, "/testbed", set()) == ([{"pkg/a.py"}, set()], {"pkg/b.py"})
+    # a name removed later is gone: the last version of tasks.md is the plan
+    removed = [(10, tasks("Fix the parser in pkg/a.py", "Fix pkg/d.py")), (30, tasks("Fix the parser in pkg/a.py"))]
+    lines, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", set())
+    assert lines == [{"pkg/a.py"}] and not late
+    assert P.judge(lines, {"pkg/a.py"}, ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 1.0}
+    # a bare file name is a path only for a file at the repository's top level; a dotted module name is none
+    assert P.line_paths("Fix `a.py` (pkg.b.Parser.feed) and setup.py", "/testbed", {"setup.py"}) == {"setup.py"}
     assert P.match("a.py", "pkg/a.py") and not P.match("a.py", "pkg/ba.py")
 
 
 def test_a_run_that_names_no_file_fails_both_items_about_named_files():
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
-    assert P.judge(set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0}
-    assert P.judge(set(), []) == {"named": 0.0, "named_equals_patch": 0.0}
+    assert P.judge([], set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0}
+    assert P.judge([set()], set(), []) == {"named": 0.0, "named_equals_patch": 0.0}
 
 
 def test_penalty_reads_no_reference_fix_and_never_raises():

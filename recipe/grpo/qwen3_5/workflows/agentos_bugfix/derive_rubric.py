@@ -298,9 +298,9 @@ _OUT = "a run the item stands outside of is worth 0 when it never did what the i
 _OUT3 = "a run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was"
 PENALTY = (
     ("global", "plan_files.named", "CT", (_CT_FILES,), "CT: 'every sub-task that changes code names, on its task line, the path in the repository of the file it changes'",
-     "the change tasks of tasks.md name a source file (a name written down after the file was already edited does not count)"),
+     "every sub-task of tasks.md (as the run left it) that changes code -- numbered x.y, no test work, not begun with a reading or checking verb -- names on its task line a repository path (a name written down after the file was already edited does not count)"),
     ("global", "plan_files.named_equals_patch", "CT", (_CT_FILES,), "CT: 'every sub-task that changes code names ... the file it changes'",
-     "the files tasks.md names are the source files of the final change, no more and no fewer"),
+     "the source files those task lines name are the source files of the final change, no more and no fewer"),
     ("implement_tasks", "phase2_run.existing_and_own", "IT", (_IT_RUN,), "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
      "after the last source change of PHASE 2, a valid run of the repository's tests and a run of a test of the run's own; worth 0 to a run that changed no source"),
     ("implement_tasks", "phase2_fail.edited_after_fail", "IT", (_T5_FIX,), "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
