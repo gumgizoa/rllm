@@ -503,6 +503,15 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   전체의 실패 뒤에 좁힌 실패와 좁힌 통과가 와도 앞의 넓은 실패가 지워지지 않음. `TestResult`에 칸 `failed_ids`(기본 빈 값). 기존
   `standing_failures`는 그대로라 openspec_ff와 다른 워크플로는 바뀌지 않음. 이 커밋만으로는 판정 변화 0 (평가 499런).
 
+- A-9 행 8 (R3) checks/ 밖 스크립트 (`penalty_tests.py`의 `timeline`): 런이 쓴 스크립트는 checks/ 밖(저장소 최상위, /tmp)이어도 실행 결과를
+  테스트 결과로, 쓰기를 테스트 편집으로 셌음(저장소를 고치는 스크립트만 뺐음). 이제 결과와 테스트 편집에는 spec 폴더 checks/ 아래 스크립트와 저장소
+  테스트 파일만 넣음. 자기 테스트의 자리는 checks/ 스크립트이거나 기존 테스트 모듈에 더한 함수임(core-workflow.md 85 ~ 89행, create-tasks.md 127행).
+  쓸 데가 없어진 `fix_scripts`와 `_WRITES_FILES`를 지움. 평가 499런 (penalty 항목, 해당 없음을 1점·0점으로 나눠 셈): 검증 단계 `cause_checked`
+  17런, `edited_after_fail`·`last_result_pass` 각 14런이 해당 없음 1점에서 0점(남은 결과가 없어 최종 코드를 테스트하지 않은 것이 됨), 구현 단계
+  `edited_after_fail`·`last_result_pass` 각 14런이 실패·통과·해당 없음 1점에서 해당 없음 0점, `last_result_pass` 4런과 `edited_after_fail` 1런이
+  실패에서 통과, 각 3런이 실패에서 해당 없음 1점, `edited_after_fail` 구현 단계 2런과 검증 단계 1런이 통과에서 실패(실패 뒤의 편집이 /tmp의 테스트
+  스크립트 쓰기뿐이었음). 대부분 django 런(저장소 밖 스크립트로 확인함). 준수율 변화 0, penalty 점수 평균 0.49633에서 0.48475.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

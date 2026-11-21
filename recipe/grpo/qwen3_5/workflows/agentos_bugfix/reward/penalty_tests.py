@@ -58,27 +58,24 @@ never tested loses all four.
         1.0: the last result before the report passes
         outside: 1.0 when the final code was tested and no result failed in PHASE 3; 0.0 when it was not
 
-A result is a run whose outcome can be read: a script the run wrote (under checks/ or anywhere else) that ran, or a
-valid runner run. A script run whose outcome cannot be read ran (it counts for the run items, and as "a test ran") and
-is no result. Two kinds of run are not results:
-
-    the cause check   a runner run while the change is stashed away -- from a ``git stash`` (push) to the next
-                      ``git stash pop`` / ``apply``, in one command or over several. ``git stash list`` / ``show`` /
-                      ``drop`` stash nothing away
-    a fix script      a script outside checks/ that changes the repository when it runs (it applies an edit; it is no
-                      test). Writing it is no test edit either
+A result is a run whose outcome can be read: a script under the spec folder's checks/ that ran, or a valid runner run.
+The run's own tests are check scripts or test functions in the repository's test modules (core-workflow.md 85-89,
+create-tasks.md 127): a script elsewhere -- at the repository root, under /tmp -- is no test, its run no result and
+writing it no test edit (A-9 row 8 of the reward review). A check-script run whose outcome cannot be read ran (it counts
+for the run items, and as "a test ran") and is no result. The cause check is no result either: a runner run while the
+change is stashed away -- from a ``git stash`` (push) to the next ``git stash pop`` / ``apply``, in one command or over
+several, or after a ``git checkout`` of an edited source file. ``git stash list`` / ``show`` / ``drop`` stash nothing away.
 
 A source change is what every workflow means by it (``facts.source_change_steps``): a write to a non-test code or
 config file of the final change, one of the run's own scripts aside (``facts.is_run_script``: a new script file that
 the final change does not keep, or one with a throwaway name -- ``repro_x.py``, ``check_fix.py`` -- at the repository
 root) and git putting content back aside. A test edit is a write to a repository test file or to one of the run's
-scripts. Nothing here reads the task's reference fix or its test patch: every item is about what the run can know.
+scripts under checks/. Nothing here reads the task's reference fix or its test patch: every item is about what the run
+can know.
 """
 
 from __future__ import annotations
 
-import posixpath
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -98,7 +95,6 @@ P3_EDITED = f"{STAGE}.phase3_fail.edited_after_fail"
 P3_LAST = f"{STAGE}.phase3_fail.last_result_pass"
 ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
 
-_WRITES_FILES = re.compile(r"\.write\(|write_text\(|writelines\(|\bsed\s+-i\b|\bpatch\s")
 _WHOLE = R.WHOLE  # the key of a runner run that names no file
 _NEVER = 10**9  # a step no run reaches: the end of a stretch whose closing event did not happen
 
@@ -111,8 +107,8 @@ class Timeline:
     """What the items read, in steps."""
 
     src: list[int] = field(default_factory=list)  # source changes
-    test_edits: list[int] = field(default_factory=list)  # writes to test files and to the run's scripts
-    results: list[Result] = field(default_factory=list)  # readable results; cause checks and fix scripts aside
+    test_edits: list[int] = field(default_factory=list)  # writes to repository test files and to the check scripts
+    results: list[Result] = field(default_factory=list)  # readable results (check scripts, valid runner runs); cause checks aside
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
     own_runs: list[int] = field(default_factory=list)  # a checks/ script ran (read or not), or the runner on an own test file
@@ -139,16 +135,6 @@ selects, reruns = R.selects, R.reruns  # which test a runner target names, and w
 stash_marks, stash_states, run_stashed = R.stash_marks, R.stash_states, R.run_stashed
 
 
-def fix_scripts(runs_of: dict, repo_writes_at: dict, text: dict) -> set[str]:
-    """The scripts that change the repository when they run: at a step one runs, the replay shows a repository write
-    made from Python, or any repository write while the script's own text writes files."""
-    return {
-        p
-        for p, runs in runs_of.items()
-        if any(any(e.source == "python" or _WRITES_FILES.search(text.get(p) or "") for e in repo_writes_at.get(int(st), [])) for st, _ in runs)
-    }
-
-
 def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dict[str, int]) -> bool:
     """A runner run at ``step`` runs a test of the run's own: it names (or, as the whole suite, includes) a test file
     the run had already written to."""
@@ -164,53 +150,27 @@ def _group_ends(ctx: Any) -> list[int]:
 def timeline(ctx: Any) -> Timeline:
     fx = ctx.facts
     wd = ctx.collected.workdir  # known: ``measure`` does not come here without it
-    pre = wd.rstrip("/") + "/"
     tl = Timeline()
 
-    # repository writes: source changes (the definition every workflow shares), test files, scripts left in the repository
+    # repository writes: source changes (the definition every workflow shares) and test files
     tl.src = list(F.source_change_steps(ctx))
     own_tests: dict[str, int] = {}  # repository test file -> the run's first write to it
-    repo_scripts: dict[str, list[int]] = {}
-    repo_write_steps: dict[int, list] = {}
     for e in fx.repo_writes:
         if e.ok is False or e.op == "unknown" or F.is_generated(e.path):
             continue
-        repo_write_steps.setdefault(int(e.step), []).append(e)
         if F.is_test_path(e.path):
             own_tests.setdefault(e.path, int(e.step))
             tl.test_edits.append(int(e.step))
-        elif F.is_run_script(ctx, e.path):
-            repo_scripts.setdefault(posixpath.join(wd, e.path), []).append(int(e.step))
 
-    # the run's scripts: under checks/, and anywhere else (outside the repository, or left in it)
+    # the run's check scripts under the spec folder's checks/: a script anywhere else is no test (A-9 row 8)
     cdir = C._expand_dir(ctx, "{artifact}/{SPEC}/checks")
     checks = set(C.check_scripts(ctx, cdir)) if cdir else set()
-    others: dict[str, list[int]] = dict(repo_scripts)
-    text: dict[str, str] = {}
-    for path, evs in fx.writes.items():
-        if not C._SCRIPT_EXT.search(path) or "__pycache__" in path or path.startswith(pre):
-            continue
-        steps = [int(e.step) for e in evs if e.ok is not False and e.op in F.WRITE_OPS]
-        if not steps:
-            continue
-        text[path] = next((e.content for e in reversed(evs) if e.ok is not False and e.content), "") or ""
-        if path in checks:
-            tl.test_edits += steps
-        else:
-            others[path] = steps
-    runs_of = C.executions(ctx, checks | set(others))
-    # a script outside checks/ that changes the repository when it runs applies an edit: no test, and no test edit
-    fixers = fix_scripts({p: runs_of.get(p, []) for p in others}, repo_write_steps, text)
-    for path, steps in others.items():
-        if path not in fixers:
-            tl.test_edits += steps
+    for path in checks:
+        tl.test_edits += [int(e.step) for e in fx.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
     tl.test_edits.sort()
-    for path, runs in runs_of.items():
-        if path in fixers:
-            continue
+    for path, runs in C.executions(ctx, checks).items():
         for step, out in runs:
-            if path in checks:
-                tl.own_runs.append(int(step))
+            tl.own_runs.append(int(step))
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
 

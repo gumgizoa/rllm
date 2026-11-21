@@ -692,18 +692,12 @@ def test_the_cause_check_is_a_runner_run_while_the_change_is_stashed_away():
     assert not T.run_stashed(run(2, "pytest tests/test_a.py"), before, marks)
 
 
-def test_a_script_that_edits_the_repository_is_not_a_test_and_a_new_source_file_is_source():
+def test_a_new_source_file_is_source_and_a_runner_run_of_an_own_test_file_is_an_own_test():
     from types import SimpleNamespace as N
 
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
 
-    runs_of = {"/tmp/fix.py": [(12, "pass")], "/tmp/repro.py": [(12, "fail"), (14, "pass")], "/tmp/patch.sh": [(16, None)], "/tmp/quiet.py": [(18, "pass")]}
-    writes = {12: [N(source="python")], 16: [N(source="other")], 18: [N(source="file_editor")]}
-    text = {"/tmp/fix.py": "open(p, 'w').write(s)", "/tmp/repro.py": "assert f() == 1", "/tmp/patch.sh": "sed -i 's/a/b/' pkg/a.py", "/tmp/quiet.py": "print(f())"}
-    # run at a step where Python wrote to the repository (both scripts of step 12 -- the replay cannot tell them apart),
-    # or at a step with a repository write while its own text writes files; a script that only reads is a test
-    assert T.fix_scripts(runs_of, writes, text) == {"/tmp/fix.py", "/tmp/repro.py", "/tmp/patch.sh"}
-    assert T.fix_scripts({"/tmp/repro.py": [(14, "pass")]}, writes, text) == set()
+    # (a script outside checks/ is no test at all since A-9 row 8: tests/test_review_fixes_ac.py)
     # a new file the final change keeps is source whatever its name, unless it is a throwaway name at the repository
     # root (the rule every workflow shares, facts.is_run_script)
     from recipe.grpo.qwen3_5.workflow_rubric import facts as F

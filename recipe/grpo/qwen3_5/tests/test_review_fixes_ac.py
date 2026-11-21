@@ -156,3 +156,83 @@ def test_standing_units_rerunning_the_failed_test_clears_it_and_leaving_it_out_d
     # at one step a failure is read last; `until` stops the reading
     assert [u for u, _ in R.standing_units([_r(10, True, "tests/test_a.py"), fail])] == [("test", ids[0])]
     assert R.standing_units([fail, _r(12, True, "tests")], until=11)[0][1] is fail
+
+
+# ---- helpers: the golden run with steps put in, scored by the engine; the context the items saw ---------------------
+
+
+def _golden_rubric():
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+
+    rub = G.with_docs(S.load(WF / "reward" / "rubric.yaml"), WF)
+    assert G.load_plugins(rub) == []
+    return rub
+
+
+def _golden_with(variant=None, insert=None, edit=None):
+    """The golden run (or a variant) with ``insert(steps) -> steps`` applied to its list of steps (renumbered after),
+    and ``edit(collected)`` to what was collected; (rubric, report, ctx)."""
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric.generator.mutations import simulate
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Run, Step
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    rub = _golden_rubric()
+    run, col = golden.golden(rub, variant=variant)
+    if insert is not None:
+        steps = insert(list(run.steps))
+        run = Run(instance_id=run.instance_id, steps=[Step(n, st.actions, st.message) for n, st in enumerate(steps, 1)])
+        base = {"README.md": golden.README, "setup.cfg": golden.SETUP_CFG, "docs/index.rst": golden.DOCS_INDEX, "textkit/__init__.py": golden.INIT_PY, "textkit/slug.py": golden.SLUG_PY}
+        col = simulate(run, workdir=golden.WORKDIR, base_sha=golden.BASE_SHA, base_tree=golden.BASE_TREE, artifact_dirs=(golden.SPECS,), base_files=base)
+    if edit is not None:
+        edit(col)
+    got = {}
+    orig = engine.evaluate_item
+
+    def capture(item, ctx, errors):
+        got["ctx"] = ctx
+        return orig(item, ctx, errors)
+
+    engine.evaluate_item = capture
+    try:
+        rep = engine.evaluate(rub, run, col)
+    finally:
+        engine.evaluate_item = orig
+    assert not rep.engine_errors, rep.errors[:2]
+    return rub, rep, got["ctx"]
+
+
+def _shell(command, observation, code):
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Step
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    return Step(0, [Action("shell", "terminal", command=command, observation=observation + "\n" + golden._exit(code))], "")
+
+
+def _create(path, text):
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Step
+
+    return Step(0, [Action("create", "file_editor", path=path, text=text, status="ok", observation=f"File created successfully at: {path}")], "")
+
+
+def _after(steps, pred, *new):
+    """``steps`` with ``new`` put right after the first step whose action satisfies ``pred``."""
+    at = next(i for i, st in enumerate(steps) if any(pred(a) for a in st.actions))
+    return steps[: at + 1] + list(new) + steps[at + 1 :]
+
+
+# ---- A-9 row 8 (R3): a script outside checks/ is no test --------------------------------------------------------------
+
+
+def test_a_script_outside_checks_is_no_result_and_writing_it_no_test_edit():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    slug_edit = lambda a: a.kind == "replace" and (a.path or "").endswith("textkit/slug.py")  # noqa: E731
+    repro = [_create("/tmp/repro.py", "from textkit import slugify\nassert slugify('a!') == 'a'\n"),
+             _shell("cd /testbed && python /tmp/repro.py", "Traceback (most recent call last):\nAssertionError", 1)]
+    _, _rep, ctx = _golden_with(insert=lambda s: _after(s, slug_edit, *repro))
+    tl = T.timeline(ctx)
+    steps = {st.n for st in ctx.run.steps if any("/tmp/repro.py" in (a.command or a.path or "") for a in st.actions)}
+    assert len(steps) == 2 and not steps & {r.step for r in tl.results} and not steps & set(tl.test_edits)
+    assert all(v == 1.0 for k, (v, _) in T.judge(tl).items())
