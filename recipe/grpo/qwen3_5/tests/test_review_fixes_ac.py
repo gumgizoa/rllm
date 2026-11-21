@@ -13,6 +13,7 @@ RECIPE = Path(__file__).resolve().parents[1]
 REPO = RECIPE.parents[2]
 sys.path.insert(0, str(REPO))
 
+import pytest  # noqa: E402
 import yaml  # noqa: E402
 
 from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D  # noqa: E402
@@ -42,19 +43,29 @@ def test_implement_tasks_says_a_test_you_wrote_is_corrected_not_loosened():
     assert D._T5_FIX in line and D._T5_WARN in line
 
 
-# ---- C-2: no penalty item reads the task's reference fix ---------------------------------------------------------------
+# ---- C-2: an item that reads the task's reference fix never costs a solved rollout ---------------------------------------
 
 
-def test_the_two_reference_fix_items_are_gone_and_nine_penalty_items_remain():
+def test_one_reference_fix_item_is_kept_for_unsolved_rollouts_and_ten_penalty_items_remain():
     pen = [i for i in ITEMS if ".penalty." in i]
-    assert len(pen) == 9
-    assert not any(i.endswith(("named_covers_gold", "patch_covers_gold")) for i in pen)
-    assert {i for i in pen if ".plan_files." in i} == {"global.penalty.plan_files.named", "global.penalty.plan_files.named_equals_patch"}
-    # the task still reaches the kinds that read its description (task_text.py)
+    assert len(pen) == 10
+    assert not any(i.endswith("patch_covers_gold") for i in pen)
+    assert {i for i in pen if ".plan_files." in i} == {f"global.penalty.plan_files.{r}" for r in ("named", "named_equals_patch", "named_covers_gold")}
+    # the task reaches the kinds that read its description (task_text.py) and its reference fix (named_covers_gold)
+    from recipe.grpo.qwen3_5.workflow_rubric import penalty as PEN
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty
 
     task = SimpleNamespace(id="t")
     assert penalty.inputs(task, None) == {"task": task}
+
+    # the shared rule: an unsolved_only item is worth 1 in penalty_solved and its judged value in penalty
+    def res(status, score):
+        return SimpleNamespace(status=status, score=score)
+
+    report = SimpleNamespace(results={"wf.global.penalty.a.gold": res("fail", 0.0), "wf.global.penalty.b": res("fail", 0.0), "wf.s.penalty.c": res("pass", 1.0), "wf.s.x.y": res("fail", 0.0)})
+    got = PEN.post(report, unsolved_only=("a.gold",))
+    assert got["penalty"] == pytest.approx(1 / 3) and got["penalty_solved"] == pytest.approx(2 / 3)
+    assert "penalty_solved" not in PEN.post(report)  # a workflow without such an item gives one mean, as before
 
 
 # ---- C-1: every sub-task that changes code names its file's path on its task line ----------------------------------
@@ -85,12 +96,12 @@ def test_named_needs_a_path_on_every_change_line_and_reads_the_last_tasks_md():
     assert lines == [{"pkg/a.py"}, set()] and P.judge(lines, {"pkg/a.py"}, ["pkg/a.py"])["named"] == 0.0
     both = "- [ ] 1.2 Change parse in pkg/a.py\n- [ ] 1.3 Update the caller in `pkg/b.py`\n"
     lines, _ = P.named_files([(10, one), (12, both)], {"pkg/b.py": 20}, "/testbed", set())
-    assert P.judge(lines, {"pkg/a.py", "pkg/b.py"}, ["pkg/a.py", "pkg/b.py"]) == {"named": 1.0, "named_equals_patch": 1.0}
+    assert P.judge(lines, {"pkg/a.py", "pkg/b.py"}, ["pkg/a.py", "pkg/b.py"]) == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": None}
     # a file name without its path is no path unless the file is at the repository's top level; any extension counts
     assert P.line_paths("Change parse in slug.py", "/testbed", set()) == set()
     assert P.line_paths("Describe sep in README.rst and docs/usage.rst", "/testbed", {"README.rst"}) == {"README.rst", "docs/usage.rst"}
     # no sub-task that changes code: nothing named
-    assert P.judge([], set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0}
+    assert P.judge([], set(), ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": None}
 
 
 # ---- R1: failure units, test by test where the output names the failed tests ----------------------------------------

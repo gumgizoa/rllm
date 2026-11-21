@@ -33,7 +33,9 @@ class WorkflowSpec:
     reward_signal     the scorers' signal in [0, 1] that train.py folds into the reward
                       (``recipe.workflow.compliance_reward``); the others are logged only
     penalty_signal    a scorers' signal P in [0, 1] (1 = every penalty rule kept) train.py folds in as
-                      ``(1 - w) * reward + w * P`` (``compliance_reward.penalty_weight`` / ``penalty_gate``); None = none
+                      ``(1 - w) * reward + w * P`` (``compliance_reward.penalty_weight`` / ``penalty_gate``); None = none.
+                      With ``<penalty_signal>_solved`` beside it (the mean without the items judged against the
+                      reference fix), a solved rollout is paid by that one (``workflow_rubric/penalty.py``)
     output_dirs       container paths (directories or files) the workflow has the agent write its
                       reports to, outside the repository; read back into
                       ``episode.artifacts["workflow_outputs"]`` (``run_artifacts.py``)

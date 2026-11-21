@@ -258,6 +258,27 @@ def test_hook_folds_the_penalty_in_as_a_weighted_term(train_module):
     assert reward(1.0, 0.5, 0.0, w=0.0) == pytest.approx(0.85)  # off by default: the mul reward alone
 
 
+def test_hook_pays_a_solved_rollout_by_the_mean_without_the_reference_fix_items(train_module):
+    # a workflow with items judged against the reference fix gives <penalty>_solved beside <penalty>
+    def reward(verifier, penalty, solved, gate="all"):
+        eps, traj = _eps(verifier, 0.5, penalty)
+        if solved is not None:
+            traj.signals["speckit_bug/penalty_solved"] = solved
+        train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, "speckit_bug/compliance", 0.7, 0.3, "speckit_bug/penalty", 0.3, gate)(eps, None)
+        return traj.reward
+
+    # solved, the reference-fix item failed (0.9) but every other rule kept (1.0): nothing is lost
+    assert reward(1.0, 0.9, 1.0) == pytest.approx(0.7 * 0.85 + 0.3)
+    # solved, a test rule broken as well (0.8 / 0.9): the solve still pays for that one
+    assert reward(1.0, 0.8, 0.9) == pytest.approx(0.7 * 0.85 + 0.3 * 0.9)
+    # unsolved: paid by the mean with the reference-fix item in it
+    assert reward(0.0, 0.8, 0.9) == pytest.approx(0.3 * 0.8)
+    # without the second mean the hook is as before
+    assert reward(1.0, 0.8, None) == pytest.approx(0.7 * 0.85 + 0.3 * 0.8)
+    # the whole-mean gate still waives everything for a solve
+    assert reward(1.0, 0.8, 0.9, gate="unsolved") == pytest.approx(0.7 * 0.85 + 0.3)
+
+
 def test_hook_rejects_a_penalty_without_its_signal_or_out_of_range(train_module):
     with pytest.raises(ValueError, match="penalty_weight"):
         train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, "speckit_bug/compliance", 0.0, 0.3, None, 0.2)
