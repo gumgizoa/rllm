@@ -583,14 +583,16 @@ def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_
     # a failed test is not cleared by a later run narrowed below what failed (the rule every workflow shares)
     narrowed = T_Result(14, True, True, ("tests/unit/test_a.py",), ("-k other",))
     assert _test_items(src=[10], results=[_res(12, False, "tests/unit/test_a.py", runner=True), narrowed], p2_end=30)[0][last] == 0.0
-    # group 1 fails and is ticked (15) without an edit, group 2 fails and is edited: the last failure alone would pass
+    # group 1 fails and is ticked (15) without an attempt, group 2 fails, is edited and passes: per stretch, per failure
+    # (A-4: an attempt is an edit and a run again; tests/test_review_fixes_ac.py has the attempt counts)
     two = dict(src=[10], test_edits=[22], results=[_res(12, False, "/s/a.py"), _res(20, False, "/s/b.py"), _res(23, True, "/s/b.py")], p2_end=25)
     assert _test_items(group_ends=[15, 25], **two)[0][edited] == 0.0
-    assert _test_items(group_ends=[25], **two)[0][edited] == 1.0  # everything ticked in one write: one stretch
-    assert _test_items(group_ends=[15, 25], **{**two, "test_edits": [13, 22]})[0][edited] == 1.0
-    # an edit after the tick of its stretch is too late; a source edit counts like a test edit
-    assert _test_items(src=[10], test_edits=[16], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
-    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 1.0
+    assert _test_items(group_ends=[25], **two)[0][edited] == 0.0  # one stretch: a.py was still never tried again
+    assert _test_items(group_ends=[15, 25], **{**two, "test_edits": [13, 22], "results": two["results"] + [_res(14, True, "/s/a.py")]})[0][edited] == 1.0
+    # an edit after the tick of its stretch is too late; an edit not followed by a run again is no attempt
+    assert _test_items(src=[10], test_edits=[16], results=[_res(12, False, "/s/a.py"), _res(17, True, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
+    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
+    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py"), _res(14, True, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 1.0
     # a.py failed and was never run again: b.py passing last does not make it pass
     assert _test_items(**two)[0][last] == 0.0
     assert _test_items(**{**two, "results": two["results"] + [_res(24, True, "/s/a.py")]})[0][last] == 1.0

@@ -6905,13 +6905,19 @@ items:
     - 40
     quote: IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test
       and run the tests again before you tick the task group's last sub-task.
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and
+      go on.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
-  note: in every task group's stretch of PHASE 2 that holds a failing result, source or a test is edited after the last failing
-    result and before the tick; a run the item stands outside of is worth 0 when it never did what the item is about and 1
-    when it did and the item's condition did not arise
+  note: in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most
+    two attempts (fail, edit, run again) and passed again or was tried at least once; a run the item stands outside of is
+    worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise
 - id: agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
   scope: specific
   class: evidence

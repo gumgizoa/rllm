@@ -21,9 +21,12 @@ write; without either, the end of the run)
         outside (0.0): the run changed no source in PHASE 2
     agentos_bugfix.implement_tasks.penalty.phase2_fail.edited_after_fail
         judged: a failing result after the first source change
-        1.0: per task group -- PHASE 2 is cut where a task group becomes fully ticked; in every stretch that holds a
-             failing result, source or a test is edited after the stretch's last failing result and before its tick.
-             A run that ticks everything in one write has one stretch
+        1.0: per task group -- PHASE 2 is cut where a task group becomes fully ticked (a run that ticks everything in
+             one write has one stretch). In every stretch, each failure unit (``results.failure_units``: a test, or a
+             file / script when the output names no test) that fails after the stretch's first source change and that
+             the documents ask to fix (R2: ``checks.excused_failures``) had at most two attempts -- a failing result, an
+             edit of source or a test, and the unit's next result in the stretch -- and passed again in the stretch or
+             had at least one attempt (implement-tasks.md 40: fix and run again; after two attempts, ⚠️ and go on)
         outside: 1.0 when a test ran after the first source change and none failed; 0.0 when none ran, or the run
              changed no source
     agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
@@ -119,6 +122,7 @@ class Timeline:
     # of the last source change they still ran after it (``RunFact.after_write_same_call``)
     results_late: set[int] = field(default_factory=set)
     own_late: set[int] = field(default_factory=set)
+    script_late: set[int] = field(default_factory=set)  # steps of check-script runs that come after a repository write of their own call
     existing_late: set[int] = field(default_factory=set)
     group_ends: list[int] = field(default_factory=list)  # steps at which a task group becomes fully ticked
     excused: set = field(default_factory=set)  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
@@ -142,6 +146,31 @@ def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dic
     """A runner run at ``step`` runs a test of the run's own: it names (or, as the whole suite, includes) a test file
     the run had already written to."""
     return any(first < step and (whole or any(selects(t, f) for t in files)) for f, first in own_tests.items())
+
+
+def _scripts_after_a_write(ctx: Any, scripts: set[str]) -> set[int]:
+    """Steps at which a check script runs after a repository write of its own call: the written path comes before the
+    script's path in the command's text (``sed -i ... && python checks/x.py``), as ``facts._same_call_order`` reads a
+    runner run."""
+    fx, wd = ctx.facts, (ctx.collected.workdir or "").rstrip("/") + "/"
+    by_call: dict[tuple[int, Any], set[str]] = {}
+    for e in fx.repo_writes:
+        if e.ok is not False and e.op != "unknown":
+            by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
+    out = set()
+    for c in fx.commands:
+        paths = by_call.get((int(c.step), c.action_index))
+        cmd = c.command or ""
+        if not paths:
+            continue
+        for s in scripts:
+            at = cmd.find(s)
+            if at < 0:
+                continue
+            pos = [i for p in paths for i in (cmd.find(wd + p) if cmd.find(wd + p) >= 0 else cmd.find(p),) if i >= 0]
+            if pos and min(pos) < at:
+                out.add(int(c.step))
+    return out
 
 
 def only_own_tests(ctx: Any, r: Any, files: tuple[str, ...], whole: bool, added: set[str]) -> bool:
@@ -191,6 +220,7 @@ def timeline(ctx: Any) -> Timeline:
             tl.own_runs.append(int(step))
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
+    tl.script_late = _scripts_after_a_write(ctx, checks)
 
     added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
     before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
@@ -263,6 +293,69 @@ def _last_of_each_failed_test_passes(results: list[Result]) -> bool:
     return not R.standing_failures(results)
 
 
+def _stretches(tl: Timeline, first: int) -> list[tuple[int, int]]:
+    """PHASE 2 cut at the task-group ends: (a, b] stretches from the first source change to PHASE 3."""
+    bounds = [b for b in tl.group_ends if first < b <= tl.p2_end]
+    if not bounds or bounds[-1] < tl.p2_end:
+        bounds.append(tl.p2_end)
+    out, a = [], first
+    for b in bounds:
+        out.append((a, b))
+        a = b
+    return out
+
+
+def outcome_for(r: Result, unit: tuple[str, str]) -> str | None:
+    """How result ``r`` came out for failure unit ``unit``: ``fail`` (the unit is among its failures, or it ran the unit
+    and failed without naming which tests), ``pass`` (it ran the unit and the unit is not among its failures), or None
+    (it did not run the unit)."""
+    kind, what = unit
+    if unit in R.failure_units(r):
+        return "fail"
+    if kind == "test":
+        if not (r.runner and R.runs_test(r, what)):
+            return None
+        return "pass" if r.passed or r.failed_ids else "fail"
+    if R.runs_key(r, what):
+        return "pass" if r.passed else "fail"
+    return None
+
+
+def attempts(tl: Timeline, seq: list[tuple[Result, str]], edits: list[int]) -> int:
+    """The attempts at a failure unit, over its results ``seq`` (in order): a failing result followed by an edit (a source
+    change or a test edit) before the unit's next result -- a run of the same call placed after its write counts as after
+    the edit (``RunFact.after_write_same_call``, and the same reading for a check script)."""
+    n = 0
+    for (r, o), (nxt, _) in zip(seq, seq[1:], strict=False):
+        if o != "fail":
+            continue
+        late = nxt.step in tl.results_late or nxt.step in tl.script_late
+        if any(r.step < e < nxt.step for e in edits) or (nxt.step > r.step and nxt.step in edits and late):
+            n += 1
+    return n
+
+
+def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]) -> bool:
+    """A-4 / A-9 row 7 (implement-tasks.md 40: "fix the change or that test and run the tests again ... After two attempts
+    that do not get it to pass, mark ... ⚠️ ... and go on"): in every task-group stretch, every failure unit that fails
+    after the stretch's first source change (a test written first fails before the code it tests: that failure asks for
+    no fix) and that the documents ask to fix (R2) was fixed and run again at most twice, and passed again inside the
+    stretch or was tried at least once."""
+    for a, b in _stretches(tl, first):
+        inside = [r for r in every if a < r.step <= b and r.step < tl.p2_end]
+        c0 = first if a == first else next((s for s in tl.src if a < s <= b), None)  # the first stretch begins at the first source change
+        start = c0 if c0 is not None else a
+        after = [r for r in inside if r.step > start or (r.step == start and r.step in tl.results_late)]
+        units = {u for r in after if not r.passed for u in R.failure_units(r) if u not in tl.excused}
+        standing = {u for u, _ in R.standing_units(after)}
+        for u in units:
+            seq = [(r, o) for r in after if (o := outcome_for(r, u))]
+            n = attempts(tl, seq, edits)
+            if n > 2 or not (u not in standing or n >= 1):
+                return False
+    return True
+
+
 def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     """Item -> (value, whether the item was judged on the run). A run an item stands outside of gets what the common
     rule gives (``workflow_rubric/penalty.py``): 0 when it never did what the item is about -- it changed no source,
@@ -293,16 +386,8 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         res = [r for r in tl.results if first < r.step < tl.p2_end and (r.passed or bad(r))]  # an excused failure is no failure here
         fails = [r.step for r in res if not r.passed]
         if fails:
-            bounds = [b for b in tl.group_ends if b <= tl.p2_end]
-            if not bounds or bounds[-1] < tl.p2_end:
-                bounds.append(tl.p2_end)
-            handled, a = True, first
-            for b in bounds:
-                inside = [s for s in fails if a < s <= b]
-                if inside and not any(inside[-1] < x <= b and x < tl.p2_end for x in edits):
-                    handled = False
-                a = b
-            put(P2_EDITED, handled)
+            every = [r for r in tl.results if first < r.step < tl.p2_end]
+            put(P2_EDITED, _attempts_ok(tl, every, first, edits))
             put(P2_LAST, _last_of_each_failed_test_passes(res))
         else:
             ran = bool(res) or bool(_between(tl.own_runs, first, tl.p2_end))

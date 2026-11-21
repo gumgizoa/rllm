@@ -311,3 +311,35 @@ def test_a_failure_the_change_stashed_away_also_shows_is_excused_and_one_it_does
     assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == {("key", "tests/test_a.py")}
     ctx.cache["agentos_v2.stashed_results"] = [R.TestResult(12, True, True, ("tests",))]
     assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == set()
+
+
+# ---- A-4 and A-9 row 7: one or two attempts at a failure, never three ------------------------------------------------
+
+
+def _p2(results, src=(10,), test_edits=(), group_ends=(), p2_end=40, **kw):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
+
+    got = T.judge(T.Timeline(src=list(src), test_edits=list(test_edits), results=list(results), group_ends=list(group_ends), p2_end=p2_end, **kw))
+    return {k.split(".penalty.", 1)[1]: v for k, v in got.items()}
+
+
+def test_attempts_at_a_failure_while_implementing():
+    edited = "phase2_fail.edited_after_fail"
+    tid = "tests/test_a.py::test_x"
+    f = lambda s: _r(s, False, "tests/test_a.py", ids=(tid,))  # noqa: E731
+    ok = lambda s: _r(s, True, "tests/test_a.py")  # noqa: E731
+    # fixed and passing after one attempt; two attempts that do not pass, then go on (⚠️)
+    assert _p2([f(12), ok(14)], src=(10, 13))[edited] == (1.0, True)
+    assert _p2([f(12), f(14), f(16)], src=(10, 13, 15))[edited] == (1.0, True)
+    # a third attempt is beyond the document, whether it passes or not
+    assert _p2([f(12), f(14), f(16), ok(18)], src=(10, 13, 15, 17))[edited] == (0.0, True)
+    # no attempt: not fixed, or fixed and not run again (an edit right before the mark)
+    assert _p2([f(12)], src=(10,))[edited] == (0.0, True)
+    assert _p2([f(12)], src=(10,), test_edits=(13,))[edited] == (0.0, True)
+    # a test written first fails before the code it tests: that failure asks for no fix
+    script = lambda s, p: _r(s, p, "/s/checks/c.py", runner=False)  # noqa: E731
+    assert _p2([script(12, True), script(14, False), script(16, True)], src=(10, 15), group_ends=(13,))[edited] == (1.0, True)
+    # each stretch on its own: a failure of group 1 left there is not fixed by group 2's attempts
+    assert _p2([f(12), f(22), ok(24)], src=(10, 20, 23), group_ends=(15,))[edited] == (0.0, True)
+    # a run of the same call after its write is a run after the edit
+    assert _p2([f(12), ok(14)], src=(10, 14), results_late={14})[edited] == (1.0, True)

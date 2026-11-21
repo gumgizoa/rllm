@@ -534,6 +534,16 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
   빠진 단위는 22런의 47개(변경을 치운 실행으로 41개, 보고서의 말로 6개: django__django-15315, matplotlib__matplotlib-22871, pylint-dev__pylint-4661,
   scikit-learn__scikit-learn-26194. 넷 다 보고서가 그 테스트를 옛 동작이나 버그를 단언한다고 적음). 준수율 변화 0, penalty 점수 평균 0.48452에서 0.48987.
 
+- A-4와 A-9 행 7 실패 뒤의 시도 (`phase2_fail.edited_after_fail`): task group 구간마다 "마지막 실패 결과 뒤, 체크 전에 편집이 있음"을 봤음. 그래서
+  문서대로 두 번 고쳐 보고 ⚠️로 넘어간 런은 마지막 실패 뒤 편집이 없어 실패하고, ⚠️ 직전의 뜻 없는 편집 하나로 되찾았음. 이제 구간마다, 그 구간의
+  첫 소스 변경 뒤에 실패한 실패 단위(R1, R2로 빠진 것 제외)마다 시도 수를 셈: 그 단위의 실패한 결과 뒤, 그 단위의 다음 결과 전에 편집(소스 변경이나
+  테스트 편집)이 있고 다음 결과가 그 구간 안에 있는 것. 같은 호출 안에서 고치고 돌린 실행은 편집 뒤의 결과(H-6, checks/ 스크립트는 명령 글에서 쓴 경로가
+  스크립트 경로보다 앞에 있으면). 단위가 맞으려면 시도가 2번 이하이고, 구간 안에서 다시 통과했거나 시도가 1번 이상(implement-tasks.md 40행 "fix ... and
+  run the tests again ... After two attempts that do not get it to pass, mark ... ⚠️ ... and go on"). 그룹의 첫 소스 변경 전의 실패(먼저 쓴 테스트가
+  코드보다 먼저 실패하는 것)는 고칠 실패가 아님(`warned_groups`와 같음). 새 함수 `outcome_for`, `attempts`, `_attempts_ok`, `_stretches`.
+  평가 499런: 101런이 통과에서 실패(해결 46; 시도 3번 이상인 단위가 있는 런 83, 편집 뒤 다시 돌리지 않은 단위가 있는 런 21, 겹침 있음; 시도 3번 이상
+  단위 101개 가운데 63개가 checks/ 스크립트), 9런이 실패에서 통과(해결 7). 기준 런의 `warn_attempts`·`script_failing` 변형이 이 항목을 지킴.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
