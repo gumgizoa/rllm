@@ -911,15 +911,35 @@ def _group_ends(ctx: EvalContext, aid: str, text: str, w, d: str | None) -> list
     return out
 
 
-def _marked_in_phase3(ctx: EvalContext, warn_step) -> bool:
+def _phase3_opening(ctx: EvalContext, aid: str, d: str | None):
+    """The step PHASE 3 opens at for a ⚠️ mark: :func:`phase3_start`, moved back over the tasks.md writes that come right
+    before the write at which every task first appears done, with no work step (:func:`work_steps`) between them. A run
+    that ticks or marks its last lines one edit at a time opens PHASE 3 with the first of those edits, as one write of
+    all the lines would; a tasks.md write with work after it and before the next one is not part of that opening."""
+    start = phase3_start(ctx)
+    done = all_done_step(ctx, aid)
+    if done is None or done is UNKNOWN or start is None or start is UNKNOWN:
+        return start
+    work = work_steps(ctx, d)
+    first = start
+    steps = {e.step for e in ctx.facts.writes.get(ctx.facts.artifact_paths.get(aid) or "", []) if e.ok is not False and isinstance(e.step, int)}
+    for st in sorted((x for x in steps if x < start), reverse=True):
+        if any(st < x < first for x in work):
+            break
+        first = st
+    return first
+
+
+def _marked_in_phase3(ctx: EvalContext, warn_step, aid: str = "tasks", d: str | None = None) -> bool:
     """B-5 (user decision 2026-11-21): whether a ⚠️ first seen at ``warn_step`` can be PHASE 3 Step 1's mark (a task found
-    not done, implement-tasks.md 127): it first appears at or after PHASE 3's start (:func:`phase3_start`: the write at
-    which every task first appears ticked or marked, else the report's first write). A mark first seen before that is
-    PHASE 2's (implement-tasks.md 40: a test the attempts did not get to pass). When either step is unknown (a write whose
-    content cannot be replayed) the mark is given the benefit of the doubt; with no PHASE 3 start at all it is PHASE 2's."""
+    not done, implement-tasks.md 127): it first appears at or after PHASE 3's opening (:func:`_phase3_opening`: the write
+    at which every task first appears ticked or marked, with the tasks.md writes right before it that no work separates
+    from it; else the report's first write). A mark first seen before that is PHASE 2's (implement-tasks.md 40: a test the
+    attempts did not get to pass). When either step is unknown (a write whose content cannot be replayed) the mark is
+    given the benefit of the doubt; with no PHASE 3 start at all it is PHASE 2's."""
     if warn_step is None or warn_step is UNKNOWN:
         return True
-    start = phase3_start(ctx)
+    start = _phase3_opening(ctx, aid, d)
     if start is UNKNOWN:
         return True
     return start is not None and warn_step >= start
@@ -939,7 +959,7 @@ def found_not_done(ctx: EvalContext, aid: str, w, d: str | None) -> set[str]:
              if g["step"] is not None and g["task"]["group"] and not [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]}
     return {t["id"] for t in task_lines(text)
             if t["warned"] and first_warn.get(t["id"]) == first_done.get(t["id"]) and t["group"] and t["group"]["heading"] in clean
-            and _marked_in_phase3(ctx, first_warn.get(t["id"]))}
+            and _marked_in_phase3(ctx, first_warn.get(t["id"]), aid, d)}
 
 
 def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[dict, bool]]:
@@ -961,7 +981,7 @@ def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[di
             continue  # ticked first and marked later is PHASE 3's mark (a task found incomplete), not this rule's
         fails = [st for st, o in g["results"] if o == "fail" and g["changes"] and st > g["changes"][0]]
         if not fails:
-            if _marked_in_phase3(ctx, first_warn.get(t["id"])):
+            if _marked_in_phase3(ctx, first_warn.get(t["id"]), aid, d):
                 continue  # no failing result to mark, marked in PHASE 3: a task found not done (127), not a test left failing (40)
             out.append((g, False))  # marked while implementing with no failing result behind it: no attempt shown (40)
             continue

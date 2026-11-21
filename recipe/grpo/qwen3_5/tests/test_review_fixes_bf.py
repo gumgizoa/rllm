@@ -385,6 +385,32 @@ def test_a_mark_made_while_implementing_is_the_attempts_mark_even_without_a_fail
     assert r.status == "not_applicable"
 
 
+def test_marks_written_one_edit_at_a_time_open_phase_3_together(window):
+    # B-5 follow-up: the lines of the group found not done are marked in separate edits (2.1, then 2.2); with no work
+    # between those edits and the write where every task is first done, they are that write
+    plan = ("#### Task Group 1: A\n- [{a}] 1.1 Change `src/a.py`\n- [{a}] 1.2 Run the tests\n"
+            "#### Task Group 2: B\n- [{b1}] 2.1 Change `src/b.py`\n- [{b2}] 2.2 Run the tests\n")
+
+    def ctx(runs, code):
+        c = _tick_ctx([(5, plan.format(a=" ", b1=" ", b2=" ")), (40, plan.format(a="x", b1=" ", b2=" ")), (50, plan.format(a="x", b1="⚠️", b2=" ")),
+                       (60, plan.format(a="x", b1="⚠️", b2="⚠️"))],
+                      repo_writes=[WriteEvent(path="src/a.py", step=s, op="edit") for s in code])
+        c.facts.runs = list(runs)
+        return c
+
+    attempts, work = _item({"rule": "warned_after_attempts"}), {"rule": "ticked_after_work", "name_files": True, "not_done_out": True}
+    # 2.2 is marked in the write where every task is first done (60) and 2.1 one edit before (50), nothing between
+    honest = ctx([_run(30)], (20,))
+    assert C.tasks(attempts, honest).status == "not_applicable"
+    assert C.tasks(_item(dict(work)), honest).status == "pass"
+    # a test run between the two edits: 2.1's mark was made while implementing, so it stays in the pool with no work
+    assert C.tasks(_item(dict(work)), ctx([_run(30), _run(55)], (20,))).score < 1.0
+    # the tick of group 1 (40) is separated from the marks by work (a code change at 45): group 2's stretch is clean and
+    # both marks still open PHASE 3; the opening goes back to 50, not to 40
+    later = ctx([_run(30)], (20, 45))
+    assert C._phase3_opening(later, "tasks", None) == 50 and C._phase3_opening(honest, "tasks", None) == 40
+
+
 def test_a_task_marked_found_not_done_asks_for_no_work(window):
     # B-5 addition (user decision 2026-11-21): group 2 not implemented, marked ⚠️ at the write where every task is first
     # done (implement-tasks.md 127): with not_done_out its tasks leave ticked_after_work's pool
@@ -401,8 +427,9 @@ def test_a_task_marked_found_not_done_asks_for_no_work(window):
     honest = ctx([(40, dict(a="x", b=" ")), (60, dict(a="x", b="⚠️"))])
     assert C.tasks(_item(dict(p)), honest).score < 1.0  # as before: 2.1 names src/b.py, never written
     assert C.tasks(_item({**p, "not_done_out": True}), honest).status == "pass"
-    # the same mark made while implementing (before the write where every task is first done) is PHASE 2's: judged as before
-    early = ctx([(45, dict(a=" ", b="⚠️")), (60, dict(a="x", b="⚠️"))])
+    # the same mark made while implementing (before the write where every task is first done, with the work of group 1
+    # after it) is PHASE 2's: judged as before
+    early = ctx([(15, dict(a=" ", b="⚠️")), (60, dict(a="x", b="⚠️"))])
     assert C.tasks(_item({**p, "not_done_out": True}), early).score < 1.0
 
 
