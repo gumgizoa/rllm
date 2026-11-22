@@ -21,8 +21,8 @@ Global items (``stage: global``) feed two signals: ``order`` (kind ``order``) an
 (everything else global). A signal with no applicable items is left out of the mean.
 
 ``aggregate: kind_matrix`` scores by what kind of rule fails in which stage instead (see
-:func:`kind_matrix`); ``total`` names its total signal and ``item_signals: true`` also reports every
-scored item under its id.
+:func:`kind_matrix`); ``total`` names its total signal. With either aggregate, ``item_signals: true`` also
+reports every scored item under its id -- a log of which rules a run kept; the total does not read it.
 
 ``process_scale: stage_mean`` makes ``process`` the global items' pass rate times the mean stage
 score. Most global items are prohibitions and write rules that a run doing nothing satisfies; scaled,
@@ -183,11 +183,19 @@ def kind_matrix(rubric: Rubric, results: dict[str, Result], scoring: dict) -> tu
     return signals, total
 
 
+def _item_scores(rubric: Rubric, results: dict[str, Result], scoring: dict) -> dict[str, float]:
+    """Item id -> score of every scored (pass / fail) item, with ``item_signals: true``; empty otherwise. A log, never
+    part of the reward: the total and the stage signals are computed as before."""
+    if not scoring.get("item_signals"):
+        return {}
+    return {i.id: results[i.id].score for i in rubric.items if results.get(i.id) and results[i.id].status in SCORED}
+
+
 def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) -> Scores:
     scoring = scoring_of(rubric)
+    items = _item_scores(rubric, results, scoring)
     if scoring.get("aggregate") == "kind_matrix":
         signals, total = kind_matrix(rubric, results, scoring)
-        items = {i.id: results[i.id].score for i in rubric.items if scoring.get("item_signals") and results.get(i.id) and results[i.id].status in SCORED}
         return Scores(signals, total, {}, _diagnostics(rubric, results, engine_errors), total_name=scoring.get("total") or "score", items=items)
     stages = {st.id: group_score(rubric.items_for(st.id), results, scoring) for st in rubric.stages}
     glob = [i for i in rubric.items_for("global") if not i.log_only]
@@ -216,7 +224,7 @@ def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) ->
     diag = _diagnostics(rubric, results, engine_errors)
     if process_rate is not None:
         diag["process_rate"] = process_rate
-    return Scores(signals, compliance, stages, diag)
+    return Scores(signals, compliance, stages, diag, items=items)
 
 
 def _diagnostics(rubric: Rubric, results: dict[str, Result], engine_errors: int) -> dict[str, float]:

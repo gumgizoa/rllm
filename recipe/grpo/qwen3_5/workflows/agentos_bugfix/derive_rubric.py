@@ -257,6 +257,9 @@ def derive() -> tuple[dict, dict]:
     rub["generated"].pop("cache", None)
     rub["scoring"]["selftest"] = {**(rub["scoring"].get("selftest") or {}), **SELFTEST}
     rub["scoring"]["close_on_artifact"] = True  # D-3: reading the next document early does not close a stage before its file is written
+    # 2026-11-22 D5: every scored item is also reported as a signal, so training logs show which rules move; the reward
+    # (compliance, penalty) does not read them
+    rub["scoring"]["item_signals"] = True
     return rub, report
 
 
