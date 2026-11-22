@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: ccff70682623db698e3a6e9636202fa57b90700cd33ae2df3fea1ae46b56bf82
+  sha256: 1a995e436687b238964748b4970a90777b2876e85595f5bd0ec973fbb567193e
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md

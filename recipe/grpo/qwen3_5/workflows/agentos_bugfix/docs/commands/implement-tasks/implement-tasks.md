@@ -36,7 +36,7 @@ Implement all tasks assigned to you and ONLY those task(s) that have been assign
 - **User Standards & Preferences** which are defined below.
 
 ## Self-verify and test your work by:
-- Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/verify/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change).
+- Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/verify/`, or test functions you added to an existing repository test module, run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest. An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it asserts the behavior the task asks to change).
 - IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again before you tick the task group's last sub-task. Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. Never make a failing test pass by loosening or removing what it checks.
 
 ## Next step
@@ -128,7 +128,7 @@ IF you have concluded that this task has NOT been completed, then mark this chec
 
 ### Step 2: Run the tests of the changed code
 
-Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. Run the entire tests suite as well only if it finishes within a few minutes.  Verify how many tests are passing and how many have failed or produced errors.
+Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest. Run the entire tests suite as well only if it finishes within a few minutes.  Verify how many tests are passing and how many have failed or produced errors.
 
 Include these counts and the list of failed tests in your final verification report.
 

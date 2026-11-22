@@ -47,6 +47,10 @@ And one rule is changed rather than cut:
   itself be wrong, and 81% of the evaluation runs that saw a failure edited a test afterwards, so the line now
   names both: the change, or the test when it is one the run wrote. Existing test lines stay untouched
   (create-tasks), and PHASE 3's return to PHASE 2 still fixes the change only.
+* D6 the repository's own test runner (2026-11-22): the training repositories all run under pytest, so the agent
+  never learned to look for another runner, and on repositories with their own (a test script, tox) it ran pytest or
+  an ad-hoc ``python -c`` that counted as no valid test run. Where PHASE 2 and PHASE 3 first say to run the tests, one
+  sentence now says to find out how the repository runs them and use that runner. It names no repository or script.
 * T2 test-writing standard: its three lines that hold tests back ("write minimal tests", "test only core user
   flows", "defer edge case testing") go. A fix is often about one input's edge behavior, and the test that
   reproduces it is such a test.
@@ -166,6 +170,13 @@ _KEEP_SECTIONS = (
     "and `## Execution Order` (the order in which the task groups are implemented).\n"
 )
 
+# D6: the repository's own test runner, found before the tests run (implement-tasks PHASE 2 and PHASE 3). Generic on
+# purpose: it names no repository and no runner script.
+_FIND_RUNNER = (
+    "Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, "
+    "or a test script in the repository), and use that runner; do not assume pytest."
+)
+
 # T4: which overall Status holds when, stated after the report template.
 _STATUS_RULE = """
 
@@ -258,6 +269,9 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "then carry out PHASE 3 again from Step 1. Go back once only; a failure that is still there afterwards is noted in the report.\n"
          "- Any other failure: DO NOT attempt to fix it.  Just note it in your final verification report.",
          "T6: one return to PHASE 2 for a failure the change causes"),
+        ("sub", "the files you changed, and the tests you wrote. Run the entire tests suite",
+         "the files you changed, and the tests you wrote. " + _FIND_RUNNER + " Run the entire tests suite",
+         "D6: the repository's own test runner, not pytest by default"),
     ),
     "wf/implement-tasks": (
         ("sub", "1. Analyze the provided spec.md, requirements.md, and visuals (if any)", "1. Analyze the provided spec.md and requirements.md", "B2"),
@@ -284,6 +298,9 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
          "Never make a failing test pass by loosening or removing what it checks.",
          "A-6: correcting a test you wrote keeps what it checks"),
+        ("sub", "and the existing tests of the code you changed, and ensuring they pass.",
+         "and the existing tests of the code you changed, and ensuring they pass. " + _FIND_RUNNER,
+         "D6: the repository's own test runner, not pytest by default"),
     ),
     "impl-2": (
         ("sub", "IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in",
