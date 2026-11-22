@@ -883,6 +883,38 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | 인용문이나 근거 글이 옛 이름을 적은 항목 (`agentos_bugfix_checks.written`·`pass_last`, `doc_read_first.cw`, `prohibited_action.test_file_write`, `unimplemented.5`, `agentos_bugfix_created_files.tests`·`workflow_files`) | 설명만 바꿈 | 인용문, note, 근거 글의 `core-workflow.md`를 `overview.md`로, `checks/`를 `verify/`로 바꿈 (이름 변경). 부록과 충돌 목록의 인용문도 같음. |
 | `global.run.prohibited_action.test_file_write` | 설정값을 바꿈 | `final_patch: true`를 더하고 note를 최종 patch의 줄 비교를 포함하게 바꿈 (기존 테스트 수정). |
 
+## RLOO 검토 반영 (2026-11-22)
+
+### 변경 내역
+
+`5946117a` 뒤의 커밋을 결정(2026-11-22 RLOO 검토 `tasks/2026-11-22-agentos-bugfix-rloo-reward-audit/`의 결정 번호)마다 한 행에 적음. D2(자기 테스트를 느슨하게 고친 것의 판정), D7(형식만 보는 판정의 강화), D8(advantage의 표준편차 정규화)은 바꾸지 않기로 함.
+
+| 결정 | 바꾼 것 | 커밋 |
+|---|---|---|
+| D1 | 학습 variant `config/variant/openhands_9b_agentos_bugfix_swegym_reward_floor06_pen01_fmtcut.yaml`을 더함. 바닥값 0.7 → 0.6, penalty 가중치 0.3 → 0.1이고 나머지는 `..._floor_pen03_fmtcut.yaml`과 같음. 그 파일은 그대로 둠. | `e24d27ca` |
+| D5 | `scoring.item_signals: true`가 단계 집계(sigma_kappa)에서도 채점된 항목마다 신호를 냄(`workflow_rubric/aggregate.py`). agentos_bugfix rubric에서 켬. 보상(준수율, penalty)은 이 신호를 읽지 않음. | `d118f17b` |
+| D6 | implement-tasks PHASE 2·3의 테스트 실행 문장 뒤에, 저장소의 테스트 실행 방법을 먼저 찾아 그 실행기를 쓰라는 문장을 넣음. 저장소 이름은 적지 않음. | `7d7b4624` |
+| D3·D4 | implement-tasks PHASE 2에 코드를 바꾸기 전에 자기 테스트를 돌려 실패를 확인하라는 문장을 넣고, 그것을 보는 penalty 항목 `phase2_own.reproduced`를 더함(penalty 항목 9개 → 10개). golden의 지키지 않는 변형 2개(`no_repro_run`, `repro_passes`)와 테스트를 더함. 문장의 "the issue"를 "the behavior the task asks to change"로 고침. | `42108ce9`, `170dc653` |
+
+### 문서 변경
+
+`git diff 5946117a HEAD -- docs`의 문장 단위 변경임. 위치는 `workflows/agentos_bugfix/` 아래의 새 글의 줄임. 줄 수가 바뀌지 않아 기존 인용문의 줄 번호는 그대로임.
+
+| 문서 위치 | 전 | 후 |
+|---|---|---|
+| `docs/commands/implement-tasks/implement-tasks.md:39` ("... and ensuring they pass." 뒤) | 없음 | "Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest." |
+| `docs/commands/implement-tasks/implement-tasks.md:39` (위 문장 뒤) | 없음 | "Before you change the code, run the tests you wrote and confirm they fail; a test that passes on the unchanged code does not show the behavior the task asks to change, so correct it before you go on." |
+| `docs/commands/implement-tasks/implement-tasks.md:131` ("... and the tests you wrote." 뒤) | 없음 | "Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest." |
+
+### rubric 변경
+
+`reward/rubric.yaml`을 `5946117a`와 `HEAD`에서 항목 id마다 비교한 것임. `generated:` 자체 점검 값은 넣지 않음.
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `implement_tasks.penalty.phase2_own.reproduced` | 더함 | penalty 항목(log_only, kind `agentos_bugfix.penalty`). 자기 테스트를 썼고 소스를 바꾼 런에서, 첫 소스 변경 전의 자기 테스트 결과 중 실패가 있고 소스 변경 뒤의 자기 테스트 결과 중 통과가 있으면 1. 자기 테스트가 없거나 소스를 바꾸지 않은 런은 해당 없음이고 0. 근거는 implement-tasks.md:39의 새 문장. |
+| `scoring.item_signals` (항목 밖) | 더함 | `true`. 채점된 항목마다 `agentos_bugfix/<항목 id>` 신호를 냄. 기록용이고 준수율에 들어가지 않음. |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
