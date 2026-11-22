@@ -1,7 +1,7 @@
 """agentos_bugfix penalty items: the test behaviour of implement-tasks, in PHASE 2 and in PHASE 3.
 
-Seven items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the four of
-``penalty.py``. Every run gets all seven. A run an item stands outside of gets what the rule every workflow shares
+Eight items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the two of
+``penalty.py``. Every run gets all eight. A run an item stands outside of gets what the rule every workflow shares
 gives (``workflow_rubric/penalty.py``): 0.0 when it never did what the item is about -- it changed no source, it ran
 no test where the item reads -- and 1.0 when it ran its tests and the item's condition, a failure, did not arise.
 So a run cannot keep an item about failures by not running the tests.
@@ -39,6 +39,16 @@ write; without either, the end of the run)
              of it, a directory or label above it or the whole suite, not narrowed below what failed; a script by
              running it again (``results.standing_units``)
         outside: as edited_after_fail
+    agentos_bugfix.implement_tasks.penalty.phase2_own.reproduced
+        judged: the run wrote a test of its own (a script under verify/, or a repository test file or test function)
+                and changed source
+        1.0: an own-test result before the first source change failed -- the test reproduces the issue
+             (implement-tasks.md 39: "Before you change the code, run the tests you wrote and confirm they fail") --
+             AND an own-test result after a source change passed. An own-test result is a result (below) of a verify/
+             script, or of a valid runner run of a test file the run had already written to (an own run as phase2_run
+             reads it); a runner run of the same call placed after the first source change's write is after it. A test
+             first run only after the change, or one that passed on the unchanged code, does not keep the item
+        outside (0.0): the run wrote no test of its own, or changed no source -- so writing no test does not keep it
 
 PHASE 3 -- from the write that ticks the last task to the report's first write; it can be placed only when both are
 known and in that order. The three failure items ask what the run did about a failure it saw in PHASE 3. A run that
@@ -106,11 +116,12 @@ STAGE = "agentos_bugfix.implement_tasks.penalty"
 P2_RUN = f"{STAGE}.phase2_run.existing_and_own"
 P2_EDITED = f"{STAGE}.phase2_fail.edited_after_fail"
 P2_LAST = f"{STAGE}.phase2_fail.last_result_pass"
+P2_REPRO = f"{STAGE}.phase2_own.reproduced"
 P3_RUN = f"{STAGE}.phase3_run.existing_and_own"
 P3_CAUSE = f"{STAGE}.phase3_fail.cause_checked"
 P3_EDITED = f"{STAGE}.phase3_fail.edited_after_fail"
 P3_LAST = f"{STAGE}.phase3_fail.last_result_pass"
-ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
+ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P2_REPRO, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
 
 _WHOLE = R.WHOLE  # the key of a runner run that names no file
 _NEVER = 10**9  # a step no run reaches: the end of a stretch whose closing event did not happen
@@ -129,6 +140,7 @@ class Timeline:
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
     own_runs: list[int] = field(default_factory=list)  # a verify/ script ran (read or not), or the runner on an own test file
+    own_results: list[Result] = field(default_factory=list)  # the readable results among ``own_runs`` (a subset of ``results``)
     existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place (not only the run's own tests)
     # steps of the runs above that come after a repository write of their own call (``sed -i ... && pytest``): at the step
     # of the last source change they still ran after it (``RunFact.after_write_same_call``)
@@ -239,6 +251,7 @@ def timeline(ctx: Any) -> Timeline:
             tl.own_runs.append(int(step))
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
+                tl.own_results.append(tl.results[-1])
     tl.script_late = _scripts_after_a_write(ctx, checks)
 
     added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
@@ -271,9 +284,11 @@ def timeline(ctx: Any) -> Timeline:
         # a test of the run's own: a test file it had already written to when this run named it
         if runs_own_test(res.step, files, whole, own_tests):
             tl.own_runs.append(res.step)
+            tl.own_results.append(res)
             if late:
                 tl.own_late.add(res.step)
     tl.results.sort(key=lambda x: (x.step, not x.passed))  # at one step, a failing result is read last
+    tl.own_results.sort(key=lambda x: (x.step, not x.passed))
     # the failures the documents do not ask the run to fix (R2): left out of the failure items
     tl.excused = C.excused_failures(ctx, [(u, r) for r in tl.results if not r.passed for u in R.failure_units(r)])
 
@@ -453,9 +468,9 @@ def _p3_left_right(tl: Timeline, every: list[Result], fails: list[Result], b: in
 def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     """Item -> (value, whether the item was judged on the run). A run an item stands outside of gets what the common
     rule gives (``workflow_rubric/penalty.py``): 0 when it never did what the item is about -- it changed no source,
-    it ran no test in the stretch -- and 1 when it ran its tests there and the item's condition, a failure, did not
-    arise. For the failure items of PHASE 3 a test run after the last source change counts as well, in whichever
-    phase it ran."""
+    it ran no test in the stretch, it wrote no test of its own -- and 1 when it ran its tests there and the item's
+    condition, a failure, did not arise. For the failure items of PHASE 3 a test run after the last source change
+    counts as well, in whichever phase it ran."""
     out: dict[str, tuple[float, bool]] = {}
     edits = sorted(tl.src + tl.test_edits)
 
@@ -487,6 +502,17 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             ran = bool(res) or bool(_between(tl.own_runs, first, tl.p2_end))
             outside(P2_EDITED, ran)
             outside(P2_LAST, ran)
+
+    # the run's own test reproduces the issue (D3, implement-tasks.md 39): it failed before the first source change and
+    # passed after one. Judged once the run wrote a test of its own (a verify/ script or a repository test file:
+    # ``test_edits_of``) and changed source; without either it stands outside, worth 0
+    if not (tl.src and any(tl.test_edits_of.values())):
+        outside(P2_REPRO, False)
+    else:
+        first, late = tl.src[0], tl.results_late | tl.script_late
+        before = [r for r in tl.own_results if r.step < first or (r.step == first and r.step not in late)]
+        after = [r for r in tl.own_results if r.step > first or (r.step == first and r.step in late)]
+        put(P2_REPRO, any(not r.passed for r in before) and any(r.passed for r in after))
 
     # PHASE 3. A run that ran no test there keeps the three failure items when its final code was tested all the
     # same -- a test ran after its last source change, before the report: running the tests once more would have
@@ -527,7 +553,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
 
 
 def measure(ctx: Any) -> dict[str, tuple[float, bool]] | None:
-    """The seven items of one run: item -> (value, judged). None when the code root is not known: which writes are
+    """The eight items of one run: item -> (value, judged). None when the code root is not known: which writes are
     repository writes and which targets are repository tests cannot be told, so nothing here can be judged."""
     if not ctx.collected.workdir:
         return None

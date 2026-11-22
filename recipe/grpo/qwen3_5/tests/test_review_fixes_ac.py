@@ -45,9 +45,9 @@ def test_implement_tasks_says_a_test_you_wrote_is_corrected_not_loosened():
 # ---- C-2: no penalty item reads the task's reference fix ---------------------------------------------------------------
 
 
-def test_the_two_reference_fix_items_are_gone_and_nine_penalty_items_remain():
+def test_the_two_reference_fix_items_are_gone_and_ten_penalty_items_remain():
     pen = [i for i in ITEMS if ".penalty." in i]
-    assert len(pen) == 9
+    assert len(pen) == 10  # nine after C-2, and the reproduction item (D3, 2026-11-22)
     assert not any(i.endswith(("named_covers_gold", "patch_covers_gold")) for i in pen)
     assert {i for i in pen if ".plan_files." in i} == {"global.penalty.plan_files.named", "global.penalty.plan_files.named_equals_patch"}
     # the task still reaches the kinds that read its description (task_text.py)

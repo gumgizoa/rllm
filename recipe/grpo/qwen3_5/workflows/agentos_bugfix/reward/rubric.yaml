@@ -238,7 +238,7 @@ generated:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 48
-    kept_items: 172
+    kept_items: 173
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 1a995e436687b238964748b4970a90777b2876e85595f5bd0ec973fbb567193e
+  sha256: 0a11268ad0fb2a86261526ce219ed40f354c723bbd8277113f580354b9627d50
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -6964,6 +6964,40 @@ items:
     again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; a run
     the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition
     did not arise
+- id: agentos_bugfix.implement_tasks.penalty.phase2_own.reproduced
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.penalty
+    params:
+      rule: phase2_own.reproduced
+  requirement: must
+  modality_evidence: 'imperative (IT: ''Before you change the code, run the tests you wrote and confirm they fail'')'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: IT
+    lines:
+    - 39
+    - 39
+    quote: Before you change the code, run the tests you wrote and confirm they fail; a test that passes on the unchanged
+      code does not reproduce the issue, so correct it before you go on.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: a test of the run's own (a verify/ script, or the runner on a test file it wrote to) failed in a run before the first
+    source change, and one passed in a run after a source change; worth 0 to a run that wrote no test of its own or changed
+    no source
 - id: agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
   scope: specific
   class: evidence

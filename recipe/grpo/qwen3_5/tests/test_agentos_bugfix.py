@@ -458,7 +458,7 @@ def test_penalty_items_against_the_patch_and_never_the_reference_fix(tmp_path):
     # the patch changes a file no task names
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
     assert items == {"named": 1.0, "named_equals_patch": 0.0} and got["penalty_plan_files"] == 0.5
-    assert got["penalty_tests"] == 1.0 and got["penalty"] == (1 + 7) / 9  # the mean of the two file items and the seven test items
+    assert got["penalty_tests"] == 1.0 and got["penalty"] == (1 + 8) / 10  # the mean of the two file items and the eight test items
     # the reference fix changes another file: named and changed as planned, so nothing is lost (C-2: the agent cannot see it)
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
     assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0
@@ -532,7 +532,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert SPEC.reward_signal == "agentos_bugfix/compliance" and SPEC.penalty_signal == "agentos_bugfix/penalty"
     # the penalty items are rubric items, as in the other workflows -- log_only, so compliance is untouched
     pen = [it for it in ev.rubric.items if ".penalty." in it.id]
-    assert len(pen) == 9 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
+    assert len(pen) == 10 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
     assert {it.check.params["rule"] for it in pen} == {*penalty.FILE_RULES, *penalty.TEST_RULES}
 
 
@@ -540,7 +540,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
 # penalty items (reward/penalty_tests.py): the test behaviour of implement-tasks
 # --------------------------------------------------------------------------------------------
 def _test_items(tl=None, **kw):
-    """The seven test items of a timeline built from ``kw`` (or of ``tl``): rule -> score, and rule -> applies."""
+    """The eight test items of a timeline built from ``kw`` (or of ``tl``): rule -> score, and rule -> applies."""
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
 
     got = T.judge(tl if tl is not None else T.Timeline(**kw))
@@ -726,29 +726,71 @@ def test_a_new_source_file_is_source_and_a_runner_run_of_an_own_test_file_is_an_
     assert not T.runs_own_test(45, ("utils_tests.test_dateparse",), False, own)
 
 
+def test_an_own_test_fails_before_the_first_source_change_and_passes_after_it():
+    """D3, implement-tasks.md 39: "Before you change the code, run the tests you wrote and confirm they fail"."""
+    repro = "phase2_own.reproduced"
+    wrote = dict(src=[10, 20], test_edits_of={"/s/a.py": [5]}, p2_end=30)
+    for kw, want in (
+        (dict(wrote, own_results=[_res(6, False, "/s/a.py"), _res(12, True, "/s/a.py")]), (1.0, True)),  # fails before, passes after
+        (dict(wrote, own_results=[_res(6, True, "/s/a.py"), _res(12, True, "/s/a.py")]), (0.0, True)),  # passes on the unchanged code
+        (dict(wrote, own_results=[_res(12, False, "/s/a.py"), _res(22, True, "/s/a.py")]), (0.0, True)),  # first run only after the change
+        (dict(wrote, own_results=[_res(6, False, "/s/a.py"), _res(12, False, "/s/a.py")]), (0.0, True)),  # never passes after the change
+        (dict(wrote, own_results=[_res(6, False, "/s/a.py")], own_runs=[6, 12]), (0.0, True)),  # a run whose outcome cannot be read is no pass
+        # no test of its own: a failing and then passing existing test is no reproduction, and writing no test keeps nothing
+        (dict(wrote, test_edits_of={}, results=[_res(6, False, "tests/test_b.py", runner=True), _res(12, True, "tests/test_b.py", runner=True)]), (0.0, False)),
+        (dict(wrote, src=[], own_results=[_res(6, False, "/s/a.py"), _res(12, True, "/s/a.py")]), (0.0, False)),  # no source change
+    ):
+        v, a = _test_items(**kw)
+        assert (v[repro], a[repro]) == want, kw
+    # the runner on a test file the run wrote to is an own test as well
+    runner = dict(src=[10], test_edits_of={"tests/test_a.py": [5]}, p2_end=30)
+    assert _test_items(**runner, own_results=[_res(6, False, "tests/test_a.py", runner=True), _res(12, True, "tests/test_a.py", runner=True)])[0][repro] == 1.0
+    # in the call of the first source change, a run placed after its write (``sed -i ... && python verify/a.py``) is after
+    # the change; one placed before it is before
+    same = dict(src=[10], test_edits_of={"/s/a.py": [5]}, p2_end=30)
+    assert _test_items(**same, own_results=[_res(10, False, "/s/a.py"), _res(12, True, "/s/a.py")])[0][repro] == 1.0
+    assert _test_items(**same, own_results=[_res(10, False, "/s/a.py"), _res(12, True, "/s/a.py")], script_late={10})[0][repro] == 0.0
+    assert _test_items(**same, own_results=[_res(6, False, "/s/a.py"), _res(10, True, "/s/a.py")], script_late={10})[0][repro] == 1.0
+
+
+def test_the_reproduction_item_is_reported_and_the_penalty_averages_ten_items(tmp_path):
+    key, applies = "implement_tasks.penalty.phase2_own.reproduced", "penalty_applies.phase2_own.reproduced"
+    # the golden run's check script fails before the code changes and passes after it
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
+    assert (got[key], got[applies]) == (1.0, 1.0) and got["penalty"] == 1.0
+    # without the reproduction the item alone is lost: one of ten
+    for variant in ("no_repro_run", "repro_passes"):
+        got, items = _penalty(variant, tmp_path, _diff("textkit/slug.py"))
+        assert (got[key], got[applies]) == (0.0, 1.0), variant
+        assert set(items.values()) == {1.0} and got["penalty_tests"] == 7 / 8 and got["penalty"] == 9 / 10, variant
+
+
 def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, monkeypatch):
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests
 
     def boom(ctx):
         raise RuntimeError("unexpected trace")
 
-    # a kind that raises is a failed item and an engine error, as everywhere in the engine: the seven test items are
+    # a kind that raises is a failed item and an engine error, as everywhere in the engine: the eight test items are
     # 0.0, the two file items stand, and nothing reaches compliance
-    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=7, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=8, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
     assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0
-    assert got["penalty_tests"] == 0.0 and got["penalty"] == 2 / 9
+    assert got["penalty_tests"] == 0.0 and got["penalty"] == 2 / 10
     assert all(got[name.split(".", 1)[1]] == 0.0 for name in penalty_tests.ITEMS)
 
 
 @pytest.mark.parametrize(
     "variant, zero, applies",
     [
-        (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own"}),
+        (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_run.existing_and_own"}),
         ("no_existing_run", {"phase2_run.existing_and_own"}, None),
         ("tick_failing", {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"}, None),
         ("warn_attempts", set(), None),  # two attempts, then ⚠️ (implement-tasks.md 40: up to five)
         ("warn_six_attempts", {"phase2_fail.edited_after_fail"}, None),  # a sixth attempt (A-4, user decision 2026-11-21)
-        ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
+        ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
+        # the test written first does not reproduce the issue before the code changes (D3, implement-tasks.md 39)
+        ("no_repro_run", {"phase2_own.reproduced"}, None),  # first run only after the change
+        ("repro_passes", {"phase2_own.reproduced"}, None),  # passes on the unchanged code
     ],
 )
 def test_test_items_of_the_golden_run_and_its_variants(variant, zero, applies):
@@ -759,7 +801,7 @@ def test_test_items_of_the_golden_run_and_its_variants(variant, zero, applies):
     assert not rep.engine_errors
     scores = {k.split(".penalty.", 1)[1]: v for k, v in got.items() if k.startswith("implement_tasks.penalty.")}
     assert set(scores) == set(penalty.TEST_RULES) and {k for k, v in scores.items() if v == 0.0} == zero
-    assert got["penalty_tests"] == (7 - len(zero)) / 7
+    assert got["penalty_tests"] == (8 - len(zero)) / 8
     if applies is not None:
         judged = {k[len("penalty_applies.") :] for k, v in got.items() if k.startswith("penalty_applies.") and v == 1.0}
         assert {k for k in judged if not k.startswith("plan_files.")} == applies
