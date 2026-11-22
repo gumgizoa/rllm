@@ -51,7 +51,7 @@ And one rule is changed rather than cut:
   never learned to look for another runner, and on repositories with their own (a test script, tox) it ran pytest or
   an ad-hoc ``python -c`` that counted as no valid test run. Where PHASE 2 and PHASE 3 first say to run the tests, one
   sentence now says to find out how the repository runs them and use that runner. It names no repository or script.
-* D3 the tests written first reproduce the issue (2026-11-22): create-tasks has each group write its tests first
+* D3 the tests written first show the behavior the task asks to change (2026-11-22): create-tasks has each group write its tests first
   (x.1), but nothing said to see them fail before the change, and own tests that never failed on the unchanged code
   (always true, or asserting the changed function's own output) let wrong fixes finish. PHASE 2's self-verify bullet
   now says to run them before changing the code and confirm they fail, and to correct a test that passes there.
@@ -184,7 +184,7 @@ _FIND_RUNNER = (
 # D3: the tests written first (x.1) are run before the code changes and must fail there (implement-tasks PHASE 2).
 _REPRODUCE = (
     "Before you change the code, run the tests you wrote and confirm they fail; a test that passes on the unchanged code "
-    "does not reproduce the issue, so correct it before you go on."
+    "does not show the behavior the task asks to change, so correct it before you go on."
 )
 
 # T4: which overall Status holds when, stated after the report template.

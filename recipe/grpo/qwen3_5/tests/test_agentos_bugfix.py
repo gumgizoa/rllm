@@ -788,7 +788,7 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
         ("warn_attempts", set(), None),  # two attempts, then ⚠️ (implement-tasks.md 40: up to five)
         ("warn_six_attempts", {"phase2_fail.edited_after_fail"}, None),  # a sixth attempt (A-4, user decision 2026-11-21)
         ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
-        # the test written first does not reproduce the issue before the code changes (D3, implement-tasks.md 39)
+        # the test written first does not show the behavior the task asks to change before the code changes (D3, implement-tasks.md 39)
         ("no_repro_run", {"phase2_own.reproduced"}, None),  # first run only after the change
         ("repro_passes", {"phase2_own.reproduced"}, None),  # passes on the unchanged code
     ],

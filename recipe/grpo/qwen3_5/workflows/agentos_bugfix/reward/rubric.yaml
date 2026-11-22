@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 0a11268ad0fb2a86261526ce219ed40f354c723bbd8277113f580354b9627d50
+  sha256: 4c665141253b8e73ded84e439b37e8723e194a13af9ca35b6b12fbd6d706791c
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -6990,7 +6990,7 @@ items:
     - 39
     - 39
     quote: Before you change the code, run the tests you wrote and confirm they fail; a test that passes on the unchanged
-      code does not reproduce the issue, so correct it before you go on.
+      code does not show the behavior the task asks to change, so correct it before you go on.
   impl_refs: []
   derived_by: manual
   template: ''

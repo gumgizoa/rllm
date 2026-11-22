@@ -319,7 +319,7 @@ _P3_CAUSE = "An existing test: run it once without your change, in one command"
 _P3_FIX = "go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1."
 # D3 (2026-11-22): the tests written first fail on the unchanged code (build.py ``_REPRODUCE``)
 _IT_REPRO = ("Before you change the code, run the tests you wrote and confirm they fail; a test that passes on the unchanged code "
-             "does not reproduce the issue, so correct it before you go on.")
+             "does not show the behavior the task asks to change, so correct it before you go on.")
 _OUT = "a run the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise"
 _OUT3 = "a run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was"
 PENALTY = (

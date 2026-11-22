@@ -42,7 +42,7 @@ write; without either, the end of the run)
     agentos_bugfix.implement_tasks.penalty.phase2_own.reproduced
         judged: the run wrote a test of its own (a script under verify/, or a repository test file or test function)
                 and changed source
-        1.0: an own-test result before the first source change failed -- the test reproduces the issue
+        1.0: an own-test result before the first source change failed -- the test shows the behavior the task asks to change
              (implement-tasks.md 39: "Before you change the code, run the tests you wrote and confirm they fail") --
              AND an own-test result after a source change passed. An own-test result is a result (below) of a verify/
              script, or of a valid runner run of a test file the run had already written to (an own run as phase2_run
@@ -503,7 +503,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             outside(P2_EDITED, ran)
             outside(P2_LAST, ran)
 
-    # the run's own test reproduces the issue (D3, implement-tasks.md 39): it failed before the first source change and
+    # the run's own test shows the behavior the task asks to change (D3, implement-tasks.md 39): it failed before the first source change and
     # passed after one. Judged once the run wrote a test of its own (a verify/ script or a repository test file:
     # ``test_edits_of``) and changed source; without either it stands outside, worth 0
     if not (tl.src and any(tl.test_edits_of.values())):
