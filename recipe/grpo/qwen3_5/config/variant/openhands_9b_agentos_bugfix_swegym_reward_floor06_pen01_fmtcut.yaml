@@ -1,0 +1,39 @@
+# @package _global_
+#
+# openhands_9b_agentos_bugfix_swegym_reward_floor_pen03_fmtcut with the two reward weights changed
+# after the RLOO review of 2026-11-22 (user decision D1):
+#
+#   reward = 0.9 * verifier * (0.6 + 0.4 * agentos_bugfix/compliance) + 0.1 * agentos_bugfix/penalty
+#
+# i.e. mode=mul, floor=0.6, penalty_weight=0.1, penalty_gate=all. What the old weights (floor 0.7,
+# penalty_weight 0.3) did, recomputed on the 2,133 agentos_bugfix training rollouts of wf1114-2
+# (269 groups of 8):
+#
+#   * one penalty item moved every rollout's reward by 0.3 / 9 = 0.0333, about 17.5 times a
+#     compliance item (median 0.0019), worth about 5.1 pp of solve rate in expectation; now
+#     0.1 / 10 = 0.010 (about 1.4 pp; ten items once the reproduction item is in);
+#   * in groups where every rollout solved, the penalty term set 63% of the ordering; now the
+#     compliance term sets about 91%;
+#   * solved rollouts pushed below their group mean in mixed groups: 6.4% -> 4.6%.
+#
+# A solved rollout earns 0.54 .. 1.0 and an unsolved one 0 .. 0.1, so every solve still outranks
+# every failure. The size of the signal in all-solved groups (about 2% of the advantage energy) is
+# set by RLOO's missing std normalisation, not by these weights, and is left as it is.
+# Everything else is the pen03 variant: single workflow agentos_bugfix, the malformed-tool-call cut,
+# suffix instruction, 250 turns in 262144, validation pinned to AI-DLC.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_agentos_bugfix_swegym_reward_floor06_pen01_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_agentos_bugfix_swegym_reward_floor_pen03_fmtcut
+
+recipe:
+  workflow:
+    compliance_reward:
+      floor: 0.6
+      penalty_weight: 0.1
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-agentos-bugfix-floor06-pen01-fmtcut-topp1
