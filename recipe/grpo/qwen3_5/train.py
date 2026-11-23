@@ -80,6 +80,7 @@ BUDGET_EXHAUSTED = frozenset(
 
 COMPLIANCE_MODES = ("mul", "add", "wsum")
 PENALTY_GATES = ("all", "unsolved")
+PENALTY_SOLVED_SUFFIX = "_solved"  # workflow_rubric.penalty.SOLVED_SUFFIX: <penalty signal> + this is what a solved rollout is paid by
 
 
 def make_budget_scaled_grouping_hook(
@@ -131,7 +132,9 @@ def make_budget_scaled_grouping_hook(
     ``P`` is the workflow's ``penalty_signal`` in [0, 1], 1 when every penalty rule was kept
     (``WorkflowSpec.penalty_signal``, e.g. ``speckit_bug/penalty``: the mean of its log-only
     ``*.penalty.*`` rubric items -- gold files named, a related existing test run after the last edit,
-    reports that describe the change). With ``penalty_gate="unsolved"`` a solved rollout is given
+    reports that describe the change). A workflow whose penalty has items judged against the reference fix also gives
+    ``<penalty_signal>_solved``, the mean with those items worth 1, and a solved rollout is paid by that one
+    (``workflow_rubric/penalty.py``; agentos_bugfix's ``named_covers_gold``) -- per item, whatever the gate. With ``penalty_gate="unsolved"`` a solved rollout is given
     P = 1, so only failures are told apart by it (``verifier`` is the reward before shaping, 0 or 1
     for a pass/fail verifier). A rollout without the signal counts as P = 1 (the group shares the
     task, so this is a constant shift within it, and every group keeps the same ``1 - w`` scale).
@@ -199,7 +202,12 @@ def make_budget_scaled_grouping_hook(
                     else:
                         trajectory.reward = trajectory.reward + compliance_lam * float(c)
                 if penalty_weight > 0.0:
-                    kept = float(next((carried[name] for name in penalties if name in carried), 1.0))
+                    name = next((n for n in penalties if n in carried), None)
+                    kept = 1.0 if name is None else float(carried[name])
+                    # a workflow with items that only tell failures apart (judged against the reference fix) gives a
+                    # second mean with those worth 1: a solved rollout is paid by it (workflow_rubric/penalty.py)
+                    if name is not None and name + PENALTY_SOLVED_SUFFIX in carried:
+                        kept = verifier * float(carried[name + PENALTY_SOLVED_SUFFIX]) + (1.0 - verifier) * kept
                     if penalty_gate == "unsolved":
                         kept = 1.0 - (1.0 - verifier) * (1.0 - kept)
                     trajectory.reward = (1.0 - penalty_weight) * trajectory.reward + penalty_weight * kept

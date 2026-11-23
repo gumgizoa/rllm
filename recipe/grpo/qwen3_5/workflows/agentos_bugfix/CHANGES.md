@@ -696,6 +696,23 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 - 평가 499런: 이 항목이 통과에서 실패로 바뀐 런 28개, 반대 방향 0개, 다른 항목의 변화 0개. 28런 모두 기존 테스트 줄을 실제로 바꾸거나
   지운 런이었음(`tasks/2026-11-20-agentos-bugfix-reward-fixes/14-기존-테스트-수정-판정-구현.md`).
 
+## 정답 패치 항목 하나를 못 푼 롤아웃에만 적용해 되살림 (2026-11-21)
+
+C-2에서 뺀 두 항목 가운데 `plan_files.named_covers_gold`(tasks.md가 적은 소스 파일에 정답 패치의 소스 파일이 모두 있음)를 되살림.
+C-2의 문제(정답과 다른 파일을 고쳐 정당하게 푼 런이 감점됨)는 항목을 빼는 대신 **푼 롤아웃에는 이 항목을 적용하지 않는 것**으로 막음.
+
+- 신호가 둘이 됨: `agentos_bugfix/penalty`는 10개 항목의 평균(이 항목은 판정대로), `agentos_bugfix/penalty_solved`는 이 항목을 1로 둔
+  평균. `train.py`는 verifier가 1인 롤아웃에 `penalty_solved`를, 0인 롤아웃에 `penalty`를 씀(`workflow_rubric/penalty.py`의
+  `post(unsolved_only=...)`, `reward/penalty.py`의 `UNSOLVED_ONLY`). 나머지 9개 항목(파일 2, 테스트 7)은 푼 롤아웃에도 그대로 적용됨.
+- `compliance_reward.penalty_gate`는 그대로 `all`. `unsolved`로 두면 평균 전체가 면제되어, 풀었지만 테스트 규칙을 어긴 런이 만점을
+  받음. 이 변경은 항목 하나에만 거는 면제임.
+- 과제에 정답 패치가 없으면 이 항목은 판정 불가로 평균에서 빠짐(`penalty_gold_unknown` = 1).
+- `patch_covers_gold`는 되살리지 않음: 못 푼 롤아웃에서 `named_covers_gold`와 거의 같은 것을 말함.
+- penalty 항목은 9개에서 10개(파일 3, 테스트 7)가 되어, penalty 가중치 0.3에서 항목 하나의 보상 크기가 0.3 × 1/9 = 0.0333에서
+  0.3 × 1/10 = 0.03이 됨. 푼 롤아웃의 penalty 점수는 9개 항목이 그대로이고 열 번째가 1이라, 어긴 항목 수가 같으면 전보다 높아짐
+  (하나 어김: 8/9 = 0.889에서 9/10 = 0.9).
+- 평가 499런으로 다시 채점한 수치는 아직 없음.
+
 ## 보상 검토 반영 요약 (2026-11-21)
 
 ### 변경 내역
@@ -762,7 +779,7 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | B-8 행 3 | 앞 그룹을 체크한 뒤 다음 그룹을 체크하기 전에 일이 있어야 `groups_in_order`가 통과함. | `144651da` |
 | B-8 행 13 | 구현 중 tasks.md에 더한 줄이 task 줄, 그 세부 줄, 새 그룹 제목이 아니면 task를 바꾼 것으로 봄. | `6c05c0ab` |
 | C-1 | 코드를 바꾸는 하위 task마다 그 task 줄에 저장소 경로가 있어야 계획한 파일 penalty 항목이 통과함. | `45a20841` |
-| C-2 | 정답 패치와 비교하던 penalty 항목 둘을 빼 penalty 항목이 9개가 됨. | `e79b0476` |
+| C-2 | 정답 패치와 비교하던 penalty 항목 둘을 빼 penalty 항목이 9개가 됨. (그 뒤 `named_covers_gold`는 못 푼 롤아웃에만 적용하는 항목으로 되살려 10개: 위 절) | `e79b0476` |
 | R1 | 실패를 테스트 하나하나의 단위로 보고, 그 단위를 돌린 통과만 실패를 지우는 공용 함수를 더함. | `b2450cae` |
 | A-9 행 8 (R3) | penalty 테스트 항목이 checks/ 스크립트와 저장소 테스트 파일만 테스트 결과와 테스트 편집으로 셈. | `34ce790e` |
 | A-9 행 20 | 런이 더한 자기 테스트만 고른 러너 실행은 기존 테스트 실행으로 세지 않음. | `a69057c2` |
@@ -874,7 +891,7 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | `global.run.agentos_bugfix_paths_written.scratch_outside_checks` | 설정값을 바꿈 | `pattern`을 spec 폴더 밖 /tmp의 모든 파일과 spec 폴더 안 checks/ 밖 스크립트로 넓히고 note를 바꿈 (E-5 행 10). |
 | `global.penalty.plan_files.named` | 설명만 바꿈 | note를 코드를 바꾸는 하위 task 줄마다 경로를 적는 규칙으로 바꿈 (C-1, 규칙은 `reward/penalty.py`). |
 | `global.penalty.plan_files.named_equals_patch` | 설명만 바꿈 | note를 그 task 줄이 적은 소스 파일로 바꿈 (C-1, 규칙은 `reward/penalty.py`). |
-| `global.penalty.plan_files.named_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
+| `global.penalty.plan_files.named_covers_gold` | 뺐다가 되살림 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). 푼 롤아웃에는 적용하지 않는 항목으로 되살림 (`agentos_bugfix/penalty_solved`). |
 | `global.penalty.plan_files.patch_covers_gold` | 뺌 | 정답 패치와 비교하던 penalty 항목을 뺌 (C-2). |
 | 출처 `CW` (항목 밖) | 설정값을 바꿈 | `path`를 `docs/overview.md`로, `container_path`를 `/agent-os/overview.md`로 바꿈 (이름 변경). |
 | `dir` 설정값이 있는 항목 9개 (`agentos_bugfix_tasks`의 `groups_in_order`·`ticked_after_work`·`ticked_passing`·`warned_after_attempts`, `agentos_bugfix_checks`의 `written`·`pass_last`·`before_code`, `agentos_bugfix_verify.code_frozen`, `agentos_bugfix_report.suite_status`) | 설정값을 바꿈 | `dir`을 `{artifact}/{SPEC}/checks`에서 `{artifact}/{SPEC}/verify`로 바꿈 (이름 변경). |
@@ -894,7 +911,8 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 | D1 | 학습 variant `config/variant/openhands_9b_agentos_bugfix_swegym_reward_floor06_pen01_fmtcut.yaml`을 더함. 바닥값 0.7 → 0.6, penalty 가중치 0.3 → 0.1이고 나머지는 `..._floor_pen03_fmtcut.yaml`과 같음. 그 파일은 그대로 둠. | `e24d27ca` |
 | D5 | `scoring.item_signals: true`가 단계 집계(sigma_kappa)에서도 채점된 항목마다 신호를 냄(`workflow_rubric/aggregate.py`). agentos_bugfix rubric에서 켬. 보상(준수율, penalty)은 이 신호를 읽지 않음. | `d118f17b` |
 | D6 | implement-tasks PHASE 2·3의 테스트 실행 문장 뒤에, 저장소의 테스트 실행 방법을 먼저 찾아 그 실행기를 쓰라는 문장을 넣음. 저장소 이름은 적지 않음. | `7d7b4624` |
-| D3·D4 | implement-tasks PHASE 2에 코드를 바꾸기 전에 자기 테스트를 돌려 실패를 확인하라는 문장을 넣고, 그것을 보는 penalty 항목 `phase2_own.reproduced`를 더함(penalty 항목 9개 → 10개). golden의 지키지 않는 변형 2개(`no_repro_run`, `repro_passes`)와 테스트를 더함. 문장의 "the issue"를 "the behavior the task asks to change"로 고침. | `42108ce9`, `170dc653` |
+| D3·D4 | implement-tasks PHASE 2에 코드를 바꾸기 전에 자기 테스트를 돌려 실패를 확인하라는 문장을 넣고, 그것을 보는 penalty 항목 `phase2_own.reproduced`를 더함(penalty 항목 9개 → 10개. 아래 합치기 뒤 11개). golden의 지키지 않는 변형 2개(`no_repro_run`, `repro_passes`)와 테스트를 더함. 문장의 "the issue"를 "the behavior the task asks to change"로 고침. | `42108ce9`, `170dc653` |
+| 합침 | 원격 `fix/agentos-bugfix-reward-fixes`의 `616c75b0`(`plan_files.named_covers_gold`를 못 푼 롤아웃에만 적용하는 항목으로 되살림)과 `11c018b5`(wf1121 학습 variant)를 합침. penalty 항목은 11개(파일 3, 테스트 8)가 됨. 항목 하나가 바꾸는 보상은 penalty 가중치 0.1에서 0.1 × 1/11 = 0.0091, 0.3에서 0.3 × 1/11 = 0.027. 푼 롤아웃은 `agentos_bugfix/penalty_solved`(`named_covers_gold`를 1로 둔 평균)로 받고, `phase2_own.reproduced`는 푼 롤아웃에도 적용됨. 충돌은 항목 수를 적은 문장과 테스트의 기대값뿐이었고 `rubric.yaml`·`rubric.lock`은 `derive_rubric.py`로 다시 만듦. | 이 합치기 커밋 |
 
 ### 문서 변경
 
@@ -912,6 +930,7 @@ rubric의 바뀐 값은 `derive_rubric.py`가 넣음. 공용 규칙 함수에 �
 
 | 항목 id | 처리 | 내용 |
 |---|---|---|
+| `global.penalty.plan_files.named_covers_gold` | 합치면서 들어옴 | `616c75b0`이 되살린 penalty 항목. tasks.md가 적은 소스 파일에 정답 패치의 소스 파일이 모두 있으면 1. 못 푼 롤아웃만 이 값으로 받고, 푼 롤아웃의 `penalty_solved`에서는 1. 정답 패치가 없는 과제에서는 판정 불가로 평균에서 빠짐. |
 | `implement_tasks.penalty.phase2_own.reproduced` | 더함 | penalty 항목(log_only, kind `agentos_bugfix.penalty`). 자기 테스트를 썼고 소스를 바꾼 런에서, 첫 소스 변경 전의 자기 테스트 결과 중 실패가 있고 소스 변경 뒤의 자기 테스트 결과 중 통과가 있으면 1. 자기 테스트가 없거나 소스를 바꾸지 않은 런은 해당 없음이고 0. 근거는 implement-tasks.md:39의 새 문장. |
 | `scoring.item_signals` (항목 밖) | 더함 | `true`. 채점된 항목마다 `agentos_bugfix/<항목 id>` 신호를 냄. 기록용이고 준수율에 들어가지 않음. |
 

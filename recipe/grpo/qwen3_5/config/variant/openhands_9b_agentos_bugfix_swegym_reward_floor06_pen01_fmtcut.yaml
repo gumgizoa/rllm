@@ -11,7 +11,8 @@
 #
 #   * one penalty item moved every rollout's reward by 0.3 / 9 = 0.0333, about 17.5 times a
 #     compliance item (median 0.0019), worth about 5.1 pp of solve rate in expectation; now
-#     0.1 / 10 = 0.010 (about 1.4 pp; ten items once the reproduction item is in);
+#     0.1 / 11 = 0.0091 (about 1.3 pp; eleven items: plan_files.named_covers_gold back for
+#     unsolved rollouts and the reproduction item in);
 #   * in groups where every rollout solved, the penalty term set 63% of the ordering; now the
 #     compliance term sets about 91%;
 #   * solved rollouts pushed below their group mean in mixed groups: 6.4% -> 4.6%.
