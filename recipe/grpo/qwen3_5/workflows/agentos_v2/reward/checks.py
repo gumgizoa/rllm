@@ -1627,28 +1627,65 @@ def fallback_window(ctx: EvalContext):
     return (a, b) if a < b else None
 
 
-def comparison_window(ctx: EvalContext, fallback: bool = False):
+def _final_change(ctx: EvalContext) -> tuple[int, int] | None:
+    """(the step of the last authored write to a file of the final change before the report's first write, that write --
+    the end of the run without a report); None without such a write."""
+    b = refs.event(ctx, "first_write:final_verification") if "final_verification" in ctx.rubric.artifacts else None
+    if b is None or b is UNKNOWN:
+        b = ctx.facts.n_steps + 1
+    changes = _change_steps(ctx, (1, b), authored=True)
+    return (changes[-1], b) if changes else None
+
+
+def final_code_window(ctx: EvalContext):
+    """Where the verification of the final code stands when the documents let the report take the last run of the tests
+    after the last change to the code or the tests, in whichever phase it ran (agentos_bugfix, N-1 of 2026-11-23: PHASE 2
+    already runs those tests, so PHASE 3 does not repeat that run): from the step after that change to the report's first
+    write. None without a change, or when the report comes right after it."""
+    fc = _final_change(ctx)
+    if fc is None:
+        return None
+    a, b = fc[0] + 1, fc[1]
+    return (a, b) if a < b else None
+
+
+def final_code_runs(ctx: EvalContext) -> list:
+    """The valid test runs (change in place) after the last change to the code or the tests and before the report --
+    a run of the same call as that change counts when the change comes first in the command (``sed -i ... && pytest``)."""
+    fc = _final_change(ctx)
+    if fc is None:
+        return []
+    last, b = fc
+    return [r for r in change_runs(ctx) if (last < r.step or (last == r.step and r.after_write_same_call)) and r.step < b]
+
+
+def comparison_window(ctx: EvalContext, fallback: bool = False, final_code: bool = False):
     """The stretch whose test runs the report and ``suite_run`` are compared with: PHASE 3 (:func:`phase3_window`), or with
-    ``fallback`` and no PHASE 3, :func:`fallback_window`."""
+    ``fallback`` and no PHASE 3, :func:`fallback_window`; with ``final_code``, :func:`final_code_window` (a run that
+    changed nothing: as without it)."""
+    if final_code and _final_change(ctx) is not None:
+        return final_code_window(ctx)
     w = phase3_window(ctx)
     if w is None and fallback:
         return fallback_window(ctx)
     return w
 
 
-def comparison_runs(ctx: EvalContext, after_fix: bool = False, fallback: bool = False) -> list:
+def comparison_runs(ctx: EvalContext, after_fix: bool = False, fallback: bool = False, final_code: bool = False) -> list:
     """The valid test runs (change in place) in :func:`comparison_window`; ``after_fix`` as :func:`_phase3_runs`. In the
-    fallback window no code change comes after its start, so there is no fix round to skip."""
+    fallback window and the final-code window no code change comes after its start, so there is no fix round to skip."""
+    if final_code and _final_change(ctx) is not None:
+        return final_code_runs(ctx)
     if phase3_window(ctx) is not None or not fallback:
         return _phase3_runs(ctx, after_fix=after_fix)
     w = fallback_window(ctx)
     return [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
 
 
-def comparison_script_results(ctx: EvalContext, d: str | None, fallback: bool = False) -> dict[str, str]:
+def comparison_script_results(ctx: EvalContext, d: str | None, fallback: bool = False, final_code: bool = False) -> dict[str, str]:
     """Check script (absolute path) -> the outcome (``pass`` / ``fail``) of its last readable run in
     :func:`comparison_window`: what a report about a verification that ran only the run's own scripts is checked against."""
-    w = comparison_window(ctx, fallback)
+    w = comparison_window(ctx, fallback, final_code)
     if not d or w is None:
         return {}
     last: dict[str, str] = {}
@@ -1670,7 +1707,7 @@ def _whole(r, workdir: str | None) -> bool:
     return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
 
 
-@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False, "phase3_fallback": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
+@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False, "phase3_fallback": False, "final_code": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
 def verify(item: Item, ctx: EvalContext) -> Result:
     """rule: code_frozen | suite_run | whole_suite | phase2_run -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite; a valid test run before it, after the last code change."""
     rule = str((item.check.params or {}).get("rule"))
@@ -1746,7 +1783,11 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         s = 1 if start is UNKNOWN else start
         late = [e for e in ctx.facts.repo_writes if e.ok is not False and e.step > s and not F.is_generated(e.path)]
         return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began (step {s})") if late else Result.ok(item, f"no repository write after step {s}")
-    runs = comparison_runs(ctx, after_fix=fix_round, fallback=bool((item.check.params or {}).get("phase3_fallback")))
+    final_code = bool((item.check.params or {}).get("final_code")) and _final_change(ctx) is not None
+    runs = comparison_runs(ctx, after_fix=fix_round, fallback=bool((item.check.params or {}).get("phase3_fallback")), final_code=final_code)
+    if rule == "suite_run" and final_code:  # ``final_code``: the last run after the last change, in whichever phase (N-1)
+        last = _final_change(ctx)[0]
+        return Result.ok(item, f"{len(runs)} valid test run(s) after the last change (step {last}), first at step {runs[0].step}") if runs else Result.no(item, f"no valid test run between the last change (step {last}) and the report")
     if rule == "suite_run":
         return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}") if runs else Result.no(item, "no valid test run between the last tick and the report")
     if rule == "whole_suite":
@@ -1822,7 +1863,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False, "scripts_dir": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "final_code": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False, "scripts_dir": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1854,9 +1895,10 @@ def report(item: Item, ctx: EvalContext) -> Result:
         return Result.ok(item, f"Status {got}, as the sections give") if got in ((want,) if isinstance(want, str) else want) else Result.no(item, f"Status {got!r}, but the sections give {want!r}")
     if rule in ("test_counts", "failed_listed", "suite_status"):
         fallback = bool(p.get("phase3_fallback"))
-        runs = comparison_runs(ctx, after_fix=bool(p.get("fix_round")), fallback=fallback)  # after a fix round the report is about the re-run
+        final_code = bool(p.get("final_code"))  # the last run after the last change, in whichever phase (N-1)
+        runs = comparison_runs(ctx, after_fix=bool(p.get("fix_round")), fallback=fallback, final_code=final_code)  # after a fix round the report is about the re-run
         if not runs and p.get("script_results"):
-            scripts = comparison_script_results(ctx, _expand_dir(ctx, str(p.get("scripts_dir") or SCRIPTS_DIR)), fallback)
+            scripts = comparison_script_results(ctx, _expand_dir(ctx, str(p.get("scripts_dir") or SCRIPTS_DIR)), fallback, final_code)
             if scripts:
                 return _report_on_scripts(item, rule, text, suite, scripts)
         if not runs:
@@ -2031,6 +2073,8 @@ __all__ = [
     "all_done_step",
     "found_not_done",
     "phase3_window",
+    "final_code_window",
+    "final_code_runs",
     "outcome",
     "executions",
 ]

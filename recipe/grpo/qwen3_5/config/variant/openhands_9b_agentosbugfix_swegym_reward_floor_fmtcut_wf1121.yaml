@@ -30,9 +30,10 @@ recipe:
     val_name: aidlc_v5
     # reward = 0.7 * verifier * (0.7 + 0.3 * compliance) + 0.3 * penalty. penalty is the mean of
     # agentos_bugfix's penalty items for an unsolved rollout (ten in the wf1121 run, code 11c018b5;
-    # eleven from 2026-11-22 on, with phase2_own.reproduced); a solved one is paid by
-    # agentos_bugfix/penalty_solved, the same mean with plan_files.named_covers_gold (the one
-    # item judged against the reference fix) worth 1. The others cost a solve too (gate all).
+    # ten again from 2026-11-23, with phase2_own.reproduced in and phase3_run.existing_and_own out);
+    # a solved one is paid by agentos_bugfix/penalty_solved, the same mean with
+    # plan_files.named_covers_gold (the one item judged against the reference fix) worth 1.
+    # The others cost a solve too (gate all).
     compliance_reward:
       enable: true
       mode: mul

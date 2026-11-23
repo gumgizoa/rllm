@@ -46,9 +46,10 @@ def test_implement_tasks_says_a_test_you_wrote_is_corrected_not_loosened():
 # ---- C-2: an item that reads the task's reference fix never costs a solved rollout ---------------------------------------
 
 
-def test_one_reference_fix_item_is_kept_for_unsolved_rollouts_and_eleven_penalty_items_remain():
+def test_one_reference_fix_item_is_kept_for_unsolved_rollouts_and_ten_penalty_items_remain():
     pen = [i for i in ITEMS if ".penalty." in i]
-    assert len(pen) == 11  # ten with named_covers_gold back (2026-11-21), and the reproduction item (D3, 2026-11-22)
+    # ten with named_covers_gold back (2026-11-21), the reproduction item in (D3, 2026-11-22), the PHASE 3 run item out (N-1, 2026-11-23)
+    assert len(pen) == 10
     assert not any(i.endswith("patch_covers_gold") for i in pen)
     assert {i for i in pen if ".plan_files." in i} == {f"global.penalty.plan_files.{r}" for r in ("named", "named_equals_patch", "named_covers_gold")}
     # the task reaches the kinds that read its description (task_text.py) and its reference fix (named_covers_gold)
@@ -457,7 +458,7 @@ def _report_rule(rule, runs, report_text, edits=(), **params):
     ctx = SimpleNamespace(collected=SimpleNamespace(workdir="/testbed"), artifact_text=lambda aid, state="final": report_text, cache={},
                           facts=SimpleNamespace(repo_writes=writes, writes={}))
     orig = C.comparison_runs
-    C.comparison_runs = lambda ctx, after_fix=False, fallback=False: runs
+    C.comparison_runs = lambda ctx, after_fix=False, fallback=False, final_code=False: runs
     try:
         return C.report(_item({"rule": rule, "suite_section": "2. Test Suite Results", **params}, ref="final_verification"), ctx)
     finally:

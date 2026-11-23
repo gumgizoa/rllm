@@ -934,6 +934,34 @@ C-2의 문제(정답과 다른 파일을 고쳐 정당하게 푼 런이 감점�
 | `implement_tasks.penalty.phase2_own.reproduced` | 더함 | penalty 항목(log_only, kind `agentos_bugfix.penalty`). 자기 테스트를 썼고 소스를 바꾼 런에서, 첫 소스 변경 전의 자기 테스트 결과 중 실패가 있고 소스 변경 뒤의 자기 테스트 결과 중 통과가 있으면 1. 자기 테스트가 없거나 소스를 바꾸지 않은 런은 해당 없음이고 0. 근거는 implement-tasks.md:39의 새 문장. |
 | `scoring.item_signals` (항목 밖) | 더함 | `true`. 채점된 항목마다 `agentos_bugfix/<항목 id>` 신호를 냄. 기록용이고 준수율에 들어가지 않음. |
 
+## PHASE 3가 마지막 변경 뒤의 테스트 실행을 다시 돌리지 않음 (2026-11-23)
+
+### 변경 내역
+
+wf1121 학습 분석(`rllm-home/eval_results/wf1121_traj/analysis-2026-11-23/REPORT.md`의 N-1)에 따른 변경임. 원본 agent-os v2.1.1은 PHASE 2에서 자기 테스트만, PHASE 3에서 전체 테스트를 돌림. T1(`1099e424`)이 기존 테스트 실행을 PHASE 2로 앞당기면서 PHASE 3에 같은 테스트를 한 번 더 돌리라는 문장이 남았고, wf1121 step 23에서 PHASE 3을 정할 수 있는 200개 중 176개가 이미 마지막 변경 뒤에 그 테스트를 돌린 상태였음.
+
+| 결정 | 바꾼 것 | 커밋 |
+|---|---|---|
+| N-1 | implement-tasks PHASE 3의 테스트 단계가, 마지막 코드·테스트 변경 뒤에 이미 돌린 실행이 있으면 그 결과를 쓰고 없을 때만 돌리라고 말함(`build.py` T1 편집). 최종 검증 실행을 보는 준수율 항목 4개가 PHASE 3 구간 대신 마지막 변경 뒤부터 보고서 전까지의 실행을 봄(`agentos_v2/reward/checks.py`의 새 설정값 `final_code`, 기본값은 지금 동작이라 agentos_v2는 그대로). 같은 테스트를 PHASE 3에서 다시 돌리라던 penalty 항목 `phase3_run.existing_and_own`을 뺌: 바뀐 기준에서는 `phase2_run.existing_and_own`과 같은 것을 봄. penalty 항목은 10개(파일 3, 테스트 7). PHASE 3 실패 처리 항목 3개와 `code_frozen`은 그대로 PHASE 3 구간을 봄. | 이 커밋 |
+
+### 문서 변경
+
+`workflows/agentos_bugfix/` 아래 새 글의 줄임. 줄 수는 바뀌지 않음.
+
+| 문서 위치 | 전 | 후 |
+|---|---|---|
+| `docs/commands/implement-tasks/implement-tasks.md:131` (PHASE 3 Step 2 첫 문장) | "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote." | "The tests of the changed code are the test modules that cover the files you changed, and the tests you wrote. If you ran them after your last change to the code or the tests, take the results of that run; otherwise run them now." |
+
+### rubric 변경
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `implement_tasks.run.agentos_bugfix_verify.suite_run` | 설정값을 바꿈 | `final_code: true`. 마지막 코드·테스트 변경 뒤부터 보고서 전까지 유효한 테스트 실행이 있으면 통과(PHASE 2든 PHASE 3든). 변경이 없는 런은 전처럼 PHASE 3 구간을 봄. 인용문을 새 문장으로 바꿈. |
+| `implement_tasks.final_verification.agentos_bugfix_report.test_counts` | 설정값을 바꿈 | `final_code: true`. 보고서의 수치를 위 실행들과 비교함. |
+| `implement_tasks.final_verification.agentos_bugfix_report.failed_listed` | 설정값을 바꿈 | `final_code: true`. 위 실행들의 실패를 보고서가 적었는지 봄. |
+| `implement_tasks.final_verification.agentos_bugfix_report.suite_status` | 설정값을 바꿈 | `final_code: true`. 위 실행들에 실패가 없을 때만 All Passing. |
+| `implement_tasks.penalty.phase3_run.existing_and_own` | 뺌 | PHASE 3 안에서 기존 테스트와 자기 테스트를 다시 돌렸는지 보던 penalty 항목. |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

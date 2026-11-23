@@ -483,3 +483,46 @@ def test_a_report_on_check_scripts_is_read_against_their_last_results():
     assert C._report_on_scripts(item("test_counts"), "test_counts", rep.format("❌ Critical Failures", 0), "2. Test Suite Results", failed).status == "fail"
     assert C._report_on_scripts(item("failed_listed"), "failed_listed", rep.format("✅ All Passing", 0), "2. Test Suite Results", passed).status == "not_applicable"
     assert C._report_on_scripts(item("failed_listed"), "failed_listed", rep.format("❌ Critical Failures", 1) + "test_a.py fails\n", "2. Test Suite Results", failed).status == "pass"
+
+
+# ---- N-1 (2026-11-23): PHASE 3 takes the last run after the last change, in whichever phase it ran ----------------
+
+
+def test_the_final_code_runs_are_the_runs_after_the_last_change_in_whichever_phase(monkeypatch):
+    monkeypatch.setattr(C.refs, "event", lambda ctx, ev: 40)  # the report's first write
+    monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: [12, 20])
+    monkeypatch.setattr(C, "phase3_window", lambda ctx: (30, 40))  # every task ticked at step 30
+    run = lambda step, same=False: SimpleNamespace(step=step, after_write_same_call=same, failed=0, errors=0)  # noqa: E731
+    runs = [run(15), run(20), run(20, same=True), run(25), run(45)]
+    monkeypatch.setattr(C, "change_runs", lambda ctx: runs)
+    ctx = SimpleNamespace(facts=SimpleNamespace(n_steps=50), rubric=SimpleNamespace(artifacts={"final_verification": None}))
+    # after the last change (20; a run of the same call counts when the change comes first) and before the report (40)
+    assert [(r.step, r.after_write_same_call) for r in C.final_code_runs(ctx)] == [(20, True), (25, False)]
+    assert C.final_code_window(ctx) == (21, 40)
+    # the report and suite_run read those runs, made in PHASE 2: PHASE 3 does not repeat them
+    assert [r.step for r in C.comparison_runs(ctx, final_code=True)] == [20, 25]
+    assert C.comparison_runs(ctx) == []  # agentos_v2's rule (no final_code): the runs inside PHASE 3 only -- none here
+    monkeypatch.setattr(C, "phase3_start", lambda ctx: 30)
+    suite = _item({"rule": "suite_run", "final_code": True}, ref="run")
+    assert C.verify(suite, ctx).status == "pass"
+    assert C.verify(_item({"rule": "suite_run"}, ref="run"), ctx).status == "fail"
+    # a change after the last run: the final code was never tested
+    monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: [12, 33])
+    assert C.final_code_runs(ctx) == [] and C.verify(suite, ctx).status == "fail"
+    # a run that changed nothing is read as before (PHASE 3)
+    monkeypatch.setattr(C, "_change_steps", lambda ctx, w, authored=False: [])
+    runs.append(run(35))
+    assert [r.step for r in C.comparison_runs(ctx, final_code=True)] == [35]
+
+
+def test_the_items_about_the_final_verification_run_read_the_final_code_runs():
+    rules = {"suite_run", "test_counts", "failed_listed", "suite_status"}
+    got = {it["check"]["params"]["rule"]: it for it in RUBRIC["items"]
+           if it["check"]["kind"] in ("agentos_bugfix.verify", "agentos_bugfix.report") and it["check"]["params"].get("rule") in rules}
+    assert set(got) == rules and all(it["check"]["params"].get("final_code") is True for it in got.values())
+    assert all("after the last change to the code or the tests" in it["note"] for it in got.values())
+    # the document says so (build.py T1, N-1), and no item asks for the same tests once more
+    it_md = (Path(D.__file__).parent / "docs" / "commands" / "implement-tasks" / "implement-tasks.md").read_text()
+    assert "If you ran them after your last change to the code or the tests, take the results of that run; otherwise run them now." in it_md
+    assert "once more" not in it_md
+    assert not any(it["id"].endswith("phase3_run.existing_and_own") for it in RUBRIC["items"])

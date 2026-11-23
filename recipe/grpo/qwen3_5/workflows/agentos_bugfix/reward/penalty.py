@@ -3,7 +3,7 @@
 They are items of the rubric (``agentos_bugfix.<stage>.penalty.<name>``, kind ``agentos_bugfix.penalty``, ``log_only``:
 judged and reported with every run, never part of ``agentos_bugfix/compliance``), as the penalty items of the other
 workflows are. Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
-(``penalty_tests.py``: eight items, ``agentos_bugfix.implement_tasks.penalty.*``).
+(``penalty_tests.py``: seven items, ``agentos_bugfix.implement_tasks.penalty.*``).
 
 The files tasks.md names, against the files the run changed and the reference fix -- three items:
 
@@ -19,13 +19,13 @@ the task in other files must not pay for it (C-2 of the reward review, 2026-11-2
 with ``patch_covers_gold``; it is back, 2026-11-21, as an item that only tells failures apart). It is one of
 :data:`UNSOLVED_ONLY`: ``agentos_bugfix/penalty`` holds it as judged and ``agentos_bugfix/penalty_solved`` holds it as
 1, and ``train.py`` pays a solved rollout by the second (``workflow_rubric/penalty.py``, "Items that only tell failures
-apart"). The other ten items cost a solved rollout as they cost an unsolved one. ``patch_covers_gold`` stays out: on
+apart"). The other nine items cost a solved rollout as they cost an unsolved one. ``patch_covers_gold`` stays out: on
 an unsolved rollout it says nearly what this item says.
 
 ``agentos_bugfix/penalty`` is made by the rule every workflow shares (``workflow_rubric/penalty.py``): the mean of the
-eleven items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
+ten items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
 item is about and 1 when it did and the item's condition did not arise (``penalty_tests.py``) -- with what cannot be
-judged left out: ``named_covers_gold`` when the task has no reference fix to read (``penalty_gold_unknown``), the eight
+judged left out: ``named_covers_gold`` when the task has no reference fix to read (``penalty_gold_unknown``), the seven
 test items when the code root is not known. ``penalty_plan_files`` and ``penalty_tests`` are the means of each group.
 A run that names no file fails all three file items. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
 ``compliance_reward.penalty_weight`` is set (``WorkflowSpec.penalty_signal``).
@@ -290,7 +290,7 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
 @register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
 def penalty(item: Item, ctx: EvalContext) -> Result:
     """rule: plan_files.<named | named_equals_patch | named_covers_gold>, or a test item of
-    implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase2_own.reproduced, phase3_run.existing_and_own, phase3_fail.<...>) --
+    implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase2_own.reproduced, phase3_fail.<...>) --
     passes when the run did it right (see this module's docstring and ``penalty_tests.py``). A test item the run
     stands outside of is not applicable, worth 0 when the run never did what the item is about and 1 when it did and
     the item's condition did not arise; ``named_covers_gold`` without a reference fix to read, and a test item without

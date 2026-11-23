@@ -458,12 +458,12 @@ def test_penalty_items_against_the_patch_and_the_reference_fix_for_unsolved_roll
     # the patch changes a file no task names: an item about the run's own change, so a solved rollout pays for it too
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
     assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0} and got["penalty_plan_files"] == pytest.approx(2 / 3)
-    assert got["penalty_tests"] == 1.0 and got["penalty"] == got["penalty_solved"] == (2 + 8) / 11  # three file items, eight test items
+    assert got["penalty_tests"] == 1.0 and got["penalty"] == got["penalty_solved"] == (2 + 7) / 10  # three file items, seven test items
     # the reference fix changes another file than the one named and changed as planned: named_covers_gold fails, and
     # only the mean an unsolved rollout is paid by loses it (C-2: the agent cannot see the reference fix)
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
     assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0}
-    assert got["penalty"] == 10 / 11 and got["penalty_solved"] == 1.0
+    assert got["penalty"] == 9 / 10 and got["penalty_solved"] == 1.0
     # tests, the run's scratch scripts and non-source files are on neither side
     patch = _diff("textkit/slug.py", "tests/test_slug.py", "repro_edges.py", "docs/changes.rst", new=("repro_edges.py",))
     got, items = _penalty(None, tmp_path, patch, gold=_diff("textkit/slug.py", "docs/changes.rst"))
@@ -476,7 +476,7 @@ def test_penalty_items_against_the_patch_and_the_reference_fix_for_unsolved_roll
 def test_penalty_without_a_reference_fix_leaves_its_item_out_of_the_mean(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"))
     assert items == {"named": 1.0, "named_equals_patch": 0.0} and got["penalty_gold_unknown"] == 1.0 and got["penalty_unavailable"] == 1.0
-    assert got["penalty_plan_files"] == 0.5 and got["penalty"] == got["penalty_solved"] == (1 + 8) / 10
+    assert got["penalty_plan_files"] == 0.5 and got["penalty"] == got["penalty_solved"] == (1 + 7) / 9
 
 
 def test_named_files_are_the_paths_on_the_change_task_lines_of_the_last_tasks_md():
@@ -541,7 +541,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert SPEC.reward_signal == "agentos_bugfix/compliance" and SPEC.penalty_signal == "agentos_bugfix/penalty"
     # the penalty items are rubric items, as in the other workflows -- log_only, so compliance is untouched
     pen = [it for it in ev.rubric.items if ".penalty." in it.id]
-    assert len(pen) == 11 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
+    assert len(pen) == 10 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
     assert {it.check.params["rule"] for it in pen} == {*penalty.FILE_RULES, *penalty.TEST_RULES}
 
 
@@ -569,11 +569,13 @@ def _res(step, passed, *keys, runner=False):
     return T.Result(step, passed, runner, keys or (T._WHOLE,))
 
 
-def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
-    run2, run3 = "phase2_run.existing_and_own", "phase3_run.existing_and_own"
-    # both kinds of run after the last source change, and both again in PHASE 3
+def test_the_tests_are_run_after_the_last_source_change():
+    run2 = "phase2_run.existing_and_own"
+    # both kinds of run after the last source change
     v, a = _test_items(src=[10, 20], own_runs=[22, 32], existing_runs=[23, 33], p2_end=30, p3=30, report=40)
-    assert v[run2] == v[run3] == 1.0 and a[run2] and a[run3]
+    assert v[run2] == 1.0 and a[run2]
+    # N-1 (2026-11-23): no item asks for the same tests once more in PHASE 3 (implement-tasks PHASE 3 takes the last run)
+    assert not any(k.startswith("phase3_run.") for k in v)
     # one of the two is not enough, and a run before the last source change does not count
     assert _test_items(src=[10], own_runs=[12], p2_end=30)[0][run2] == 0.0
     assert _test_items(src=[10], existing_runs=[12], p2_end=30)[0][run2] == 0.0
@@ -582,7 +584,7 @@ def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
     assert _test_items(src=[10], own_runs=[12], existing_runs=[12], p2_end=30)[0][run2] == 1.0
     # a run that never gets to the stretch scores 0.0 there: no source change, PHASE 3 not placed
     v, a = _test_items(src=[], own_runs=[12, 32], existing_runs=[13, 33], p2_end=30)
-    assert (v[run2], a[run2]) == (0.0, False) and (v[run3], a[run3]) == (0.0, False)
+    assert (v[run2], a[run2]) == (0.0, False)
 
 
 def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_test_passes_at_its_last_run():
@@ -646,8 +648,7 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     runner_fail = _res(32, False, "tests/test_a.py", runner=True)
     # no failure seen in PHASE 3: the three items stand outside the run. Worth 1.0 when the final code was tested -- a
     # test ran in PHASE 3, or after the last source change in whichever phase (running it once more would have shown
-    # nothing new; the run item alone is lost) -- and 0.0 when it never was
-    run3 = "phase3_run.existing_and_own"
+    # nothing new, and PHASE 3 takes that run: N-1) -- and 0.0 when it never was
     for kw, want in (
         (dict(base, results=[_res(32, True, "/s/a.py")]), 1.0),  # ran in PHASE 3
         (dict(base, results=[_res(12, True, "/s/a.py")]), 1.0),  # ran in PHASE 2 after the last source change, not again
@@ -660,8 +661,6 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     ):
         v, a = _test_items(**kw)
         assert [v[k] for k in (cause, edited, last)] == [want] * 3 and not any(a[k] for k in (cause, edited, last)), kw
-    v, a = _test_items(**dict(base, results=[_res(12, True, "/s/a.py")]))
-    assert (v[run3], a[run3]) == (0.0, True)  # not running the tests once more costs the run item
     # a runner failure left unchecked: the check is missing, the edit item is not asked (the cause is unknown)
     v, a = _test_items(**base, results=[runner_fail])
     assert (v[cause], a[cause]) == (0.0, True) and (v[edited], a[edited]) == (1.0, False) and (v[last], a[last]) == (0.0, True)
@@ -762,16 +761,16 @@ def test_an_own_test_fails_before_the_first_source_change_and_passes_after_it():
     assert _test_items(**same, own_results=[_res(6, False, "/s/a.py"), _res(10, True, "/s/a.py")], script_late={10})[0][repro] == 1.0
 
 
-def test_the_reproduction_item_is_reported_and_the_penalty_averages_ten_items(tmp_path):
+def test_the_reproduction_item_is_reported_and_the_penalty_averages_the_items(tmp_path):
     key, applies = "implement_tasks.penalty.phase2_own.reproduced", "penalty_applies.phase2_own.reproduced"
     # the golden run's check script fails before the code changes and passes after it
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
     assert (got[key], got[applies]) == (1.0, 1.0) and got["penalty"] == 1.0
-    # without the reproduction the item alone is lost: one of ten
+    # without the reproduction the item alone is lost: one of nine (no reference fix to read here: named_covers_gold is out)
     for variant in ("no_repro_run", "repro_passes"):
         got, items = _penalty(variant, tmp_path, _diff("textkit/slug.py"))
         assert (got[key], got[applies]) == (0.0, 1.0), variant
-        assert set(items.values()) == {1.0} and got["penalty_tests"] == 7 / 8 and got["penalty"] == 9 / 10, variant
+        assert set(items.values()) == {1.0} and got["penalty_tests"] == 6 / 7 and got["penalty"] == 8 / 9, variant
 
 
 def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, monkeypatch):
@@ -780,23 +779,23 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
     def boom(ctx):
         raise RuntimeError("unexpected trace")
 
-    # a kind that raises is a failed item and an engine error, as everywhere in the engine: the eight test items are
+    # a kind that raises is a failed item and an engine error, as everywhere in the engine: the seven test items are
     # 0.0, the three file items stand, and nothing reaches compliance
-    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=8, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=7, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
     assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0
-    assert got["penalty_tests"] == 0.0 and got["penalty"] == got["penalty_solved"] == 3 / 11
+    assert got["penalty_tests"] == 0.0 and got["penalty"] == got["penalty_solved"] == 3 / 10
     assert all(got[name.split(".", 1)[1]] == 0.0 for name in penalty_tests.ITEMS)
 
 
 @pytest.mark.parametrize(
     "variant, zero, applies",
     [
-        (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_run.existing_and_own"}),
+        (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced"}),
         ("no_existing_run", {"phase2_run.existing_and_own"}, None),
         ("tick_failing", {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"}, None),
         ("warn_attempts", set(), None),  # two attempts, then ⚠️ (implement-tasks.md 40: up to five)
         ("warn_six_attempts", {"phase2_fail.edited_after_fail"}, None),  # a sixth attempt (A-4, user decision 2026-11-21)
-        ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
+        ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase2_own.reproduced", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
         # the test written first does not show the behavior the task asks to change before the code changes (D3, implement-tasks.md 39)
         ("no_repro_run", {"phase2_own.reproduced"}, None),  # first run only after the change
         ("repro_passes", {"phase2_own.reproduced"}, None),  # passes on the unchanged code
@@ -810,7 +809,7 @@ def test_test_items_of_the_golden_run_and_its_variants(variant, zero, applies):
     assert not rep.engine_errors
     scores = {k.split(".penalty.", 1)[1]: v for k, v in got.items() if k.startswith("implement_tasks.penalty.")}
     assert set(scores) == set(penalty.TEST_RULES) and {k for k, v in scores.items() if v == 0.0} == zero
-    assert got["penalty_tests"] == (8 - len(zero)) / 8
+    assert got["penalty_tests"] == (7 - len(zero)) / 7
     if applies is not None:
         judged = {k[len("penalty_applies.") :] for k, v in got.items() if k.startswith("penalty_applies.") and v == 1.0}
         assert {k for k in judged if not k.startswith("plan_files.")} == applies

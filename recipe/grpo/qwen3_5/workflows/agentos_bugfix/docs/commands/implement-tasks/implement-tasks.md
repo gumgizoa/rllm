@@ -128,7 +128,7 @@ IF you have concluded that this task has NOT been completed, then mark this chec
 
 ### Step 2: Run the tests of the changed code
 
-Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest. Run the entire tests suite as well only if it finishes within a few minutes.  Verify how many tests are passing and how many have failed or produced errors.
+The tests of the changed code are the test modules that cover the files you changed, and the tests you wrote. If you ran them after your last change to the code or the tests, take the results of that run; otherwise run them now. Find out how this repository runs its tests before you run them (its contributing guide, `tox.ini`, `setup.cfg` / `pyproject.toml`, or a test script in the repository), and use that runner; do not assume pytest. Run the entire tests suite as well only if it finishes within a few minutes.  Verify how many tests are passing and how many have failed or produced errors.
 
 Include these counts and the list of failed tests in your final verification report.
 

@@ -31,6 +31,9 @@ And one rule is changed rather than cut:
   verification) both become the tests written plus the existing tests of the changed code. Upstream's two ends
   left the existing tests unrun while the code changed and asked for a run at the end that seldom happened
   (6.8% of evaluation runs, a third of them timing out).
+  The final verification does not repeat a run made after the last change to the code or the tests: it takes that
+  run's results (N-1 of the wf1121 training analysis, 2026-11-23: PHASE 2 already runs the same tests, and 176 of
+  200 training runs had run them after their last change when PHASE 3 asked them to run them once more).
 * T3 tasks found while implementing: a task the change needs and tasks.md lacks is added to tasks.md and then
   implemented. "ONLY the tasks assigned to you" stays; tasks.md is the one file a later command may add to.
 * T4 the report's overall Status: the template offers three values and upstream never says which holds when. The
@@ -270,8 +273,10 @@ CUTS: dict[str, tuple[tuple, ...]] = {
     ),
     "wf/run-all-tests": (
         ("sub", "Run the entire tests suite for the application so that ALL tests run.",
-         "Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests you wrote. "
-         "Run the entire tests suite as well only if it finishes within a few minutes.", "T1: test scope of the final verification"),
+         "The tests of the changed code are the test modules that cover the files you changed, and the tests you wrote. "
+         "If you ran them after your last change to the code or the tests, take the results of that run; otherwise run them now. "
+         "Run the entire tests suite as well only if it finishes within a few minutes.",
+         "T1: test scope of the final verification; N-1 (2026-11-23): PHASE 2 already runs these tests, so a run after the last change is not repeated"),
         ("sub", "DO NOT attempt to fix any failing tests.  Just note their failures in your final verification report.",
          "IF a test fails, find out whether your change causes it. A test you wrote for this change: it does. An existing test: run it once without your change, "
          "in one command (`git stash -q && <the test command>; git stash pop -q`); if it fails there as well, your change does not cause it.\n\n"
@@ -279,8 +284,8 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "then carry out PHASE 3 again from Step 1. Go back once only; a failure that is still there afterwards is noted in the report.\n"
          "- Any other failure: DO NOT attempt to fix it.  Just note it in your final verification report.",
          "T6: one return to PHASE 2 for a failure the change causes"),
-        ("sub", "the files you changed, and the tests you wrote. Run the entire tests suite",
-         "the files you changed, and the tests you wrote. " + _FIND_RUNNER + " Run the entire tests suite",
+        ("sub", "otherwise run them now. Run the entire tests suite",
+         "otherwise run them now. " + _FIND_RUNNER + " Run the entire tests suite",
          "D6: the repository's own test runner, not pytest by default"),
     ),
     "wf/implement-tasks": (

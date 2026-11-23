@@ -184,7 +184,7 @@ generated:
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9626
+      compliance: 0.9339
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -238,7 +238,7 @@ generated:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 48
-    kept_items: 174
+    kept_items: 173
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -248,7 +248,7 @@ sources:
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 4c665141253b8e73ded84e439b37e8723e194a13af9ca35b6b12fbd6d706791c
+  sha256: c4e67cfcfe7796ed69303111c827562da501e0294a504bd643847f61c69f23b8
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -5235,6 +5235,7 @@ items:
       scripts_dir: '{artifact}/{SPEC}/verify'
       phase3_fallback: true
       script_results: true
+      final_code: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include these counts ... in your final verification report')
   none_allowed: '-'
@@ -5260,7 +5261,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: Total / Passing / Failing / Errors are the counts of a valid test run between the last tick and the report
+  note: Total / Passing / Failing / Errors are the counts of one of the valid test runs after the last change to the code
+    or the tests and before the report, in PHASE 2 or PHASE 3
 - id: agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.failed_listed
   scope: specific
   class: content
@@ -5278,6 +5280,7 @@ items:
       scripts_dir: '{artifact}/{SPEC}/verify'
       phase3_fallback: true
       script_results: true
+      final_code: true
       standing: true
       in_section: true
   requirement: must
@@ -5304,7 +5307,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: every failing test of the PHASE 3 run is named in the report
+  note: every failing test of the valid test runs after the last change to the code or the tests and before the report, in
+    PHASE 2 or PHASE 3 is named in the report
 - id: agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.spec_name
   scope: specific
   class: content
@@ -5389,6 +5393,7 @@ items:
       dir: '{artifact}/{SPEC}/verify'
       phase3_fallback: true
       script_results: true
+      final_code: true
       standing: true
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)
@@ -5409,7 +5414,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: All Passing only when the PHASE 3 run has no failure or error; Some / Critical Failures only when it has
+  note: All Passing only when the valid test runs after the last change to the code or the tests and before the report, in
+    PHASE 2 or PHASE 3 have no failure or error; Some / Critical Failures only when they have
 - id: agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.overall_status
   scope: specific
   class: content
@@ -5921,6 +5927,7 @@ items:
       rule: suite_run
       fix_round: true
       phase3_fallback: true
+      final_code: true
   requirement: must
   modality_evidence: imperative (IT:239 'Run the entire tests suite for the application')
   none_allowed: '-'
@@ -5934,13 +5941,14 @@ items:
     lines:
     - 131
     - 131
-    quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
-      you wrote. ...  Verify how many tests are passing and how many have failed or produced errors.'
+    quote: The tests of the changed code are the test modules that cover the files you changed, and the tests you wrote. If
+      you ran them after your last change to the code or the tests, take the results of that run; otherwise run them now.
+      ...  Verify how many tests are passing and how many have failed or produced errors.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
-  note: a valid test run between the last tick and the report
+  note: a valid test run after the last change to the code or the tests and before the report, in PHASE 2 or PHASE 3
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.phase2_run
   scope: specific
   class: evidence
@@ -7033,40 +7041,6 @@ items:
   note: a test of the run's own (a verify/ script, or the runner on a test file it wrote to) failed in a run before the first
     source change, and one passed in a run after a source change; worth 0 to a run that wrote no test of its own or changed
     no source
-- id: agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
-  scope: specific
-  class: evidence
-  stage: implement_tasks
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: agentos_bugfix.penalty
-    params:
-      rule: phase3_run.existing_and_own
-  requirement: must
-  modality_evidence: 'imperative (IT: ''Run the tests of the changed code once more: the test modules that cover the files
-    you changed, and the tests you wrote'')'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: IT
-    lines:
-    - 131
-    - 131
-    quote: 'Run the tests of the changed code once more: the test modules that cover the files you changed, and the tests
-      you wrote.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: true
-  note: in PHASE 3 (from the last tick to the report), a valid run of the repository's tests and a run of a test of the run's
-    own; worth 0 to a run whose PHASE 3 cannot be placed
 - id: agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
   scope: specific
   class: evidence

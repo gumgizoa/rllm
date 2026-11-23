@@ -4,9 +4,9 @@ The rubric is agentos_v2's with the items of the cut steps removed (``../derive_
 signals come from it (``agentos_bugfix/compliance`` is the reward signal). Its plugin kinds are agentos_v2's, registered
 under ``agentos_bugfix.*`` in ``checks.py``.
 
-The rubric also holds eleven ``log_only`` penalty items (kind ``agentos_bugfix.penalty``, ``penalty.py``): three about the
+The rubric also holds ten ``log_only`` penalty items (kind ``agentos_bugfix.penalty``, ``penalty.py``): three about the
 files tasks.md names (two against the final change, one against the task's reference fix that only an unsolved rollout
-is paid by: ``agentos_bugfix/penalty_solved``) and eight about the test behaviour of implement-tasks
+is paid by: ``agentos_bugfix/penalty_solved``) and seven about the test behaviour of implement-tasks
 (``penalty_tests.py``). ``penalty.inputs`` hands the task to the kinds that read its description (``task_text.py``). They are not part of ``compliance``; ``penalty.post`` reports their mean as
 ``agentos_bugfix/penalty``, by the rule every workflow shares.
 """

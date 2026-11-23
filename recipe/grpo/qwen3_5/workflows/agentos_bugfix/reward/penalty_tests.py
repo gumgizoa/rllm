@@ -1,7 +1,7 @@
 """agentos_bugfix penalty items: the test behaviour of implement-tasks, in PHASE 2 and in PHASE 3.
 
-Eight items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the two of
-``penalty.py``. Every run gets all eight. A run an item stands outside of gets what the rule every workflow shares
+Seven items, each 1.0 (no penalty) or 0.0 (penalty), rubric items of kind ``agentos_bugfix.penalty`` like the three of
+``penalty.py``. Every run gets all seven. A run an item stands outside of gets what the rule every workflow shares
 gives (``workflow_rubric/penalty.py``): 0.0 when it never did what the item is about -- it changed no source, it ran
 no test where the item reads -- and 1.0 when it ran its tests and the item's condition, a failure, did not arise.
 So a run cannot keep an item about failures by not running the tests.
@@ -54,12 +54,9 @@ PHASE 3 -- from the write that ticks the last task to the report's first write; 
 known and in that order. The three failure items ask what the run did about a failure it saw in PHASE 3. A run that
 saw none there keeps them when its final code was tested: a test ran in PHASE 3, or -- PHASE 3 placed or not -- after
 the last source change and before the report (the end of the run without one). Running the tests once more would then
-have shown nothing the run had not seen, and not running them costs the run item alone. A run whose final code was
-never tested loses all four.
-
-    agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
-        1.0: as phase2_run, anywhere in PHASE 3
-        outside (0.0): PHASE 3 cannot be placed
+have shown nothing the run had not seen, and the documents take that run's results instead (implement-tasks PHASE 3,
+N-1 of 2026-11-23, which also dropped the item that asked for a test run inside PHASE 3: after the last change it said
+what phase2_run says). A run whose final code was never tested loses all three.
     agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
         judged: a valid runner run fails in PHASE 3 -- the document asks for the check on an existing test
         1.0: after that failure and before the report, the runner is invoked with the change stashed away
@@ -117,11 +114,10 @@ P2_RUN = f"{STAGE}.phase2_run.existing_and_own"
 P2_EDITED = f"{STAGE}.phase2_fail.edited_after_fail"
 P2_LAST = f"{STAGE}.phase2_fail.last_result_pass"
 P2_REPRO = f"{STAGE}.phase2_own.reproduced"
-P3_RUN = f"{STAGE}.phase3_run.existing_and_own"
 P3_CAUSE = f"{STAGE}.phase3_fail.cause_checked"
 P3_EDITED = f"{STAGE}.phase3_fail.edited_after_fail"
 P3_LAST = f"{STAGE}.phase3_fail.last_result_pass"
-ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P2_REPRO, P3_RUN, P3_CAUSE, P3_EDITED, P3_LAST)
+ITEMS = (P2_RUN, P2_EDITED, P2_LAST, P2_REPRO, P3_CAUSE, P3_EDITED, P3_LAST)
 
 _WHOLE = R.WHOLE  # the key of a runner run that names no file
 _NEVER = 10**9  # a step no run reaches: the end of a stretch whose closing event did not happen
@@ -516,17 +512,15 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
 
     # PHASE 3. A run that ran no test there keeps the three failure items when its final code was tested all the
     # same -- a test ran after its last source change, before the report: running the tests once more would have
-    # shown no failure the run had not seen. The run item is what it loses for not running them again.
+    # shown no failure the run had not seen, and the documents take that run's results (N-1)
     end = tl.report if tl.report is not None else _NEVER
     src = [s for s in tl.src if s < end]
     tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, src[-1], end)) or bool(_after(tl.own_runs, tl.own_late, src[-1], end)))
     if tl.p3 is None or tl.report is None:
-        outside(P3_RUN, False)
         for name in (P3_CAUSE, P3_EDITED, P3_LAST):
             outside(name, tested)
     else:
         a, b = tl.p3, tl.report
-        put(P3_RUN, _ran(tl, a, b))
         every = [r for r in tl.results if a < r.step < b]
         res = [r for r in every if r.passed or bad(r)]  # an excused failure is no failure for the fix items
         fails = [r for r in res if not r.passed]
@@ -553,7 +547,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
 
 
 def measure(ctx: Any) -> dict[str, tuple[float, bool]] | None:
-    """The eight items of one run: item -> (value, judged). None when the code root is not known: which writes are
+    """The seven items of one run: item -> (value, judged). None when the code root is not known: which writes are
     repository writes and which targets are repository tests cannot be told, so nothing here can be judged."""
     if not ctx.collected.workdir:
         return None
