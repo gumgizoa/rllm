@@ -549,7 +549,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
 # penalty items (reward/penalty_tests.py): the test behaviour of implement-tasks
 # --------------------------------------------------------------------------------------------
 def _test_items(tl=None, **kw):
-    """The eight test items of a timeline built from ``kw`` (or of ``tl``): rule -> score, and rule -> applies."""
+    """The seven test items of a timeline built from ``kw`` (or of ``tl``): rule -> score, and rule -> applies."""
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
 
     got = T.judge(tl if tl is not None else T.Timeline(**kw))
@@ -883,3 +883,47 @@ def test_shell_variables_known_from_outside_keep_the_shells_own_rules():
         assert op.path == "/tmp/agent-os/specs/2026-10-16-x/planning"
     finally:
         shell.KNOWN_VARS.reset(token)
+
+
+# ---- N-3 (2026-11-23): a failing existing test is fixed by the code, not by editing the test ------------------------
+
+
+def test_a_failing_existing_test_is_not_fixed_by_changing_its_lines():
+    edited, last = "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"
+    fail = _res(12, False, "tests/test_a.py", runner=True)
+    passes = _res(16, True, "tests/test_a.py", runner=True)
+    base = dict(src=[10], p2_end=30, results=[fail, passes])
+    # fixed by a source change at 14, the test file untouched: both kept (as before)
+    v, a = _test_items(**dict(base, src=[10, 14]))
+    assert (v[edited], v[last]) == (1.0, 1.0) and a[edited] and a[last]
+    # the same edit of the test as an existing test's lines changed (step 14): no attempt, and the pass at 16 is a pass of the edited test
+    v, a = _test_items(**dict(base, test_edits=[14], test_edits_of={"tests/test_a.py": [14]}, loosen_steps={"tests/test_a.py": [14]}))
+    assert (v[edited], v[last]) == (0.0, 0.0) and a[edited] and a[last]
+    # before N-3 the same run kept both: the edit counted as an attempt and the pass as a pass
+    v, _ = _test_items(**dict(base, test_edits=[14], test_edits_of={"tests/test_a.py": [14]}))
+    assert (v[edited], v[last]) == (1.0, 1.0)
+    # a source change was tried too (13), then the test was changed (14): an attempt was made, but the failure still stands
+    v, _ = _test_items(**dict(base, src=[10, 13], test_edits=[14], test_edits_of={"tests/test_a.py": [14]}, loosen_steps={"tests/test_a.py": [14]}))
+    assert (v[edited], v[last]) == (1.0, 0.0)
+    # passed again by the code before the test was changed (at 20): the later edit does not undo that pass
+    v, _ = _test_items(**dict(base, src=[10, 14], test_edits=[20], test_edits_of={"tests/test_a.py": [20]}, loosen_steps={"tests/test_a.py": [20]}))
+    assert (v[edited], v[last]) == (1.0, 1.0)
+    # the group marked ⚠️ after the attempts: last_result_pass is kept (implement-tasks.md 40); with no attempt but the test edit, edited_after_fail is not
+    v, _ = _test_items(**dict(base, test_edits=[14], test_edits_of={"tests/test_a.py": [14]}, loosen_steps={"tests/test_a.py": [14]}, group_ends=[25], group_marked={25: True}))
+    assert (v[edited], v[last]) == (0.0, 1.0)
+    # a test file the run created is its own: editing it is an attempt as before (no loosen_steps for it)
+    v, _ = _test_items(**dict(base, test_edits=[14], test_edits_of={"tests/test_a.py": [14]}, new_test_files={"tests/test_a.py"}))
+    assert (v[edited], v[last]) == (1.0, 1.0)
+
+
+def test_the_expected_failure_claims_and_edited_existing_test_files_are_logged(tmp_path):
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    got, _ = _penalty(None, tmp_path, _diff("textkit/slug.py"))
+    assert (got["penalty_expected_failure_claims"], got["penalty_loosened_test_files"]) == (0.0, 0.0)
+    got, _ = _penalty("expected_failure", tmp_path, _diff("textkit/slug.py"))
+    assert got["penalty_expected_failure_claims"] >= 1.0  # the report calls the failing existing test an expected failure
+    got, _ = _penalty("sed_test_line", tmp_path, _diff("textkit/slug.py") + golden.SED_TEST_PATCH)
+    assert got["penalty_loosened_test_files"] == 1.0  # the final patch changes a line tests/test_slug.py had
+    # logged only: the reward reads agentos_bugfix/penalty, not these
+    assert SPEC.penalty_signal == "agentos_bugfix/penalty"

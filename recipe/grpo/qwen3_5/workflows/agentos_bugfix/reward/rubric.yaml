@@ -6969,9 +6969,11 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most
-    five attempts (fail, edit, run again) and passed again or was tried at least once; a run the item stands outside of is
-    worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise
+  note: 'in every task group''s stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most
+    five attempts (fail, edit, run again) and passed again or was tried at least once; an edit that changes or removes a line
+    of an existing repository test file is no attempt at that file''s failing test, and a pass of it after such an edit does
+    not count (N-3: an existing test is fixed by the code, not by the test); a run the item stands outside of is worth 0 when
+    it never did what the item is about and 1 when it did and the item''s condition did not arise'
 - id: agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
   scope: specific
   class: evidence
@@ -7003,10 +7005,12 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed
-    again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; a run
-    the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition
-    did not arise
+  note: 'in every task group''s stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed
+    again before the group''s tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; an
+    edit that changes or removes a line of an existing repository test file is no attempt at that file''s failing test, and
+    a pass of it after such an edit does not count (N-3: an existing test is fixed by the code, not by the test); a run the
+    item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item''s condition
+    did not arise'
 - id: agentos_bugfix.implement_tasks.penalty.phase2_own.reproduced
   scope: specific
   class: evidence

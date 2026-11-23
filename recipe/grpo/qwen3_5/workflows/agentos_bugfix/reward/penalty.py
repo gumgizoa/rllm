@@ -339,12 +339,17 @@ def inputs(task: Any, episode: Any) -> dict[str, Any]:
 def post(report: Any) -> dict[str, float]:
     """The penalty signals of a finished report: the common ones (``workflow_rubric/penalty.py``: ``penalty``, each
     item, ``penalty_applies.<item>``, ``penalty_unavailable``; ``penalty_solved``, the mean with ``named_covers_gold``
-    worth 1, which a solved rollout is paid by), the mean of each group, and what the file items were judged on."""
+    worth 1, which a solved rollout is paid by), the mean of each group, what the file items were judged on, and (N-3,
+    logged only) how many failures the report calls expected and how many existing test files had a line changed."""
     out = PEN.post(report, unsolved_only=UNSOLVED_ONLY)
     for name, prefix in (("penalty_plan_files", "global.penalty.plan_files."), ("penalty_tests", "implement_tasks.penalty.")):
         values = [v for k, v in out.items() if k.startswith(prefix)]
         if values:
             out[name] = sum(values) / len(values)
+    t = (getattr(report, "cache", None) or {}).get(penalty_tests.FACTS)
+    if t is not None:  # N-3 (2026-11-23), logged only: expected-failure claims the report makes, and existing test files edited
+        out["penalty_expected_failure_claims"] = t["expected_failure_claims"]
+        out["penalty_loosened_test_files"] = t["loosened_test_files"]
     m = (getattr(report, "cache", None) or {}).get(FILES)
     if m is not None:
         out.update(

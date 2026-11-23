@@ -329,6 +329,9 @@ FINAL_CODE_NOTES = {
     "failed_listed": f"every failing test of {_FINAL_RUNS} is named in the report",
     "suite_status": f"All Passing only when {_FINAL_RUNS} have no failure or error; Some / Critical Failures only when they have",
 }
+# N-3 (2026-11-23): a failing existing test is fixed by the code, not by editing the test (overview.md 86-87, CT 129)
+_N3 = ("an edit that changes or removes a line of an existing repository test file is no attempt at that file's failing test, and a pass of it "
+       "after such an edit does not count (N-3: an existing test is fixed by the code, not by the test); ")
 _OUT = "a run the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise"
 _OUT3 = "a run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was"
 PENALTY = (
@@ -341,9 +344,9 @@ PENALTY = (
     ("implement_tasks", "phase2_run.existing_and_own", "IT", (_IT_RUN,), "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
      "after the last source change of PHASE 2, a valid run of the repository's tests and a run of a test of the run's own; worth 0 to a run that changed no source"),
     ("implement_tasks", "phase2_fail.edited_after_fail", "IT", (_T5_FIX, _T5_WARN), "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
-     "in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most five attempts (fail, edit, run again) and passed again or was tried at least once; " + _OUT),
+     "in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most five attempts (fail, edit, run again) and passed again or was tried at least once; " + _N3 + _OUT),
     ("implement_tasks", "phase2_fail.last_result_pass", "IT", (_T5_FIX,), "imperative (IT: 'fix the change or that test and run the tests again')",
-     "in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; " + _OUT),
+     "in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; " + _N3 + _OUT),
     ("implement_tasks", "phase2_own.reproduced", "IT", (_IT_REPRO,), "imperative (IT: 'Before you change the code, run the tests you wrote and confirm they fail')",
      "a test of the run's own (a verify/ script, or the runner on a test file it wrote to) failed in a run before the first source change, and one passed in a run after a source change; "
      "worth 0 to a run that wrote no test of its own or changed no source"),

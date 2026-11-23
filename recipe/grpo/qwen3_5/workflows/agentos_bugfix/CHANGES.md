@@ -962,6 +962,27 @@ wf1121 학습 분석(`rllm-home/eval_results/wf1121_traj/analysis-2026-11-23/REP
 | `implement_tasks.final_verification.agentos_bugfix_report.suite_status` | 설정값을 바꿈 | `final_code: true`. 위 실행들에 실패가 없을 때만 All Passing. |
 | `implement_tasks.penalty.phase3_run.existing_and_own` | 뺌 | PHASE 3 안에서 기존 테스트와 자기 테스트를 다시 돌렸는지 보던 penalty 항목. |
 
+## 실패한 기존 테스트는 테스트가 아니라 코드로 고침 (2026-11-23)
+
+### 변경 내역
+
+wf1121 학습 분석(`REPORT.md`의 N-3)에 따른 변경임. 문서는 기존 테스트 줄의 수정을 금지하지만(overview.md 86-87, create-tasks.md 129), PHASE 2 실패 처리 penalty 항목 두 개는 실패한 기존 테스트의 기대값을 바꿔 통과시킨 것도 "고치고 다시 돌려 통과"로 인정했음. 금지는 준수율에만 있어, 준수율이 곱해지지 않는 못 푼 rollout에서는 비용이 없었음. 예: wf1121 step 23 moto-6159 4번 rollout은 바꾼 에러 메시지 때문에 기존 테스트가 실패하자 테스트의 기대 메시지를 바꿔 통과시켰고, 숨은 테스트는 원래 메시지를 확인해 못 푼 것으로 판정됨.
+
+| 결정 | 바꾼 것 | 커밋 |
+|---|---|---|
+| N-3 | `phase2_fail.edited_after_fail`과 `phase2_fail.last_result_pass`에서, 기존 저장소 테스트 파일의 원래 줄을 바꾸거나 지운 수정은 그 파일의 실패한 테스트에 대한 수정 시도로 세지 않고, 그 수정 뒤의 통과는 다시 통과로 세지 않음(`reward/penalty_tests.py`의 `pass_after_loosening`). 원래 줄을 바꿨는지는 준수율 항목 `test_file_write`와 같은 근거로 판정함(trace의 쓰기가 원래 줄을 지웠는지, 최종 patch가 원래 줄을 바꾸는지). 소스로 고친 통과, 변경 없이도 실패하는 것으로 확인한 실패, 보고서의 expected failure, ⚠️는 그대로 인정함. 기록용 신호 `agentos_bugfix/penalty_expected_failure_claims`(보고서가 expected failure라고 적어 면제된 실패 수)와 `agentos_bugfix/penalty_loosened_test_files`(원래 줄이 바뀐 기존 테스트 파일 수)를 더함. 보상은 이 둘을 읽지 않음. PHASE 3 실패 처리 항목은 그대로 둠. | 이 커밋 |
+
+### 문서 변경
+
+없음. 문서는 이미 기존 테스트 줄의 수정을 금지함.
+
+### rubric 변경
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `implement_tasks.penalty.phase2_fail.edited_after_fail` | 설명만 바꿈 | note에 "기존 테스트 파일의 원래 줄을 바꾼 수정은 그 파일의 실패한 테스트에 대한 시도가 아니고, 그 뒤의 통과는 세지 않음"을 더함. 규칙은 `reward/penalty_tests.py`. |
+| `implement_tasks.penalty.phase2_fail.last_result_pass` | 설명만 바꿈 | 위와 같음. |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
