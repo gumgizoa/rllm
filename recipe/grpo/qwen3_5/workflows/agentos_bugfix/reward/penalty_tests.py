@@ -277,8 +277,8 @@ def timeline(ctx: Any) -> Timeline:
         if not r.valid:
             continue
         files = R.run_files(r, wd)
-        whole = bool(C._whole(r, wd))
-        res = C.runner_result(r, wd)  # with the ids of its failed tests when the output names them all
+        whole = bool(C._whole(r, wd, ctx))
+        res = C.runner_result(r, wd, ctx)  # with the ids of its failed tests when the output names them all
         if away_now:
             tl.stash_results.append(res)
             continue

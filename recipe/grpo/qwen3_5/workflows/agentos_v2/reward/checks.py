@@ -866,7 +866,7 @@ def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
 def _failing_results_at(ctx: EvalContext, d: str | None, step: int) -> list[R.TestResult]:
     """The failing results of ``step`` (as :func:`timed_results` reads them): valid runner runs with the change in place,
     and check-script runs under ``d``."""
-    out = [runner_result(r, ctx.collected.workdir) for r in change_runs(ctx) if r.step == step and r.failed + r.errors > 0]
+    out = [runner_result(r, ctx.collected.workdir, ctx) for r in change_runs(ctx) if r.step == step and r.failed + r.errors > 0]
     if d:
         out += [R.TestResult(step, False, False, (s_,)) for s_, rs in executions(ctx, set(check_scripts(ctx, d))).items() if any(st == step and o == "fail" for st, o in rs)]
     return out
@@ -1011,11 +1011,11 @@ EXPECTED_WORDS = (
 _BULLET_START = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 
 
-def runner_result(r, workdir: str | None) -> R.TestResult:
+def runner_result(r, workdir: str | None, ctx: EvalContext | None = None) -> R.TestResult:
     """A valid runner run as a :class:`results.TestResult`: its files (``WHOLE`` for the whole suite), what narrows it,
     and the ids of its failed tests when its output names them all."""
     files = R.run_files(r, workdir)
-    whole = bool(_whole(r, workdir))
+    whole = bool(_whole(r, workdir, ctx))
     return R.TestResult(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (R.WHOLE,), R.selection(r.segment), R.run_failed_ids(r.failed, r.errors, r.observation or ""))
 
 
@@ -1026,7 +1026,7 @@ def stashed_results(ctx: EvalContext) -> list[R.TestResult]:
         fx = ctx.facts
         edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
         before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))
-        ctx.cache[key] = [runner_result(r, ctx.collected.workdir) for r in fx.runs if r.valid and r.kind == "test" and R.run_stashed(r, before, marks)]
+        ctx.cache[key] = [runner_result(r, ctx.collected.workdir, ctx) for r in fx.runs if r.valid and r.kind == "test" and R.run_stashed(r, before, marks)]
     return ctx.cache[key]
 
 
@@ -1402,7 +1402,7 @@ def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) 
         if not refs.in_window(r.step, w):
             continue
         files = R.run_files(r, wd)
-        whole = bool(_whole(r, wd))
+        whole = bool(_whole(r, wd, ctx))
         bad = r.failed + r.errors > 0
         ids = E.failing_ids(r.observation or "") if bad else []
         for m, (first, names) in mods.items():
@@ -1659,15 +1659,19 @@ def comparison_script_results(ctx: EvalContext, d: str | None, fallback: bool = 
     return last
 
 
-def _whole(r, workdir: str | None) -> bool:
+def _whole(r, workdir: str | None, ctx: EvalContext | None = None) -> bool:
+    """The run is of the whole suite, by the one rule the prohibition of it reads too (``evidence.full_suite``, the
+    common ``prohibited_action`` ``full_suite``): a runner at the repository root that selects nothing. The run's
+    command is split from the directory it started in (``ctx``: the tracked one; without it the repository root), so a
+    ``cd`` of the command or of an earlier call counts: ``cd pkg && pytest`` runs one package. A target (``pytest
+    tests/``) or a filter (``-k``) is a selection, as it is for the prohibition."""
+    start = getattr(getattr(ctx, "facts", None), "_cwd_track", {}).get((getattr(r, "step", None), getattr(r, "action_index", None)))
     try:
-        segs = shell.flat(shell.split(r.segment or r.command, workdir)[0])
+        segs = shell.flat(shell.split(r.command or r.segment, start or workdir)[0])
     except Exception:  # noqa: BLE001
-        segs = []
-    if any(E.full_suite(s, workdir) for s in segs):
-        return True
-    ts = [refs.norm_path(t, workdir).rstrip("/") for t in (r.targets or [])]
-    return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
+        return False
+    want = (r.segment or "").strip()
+    return any(E.full_suite(s, workdir) for s in segs if not want or (s.text or "").strip() == want)
 
 
 @register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False, "phase3_fallback": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
@@ -1751,7 +1755,7 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}") if runs else Result.no(item, "no valid test run between the last tick and the report")
     if rule == "whole_suite":
         wd = ctx.collected.workdir
-        whole = [r for r in runs if _whole(r, wd)]
+        whole = [r for r in runs if _whole(r, wd, ctx)]
         return Result.ok(item, f"step {whole[0].step}: {whole[0].segment[:60]}") if whole else Result.no(item, f"{len(runs)} PHASE 3 run(s), none of the whole suite")
     return Result.no(item, f"unknown rule {rule!r}")
 
@@ -1883,7 +1887,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 if bad:
                     return Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
                 if p.get("standing"):  # A-2: no failure of the verification left standing -- a run that left the test out does not clear it
-                    left = R.standing_units([runner_result(r, ctx.collected.workdir) for r in runs])
+                    left = R.standing_units([runner_result(r, ctx.collected.workdir, ctx) for r in runs])
                     if left:
                         (kind, what), f = left[0]
                         return Result.no(item, f"All Passing, but {what} failed at step {f.step} and no later run ran it passing ({len(left)} left)")
@@ -1907,7 +1911,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         # section when the report has none), not in Notes or elsewhere
         hay = ((M.section(text, "Failed Tests", match="prefix") or M.section(text, suite, match="prefix") or "") if p.get("in_section") else text)
         if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
-            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
+            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir, ctx) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
             if not left:
                 return Result.not_applicable(item, "no failure left standing in the PHASE 3 runs")
             want = [what for (kind, what), _ in left if kind == "test"]
