@@ -380,3 +380,52 @@ def test_names_the_harness_does_not_run_as_the_editor_stay_no_action():
     args = {"command": "create", "path": "/testbed/x.py", "file_text": "x", "old_str": "a", "new_str": "b"}
     for name in ("write", "view", "python", "tool_call", "tool_editor", "command", "editor", "str_replaced", ""):
         assert openhands.parse(name, args, f"Tool '{name}' not found. Available: ['terminal', 'file_editor']").kind == "other", name
+
+
+# -- 2026-11-24: two outputs of a test run the scorer did not read (accuracy review of wf1121 step 27) -------------------
+def _shell_runs(*calls):
+    """RunFacts of shell calls given as (command, observation), one per step, in /testbed."""
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Run, Step
+
+    # a call that sends no command (the empty command, keys) is recorded without one, as kind "other"
+    steps = [Step(n=n, actions=[Action(kind="shell" if c else "other", name="bash", command=c, observation=o)]) for n, (c, o) in enumerate(calls, start=1)]
+    steps.append(Step(n=len(steps) + 1, actions=[Action(kind="shell", name="bash", command="true", observation="")]))  # a final call's output is never seen
+    run = Run(instance_id="t", steps=steps)
+    return evidence.runs_from(run, {(s.n, 0): "/testbed" for s in steps}, None, {}, workdir="/testbed")
+
+
+_DONE = "\n[The command completed with exit code 1.]\n[Current working directory: /testbed]"
+_WAIT = "\n[The command has no new output after 30 seconds. You may wait longer to see additional output by sending empty command '', send other commands to interact with the current process, send keys (\"C-c\", \"C-z\", \"C-d\") to interrupt/kill the previous command before sending your new command, or use the timeout parameter in terminal for future commands.]"
+
+
+def test_a_pytest_pretty_results_block_is_the_summary():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence
+
+    out = "tests/test_a.py::test_x PASSED [ 50%]\ntests/test_a.py::test_y FAILED [100%]\nResults (6.46s):\n         1 failed\n      1191 passed\n        52 skipped\n         1 xfailed\n" + _DONE
+    (r,) = _shell_runs(("cd /testbed && python -m pytest tests/test_a.py -v 2>&1 | tail -30", out))
+    assert (r.valid, r.passed, r.failed, r.skipped) == (True, 1191, 1, 53)  # not the two test lines the tail left
+    (r,) = _shell_runs(("cd /testbed && python -m pytest tests/test_a.py", "Results (0.21s):\n         3 failed\n" + _DONE))
+    assert (r.valid, r.passed, r.failed) == (True, 0, 3)
+    (r,) = _shell_runs(("cd /testbed && python -m pytest tests/test_a.py -k nothing", "Results (0.21s):\n       158 deselected\n" + _DONE))
+    assert not r.valid and "zero tests" in r.reason
+    # a command that prints such a block itself is no evidence
+    assert evidence.shaped("echo 'Results (0.21s):\n       5 passed'")
+    (r,) = _shell_runs(("cd /testbed && python -m pytest tests/test_a.py; printf 'Results (0.2s):\\n   5 passed\\n'", "Results (0.2s):\n   5 passed\n" + _DONE))
+    assert not r.valid
+
+
+def test_the_output_of_a_run_the_terminal_left_running_is_read_from_the_calls_without_a_command_after_it():
+    cmd = "cd /testbed && python -m pytest tests/test_slow.py"
+    summary = "============ 3 failed, 40 passed in 95.10s ============" + _DONE
+    r, *rest = _shell_runs((cmd, "collected 43 items\n" + _WAIT), (None, "tests/test_slow.py ....\n" + _WAIT), (None, summary))
+    assert rest == [] and (r.step, r.valid, r.passed, r.failed) == (1, True, 40, 3)
+    # the runner was interrupted: the summary is of the tests that happened to finish
+    (r,) = _shell_runs((cmd, "collected 43 items\n" + _WAIT), (None, "!!!!!! KeyboardInterrupt !!!!!!\n============ 2 passed in 31.00s ============" + _DONE))
+    assert not r.valid and "no test summary" in r.reason
+    # another command sent in between: what comes later is not this run's output
+    r, other = _shell_runs((cmd, "collected 43 items\n" + _WAIT), ("cd /testbed && python -m pytest tests/test_a.py", summary))
+    assert not r.valid and other.valid
+    # a command that finished: the next call's output is not its output
+    (r,) = _shell_runs((cmd, "collected 43 items\n" + _DONE), (None, summary))
+    assert not r.valid

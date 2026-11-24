@@ -1040,6 +1040,27 @@ step 27 재채점에서 바뀐 판정: `report.test_counts` 12건 통과로, 1�
 | `implement_tasks.final_verification.agentos_bugfix_report.failed_listed` | 설정값을 더함 | `own_with_repo: true`, `scripts_dir`. |
 | `implement_tasks.final_verification.agentos_bugfix_report.suite_status` | 설정값을 더함 | `own_with_repo: true`, `scripts_dir`. |
 
+## 테스트 실행 출력 두 가지를 읽음 (2026-11-24)
+
+### 변경 내역
+
+정확도 항목 대조에서 찾은, 테스트 실행의 출력을 읽지 못하던 두 경우를 고침. 공통 코드(`workflow_rubric/evidence.py`)라 다른 워크플로의 테스트 실행 판정에도 적용됨.
+
+| 결정 | 바꾼 것 |
+|---|---|
+| pytest-pretty 요약 | pytest-pretty는 요약 줄 대신 `Results (0.74s):` 아래에 결과별 줄(`1 failed`, `1191 passed`)을 냄. 이 블록을 요약으로 읽음. 전에는 요약이 없다고 무효로 하거나, 출력에 남은 테스트 줄만 세어 틀린 수로 읽었음(`1 failed, 1191 passed`를 212 passed, 0 failed로). 명령이 직접 이 모양을 출력하면 증거가 아닌 것은 다른 요약과 같음. |
+| 늦게 나온 출력 | 터미널이 기다리는 시간(30초)을 넘긴 명령의 나머지 출력은 그 뒤 명령 없이 보낸 호출의 출력으로 나옴. 그 출력을 실행의 출력에 이어 붙여 읽음. 다른 명령을 보내거나 러너가 중단된 출력(`KeyboardInterrupt`)이면 잇지 않음. |
+
+step 27 재채점(256개 실행, 테스트 실행 1228번): 유효한 테스트 실행 750번에서 791번으로. pytest-pretty 출력 111번 중 17번이 새로 유효, 32번은 수가 바로잡힘. 늦게 나온 출력 25번이 새로 유효. compliance가 바뀐 실행 12개(오른 것 11, 내린 것 1), penalty가 바뀐 실행 7개(오른 것 6, 내린 것 1). 내린 것은 실패가 있는데 All Passing으로 쓴 보고서가 통과하던 실행임.
+
+### 문서 변경
+
+없음.
+
+### rubric 변경
+
+없음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

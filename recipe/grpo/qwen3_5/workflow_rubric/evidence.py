@@ -12,7 +12,8 @@ A :class:`~.context.RunFact` is *valid* only when all of these hold:
 
 * the runner is the verb of a segment (after ``cd``/``timeout``/``env``/``bash -c`` wrappers), and
   the segment is not a no-run invocation (``--help``, ``--collect-only``, ``--version`` ...);
-* the summary is in THIS call's observation (the final call's observation is never seen) and
+* the summary is in THIS call's observation -- or, for a command the terminal left running, in the output of the
+  empty commands sent right after it (``_continued``) -- (the final call's observation is never seen) and
   reports N >= 1 tests run; zero-test outputs (``collected 0 items``, ``no tests ran``,
   ``Ran 0 tests``, deselected / skipped only, collection errors only), invocation errors (errors only,
   all of them the runner failing to load its selection: ``unittest.loader._FailedTest``, ``Failed to
@@ -538,6 +539,10 @@ class Summary:
 _N = r"\d+(?:\.\d+)?"
 _PYTEST_WORDS = r"passed|failed|errors?|skipped|xfailed|xpassed|deselected|warnings?|rerun"
 _PYTEST_SUMMARY = re.compile(rf"^[ =]*(?P<c>\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))*) in {_N}(?:s| seconds)(?: \([\d:]+\))?[ =]*$", re.M)
+# pytest-pretty replaces the summary line with a block: ``Results (0.74s):`` and one indented ``N word`` line per outcome
+_PYTEST_PRETTY = re.compile(rf"^Results \({_N}s\):[ \t]*\n(?P<c>(?:[ \t]+\d+ (?:{_PYTEST_WORDS})[ \t]*(?:\n|$))+)", re.M)
+# the terminal's notice that the command is still running: its remaining output comes with the next empty command(s)
+_STILL_RUNNING = re.compile(r"\[The command (?:has no new output after|timed out after) [\d.]+ seconds\. You may wait longer to see additional output by sending empty command ''")
 _PYTEST_NONE = re.compile(rf"^[ =]*no tests ran in {_N}(?:s| seconds)[ =]*$", re.M)
 _PYTEST_COLLECTED = re.compile(r"^collect(?:ed|ing \.\.\. collected) (\d+) items?\b", re.M)
 _PYTEST_INTERRUPTED = re.compile(r"Interrupted: \d+ errors? during collection|^ERROR collecting\b|^_+ ERROR collecting", re.M)
@@ -571,7 +576,7 @@ _SYMPY_LINE = re.compile(r"^(test_\w+) (ok|E|F|f|s|X|w)\s*(?:\[(?:OK|FAIL)\])?\s
 
 # Unanchored shapes of every summary above: what an output producer must not be able to print.
 _SHAPES = re.compile(
-    rf"\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))* in {_N}(?:s| seconds)\b|\bRan \d+ tests? in {_N}s|tests finished: \d+ passed"
+    rf"\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))* in {_N}(?:s| seconds)\b|\bRan \d+ tests? in {_N}s|tests finished: \d+ passed|\bResults \({_N}s\):\s*\d+ (?:{_PYTEST_WORDS})"
     rf"|\b\d+ passing\b|test result: ok\. \d+ passed|\b\d+ examples?, \d+ failures?|^Tests:\s+\d+|Tests run: \d+, Failures|tests passed, \d+ tests? failed out of"
     rf"|\bOK \(\d+ tests?|\.py::\S+ PASSED\b|^PASSED \S+::|--- PASS: \S+|\bok\s+[\w./-]+\s+{_N}s\b"
     r"|\.\.\. (?:ok|FAIL|ERROR|skipped|expected failure|unexpected success)\b|\btest_\w+ (?:ok|[EFfsXw])(?:\s*\[(?:OK|FAIL)\])?(?=\s*$|\s*[\"'\\])",
@@ -622,6 +627,14 @@ def summaries(text: str) -> list[Summary]:
             s.zero = "only deselected / skipped"
         out.append(s)
         pytest_found = True
+    for m in _PYTEST_PRETTY.finditer(text):
+        s = Summary("pytest", m.start())
+        _pytest_counts(s, m.group("c"))
+        if s.ran == 0:
+            s.zero = "only deselected / skipped"
+        out.append(s)
+        pytest_found = True
+    out.sort(key=lambda x: x.pos)
     for m in _PYTEST_NONE.finditer(text):
         out.append(Summary("pytest", m.start(), zero="no tests ran"))
         pytest_found = True
@@ -1208,9 +1221,10 @@ def runs_from(
     """
     c = _Ctx(base_present, created, workdir, writes, last_step if last_step is not None else (run.steps[-1].n if run.steps else 0))
     out: list[RunFact] = []
+    later = _continued(run)
     for step in run.steps:
         for idx, a in enumerate(step.actions):
-            if a.kind != "shell" or not a.command:
+            if a.kind != "shell" or not a.command or not a.command.strip():
                 continue
             segs = shell.flat(split(a.command, cwd_track.get((step.n, idx)))[0])
             for m in _ALIAS.finditer("\n".join(s.text for s in segs)):
@@ -1218,7 +1232,7 @@ def runs_from(
             hits = {i: h for i, seg in enumerate(segs) if (h := classify(seg)) is not None}
             if not hits:
                 continue
-            obs = clean_observation(a.observation, a.command)
+            obs = clean_observation((a.observation or "") + later.get((step.n, idx), ""), a.command)
             found = summaries(obs)
             order = sorted(hits)
             assigned = _assign([hits[i] for i in order], found)
@@ -1226,6 +1240,28 @@ def runs_from(
             for k, i in enumerate(order):
                 hit = hits[i]
                 out.append(_fact(step.n, idx, a.command, obs, segs, i, hit, hits, _merge(assigned.get(k, [])), ids_out, c))
+    return out
+
+
+def _continued(run: Run) -> dict[tuple[int, int], str]:
+    """(step, action index) of a command the terminal left running (:data:`_STILL_RUNNING`) -> the output that came
+    with the calls to the same tool that sent no command right after it (the empty command the notice asks for, or
+    keys), while each was still the same process: a test run that takes longer than the terminal waits prints its
+    summary there, and the model reads it there. Another command ends it; so does output that shows the runner was
+    interrupted (``KeyboardInterrupt``: a summary after it is of the tests that happened to finish)."""
+    acts = [((st.n, i), a) for st in run.steps for i, a in enumerate(st.actions)]
+    out: dict[tuple[int, int], str] = {}
+    for j, (key, a) in enumerate(acts):
+        if a.kind != "shell" or not (a.command or "").strip() or not _STILL_RUNNING.search(a.observation or ""):
+            continue
+        more, last = [], a.observation or ""
+        for _, b in acts[j + 1 :]:
+            if b.name != a.name or (b.command or "").strip() or b.path or not _STILL_RUNNING.search(last) or "KeyboardInterrupt" in (b.observation or ""):
+                break
+            last = b.observation or ""
+            more.append(last)
+        if more:
+            out[key] = "\n" + "\n".join(more)
     return out
 
 
