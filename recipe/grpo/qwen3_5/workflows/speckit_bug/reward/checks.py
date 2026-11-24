@@ -487,8 +487,10 @@ def check_writes(ctx: EvalContext) -> dict[str, list[int]]:
 
 
 def first_edit(ctx: EvalContext, w) -> int | None:
-    """The step of the first repository write in the window (None: no write there)."""
-    steps = [e.step for e in ctx.facts.repo_writes if e.ok is not False and refs.in_window(e.step, w)]
+    """The step of the first source change in the window (None: none there) -- ``facts.source_change_steps``, what
+    ``related_test_run`` reads "the change" as: a scratch script or a note written into the repository, a test file and
+    git putting content back do not end "before the change"."""
+    steps = [s for s in source_change_steps(ctx) if refs.in_window(s, w)]
     return min(steps) if steps else None
 
 
@@ -504,7 +506,7 @@ def seen_before(ctx: EvalContext, path: str, writes: list[int], end: int) -> boo
 
 
 def _edit_bound(item: Item, ctx: EvalContext, w) -> int:
-    """This round's change starts at the first repository write of ``edit_in`` (default: the item's window);
+    """This round's change starts at the first source change of ``edit_in`` (default: the item's window);
     without one, the window's end bounds 'before the change'."""
     p = item.check.params or {}
     ew = refs.window(ctx, p["edit_in"]) if "edit_in" in p else w
@@ -851,7 +853,9 @@ def related_test_run(item: Item, ctx: EvalContext) -> Result:
     if not tests:
         return PEN.outside(item, f"no existing test is named after, imports or names a symbol of {sorted(rel)[:3]}", premise=True)
     last = edits[-1]
-    after = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and r.step > last]
+    # a run of the change's own call counts when it comes after the write in the command (``sed -i ... && pytest``:
+    # ``RunFact.after_write_same_call``), as it does in the window ``checks_table.test_run`` reads
+    after = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and (r.step > last or (r.step == last and r.after_write_same_call))]
     if not after:
         return Result.no(item, f"no valid test run after the last source change (step {last})")
     wd = ctx.collected.workdir
