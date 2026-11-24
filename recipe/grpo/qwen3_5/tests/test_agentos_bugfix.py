@@ -585,6 +585,23 @@ def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
     assert (v[run2], a[run2]) == (0.0, False) and (v[run3], a[run3]) == (0.0, False)
 
 
+def test_a_test_file_changed_after_the_last_run_is_a_change_the_tests_have_to_come_after():
+    run2, cause = "phase2_run.existing_and_own", "phase3_fail.cause_checked"
+    # source at 20, both runs at 22-23, a test added to a repository test file at 25 and never run: as the compliance
+    # item verify.phase2_run reads it, no test ran after the last change
+    kw = dict(src=[20], own_runs=[22], existing_runs=[23], results=[_res(23, True, "tests/test_a.py", runner=True)], p2_end=30)
+    assert _test_items(**kw)[0][run2] == 1.0
+    v, a = _test_items(changes=[20, 25], **kw)
+    assert v[run2] == 0.0 and a[run2]
+    assert (v[cause], a[cause]) == (0.0, False)  # PHASE 3 not placed and the final tests never ran
+    # run again after the test change: kept
+    v, _ = _test_items(changes=[20, 25], src=[20], own_runs=[22, 27], existing_runs=[23, 27], results=[_res(27, True, "tests/test_a.py", runner=True)], p2_end=30)
+    assert v[run2] == v[cause] == 1.0
+    # a test written before the code is no change the failure items start at: its failing run at 6 is not asked about
+    v, a = _test_items(changes=[5, 8], src=[8], results=[_res(6, False, "tests/test_a.py", runner=True), _res(9, True, "tests/test_a.py", runner=True)], own_runs=[9], existing_runs=[9], p2_end=30)
+    assert (v["phase2_fail.edited_after_fail"], a["phase2_fail.edited_after_fail"]) == (1.0, False)
+
+
 def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_test_passes_at_its_last_run():
     edited, last = "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"
     # the tests ran and none failed: the items' condition did not arise, nothing to penalise

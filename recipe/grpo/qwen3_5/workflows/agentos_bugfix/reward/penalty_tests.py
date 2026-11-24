@@ -124,6 +124,10 @@ class Timeline:
     """What the items read, in steps."""
 
     src: list[int] = field(default_factory=list)  # source changes
+    # changes to the code or the tests of the final change, as the compliance item ``verify.phase2_run`` counts them
+    # (``checks._change_steps``): what "the tests ran after the last change" is asked against. The failure items and
+    # the task-group stretches keep ``src`` -- a test written before the code fails by design, not because of a change
+    changes: list[int] = field(default_factory=list)
     test_edits: list[int] = field(default_factory=list)  # writes to repository test files and to the check scripts
     results: list[Result] = field(default_factory=list)  # readable results (check scripts, valid runner runs); cause checks aside
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
@@ -217,6 +221,7 @@ def timeline(ctx: Any) -> Timeline:
 
     # repository writes: source changes (the definition every workflow shares) and test files
     tl.src = list(F.source_change_steps(ctx))
+    tl.changes = [int(s) for s in C._change_steps(ctx, (1, None), authored=True)]
     own_tests: dict[str, int] = {}  # repository test file -> the run's first write to it
     for e in fx.repo_writes:
         if e.ok is False or e.op == "unknown" or F.is_generated(e.path):
@@ -298,6 +303,12 @@ def _after(xs: list[int], late: set[int], a: int, b: int) -> list[int]:
     """The steps of ``xs`` after a change at step ``a`` and before ``b``: later steps, and runs of the change's own call
     that come after a write in it (``late``)."""
     return [x for x in xs if a < x < b or (x == a < b and x in late)]
+
+
+def _last_change(tl: Timeline, last_src: int, end: int) -> int:
+    """The last change before ``end`` the tests have to come after: the last source change, or a later change to a
+    test file of the final change -- a test added after the last run was never run."""
+    return max([last_src, *(c for c in tl.changes if c < end)])
 
 
 def _ran(tl: Timeline, a: int, b: int, after_change: bool = False) -> bool:
@@ -475,7 +486,7 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         for name in (P2_RUN, P2_EDITED, P2_LAST):
             outside(name, False)
     else:
-        first, last = src2[0], src2[-1]
+        first, last = src2[0], _last_change(tl, src2[-1], tl.p2_end)
         put(P2_RUN, _ran(tl, last, tl.p2_end, after_change=True))
         res = [r for r in tl.results if first < r.step < tl.p2_end and (r.passed or bad(r))]  # an excused failure is no failure here
         fails = [r.step for r in res if not r.passed]
@@ -489,11 +500,12 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             outside(P2_LAST, ran)
 
     # PHASE 3. A run that ran no test there keeps the three failure items when its final code was tested all the
-    # same -- a test ran after its last source change, before the report: running the tests once more would have
-    # shown no failure the run had not seen. The run item is what it loses for not running them again.
+    # same -- a test ran after its last change to the code or the tests, before the report: running the tests once
+    # more would have shown no failure the run had not seen. The run item is what it loses for not running them again.
     end = tl.report if tl.report is not None else _NEVER
     src = [s for s in tl.src if s < end]
-    tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, src[-1], end)) or bool(_after(tl.own_runs, tl.own_late, src[-1], end)))
+    last = _last_change(tl, src[-1], end) if src else 0
+    tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, last, end)) or bool(_after(tl.own_runs, tl.own_late, last, end)))
     if tl.p3 is None or tl.report is None:
         outside(P3_RUN, False)
         for name in (P3_CAUSE, P3_EDITED, P3_LAST):
