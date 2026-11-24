@@ -267,7 +267,10 @@ def timeline(ctx: Any) -> Timeline:
     added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
     tl.added_tests = added
     tl.new_test_files = {p for p in own_tests if F.is_new_path(ctx, p)}
-    before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
+    # where the change is put away (git stash, or a checkout of an edited non-test file) and brought back: the compliance
+    # side's reading (``checks.change_runs``) -- any repository write the run authors ends it, the file a checkout put
+    # back included (11-23 table row 12: a test-data file checked out and written again left later runs "stashed")
+    before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits, *C.authored_write_steps(ctx)}), C.edited_sources(ctx))
     for r in fx.runs:
         if r.kind != "test":
             continue

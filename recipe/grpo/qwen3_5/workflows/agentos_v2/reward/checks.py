@@ -146,19 +146,37 @@ _CODE_GROUP = re.compile(r"(?i)\b(?:fix\w*|implement\w*|change|modify)\b")
 _TEST_NOUN = re.compile(r"(?i)\b(?:tests?|check\s+scripts?|checks)\b")  # "check" alone is code: "Add check for db_table"
 _WRITE_WIDE = re.compile(r"(?i)\b(?:write|add|create|author|draft|extend|update)\b")
 _STARTS_TEST = re.compile(r"(?i)^\s*(?:\*\*)?tests?\b")
+_CHECK_TITLE = re.compile(r"(?i)\b(?:tests?|testing|verif\w*)\b")  # a group title that names a check (wide reading)
+_CHECK_TASK = re.compile(r"(?i)^\s*(?:\*\*)?(?:verify|confirm|review)\b")  # a task line that leads with checking
+_CODE_VERB = re.compile(r"(?i)\b(?:fix|implement|change|modify|patch|edit|refactor)\b")  # ... unless it also changes code
 
 
-def check_group(title: str, wide: bool = False) -> bool:
-    """A task group that checks tests rather than implements: a test-review group (and, ``wide``, a verification group)."""
-    return bool((_CHECK_GROUP if wide else _REVIEW_GROUP).search(title or ""))
+def check_group(title: str, wide: bool = False, tasks: list[str] | tuple[str, ...] = ()) -> bool:
+    """A task group that checks tests rather than implements: a test-review group (and, ``wide``, a verification group).
+
+    ``wide`` also reads the group's task lines (``tasks``, every one of them, the ``N.0`` line included): a title that
+    names tests or verification anywhere ("Basic Functionality Verification", "Integration Test for ...") over task
+    lines that are all test work -- writing or running tests, or verifying / confirming / reviewing -- is a verification
+    group too (11-23 table row 13). A title alone is not enough there ("Input Validation" implements), nor are test
+    lines under a title that names no check."""
+    if (_CHECK_GROUP if wide else _REVIEW_GROUP).search(title or ""):
+        return True
+    return wide and bool(tasks) and bool(_CHECK_TITLE.search(title or "")) and all(test_work(t) for t in tasks)
 
 
-def implementation_group(title: str, wide: bool = False) -> bool:
+def implementation_group(title: str, wide: bool = False, tasks: list[str] | tuple[str, ...] = ()) -> bool:
     """A task group the test-first rule applies to: not a test-review group (``wide``: nor a verification group, nor a
     documentation group that names no code change)."""
-    if check_group(title, wide):
+    if check_group(title, wide, tasks):
         return False
     return not (wide and _DOCS_GROUP.search(title or "") and not _CODE_GROUP.search(title or ""))
+
+
+def test_work(text: str) -> bool:
+    """A task line that checks rather than changes code (the wide reading): it writes or runs tests, or it leads with
+    verifying, confirming or reviewing and changes no code ("Verify the bug is fixed", "Review existing tests in tests/";
+    not "Verify and fix the parser")."""
+    return writes_tests(text, True) or runs_tests(text, wide=True) or (bool(_CHECK_TASK.match(text or "")) and not _CODE_VERB.search(text or ""))
 
 
 def writes_tests(text: str, wide: bool = False) -> bool:
@@ -266,6 +284,13 @@ def edited_sources(ctx: EvalContext) -> set[str]:
     return {e.path for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_test_path(e.path) and not F.is_generated(e.path)}
 
 
+def authored_write_steps(ctx: EvalContext) -> list[int]:
+    """Steps of the repository writes the run authored (not git putting content back, not run byproducts): the writes
+    that end a stash or a checkout of an edited file (``results.stash_states``), whatever file they write -- the file a
+    checkout put back included, so writing it again is a change in place again."""
+    return sorted({int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
+
+
 def change_runs(ctx: EvalContext) -> list:
     """The valid test runs made with the change in place: a run while the change is stashed away (from a ``git stash``
     to the next ``pop`` / ``apply``, or to the next repository write the agent authors) tested the old code, and says
@@ -274,8 +299,7 @@ def change_runs(ctx: EvalContext) -> list:
     key = "agentos_v2.change_runs"
     if key not in ctx.cache:
         fx = ctx.facts
-        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
-        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))  # a checkout of an edited source file too (F-3)
+        before, marks = R.stash_states(fx.commands, authored_write_steps(ctx), edited_sources(ctx))  # a checkout of an edited source file too (F-3)
         ctx.cache[key] = [r for r in fx.runs if r.valid and r.kind == "test" and not R.run_stashed(r, before, marks)]
     return ctx.cache[key]
 
@@ -551,6 +575,15 @@ def blocks(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # tasks.md
 # --------------------------------------------------------------------------------------------
+def _group_task_texts(ts: list[dict]) -> dict[str, list[str]]:
+    """Task group heading -> the text of every task line under it (the ``N.0`` line included), for :func:`check_group`."""
+    out: dict[str, list[str]] = {}
+    for t in ts:
+        if t["group"]:
+            out.setdefault(t["group"]["heading"], []).append(t["rest"])
+    return out
+
+
 def task_lines(text: str | None) -> list[dict]:
     """Every task line of tasks.md (outside fences and comments), with the task group it sits under."""
     out: list[dict] = []
@@ -1024,8 +1057,7 @@ def stashed_results(ctx: EvalContext) -> list[R.TestResult]:
     key = "agentos_v2.stashed_results"
     if key not in ctx.cache:
         fx = ctx.facts
-        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
-        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))
+        before, marks = R.stash_states(fx.commands, authored_write_steps(ctx), edited_sources(ctx))
         ctx.cache[key] = [runner_result(r, ctx.collected.workdir, ctx) for r in fx.runs if r.valid and r.kind == "test" and R.run_stashed(r, before, marks)]
     return ctx.cache[key]
 
@@ -1166,7 +1198,8 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             wide = bool(p.get("wide_words"))
             details = task_details(text) if wide else {}
             pool = [(g, [t for t in ts if t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0")]) for g, _ in gs]
-            pool = [(g, subs) for g, subs in pool if implementation_group(g["title"], wide)]
+            lines = _group_task_texts(ts)
+            pool = [(g, subs) for g, subs in pool if implementation_group(g["title"], wide, lines.get(g["heading"], []))]
             if not pool:
                 return Result.no(item, "no implementation task group")
             good, bad = 0, []
@@ -1187,8 +1220,9 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         counts = {len(ts), len([t for t in ts if not t["id"].endswith(".0")]), len(gs)}
         if p.get("impl_counts"):  # the same three counts over the implementation groups (the test-review group left out)
             wide = bool(p.get("wide_words"))
-            impl = [t for t in ts if t["group"] and not check_group(t["group"]["title"], wide)]
-            counts |= {len(impl), len([t for t in impl if not t["id"].endswith(".0")]), len([g for g, _ in gs if not check_group(g["title"], wide)])}
+            lines = _group_task_texts(ts)
+            impl = [t for t in ts if t["group"] and not check_group(t["group"]["title"], wide, lines.get(t["group"]["heading"], []))]
+            counts |= {len(impl), len([t for t in impl if not t["id"].endswith(".0")]), len([g for g, _ in gs if not check_group(g["title"], wide, lines.get(g["heading"], []))])}
         return Result.ok(item, f"Total Tasks {n}") if n in counts and n > 0 else Result.no(item, f"Total Tasks {n} counts none of {sorted(counts)}")
     w = _window(item, ctx)
     path = ctx.facts.artifact_paths.get(aid)
