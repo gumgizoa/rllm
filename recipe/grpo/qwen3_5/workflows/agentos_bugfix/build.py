@@ -36,7 +36,7 @@ And one rule is changed rather than cut:
 * T4 the report's overall Status: the template offers three values and upstream never says which holds when. The
   rule is stated after the template: it follows from the two section Statuses.
 * T5 a failing test is not ticked over: while implementing, a failure the change causes is fixed before the task
-  group's last sub-task is ticked; after two attempts it is marked ⚠️ instead.
+  group's last sub-task is ticked; after at most five attempts it is marked ⚠️ instead.
 * T6 one fix round after verification: upstream's "DO NOT attempt to fix any failing tests" handed the failures to
   the person reading the report. Here nobody reads it, so a failure the change causes (checked against the
   unchanged code with ``git stash``) sends the run back to PHASE 2 once; every other failure is still only noted.
@@ -52,8 +52,12 @@ And one rule is changed rather than cut:
   reproduces it is such a test.
 
 And the wording that held for one dataset only is made neutral (G: the ``<issue_description>`` tag and "the
-issue" -> the task description in the task message). ``docs/core-workflow.md``, ``instruction.md`` and
+issue" -> the task description in the task message). ``docs/overview.md``, ``instruction.md`` and
 ``system-prompt.j2`` are hand-written copies of agentos_v2's with the same cuts and wording.
+
+Two names differ from agentos_v2 (2026-11-21, the names three workflows trained together share): the entry document
+is ``overview.md`` (agentos_v2's ``core-workflow.md``), and the spec folder's folder of the run's own test scripts is
+``verify/`` (agentos_v2's ``checks/``). The command documents get the folder's new name from :data:`RENAME`.
 """
 
 from __future__ import annotations
@@ -87,7 +91,7 @@ REMOVED = base.REMOVED + tuple(
 )
 
 # Wording that must not survive in a shipped command document.
-FORBIDDEN = ("visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "implementation/")
+FORBIDDEN = ("checks/", "visual", "Visual", "roadmap", "Roadmap", "User Stories", "issue_description", "/testbed", "README", "implementation/")
 
 _TASKS_EXAMPLE = """\
 ### [Area of the change]
@@ -153,6 +157,13 @@ Recommended implementation sequence:
 _NAME_THE_FILE = (
     "- **Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in the repository of the file it changes. "
     "A task added while implementing does the same, and is added before that file is edited.\n"
+)
+
+# T10: what is adapted is the content of tasks.md's sections, not the sections themselves (the Execution Order is where the
+# plan's order is written down, create-tasks' Core Responsibility 2).
+_KEEP_SECTIONS = (
+    "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, "
+    "and `## Execution Order` (the order in which the task groups are implemented).\n"
 )
 
 # T4: which overall Status holds when, stated after the report template.
@@ -231,6 +242,7 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "  - Test verification should run the newly written tests and the existing tests of the changed code, not the entire suite", "T1: test scope"),
         ("sub", "and ends with running ONLY those tests (final sub-task)", "and ends with running those tests and the existing tests of the changed code (final sub-task)", "T1: test scope"),
         ("sub", "- **Create tasks that are specific and verifiable**\n", "- **Create tasks that are specific and verifiable**\n" + _NAME_THE_FILE, "T7: a change task names the file it changes"),
+        ("sub", "- More or fewer sub-tasks per group\n", "- More or fewer sub-tasks per group\n\n" + _KEEP_SECTIONS, "T10: tasks.md keeps the example's three sections"),
     ),
     "std/testing/test-writing": (
         ("span", "- **Write Minimal Tests During Development**", "- **Test Behavior, Not Implementation**", "", "T2: the three lines that hold tests back"),
@@ -253,19 +265,25 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "one task group per pass of PHASE 2. If, while implementing, you find work the change needs that no task covers (another file to change, a case the tasks miss), "
          "add it to `agent-os/specs/[this-spec]/tasks.md` first, as a new sub-task of the current task group or as a new task group at the end, and implement it as an assigned task. "
          "Add lines only: do not reword or remove the tasks that are there.", "T3: a missing task is added to tasks.md, then implemented"),
-        ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (if any;", "T1: test scope"),
+        ("sub", "- Running ONLY the tests you've written (if any;", "- Running the tests you've written (each implementation task group writes them first, as its x.1 sub-task;",
+         "T1: test scope; T9: every implementation task group writes its tests (create-tasks), so there is no 'if any'"),
         ("sub", "run through that module with the test runner) and ensuring those tests pass.",
          "run through that module with the test runner) and the existing tests of the code you changed, and ensuring they pass. "
-         "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test in the final verification report.",
-         "T1: test scope; an existing test of the old behavior is not a reason to undo the change"),
-        ("sub", "and list that test in the final verification report.",
-         "and list that test in the final verification report.\n"
+         "An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it is and list that test under Failed Tests in the final "
+         "verification report, noting that it is an expected failure (it asserts the behavior the task asks to change).",
+         "T1: test scope; an existing test of the old behavior is not a reason to undo the change; A-3: it is listed under Failed Tests as an expected failure"),
+        ("sub", "(it asserts the behavior the task asks to change).",
+         "(it asserts the behavior the task asks to change).\n"
          "- IF a test fails because of your change, fix the change and run the tests again before you tick the task group's last sub-task. "
-         "After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on.",
-         "T5: a failing test is fixed before the tick; ⚠️ after two attempts"),
+         "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt.",
+         "T5: a failing test is fixed before the tick; ⚠️ after at most five attempts"),
         ("sub", "- IF a test fails because of your change, fix the change and run the tests again",
          "- IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test and run the tests again",
          "T8: a test the run wrote may be the thing to fix"),
+        ("sub", "instead of ticking it, and go on; do not make a sixth attempt.",
+         "instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when it checks something the task does not ask for: then correct what it checks. "
+         "Never make a failing test pass by loosening or removing what it checks.",
+         "A-6: correcting a test you wrote keeps what it checks"),
     ),
     "impl-2": (
         ("sub", "IF all tasks are now marked as done (with `- [x]`) in", "IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in",
@@ -283,6 +301,11 @@ CUTS: dict[str, tuple[tuple, ...]] = {
          "[Any additional context about test results, known issues, or regressions]\n```" + _STATUS_RULE.rstrip("\n"), "T4: the overall Status follows from the section Statuses"),
     ),
 }
+
+
+# The spec folder's test-script folder, renamed (``checks/`` -> ``verify/``) in every shipped command document after
+# agentos_v2's render: (old, new, how many times the four documents together hold it).
+RENAME = (("/tmp/agent-os/specs/[this-spec]/checks/", "/tmp/agent-os/specs/[this-spec]/verify/", 2),)
 
 
 def _once(key: str, text: str, needle: str) -> int:
@@ -313,6 +336,8 @@ def convert(key: str, upstream: str) -> str:
 
 def finish(name: str, text: str, standards: Path) -> str:
     text = base.finish(name, text, standards)
+    for old, new, _n in RENAME:
+        text = text.replace(old, new)
     left = [w for w in FORBIDDEN if w in text]
     if left:
         raise ValueError(f"{name}: cut wording left after conversion: {left}")
@@ -356,6 +381,10 @@ def build(upstream: Path) -> dict[str, str]:
         for cmd in COMMANDS:
             name = f"commands/{cmd}/{cmd}.md"
             out[name] = finish(name, (installed / name).read_text(encoding="utf-8"), installed / "standards")
+        for _old, new, n in RENAME:  # the old name is gone (FORBIDDEN); the new one stands where it stood
+            got = sum(t.count(new) for t in out.values())
+            if got != n:
+                raise ValueError(f"RENAME: {new!r} occurs {got} times in the shipped documents (want {n})")
         return out
 
 

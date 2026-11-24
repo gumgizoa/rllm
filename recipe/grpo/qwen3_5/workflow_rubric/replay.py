@@ -44,6 +44,8 @@ class Replay:
     moves       (step, src, dst) of every move, directories included
     final       path -> content at the end, for every path that exists then (None: unknown)
     dirs        directories known to exist at the end (made, or parents of written files)
+    dir_steps   directory -> the step it first appeared at (``mkdir``, or a parent of a written file); directories
+                that held a file known before the run have none
     """
 
     writes: dict[str, list[WriteEvent]] = field(default_factory=dict)
@@ -51,6 +53,7 @@ class Replay:
     moves: list[tuple[int, str, str]] = field(default_factory=list)
     final: dict[str, str | None] = field(default_factory=dict)
     dirs: set[str] = field(default_factory=set)
+    dir_steps: dict[str, int] = field(default_factory=dict)
 
 
 def content_at(events: list[WriteEvent], step: int) -> str | None:
@@ -91,6 +94,8 @@ class _Replayer:
         self.fresh = fresh
         self.state: dict[str, str | None] = dict(initial or {})
         self.dirs: set[str] = set()
+        self.step: int | None = None  # the step being replayed (None while the initial files are laid out)
+        self.dir_steps: dict[str, int] = {}
         for p in self.state:
             self._add_parents(p)
         self.history: dict[str, list[str | None]] = {}  # editor undo stack per path
@@ -100,8 +105,13 @@ class _Replayer:
     def _add_parents(self, p: str) -> None:
         d = posixpath.dirname(p)
         while d and d != "/" and d not in self.dirs:
-            self.dirs.add(d)
+            self._add_dir(d)
             d = posixpath.dirname(d)
+
+    def _add_dir(self, d: str) -> None:
+        self.dirs.add(d)
+        if self.step is not None:
+            self.dir_steps.setdefault(d, self.step)
 
     def _under(self, d: str) -> list[str]:
         pre = d.rstrip("/") + "/"
@@ -197,7 +207,7 @@ class _Replayer:
         path = op.path
         if op.op == "mkdir":
             if ok is not False:
-                self.dirs.add(path)
+                self._add_dir(path)
                 self._add_parents(path + "/x")
             return
         if op.op == "delete":
@@ -253,7 +263,8 @@ class _Replayer:
             self._set(dst, None)
             self._event(dst, step, idx, "move_in" if move else "overwrite", ok, None, op.source)
             return
-        into = op.dir_target if op.dir_target is not None else self._is_dir(dst)
+        # a path that holds a file record is no directory, whatever a past move registered (H-8)
+        into = op.dir_target if op.dir_target is not None else (self._is_dir(dst) and dst not in self.state)
         if into:
             dst = posixpath.join(dst, posixpath.basename(src))
         pairs = [(src, dst)] if src in self.state else []
@@ -281,7 +292,11 @@ class _Replayer:
             pre = src.rstrip("/") + "/"
             moved_dirs = {d for d in self.dirs if d == src or d.startswith(pre)}
             self.dirs = (self.dirs - moved_dirs) | {dst + d[len(src) :] for d in moved_dirs}
-            self._add_parents(dst + "/x")
+            # the destination becomes a directory only when a directory was moved; a moved file is a file
+            if moved_dirs or any(old != src for old, _ in pairs):
+                self._add_parents(dst + "/x")
+            else:
+                self._add_parents(dst)
             self.out.moves.append((step, src, dst))
 
 
@@ -309,6 +324,7 @@ def replay(run: Run, start_cwd: str | None, initial: Mapping[str, str] | None = 
     """Replay every write in ``run`` (cwd starts at ``start_cwd``; ``initial``: files known to exist before the run)."""
     r = _Replayer(start_cwd, initial, fresh)
     for step in run.steps:
+        r.step = step.n
         for idx, a in enumerate(step.actions):
             if a.kind == "shell":
                 r.shell(step.n, idx, a)
@@ -316,4 +332,5 @@ def replay(run: Run, start_cwd: str | None, initial: Mapping[str, str] | None = 
                 r.editor(step.n, idx, a)
     r.out.final = dict(r.state)
     r.out.dirs = set(r.dirs)
+    r.out.dir_steps = dict(r.dir_steps)
     return r.out

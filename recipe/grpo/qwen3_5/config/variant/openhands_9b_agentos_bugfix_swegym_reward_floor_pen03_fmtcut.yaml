@@ -1,0 +1,47 @@
+# @package _global_
+#
+# openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut with every task under one
+# workflow, agentos_bugfix (agentos_v2 without the steps a fix does not need,
+# workflows/agentos_bugfix/CHANGES.md), and its penalty items in the reward:
+#
+#   reward = 0.7 * verifier * (0.7 + 0.3 * agentos_bugfix/compliance) + 0.3 * agentos_bugfix/penalty
+#
+# i.e. mode=mul, floor=0.7, penalty_weight=0.3, penalty_gate=all (the setting chosen 2026-11-20 at
+# the end of the reward review). agentos_bugfix/penalty is the mean of the ten log-only
+# `*.penalty.*` items (three on the files tasks.md names, seven on the tests run while implementing
+# and verifying), each 1.0 kept / 0.0 not, so one item moves the reward by 0.3 / 10 = 0.03 for
+# every rollout, solved or not -- except plan_files.named_covers_gold, the one item judged against
+# the reference fix: a solved rollout is paid by agentos_bugfix/penalty_solved, the mean with that
+# item worth 1, so solving in other files than the reference fix costs nothing (penalty_gate stays
+# all: the other nine items cost a solve that broke them). patch_covers_gold stays dropped.
+# Compliance moves a solved rollout by at most 0.7 * 0.3 = 0.21.
+# A solved rollout earns 0.49 .. 1.0 and an unsolved one 0 .. 0.3, so every solve still outranks
+# every failure, and a group in which no rollout solves is ordered by the penalty items.
+#
+# The parent is the floor-0.7 product run with the malformed-tool-call cut
+# (rllm.gateway.tool_call_validation=drop + recipe.openhands_end_on_invalid_tool_call); everything
+# else -- suffix instruction, 250 turns in 262144 (16384 + 245760), thinking on, FSDP1 + Ulysses
+# sp 2, rollout gpu_memory_utilization 0.7, validation pinned to AI-DLC (val_name) -- is inherited.
+# To keep the three-workflow mix of the parent with agentos_bugfix in agentos_v2's place, override
+#   recipe.workflow.name=[speckit_bug,openspec_ff,agentos_bugfix]
+# (penalty_weight then folds in speckit_bug/penalty and openspec_ff/penalty for their tasks too).
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_agentos_bugfix_swegym_reward_floor_pen03_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut
+
+recipe:
+  workflow:
+    name: agentos_bugfix
+    compliance_reward:
+      enable: true
+      mode: mul
+      floor: 0.7
+      penalty_weight: 0.3
+      penalty_gate: all
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-agentos-bugfix-floor07-pen03-fmtcut-topp1

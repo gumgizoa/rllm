@@ -73,7 +73,9 @@ recipe:
                            # penalty_signal in [0, 1], 1 = every penalty rule kept (speckit_bug/penalty);
                            # 0 = off. The agreed setting is mode=mul floor=0.7 penalty_weight=0.2:
                            # 0.8 * solve * (0.7 + 0.3 c) + 0.2 * penalty
-      penalty_gate: all    # all | unsolved: unsolved gives a solved rollout P = 1, so P tells failures apart only
+      penalty_gate: all    # all | unsolved: unsolved gives a solved rollout P = 1, so P tells failures apart only.
+                           # Items judged against the reference fix are waived for a solve on their own, whatever
+                           # the gate (<workflow>/penalty_solved; agentos_bugfix's plan_files.named_covers_gold)
   train_dataset: swe_mix_train
   train_split: train
   train_limit: -1          # <=0 keeps the whole registered split

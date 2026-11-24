@@ -22,6 +22,7 @@ or ``{heading, level, match}``.
 
 from __future__ import annotations
 
+import datetime
 import fnmatch
 import re
 
@@ -173,6 +174,26 @@ def artifact_exists(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, path)
 
 
+_SUBST = re.compile(r"\$\([^()]*\)|\$\{[^}]*\}|\$\w+")
+
+
+def _mkdir_steps(ctx: EvalContext, dirs: list[str]) -> list[int]:
+    """Steps of ``mkdir`` commands whose target, with a command substitution or a variable the replay could not expand
+    (``/tmp/agent-os/specs/$(date +%Y-%m-%d)-x/verifications``) read as any text within one path part, is one of ``dirs``."""
+    out = []
+    for c in getattr(ctx.facts, "commands", None) or []:
+        cmd = c.command or ""
+        if "mkdir" not in cmd or "$" not in cmd:
+            continue
+        for tok in re.findall(r"[^\s;&|'\"]+", _SUBST.sub("\x00", cmd)):
+            if "\x00" not in tok:
+                continue
+            rx = re.escape(tok.rstrip("/")).replace("\x00", "[^/]*")
+            if any(re.fullmatch(rx, d) for d in dirs):
+                out.append(c.step)
+    return out
+
+
 def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | None) -> Result:
     if not path:
         return Result.no(item, "absent")
@@ -181,6 +202,9 @@ def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | N
 
     prefixes = tuple(dict.fromkeys(p.rstrip("/") + "/" for p in [path, *location_paths(ctx.rubric, ctx.facts, ctx.collected, art)] if p))
     steps = [e.step for p, evs in ctx.facts.writes.items() if p.startswith(prefixes) for e in evs if e.ok is not False and e.op not in ("delete", "move_out")]
+    made = getattr(ctx.facts, "dir_steps", None) or {}  # when the replay saw the directory appear (mkdir, a file in it)
+    steps += [made[p.rstrip("/")] for p in prefixes if p.rstrip("/") in made]
+    steps += _mkdir_steps(ctx, [p.rstrip("/") for p in prefixes])
     w = ctx.facts.windows.get(_owning_stage(ctx, art.id) or "")
     end = w[1] if w else None
     if not steps or end is None or any(s < end for s in steps):
@@ -188,10 +212,11 @@ def _dir_at_stage_end(item: Item, ctx: EvalContext, art: Artifact, path: str | N
     return Result.no(item, "only written after its stage")
 
 
-@register("path_match", params={"pattern": True, "artifact": False, "relative_to": False})
+@register("path_match", params={"pattern": True, "artifact": False, "relative_to": False, "today": False})
 def path_match(item: Item, ctx: EvalContext) -> Result:
     """The resolved path, relative to root ``relative_to`` (default ``artifact``), fully matches
-    ``pattern`` (a regex; ``glob:<pattern>`` for a glob)."""
+    ``pattern`` (a regex; ``glob:<pattern>`` for a glob). ``today``: when the sandbox's date is known
+    (``Collected.today``, online), the path's leading ``YYYY-MM-DD`` is that day or the next (a run past midnight)."""
     p = _params(item)
     path = ctx.facts.artifact_paths.get(_artifact_id(item))
     if not path:
@@ -200,6 +225,16 @@ def path_match(item: Item, ctx: EvalContext) -> Result:
     rel = path[len(base) + 1 :] if base and path.startswith(base + "/") else path
     pat = str(p["pattern"])
     ok = fnmatch.fnmatchcase(rel, pat[5:]) if pat.startswith("glob:") else re.fullmatch(pat, rel) is not None
+    today = getattr(ctx.collected, "today", None) if p.get("today") else None
+    if ok and today:
+        m = re.match(r"(\d{4}-\d{2}-\d{2})", rel)
+        try:
+            day = datetime.date.fromisoformat(today)
+            days = {day.isoformat(), (day + datetime.timedelta(days=1)).isoformat()}
+        except ValueError:
+            days = set()
+        if days and (m is None or m.group(1) not in days):
+            return Result.no(item, f"{rel}: the date is not the run's ({today})")
     return Result.ok(item, rel) if ok else Result.no(item, f"{rel} does not match")
 
 
@@ -248,14 +283,24 @@ def frontmatter(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, ",".join(fm.keys))
 
 
-@register("section_present", params={"heading": True, "level": False, "match": False}, choices={"match": M.MATCHES})
+def _named_anywhere(text: str, heading: str) -> bool:
+    """A heading of that name at any level, numbered or not (``## 3. Notes`` is a Notes section)."""
+    want = re.sub(r"\s+", " ", heading).strip().casefold()
+    return any(re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", re.sub(r"\s+", " ", t).strip()).casefold() == want for _, t in M.headings(text))
+
+
+@register("section_present", params={"heading": True, "level": False, "match": False, "optional": False}, choices={"match": M.MATCHES})
 def section_present(item: Item, ctx: EvalContext) -> Result:
-    """The heading exists (at ``level`` if given), matched by ``match`` (exact_ci | norm | prefix | regex)."""
+    """The heading exists (at ``level`` if given), matched by ``match`` (exact_ci | norm | prefix | regex). ``optional``:
+    a heading that is nowhere in the document, at any level and numbered or not, is not applicable; one at another
+    level still fails."""
     p = _params(item)
     text = _text(item, ctx)
     if text is None:
         return Result.no(item, "artifact absent")
     found = M.section(text, str(p["heading"]), p.get("level"), p.get("match", "exact_ci")) is not None
+    if not found and p.get("optional") and not _named_anywhere(text, str(p["heading"])):
+        return Result.not_applicable(item, f"no heading {p['heading']!r} (optional)")
     return Result.ok(item) if found else Result.no(item, f"no heading {p['heading']!r}")
 
 
@@ -393,10 +438,34 @@ def _norm_enum(v: str) -> str:
     return re.sub(r"\s+", " ", M.clean_value(v)).strip().rstrip(".").strip().casefold()
 
 
-@register("field_enum", params={"section": True, "label": True, "values": True, "prefix_ok": False})
+_BAD_WORD = re.compile(r"fail|error|issue|exclud|except")
+_NEGATION = re.compile(r"\b(?:no|0|zero|without)\b")
+
+
+def _mixed_or_contradicted(nv: str, start: str, vals: list[str]) -> str:
+    """Why a value that passed by its prefix is not that value ('' when it is): its words without the leading emoji are
+    those of a longer allowed value (``✅ passed with issues``), or it starts with the first, all-good value and goes on
+    to name a failure not negated just before (``✅ all passing (excluding pre-existing failures)``)."""
+    bare = lambda v: re.sub(r"^\W+", "", v)  # noqa: E731
+    w = bare(nv)
+    for y in vals:
+        yw = bare(y)
+        if y != start and len(yw) > len(bare(start)) and (w == yw or (w.startswith(yw) and not w[len(yw) : len(yw) + 1].isalnum())):
+            return f"mixes {start!r} and {y!r}"
+    if vals and start == vals[0]:
+        rest = nv[len(start) :]
+        for m in _BAD_WORD.finditer(rest):
+            before = re.findall(r"\w+", rest[: m.start()])[-3:]
+            if not any(_NEGATION.fullmatch(x) for x in before):
+                return f"{start!r} with a failure after it"
+    return ""
+
+
+@register("field_enum", params={"section": True, "label": True, "values": True, "prefix_ok": False, "strict_prefix": False})
 def field_enum(item: Item, ctx: EvalContext) -> Result:
     """The value is one of ``values`` (case-insensitive); ``prefix_ok``: starts with one at a word
-    boundary (``failure (missing module)``) -- a copied ``a | b`` choice never passes."""
+    boundary (``failure (missing module)``) -- a copied ``a | b`` choice never passes. ``strict_prefix``: such a value
+    also fails when it mixes two allowed values or adds a failure to the first (all-good) one."""
     p = _params(item)
     body, err = _body(item, ctx, p["section"])
     if err:
@@ -415,7 +484,8 @@ def field_enum(item: Item, ctx: EvalContext) -> Result:
         present = [x for x in vals if x and re.search(rf"(?<!\w){re.escape(x)}(?!\w)", nv)]
         starts = [x for x in vals if x and nv.startswith(x) and (len(nv) == len(x) or not nv[len(x)].isalnum())]
         if starts and not ("|" in nv and len(present) > 1):
-            return Result.ok(item, nv)
+            why = _mixed_or_contradicted(nv, max(starts, key=len), vals) if p.get("strict_prefix") else ""
+            return Result.no(item, f"{label}: {_short(v)!r} {why}") if why else Result.ok(item, nv)
     return Result.no(item, f"{label}: {_short(v)!r}")
 
 
@@ -791,7 +861,7 @@ def field_type(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # Repeated items, cross references, template residue
 # --------------------------------------------------------------------------------------------
-@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False})
+@register("item_format", params={"pattern": True, "section": False, "min": False, "max": False, "sequence": False, "unique": False, "of_pattern": False, "each_of": False, "nested_under": False})
 def item_format(item: Item, ctx: EvalContext) -> Result:
     """Lines matching ``pattern`` in the section (or document): ``min``/``max`` count (default min 1
     unless ``max``/``of_pattern`` is given), ``sequence`` (captured ints +1 from ``start``),
@@ -799,7 +869,10 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
     matches ``pattern`` as written or with its ``**``/``__`` emphasis removed: bold is markup, not another
     format (``- **Step 1 [R4]**: complete`` is the template's ``- Step 1 [R4]: complete``). The
     ``of_pattern`` population is read as written (a bold legend line such as ``- **[P]**: parallel`` is
-    no task line for being bold)."""
+    no task line for being bold). ``each_of``: every line matching it must match ``pattern`` too (ratio over those
+    lines); without such a line only ``min``/``max`` decide. ``nested_under`` (with ``of_pattern``): a line of the population
+    that does not match ``pattern`` still counts when the nearest earlier population line indented less than it counts
+    (a finer step written as a checkbox under a task line)."""
     p = _params(item)
     text = _text(item, ctx)
     if text is None:
@@ -835,12 +908,38 @@ def item_format(item: Item, ctx: EvalContext) -> Result:
         dup = sorted({str(x) for x in vals if vals.count(x) > 1})
         if dup:
             return Result.no(item, f"duplicates {dup[:5]}")
+    if p.get("each_of"):
+        erx = re.compile(str(p["each_of"]))
+        base = [line for line in lines if erx.search(line)]
+        if base:
+            good = sum(1 for line in base if _line_search(rx, line))
+            return Result.ratio(item, good, len(base), f"{good}/{len(base)} of the lines it covers in format")
     if p.get("of_pattern"):
         orx = re.compile(str(p["of_pattern"]))
         base = [line for line in lines if orx.search(line)]
-        good = sum(1 for line in base if _line_search(rx, line))
+        if p.get("nested_under"):
+            good = sum(_nested_marks(base, rx))
+        else:
+            good = sum(1 for line in base if _line_search(rx, line))
         return Result.ratio(item, good, len(base), f"{good}/{len(base)} lines in format")
     return Result.ok(item, f"{len(hits)} items")
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip(" \t"))
+
+
+def _nested_marks(base: list[str], rx: re.Pattern) -> list[bool]:
+    """Per line of ``base``: it matches ``rx``, or the nearest earlier line indented less than it counts."""
+    out: list[bool] = []
+    for i, line in enumerate(base):
+        ok = bool(_line_search(rx, line))
+        if not ok:
+            ind = _indent(line)
+            parent = next((j for j in range(i - 1, -1, -1) if _indent(base[j]) < ind), None)
+            ok = parent is not None and out[parent]
+        out.append(ok)
+    return out
 
 
 _EMPHASIS = re.compile(r"\*\*|__")

@@ -87,11 +87,13 @@ def test_the_cut_steps_are_gone_and_the_rest_is_agentos_v2():
     # T6: a failure the change causes sends the run back to PHASE 2 once; any other failure is only noted, as upstream
     assert "go back to PHASE 2 once, fix the change, then carry out PHASE 3 again from Step 1" in impl
     assert "`git stash -q && <the test command>; git stash pop -q`" in impl and "Any other failure: DO NOT attempt to fix it." in impl
-    # T5: a failing test is fixed before the tick, marked after two attempts
+    # T5: a failing test is fixed before the tick, marked after at most five attempts
+    assert "Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt. A test you wrote is wrong only when" in impl
+    assert "After two attempts" not in impl
     assert "before you tick the task group's last sub-task" in impl and "or with ⚠️ where a test could not be made to pass" in impl
     # T3: a task the tasks miss is added to tasks.md, then implemented; the one file a later command adds to
     assert "ONLY those task(s) that have been assigned to you" in impl and "add it to `/tmp/agent-os/specs/[this-spec]/tasks.md` first" in impl
-    assert "`tasks.md` is the one exception" in docs["core-workflow.md"]
+    assert "`tasks.md` is the one exception" in docs["overview.md"]
     # T2: the test-writing standard without the three lines that hold tests back
     for gone in ("Write Minimal Tests During Development", "Test Only Core User Flows", "Defer Edge Case Testing"):
         assert gone not in impl, gone
@@ -107,8 +109,8 @@ def test_documents_point_only_at_documents_that_exist():
     for name, text in docs.items():
         for ref in re.findall(r"(?<![\w/])/agent-os/[\w./-]+\.md", text):
             assert ref.removeprefix("/agent-os/") in docs, f"{name} points at missing {ref}"
-    entry = docs["core-workflow.md"]
-    for artifact in ("initialization.md", "requirements.md", "spec.md", "tasks.md", "checks/", "verifications/final-verification.md"):
+    entry = docs["overview.md"]
+    for artifact in ("initialization.md", "requirements.md", "spec.md", "tasks.md", "verify/", "verifications/final-verification.md"):
         assert artifact in entry, artifact
     assert "finish" in entry and "task description in the task message" in entry
 
@@ -258,9 +260,9 @@ def test_a_test_sub_task_is_not_ticked_over_a_failing_test():
     assert _scored(None)[4]["ticked_passing"].status == "pass"
     rub, run, col, rep, res = _scored("tick_failing")  # 2.3 ticked right after the existing tests failed; the report says All Passing
     assert res["ticked_passing"].status == "fail" and "2.3 ticked" in res["ticked_passing"].detail
-    # an existing test that asserts the behavior the task changes is left failing and listed in the report
+    # an existing test that asserts the behavior the task changes is left failing and listed in the report as such (A-5: R2)
     rub, run, col, rep, res = _scored("expected_failure")
-    assert res["ticked_passing"].status == "pass" and "report" in res["ticked_passing"].detail and rep.scores.compliance == 1.0
+    assert res["ticked_passing"].status == "pass" and "do not ask to fix" in res["ticked_passing"].detail and rep.scores.compliance == 1.0
 
 
 def test_a_warning_mark_needs_two_failed_attempts():
@@ -296,6 +298,13 @@ def test_fixing_the_check_script_between_two_failing_runs_is_an_attempt():
     assert engine.evaluate(rub, run, col).results[item.id].status == "fail"
 
 
+def test_a_sixth_attempt_does_not_undo_the_warning_mark():
+    # implement-tasks.md 40: up to five attempts, then ⚠️; "warn_six_attempts" makes six: the mark still has attempts
+    # behind it (the cap is the penalty item's, test_test_items_of_the_golden_run_and_its_variants)
+    rub, run, col, rep, res = _scored("warn_six_attempts")
+    assert res["warned_after_attempts"].status == "pass"
+
+
 def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_the_run():
     from recipe.grpo.qwen3_5.workflow_rubric import engine
 
@@ -307,7 +316,7 @@ def test_a_check_script_left_failing_under_a_warning_mark_is_not_held_against_th
     for st in run.steps:
         for a in st.actions:
             seen = seen or "[^a-z0-9—]+" in (a.text or "")
-            if seen and (a.command or "").endswith("checks/check_sep.py"):
+            if seen and (a.command or "").endswith("verify/check_sep.py"):
                 a.observation = "AssertionError: a—b\n[Command finished with exit code 1]"
     marked = engine.evaluate(rub, run, col).results[last.id]
     assert marked.status == "pass", marked.detail
@@ -403,7 +412,7 @@ def test_the_self_check_passes_on_the_reformatted_run_and_the_whole_suite_run():
 
 
 # --------------------------------------------------------------------------------------------
-# penalty items (reward/penalty.py): the files tasks.md names, the final patch, the reference fix
+# penalty items (reward/penalty.py): the files tasks.md names, the final patch
 # --------------------------------------------------------------------------------------------
 def _diff(*paths, new=()):
     out = []
@@ -413,8 +422,9 @@ def _diff(*paths, new=()):
 
 
 def _penalty(variant, tmp_path, patch, gold=None, errors=0, before_scoring=None):
-    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``.
-    ``before_scoring``: called once the golden run is at hand, before it is scored again with the patch."""
+    """The penalty signals of a golden run whose episode recorded ``patch``, for a task whose reference fix is ``gold``
+    (written to the task folder: ``named_covers_gold`` reads it). ``before_scoring``: called once the golden run is at hand, before it
+    is scored again with the patch."""
     from types import SimpleNamespace
 
     from recipe.grpo.qwen3_5.workflow_rubric import engine, evaluation
@@ -437,84 +447,84 @@ def _penalty(variant, tmp_path, patch, gold=None, errors=0, before_scoring=None)
 
 def test_penalty_items_pass_on_a_run_that_names_the_files_it_changes(tmp_path):
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
-    assert got["penalty"] == got["penalty_plan_files"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
+    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 1.0}
+    assert got["penalty"] == got["penalty_solved"] == got["penalty_plan_files"] == 1.0 and got["penalty_named_files"] == 1.0 and got["penalty_gold_unknown"] == 0.0
     # a task added to tasks.md before its file is edited (implement-tasks PHASE 2) names that file in time
     got, items = _penalty("added_task", tmp_path, _diff("textkit/slug.py", "textkit/__init__.py"), gold=_diff("textkit/slug.py"))
     assert got["penalty_named_files"] == 2.0 and got["penalty_named_late"] == 0.0 and set(items.values()) == {1.0}
 
 
-def test_penalty_items_against_the_patch_and_the_reference_fix(tmp_path):
-    # the patch changes a file no task names; the reference fix is covered all the same (more files are fine)
+def test_penalty_items_against_the_patch_and_the_reference_fix_for_unsolved_rollouts_only(tmp_path):
+    # the patch changes a file no task names: an item about the run's own change, so a solved rollout pays for it too
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"), gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0} and got["penalty_plan_files"] == 0.75
-    assert got["penalty_tests"] == 1.0 and got["penalty"] == (3 + 7) / 11  # the mean of the four file items and the seven test items
-    # the reference fix changes another file: named and changed as planned, but neither covers it
+    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0} and got["penalty_plan_files"] == pytest.approx(2 / 3)
+    assert got["penalty_tests"] == 1.0 and got["penalty"] == got["penalty_solved"] == (2 + 7) / 10  # three file items, seven test items
+    # the reference fix changes another file than the one named and changed as planned: named_covers_gold fails, and
+    # only the mean an unsolved rollout is paid by loses it (C-2: the agent cannot see the reference fix)
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py", "textkit/wrap.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0, "patch_covers_gold": 0.0} and got["penalty_plan_files"] == 0.5
+    assert items == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": 0.0}
+    assert got["penalty"] == 9 / 10 and got["penalty_solved"] == 1.0
     # tests, the run's scratch scripts and non-source files are on neither side
     patch = _diff("textkit/slug.py", "tests/test_slug.py", "repro_edges.py", "docs/changes.rst", new=("repro_edges.py",))
     got, items = _penalty(None, tmp_path, patch, gold=_diff("textkit/slug.py", "docs/changes.rst"))
     assert set(items.values()) == {1.0} and got["penalty_patch_files"] == 1.0
     # no code change at all: the named file is not in the patch
     got, items = _penalty(None, tmp_path, "", gold=_diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 0.0}
+    assert items == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0}
 
 
-def test_penalty_without_a_reference_fix_scores_the_two_items_that_need_none(tmp_path):
-    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"))
-    assert items == {"named": 1.0, "named_equals_patch": 1.0} and got["penalty_plan_files"] == 1.0 and got["penalty_gold_unknown"] == 1.0
+def test_penalty_without_a_reference_fix_leaves_its_item_out_of_the_mean(tmp_path):
+    got, items = _penalty(None, tmp_path, _diff("textkit/slug.py", "textkit/wrap.py"))
+    assert items == {"named": 1.0, "named_equals_patch": 0.0} and got["penalty_gold_unknown"] == 1.0 and got["penalty_unavailable"] == 1.0
+    assert got["penalty_plan_files"] == 0.5 and got["penalty"] == got["penalty_solved"] == (1 + 7) / 9
 
 
-def test_named_files_are_collected_over_every_version_of_tasks_md():
+def test_named_files_are_the_paths_on_the_change_task_lines_of_the_last_tasks_md():
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
     def tasks(*changes):
-        lines = ["#### Task Group 1: Core", "**Dependencies:** None", "", "- [ ] 1.0 Complete the fix", "  - [ ] 1.1 Write 2-8 focused tests for the fix", "    - a check script next to pkg/a.py"]
+        lines = ["#### Task Group 1: Core", "**Dependencies:** None", "", "- [ ] 1.0 Complete the fix in pkg/z.py", "  - [ ] 1.1 Write 2-8 focused tests for the fix", "    - a check script next to pkg/a.py"]
         lines += [f"  - [ ] 1.{i} {c}" for i, c in enumerate(changes, 2)]
         lines += ["  - [ ] 1.9 Ensure the tests of this group pass", "    - Run tests/test_a.py", "", "**Acceptance Criteria:**", "- pkg/z.py behaves"]
         return "\n".join(lines)
 
     draft = tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py")
-    # only the change tasks count: not the test tasks' files, not what follows a **Label:** line
-    assert P.names_in(P.change_text(draft), "/testbed", set()) == {"pkg/a.py", "pkg/d.py"}
-    known = {"pkg/a.py", "pkg/b.py", "pkg/d.py"}
+    # only the change sub-task lines count: not the x.0 line, not a test task, not the lines under a task
+    assert P.change_lines(draft) == ["Fix the parser in `/testbed/pkg/a.py`"]
+    assert P.line_paths(P.change_lines(draft)[0], "/testbed", set()) == {"pkg/a.py"}
     # b.py is added as a task at step 30: before its first edit it is a named file, after it it is not
-    added = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`\n    - Reuse pattern from: pkg/d.py", "Update the caller in pkg/b.py"))]
-    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 35}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py", "pkg/b.py"}, set())
-    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 25}, "/testbed", known) == ({"pkg/a.py", "pkg/d.py"}, {"pkg/b.py"})
-    # a name removed later stays (d.py: named, never edited), so the plan still differs from the patch
-    removed = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`"))]
-    named, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", known)
-    assert named == {"pkg/a.py", "pkg/d.py"} and not late
-    assert P.judge(named, ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 0.0, "named_covers_gold": 1.0, "patch_covers_gold": 1.0}
-    # a bare file name and a dotted module name denote the file; the run's own check script is not a source file
-    text = "- [ ] 1.2 Fix `a.py` (pkg.b.Parser.feed) and rerun check_a.py"
-    assert P.names_in(text, "/testbed", known, frozenset({"check_a.py"})) == {"a.py", "pkg/b.py"}
+    added = [(10, draft), (30, tasks("Fix the parser in `/testbed/pkg/a.py`", "Update the caller in pkg/b.py"))]
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 35}, "/testbed", set()) == ([{"pkg/a.py"}, {"pkg/b.py"}], set())
+    assert P.named_files(added, {"pkg/a.py": 20, "pkg/b.py": 25}, "/testbed", set()) == ([{"pkg/a.py"}, set()], {"pkg/b.py"})
+    # a name removed later is gone: the last version of tasks.md is the plan
+    removed = [(10, tasks("Fix the parser in pkg/a.py", "Fix pkg/d.py")), (30, tasks("Fix the parser in pkg/a.py"))]
+    lines, late = P.named_files(removed, {"pkg/a.py": 20}, "/testbed", set())
+    assert lines == [{"pkg/a.py"}] and not late
+    assert P.judge(lines, {"pkg/a.py"}, ["pkg/a.py"]) == {"named": 1.0, "named_equals_patch": 1.0, "named_covers_gold": None}
+    # the reference fix: every source file of it is among the named ones (more names are fine)
+    assert P.judge(lines, {"pkg/a.py", "pkg/b.py"}, ["pkg/a.py"], ["pkg/a.py"])["named_covers_gold"] == 1.0
+    assert P.judge(lines, {"pkg/a.py"}, ["pkg/a.py"], ["pkg/a.py", "pkg/d.py"])["named_covers_gold"] == 0.0
+    assert P.patch_files("diff --git a/pkg/a.py b/pkg/a.py\n--- a/pkg/a.py\n+++ b/pkg/a.py\ndiff --git a/t/x.py b/t/x.py\n") == ["pkg/a.py", "t/x.py"]
+    # a bare file name is a path only for a file at the repository's top level; a dotted module name is none
+    assert P.line_paths("Fix `a.py` (pkg.b.Parser.feed) and setup.py", "/testbed", {"setup.py"}) == {"setup.py"}
     assert P.match("a.py", "pkg/a.py") and not P.match("a.py", "pkg/ba.py")
 
 
-def test_a_run_that_names_no_file_fails_the_three_items_about_named_files():
+def test_a_run_that_names_no_file_fails_every_item_about_named_files():
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
-    assert P.judge(set(), ["pkg/a.py"], ["pkg/a.py"], ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": 0.0, "patch_covers_gold": 1.0}
-    assert P.judge(set(), [], [], None) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": None, "patch_covers_gold": None}
+    assert P.judge([], set(), ["pkg/a.py"], ["pkg/a.py"]) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": 0.0}
+    assert P.judge([set()], set(), []) == {"named": 0.0, "named_equals_patch": 0.0, "named_covers_gold": None}
 
 
-def test_penalty_reads_the_reference_fix_of_both_task_layouts_and_never_raises(tmp_path):
-    import json
+def test_penalty_reads_the_reference_fix_for_one_item_and_never_raises(tmp_path):
     from types import SimpleNamespace
 
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty as P
 
-    gym, bench = tmp_path / "gym", tmp_path / "bench"
-    (gym / "solution").mkdir(parents=True)
-    (gym / "solution" / "gold.patch").write_text(_diff("pkg/a.py"), encoding="utf-8")
-    (bench / "tests").mkdir(parents=True)
-    (bench / "tests" / "config.json").write_text(json.dumps({"patch": _diff("pkg/b.py"), "test_patch": _diff("tests/test_b.py")}), encoding="utf-8")
-    assert P.patch_files(P.gold_patch(SimpleNamespace(task_dir=str(gym))))[0] == ["pkg/a.py"]
-    assert P.patch_files(P.gold_patch(SimpleNamespace(metadata={"task_path": str(bench)})))[0] == ["pkg/b.py"]
-    assert P.gold_patch(SimpleNamespace(metadata={})) is None and P.gold_patch(SimpleNamespace(task_dir=str(tmp_path / "none"))) is None
+    assert P.RULES == ("named", "named_equals_patch", "named_covers_gold") and P.UNSOLVED_ONLY == ("plan_files.named_covers_gold",)
+    # a task without a folder, or a folder without a reference fix, has none to read
+    assert P.gold_patch(SimpleNamespace(id="t")) is None and P.gold_patch(SimpleNamespace(task_dir=str(tmp_path))) is None
     # a report without a penalty item has no penalty signal (a kind that raises is a failed item: the engine's rule,
     # see test_a_failure_of_the_test_items_leaves_the_file_items_standing)
     assert P.post(SimpleNamespace(results={}, cache={})) == {}
@@ -531,7 +541,7 @@ def test_penalty_is_reported_beside_compliance_and_is_not_the_reward_signal():
     assert SPEC.reward_signal == "agentos_bugfix/compliance" and SPEC.penalty_signal == "agentos_bugfix/penalty"
     # the penalty items are rubric items, as in the other workflows -- log_only, so compliance is untouched
     pen = [it for it in ev.rubric.items if ".penalty." in it.id]
-    assert len(pen) == 11 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
+    assert len(pen) == 10 and all(it.log_only and it.check.kind == "agentos_bugfix.penalty" for it in pen)
     assert {it.check.params["rule"] for it in pen} == {*penalty.FILE_RULES, *penalty.TEST_RULES}
 
 
@@ -591,14 +601,16 @@ def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_
     # a failed test is not cleared by a later run narrowed below what failed (the rule every workflow shares)
     narrowed = T_Result(14, True, True, ("tests/unit/test_a.py",), ("-k other",))
     assert _test_items(src=[10], results=[_res(12, False, "tests/unit/test_a.py", runner=True), narrowed], p2_end=30)[0][last] == 0.0
-    # group 1 fails and is ticked (15) without an edit, group 2 fails and is edited: the last failure alone would pass
+    # group 1 fails and is ticked (15) without an attempt, group 2 fails, is edited and passes: per stretch, per failure
+    # (A-4: an attempt is an edit and a run again; tests/test_review_fixes_ac.py has the attempt counts)
     two = dict(src=[10], test_edits=[22], results=[_res(12, False, "/s/a.py"), _res(20, False, "/s/b.py"), _res(23, True, "/s/b.py")], p2_end=25)
     assert _test_items(group_ends=[15, 25], **two)[0][edited] == 0.0
-    assert _test_items(group_ends=[25], **two)[0][edited] == 1.0  # everything ticked in one write: one stretch
-    assert _test_items(group_ends=[15, 25], **{**two, "test_edits": [13, 22]})[0][edited] == 1.0
-    # an edit after the tick of its stretch is too late; a source edit counts like a test edit
-    assert _test_items(src=[10], test_edits=[16], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
-    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 1.0
+    assert _test_items(group_ends=[25], **two)[0][edited] == 0.0  # one stretch: a.py was still never tried again
+    assert _test_items(group_ends=[15, 25], **{**two, "test_edits": [13, 22], "results": two["results"] + [_res(14, True, "/s/a.py")]})[0][edited] == 1.0
+    # an edit after the tick of its stretch is too late; an edit not followed by a run again is no attempt
+    assert _test_items(src=[10], test_edits=[16], results=[_res(12, False, "/s/a.py"), _res(17, True, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
+    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 0.0
+    assert _test_items(src=[10, 13], results=[_res(12, False, "/s/a.py"), _res(14, True, "/s/a.py")], group_ends=[15], p2_end=30)[0][edited] == 1.0
     # a.py failed and was never run again: b.py passing last does not make it pass
     assert _test_items(**two)[0][last] == 0.0
     assert _test_items(**{**two, "results": two["results"] + [_res(24, True, "/s/a.py")]})[0][last] == 1.0
@@ -669,7 +681,7 @@ def test_a_failure_in_phase_3_is_checked_with_git_stash_and_fixed_only_when_the_
     own = _res(32, False, "/s/a.py")
     v, a = _test_items(**base, results=[own])
     assert (v[cause], a[cause]) == (1.0, False) and (v[edited], a[edited]) == (0.0, True) and v[last] == 0.0
-    v, a = _test_items(**base, test_edits=[33], results=[own, _res(34, True, "/s/a.py")])
+    v, a = _test_items(**base, test_edits=[33], test_edits_of={"/s/a.py": [33]}, results=[own, _res(34, True, "/s/a.py")])  # an edit of that test (A-9 row 22)
     assert v[edited] == 1.0 and v[last] == 1.0
 
 
@@ -700,18 +712,12 @@ def test_the_cause_check_is_a_runner_run_while_the_change_is_stashed_away():
     assert not T.run_stashed(run(2, "pytest tests/test_a.py"), before, marks)
 
 
-def test_a_script_that_edits_the_repository_is_not_a_test_and_a_new_source_file_is_source():
+def test_a_new_source_file_is_source_and_a_runner_run_of_an_own_test_file_is_an_own_test():
     from types import SimpleNamespace as N
 
     from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as T
 
-    runs_of = {"/tmp/fix.py": [(12, "pass")], "/tmp/repro.py": [(12, "fail"), (14, "pass")], "/tmp/patch.sh": [(16, None)], "/tmp/quiet.py": [(18, "pass")]}
-    writes = {12: [N(source="python")], 16: [N(source="other")], 18: [N(source="file_editor")]}
-    text = {"/tmp/fix.py": "open(p, 'w').write(s)", "/tmp/repro.py": "assert f() == 1", "/tmp/patch.sh": "sed -i 's/a/b/' pkg/a.py", "/tmp/quiet.py": "print(f())"}
-    # run at a step where Python wrote to the repository (both scripts of step 12 -- the replay cannot tell them apart),
-    # or at a step with a repository write while its own text writes files; a script that only reads is a test
-    assert T.fix_scripts(runs_of, writes, text) == {"/tmp/fix.py", "/tmp/repro.py", "/tmp/patch.sh"}
-    assert T.fix_scripts({"/tmp/repro.py": [(14, "pass")]}, writes, text) == set()
+    # (a script outside verify/ is no test at all since A-9 row 8: tests/test_review_fixes_ac.py)
     # a new file the final change keeps is source whatever its name, unless it is a throwaway name at the repository
     # root (the rule every workflow shares, facts.is_run_script)
     from recipe.grpo.qwen3_5.workflow_rubric import facts as F
@@ -736,10 +742,10 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
         raise RuntimeError("unexpected trace")
 
     # a kind that raises is a failed item and an engine error, as everywhere in the engine: the seven test items are
-    # 0.0, the four file items stand, and nothing reaches compliance
+    # 0.0, the three file items stand, and nothing reaches compliance
     got, items = _penalty(None, tmp_path, _diff("textkit/slug.py"), gold=_diff("textkit/slug.py"), errors=7, before_scoring=lambda: monkeypatch.setattr(penalty_tests, "measure", boom))
     assert set(items.values()) == {1.0} and got["penalty_plan_files"] == 1.0
-    assert got["penalty_tests"] == 0.0 and got["penalty"] == 4 / 11
+    assert got["penalty_tests"] == 0.0 and got["penalty"] == got["penalty_solved"] == 3 / 10
     assert all(got[name.split(".", 1)[1]] == 0.0 for name in penalty_tests.ITEMS)
 
 
@@ -749,6 +755,8 @@ def test_a_failure_of_the_test_items_leaves_the_file_items_standing(tmp_path, mo
         (None, set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own"}),
         ("no_existing_run", {"phase2_run.existing_and_own"}, None),
         ("tick_failing", {"phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"}, None),
+        ("warn_attempts", set(), None),  # two attempts, then ⚠️ (implement-tasks.md 40: up to five)
+        ("warn_six_attempts", {"phase2_fail.edited_after_fail"}, None),  # a sixth attempt (A-4, user decision 2026-11-21)
         ("fix_round", set(), {"phase2_run.existing_and_own", "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass", "phase3_run.existing_and_own", "phase3_fail.cause_checked", "phase3_fail.edited_after_fail", "phase3_fail.last_result_pass"}),
     ],
 )

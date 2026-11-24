@@ -71,12 +71,14 @@ class TaskInfo:
     """The task repository before the agent ran, bound to one rollout's evaluator.
 
     pre_status is the raw ``git status --porcelain=v1 -z`` text (NUL-separated); see
-    :func:`status_paths`.
+    :func:`status_paths`. today is the sandbox's date (``YYYY-MM-DD``) when the rollout began, the date a run reads
+    with ``date``.
     """
 
     workdir: str | None = None
     base_sha: str | None = None
     pre_status: str | None = None
+    today: str | None = None
     errors: list[str] = field(default_factory=list)
 
 
@@ -145,6 +147,7 @@ def _task_info_script(workdir: str | None) -> str:
     return "\n".join(
         [
             f"echo '{_MARK} BEGIN'",
+            f"printf '{_MARK} DATE %s\\n' \"$(date +%Y-%m-%d 2>/dev/null)\"",
             _tools("git", "base64", "head"),
             cd,
             f'printf \'{_MARK} WD %s\\n\' "$(printf %s "$PWD" | base64 -w0)"',
@@ -167,6 +170,9 @@ def parse_task_info(output: str, workdir: str | None) -> TaskInfo:
             info.errors.append(f"task_info: cannot cd to {workdir}")
         elif tag == "WD" and not (workdir and workdir.startswith("/")):
             info.workdir = _b64path(arg)
+        elif tag == "DATE":
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", arg.strip()):
+                info.today = arg.strip()
         elif tag == "HEAD":
             sha = arg.strip()
             if _SHA.fullmatch(sha):
@@ -865,7 +871,7 @@ def wants_related(rubric: Rubric) -> bool:
 
 def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collected:
     """Artifact files, repository diff and base-tree membership, online; never raises."""
-    c = Collected(workdir=info.workdir, base_sha=info.base_sha, pre_status=info.pre_status, errors=list(info.errors), mode="online")
+    c = Collected(workdir=info.workdir, base_sha=info.base_sha, pre_status=info.pre_status, errors=list(info.errors), mode="online", today=getattr(info, "today", None))
     try:
         plan = scan_plan(rubric, c.workdir)
         c.errors.extend(plan.errors)

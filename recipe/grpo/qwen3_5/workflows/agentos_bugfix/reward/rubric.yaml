@@ -100,27 +100,27 @@ generated:
     - mutation: template_copy
       kind: exploit
       status: ok
-      compliance: 0.1204
+      compliance: 0.25
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
-      compliance: 0.0469
+      compliance: 0.0429
     - mutation: x_fill
       kind: exploit
       status: ok
-      compliance: 0.1204
+      compliance: 0.25
     - mutation: x_fill_bare
       kind: exploit
       status: ok
-      compliance: 0.081
+      compliance: 0.1921
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9174
+      compliance: 0.9037
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9174
+      compliance: 0.9143
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -136,15 +136,15 @@ generated:
     - mutation: echo_evidence
       kind: exploit
       status: ok
-      compliance: 0.9498
+      compliance: 0.9786
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.9444
+      compliance: 0.973
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9498
+      compliance: 0.9786
     - mutation: glob_read
       kind: exploit
       status: ok
@@ -152,19 +152,19 @@ generated:
     - mutation: cp_read
       kind: exploit
       status: ok
-      compliance: 0.8889
+      compliance: 0.8831
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.8574
+      compliance: 0.6931
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6609
+      compliance: 0.5108
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6858
+      compliance: 0.6879
     - mutation: no_artifacts
       kind: exploit
       status: ok
@@ -180,11 +180,11 @@ generated:
     - mutation: full_suite_rerun
       kind: exploit
       status: ok
-      compliance: 0.9974
+      compliance: 0.9973
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9347
+      compliance: 0.9626
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -212,11 +212,11 @@ generated:
     - mutation: hidden_failure
       kind: exploit
       status: ok
-      compliance: 0.99
+      compliance: 0.9898
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.9913
+      compliance: 0.9779
     - mutation: archive_cp
       kind: exploit
       status: n/a
@@ -237,18 +237,18 @@ generated:
   derived:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
-    dropped_items: 47
-    kept_items: 175
+    dropped_items: 48
+    kept_items: 173
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
   role: command
-  sha256: be578e8e5c59fd1e53fcb78aedc7da050b8bb16b4491ec7993054e68a975139b
+  sha256: 68e062d7b305a606dbe989ff3e9f93e3eb0caa8efae3cc895e9b4f229b69a64f
   container_path: /agent-os/commands/create-tasks/create-tasks.md
 - id: IT
   path: docs/commands/implement-tasks/implement-tasks.md
   role: command
-  sha256: 30b0d403047cfab8eb3c4977e311755e95c8c5f4db6226ae472a6c2b4e0686c9
+  sha256: ccff70682623db698e3a6e9636202fa57b90700cd33ae2df3fea1ae46b56bf82
   container_path: /agent-os/commands/implement-tasks/implement-tasks.md
 - id: SS
   path: docs/commands/shape-spec/shape-spec.md
@@ -261,18 +261,18 @@ sources:
   sha256: 9aa88eb70133ecd64cd3b1ae2235f8d71831e9e588f63e482d36fa3b3fa8dc10
   container_path: /agent-os/commands/write-spec/write-spec.md
 - id: CW
-  path: docs/core-workflow.md
+  path: docs/overview.md
   role: core
-  sha256: 5400aa11e2f7bac6978be4983ca110e1f490ff4a16316b1ccbd49a8f9df98c82
-  container_path: /agent-os/core-workflow.md
+  sha256: aef0466011978f9f672ab2a3af0f1cbc1c24303b92b79cf3f491611429c395ce
+  container_path: /agent-os/overview.md
 - id: INS
   path: instruction.md
   role: instruction
-  sha256: 76787ecfcadab74198d959a430485f8588a18c460bdaf0cb4f659c0f5678a4e4
+  sha256: b4d200849e6e1be320bb3a970d9e9f58ae7a93b5ef40957f48f2d35d0e654fa9
 - id: SP
   path: system-prompt.j2
   role: system_prompt
-  sha256: f686018786480a1ee24b1a5a426a321b67fbaf80a584b409240d3b6b282f5e7e
+  sha256: 1e6f80c3a2f29cfe00747855010a38ca377569d2a3452619d6e3dbc0b050cce2
   sections:
     SOUL: harness_generic
     ROLE: harness_generic
@@ -427,6 +427,7 @@ items:
     kind: path_match
     params:
       pattern: \d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*
+      today: true
   requirement: must
   modality_evidence: SS:65 'Always use dated folder names (YYYY-MM-DD-spec-name)'; SS:29 kebab-case
   none_allowed: '-'
@@ -488,7 +489,7 @@ items:
   log_only: false
   note: ''
 - id: agentos_bugfix.shape_spec.initialization.item_format.text
-  scope: common
+  scope: specific
   class: content
   stage: shape_spec
   target:
@@ -496,9 +497,10 @@ items:
     ref: initialization
     state: final
   check:
-    kind: item_format
+    kind: agentos_bugfix.task_text
     params:
       pattern: '[A-Za-z]{3,}'
+      min_share: 0.5
   requirement: must
   modality_evidence: SS:61 the issue text written (CW:51 'the issue text, unchanged')
   none_allowed: '-'
@@ -523,9 +525,9 @@ items:
   derived_by: manual
   template: C-F10
   log_only: false
-  note: the file holds text (whether it is the issue verbatim needs the issue, which the engine does not have)
+  note: 'the file holds the task description: at least half of its words, in order (without a task description: some text)'
 - id: agentos_bugfix.shape_spec.initialization.no_template_residue.fill_marks
-  scope: common
+  scope: specific
   class: content
   stage: shape_spec
   target:
@@ -533,7 +535,7 @@ items:
     ref: initialization
     state: final
   check:
-    kind: no_template_residue
+    kind: agentos_bugfix.task_residue
     params:
       patterns:
       - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
@@ -567,7 +569,7 @@ items:
   target:
     type: artifact
     ref: verifications_dir
-    state: final
+    state: stage_end
   check:
     kind: artifact_exists
     params: {}
@@ -1398,7 +1400,8 @@ items:
     kind: item_format
     params:
       section: Existing Code to Reference
-      pattern: (?i)No similar existing features identified for reference|\(assumed\)\s+`[^`\n]+`\s+(?:—|–|--?)\s+\S
+      pattern: (?i)No similar existing features identified for reference|`?\(assumed\)`?\s+(?:`[^`\n]+`|[^\s`]+`?)\s+(?:—|–|--?)\s+\S
+      each_of: ^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b
   requirement: must
   modality_evidence: imperative (SS:177 'Record each as (assumed) <path> — <basis>; if you find none, record "No similar existing
     features identified for reference."')
@@ -1475,7 +1478,9 @@ items:
     kind: item_format
     params:
       section: Reusability Opportunities
-      pattern: ^\s*(?:[-*+]|\d+[.)])\s+\(assumed\)\s+`.+?`\s+(?:—|–|-{1,2}|\|)\s+.+?
+      pattern: ^\s*(?:[-*+]|\d+[.)])\s+`?\(assumed\)`?\s+(?:`.+?`|[^\s`]+`?)\s+(?:—|–|-{1,2}|\|)\s+\S|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?No
+        similar existing features? (?:were )?identified for reference\.?\s*$)|(?i:^\s*(?:(?:[-*+]|\d+[.)])\s+)?(?:none|none
+        (?:found|identified)|n/?a|no (?:similar|reusable|existing)\b[\w\s-]{0,40}?\b(?:found|identified))\.?\s*$)
       min: 1
   requirement: must
   modality_evidence: 'binding docs/commands/shape-spec/shape-spec.md:210-210 ''Use the following structure and do not deviate
@@ -1503,7 +1508,7 @@ items:
   log_only: false
   note: template requirements
 - id: agentos_bugfix.shape_spec.requirements.no_template_residue.fill_marks
-  scope: common
+  scope: specific
   class: content
   stage: shape_spec
   target:
@@ -1511,7 +1516,7 @@ items:
     ref: requirements
     state: final
   check:
-    kind: no_template_residue
+    kind: agentos_bugfix.task_residue
     params:
       patterns:
       - (?im)^\s*(?:[-*+]|\d{1,3}[.)])\s+(?:\[[ xX]\]\s+)?(?:\d+(?:\.\d+)+\s+)?(?:(?:\*\*|__)?[\w /&().-]{1,60}?(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*)?(?:x+|\.{2,}|…+|\?+)\s*$
@@ -1575,6 +1580,13 @@ items:
       - \[Existing\ system\ constraints\]
       - \[Technology\ preferences\ stated\]
       - \[Similar\ code\ patterns\ to\ follow\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
+      - \[specific\ assumption\]
+      - \[specific\ approach\]
+      - \[Continue\ with\ numbered\ questions\.\.\.\]
+      - \[Last\ numbered\ question\ about\ exclusions\]
   requirement: must
   modality_evidence: 'binding docs/commands/shape-spec/shape-spec.md:210-210 ''Use the following structure and do not deviate
     from this structure when writing your ga...'' (prohibition: do not); dict prohibition (''do not'' at SS:210)'
@@ -1824,13 +1836,28 @@ items:
           group: 1
           level: 2
           pattern: (.+)
+          levels:
+          - 2
+          - 3
+          skip_sections:
+          - Initial Description
+          tag_level: true
       normalize: text
       relation: subset
       right:
         literal:
-        - Initial Description
-        - Requirements Discussion
-        - Requirements Summary
+        - 2:Initial Description
+        - 2:Requirements Discussion
+        - 2:Requirements Summary
+        - 3:Initial Description
+        - 3:Requirements Discussion
+        - 3:Requirements Summary
+        - 3:First Round Questions
+        - 3:Existing Code to Reference
+        - 3:Functional Requirements
+        - 3:Reusability Opportunities
+        - 3:Scope Boundaries
+        - 3:Technical Considerations
   requirement: must
   modality_evidence: statement ss-070 (must); dict must ('imperative:Include' at SS:210)
   none_allowed: '-'
@@ -1849,7 +1876,7 @@ items:
   derived_by: llm_extract
   template: C-F11
   log_only: false
-  note: Second-level headings of requirements.md must be limited to the ones the template defines. votes 2/2
+  note: 'the ## and ### headings of requirements.md, outside Initial Description, are the template''s'
 - id: agentos_bugfix.shape_spec.requirements.agentos_bugfix_requirements.answers
   scope: specific
   class: content
@@ -1862,6 +1889,7 @@ items:
     kind: agentos_bugfix.requirements
     params:
       rule: answers
+      basis_check: true
   requirement: must
   modality_evidence: CW:70-72 'answer each one yourself ... record the answer with its basis'; SS:223 the answer line; SS:298
     'Record each assumed answer and its basis'
@@ -2043,6 +2071,7 @@ items:
       - stage_start:shape_spec
       - - first_write:requirements
         - stage_end:shape_spec
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (SS:90 'Read the raw idea from [spec-path]/planning/initialization.md'; SS:61 'PHASE 2 reads
     the raw idea from this file')
@@ -2594,6 +2623,9 @@ items:
       - \[repeat\ for\ up\ to\ 5\ existing\ code\ areas\]
       - \[up\ to\ 10\ concise\ descriptions\ of\ specific\ features\ that\ are\ out\ of\ scope\ and\ MUST\ NOT\ be\ built\
         in\ this\ spec\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: 'binding docs/commands/write-spec/write-spec.md:57-57 ''Follow this structure exactly when creating the
     content of `spec.md`:'' (must: exactly); dict prohibition (''MUST NOT'' at WS:92)'
@@ -2715,6 +2747,7 @@ items:
       min_blocks: 1
       max_blocks: 10
       max_bullets: 8
+      top_level: true
   requirement: must
   modality_evidence: WS:57 'Follow this structure exactly'; WS:72 'Up to 8 CONCISE sub-bullet points'; WS:74 'up to a max
     of 10 specific requirements'
@@ -2752,6 +2785,7 @@ items:
       min_blocks: 0
       max_blocks: 5
       max_bullets: 5
+      top_level: true
   requirement: must
   modality_evidence: WS:57 'Follow this structure exactly'; WS:87 'up to 5 bullets'; WS:89 'up to 5 existing code areas'
   none_allowed: '-'
@@ -2859,6 +2893,7 @@ items:
       - stage_start:write_spec
       - - first_write:spec
         - stage_end:write_spec
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (WS:15 'Read and understand all inputs'; WS:17-18 the cat of requirements.md)
   none_allowed: '-'
@@ -2961,7 +2996,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: section_present
     params:
@@ -2987,6 +3022,12 @@ items:
     - 24
     quote: '2. **Plan task execution order**: Break the requirements into a list of tasks in an order that takes their dependencies
       into account.'
+  - doc: CT
+    lines:
+    - 116
+    - 116
+    quote: 'Whatever you adapt, every tasks.md keeps the example''s three sections: `## Overview` with its `Total Tasks:`
+      line, `## Task List`, and `## Execution Order`'
   impl_refs: []
   derived_by: manual
   template: C-F4
@@ -2999,7 +3040,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: section_present
     params:
@@ -3031,7 +3072,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: item_format
     params:
@@ -3067,17 +3108,17 @@ items:
   log_only: false
   note: task groups numbered from 1
 - id: agentos_bugfix.create_tasks.tasks.item_format.subtasks
-  scope: common
+  scope: specific
   class: content
   stage: create_tasks
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
-    kind: item_format
+    kind: agentos_bugfix.tasks
     params:
-      pattern: ^\s*[-*+]\s+\[[ xX]\]\s+\d+\.[1-9]\d*\b\s*\S
+      rule: group_subtasks
   requirement: must
   modality_evidence: imperative (CT:26 'broken into groups with sub-tasks'); CT:57-58 the checkbox lines
   none_allowed: '-'
@@ -3101,7 +3142,7 @@ items:
   derived_by: manual
   template: C-F10
   log_only: false
-  note: checkbox sub-tasks `- [ ] N.M ...`
+  note: every task group of tasks.md (as create-tasks left it) has a sub-task line N.M (ratio over the groups)
 - id: agentos_bugfix.create_tasks.tasks.item_format.unchecked
   scope: common
   class: content
@@ -3147,7 +3188,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: item_format
     params:
@@ -3184,12 +3225,13 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: item_format
     params:
-      pattern: ^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+\.\d+\s+\S
+      pattern: ^\s*[-*+]\s+\[(?:[ xX]|⚠️?)\]\s+(?:⚠️?\s*)?\d+(?:\.\d+)+\.?\s+\S
       of_pattern: ^\s*[-*+]\s+\[[^\]\n]{0,4}\]
+      nested_under: true
   requirement: should
   modality_evidence: CT:57-58 the example's task lines (should)
   none_allowed: '-'
@@ -3216,7 +3258,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: item_format
     params:
@@ -3232,8 +3274,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 128
-    - 128
+    - 130
+    - 130
     quote: '- **Include acceptance criteria** for each task group'
   impl_refs: []
   derived_by: manual
@@ -3247,7 +3289,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: no_template_residue
     params:
@@ -3264,6 +3306,9 @@ items:
       - \[existing\ code\ if\ applicable\]
       - \[Next\ change\ to\ make\]
       - \[what\ works\ once\ this\ group\ is\ done\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: CT:42 'adapt the content of the tasks list to match what THIS feature actually needs'
   none_allowed: '-'
@@ -3291,7 +3336,7 @@ items:
   target:
     type: artifact
     ref: tasks
-    state: final
+    state: stage_end
   check:
     kind: no_template_residue
     params:
@@ -3321,8 +3366,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 118
-    - 118
+    - 120
+    - 120
     quote: '- **Create tasks that are specific and verifiable**'
   impl_refs: []
   derived_by: manual
@@ -3341,6 +3386,8 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: total
+      impl_counts: true
+      wide_words: true
   requirement: should
   modality_evidence: 'CT:47-48 the Overview''s ''Total Tasks: [count]'' (example format: should)'
   none_allowed: '-'
@@ -3383,8 +3430,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 128
-    - 128
+    - 130
+    - 130
     quote: '- **Include acceptance criteria** for each task group'
   - doc: CT
     lines:
@@ -3418,8 +3465,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 122
-    - 122
+    - 124
+    - 124
     quote: Each implementation task group should write 2-8 focused tests maximum
   impl_refs: []
   derived_by: llm_extract
@@ -3438,6 +3485,7 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: test_first
+      wide_words: true
   requirement: must
   modality_evidence: imperative (CT:214 'Use a focused test-driven approach where each task group starts with writing 2-8
     tests (x.1 sub-task) and ends with running ONLY those tests (final sub-task)')
@@ -3450,8 +3498,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 126
-    - 126
+    - 128
+    - 128
     quote: '- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and
       ends with running those tests and the existing tests of the changed code (final sub-task)'
   impl_refs: []
@@ -3638,6 +3686,7 @@ items:
       - stage_start:create_tasks
       - - first_write:tasks
         - stage_end:create_tasks
+      written_before: true
   requirement: should
   modality_evidence: 'CT:32-34 ''Read each of these files (whichever are available)''; CT:13 reads only what is not in context
     (conflict below): should'
@@ -3682,8 +3731,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 125
-    - 125
+    - 127
+    - 127
     quote: If there is a dedicated test coverage group ... this group should add only a maximum of 10 additional tests IF
       NECESSARY to fill critical gaps
   impl_refs: []
@@ -3735,6 +3784,8 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: groups_in_order
+      work_between: true
+      dir: '{artifact}/{SPEC}/verify'
   requirement: must
   modality_evidence: imperative (IT:19 'all task groups in tasks.md, in order'; IT:25 'one task group per pass of PHASE 2';
     IT:45)
@@ -3824,7 +3875,9 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: ticked_after_work
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
+      name_files: true
+      not_done_out: true
   requirement: must
   modality_evidence: IT:32 'update the tasks you've implemented to mark that as done'
   none_allowed: '-'
@@ -3857,7 +3910,7 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: ticked_passing
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
       suite_section: 2. Test Suite Results
   requirement: must
   modality_evidence: 'imperative (IT: ''fix the change or that test and run the tests again before you tick the task group''s
@@ -3880,7 +3933,8 @@ items:
     - 39
     - 39
     quote: 'An existing test that asserts the behavior the task asks to change is expected to fail: leave your change as it
-      is and list that test in the final verification report.'
+      is and list that test under Failed Tests in the final verification report, noting that it is an expected failure (it
+      asserts the behavior the task asks to change).'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -3899,9 +3953,9 @@ items:
     kind: agentos_bugfix.tasks
     params:
       rule: warned_after_attempts
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
   requirement: must
-  modality_evidence: 'IT: ''After two attempts that do not get it to pass, mark that sub-task''s checkbox with ⚠️ instead
+  modality_evidence: 'IT: ''Make up to five attempts. If it still does not pass, mark that sub-task''s checkbox with ⚠️ instead
     of ticking it'''
   none_allowed: '-'
   applies_when: null
@@ -3914,8 +3968,8 @@ items:
     lines:
     - 40
     - 40
-    quote: After two attempts that do not get it to pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and
-      go on.
+    quote: Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it,
+      and go on; do not make a sixth attempt.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -4084,6 +4138,7 @@ items:
     params:
       heading: Notes
       level: 3
+      optional: true
   requirement: should
   modality_evidence: 'binding docs/commands/implement-tasks/implement-tasks.md:249-249 ''The content of this report should
     follow this structure:'' (should: should); dict should (''should'' at IT:249)'
@@ -4322,6 +4377,7 @@ items:
       - ⚠️ Passed with Issues
       - ❌ Failed
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:257 the value choices
   none_allowed: '-'
@@ -4358,6 +4414,7 @@ items:
       - ✅ All Complete
       - ⚠️ Issues Found
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:269 the value choices
   none_allowed: '-'
@@ -4395,6 +4452,7 @@ items:
       - ⚠️ Some Failures
       - ❌ Critical Failures
       prefix_ok: true
+      strict_prefix: true
   requirement: should
   modality_evidence: IT:249 'should follow this structure'; IT:297 the value choices
   none_allowed: '-'
@@ -5016,6 +5074,9 @@ items:
       - \[count\]
       - \[List\ any\ failing\ tests\ with\ their\ descriptions,\ or\ note\ "None\ \-\ all\ tests\ passing"\]
       - \[Any\ additional\ context\ about\ test\ results,\ known\ issues,\ or\ regressions\]
+      - \[this\-spec\]
+      - \[current\-spec\]
+      - \[spec\-path\]
   requirement: must
   modality_evidence: 'binding docs/commands/implement-tasks/implement-tasks.md:249-249 ''The content of this report should
     follow this structure:'' (should: should); dict must (''checkbox'' at IT:272)'
@@ -5129,6 +5190,8 @@ items:
     kind: agentos_bugfix.report
     params:
       rule: incomplete_listed
+      scripts_dir: '{artifact}/{SPEC}/verify'
+      open_tasks: true
   requirement: should
   modality_evidence: 'IT:229 ''note it''s incompleteness in your verification report'' (against tasks.md, the agent''s own:
     should)'
@@ -5169,6 +5232,9 @@ items:
       rule: test_counts
       suite_section: 2. Test Suite Results
       fix_round: true
+      scripts_dir: '{artifact}/{SPEC}/verify'
+      phase3_fallback: true
+      script_results: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include these counts ... in your final verification report')
   none_allowed: '-'
@@ -5209,6 +5275,11 @@ items:
       rule: failed_listed
       suite_section: 2. Test Suite Results
       fix_round: true
+      scripts_dir: '{artifact}/{SPEC}/verify'
+      phase3_fallback: true
+      script_results: true
+      standing: true
+      in_section: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include ... the list of failed tests'; IT:243 'Just note their failures')
   none_allowed: '-'
@@ -5246,6 +5317,7 @@ items:
     kind: agentos_bugfix.report
     params:
       rule: spec_name
+      scripts_dir: '{artifact}/{SPEC}/verify'
   requirement: should
   modality_evidence: 'IT:254 ''**Spec:** `[spec-name]`'' (the report''s structure: should)'
   none_allowed: '-'
@@ -5277,6 +5349,9 @@ items:
     kind: agentos_bugfix.report
     params:
       rule: tasks_status
+      scripts_dir: '{artifact}/{SPEC}/verify'
+      issues_listed: true
+      open_tasks: true
   requirement: should
   modality_evidence: 'IT:269 the status choices against tasks.md (both the agent''s: should)'
   none_allowed: '-'
@@ -5310,7 +5385,11 @@ items:
       rule: suite_status
       suite_section: 2. Test Suite Results
       fix_round: true
-      dir: '{artifact}/{SPEC}/checks'
+      scripts_dir: '{artifact}/{SPEC}/verify'
+      dir: '{artifact}/{SPEC}/verify'
+      phase3_fallback: true
+      script_results: true
+      standing: true
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)
   none_allowed: '-'
@@ -5394,8 +5473,8 @@ items:
     quote: '4. **implement-tasks**: `/agent-os/commands/implement-tasks/implement-tasks.md`'
   - doc: CT
     lines:
-    - 132
-    - 132
+    - 134
+    - 134
     quote: Once the tasks list has been created at `/tmp/agent-os/specs/[this-spec]/tasks.md`, open `/agent-os/commands/implement-tasks/implement-tasks.md`
       and continue with that command.
   impl_refs: []
@@ -5434,8 +5513,8 @@ items:
     quote: '- Running the tests you''ve written'
   - doc: CT
     lines:
-    - 124
-    - 124
+    - 126
+    - 126
     quote: '- Test verification should run the newly written tests and the existing tests of the changed code, not the entire
       suite'
   impl_refs: []
@@ -5523,6 +5602,7 @@ items:
             fact: repo_edit
             window: stage:implement_tasks
         - stage_end:implement_tasks
+      absent_unread: true
   requirement: must
   modality_evidence: imperative (IT:19 'Read .../tasks.md to review the available task groups')
   none_allowed: '-'
@@ -5543,40 +5623,6 @@ items:
   template: ''
   log_only: false
   note: tasks.md read before the first repository edit
-- id: agentos_bugfix.implement_tasks.run.agentos_bugfix_read.spec_inputs
-  scope: specific
-  class: evidence
-  stage: implement_tasks
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: agentos_bugfix.read
-    params:
-      artifacts:
-      - spec
-      - requirements
-  requirement: should
-  modality_evidence: 'IT:29 ''Analyze the provided spec.md, requirements.md'' (provided: already in context -- should)'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  - sandbox_file
-  sources:
-  - doc: IT
-    lines:
-    - 29
-    - 29
-    quote: 1. Analyze the provided spec.md and requirements.md
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: ''
 - id: agentos_bugfix.implement_tasks.run.code_change
   scope: specific
   class: evidence
@@ -5593,6 +5639,7 @@ items:
           fact: repo_edit
           final: true
           window: stage:implement_tasks
+          source: true
   requirement: must
   modality_evidence: imperative (IT:31 'Implement the assigned task group'); CW:81 implement-tasks PHASE 2 changes /testbed
   none_allowed: '-'
@@ -5618,7 +5665,8 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: a repository edit in implement-tasks that stays in the final change
+  note: a repository edit in implement-tasks to a source file (not a test, a backup or a scratch script) that stays in the
+    final change
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_checks.pass_last
   scope: specific
   class: evidence
@@ -5631,9 +5679,11 @@ items:
     kind: agentos_bugfix.checks
     params:
       rule: pass_last
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
       warned: true
+      unrun: true
       fix_round: true
+      module_tests: true
   requirement: must
   modality_evidence: imperative (IT:39 'Running ONLY the tests you've written ... and ensuring those tests pass')
   none_allowed: '-'
@@ -5647,15 +5697,16 @@ items:
     lines:
     - 38
     - 39
-    quote: '## Self-verify and test your work by: - Running the tests you''ve written (if any; they are check scripts under
-      `/tmp/agent-os/specs/[this-spec]/checks/`, or test functions you added to an existing repository test module, run through
-      that module with the test runner) and the existing tests of the code you changed, and ensuring they pass.'
+    quote: '## Self-verify and test your work by: - Running the tests you''ve written (each implementation task group writes
+      them first, as its x.1 sub-task; they are check scripts under `/tmp/agent-os/specs/[this-spec]/verify/`, or test functions
+      you added to an existing repository test module, run through that module with the test runner) and the existing tests
+      of the code you changed, and ensuring they pass.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
   note: each check script run in implement-tasks last ran passing, after the last code change -- or was left failing under
-    a ⚠️ mark made after two attempts
+    a ⚠️ mark made after the attempts
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_verify.code_frozen
   scope: specific
   class: evidence
@@ -5669,7 +5720,7 @@ items:
     params:
       rule: code_frozen
       fix_round: true
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
   requirement: must
   modality_evidence: CW:82-83 'the code change is complete before PHASE 3 begins'; IT:243 'DO NOT attempt to fix any failing
     tests'
@@ -5744,9 +5795,10 @@ items:
     kind: agentos_bugfix.checks
     params:
       rule: written
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
+      module_tests: true
   requirement: must
-  modality_evidence: CT:215 every test a task group writes is a script under checks/ or a function added to an existing test
+  modality_evidence: CT:215 every test a task group writes is a script under verify/ or a function added to an existing test
     module; CW:84-85 likewise
   none_allowed: '-'
   applies_when: null
@@ -5757,21 +5809,21 @@ items:
   sources:
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) is a script
-      under `/tmp/agent-os/specs/[this-spec]/checks/`, run on its own
+      under `/tmp/agent-os/specs/[this-spec]/verify/`, run on its own
   - doc: CW
     lines:
     - 85
     - 86
-    quote: The tests the task groups call for are scripts in `S/checks/`, or new test functions added to the existing repository
+    quote: The tests the task groups call for are scripts in `S/verify/`, or new test functions added to the existing repository
       test module that covers the changed code.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: false
-  note: a check script written under the spec folder's checks/ in implement-tasks
+  note: a check script written under the spec folder's verify/ in implement-tasks
 - id: agentos_bugfix.implement_tasks.run.agentos_bugfix_checks.before_code
   scope: specific
   class: evidence
@@ -5784,14 +5836,18 @@ items:
     kind: agentos_bugfix.checks
     params:
       rule: written
-      dir: '{artifact}/{SPEC}/checks'
+      dir: '{artifact}/{SPEC}/verify'
       window:
       - stage_start:implement_tasks
       - - first:
             fact: repo_edit
             final: true
             window: stage:implement_tasks
+            test_paths: false
         - stage_end:implement_tasks
+      module_tests: true
+      per_group: true
+      verdict: true
   requirement: must
   modality_evidence: imperative (CT:214 'each task group starts with writing 2-8 tests (x.1 sub-task)')
   none_allowed: '-'
@@ -5803,8 +5859,8 @@ items:
   sources:
   - doc: CT
     lines:
-    - 126
-    - 126
+    - 128
+    - 128
     quote: where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running those tests and the existing
       tests of the changed code (final sub-task)
   impl_refs: []
@@ -5829,6 +5885,7 @@ items:
       - last_change_write
       - - first_write:final_verification
         - end
+      absent_unread: true
   requirement: should
   modality_evidence: 'IT:222 ''Check .../tasks.md'' (the run has just ticked it: should)'
   none_allowed: '-'
@@ -5863,6 +5920,7 @@ items:
     params:
       rule: suite_run
       fix_round: true
+      phase3_fallback: true
   requirement: must
   modality_evidence: imperative (IT:239 'Run the entire tests suite for the application')
   none_allowed: '-'
@@ -5914,7 +5972,8 @@ items:
   template: ''
   log_only: false
   note: while implementing (before every task is ticked), a valid run of the repository's tests after the last code change
-    (T1)
+    (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row
+    9)
 - id: agentos_bugfix.global.tasks.agentos_bugfix_tasks.later_edits
   scope: specific
   class: evidence
@@ -5970,8 +6029,8 @@ items:
     params:
       doc: CW
   requirement: must
-  modality_evidence: imperative (INS:4 'open /agent-os/core-workflow.md; that is your first action'; SP:68 'The first thing
-    you do is open /agent-os/core-workflow.md')
+  modality_evidence: imperative (INS:4 'open /agent-os/overview.md; that is your first action'; SP:68 'The first thing you
+    do is open /agent-os/overview.md')
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -5983,12 +6042,12 @@ items:
     lines:
     - 4
     - 4
-    quote: Before you look at the repository, open /agent-os/core-workflow.md; that is your first action.
+    quote: Before you look at the repository, open /agent-os/overview.md; that is your first action.
   - doc: SP
     lines:
     - 68
     - 68
-    quote: 1. The first thing you do is open /agent-os/core-workflow.md.
+    quote: 1. The first thing you do is open /agent-os/overview.md.
   impl_refs: []
   derived_by: manual
   template: C-A1
@@ -6018,6 +6077,7 @@ items:
       - write:final_verification
       invalidate:
       - read_ahead
+      substantive: 0.1
   requirement: must
   modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
     SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
@@ -6080,6 +6140,7 @@ items:
     kind: prohibited_action
     params:
       action: test_file_modify
+      final_patch: true
   requirement: must
   modality_evidence: 'v5 prohibition: existing test lines never changed or removed; additions to existing test modules allowed
     (CW:85; CT:215)'
@@ -6097,18 +6158,18 @@ items:
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
-      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
+      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/verify/`,
       run on its own, or a new test function added to the existing repository test module that covers the changed code; never
       change or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
   derived_by: manual
   template: C-A6
   log_only: false
-  note: 'v5: only a write that changes or removes an existing test line counts; a test function added to an existing module
-    is allowed (manual edit 2026-11-07, docs rebuilt from build.py)'
+  note: an existing test file's prior line changed or removed, by an edit the trace shows or in the final patch (whitespace-only
+    changes, blank lines and moved lines do not count); added lines are allowed
 - id: agentos_bugfix.global.unimplemented.unimplemented
   scope: specific
   class: content
@@ -6255,7 +6316,7 @@ items:
     lines:
     - 6
     - 7
-    quote: core-workflow.md gives the path of each command document, the spec folder the commands write to
+    quote: overview.md gives the path of each command document, the spec folder the commands write to
   impl_refs: []
   derived_by: llm_extract
   template: ''
@@ -6336,9 +6397,9 @@ items:
   check:
     kind: agentos_bugfix.paths_written
     params:
-      pattern: ^/tmp/(?!agent-os/specs/[^/]+/checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
+      pattern: ^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!verify/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
   requirement: should
-  modality_evidence: 'CW:87 ''scratch files to S/checks/'' (where, not a prohibition: should)'
+  modality_evidence: 'CW:87 ''scratch files to S/verify/'' (where, not a prohibition: should)'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -6350,7 +6411,7 @@ items:
     lines:
     - 89
     - 89
-    quote: They go to `S/`, scratch files to `S/checks/`.
+    quote: They go to `S/`, scratch files to `S/verify/`.
   - doc: CW
     lines:
     - 56
@@ -6360,7 +6421,7 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: no script written under /tmp outside the spec folder's checks/
+  note: no scratch file written under /tmp outside the spec folder, and no script in the spec folder outside verify/
 - id: agentos_bugfix.global.run.agentos_bugfix_holds.shape_files_left_alone
   scope: specific
   class: evidence
@@ -6683,10 +6744,10 @@ items:
     quote: existing repository test module that covers the changed code. No existing test line in the repository
   - doc: CT
     lines:
-    - 127
-    - 127
+    - 129
+    - 129
     quote: '- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes
-      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/checks/`,
+      (the x.1 sub-task, and the additional tests of a test-review group) is a script under `/tmp/agent-os/specs/[this-spec]/verify/`,
       run on its own, or a new test function added to the existing repository test module that covers the changed code; never
       change or remove an existing test line. The test-writing standard applies to these tests.'
   impl_refs: []
@@ -6707,6 +6768,7 @@ items:
     kind: agentos_bugfix.created_files
     params:
       pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
+      scratch: true
   requirement: must
   modality_evidence: CW:87-88 'Nothing that belongs to the workflow goes into /testbed'
   none_allowed: '-'
@@ -6721,7 +6783,7 @@ items:
     - 88
     - 89
     quote: 'Nothing that belongs to the workflow goes into the repository: no spec files, notes, summaries or temporary scripts.
-      They go to `S/`, scratch files to `S/checks/`.'
+      They go to `S/`, scratch files to `S/verify/`.'
   impl_refs: []
   derived_by: manual
   template: ''
@@ -6751,15 +6813,17 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
-  note: the change tasks of tasks.md name a source file (a name written down after the file was already edited does not count)
+  note: every sub-task of tasks.md (as the run left it) that changes code -- numbered x.y, no test work, not begun with a
+    reading or checking verb -- names on its task line a repository path (a name written down after the file was already edited
+    does not count)
 - id: agentos_bugfix.global.penalty.plan_files.named_equals_patch
   scope: specific
   class: content
@@ -6783,15 +6847,15 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
-  note: the files tasks.md names are the source files of the final change, no more and no fewer
+  note: the source files those task lines name are the source files of the final change, no more and no fewer
 - id: agentos_bugfix.global.penalty.plan_files.named_covers_gold
   scope: specific
   class: content
@@ -6816,49 +6880,17 @@ items:
   sources:
   - doc: CT
     lines:
-    - 119
-    - 119
+    - 121
+    - 121
     quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
       the repository of the file it changes.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
-  note: every source file of the task's reference fix is named in tasks.md; unavailable (left out of the mean) for a task
-    with no reference fix to read
-- id: agentos_bugfix.global.penalty.plan_files.patch_covers_gold
-  scope: specific
-  class: content
-  stage: global
-  target:
-    type: artifact
-    ref: tasks
-    state: final
-  check:
-    kind: agentos_bugfix.penalty
-    params:
-      rule: plan_files.patch_covers_gold
-  requirement: must
-  modality_evidence: judged against the task's reference fix, which the agent cannot see
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: CT
-    lines:
-    - 119
-    - 119
-    quote: '**Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in
-      the repository of the file it changes.'
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: true
-  note: every source file of the task's reference fix is in the final change (more files are fine); unavailable (left out
-    of the mean) for a task with no reference fix to read
+  note: every source file of the task's reference fix is among the source files those task lines name; unavailable (left out
+    of the mean) for a task with no reference fix to read; a solved rollout is not paid by it (agentos_bugfix/penalty_solved
+    counts it as 1)
 - id: agentos_bugfix.implement_tasks.penalty.phase2_run.existing_and_own
   scope: specific
   class: evidence
@@ -6919,13 +6951,19 @@ items:
     - 40
     quote: IF a test fails because of your change, or because a test you wrote is itself wrong, fix the change or that test
       and run the tests again before you tick the task group's last sub-task.
+  - doc: IT
+    lines:
+    - 40
+    - 40
+    quote: Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it,
+      and go on; do not make a sixth attempt.
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
-  note: in every task group's stretch of PHASE 2 that holds a failing result, source or a test is edited after the last failing
-    result and before the tick; a run the item stands outside of is worth 0 when it never did what the item is about and 1
-    when it did and the item's condition did not arise
+  note: in every task group's stretch of PHASE 2, each failing test (or file / script) the documents ask to fix had at most
+    five attempts (fail, edit, run again) and passed again or was tried at least once; a run the item stands outside of is
+    worth 0 when it never did what the item is about and 1 when it did and the item's condition did not arise
 - id: agentos_bugfix.implement_tasks.penalty.phase2_fail.last_result_pass
   scope: specific
   class: evidence
@@ -6957,9 +6995,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: 'every test that failed in PHASE 2 passed again: the same file, a directory or label above it or the whole suite,
-    not a run narrowed below what failed; a run the item stands outside of is worth 0 when it never did what the item is about
-    and 1 when it did and the item''s condition did not arise'
+  note: in every task group's stretch of PHASE 2, every test that failed there (and that the documents ask to fix) passed
+    again before the group's tick -- a run that ran that test, not one that left it out -- or the group is marked ⚠️; a run
+    the item stands outside of is worth 0 when it never did what the item is about and 1 when it did and the item's condition
+    did not arise
 - id: agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
   scope: specific
   class: evidence
@@ -7057,9 +7096,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: after a failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
-    away), source or a test is edited before the report; a run that saw no such failure is worth 1 when its final code was
-    tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never was
+  note: each failure in PHASE 3 that the change causes (a test of the run's own, or one that passes with the change stashed
+    away) is fixed before the report -- by a source change, or for a test of the run's own also by an edit of that test; a
+    run that saw no such failure is worth 1 when its final code was tested (a test ran in PHASE 3, or after the last source
+    change in whichever phase) and 0 when it never was
 - id: agentos_bugfix.implement_tasks.penalty.phase3_fail.last_result_pass
   scope: specific
   class: evidence
@@ -7090,9 +7130,10 @@ items:
   derived_by: manual
   template: ''
   log_only: true
-  note: when a result failed in PHASE 3, the last result before the report passes; a run that saw no such failure is worth
-    1 when its final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when
-    it never was
+  note: every failure of PHASE 3 that the documents ask about passed again before the report (a run that ran that test), or
+    -- one the change causes -- was fixed and run again after the fix; a run that saw no such failure is worth 1 when its
+    final code was tested (a test ran in PHASE 3, or after the last source change in whichever phase) and 0 when it never
+    was
 scoring:
   item_weight:
     must: 1.0
@@ -7114,6 +7155,7 @@ scoring:
     x_fill_no_real_test_compliance_max: 0.5
     honest_golden_min: 0.95
     full_suite_rerun_min_drop: 0.00125
+  close_on_artifact: true
 conflicts:
 - type: documented
   description: create-tasks PHASE 1 reads spec.md / requirements.md only when they are not in the conversation context (CT:13),
@@ -7184,7 +7226,7 @@ conflicts:
     lines:
     - 39
     - 39
-    quote: '- Running ONLY the tests you''ve written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/checks/`,
+    quote: '- Running ONLY the tests you''ve written (if any; they are check scripts under `/tmp/agent-os/specs/[this-spec]/verify/`,
       or test functions you added to an existing repository test module, run through that module with the test runner) and
       ensuring those tests pass.'
 - type: documented
@@ -7229,7 +7271,7 @@ conflicts:
     - 11
     - 11
     quote: '* Use `AGENTS.md` under the repository root as your persistent memory for repository-specific knowledge and context.'
-  - path: docs/core-workflow.md
+  - path: docs/overview.md
     lines:
     - 87
     - 88
@@ -7787,16 +7829,16 @@ appendix:
   - statement: ct-019
     doc: CT
     lines:
-    - 118
-    - 118
+    - 120
+    - 120
     quote: '**Create tasks that are specific and verifiable**'
     modality: must
     reason: 'G4: not checkable by rule (Quality requirement on each task)'
   - statement: ct-022
     doc: CT
     lines:
-    - 123
-    - 123
+    - 125
+    - 125
     quote: Tests should cover only critical behaviors, not exhaustive coverage
     modality: should
     reason: 'G4: not checkable by rule ()'
@@ -8371,8 +8413,8 @@ appendix:
   - statement: ct-020
     doc: CT
     lines:
-    - 120
-    - 120
+    - 122
+    - 122
     quote: '**Group related tasks:** For example, group back-end engineering tasks together and front-end UI tasks together.'
     modality: must
     reason: Whether tasks are grouped by specialty (backend vs. UI) is a judgment about meaning, so no kind can check it.
@@ -8536,9 +8578,9 @@ appendix:
     lines:
     - 61
     - 61
-    quote: No command creates `S/checks/`; make it the first time you need it.
+    quote: No command creates `S/verify/`; make it the first time you need it.
     modality: must
-    reason: Applies only 'the first time you need it' (S/checks/). Whether the folder is needed cannot be written as an applies_when
+    reason: Applies only 'the first time you need it' (S/verify/). Whether the folder is needed cannot be written as an applies_when
       predicate, and no command is required to create it.
   - statement: cw-020
     doc: CW
@@ -8574,14 +8616,14 @@ appendix:
     - 7
     quote: and the point at which you call finish.
     modality: implicit
-    reason: The finish point is defined in core-workflow.md, not here; the statement itself adds no observable rule beyond
-      that document's own.
+    reason: The finish point is defined in overview.md, not here; the statement itself adds no observable rule beyond that
+      document's own.
   - statement: sp-010
     doc: SP
     lines:
     - 68
     - 68
-    quote: The first thing you do is open /agent-os/core-workflow.md.
+    quote: The first thing you do is open /agent-os/overview.md.
     modality: must
     reason: Duplicate of ins-004; already itemized as doc_read_first of CW.
   - statement: sp-014

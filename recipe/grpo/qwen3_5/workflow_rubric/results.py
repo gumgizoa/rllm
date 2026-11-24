@@ -36,6 +36,10 @@ FAIL_TEXT = re.compile(
     r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b",
     re.M,
 )
+# A verdict line a script prints about itself: read against an exit code of 0 only when the output is the script's alone.
+VERDICT_TEXT = re.compile(r"^\s*(?:FAIL|FAILED)\b|\b[1-9]\d* failed\b|\bFAILED \(", re.M)
+# What python prints at start-up when the environment holds a broken .pth file: the environment's, not the script's.
+PTH_NOISE = re.compile(r"Error processing line \d+ of [^\n]*\.pth:\n.*?Remainder of file ignored\n?", re.S)
 PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b", re.M | re.I)
 MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b")
 WHOLE = "*"  # the key of a runner run that names no file
@@ -89,21 +93,137 @@ def exit_code(observation: str) -> int | None:
         return None
 
 
+def own_exit_known(segs: list[shell.Segment], i: int, code: int | None) -> bool:
+    """The call's exit code ``code`` is segment ``i``'s own: ``i`` is the command's last segment, or the call ended with
+    0 and every list operator after ``i`` is ``&&`` (had ``i`` failed, nothing after it would have run and the call
+    could not end with 0). A segment that feeds a pipe, or is followed by ``;`` / ``||`` / a new line, has no known
+    code of its own."""
+    if code is None:
+        return False
+    if i == len(segs) - 1:
+        return True
+    if code != 0 or segs[i + 1].op_before == "|":
+        return False
+    return all(s.op_before in ("&&", "|") for s in segs[i + 1 :])
+
+
+def runs_something(seg: shell.Segment) -> bool:
+    """The segment invokes a test runner or executes a script."""
+    try:
+        return E.classify(seg) is not None or any(F._executed(seg))
+    except Exception:  # noqa: BLE001 -- agent text
+        return False
+
+
 def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "") -> str | None:
-    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output: the exit code when the
-    segment is the command's last, failure or pass text when no other segment could have printed such words."""
+    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output.
+
+    When the call's exit code is the segment's own (:func:`own_exit_known`) it decides: not 0 is a failure, 0 a pass --
+    unless the output is the segment's alone (no other runner or script in the call, no other segment that could print
+    such words) and holds a verdict line (``FAIL...`` / ``N failed`` / ``FAILED (``). Otherwise the output's words are
+    read: failure text when no other segment could have printed such words, pass text when there is no failure text.
+    The start-up errors python prints for a broken ``.pth`` file in the environment are not read."""
     obs = E.clean_observation(observation or "", command)
-    body = EXIT.sub("", obs)[-MAX_TEXT:]
-    code = exit_code(obs) if i == len(segs) - 1 else None
+    body = PTH_NOISE.sub("", EXIT.sub("", obs))[-MAX_TEXT:]
+    code = exit_code(obs)
     foreign = others_print(segs, i, MARK_WORDS)
+    if own_exit_known(segs, i, code):
+        if code != 0:
+            return "fail"
+        alone = not foreign and not any(runs_something(s) for j, s in enumerate(segs) if j != i)
+        return "fail" if alone and VERDICT_TEXT.search(body) else "pass"
     failed_text = bool(FAIL_TEXT.search(body)) and not foreign
-    if code is not None:
-        return "fail" if code != 0 or failed_text else "pass"
     if failed_text:
         return "fail"
     if not foreign and PASS_TEXT.search(body) and not FAIL_TEXT.search(body):
         return "pass"
     return None
+
+
+# --------------------------------------------------------------------------------------------
+# Runs with the change stashed away
+# --------------------------------------------------------------------------------------------
+_STASH = re.compile(r"\bgit\s+stash\b(?:[ \t]+(?:-\S+[ \t]+)*([a-z]+)\b)?")
+_STASH_BACK = frozenset({"pop", "apply"})
+_STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
+
+
+_CHECKOUT = re.compile(r"\bgit\s+(checkout|restore)\b([^;&|\n]*)")
+_BRANCHING = frozenset({"-b", "-B", "--orphan", "--detach", "-"})
+
+
+def _checkout_moves(sub: str, args: str, paths: set[str]) -> bool:
+    """``git checkout [<rev>] [--] <paths>`` / ``git restore [--source=<rev>] <paths>`` that names a path of ``paths``
+    (or ``.``): it puts the working copy of a changed file back to an older version. A branch switch moves nothing here."""
+    words = [w.strip("'\"") for w in args.split()]
+    if any(w in _BRANCHING for w in words):
+        return False
+    if sub == "restore" and any(w in ("--staged", "-S") for w in words) and not any(w in ("--worktree", "-W") for w in words):
+        return False  # unstages only: the working copy keeps the change
+    if "--" in words:
+        words = words[words.index("--") + 1 :]
+    targets = [w for w in words if w and not w.startswith("-")]
+    for t in targets:
+        t = t[2:] if t.startswith("./") else t
+        t = t.rstrip("/")
+        if t in (".", "") or any(q == t or q.endswith("/" + t) or t.endswith("/" + q) or q.startswith(t + "/") for q in paths):
+            return True
+    return False
+
+
+def stash_marks(command: str, checkout_paths: set[str] | None = None) -> list[tuple[int, bool]]:
+    """(position, stashed away after it) for every ``git stash`` of a command that moves the change: push forms put it
+    away, ``pop`` / ``apply`` bring it back; ``list`` / ``show`` / ``drop`` and the like move nothing. With
+    ``checkout_paths`` (the repository files other than tests the run edited itself), a ``git checkout`` / ``git restore`` of one of them puts the
+    change away too (implement-tasks.md 135 names ``git stash`` as an example of running a test without the change)."""
+    out = []
+    for m in _STASH.finditer(command or ""):
+        sub = m.group(1)
+        if sub in _STASH_NOTHING:
+            continue
+        out.append((m.start(), sub not in _STASH_BACK))
+    if checkout_paths:
+        out += [(m.start(), True) for m in _CHECKOUT.finditer(command or "") if _checkout_moves(m.group(1), m.group(2), checkout_paths)]
+        out.sort()
+    return out
+
+
+def stash_states(commands: list, edit_steps: tuple[int, ...] | list[int] = (), checkout_paths: set[str] | None = None) -> tuple[dict, dict]:
+    """Per command ``(step, action_index)``: whether the change is stashed away when it starts, and its marks.
+
+    The change stays away until a ``pop`` / ``apply`` -- or until the run edits the repository again (``edit_steps``):
+    a stash that is never popped has thrown the change away, and what the run writes next is a new change, not the
+    old code. A ``git stash`` that found nothing to save stashed nothing."""
+    before, marks, away, since = {}, {}, False, 0
+    edits = sorted(edit_steps)
+    for c in sorted(commands, key=lambda c: (c.step, c.action_index)):
+        key = (int(c.step), c.action_index)
+        if away and any(since < w <= key[0] for w in edits):
+            away = False
+        ms = stash_marks(c.command, checkout_paths)
+        if "No local changes to save" in (getattr(c, "observation", "") or ""):
+            ms = [m for m in ms if not m[1]]
+        before[key], marks[key] = away, ms
+        if ms:
+            away = ms[-1][1]
+            since = key[0]
+    return before, marks
+
+
+def run_stashed(r: Any, before: dict, marks: dict) -> bool:
+    """The runner run ``r`` runs with the change stashed away."""
+    key = (int(r.step), r.action_index)
+    ms = marks.get(key) or []
+    state = before.get(key, False)
+    if not ms:
+        return state
+    at = (r.command or "").find(r.segment) if r.segment else -1
+    if at < 0:  # cannot place the run in its command: a command that stashes runs it stashed
+        return state or any(on for _, on in ms)
+    for pos, on in ms:
+        if pos < at:
+            state = on
+    return state
 
 
 def executions(ctx: EvalContext, paths: set[str]) -> dict[str, list[tuple[int, str | None]]]:
@@ -137,6 +257,7 @@ class TestResult:
     runner: bool  # a valid runner run; else a script of the run's own
     keys: tuple[str, ...]  # the script's path, or the test files the runner run names (``WHOLE`` when none)
     selection: tuple[str, ...] = ()  # what narrows a runner run below its files (:func:`selection`)
+    failed_ids: tuple[str, ...] = ()  # a failing valid runner run: the ids of its failed tests, when its output names them all (:func:`run_failed_ids`)
 
 
 def selection(segment: str) -> tuple[str, ...]:
@@ -245,10 +366,154 @@ def standing_failures(results: list[TestResult], until: int | None = None) -> li
     return sorted(failed)
 
 
+# --------------------------------------------------------------------------------------------
+# Failure units: what a failing result leaves to pass again, test by test where the output says
+# --------------------------------------------------------------------------------------------
+def _same_file(a: str, b: str) -> bool:
+    """Two test paths name the same file: equal, or one is the tail of the other (``tests/x.py``, ``/testbed/tests/x.py``)."""
+    a, b = a.lstrip("./"), b.lstrip("./")
+    return a == b or a.endswith("/" + b) or b.endswith("/" + a)
+
+
+def _under(tid: str, sel: str) -> bool:
+    """Test ``tid`` is ``sel`` or below it: the same file (a path tail) and, when ``sel`` names a test, the same test or
+    one of its parametrisations or methods (``sel::``, ``sel[``)."""
+    tf, _, tr = tid.partition("::")
+    sf, _, sr = sel.partition("::")
+    if not _same_file(tf, sf):
+        return False
+    return not sr or tr == sr or tr.startswith(sr + "::") or tr.startswith(sr + "[")
+
+
+def run_failed_ids(failed: int, errors: int, observation: str) -> tuple[str, ...]:
+    """The ids of the tests a failing valid runner run failed, when its output names at least as many as it counts
+    (``failed + errors``); else empty (the run is judged by its files). A bare name from a pytest failure section's
+    header (``test_x[png]``, ``Class.test_x``) is the same test as a full id with that name at its end and is dropped."""
+    n = failed + errors
+    if n <= 0:
+        return ()
+    ids = E.failing_ids(observation or "")
+    full = [i for i in ids if "::" in i]
+    out = []
+    for i in ids:
+        if "::" not in i:
+            tail = i.replace(".", "::")
+            if any(f.endswith("::" + tail) or f.endswith("::" + i) for f in full) or any(o != i and o.endswith("." + i) for o in ids if "::" not in o):
+                continue
+        out.append(i)
+    return tuple(out) if len(out) >= n else ()
+
+
+def failure_units(result: TestResult) -> list[tuple[str, str]]:
+    """What a failing result leaves to pass again: ``("test", id)`` for every failed test of a valid runner run whose
+    output names them all (:attr:`TestResult.failed_ids`); else ``("key", k)`` for every file it names (``WHOLE`` when
+    none), and for a script, its path."""
+    if result.passed:
+        return []
+    if result.runner and result.failed_ids:
+        return [("test", i) for i in result.failed_ids]
+    return [("key", k) for k in result.keys]
+
+
+_K_WORD = re.compile(r"\s*(\(|\)|and\b|or\b|not\b|[^\s()]+)")
+
+
+def _k_matches(expr: str, tid: str) -> bool | None:
+    """pytest's ``-k expr`` on test ``tid``: every word stands for "the word is in the id" (case ignored), joined by
+    ``and`` / ``or`` / ``not`` and brackets. None when the expression cannot be read."""
+    toks, pos = [], 0
+    expr = expr.strip()
+    while pos < len(expr):
+        m = _K_WORD.match(expr, pos)
+        if not m or not m.group(1):
+            return None
+        pos = m.end()
+        w = m.group(1)
+        if w in ("(", ")", "and", "or", "not"):
+            toks.append(w)
+        elif re.fullmatch(r"[\w.\[\]-]+", w):
+            toks.append("True" if w.lower() in tid.lower() else "False")
+        else:
+            return None
+    if not toks:
+        return None
+    try:
+        return bool(eval(" ".join(toks), {"__builtins__": {}}, {}))  # noqa: S307 -- only True / False / and / or / not / brackets
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def runs_test(result: TestResult, test_id: str) -> bool:
+    """The valid runner run ``result`` ran test ``test_id``: its targets cover the test (the same file, a directory or
+    dotted label above it, the whole suite) and nothing it selects leaves the test out -- a ``file::test`` id it names is
+    the test or above it; ``-k`` holds for it; ``--deselect`` / ``--ignore`` do not name it or its file; ``-m`` (marks
+    cannot be read) and a ``-k`` that cannot be read leave it out."""
+    if not result.runner:
+        return False
+    file_part = test_id.split("::")[0]
+    if not any(k == WHOLE or reruns(k, file_part) or reruns(k, test_id) for k in result.keys):
+        return False
+    ids = [s for s in result.selection if not s.startswith("-")]
+    if ids and not any(_under(test_id, s) for s in ids):
+        return False
+    for s in result.selection:
+        if not s.startswith("-"):
+            continue
+        opt, _, val = s.partition(" ")
+        if opt == "-m":
+            return False
+        if opt == "-k":
+            if not _k_matches(val, test_id):
+                return False
+        elif opt == "--deselect":
+            if _under(test_id, val):
+                return False
+        elif opt in ("--ignore", "--ignore-glob"):
+            v = val.rstrip("/").lstrip("./")
+            f = file_part.lstrip("./")
+            if v and (f == v or f.startswith(v + "/") or ("/" + f).endswith("/" + v) or ("/" + v + "/") in ("/" + f) or posixpath.basename(f) == v):
+                return False
+    return True
+
+
+def clears(passing: TestResult, unit: tuple[str, str], failing: TestResult) -> bool:
+    """The passing result ``passing`` makes failure unit ``unit`` (left by ``failing``) pass again: a test unit, when it
+    is a valid runner run that ran the test (:func:`runs_test`); a file or script unit, by :func:`standing_failures`' rule
+    -- it runs that key and is not narrower than the run that failed."""
+    if not passing.passed:
+        return False
+    kind, what = unit
+    if kind == "test":
+        return runs_test(passing, what)
+    return runs_key(passing, what) and (not passing.selection or passing.selection == failing.selection)
+
+
+def standing_units(results: list[TestResult], until: int | None = None) -> list[tuple[tuple[str, str], TestResult]]:
+    """The failure units left failing after the results at or before ``until``, each with the last result that failed
+    it. Results are read in step order, a failing one last within a step; a unit stands until a later passing result
+    :func:`clears` every failing run of it (a file that failed whole and then narrowed needs a pass that is not narrower
+    than the whole failure)."""
+    failed: dict[tuple[str, str], list[TestResult]] = {}
+    for r in sorted((r for r in results if until is None or r.step <= until), key=lambda x: (x.step, not x.passed)):
+        if not r.passed:
+            for u in failure_units(r):
+                failed.setdefault(u, []).append(r)
+            continue
+        for u in list(failed):
+            left = [f for f in failed[u] if not clears(r, u, f)]
+            if left:
+                failed[u] = left
+            else:
+                del failed[u]
+    return sorted(((u, fs[-1]) for u, fs in failed.items()), key=lambda x: (x[0], x[1].step))
+
+
 __all__ = [
     "EXIT",
     "FAIL_TEXT",
     "PASS_TEXT",
+    "VERDICT_TEXT",
+    "PTH_NOISE",
     "MARK_WORDS",
     "WHOLE",
     "TestResult",
@@ -256,6 +521,8 @@ __all__ = [
     "executed_by",
     "others_print",
     "exit_code",
+    "own_exit_known",
+    "runs_something",
     "outcome",
     "executions",
     "selection",
@@ -264,4 +531,12 @@ __all__ = [
     "reruns",
     "runs_key",
     "standing_failures",
+    "run_failed_ids",
+    "failure_units",
+    "runs_test",
+    "clears",
+    "standing_units",
+    "stash_marks",
+    "stash_states",
+    "run_stashed",
 ]

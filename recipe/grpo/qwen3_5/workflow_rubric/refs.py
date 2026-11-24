@@ -381,14 +381,21 @@ def select(ctx: EvalContext, spec: dict):
             if scope is None:
                 return None
             val = _keyed_ids(scope, arg)
-        else:  # headings
+        else:  # headings: at ``level``, or at any of ``levels`` (``tag_level``: as "<level>:<title>"); ``skip_sections``: not inside those ## sections
             g = arg.get("group", 0)
             val = []
+            levels = {int(x) for x in arg["levels"]} if arg.get("levels") else {int(arg["level"])}
+            skip = {_WS.sub(" ", str(x)).strip().casefold() for x in arg.get("skip_sections") or ()}
+            inside = None
             for level, title in M.headings(text):
-                if level == int(arg["level"]):
+                if level <= 2:
+                    inside = _WS.sub(" ", title).strip().casefold() if level == 2 else None
+                elif inside in skip:
+                    continue
+                if level in levels:
                     m = re.search(arg["pattern"], title)
                     if m:
-                        val.append(m.group(g))
+                        val.append(f"{level}:{m.group(g)}" if arg.get("tag_level") else m.group(g))
     elif key == "fact":
         val = _fact_values(ctx, arg if isinstance(arg, dict) else {"name": arg}, spec)
     elif key == "literal":
@@ -580,7 +587,7 @@ def _unrecorded_failure(r, recorded: list[str]) -> bool:
 
 def matching(ctx: EvalContext, arg: dict) -> Iterable:
     """The fact records a predicate's ``exists``/``absent``/``counts`` ranges over."""
-    from .facts import change_paths, executed_paths, is_new_path, is_test_path
+    from .facts import change_paths, executed_paths, is_new_path, is_test_path, source_paths
 
     f = ctx.facts
     name = arg["fact"]
@@ -607,6 +614,8 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
             if arg.get("test_paths") is not None and is_test_path(e.path) != bool(arg["test_paths"]):
                 continue
             if arg.get("final") and e.path not in change_paths(ctx):
+                continue
+            if arg.get("source") and (e.op == "unknown" or e.path not in source_paths(ctx)):  # a source file of the final change, edited by the agent
                 continue
             if arg.get("created") is not None and is_new_path(ctx, e.path) != bool(arg["created"]):
                 continue

@@ -8,6 +8,8 @@ judges it with every run and never counts it in ``<workflow>/compliance``. :func
     <workflow>/<stage>.penalty.<name>        each item's value
     <workflow>/penalty_applies.<name>        1 when the item was judged on the run, 0 when it stood outside it
     <workflow>/penalty_unavailable           how many items could not be judged
+    <workflow>/penalty_solved                the mean a solved rollout is paid by, when the workflow has
+                                             ``unsolved_only`` items (below); absent otherwise
 
 What an item is worth, by its result:
 
@@ -20,9 +22,22 @@ What an item is worth, by its result:
                        task, a sandbox step that failed), which says nothing about the run.
 
 A run whose items are all unavailable has no ``penalty`` signal; a kind that raises is a failed item, as everywhere
-in the engine. A run whose scoring failed as a whole (the episode could not be parsed, collection or the engine raised)
+in the engine. 
+
+
+``train.py`` folds ``<workflow>/penalty`` into the reward (``WorkflowSpec.penalty_signal``).
+A run whose scoring failed as a whole (the episode could not be parsed, collection or the engine raised)
 gets ``<workflow>/penalty`` 0 beside ``<workflow>/compliance`` 0 (``evaluation.failure_signals``): the trainer counts
 a missing penalty signal as 1. ``train.py`` folds ``<workflow>/penalty`` into the reward (``WorkflowSpec.penalty_signal``).
+
+
+(For agentos-bugfix only) Items that only tell failures apart (``unsolved_only``)
+    An item judged against something the agent cannot see -- the task's reference fix -- would cost a rollout that
+    solved the task another way. Such an item is named in ``post(report, unsolved_only=...)`` (by its name after
+    ``penalty.``): it stays in ``penalty`` as judged, and ``penalty_solved`` is the same mean with each of them worth
+    1. ``train.py`` pays a solved rollout by ``penalty_solved`` and an unsolved one by ``penalty``
+    (:data:`SOLVED_SUFFIX`), so every other item -- the test behaviour, the plan -- still costs a solve that broke it.
+    This is per item; ``compliance_reward.penalty_gate=unsolved`` is the same waiver for the whole mean.
 """
 
 from __future__ import annotations
@@ -31,6 +46,7 @@ from .context import Result
 from .schema import Item
 
 SEGMENT = "penalty"
+SOLVED_SUFFIX = "_solved"  # <penalty signal> + this: the mean with the ``unsolved_only`` items worth 1
 JUDGED = ("pass", "fail")
 
 
@@ -48,10 +64,13 @@ def outside(item: Item, detail: str, *, premise: bool) -> Result:
     return Result.not_applicable(item, detail, score=1.0 if premise else 0.0)
 
 
-def post(report) -> dict[str, float]:
-    """The penalty signals of a finished report (names without the workflow prefix); empty without a penalty item."""
+def post(report, unsolved_only: tuple[str, ...] = ()) -> dict[str, float]:
+    """The penalty signals of a finished report (names without the workflow prefix); empty without a penalty item.
+    ``unsolved_only``: the items (their names after ``penalty.``) a solved rollout is not judged by -- with any,
+    ``penalty_solved`` is the mean with those worth 1."""
     out: dict[str, float] = {}
     values: list[float] = []
+    solved: list[float] = []
     unavailable = 0
     seen = False
     for item_id, r in report.results.items():
@@ -66,14 +85,17 @@ def post(report) -> dict[str, float]:
             continue
         v = float(getattr(r, "score", 0.0))
         values.append(v)
+        solved.append(1.0 if short in unsolved_only else v)
         out[key] = v
         out[f"penalty_applies.{short}"] = float(status in JUDGED)
     if not seen:
         return {}
     if values:
         out["penalty"] = sum(values) / len(values)
+        if unsolved_only:
+            out["penalty" + SOLVED_SUFFIX] = sum(solved) / len(solved)
     out["penalty_unavailable"] = float(unavailable)
     return out
 
 
-__all__ = ["SEGMENT", "names", "outside", "post"]
+__all__ = ["SEGMENT", "SOLVED_SUFFIX", "names", "outside", "post"]

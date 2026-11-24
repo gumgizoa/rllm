@@ -1,0 +1,68 @@
+# @package _global_
+#
+# Qwen3.5-9B + openhands-sdk on SWE-Gym with one workflow, agentos_bugfix (agentos_v2 without
+# the steps a fix does not need; its own scorer, agentos_bugfix/compliance), for every
+# training task. Validation is pinned to AI-DLC v4.
+#
+# Inherits openhands_9b_aidlc_swegym: the 9B + openhands-sdk harness, SWE-Gym host sizing
+# (32 sandboxes, hide_git_history), FSDP1, one update per step, 3 epochs with a checkpoint
+# every step, and the RLLM_ARTIFACT_DIR checkpoint / episode paths. What the later files
+# of the old chain added
+#   openhands_9b_aidlc_swegym_v2 -> openhands_9b_speckit_openspec_swegym_reward
+#   -> openhands_9b_speckit_openspec_agentos_swegym_reward
+#   -> openhands_9b_speckit_openspec_agentos_swegym_reward_floor -> ..._floor_fmtcut
+# is written out below, so a later edit to one of those files does not change this run.
+# The reasons behind each value are in those files' comments.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_agentosbugfix_swegym_reward_floor_fmtcut_wf1121 \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=null
+
+defaults:
+  - openhands_9b_aidlc_swegym
+
+recipe:
+  # 250 turns in 262144 tokens (base: 100 in 131072); moves together with
+  # rllm.data.max_response_length and rollout.max_model_len.
+  agent_step_limit: 250
+  workflow:
+    name: [agentos_bugfix]
+    seed: 0
+    val_name: aidlc_v5
+    # reward = 0.7 * verifier * (0.7 + 0.3 * compliance) + 0.3 * penalty. penalty is the mean of
+    # agentos_bugfix's ten penalty items for an unsolved rollout; a solved one is paid by
+    # agentos_bugfix/penalty_solved, the same mean with plan_files.named_covers_gold (the one
+    # item judged against the reference fix) worth 1. The other nine cost a solve too (gate all).
+    compliance_reward:
+      enable: true
+      mode: mul
+      floor: 0.7
+      penalty_weight: 0.3
+      penalty_gate: all
+  # Built by prepare_swegym.py --instruction aidlc (procedure-free prompt).
+  train_dataset: swegym293_aidlc
+  val_dataset: swegym_val23_aidlc
+  # The runner ends the episode at any tool call the SDK still rejects (backstop for
+  # rllm.gateway.tool_call_validation=drop).
+  openhands_end_on_invalid_tool_call: true
+
+rllm:
+  data:
+    # 16384 (inherited max_prompt_length) + 245760 = 262144 = rollout.max_model_len
+    max_response_length: 245760
+  gateway:
+    renderer_kwargs:
+      # Thinking on (base runs no-think).
+      enable_thinking: true
+    # A turn with a malformed tool call is handed back as text, which ends the episode.
+    tool_call_validation: drop
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-agentosbugfix-floor07-fmtcut-topp1-wf1121
+
+actor_rollout_ref:
+  actor:
+    # Needed for a 246K-token row on an H200; 8 GPUs / 2 = 4 data-parallel ranks.
+    ulysses_sequence_parallel_size: 2
+  rollout:
+    # = rllm.data.max_prompt_length + max_response_length
+    max_model_len: 262144
+    gpu_memory_utilization: 0.7

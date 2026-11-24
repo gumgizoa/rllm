@@ -5,30 +5,45 @@ judged and reported with every run, never part of ``agentos_bugfix/compliance``)
 workflows are. Two groups: the files tasks.md names (this module, below), and the test behaviour of implement-tasks
 (``penalty_tests.py``: seven items, ``agentos_bugfix.implement_tasks.penalty.*``).
 
-The files tasks.md names, against the files the run changed and the reference fix -- four items:
+The files tasks.md names, against the files the run changed and the reference fix -- three items:
 
-    agentos_bugfix.global.penalty.plan_files.named               the change tasks of tasks.md name a source file
-    agentos_bugfix.global.penalty.plan_files.named_equals_patch  the named files are the source files of the final change
-    agentos_bugfix.global.penalty.plan_files.named_covers_gold   every source file of the reference fix is named
-    agentos_bugfix.global.penalty.plan_files.patch_covers_gold   every source file of the reference fix is in the final
-                                                                 change (more files are fine)
+    agentos_bugfix.global.penalty.plan_files.named               every sub-task that changes code names, on its task
+                                                                 line, the path of a file in the repository
+    agentos_bugfix.global.penalty.plan_files.named_equals_patch  the source files those lines name are the source files
+                                                                 of the final change
+    agentos_bugfix.global.penalty.plan_files.named_covers_gold   every source file of the task's reference fix is among
+                                                                 the named source files -- unsolved rollouts only
+
+``named_covers_gold`` is judged against the task's reference fix, which the agent cannot see, so a rollout that solved
+the task in other files must not pay for it (C-2 of the reward review, 2026-11-21, dropped the item for that reason,
+with ``patch_covers_gold``; it is back, 2026-11-21, as an item that only tells failures apart). It is one of
+:data:`UNSOLVED_ONLY`: ``agentos_bugfix/penalty`` holds it as judged and ``agentos_bugfix/penalty_solved`` holds it as
+1, and ``train.py`` pays a solved rollout by the second (``workflow_rubric/penalty.py``, "Items that only tell failures
+apart"). The other nine items cost a solved rollout as they cost an unsolved one. ``patch_covers_gold`` stays out: on
+an unsolved rollout it says nearly what this item says.
 
 ``agentos_bugfix/penalty`` is made by the rule every workflow shares (``workflow_rubric/penalty.py``): the mean of the
-eleven items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
+ten items, each always in it -- a test item the run stands outside of is worth 0 when the run never did what the
 item is about and 1 when it did and the item's condition did not arise (``penalty_tests.py``) -- with what cannot be
-judged left out: the two gold items when the task has no reference fix to read (``penalty_gold_unknown``), the seven
+judged left out: ``named_covers_gold`` when the task has no reference fix to read (``penalty_gold_unknown``), the seven
 test items when the code root is not known. ``penalty_plan_files`` and ``penalty_tests`` are the means of each group.
-A run that names no file fails the first three. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
+A run that names no file fails all three file items. ``train.py`` folds ``agentos_bugfix/penalty`` into the reward when
 ``compliance_reward.penalty_weight`` is set (``WorkflowSpec.penalty_signal``).
 
-The named files
-    Every version of tasks.md the trace can replay is read (a write whose content cannot be replayed is skipped; when
-    that is the last write, the file as it was collected stands in for it). From each, the change tasks -- the
-    sub-tasks that are not about tests, with the lines under them -- give file names: path tokens with a source
-    extension, and dotted module names that denote a file the run wrote, the final change holds or the reference fix
-    changes. A name counts from the first version it appears in, and stays once written, removed later or not. One
-    name does not count: a file the run had already edited when the name first appeared (written down after the fact).
-    A name the run never edited stays -- it is a planned file that was not changed.
+The named files (create-tasks.md: "every sub-task that changes code names, on its task line, the path in the repository of
+the file it changes. A task added while implementing does the same, and is added before that file is edited.")
+    The sub-tasks that change code are the task lines of tasks.md as the run left it (its last version) numbered
+    ``x.y`` (not ``x.0``; a deeper ``x.y.z`` step is part of its ``x.y``) that are no test work -- writing, running or
+    reviewing tests, read with the line's file paths taken out, so "Run tests in foo.py" is a test task -- and do not
+    begin with a reading or checking verb (``checks.READ_VERB``: analyze, review, locate, ...; and verify, confirm,
+    check, ensure, validate, test, run). Their names come from the task line itself -- not the lines under it ("Reuse
+    pattern from: ..."), not an ``x.0`` line -- and are repository paths: a token with a ``/`` whose last part has an
+    extension, or a bare file name that is a file at the repository's top level (one the run wrote or the final change
+    holds). A dotted module name is no path. When a name first appeared is read over every version of tasks.md the
+    trace can replay (a write whose content cannot be replayed is skipped; when that is the last write, the file as it
+    was collected stands in for it): a name first written after the run had already edited that file does not count.
+    ``named`` asks every such line for a path that counts (any extension: a task that changes the README names the
+    README); ``named_equals_patch`` compares the source files among the names with the final change.
 
 The final change
     ``facts.change_paths``: the repository diff as the sandbox gave it; for a saved episode, the patch it recorded
@@ -53,24 +68,26 @@ from pathlib import Path
 from typing import Any
 
 from ....workflow_rubric import facts as F
+from ....workflow_rubric import patch as PATCH
 from ....workflow_rubric import penalty as PEN
 from ....workflow_rubric.checks import register
 from ....workflow_rubric.context import EvalContext, Result
 from ....workflow_rubric.schema import Item
+from ...agentos_v2.reward import checks as C
 from . import penalty_tests
 
 GROUP = "agentos_bugfix.global.penalty.plan_files"
-RULES = ("named", "named_equals_patch", "named_covers_gold", "patch_covers_gold")
+RULES = ("named", "named_equals_patch", "named_covers_gold")
+# judged against the reference fix: a solved rollout is not paid by these (``PEN.post(unsolved_only=...)``)
+UNSOLVED_ONLY = ("plan_files.named_covers_gold",)
 
 _EXT = r"(?:py|pyx|pxd|pxi|pyi|c|cc|cpp|h|hpp|js|jsx|ts|tsx|mjs|cjs|go|rs|java|kt|rb|php)"
 _SOURCE = re.compile(rf"\.{_EXT}$")
 _PATH = re.compile(rf"(?<![\w/.-])[~./]*(?:[\w.-]+/)*[\w.-]+\.{_EXT}\b")
-_DOTTED = re.compile(r"(?<![\w./-])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+")
 _URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
 _TABLES = re.compile(r"(?:^|/)\w*(?:parse|lex)tab\.py$")  # ply's generated tables
 # tasks.md: a task line (checkbox and / or number), and what a task about tests says
 _HEAD = re.compile(r"^(\s*)[-*+]\s*(?:(\[[ xX]?\]|⚠️|⚠)\s*)?(?:(\d+(?:\.\d+)+)[.:)]?\s+)?(.*)$")
-_HEADING = re.compile(r"^#{2,6}\s")
 _WRITE_TESTS = re.compile(r"\b(write|add|create|implement|extend|update)\b[^.]*\btests?\b", re.I)
 _RUN_TESTS = re.compile(r"\b(run|re-?run|execute|ensure|verify|confirm|check)\b[^.]*\btests?\b|^tests?\b", re.I)
 _REVIEW_TESTS = re.compile(r"\b(review|analy[sz]e)\b[^.]*\b(tests?|coverage|gaps?)\b", re.I)
@@ -84,27 +101,14 @@ def source_file(path: str) -> bool:
     return bool(path) and _SOURCE.search(path) is not None and not F.is_test_path(path) and not F.is_generated(path) and not _TABLES.search(path)
 
 
-def patch_files(patch: str | None) -> tuple[list[str], set[str]]:
-    """(paths a patch touches, those it adds), in the patch's order."""
+def patch_files(patch: str | None) -> list[str]:
+    """The paths a patch touches, in the patch's order."""
     files: list[str] = []
-    new: set[str] = set()
-    cur: str | None = None
     for line in (patch or "").splitlines():
-        if line.startswith("diff --git "):
-            m = re.match(r"diff --git a/(\S+) b/(\S+)$", line)
-            cur = m.group(2) if m else None
-            if cur is not None and cur not in files:
-                files.append(cur)
-        elif cur is not None and line.startswith("new file mode"):
-            new.add(cur)
-    return files, new
-
-
-match = F.same_file  # ``name`` (as tasks.md wrote it) denotes repository file ``path``: the rule every workflow shares
-
-
-def _module(path: str) -> str:
-    return re.sub(r"^(?:lib|src)\.", "", re.sub(r"\.\w+$", "", path).replace("/", "."))
+        m = re.match(r"diff --git a/(\S+) b/(\S+)$", line)
+        if m and m.group(2) not in files:
+            files.append(m.group(2))
+    return files
 
 
 def gold_patch(task: Any) -> str | None:
@@ -128,61 +132,53 @@ def gold_patch(task: Any) -> str | None:
     return patch if isinstance(patch, str) else None
 
 
+match = F.same_file  # ``name`` (as tasks.md wrote it) denotes repository file ``path``: the rule every workflow shares
+
+
 # --------------------------------------------------------------------------------------------
 # tasks.md
 # --------------------------------------------------------------------------------------------
-def change_text(tasks_md: str) -> str:
-    """The text of the change tasks: every task line that is not about tests, with the lines under it. A line that says
-    nothing about tests takes the kind of the task it sits under; a group's own ``N.0`` line is a change task."""
-    blocks: list[list] = []  # [is a change task, text]
-    stack: list[tuple[int, str]] = []
-    in_task = False  # a heading or a ``**Label:**`` line ends the task above it: what follows is not that task's detail
+# a reading or checking verb (B-1's list, and the verbs of a sub-task that checks instead of changing)
+_CHECK_VERB = re.compile(r"(?i)^\s*(?:\*\*)?\s*(?:verify|confirm|check|ensure|validate|test|run)\b")
+# a path of any extension: a token with a ``/`` (its last part with an extension), or a bare ``name.ext``
+_ANYPATH = re.compile(r"(?<![\w/.-])[~./]*(?:[\w.-]+/)+[\w.-]*\w\.[A-Za-z0-9]{1,8}\b|(?<![\w/.-])[\w-][\w.-]*\.[A-Za-z][A-Za-z0-9]{0,7}\b")
+
+
+def change_lines(tasks_md: str) -> list[str]:
+    """The task lines of the sub-tasks that change code: numbered ``x.y`` (``y`` not 0), no test work (read with the
+    line's file paths taken out: a dot in ``foo.py`` would end the phrase), not begun with a reading or checking verb."""
+    out: list[str] = []
     for line in tasks_md.splitlines():
-        if _HEADING.match(line):
-            stack, in_task = [], False
+        m = _HEAD.match(re.sub(r"\*\*(\d+(?:\.\d+)+)\*\*", r"\1", line))  # ``**1.2**`` is the number 1.2
+        if not m or not m.group(3):
             continue
-        if line.startswith("**"):
-            in_task = False
+        parts = m.group(3).split(".")
+        if len(parts) != 2 or parts[1] == "0":
             continue
-        m = _HEAD.match(line)
-        if m and (m.group(2) or m.group(3)):
-            indent, body = len(m.group(1)), m.group(4)
-            while stack and stack[-1][0] >= indent:
-                stack.pop()
-            own = "write" if _WRITE_TESTS.search(body) else "run" if _RUN_TESTS.search(body) else "review" if _REVIEW_TESTS.search(body) else None
-            if own is None and m.group(3) and m.group(3).endswith(".0"):
-                own = "change"
-            kind = own or (stack[-1][1] if stack else "change")
-            stack.append((indent, kind))
-            blocks.append([kind == "change", line])
-            in_task = True
-        elif in_task and line.strip():
-            blocks[-1][1] += "\n" + line
-    return "\n".join(text for change, text in blocks if change)
+        body = _ANYPATH.sub(" ", _URL.sub(" ", m.group(4)))
+        if _WRITE_TESTS.search(body) or _RUN_TESTS.search(body) or _REVIEW_TESTS.search(body):
+            continue
+        lead = body.lstrip("*`_ ")
+        if C.READ_VERB.match(lead) or _CHECK_VERB.match(lead):
+            continue
+        out.append(m.group(4))
+    return out
 
 
-def names_in(text: str, workdir: str | None, known: set[str], own_scripts: frozenset[str] = frozenset()) -> set[str]:
-    """The source files ``text`` names: path tokens (repository-relative), and the files of ``known`` a dotted module
-    name denotes (``pkg.mod`` or ``pkg.mod.attr`` for ``pkg/mod.py``). A token that is the name of one of the run's own
-    scripts (``own_scripts``: check scripts, scratch files) and of no file in ``known`` is that script, not a source file."""
+def line_paths(line: str, workdir: str | None, top: set[str]) -> set[str]:
+    """The repository paths a task line names (repository-relative): tokens with a ``/`` whose last part has an
+    extension, and bare file names of ``top`` (files at the repository's top level). Paths under /tmp, the agent-os
+    folder or a verify/ folder (the spec folder's test scripts) are the run's own, not the repository's."""
     wd = (workdir or "").strip("/")
-    text = _URL.sub(" ", text)
     out: set[str] = set()
-    for tok in _PATH.findall(text):
+    for tok in _ANYPATH.findall(_URL.sub(" ", line)):
         p = tok.strip("`'\"()[],:;").lstrip("~./")
         if wd and p.startswith(wd + "/"):
             p = p[len(wd) + 1 :]
-        if not p or p.startswith(("tmp/", "agent-os/")) or "/checks/" in "/" + p or not source_file(p):
+        if not p or p.startswith(("tmp/", "agent-os/")) or "/verify/" in "/" + p:
             continue
-        if posixpath.basename(p) in own_scripts and not any(match(p, f) for f in known):
-            continue
-        out.add(p)
-    if known:
-        mods = {_module(f): f for f in known}
-        for tok in _DOTTED.findall(text):
-            for mod, f in mods.items():
-                if tok == mod or tok.startswith(mod + "."):
-                    out.add(f)
+        if "/" in p or p in top:
+            out.add(p)
     return out
 
 
@@ -216,40 +212,36 @@ def first_edits(facts: Any, workdir: str | None) -> dict[str, int]:
     return out
 
 
-def named_files(vers: list[tuple[int, str]], edits: dict[str, int], workdir: str | None, known: set[str], own_scripts: frozenset[str] = frozenset()) -> tuple[set[str], set[str]]:
-    """(the named files, the names left out because the run had edited the file before writing it down)."""
+def named_files(vers: list[tuple[int, str]], edits: dict[str, int], workdir: str | None, top: set[str]) -> tuple[list[set[str]], set[str]]:
+    """Per sub-task that changes code in the last version of tasks.md, the paths its line names that count; and the
+    names left out because the run had edited the file before first writing the name down (on such a line, in any
+    version)."""
     first: dict[str, int] = {}
     for step, text in vers:
-        for name in names_in(change_text(text), workdir, known, own_scripts):
-            first.setdefault(name, step)
-    kept, late = set(), set()
-    for name, step in first.items():
-        edited = [s for f, s in edits.items() if match(name, f)]
-        (late if edited and not any(step < s for s in edited) else kept).add(name)
-    return kept, late
+        for line in change_lines(text):
+            for name in line_paths(line, workdir, top):
+                first.setdefault(name, step)
+    late = {name for name, step in first.items() if (edited := [s for f, s in edits.items() if match(name, f)]) and not any(step < s for s in edited)}
+    lines = [line_paths(line, workdir, top) - late for line in change_lines(vers[-1][1])] if vers else []
+    return lines, late
 
 
 # --------------------------------------------------------------------------------------------
 # The items
 # --------------------------------------------------------------------------------------------
-def judge(named: set[str], patch: list[str], patch_all: list[str], gold: list[str] | None) -> dict[str, float | None]:
-    """The four items: 1.0 / 0.0, or None for a gold item when the reference fix is unknown.
-
-    ``patch``: the source files of the final patch without the run's scratch scripts; ``patch_all``: every file of it."""
+def judge(lines: list[set[str]], named: set[str], patch: list[str], gold: list[str] | None = None) -> dict[str, float | None]:
+    """The three items, 1.0 / 0.0; ``named_covers_gold`` is None when the reference fix is unknown. ``lines``: per
+    sub-task that changes code, the paths its line names; ``named``: the source files among them; ``patch``: the source
+    files of the final patch without the run's scratch scripts; ``gold``: the source files of the reference fix."""
 
     def covers(files: list[str]) -> bool:
         return all(any(match(n, f) for n in named) for f in files)
 
-    out: dict[str, float | None] = {
-        "named": float(bool(named)),
+    return {
+        "named": float(bool(lines) and all(lines)),
         "named_equals_patch": float(bool(named) and all(any(match(n, f) for f in patch) for n in named) and covers(patch)),
-        "named_covers_gold": None,
-        "patch_covers_gold": None,
+        "named_covers_gold": float(bool(named) and covers(gold)) if gold else None,
     }
-    if gold:
-        out["named_covers_gold"] = float(bool(named) and covers(gold))
-        out["patch_covers_gold"] = float(all(g in patch_all for g in gold))
-    return out
 
 
 FILES = "agentos_bugfix.penalty.files"  # ``ctx.cache`` keys of the two measurements, one per run
@@ -260,14 +252,14 @@ TEST_RULES = tuple(name.split(".penalty.", 1)[1] for name in penalty_tests.ITEMS
 
 
 def measure(ctx: EvalContext) -> dict[str, Any]:
-    """The four file items of one run (``items``: rule -> 1.0 / 0.0, or None for a gold item when the task has no
-    reference fix) and what they were judged on."""
+    """The three file items of one run (``items``: rule -> 1.0 / 0.0, or None for ``named_covers_gold`` when the task
+    has no reference fix to read) and what they were judged on."""
     c, facts = ctx.collected, ctx.facts
     workdir = c.workdir
     patch_all = sorted(F.change_paths(ctx))
     patch = [p for p in patch_all if source_file(p) and not F.is_run_script(ctx, p)]
     gold_text = gold_patch((c.inputs or {}).get("task"))
-    gold = [p for p in patch_files(gold_text)[0] if source_file(p)] if gold_text is not None else None
+    gold = [p for p in patch_files(gold_text) if source_file(p)] if gold_text is not None else None
     edits = first_edits(facts, workdir)
     # the run's own scripts: what it wrote outside the repository (check scripts), and inside it the script files the
     # final change does not keep or that carry a throwaway name at the repository root
@@ -275,12 +267,17 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
     left_repo = {f for f in edits if F.is_run_script(ctx, f)}
     outside = {p for p in facts.writes if _SOURCE.search(p) and not (pre and p.startswith(pre))}
     own_scripts = frozenset(posixpath.basename(p) for p in (*left_repo, *outside))
-    known = {f for f in (*edits, *patch, *(gold or ())) if source_file(f) and f not in left_repo}
+    known = {f for f in (*edits, *patch) if source_file(f) and f not in left_repo}
+    # files at the repository's top level (the reference fix's too: a bare name of one is a path the plan named)
+    top = {f for f in (*edits, *patch_all, *(gold or ())) if "/" not in f and f not in left_repo}
     vers, skipped = versions(facts, c)
-    named, late = named_files(vers, edits, workdir, known, own_scripts)
+    lines, late = named_files(vers, edits, workdir, top)
+    # the source files among the names; one that is the name of one of the run's own scripts and of no known file is that script
+    named = {n for ps in lines for n in ps if source_file(n) and not (posixpath.basename(n) in own_scripts and not any(match(n, f) for f in known))}
+    bare = sum(1 for ps in lines if not ps)
     return {
-        "items": judge(named, patch, patch_all, gold),
-        "detail": f"named {sorted(named)[:4]}; final change {patch[:4]}; reference fix {'unknown' if gold is None else gold[:4]}",
+        "items": judge(lines, named, patch, gold),
+        "detail": f"{len(lines)} change sub-task(s), {bare} naming no path; named {sorted(named)[:4]}; final change {patch[:4]}; reference fix {'unknown' if not gold else gold[:4]}",
         "gold_unknown": not gold,
         "patch_unknown": c.diff is None,
         "skipped": skipped,
@@ -292,12 +289,12 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
 
 @register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
 def penalty(item: Item, ctx: EvalContext) -> Result:
-    """rule: plan_files.<named | named_equals_patch | named_covers_gold | patch_covers_gold>, or a test item of
+    """rule: plan_files.<named | named_equals_patch | named_covers_gold>, or a test item of
     implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase3_run.existing_and_own, phase3_fail.<...>) --
     passes when the run did it right (see this module's docstring and ``penalty_tests.py``). A test item the run
     stands outside of is not applicable, worth 0 when the run never did what the item is about and 1 when it did and
-    the item's condition did not arise; a gold item without a reference fix, and a test item without a known code
-    root, is unavailable."""
+    the item's condition did not arise; ``named_covers_gold`` without a reference fix to read, and a test item without
+    a known code root, is unavailable."""
     rule = str((item.check.params or {}).get("rule"))
     if rule in FILE_RULES:
         m = ctx.cache.get(FILES)
@@ -325,15 +322,25 @@ def penalty(item: Item, ctx: EvalContext) -> Result:
 # Hooks of the evaluation policy (``RubricEvaluation(inputs=..., post=...)``)
 # --------------------------------------------------------------------------------------------
 def inputs(task: Any, episode: Any) -> dict[str, Any]:
-    """``Collected.inputs``: the task, for its reference fix."""
-    return {"task": task}
+    """``Collected.inputs``: the task, for its description (``task_text.py``) and its reference fix
+    (``named_covers_gold``, which only an unsolved rollout is paid by), and the test-file sections of the
+    patch the harness recorded at the end of the run (``episode.artifacts["patch"]``, live and offline alike), for
+    ``global.run.prohibited_action.test_file_write`` (``final_patch``; ``workflow_rubric/patch.py``). No patch
+    recorded: no ``test_patch`` (the item is judged as before)."""
+    out: dict[str, Any] = {"task": task}
+    art = getattr(episode, "artifacts", None)
+    if isinstance(art, dict):
+        tp = PATCH.test_sections(art.get("patch"), art.get("patch_bytes"))
+        if tp is not None:
+            out["test_patch"] = tp
+    return out
 
 
 def post(report: Any) -> dict[str, float]:
     """The penalty signals of a finished report: the common ones (``workflow_rubric/penalty.py``: ``penalty``, each
-    item, ``penalty_applies.<item>``, ``penalty_unavailable``), the mean of each group, and what the file items were
-    judged on."""
-    out = PEN.post(report)
+    item, ``penalty_applies.<item>``, ``penalty_unavailable``; ``penalty_solved``, the mean with ``named_covers_gold``
+    worth 1, which a solved rollout is paid by), the mean of each group, and what the file items were judged on."""
+    out = PEN.post(report, unsolved_only=UNSOLVED_ONLY)
     for name, prefix in (("penalty_plan_files", "global.penalty.plan_files."), ("penalty_tests", "implement_tasks.penalty.")):
         values = [v for k, v in out.items() if k.startswith(prefix)]
         if values:

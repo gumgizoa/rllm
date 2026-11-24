@@ -211,8 +211,10 @@ def test_a_count_of_zero_failures_in_a_scripts_output_is_not_a_failure():
     assert read("Results: 6 passed, 0 failed", 0) == "pass"
     assert read("Ran 4 checks: 4 ok, 0 errors", 0) == "pass"
     assert read("6 passed, 0 failed, 0 error", 0) == "pass"
-    # a count above zero is a failure, whatever the exit code; so is a non-zero exit code, whatever the text
+    # a failed count above zero is a failure, whatever the exit code; so is a non-zero exit code, whatever the text
     assert read("Results: 5 passed, 1 failed", 0) == "fail"
     assert read("Results: 0 passed, 10 failed", 0) == "fail"
-    assert read("2 errors", 0) == "fail"
     assert read("Results: 6 passed, 0 failed", 1) == "fail"
+    # with the script's own exit code 0, an error count it prints is output it expected (pylint's "17 errors"), not
+    # its verdict (H-4: tasks/2026-11-20-agentos-bugfix-reward-fixes/01-H-계획.md)
+    assert read("2 errors", 0) == "pass"

@@ -78,6 +78,7 @@ class Collected:
     snapshot: frozenset[str] = frozenset()
     inputs: dict[str, Any] = field(default_factory=dict)
     related_tests: dict[str, list[str]] | None = None
+    today: str | None = None  # the sandbox's date when the rollout began (``collect.TaskInfo.today``); None offline
 
 
 # --------------------------------------------------------------------------------------------
@@ -152,6 +153,9 @@ class RunFact:
     collected: int = 0
     ids: list[str] = field(default_factory=list)  # test ids / files that appear in the output
     observation: str = ""
+    # a repository write the agent authored in the same call comes before this run in the command's text
+    # (``sed -i ... && pytest``): the run is after that write although both have the same step
+    after_write_same_call: bool = False
 
 
 @dataclass
@@ -208,6 +212,7 @@ class Facts:
     edits_by_path: dict[str, list[Step]] = field(default_factory=dict)
     location_counts: dict[str, int] = field(default_factory=dict)
     unseen_repo_paths: list[str] = field(default_factory=list)
+    dir_steps: dict[str, int] = field(default_factory=dict)  # directory -> step it first appeared at (replay.Replay.dir_steps)
     notes: list[str] = field(default_factory=list)
 
     # ---------------------------------------------------------------------------------------

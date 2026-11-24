@@ -178,6 +178,15 @@ def is_new_path(ctx: EvalContext, rel: str) -> bool:
     return (wd + rel) in (getattr(ctx.facts, "_created", None) or {})
 
 
+def source_paths(ctx: EvalContext) -> set[str]:
+    """The source files of the final change: non-test code or config files of :func:`change_paths` that are not one of
+    the run's own scripts (what :func:`source_change_steps` counts writes of)."""
+    cached = ctx.cache.get("source_paths")
+    if cached is None:
+        cached = ctx.cache["source_paths"] = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+    return cached
+
+
 def source_change_steps(ctx: EvalContext) -> list[int]:
     """Steps of the run's source changes, in order: repo writes to a non-test code or config file of the final
     change (:func:`change_paths`). Not a source change: a test file the agent wrote or edited (judged by the
@@ -187,7 +196,7 @@ def source_change_steps(ctx: EvalContext) -> list[int]:
     cached = ctx.cache.get("source_change_steps")
     if cached is not None:
         return cached
-    keep = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+    keep = source_paths(ctx)
     out = sorted(int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep)
     ctx.cache["source_change_steps"] = out
     return out
@@ -438,18 +447,44 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
     cwd_track, f.commands = _track(run, start, split)
     rep = replay(run, start)
     f.writes = rep.writes
+    f.dir_steps = rep.dir_steps
     roots = roots_of(rubric, workdir)
     _bind_vars(f, rubric, collected, roots, rep)
     _resolve_artifacts(f, rubric, collected, roots, rep)
+    _fill_last_write(collected, rep)
     _final_mismatch(f, collected, rep)
     _repo_writes(f, rubric, collected, roots, workdir)
     _doc_reads(f, rubric, run, cwd_track, split, docs)
     created = _created(run, rep, cwd_track, split)
     f.runs = evidence.runs_from(run, cwd_track, collected.base_present, created, workdir=workdir, writes=rep.writes, split=split)
+    _same_call_order(f, workdir)
     _windows(f, rubric, collected)
     f._created = created  # type: ignore[attr-defined]
     f._cwd_track = cwd_track  # type: ignore[attr-defined]
     return f
+
+
+def _same_call_order(f: Facts, workdir: str | None) -> None:
+    """Mark the runs that come after a repository write of their own call (``RunFact.after_write_same_call``): the
+    written path (absolute, or relative to the repository) appears in the command's text before the run's segment.
+    Git putting content back (an ``unknown`` write) is no write of the agent's."""
+    if not workdir or not f.runs or not f.repo_writes:
+        return
+    pre = workdir.rstrip("/") + "/"
+    by_call: dict[tuple[int, int], set[str]] = {}
+    for e in f.repo_writes:
+        if e.ok is not False and e.op != "unknown":
+            by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
+    for r in f.runs:
+        paths = by_call.get((int(r.step), r.action_index))
+        if not paths or not r.segment:
+            continue
+        cmd = r.command or ""
+        at = cmd.find(r.segment)
+        if at < 0:
+            continue
+        pos = [i for p in paths for i in (cmd.find(pre + p) if cmd.find(pre + p) >= 0 else cmd.find(p),) if i >= 0]
+        r.after_write_same_call = bool(pos) and min(pos) < at
 
 
 def _normdir(p: str | None) -> str | None:
@@ -558,6 +593,20 @@ def _norm_text(s: str) -> str:
     return "\n".join(ln.rstrip() for ln in s.replace("\r\n", "\n").split("\n")).rstrip()
 
 
+def _fill_last_write(c: Collected, rep: Replay) -> None:
+    """A file the sandbox holds whose last write the replay could not follow (a python edit, an ``mv`` of a file it never
+    saw written): nothing wrote it afterwards, so its content after that write is the sandbox's. A file the sandbox
+    copy cut short is left unknown."""
+    for path, text in c.files.items():
+        if text is None or path in c.truncated:
+            continue
+        evs = [e for e in rep.writes.get(path, []) if e.ok is not False]
+        if not evs or evs[-1].op not in WRITE_OPS or evs[-1].content is not None:
+            continue
+        evs[-1].content = text
+        rep.final[path] = text
+
+
 def _final_mismatch(f: Facts, c: Collected, rep: Replay) -> None:
     for path, text in c.files.items():
         evs = rep.writes.get(path)
@@ -610,6 +659,54 @@ def _counts_as_edit(rel: str, status: str) -> bool:
     return _CODE_EXT.search(rel) is not None and _GENERATED.search(rel) is None
 
 
+# What ``patch`` leaves next to a file it patched (the original, the rejected hunks): no edit of the agent's.
+_BYPRODUCT = re.compile(r"\.(?:orig|rej)$")
+# Verbs that only look at a file: a command naming a path only through them did not make it.
+_LOOK_VERBS = frozenset(shell._READ_VERBS) | {"ls", "find", "stat", "file", "wc", "diff", "cmp", "test", "[", "git", "du", "realpath", "readlink", "md5sum", "sha256sum"}
+
+
+def _only_reads(seg: shell.Segment, base: str) -> bool:
+    """``seg`` names ``base`` only to look at it: a reading verb, no ``sed -i`` / ``find -delete`` / ``-exec``, and no
+    output redirection to it."""
+    if seg.verb not in _LOOK_VERBS:
+        return False
+    if any(">" in op and base in (t or "") for op, t in seg.redirects):
+        return False
+    args = seg.argv[1:]
+    if seg.verb == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args):
+        return False
+    if seg.verb == "find" and any(a in ("-delete", "-exec", "-execdir") for a in args):
+        return False
+    return True
+
+
+def _date_unseen(f: Facts, unseen: list[str], diff: Mapping[str, str], pre: str) -> list[WriteEvent]:
+    """A write event, content unknown, for each file the change created (diff status ``A`` / ``?``) that the trace
+    shows no write of, at the first shell command whose text names the file (its base name): the command that made it
+    as a side effect (a script writing a data file, a test leaving output). A file that existed before is named by
+    many reading commands before it is edited, so a modified or deleted path is never dated this way; nor is a created
+    path whose first naming command only reads it, or one no command names (they all stay ``unseen_repo_paths``)."""
+    out: list[WriteEvent] = []
+    for path in unseen:
+        if diff.get(path) not in ("A", "?"):
+            continue
+        base = posixpath.basename(path)
+        if not base:
+            continue
+        for cmd in f.commands:
+            if base not in (cmd.command or ""):
+                continue
+            try:
+                segs = [sg for sg in shell.flat(shell.split(cmd.command, cmd.cwd)[0]) if base in sg.text or base in (sg.heredoc or "")]
+            except Exception:  # noqa: BLE001 -- agent text
+                segs = []
+            if segs and all(_only_reads(sg, base) for sg in segs):
+                break  # the file was there already: its change cannot be dated
+            out.append(WriteEvent(path=path, step=cmd.step, op="create", content=None, source="other", action_index=cmd.action_index))
+            break
+    return out
+
+
 def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | None) -> None:
     if not workdir:
         if c.diff:
@@ -636,6 +733,20 @@ def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | N
         if rel == ".git" or rel.startswith(".git/") or is_artifact(path):
             continue
         repo.extend(replace(e, path=rel) for e in evs)
+    unseen: list[str] = []
+    if c.diff is not None:
+        touched = {e.path for e in repo if e.ok is not False}
+        dirty_before = set(_status_paths(c.pre_status))  # setup leftovers, not the agent's edits
+        unseen = sorted(
+            p
+            for p, st in c.diff.items()
+            if p not in touched and p not in dirty_before and _counts_as_edit(p, st) and not _BYPRODUCT.search(p) and not is_artifact(pre + p)
+        )
+        dated = _date_unseen(f, unseen, c.diff, pre)
+        if dated:
+            repo.extend(dated)
+            unseen = [p for p in unseen if p not in {e.path for e in dated}]
+            f.notes.append(f"repo changes dated by the first command naming them: {[(e.path, e.step) for e in dated[:5]]}" + (f" (+{len(dated) - 5})" if len(dated) > 5 else ""))
     repo.sort(key=lambda e: (e.step, e.action_index))
     f.repo_writes = repo
     ok = [e for e in repo if e.ok is not False]
@@ -645,16 +756,11 @@ def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | N
             steps.append(e.step)
     f.first_repo_write = ok[0].step if ok else None
     f.last_repo_write = ok[-1].step if ok else None
-    unseen: list[str] = []
-    if c.diff is not None:
-        touched = {e.path for e in ok}
-        dirty_before = set(_status_paths(c.pre_status))  # setup leftovers, not the agent's edits
-        unseen = sorted(p for p, st in c.diff.items() if p not in touched and p not in dirty_before and _counts_as_edit(p, st) and not is_artifact(pre + p))
-        if unseen:
-            f.first_repo_write = UNKNOWN
-            if not ok:
-                f.last_repo_write = UNKNOWN
-            f.notes.append(f"repo changed outside the trace: {unseen[:5]}" + (f" (+{len(unseen) - 5})" if len(unseen) > 5 else ""))
+    if unseen:
+        f.first_repo_write = UNKNOWN
+        if not ok:
+            f.last_repo_write = UNKNOWN
+        f.notes.append(f"repo changed outside the trace: {unseen[:5]}" + (f" (+{len(unseen) - 5})" if len(unseen) > 5 else ""))
     f.unseen_repo_paths = unseen
     f._unseen_repo_paths = unseen  # type: ignore[attr-defined]  -- legacy name
 
@@ -809,6 +915,34 @@ def _sequential_reads(f: Facts, rubric: Rubric, c: Collected, oa) -> None:
         f.windows[st.id] = (starts[k], next((s for s in starts[k + 1 :] if s is not None), None))
 
 
+def _close_on_artifact(f: Facts, rubric: Rubric, c: Collected, oa) -> None:
+    """``scoring.close_on_artifact``: a stage whose closing artifact (its order artifact) is first written only after the
+    next stage's document was opened -- the next document read ahead -- ends after that artifact's last write before the
+    next stage's work: the first write of one of the next stage's artifacts, the first read of a later stage's document,
+    or the first repository write, whichever comes first. The next stage keeps its start, so the two windows overlap:
+    the run is judged as if it had opened the next document just before starting that stage's work, and the early read
+    is left to the order item."""
+    stages = rubric.stages
+    for k in range(len(stages) - 1):
+        w, nxt = f.windows.get(stages[k].id), f.windows.get(stages[k + 1].id)
+        aid = oa(k)
+        if not w or not nxt or w[1] is None or not aid or aid not in rubric.artifacts:
+            continue
+        first = _first_write_from(f, rubric, c, aid, w[0])
+        if first is None or first < w[1]:
+            continue
+        stops = [_own_first_write(f, rubric, c, stages[k + 1], first + 1)]
+        for st in stages[k + 2 :]:
+            if st.doc:
+                rs = [r.step for r in f.doc_reads.get(st.doc, []) if r.step > first]
+                stops.append(min(rs) if rs else None)
+        stops.append(next((e.step for e in f.repo_writes if e.ok is not False and e.step > first), None))
+        stop = min((x for x in stops if x is not None), default=f.n_steps + 1)
+        steps = [e.step for p in location_paths(rubric, f, c, rubric.artifacts[aid]) for e in f.writes.get(p, [])
+                 if e.ok is not False and e.op in WRITE_OPS and e.op != "move_in" and first <= e.step < stop]
+        f.windows[stages[k].id] = (w[0], max(steps) + 1)
+
+
 def _windows(f: Facts, rubric: Rubric, c: Collected) -> None:
     mode = str((rubric.scoring or {}).get("windows", "reads"))
     after_start = (rubric.scoring or {}).get("next_read") == "after_start"
@@ -823,6 +957,8 @@ def _windows(f: Facts, rubric: Rubric, c: Collected) -> None:
 
     if mode != "writes" and after_start:
         _sequential_reads(f, rubric, c, oa)
+        if (rubric.scoring or {}).get("close_on_artifact"):
+            _close_on_artifact(f, rubric, c, oa)
         return
     reads_start: list[int | None] = []
     for st in stages:
@@ -881,6 +1017,7 @@ __all__ = [
     "is_scratch_name",
     "is_run_script",
     "source_change_steps",
+    "source_paths",
     "last_change_write",
     "executed_paths",
     "roots_of",
