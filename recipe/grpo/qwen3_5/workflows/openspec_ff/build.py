@@ -777,11 +777,15 @@ EDITS: tuple[Edit, ...] = (
         "8. **Run the Evidence**\n\n"
         f"   After your last code change, run the repository tests that cover the code you changed and every check script "
         f"under `{CHANGE_DIR}checks/`. In the report, name each command and its result. A run that fails is a CRITICAL "
-        "issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. If you ran "
-        "nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness.\n\n"
+        "issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. A test "
+        "that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not "
+        "a CRITICAL issue: name it in the report as failing before the change. Without a baseline run, every failing "
+        "test counts as a failure of the change. If you ran nothing after your last code change, mark the affected "
+        "checks `Not verified` and do not claim readiness.\n\n"
         "9. **Generate Verification Report**\n",
         "semantic",
-        "G8-7: verify runs the tests and check scripts after the last code change before it writes the report",
+        "G8-7: verify runs the tests and check scripts after the last code change before it writes the report; "
+        "G8-8: a test that failed in the baseline tasks.md records is not CRITICAL",
     ),
     Edit(
         "verify",
@@ -806,9 +810,11 @@ EDITS: tuple[Edit, ...] = (
         "verify",
         "      - Renamed requirements whose behavior is no longer implemented\n",
         "      - Renamed requirements whose behavior is no longer implemented\n"
-        "      - A test or check script that failed when you last ran it after your final edit\n",
+        "      - A test or check script that failed when you last ran it after your final edit (a test that also "
+        "failed in the baseline is not one)\n",
         "semantic",
-        "G8-3: a run seen failing after the last edit is CRITICAL (the round needs a finding to fire)",
+        "G8-3: a run seen failing after the last edit is CRITICAL (the round needs a finding to fire); G8-8: a "
+        "baseline failure is not",
     ),
 )
 
@@ -857,6 +863,30 @@ AGREED_TASKS_ITEM = """\
   group in between and force rework. A group whose work calls for no verification,
   such as scaffolding, carries none. A final group is for integration checks only.
 """
+# The baseline (G8-8): run before any code change, recorded in tasks.md.
+AGREED_BASELINE_ITEM = """\
+- Before any code is changed, run the existing repository tests for the files the
+  change will touch (test files named after them, or test files that import them)
+  and record the result in a `## Baseline` section at the top of tasks.md, as
+  plain bullets: the command as you ran it, in backticks, and the tests that fail
+  in it, or `none`. A test that fails here was failing before the change; verify
+  reads its runs against this section. A run of those tests made during explore
+  counts: record it instead of running it again.
+"""
+AGREED_BASELINE_EXAMPLE = """\
+## Baseline
+
+- Command: `python -m pytest tests/test_export.py -q`
+- Failing before the change: none
+
+"""
+AGREED_BASELINE_TEMPLATE = """\
+## Baseline
+
+- Command: <!-- the test command, as run before any code change -->
+- Failing before the change: <!-- test ids, or none -->
+
+"""
 AGREED_EXAMPLE = {
     "1.2": "- [ ] 1.2 Write a check script at /openspec/changes/issue/checks/export_check.py that calls the export entry "
     "point and verify it fails against the current code (it should pass once the change is in)",
@@ -901,9 +931,24 @@ FORK_EDITS: tuple[Edit, ...] = (
         "        whose work calls for neither, such as scaffolding or dependency setup,\n"
         "        carries neither. A final group is for integration checks only, not for\n"
         "        the tests and docs an earlier group owed.\n",
-        _indent(AGREED_TASKS_ITEM, 6),
+        _indent(AGREED_TASKS_ITEM + AGREED_BASELINE_ITEM, 6),
         "semantic",
-        "G9-1/G9-2: verification by repo tests or checks/ scripts, no test files, docs only when asked (agreed text)",
+        "G9-1/G9-2: verification by repo tests or checks/ scripts, no test files, docs only when asked (agreed text); "
+        "G8-8: the baseline run and its `## Baseline` section",
+    ),
+    Edit(
+        "schema",
+        "      # Tasks\n\n      ## 1. Setup\n",
+        "      # Tasks\n\n" + _indent(AGREED_BASELINE_EXAMPLE, 6) + "      ## 1. Setup\n",
+        "semantic",
+        "G8-8: the example task list opens with its `## Baseline` section",
+    ),
+    Edit(
+        "tpl-tasks",
+        "# Tasks\n\n## 1. <!-- Task Group Name -->\n",
+        "# Tasks\n\n" + AGREED_BASELINE_TEMPLATE + "## 1. <!-- Task Group Name -->\n",
+        "semantic",
+        "G8-8: the tasks template opens with the `## Baseline` section",
     ),
     Edit(
         "schema",

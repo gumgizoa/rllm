@@ -1,0 +1,33 @@
+# @package _global_
+#
+# openspec_ff alone on SWE-Gym 293, with the penalty term in the reward:
+#
+#   reward = 0.7 * solved * (0.7 + 0.3 * compliance) + 0.3 * penalty
+#
+# Everything else is openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut: thinking on, the
+# malformed-tool-call cut, mode=mul with floor 0.7, 250 agent steps, swegym293_aidlc / swegym_val23_aidlc.
+# Three things differ:
+#
+#   recipe.workflow.name      openspec_ff for every task (the parent mixes speckit_bug, openspec_ff, agentos_v2)
+#   recipe.workflow.val_name  openspec_ff (the parent pins validation to aidlc_v4)
+#   compliance_reward.penalty_weight  0.3: openspec_ff/penalty, the mean of the six log_only penalty items
+#                             (reward/penalty.py), enters the reward for solved and unsolved rollouts alike
+#                             (penalty_gate: all)
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_openspec_swegym_reward_floor_pen03_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=null
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut
+
+recipe:
+  workflow:
+    name: openspec_ff
+    val_name: openspec_ff
+    compliance_reward:
+      penalty_weight: 0.3
+      penalty_gate: all
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-openspec-floor07-pen03-fmtcut-baseline

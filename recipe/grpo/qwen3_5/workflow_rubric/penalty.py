@@ -22,9 +22,16 @@ What an item is worth, by its result:
                        task, a sandbox step that failed), which says nothing about the run.
 
 A run whose items are all unavailable has no ``penalty`` signal; a kind that raises is a failed item, as everywhere
-in the engine. ``train.py`` folds ``<workflow>/penalty`` into the reward (``WorkflowSpec.penalty_signal``).
+in the engine. 
 
-Items that only tell failures apart (``unsolved_only``)
+
+``train.py`` folds ``<workflow>/penalty`` into the reward (``WorkflowSpec.penalty_signal``).
+A run whose scoring failed as a whole (the episode could not be parsed, collection or the engine raised)
+gets ``<workflow>/penalty`` 0 beside ``<workflow>/compliance`` 0 (``evaluation.failure_signals``): the trainer counts
+a missing penalty signal as 1. ``train.py`` folds ``<workflow>/penalty`` into the reward (``WorkflowSpec.penalty_signal``).
+
+
+(For agentos-bugfix only) Items that only tell failures apart (``unsolved_only``)
     An item judged against something the agent cannot see -- the task's reference fix -- would cost a rollout that
     solved the task another way. Such an item is named in ``post(report, unsolved_only=...)`` (by its name after
     ``penalty.``): it stays in ``penalty`` as judged, and ``penalty_solved`` is the same mean with each of them worth

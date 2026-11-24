@@ -142,7 +142,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 8. **Run the Evidence**
 
-   After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`. In the report, name each command and its result. A run that fails is a CRITICAL issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness.
+   After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`. In the report, name each command and its result. A run that fails is a CRITICAL issue. A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing. A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not a CRITICAL issue: name it in the report as failing before the change. Without a baseline run, every failing test counts as a failure of the change. If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness.
 
 9. **Generate Verification Report**
 
@@ -169,7 +169,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
       - Missing requirement implementations
       - Removed requirements still implemented
       - Renamed requirements whose behavior is no longer implemented
-      - A test or check script that failed when you last ran it after your final edit
+      - A test or check script that failed when you last ran it after your final edit (a test that also failed in the baseline is not one)
       - Each with specific, actionable recommendation
 
    2. **WARNING** (Should fix):

@@ -439,7 +439,8 @@ EDITS: tuple[Edit, ...] = (
         "     - **failed** — the symptom still reproduces or the regression suite is broken by the fix.",
         "     - **verified** — only when all three hold: every check in the fix report passes now after failing "
         "before the change; every example from the issue behaves as the issue expects; the existing tests of the "
-        "fix report's baseline show no new failure.\n"
+        "fix report's baseline show no new failure. A test that already failed in the baseline is not a new failure: "
+        "record its row as `fail`, name it as pre-existing in the note, and it does not stand against `verified`.\n"
         "     - **partial** — none of those fails, but one of them was not run or is inconclusive.\n"
         "     - **failed** — a check from the fix still fails, an example from the issue still shows the reported "
         "behavior, or an existing test that passed in the baseline now fails.",

@@ -267,3 +267,13 @@ explore 단계 추가(2026-10-15)는 맨 아래 "Explore extension" 절. 아래 
 - verify에 실행 단계 추가(G8-7): `03-verify.md` 8단계 "Run the Evidence". 마지막 코드 수정 뒤 수정한 코드를 다루는 저장소 테스트와 `checks/`의 check script를 모두 실행하고, 보고서에 명령과 결과를 적음. 실패한 실행은 CRITICAL이고, 실패한 테스트를 빼고 다시 돌린 것은 여전히 실패로 봄. 아무것도 실행하지 않았으면 해당 검사를 `Not verified`로 적고 준비됐다고 쓰지 않음. 보고서 작성은 9단계가 됨. `core-workflow.md` "Verify, Then Fix What It Finds" 첫 문단에 같은 규칙. G8-3의 "새 실행을 요구하지 않음"을 대체.
 - "테스트가 이미 있다"는 문장 세 곳 수정(G9-7): `core-workflow.md` "The Repository", `schema.yaml` tasks 지침, `openspec-config.yaml` context. 채점용 테스트는 실행이 끝난 뒤 적용되므로 "the grading tests are added after you finish"로 바꿈. 테스트 파일을 추가하거나 고치지 말라는 금지는 그대로.
 - rubric은 재생성하지 않고 직접 수정: 두 문서의 삽입 지점 뒤 인용 행 번호를 4씩 옮기고 바뀐 인용문 세 개를 교체. `penalty.no_run_after_change`는 새 단계를 근거로 must가 됨. golden run의 `critical_fixed` 보고서는 실패한 check script를 CRITICAL로 적음. selftest 결과는 기록값과 같음.
+
+**추가 (2026-11-20)**
+- ff에 baseline 추가(G8-8): `schema.yaml` tasks 지침에 "코드를 바꾸기 전에 바꿀 파일의 기존 저장소 테스트를 실행하고, 명령과 그때 실패한 테스트를 `tasks.md` 맨 위 `## Baseline` 절에 적는다"를 넣음. explore에서 돌린 실행도 인정함. 지침의 예시와 `templates/tasks.md`도 이 절로 시작함. `03-verify.md` 8단계와 CRITICAL 목록, `core-workflow.md` verify 절: baseline에서도 실패한 테스트는 CRITICAL이 아니고 보고서에 "수정 전부터 실패"로 적음. baseline 실행이 없으면 실패한 테스트는 모두 이번 수정의 실패로 봄.
+- 채점 항목: apply의 `test_or_check`(apply 구간 안의 실행이면 수정 전 것도 통과)를 없애고 세 항목을 둠. `ff...baseline_recorded`는 `tasks.md`에 명령을 적은 `## Baseline` 절이 있는지, `ff...baseline_run`은 그 절에 적힌 명령이 첫 코드 수정 전에 유효한 저장소 테스트 실행으로 있었는지(단계 무관), `verify...run_after_change`는 마지막 코드 수정 뒤(run 끝까지)에 유효한 저장소 테스트 실행이나 check script 실행이 있는지 봄. 마지막 항목은 `penalty.no_run_after_change`와 같은 측정이고 코드 변경이 없는 run에는 적용하지 않음.
+- 함께 고친 항목: `ff.tasks.item_format.groups`가 번호 없는 제목으로 `## Baseline`도 허용함. `apply.tasks.tasks.verified`는 첫 코드 수정 전의 실행을 task 검증으로 치지 않음(baseline 실행 때문에 계획 때 미리 체크한 task가 검증된 것처럼 보이는 것을 막음).
+- penalty 항목: 마지막 코드 수정 뒤의 테스트 실행이 baseline에서 이미 실패하던 테스트로만 실패했으면 실패가 없는 실행으로 읽음(`false_clean_claim`, `critical_missing`, `left_broken`에 반영). 출력에서 실패한 테스트 이름을 요약의 실패 수만큼 읽을 수 있고 그 전부가 baseline에서 실패했을 때만 해당함. baseline은 `tasks.md`에 적혔는지와 무관하게 실행 기록에서 읽음.
+- penalty 항목 추가(`openspec_ff.ff.penalty.false_baseline`, `log_only`): `tasks.md`의 `## Baseline` 절이 사실인지 봄. 절에 적힌 명령이 첫 코드 수정 전에 유효하게 실행됐고, 절의 실패 목록이 그 실행이 보인 실패와 같으면(빠진 것도 더한 것도 없음, 실패가 없으면 `none`) 1. 절이 없거나 명령이 없으면 0, 실패 수만큼 이름을 출력에서 읽을 수 없으면 판정 불가로 평균에서 뺌. penalty 항목은 6개가 됨.
+- 판정하지 않는 것: baseline과 수정 후 실행이 실제로 바꾼 코드를 다루는 테스트인지. 수정 뒤 자기 check script만 돌린 run은 `run_after_change`를 통과하고 남은 실패도 없음.
+- rubric은 재생성하지 않고 스크립트로 수정: `schema.yaml` 241행부터, `templates/tasks.md` 3행부터 인용 행 번호를 옮김. golden run은 ff에서 baseline을 실행하고 `tasks.md`에 적음. selftest를 다시 돌려 기록함(golden 1.0, 42개 중 실패 없음).
+

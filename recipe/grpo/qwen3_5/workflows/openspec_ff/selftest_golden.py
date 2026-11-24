@@ -14,7 +14,8 @@ schema's instructions and templates, the project config) -- and never from the r
   status --change "issue" --json`` (FF:28-31), the repository inspected read-only (FF:57), then per artifact in
   dependency order ``openspec instructions <id> --change "issue" --json`` (FF:44-46), the completed dependencies
   re-read from disk (FF:56), the file written from the served template (FF:62, FF:100) with only its placeholders
-  replaced, ``status`` re-run (FF:67); a delta spec ``## ADDED Requirements`` for a new capability (CW:57-58), and the
+  replaced, ``status`` re-run (FF:67); before tasks.md, the existing tests of the file to change run as the baseline
+  and recorded in its ``## Baseline`` section (SCHEMA:241-247); a delta spec ``## ADDED Requirements`` for a new capability (CW:57-58), and the
   final ``openspec status --change "issue"`` (FF:80-83);
 * apply: ``status`` and ``openspec instructions apply`` (AP:26-39), every context file read (AP:72-76), a check script
   under ``/openspec/changes/issue/checks/`` (CW:36-37) run before and after the fix, the source edited, the repository's
@@ -506,6 +507,11 @@ def _tasks(ticked: set[str], open_reason: bool = False) -> str:
     lines = [
         "# Tasks",
         "",
+        "## Baseline",
+        "",
+        f"- Command: `{TEST_CMD}`",
+        "- Failing before the change: none",
+        "",
         "## 1. Reproduce",
         "",
         f"- {box('1.1')} 1.1 Write the check script {CHECK} for the false words, case and the ValueError, and verify it fails against the current code",
@@ -678,6 +684,7 @@ def golden(rubric=None, variant: str | None = None):
     s.sh('openspec instructions tasks --change "issue" --json', cli_instructions("tasks"))
     deps = [spec_path, *([f"{CHG}/design.md"] if design else [])]
     s.sh("cat " + " ".join(deps), (_spec(v, broken=broken) + (_design() if design else "")).rstrip("\n"))
+    s.sh(TEST_CMD, PYTEST_OK + EXIT0)  # the baseline: the existing tests of the file to change, before any code change (SCHEMA:241-247)
     tasks0 = _tasks(set())
     s.write(f"{CHG}/tasks.md", tasks0)
     done = done | {"tasks", "design"}
