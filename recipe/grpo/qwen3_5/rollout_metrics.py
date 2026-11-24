@@ -5,7 +5,10 @@ the validation summaries average them over the episodes that carry each one:
 
 * ``rollout/turns_before_edit`` -- steps before the first repository edit (every step when none):
   how much the policy explores before it changes code;
-* ``rollout/test_runs`` -- terminal commands that run a test runner;
+* ``rollout/test_runs`` -- terminal commands that run a test runner (Python, Go, JavaScript / TypeScript);
+* ``rollout/test_after_last_edit`` -- on rollouts that edited the repository: 1 when a test run comes
+  after the last edit (or in the same command as it), 0 when the final code was never tested. A
+  rollout without an edit does not carry it, so the batch mean is over the rollouts that changed code;
 * ``rollout/compliance_solved`` / ``rollout/compliance_unsolved`` -- the workflow's compliance
   signal, split by the verifier's verdict. Compliance in unsolved rollouts rising toward the
   solved ones' is form-filling, not following the workflow;
@@ -26,7 +29,13 @@ import re
 from collections import defaultdict
 from typing import Any
 
-TEST_RE = re.compile(r"\b(pytest|py\.test|python[0-9.]* -m pytest|tox\b|runtests\.py|python[0-9.]* .*tests?/|unittest|nosetests|make test)")
+TEST_RE = re.compile(
+    r"\b("
+    r"pytest|py\.test|python[0-9.]* -m pytest|tox\b|runtests\.py|python[0-9.]* .*tests?/|unittest|nosetests|make test"  # Python
+    r"|go test"  # Go
+    r"|(npm|yarn|pnpm) (run )?test|(jest|mocha|vitest)\b|node (--test|.*tests?/)"  # JavaScript / TypeScript
+    r")"
+)
 REDIRECT_RE = re.compile(r"(?<![0-9&])>>?\s*['\"]?([^\s'\"|;&<>]+)")
 TEE_RE = re.compile(r"\btee\s+(?:-a\s+)?['\"]?([^\s'\"|;&]+)")
 INPLACE_RE = re.compile(r"\b(sed|perl)\s+(-[a-zA-Z]*i|-i)")
@@ -74,13 +83,21 @@ def _edits_code(name: str, args: dict) -> bool:
 def behavior(episode: Any) -> dict[str, float]:
     steps = [s for traj in episode.trajectories for s in traj.steps]
     first_edit, tests = None, 0
+    last_edit = last_test = None  # (step, call) positions, so calls of one step keep their order
     for i, step in enumerate(steps):
-        for name, args in _tool_calls(step):
+        for j, (name, args) in enumerate(_tool_calls(step)):
             if name == "terminal" and TEST_RE.search(str(args.get("command") or "")):
                 tests += 1
-            if first_edit is None and _edits_code(name, args):
-                first_edit = i
-    return {"rollout/turns_before_edit": float(len(steps) if first_edit is None else first_edit), "rollout/test_runs": float(tests)}
+                last_test = (i, j)
+            if _edits_code(name, args):
+                last_edit = (i, j)
+                if first_edit is None:
+                    first_edit = i
+    out = {"rollout/turns_before_edit": float(len(steps) if first_edit is None else first_edit), "rollout/test_runs": float(tests)}
+    if last_edit is not None:
+        # >=: one command that edits and then tests (``sed -i ... && pytest``) tested its own edit
+        out["rollout/test_after_last_edit"] = 1.0 if last_test is not None and last_test >= last_edit else 0.0
+    return out
 
 
 def _compliance(episode: Any) -> float | None:
