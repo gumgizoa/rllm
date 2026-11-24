@@ -305,3 +305,22 @@ def test_revision_3_rules_sit_where_the_agent_looks():
     assert rules.index("Each user story starts with its test tasks") < rules.index("Phase-by-phase execution")
     assert "first its verification scripts in `checks/` (run, seen failing)" in entry
     assert "`/tmp/test_x.py`" in entry
+
+
+def test_a_check_script_run_is_read_by_the_common_outcome_rule():
+    """The checks kind reads a check script's run with ``workflow_rubric.results.outcome``, as the other workflows do."""
+    from recipe.grpo.qwen3_5.workflow_rubric import results as R
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+    from recipe.grpo.qwen3_5.workflows.speckit_sdd.reward import checks as C
+
+    assert C.outcome is R.outcome and C.executions is R.executions
+
+    def read(command, observation):
+        return C.outcome(shell.flat(shell.split(command, "/testbed")[0]), 0, observation, command)
+
+    script = "python /tmp/speckit-sdd/specs/001-issue/checks/test_a.py"
+    done = "\n[The command completed with exit code 0.]"
+    assert read(script, "3 passed, 0 failed" + done) == "pass"  # the module's own copy read "0 failed" as a failure
+    assert read(script, "1 passed, 0 errors" + done) == "pass"
+    assert read(script + " && echo PASS", "PASS" + done) == "pass"  # exit 0 through && is the script's own
+    assert read(script, "AssertionError: boom\n[The command completed with exit code 1.]") == "fail"

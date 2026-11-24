@@ -69,6 +69,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
+from recipe.grpo.qwen3_5.workflow_rubric import results as R
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.replay import content_at
@@ -80,13 +81,6 @@ MAX_CMD = 20_000
 MAX_TEXT = 400_000
 SCRIPTS_DIR = "/tmp/speckit-sdd/.specify/scripts/bash"
 _EXIT = re.compile(r"\[(?:The command completed with exit code|Command finished with exit code)\s+(-?\d+)\.?\]")
-_FAIL_TEXT = re.compile(
-    r"Traceback \(most recent call last\)|\bAssertionError\b|^\s*(?:FAIL|FAILED|ERROR)\b|\b\d+ (?:failed|errors?)\b|\bFAILED \(|"
-    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b",
-    re.M,
-)
-_PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b", re.M | re.I)
-_MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b")
 _SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
 _GAPS = ("missing", "partial", "contradicts", "unrequested")
 _SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
@@ -180,40 +174,11 @@ def _exit_code(observation: str) -> int | None:
         return None
 
 
-def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "") -> str | None:
-    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output.
-
-    The exit code counts when the segment is the command's last (a ``| tail`` or ``; echo`` after it owns the code);
-    failure or pass text counts when no other segment of the command could have printed such words."""
-    obs = E.clean_observation(observation or "", command)
-    body = _EXIT.sub("", obs)[-MAX_TEXT:]
-    code = _exit_code(obs) if i == len(segs) - 1 else None
-    foreign = _others_print(segs, i, _MARK_WORDS)
-    failed_text = bool(_FAIL_TEXT.search(body)) and not foreign
-    if code is not None:
-        return "fail" if code != 0 or failed_text else "pass"
-    if failed_text:
-        return "fail"
-    if not foreign and _PASS_TEXT.search(body) and not _FAIL_TEXT.search(body):
-        return "pass"
-    return None
-
-
-def executions(ctx: EvalContext, paths: set[str]) -> dict[str, list[tuple[int, str | None]]]:
-    """Absolute path -> [(step, outcome)] of every run of it, in order (the final call's observation is empty: None)."""
-    out: dict[str, list[tuple[int, str | None]]] = {p: [] for p in paths}
-    if not paths:
-        return out
-    for c in ctx.facts.commands:
-        segs = _segments(ctx, c)
-        for i, seg in enumerate(segs):
-            hit = _executed_by(seg) & paths
-            if not hit:
-                continue
-            res = outcome(segs, i, c.observation or "", c.command or "") if c.step < ctx.facts.n_steps else None
-            for p in sorted(hit):
-                out[p].append((c.step, res))
-    return out
+# How a check script's run came out, and every run of it: the common reading (``workflow_rubric/results.py``), the one
+# the other workflows' check scripts and this rubric's repository test runs are read with. The copy this module kept
+# read ``3 passed, 0 failed`` as a failure and gave no outcome to ``script && echo done``.
+outcome = R.outcome
+executions = R.executions
 
 
 def _content_events(ctx: EvalContext, path: str) -> list:
