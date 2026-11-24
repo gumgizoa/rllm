@@ -1,0 +1,34 @@
+# @package _global_
+#
+# openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut with one workflow instead of the
+# three-way mix and the penalty term in the reward: every SWE-Gym training task runs under speckit_bug.
+#
+#   reward = 0.7 * verifier * (0.7 + 0.3 * speckit_bug/compliance) + 0.3 * speckit_bug/penalty
+#
+# The first term is the inherited floored product (mode mul, floor 0.7) scaled by 1 - penalty_weight;
+# the second is penalty_weight times speckit_bug/penalty, the mean of its three log-only items (gold
+# source files named by the reports, a related existing test run after the last edit, reports
+# consistent with the change; 1 = every rule kept). penalty_gate stays `all`: an unsolved rollout
+# earns up to 0.3 for keeping them, a solved one 0.49..1.0, so every solve still outranks every failure.
+#
+# What changes against the mix run: all 293 tasks are speckit_bug's (the mix gave it 97) and the
+# penalty share is new, so this is a new arm, not a continuation. Everything else -- the
+# malformed-tool-call cut, validation pinned to AI-DLC (val_name aidlc_v4), 250 turns in 262144,
+# thinking on, instruction after the task text, Ulysses sp 2, rollout gpu_memory_utilization 0.7 --
+# is inherited.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_swegym_reward_floor_penalty_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_openspec_agentos_swegym_reward_floor_fmtcut
+
+recipe:
+  workflow:
+    name: speckit_bug
+    compliance_reward:
+      penalty_weight: 0.3
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-speckit-floor07-pen03-fmtcut-topp1

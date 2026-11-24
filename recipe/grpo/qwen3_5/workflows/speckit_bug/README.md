@@ -69,6 +69,7 @@ agent는 진입 문서 `/speckit/core-workflow.md`를 읽고, 단계마다 해�
   - `verified`: 워크플로우 종료.
   - `partial` 또는 `failed`이고 1·2회차: 그 보고서를 새 근거로 삼아 다음 회차 fix로 감.
   - 3회차: 결과와 무관하게 종료.
+- 기준선에서 이미 실패하던 기존 테스트는 새 실패가 아님(2026-11-21 추가, `03-test.md` 43행). 그 행을 `fail`로 적고 비고에 원래 실패임을 적으며, `verified`를 막지 않음.
 - 2·3회차 fix는 이전 회차의 test 보고서가 적은 실패를 새 근거로 삼음. 자기 보고서를 다시 읽으라는 지시와 그 채점 항목은 2026-11-13에 뺐음(이미 대화에 있음).
 - 2·3회차에 stage 문서를 다시 열라는 지시는 문서에 남아 있지만 채점하지 않음(`fix_2/test_2/fix_3/test_3.run.doc_read` 항목 제거, 2026-11-13). 1회차 stage 문서 읽기는 계속 채점함.
 - assess가 틀렸음을 fix 중에 알게 되면 `assessment.md`는 고치지 않고, fix 보고서의 **Deviations from Assessment**에 기록한 뒤 바뀐 원인 기준으로 계속함.
@@ -129,9 +130,15 @@ rollout이 끝나면 sandbox는 사라지고, 아래 두 가지가 episode JSON�
 | `workflow` | 워크플로우 이름과 버전 해시(문서·instruction·system prompt 기준) |
 
 - 준수율 채점기(`reward/rubric.yaml`)가 `speckit_bug/compliance` 등 `speckit_bug/*` 신호를 episode metrics에 남김. 학습 reward에 들어가는 방식은 `recipe.workflow.compliance_reward`가 정함.
+  - 2026-11-21 변경 (327 항목):
+    - `test*.speckit_bug_checks_table.outcome` 추가: 저장소 테스트 실행을 가리키는 행의 pass / fail을 그 실행의 러너 출력과 대조함. pass는 실패가 없거나 기준선(1회차 첫 수정 전 같은 테스트 실행)에 이미 있던 실패뿐일 때만 맞음. `checks/` 스크립트 행은 trace에 종료 코드가 없어 판정하지 않음.
+    - `checks_table.consistent`: `verified`의 fail 행 중 기존 테스트 행이고 실패가 기준선에 이미 있던 것이면 허용함(테스트 이름 비교, 이름이 없으면 개수 비교).
+    - `checks_table.unrun`: 기준선을 돌린 실행에서 `verified`인데 기존 테스트 행(Regression suite)이 전부 skipped / not-run이면 실패.
+    - 시작하지 않은 회차는 한 번만 셈: `test_2` / `test_3`의 존재 gate와 실행 항목은 그 회차 fix 보고서가 있을 때만 적용함. partial / failed 뒤 `fix-2.md` 없이 끝난 실행은 `stage.fix_2`만 0이고 `stage.test_2` 신호는 없음.
+    - `fix_2` / `fix_3`에 `check_scripts.run_after_change` 추가: 그 회차 첫 저장소 수정 뒤 fix 단계 안에서 check를 다시 실행했는지. 수정이 없는 회차는 해당 없음.
 - `speckit_bug/penalty` (2026-11-18 추가): log-only `*.penalty.*` 항목 세 개의 **평균 score** (1 = 규칙을 전부 지킴; 팀 공통 규약). compliance에는 들어가지 않음. train.py는 `compliance_reward.penalty_weight`(w) > 0이면 `reward = (1 − w) × <mode reward> + w × penalty`로 섞음. 합의된 설정은 mode=mul floor=0.7 w=0.2, 즉 `0.8 × solve × (0.7 + 0.3c) + 0.2 × penalty`. `penalty_gate: unsolved`면 성공 rollout은 penalty = 1로 쳐서 실패 rollout만 갈림. 근거 표 `reward/gold_files.json`(instance_id → `src`: 정답 patch 소스 파일; SWE-Gym + SWE-bench Verified).
   - 2026-11-19 통일: 합치는 규칙은 세 워크플로 공통(`workflow_rubric/penalty.py`의 `post`). 항목은 항상 평균에 들어감 — 실행이 항목 밖에 있을 때, 전제 행동(코드 변경, 테스트 실행)을 안 했으면 0, 했는데 조건이 안 생겼으면 1. 판정 불가(unavailable) 항목만 평균에서 빠짐. 항목별 값은 `speckit_bug/<stage>.penalty.<이름>`, 판정 여부는 `speckit_bug/penalty_applies.<이름>`, 판정 불가 개수는 `speckit_bug/penalty_unavailable`.
-  - `fix.penalty.gold_files.named`: assessment **Files likely to change** ∪ fix.md Changes 표가 `src`의 파일을 **전부** 거론하면 1, 아니면 0 (2026-11-19, 이전에는 recall 비율; agentos_bugfix의 `named_covers_gold`와 같은 방식). 표에 없는 task면 판정 불가(unavailable)로 평균에서 빠짐.
+  - `fix.penalty.gold_files.named`: assessment **Files likely to change** ∪ fix.md Changes 표가 `src`의 파일을 **전부** 거론하면 1, 아니면 0 (2026-11-19, 이전에는 recall 비율; agentos_bugfix의 `named_covers_gold`와 같은 방식). 표에 없는 task면 판정 불가(unavailable)로 평균에서 빠짐. 2026-11-21: 디렉터리 없이 파일 이름만 적은 것(`__init__.py`, `utils.py`)은 거론으로 치지 않음. 경로가 같거나, 디렉터리를 포함한 꼬리(`pkg/mod.py`)가 일치해야 함.
   - `test.penalty.related_test_run.after_last_edit` (2026-11-19, 이전 `f2p_test_run` 대체): 마지막 소스 수정 이후 유효한 저장소 테스트 실행이 **변경한 소스 파일과 관련된 기존 테스트 파일**을 대상으로 했는지. 관련 = 02-fix.md 33행의 정의대로 그 파일 이름을 딴 테스트 파일이거나 그 모듈을 import하는 파일, 여기에 diff가 건드린 `def`/`class` 이름을 언급하는 파일(re-export를 거치는 경우). 채점 직전 collect.py가 sandbox에서 `git ls-files`의 테스트 파일을 grep해 `Collected.related_tests`로 모음(gold 불필요). 변경이 없거나 관련 테스트가 하나도 없으면 not applicable, 오프라인 재채점에서는 unavailable(평균에서 제외). 마지막 소스 변경은 세 워크플로 공통 정의(`workflow_rubric/facts.py`의 `source_change_steps`: 최종 변경에 남은 코드·설정 파일, 테스트 파일·임시 스크립트·git이 되돌린 쓰기 제외)를 씀. 소스 변경이 없는 실행은 0, 변경과 관련된 기존 테스트가 저장소에 없으면 1.
   - `fix.penalty.scope_consistency.recorded`: 보고서가 실제 변경을 서술하는지. 세 조건(최종 변경 파일이 모두 Changes 표에 있음 / Changes 표의 파일이 모두 실제 변경됨 / Files likely to change 밖을 고쳤으면 Deviations from Assessment가 비어 있지 않음)의 충족 비율. gold를 쓰지 않음. 같은 check가 compliance 항목 `fix.fix.speckit_bug_scope_consistency.recorded`로도 채점됨(기존 `cross_ref.changes` 대체). penalty 쪽에서는 변경도 기록도 없는 실행이 0 (compliance 쪽에서는 해당 없음으로 빠짐).
 - 아래 8절의 smoke는 산출물 수집 기능이 들어오기 전에 돌린 것이라, 그 episode들에는 `workflow_outputs`가 없음.

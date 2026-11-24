@@ -16,10 +16,20 @@ not touch the repository, ``exec_evidence`` for the test runs. What they cannot 
       {rule: test_run}      some row claiming pass or fail names a command that is a *valid* test run of the
                             window (evidence.py: runner output in its own observation, base-repo targets --
                             an echoed summary or a dummy test under /tmp is none)
-      {rule: consistent}    a verified Result has no row claiming fail (03-test.md:43, :45)
+      {rule: outcome}       every row claiming pass or fail whose command is a valid test run of the window
+                            records what that run printed (its last run there): ``pass`` for a run with no
+                            failure, or with none the same tests did not already have in the ``baseline``
+                            window (before round 1's first repository edit; 03-test.md:43 "no new failure");
+                            ``fail`` for a run with a failure (ratio; no such row: not_applicable). A check
+                            script's row is not judged: the trace holds no exit status for it
+      {rule: consistent}    a verified Result has no row claiming fail (03-test.md:43, :45) -- but a row of
+                            the existing tests whose failures the same tests already had in the ``baseline``
+                            window, by test name when both outputs name them, else by count
       {rule: unrun}         a verified Result has no ``skipped`` / ``not-run`` row for the reproduction or the
                             fix's checks (03-test.md:44 "partial -- ... one of them was not run", :106); the
-                            lint / type-check row is not one of the verdict's conditions
+                            lint / type-check row is not one of the verdict's conditions. With a test run in
+                            the ``baseline`` window, the existing-tests rows (Regression suite) are not all
+                            skipped / not-run either (the third condition of :43)
 
 * ``speckit_bug.checks_added`` -- the fix report's record of the checks it set up before the change
   (02-fix.md:30-34, the **Checks Added** table and **Baseline: Existing Tests** of :72-81)::
@@ -47,7 +57,8 @@ not touch the repository, ``exec_evidence`` for the test runs. What they cannot 
   not add ... test files"): ``prohibited_action`` sees every write, this kind only the files absent at BASE_SHA
   (``django/views/debug.py`` is source, a new ``debug_issue.py`` is scratch).
 * ``speckit_bug.check_scripts`` -- the checks under ``BUG_DIR/checks/``: ``written`` (a script written there in
-  the window, 02-fix.md:31), ``run`` (one of them executed in the window, 03-test.md:30), ``before_change``
+  the window, 02-fix.md:31), ``run`` (one of them executed in the window, 03-test.md:30; with ``edit_in``,
+  not_applicable when that window holds no repository edit -- rounds 2 and 3 after their change, 02-fix.md:36), ``before_change``
   (every check script first written in ``written_in`` was executed after its last write and before the
   window's first repository edit -- "Run each check now", 02-fix.md:30-34; ratio, ``optional``: not_applicable
   when none was added) and ``unchanged`` (no write, after the first repository edit of ``edit_in``, to a check
@@ -71,7 +82,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import penalty as PEN
 from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
-from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_run
+from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_candidates, _command_run, _norm_cmd
 from recipe.grpo.qwen3_5.workflow_rubric.context import EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.facts import change_paths, same_file, source_change_steps
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
@@ -157,26 +168,106 @@ def result_of(cell: str) -> str | None:
 # the lint / type-check row (:34 "if the project uses them") is not one of them
 _VERDICT_ROW = re.compile(r"(?i)reproduc|\bchecks?\b|example|symptom|\bissue\b")
 _LINT_ROW = re.compile(r"(?i)\blint|type[ -]?check|\bformat")
+# the row of the repository's existing tests (03-test.md:31-33, :72 "Regression suite"): the verdict's third condition
+_REGRESSION_ROW = re.compile(r"(?i)regress|existing\s+tests?|\bbaseline\b|\btest[ -]?suites?\b")
+# a failed test as the runner names it: pytest's summary / verbose lines, unittest's FAIL / ERROR headers
+_FAILED_NAME = re.compile(r"^(?:FAILED|ERROR) (\S+?::\S+)|^(\S+?::\S+) (?:FAILED|ERROR)\b|^(?:FAIL|ERROR): (\S+ \([^)\n]+\))", re.M)
 
 
 def _commands(cell: str) -> list[str]:
     return [c.strip() for c in _CODE.findall(cell) if c.strip()]
 
 
-@register("speckit_bug.checks_table", params={"rule": True, "artifact": False, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("results", "commands_run", "test_run", "consistent", "unrun")})
+def _test_runs(ctx: EvalContext, command: str, w) -> list:
+    """The valid test runs in the window whose command (or runner segment) is ``command``, in order -- the
+    comparison ``_command_run`` makes (``refs.norm_command``)."""
+    if w is None:
+        return []
+    want = _command_candidates(command)
+    got = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, w) and want & {_norm_cmd(x) for x in (r.command, r.segment) if x}]
+    return sorted(got, key=lambda r: (r.step, r.action_index))
+
+
+def _row_runs(ctx: EvalContext, row: dict[str, str], w) -> list[tuple[str, object]]:
+    """(command, its last valid test run in the window) for each command of the row that has one."""
+    out = []
+    for c in _commands(row["command"]):
+        runs = _test_runs(ctx, c, w)
+        if runs:
+            out.append((c, runs[-1]))
+    return out
+
+
+def _failures(run) -> tuple[int, frozenset[str] | None]:
+    """How many tests of the run failed or errored, and their names when its output names every one of them
+    (else None: a cut or summary-only output leaves the count alone)."""
+    n = int(run.failed or 0) + int(run.errors or 0)
+    names = frozenset(next(g for g in m.groups() if g) for m in _FAILED_NAME.finditer(run.observation or ""))
+    return n, (names if n and len(names) == n else None)
+
+
+def _baseline_of(ctx: EvalContext, run, command: str, bw):
+    """The last valid test run before the change that ran what ``run`` ran: the same command, else the same
+    runner on the same targets (None: the baseline never ran it)."""
+    if bw is None:
+        return None
+    same = _test_runs(ctx, command, bw)
+    if not same and run.targets:
+        same = [r for r in ctx.facts.runs if r.valid and r.kind == "test" and refs.in_window(r.step, bw) and r.runner == run.runner and set(r.targets) == set(run.targets)]
+        same.sort(key=lambda r: (r.step, r.action_index))
+    return same[-1] if same else None
+
+
+def _no_new_failure(run, base) -> bool:
+    """03-test.md:43 'the existing tests of the fix report's baseline show no new failure': the run fails
+    nothing, or only what ``base`` (the same tests before the change) already failed -- by test name when
+    both outputs name their failures, else by count."""
+    n, names = _failures(run)
+    if n == 0:
+        return True
+    if base is None:
+        return False
+    bn, bnames = _failures(base)
+    if names is not None and bnames is not None:
+        return names <= bnames
+    return n <= bn
+
+
+def _baseline_failure(ctx: EvalContext, row: dict[str, str], w, bw) -> bool:
+    """The failed row records failures the baseline already had, not a failed fix: a row of the existing tests
+    (never the reproduction, the issue's examples or the fix's checks, 03-test.md:45), each of its commands a
+    valid test run after the change that fails, and fails nothing its run before the change passed."""
+    if w is None or bw is None:
+        return False
+    label = row["check"]
+    if _VERDICT_ROW.search(label) and not _REGRESSION_ROW.search(label):
+        return False
+    runs = _row_runs(ctx, row, w)
+    if not runs or len(runs) != len(_commands(row["command"])):
+        return False
+    for c, run in runs:
+        base = _baseline_of(ctx, run, c, bw)
+        if not _failures(run)[0] or base is None or not _no_new_failure(run, base):
+            return False
+    return True
+
+
+@register("speckit_bug.checks_table", params={"rule": True, "artifact": False, "window": False, "baseline": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("results", "commands_run", "test_run", "outcome", "consistent", "unrun")})
 def checks_table(item: Item, ctx: EvalContext) -> Result:
-    """rule: results | commands_run | test_run | consistent | unrun -- the Checks Performed table: one result value per row; claimed commands were run; a valid test run among them; no failed row (consistent) and no skipped / not-run reproduction or fix-check row (unrun) under a verified Result."""
+    """rule: results | commands_run | test_run | outcome | consistent | unrun -- the Checks Performed table: one result value per row; claimed commands were run; a valid test run among them; a row's pass / fail is what its test run printed (outcome); no failed row but a failure the ``baseline`` window's run already had (consistent) and no skipped / not-run reproduction or fix-check row, nor the existing tests left unrun (unrun) under a verified Result."""
     p = item.check.params or {}
     rule = str(p.get("rule"))
+    # outcome holds a recorded result to its run's output: a table that records none is the other rules' failure
+    none = Result.not_applicable if rule == "outcome" else Result.no
     text = ctx.artifact_text(_artifact(item), getattr(item.target, "state", "final") or "final")
     if text is None:
-        return Result.no(item, "artifact absent")
+        return none(item, "artifact absent")
     body = _section(text, "Checks Performed")
     if body is None:
-        return Result.no(item, "no Checks Performed section")
+        return none(item, "no Checks Performed section")
     rows = table_rows(body)
     if not rows:
-        return Result.no(item, "no table rows")
+        return none(item, "no table rows")
     if rule == "results":
         good = sum(1 for r in rows if result_of(r["result"]) is not None)
         return Result.ratio(item, good, len(rows), f"{good}/{len(rows)} rows with one result value")
@@ -184,17 +275,31 @@ def checks_table(item: Item, ctx: EvalContext) -> Result:
         verdict = M.field_value(M.frontmatter(M.strip_fence(text[:MAX_TEXT])[0]).body, "Result") or ""
         if not re.match(r"^\W*verified\b", M.clean_value(verdict), re.I):
             return Result.not_applicable(item, "Result is not verified")
+        bw = refs.window(ctx, p["baseline"]) if "baseline" in p else None
         if rule == "unrun":
             unrun = [r["check"][:40] for r in rows if _VERDICT_ROW.search(r["check"]) and not _LINT_ROW.search(r["check"]) and result_of(r["result"]) in ("skipped", "not-run")]
-            return Result.no(item, f"verified with checks not run: {unrun[:3]}") if unrun else Result.ok(item, "every reproduction / fix-check row was run")
-        failed = [r["check"][:40] for r in rows if result_of(r["result"]) == "fail"]
-        return Result.no(item, f"verified with failed checks: {failed[:3]}") if failed else Result.ok(item, "no failed check")
+            if unrun:
+                return Result.no(item, f"verified with checks not run: {unrun[:3]}")
+            # the third condition (03-test.md:43-44): a baseline was run, so there are existing tests to run again
+            if bw is not None and any(r.valid and r.kind == "test" and refs.in_window(r.step, bw) for r in ctx.facts.runs):
+                reg = [r for r in rows if _REGRESSION_ROW.search(r["check"]) and not _LINT_ROW.search(r["check"])]
+                if reg and all(result_of(r["result"]) in ("skipped", "not-run") for r in reg):
+                    return Result.no(item, f"verified with the existing tests not run again: {[r['check'][:40] for r in reg[:3]]}")
+            return Result.ok(item, "every reproduction / fix-check row was run")
+        failed = [r for r in rows if result_of(r["result"]) == "fail"]
+        if not failed:
+            return Result.ok(item, "no failed check")
+        w = _window(item, ctx) if "window" in p else None
+        left = [r["check"][:40] for r in failed if not _baseline_failure(ctx, r, w, bw)]
+        if left:
+            return Result.no(item, f"verified with failed checks: {left[:3]}")
+        return Result.ok(item, f"{len(failed)} failed row(s), each a failure the baseline already had")
     w = _window(item, ctx)
     if w is None:
-        return Result.no(item, "window empty")
+        return none(item, "window empty")
     judged = [r for r in rows if result_of(r["result"]) in ("pass", "fail") and _commands(r["command"])]
     if not judged:
-        return Result.no(item, "no row claims pass / fail with a command")
+        return none(item, "no row claims pass / fail with a command")
     if rule == "commands_run":
         good = 0
         for r in judged:
@@ -206,6 +311,24 @@ def checks_table(item: Item, ctx: EvalContext) -> Result:
             if any(_command_run(item, ctx, c, w, "test").status == "pass" for c in _commands(r["command"])):
                 return Result.ok(item, f"valid test run: {r['check'][:40]}")
         return Result.no(item, "no claimed command is a valid test run in the window")
+    if rule == "outcome":
+        bw = refs.window(ctx, p["baseline"]) if "baseline" in p else None
+        seen, bad = 0, []
+        for r in judged:
+            runs = _row_runs(ctx, r, w)
+            if not runs:
+                continue  # a check script, a command never run: the other rules' rows
+            seen += 1
+            if result_of(r["result"]) == "pass":
+                ok = all(_no_new_failure(run, _baseline_of(ctx, run, c, bw)) for c, run in runs)
+            else:
+                ok = any(_failures(run)[0] for _, run in runs)
+            if not ok:
+                n = sum(_failures(run)[0] for _, run in runs)
+                bad.append(f"{r['check'][:40]}: {result_of(r['result'])} recorded, its run failed {n}")
+        if not seen:
+            return Result.not_applicable(item, "no row names a valid test run")
+        return Result.ratio(item, seen - len(bad), seen, "; ".join(bad[:2]) if bad else f"{seen} row(s) record what their test run printed")
     return Result.no(item, f"unknown rule {rule!r}")
 
 
@@ -391,11 +514,15 @@ def _edit_bound(item: Item, ctx: EvalContext, w) -> int:
 
 @register("speckit_bug.check_scripts", params={"rule": True, "window": False, "written_in": False, "edit_in": False, "optional": False}, availability=("trace",), common=False, choices={"rule": ("written", "run", "before_change", "unchanged")})
 def check_scripts(item: Item, ctx: EvalContext) -> Result:
-    """rule: written | run | before_change | unchanged -- a check script written under BUG_DIR/checks/ in the window; one of them (written in ``written_in``) executed in the window; every check first written in ``written_in`` run before the window's first repository edit; no check written before that edit rewritten after it."""
+    """rule: written | run | before_change | unchanged -- a check script written under BUG_DIR/checks/ in the window; one of them (written in ``written_in``) executed in the window (not applicable when ``edit_in`` holds no repository edit); every check first written in ``written_in`` run before the window's first repository edit; no check written before that edit rewritten after it."""
     from recipe.grpo.qwen3_5.workflow_rubric.facts import executed_paths
 
     p = item.check.params or {}
     rule = str(p.get("rule"))
+    if rule == "run" and "edit_in" in p:
+        ew = refs.window(ctx, p["edit_in"])
+        if ew is None or first_edit(ctx, ew) is None:
+            return Result.not_applicable(item, "no repository edit in the round: no change to run the checks on")
     w = _window(item, ctx)
     if w is None:
         return Result.no(item, "window empty")
@@ -663,9 +790,11 @@ def gold_files(item: Item, ctx: EvalContext) -> Result:
 
 
 def _names(named: set[str], gold: str) -> bool:
-    """``gold`` (repository-relative) is among ``named``, by the shared rule (``facts.same_file``): equal, or one
-    path is the tail of the other -- the reports write ``/testbed/pkg/mod.py`` or just ``mod.py``."""
-    return any(same_file(n, gold) for n in named)
+    """``gold`` (repository-relative) is among ``named``: equal, or one path is the tail of the other
+    (``facts.same_file``) and the shorter one still names a directory -- the reports write
+    ``/work/src/pkg/mod.py`` or ``pkg/mod.py`` for ``src/pkg/mod.py``. A bare file name (``__init__.py``,
+    ``utils.py``) is the name of many files, so it names this one only when the gold path is that bare name."""
+    return any(n == gold or (same_file(n, gold) and "/" in min(n, gold, key=len)) for n in named)
 
 
 def _mentions_test_file(run, path: str, workdir: str | None) -> bool:
