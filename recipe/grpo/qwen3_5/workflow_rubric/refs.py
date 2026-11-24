@@ -184,7 +184,7 @@ def _fact_event(ctx: EvalContext, spec: dict):
 
 def _unseen_edits(ctx: EvalContext, q: dict) -> list[str]:
     """The repo changes the trace does not show (``Facts.unseen_repo_paths``) that a ``repo_edit`` query's filters admit."""
-    from .facts import change_paths, is_new_path, is_test_path
+    from .facts import change_paths, is_new_path, is_repo_test_file
 
     unseen = list(getattr(ctx.facts, "unseen_repo_paths", None) or [])
     if not unseen:
@@ -193,7 +193,7 @@ def _unseen_edits(ctx: EvalContext, q: dict) -> list[str]:
     outside = select_union(ctx, q["paths_not_in"]) if "paths_not_in" in q else None
     out = []
     for p in unseen:
-        if q.get("test_paths") is not None and is_test_path(p) != bool(q["test_paths"]):
+        if q.get("test_paths") is not None and is_repo_test_file(ctx, p) != bool(q["test_paths"]):
             continue
         if q.get("final") and p not in change_paths(ctx):
             continue
@@ -432,7 +432,7 @@ def _keyed_ids(scope: str, arg: dict) -> set[str]:
 
 
 def _fact_values(ctx: EvalContext, arg: dict, spec: dict):
-    from .facts import change_paths, is_generated, is_test_path
+    from .facts import change_paths, is_generated, is_repo_test_file
 
     f, c = ctx.facts, ctx.collected
     name = arg.get("name") or arg.get("fact")
@@ -450,7 +450,7 @@ def _fact_values(ctx: EvalContext, arg: dict, spec: dict):
         if name == "untracked_paths":
             return {p for p, s in c.diff.items() if s == "?" and not is_generated(p)}
         paths = {p for p, s in c.diff.items() if s != "D" and not (s == "?" and is_generated(p))}
-        return {p for p in paths if is_test_path(p)} if name == "diff_test_paths" else paths
+        return {p for p in paths if is_repo_test_file(ctx, p)} if name == "diff_test_paths" else paths
     if name == "repo_write_paths":
         paths = {e.path for e in f.repo_writes if in_window(e.step, w) and e.ok is not False}
         return paths & change_paths(ctx) if arg.get("final") else paths
@@ -594,7 +594,7 @@ def _unrecorded_failure(r, recorded: list[str]) -> bool:
 
 def matching(ctx: EvalContext, arg: dict) -> Iterable:
     """The fact records a predicate's ``exists``/``absent``/``counts`` ranges over."""
-    from .facts import change_paths, executed_paths, is_new_path, is_test_path, source_paths
+    from .facts import change_paths, executed_paths, is_new_path, is_repo_test_file, source_paths
 
     f = ctx.facts
     name = arg["fact"]
@@ -618,7 +618,7 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
         for e in f.repo_writes:
             if e.ok is False or not in_window(e.step, w):
                 continue
-            if arg.get("test_paths") is not None and is_test_path(e.path) != bool(arg["test_paths"]):
+            if arg.get("test_paths") is not None and is_repo_test_file(ctx, e.path) != bool(arg["test_paths"]):
                 continue
             if arg.get("final") and e.path not in change_paths(ctx):
                 continue

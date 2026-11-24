@@ -322,3 +322,42 @@ def test_command_run_reads_the_order_in_a_call_and_leaves_stash_runs_out():
     plain = _ctx([EDIT_MOD, _shell(cmd, PASS1)])
     assert _command_run(item, plain, cmd, (1, None), None).status == "pass"  # must keep
     assert _command_run(item, plain, cmd, (1, None), "test").status == "pass"
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# item 19: a script the run made at the repository root is no repository test file
+# --------------------------------------------------------------------------------------------------------------------
+def _root_ctx(base_root_test: bool):
+    base = ("pkg/mod.py", "tests/test_mod.py") + (("test_requests.py",) if base_root_test else ())
+    acts = [Action("create", "file_editor", path=f"{WD}/test_repro.py", text="print('PASS')\n", status="ok", observation="File created"),
+            Action("replace", "file_editor", path=f"{WD}/test_requests.py", old="a", text="b", status="ok", observation="edited"),
+            Action("create", "file_editor", path=f"{WD}/tests/test_new.py", text="def test_x():\n    pass\n", status="ok", observation="File created")]
+    return _ctx(acts, base=base)
+
+
+def test_a_root_script_the_run_made_is_no_repository_test_file():
+    ctx = _root_ctx(base_root_test=True)
+    assert F.is_test_path("test_repro.py") and not F.is_repo_test_file(ctx, "test_repro.py")
+    # must keep: a root test file that existed at BASE_SHA, and a new test file under tests/
+    assert F.is_repo_test_file(ctx, "test_requests.py")
+    assert F.is_repo_test_file(ctx, "tests/test_new.py")
+    assert not F.is_repo_test_file(ctx, "pkg/mod.py")
+
+
+def test_repo_edit_test_paths_leaves_root_scripts_out():
+    from recipe.grpo.qwen3_5.workflow_rubric import refs
+
+    ctx = _root_ctx(base_root_test=True)
+    tests = {e.path for e in refs.matching(ctx, {"fact": "repo_edit", "test_paths": True})}
+    others = {e.path for e in refs.matching(ctx, {"fact": "repo_edit", "test_paths": False})}
+    assert "test_repro.py" not in tests and "test_repro.py" in others
+    assert {"test_requests.py", "tests/test_new.py"} <= tests  # must keep
+
+
+def test_agentos_bugfix_does_not_take_a_root_script_for_a_test_edit():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import penalty_tests as P
+
+    ctx = _root_ctx(base_root_test=True)
+    tl = P.timeline(ctx)
+    assert "test_repro.py" not in tl.test_edits_of
+    assert {"test_requests.py", "tests/test_new.py"} <= set(tl.test_edits_of)  # must keep

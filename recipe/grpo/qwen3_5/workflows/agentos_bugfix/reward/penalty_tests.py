@@ -234,7 +234,7 @@ def timeline(ctx: Any) -> Timeline:
     for e in fx.repo_writes:
         if e.ok is False or e.op == "unknown" or F.is_generated(e.path):
             continue
-        if F.is_test_path(e.path):
+        if F.is_repo_test_file(ctx, e.path):  # a script the run made at the repository root is no test (A-9 row 8)
             own_tests.setdefault(e.path, int(e.step))
             tl.test_edits.append(int(e.step))
             tl.test_edits_of.setdefault(e.path, []).append(int(e.step))

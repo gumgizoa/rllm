@@ -181,6 +181,17 @@ def is_new_path(ctx: EvalContext, rel: str) -> bool:
     return (wd + rel) in (getattr(ctx.facts, "_created", None) or {})
 
 
+def is_repo_test_file(ctx: EvalContext, rel: str) -> bool:
+    """A test file of the repository (:func:`is_test_path`), not a script the run itself made at the repository root:
+    ``/testbed/test_repro.py`` or ``test_issue.py`` written by the agent to reproduce or check the issue is the run's own
+    script, whatever its name (a file at the root that existed at BASE_SHA, such as an old project's
+    ``test_requests.py``, stays a test file). ``rel`` is repo-relative."""
+    if not is_test_path(rel):
+        return False
+    r = rel[2:] if rel.startswith("./") else rel
+    return "/" in r or not is_new_path(ctx, r)
+
+
 def source_paths(ctx: EvalContext) -> set[str]:
     """The source files of the final change: non-test code or config files of :func:`change_paths` that are not one of
     the run's own scripts (what :func:`source_change_steps` counts writes of)."""
@@ -1014,6 +1025,7 @@ __all__ = [
     "artifact_text",
     "owning_stage",
     "is_test_path",
+    "is_repo_test_file",
     "is_generated",
     "same_file",
     "change_paths",
