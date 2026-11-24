@@ -1150,6 +1150,8 @@ class _Ctx:
     def existed(self, path: str, step: int, what: str) -> str:
         """'' when ``path`` counts as a base-repo file at ``step``, else why not: the base tree's
         answer when it has one (online), else "not created by the agent" (offline, or not asked)."""
+        if "$" in path:  # an unresolved shell variable (``${SPEC_PATH}/verify/test_x.py``): where the file is, is not known
+            return f"{what} at an unresolved path ({path})"
         rel = _rel(path, self.workdir)
         if self.workdir and rel is None:
             return f"{what} outside the repository ({path})"
