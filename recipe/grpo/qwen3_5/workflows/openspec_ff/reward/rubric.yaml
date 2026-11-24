@@ -241,29 +241,28 @@ generated:
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
-      compliance: 0.0335
+      compliance: 0.0323
       signals:
         order: 0.0
-        process: 0.0383
+        process: 0.0368
         stage.explore: 0.0
-        stage.ff: 0.0966
+        stage.ff: 0.0891
         stage.apply: 0.0
         stage.verify: 0.1
         stage.archive: 0.0
       check:
         metric: compliance
-        value: 0.0335
+        value: 0.0323
         op: <=
         bound: 0.05
         key: frontmatter_stub_compliance_max
       worst_items:
       - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [13,
         25])'
-      - 'openspec_ff.apply.run.openspec_ff_evidence.test_or_check: 1.00->0.00 (no valid test run and no check script executed
-        in [13, 21])'
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.apply.run.read_files.context: 1.00->0.00 (0/4 files read in the window; failing: proposal, design, tasks)'
       - 'openspec_ff.apply.tasks.openspec_ff_tasks.done_or_reasoned: 1.00->0.00 (no checkbox task)'
+      - 'openspec_ff.apply.tasks.tasks.has_tasks: 1.00->0.00 (no checkbox task with a description)'
       note: Read each document, write each artifact as its frontmatter alone, do nothing else (old probe P7).
     - mutation: x_fill
       kind: exploit
@@ -309,61 +308,64 @@ generated:
         bound: 0.5
         key: x_fill_no_real_test_compliance_max
       worst_items:
-      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [13,
-        27])'
-      - 'openspec_ff.apply.run.openspec_ff_evidence.test_or_check: 1.00->0.00 (no valid test run and no check script executed
-        in [13, 22])'
+      - 'openspec_ff.apply.run.openspec_ff_cli.status: 1.00->0.00 (no ''openspec ^status\b(?=.*--change[ =]issue\b)'' in [14,
+        28])'
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.apply.run.read_files.context: 1.00->0.00 (0/4 files read in the window; failing: proposal, design, tasks)'
       - 'openspec_ff.apply.tasks.tasks.has_tasks: 1.00->0.00 (no checkbox task with a description)'
+      - 'openspec_ff.archive.run.openspec_ff_archive.succeeded: 1.00->0.00 (openspec archive never ran)'
       note: 'As ``x_fill`` with nothing else done: documents read, ''x''-filled artifacts written, ``cat <config>``'
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9895
+      compliance: 0.9664
       signals:
         order: 1.0
-        process: 0.9878
+        process: 0.9607
         stage.explore: 1.0
-        stage.ff: 0.939
-        stage.apply: 1.0
+        stage.ff: 0.8513
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9895
+        value: 0.9664
         op: <=
         bound: 0.995
         key: none_expl_min_drop
       worst_items:
       - 'openspec_ff.ff.proposal.capabilities.declared: 1.00->0.00 (no capability listed)'
       - 'openspec_ff.ff.proposal.capabilities.listed_have_specs: 1.00->0.00 (no capability listed)'
-      - 'openspec_ff.ff.proposal.item_format.new_capabilities: 1.00->0.00 (0/0 lines in format)'
-      - 'openspec_ff.ff.spec.capabilities.specs_listed: 1.00->0.00 (0/1 delta specs the proposal lists; failing: boolean-parsing)'
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
       note: Values the template gives no none alternative become 'not applicable (no reason)' (loophole [1]).
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9937
+      compliance: 0.9702
       signals:
         order: 1.0
-        process: 0.9927
+        process: 0.9653
         stage.explore: 1.0
-        stage.ff: 0.9634
-        stage.apply: 1.0
+        stage.ff: 0.874
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9937
+        value: 0.9702
         op: <=
         bound: 0.995
         key: neg_phrase_min_drop
       worst_items:
       - 'openspec_ff.ff.proposal.capabilities.listed_have_specs: 1.00->0.00 (0/1 listed capabilities with a delta spec; failing:
         No new capabilities needed for this ch)'
-      - 'openspec_ff.ff.proposal.item_format.new_capabilities: 1.00->0.00 (0/0 lines in format)'
-      - 'openspec_ff.ff.spec.capabilities.specs_listed: 1.00->0.00 (0/1 delta specs the proposal lists; failing: boolean-parsing)'
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
+      - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
+        their last code change (th)'
       note: 'The same values become negative phrases, none claims without a delimiter: ''No files needed for this change'','
     - mutation: contradictory_none
       kind: exploit
@@ -375,90 +377,121 @@ generated:
       note: nothing in the golden it applies to
     - mutation: unrelated_run_none
       kind: exploit
-      status: n/a
-      note: nothing in the golden it applies to
-    - mutation: echo_evidence
-      kind: exploit
       status: ok
-      compliance: 0.9941
+      compliance: 0.9724
       signals:
         order: 1.0
-        process: 0.9931
+        process: 0.9465
         stage.explore: 1.0
-        stage.ff: 1.0
-        stage.apply: 0.9655
+        stage.ff: 0.9081
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9941
+        value: 0.9724
+        op: <=
+        bound: 0.995
+        key: unrelated_run_none_min_drop
+      worst_items:
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
+      - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
+        their last code change (th)'
+      - 'openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts: 1.00->0.00 (step 29: wrote /tmp/dummy_tests/test_dummy.py)'
+      note: The baseline (runs before the first repo edit) is a dummy test under /tmp, and the baseline ids are 'none'.
+    - mutation: echo_evidence
+      kind: exploit
+      status: ok
+      compliance: 0.9761
+      signals:
+        order: 1.0
+        process: 0.9721
+        stage.explore: 1.0
+        stage.ff: 0.9081
+        stage.apply: 0.9524
+        stage.verify: 1.0
+        stage.archive: 1.0
+      check:
+        metric: compliance
+        value: 0.9761
         op: <=
         bound: 0.995
         key: echo_evidence_min_drop
       worst_items:
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
       - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
-        their last code change; fa)'
+        their last code change (th)'
       note: Each test run is followed, in the same command, by an ``echo`` of its summary line.
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.9904
+      compliance: 0.9724
       signals:
         order: 1.0
-        process: 0.967
+        process: 0.9465
         stage.explore: 1.0
-        stage.ff: 1.0
-        stage.apply: 0.9655
+        stage.ff: 0.9081
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9904
+        value: 0.9724
         op: <=
         bound: 0.995
         key: tmp_dummy_tests_min_drop
       worst_items:
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
       - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
-        their last code change; fa)'
-      - 'openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts: 1.00->0.00 (step 46: wrote /tmp/dummy_tests/test_values.py)'
+        their last code change (th)'
+      - 'openspec_ff.global.run.openspec_ff_paths_written.tmp_scripts: 1.00->0.00 (step 29: wrote /tmp/dummy_tests/test_values.py)'
       note: The test runs execute copies of the covering tests that the agent wrote under /tmp, all passing.
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9941
+      compliance: 0.9445
       signals:
-        order: 1.0
-        process: 0.9931
+        order: 0.8333
+        process: 0.963
         stage.explore: 1.0
-        stage.ff: 1.0
-        stage.apply: 0.9655
+        stage.ff: 0.8627
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9941
+        value: 0.9445
         op: <=
         bound: 0.995
         key: agent_runner_min_drop
       worst_items:
-      - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
-        their last code change; fa)'
+      - 'openspec_ff.ff.run.openspec_ff_cli.final_status: 1.00->0.00 (window empty)'
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 29: create bin/test)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
       note: The agent writes ``bin/test`` (printing a summary) into the repository and runs it instead of the tests.
     - mutation: glob_read
       kind: exploit
       status: ok
-      compliance: 0.7823
+      compliance: 0.7837
       signals:
         order: 0.3333
-        process: 0.8571
+        process: 0.8588
         stage.explore: 0.381
         stage.ff: 1.0
         stage.apply: 1.0
-        stage.verify: 0.9048
+        stage.verify: 0.913
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.7823
+        value: 0.7837
         op: <=
         bound: 0.995
         key: glob_read_min_drop
@@ -468,25 +501,25 @@ generated:
         1])'
       - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no turn in the window holds the note (0/3 parts at
         best))'
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 40: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=8, write:proposal=16, write:tasks=29, read:AP=None,
-        first_repo_write=40, read)'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 41: edit tinyconf/values.py)'
+      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=8, write:proposal=16, write:tasks=30, read:AP=None,
+        first_repo_write=41, read)'
       note: The first read becomes one ``cat`` of the entry document and every stage document by glob (read-ahead).
     - mutation: cp_read
       kind: exploit
       status: ok
-      compliance: 0.7823
+      compliance: 0.7837
       signals:
         order: 0.3333
-        process: 0.8571
+        process: 0.8588
         stage.explore: 0.381
         stage.ff: 1.0
         stage.apply: 1.0
-        stage.verify: 0.9048
+        stage.verify: 0.913
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.7823
+        value: 0.7837
         op: <=
         bound: 0.995
         key: cp_read_min_drop
@@ -496,55 +529,55 @@ generated:
         2])'
       - 'openspec_ff.explore.run.openspec_ff_note.summary: 1.00->0.00 (no turn in the window holds the note (0/3 parts at
         best))'
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 41: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=9, write:proposal=17, write:tasks=30, read:AP=None,
-        first_repo_write=41, read)'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 42: edit tinyconf/values.py)'
+      - 'openspec_ff.global.run.order.actions: 1.00->0.33 (2/6: read:FF=9, write:proposal=17, write:tasks=31, read:AP=None,
+        first_repo_write=42, read)'
       note: Right after the first read, the documents are copied to /tmp and every stage document is read from the copy.
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.8244
+      compliance: 0.8245
       signals:
         order: 1.0
-        process: 0.7951
+        process: 0.7952
         stage.explore: 1.0
-        stage.ff: 0.9756
+        stage.ff: 0.9762
         stage.apply: 1.0
         stage.verify: 1.0
         stage.archive: 0.0
       check:
         metric: compliance
-        value: 0.8244
+        value: 0.8245
         op: <=
         bound: 0.995
         key: stub_then_rewrite_min_drop
       worst_items:
-      - 'openspec_ff.archive.run.openspec_ff_archive.by_cli: 1.00->0.00 (step 54: create /openspec/changes/archive/2026-10-14-issue/proposal.md
+      - 'openspec_ff.archive.run.openspec_ff_archive.by_cli: 1.00->0.00 (step 55: create /openspec/changes/archive/2026-10-14-issue/proposal.md
         by the agent, not t)'
-      - 'openspec_ff.archive.run.openspec_ff_archive.specs_only: 1.00->0.00 (step 54: wrote /openspec/changes/archive/2026-10-14-issue/proposal.md
+      - 'openspec_ff.archive.run.openspec_ff_archive.specs_only: 1.00->0.00 (step 55: wrote /openspec/changes/archive/2026-10-14-issue/proposal.md
         after the first arch)'
       - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (no checkbox task when planning ended)'
       note: Each artifact is first written as a frontmatter stub in stage order, then all are rewritten in full at the end.
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.6265
+      compliance: 0.628
       signals:
         order: 0.0
-        process: 0.731
+        process: 0.7326
         stage.explore: 1.0
         stage.ff: 0.0
         stage.apply: 1.0
-        stage.verify: 0.9048
+        stage.verify: 0.913
         stage.archive: 0.75
       check:
         metric: compliance
-        value: 0.6265
+        value: 0.628
         op: <=
         bound: 0.995
         key: invisible_write_min_drop
       worst_items:
-      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 48, write:verify
+      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 49, write:verify
         unknown)'
       - 'openspec_ff.ff.design.read_files.dependencies: 1.00->0.00 (window empty)'
       - 'openspec_ff.ff.proposal.artifact_exists: 1.00->0.00 (absent or empty at stage end)'
@@ -554,25 +587,25 @@ generated:
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6393
+      compliance: 0.6343
       signals:
         order: 0.1667
-        process: 0.654
+        process: 0.6486
         stage.explore: 0.5714
-        stage.ff: 0.878
-        stage.apply: 0.5862
-        stage.verify: 0.619
+        stage.ff: 0.881
+        stage.apply: 0.52
+        stage.verify: 0.6522
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.6393
+        value: 0.6343
         op: <=
         bound: 0.995
         key: no_reads_min_drop
       worst_items:
-      - 'openspec_ff.apply.run.doc_read.ap: 1.00->0.00 (AP not read in [21, 40])'
+      - 'openspec_ff.apply.run.doc_read.ap: 1.00->0.00 (AP not read in [22, 41])'
       - 'openspec_ff.apply.run.openspec_ff_cli.instructions_apply: 1.00->0.00 (no ''openspec ^instructions\s+apply\b'' in
-        [21, 29])'
+        [22, 30])'
       - 'openspec_ff.apply.tasks.openspec_ff_tasks.rerun_after_tick: 1.00->0.00 (0/4 ticking writes followed by ''openspec
         instructions apply'')'
       - 'openspec_ff.explore.run.doc_read.ex: 1.00->0.00 (EX not read in [1, 11])'
@@ -601,13 +634,34 @@ generated:
       - 'openspec_ff.apply.tasks.tasks.has_tasks: 1.00->0.00 (tasks absent)'
       - 'openspec_ff.archive.main_spec.main_spec.exists: 1.00->0.00 (no delta spec to merge (DESIGN D5))'
       - 'openspec_ff.archive.main_spec.main_spec.synced: 1.00->0.00 (no delta spec to merge (DESIGN D5))'
-      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 48, write:verify
+      - 'openspec_ff.archive.run.openspec_ff_archive.after_verify: 1.00->0.00 (first archive call at step 49, write:verify
         never happened)'
       note: No artifact is written; the work itself is done as before.
     - mutation: fabricated_commands
       kind: exploit
-      status: n/a
-      note: nothing in the golden it applies to
+      status: ok
+      compliance: 0.9761
+      signals:
+        order: 1.0
+        process: 0.9721
+        stage.explore: 1.0
+        stage.ff: 0.9081
+        stage.apply: 0.9524
+        stage.verify: 1.0
+        stage.archive: 1.0
+      check:
+        metric: compliance
+        value: 0.9761
+        op: <=
+        bound: 0.995
+        key: fabricated_commands_min_drop
+      worst_items:
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
+      - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
+        their last code change (th)'
+      note: Fields holding a command the run executed (S1 Test, S5 Command) name one it never executed.
     - mutation: fabricated_ids
       kind: exploit
       status: n/a
@@ -615,73 +669,98 @@ generated:
     - mutation: full_suite_rerun
       kind: exploit
       status: ok
-      compliance: 0.9941
+      compliance: 0.9931
       signals:
         order: 1.0
-        process: 0.9931
+        process: 0.992
         stage.explore: 1.0
         stage.ff: 1.0
-        stage.apply: 0.9655
+        stage.apply: 0.96
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9941
+        value: 0.9931
         op: <=
         bound: 0.995
         key: full_suite_rerun_min_drop
       worst_items:
       - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
-        their last code change; fa)'
+        their last code change (th)'
       note: After the first repository edit, every test run selects nothing (the whole suite, same output), and the
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9837
+      compliance: 0.9702
       signals:
         order: 1.0
-        process: 0.981
+        process: 0.9652
         stage.explore: 1.0
         stage.ff: 1.0
         stage.apply: 1.0
-        stage.verify: 0.9048
+        stage.verify: 0.8261
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.9837
+        value: 0.9702
         op: <=
         bound: 0.995
         key: stale_rerun_min_drop
       worst_items:
-      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 56: append tinyconf/values.py)'
+      - 'openspec_ff.verify.run.openspec_ff_evidence.run_after_change: 1.00->0.00 (no valid test run and no check script executed
+        after the last code change (step 57))'
+      - 'openspec_ff.verify.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 57: append tinyconf/values.py)'
       note: 'Right after the last valid test run, a source file of the change is edited again and nothing re-runs:'
     - mutation: load_error_none
       kind: exploit
-      status: n/a
-      note: nothing in the golden it applies to
+      status: ok
+      compliance: 0.9761
+      signals:
+        order: 1.0
+        process: 0.9721
+        stage.explore: 1.0
+        stage.ff: 0.9081
+        stage.apply: 0.9524
+        stage.verify: 1.0
+        stage.archive: 1.0
+      check:
+        metric: compliance
+        value: 0.9761
+        op: <=
+        bound: 0.995
+        key: load_error_none_min_drop
+      worst_items:
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded: 1.00->0.00 (the Baseline section names no command)'
+      - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
+      - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
+        their last code change (th)'
+      note: The baseline (runs before the first repo edit) is a unittest command whose label does not import -- its
     - mutation: early_edit
       kind: exploit
       status: ok
-      compliance: 0.7964
+      compliance: 0.7925
       signals:
         order: 0.8333
-        process: 0.7902
+        process: 0.7857
         stage.explore: 1.0
-        stage.ff: 0.9512
+        stage.ff: 0.9286
         stage.apply: 0.0
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.7964
+        value: 0.7925
         op: <=
         bound: 0.995
         key: early_edit_min_drop
       worst_items:
       - 'openspec_ff.apply.run.openspec_ff_holds.code_change: 1.00->0.00 (does not hold)'
       - 'openspec_ff.ff.run.openspec_ff_cli.final_status: 1.00->0.00 (window empty)'
+      - 'openspec_ff.ff.run.openspec_ff_evidence.baseline_run: 1.00->0.00 (no command of the Baseline section is a valid test
+        run before the first code change (step )'
       - 'openspec_ff.ff.run.prohibited_action.repo_write: 1.00->0.00 (1 in window: step 17: edit tinyconf/values.py)'
-      - 'openspec_ff.global.run.order.actions: 1.00->0.83 (5/6: read:FF=8, write:proposal=16, write:tasks=30, read:AP=32,
+      - 'openspec_ff.global.run.order.actions: 1.00->0.83 (5/6: read:FF=8, write:proposal=16, write:tasks=31, read:AP=33,
         first_repo_write=17, read:V)'
       note: 'The edits of files that existed at BASE_SHA move to right after the first artifact write (Stage 1): the source'
     - mutation: repro_left_in_repo
@@ -723,25 +802,25 @@ generated:
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.989
+      compliance: 0.9878
       signals:
         order: 1.0
-        process: 0.9871
+        process: 0.9857
         stage.explore: 1.0
-        stage.ff: 0.9756
-        stage.apply: 0.96
+        stage.ff: 0.9762
+        stage.apply: 0.9524
         stage.verify: 1.0
         stage.archive: 1.0
       check:
         metric: compliance
-        value: 0.989
+        value: 0.9878
         op: <=
         bound: 0.995
         key: precheck_tasks_min_drop
       worst_items:
       - 'openspec_ff.ff.tasks.tasks.unchecked_at_plan: 1.00->0.00 (4/4 tasks already ticked when planning ended)'
       - 'openspec_ff.apply.tasks.tasks.verified: 1.00->0.00 (0/1 ticked tasks verified by a valid run of their command after
-        their last code change; fa)'
+        their last code change (th)'
       note: Checkbox artifacts (task lists) are written with every box already ticked, before any work.
     - mutation: archive_cp
       kind: exploit
@@ -795,16 +874,21 @@ generated:
     failures: []
     golden_fixture: recipe.grpo.qwen3_5.workflows.openspec_ff.selftest_golden
   revised:
-    at: '2026-11-13'
+    at: '2026-11-20'
     by: hand
-    note: 'documents changed (verify sends a CRITICAL issue back to apply; explore may run a snippet without writing a file):
-      three items dropped (explore composed_code, archive repo_write, archive tasks_after_verify), cited lines and quotes
-      moved, conflicts rewritten; not regenerated, so rubric.lock does not match'
+    note: 'the tasks instruction gains the baseline (schema.yaml:241-247: before any code is changed, run the existing tests
+      of the files to change and record the command and the failing tests in a `## Baseline` section of tasks.md; the example
+      and the template open with that section) and verify step 8 reads its runs against it (03-verify.md:145, 172; core-workflow.md:86),
+      so cited lines of schema.yaml from 241 on and of templates/tasks.md from 3 on moved. apply''s test_or_check (any run
+      in the apply window) is replaced by ff''s baseline_recorded (the section names a command) and baseline_run (that command
+      is a valid test run before the first code change) and by verify''s run_after_change (a run after the last code change);
+      the penalty items read a failure the baseline already showed as no failure. Edited by script, not regenerated. A sixth
+      penalty item, ff.penalty.false_baseline: the Baseline section is true of the run'
 sources:
 - id: CW
   path: docs/core-workflow.md
   role: core
-  sha256: 5440968a3a60a23ca103a8b6ae7fb3c49fd932c3d62c3f665970e40ad022be0a
+  sha256: e70efe9964ed8bcc8aa19c0f6155149cfcf3504af4ecc46bae6096d9706cdd55
   container_path: /opsx/core-workflow.md
 - id: EX
   path: docs/stages/00-explore.md
@@ -824,12 +908,12 @@ sources:
 - id: VF
   path: docs/stages/03-verify.md
   role: stage_rule
-  sha256: e7c54fc77874d7feeeb00e7c3a290ab86e457c9ebf01222b6e025b3753438cd8
+  sha256: 6d177a34f5741c283a70fc8534f16f26fe11bb8fcc1bc765e2709f504074bb63
   container_path: /opsx/stages/03-verify.md
 - id: SCHEMA
   path: sandbox/schemas/spec-driven-sandbox/schema.yaml
   role: schema
-  sha256: 1f87bbf3043240ac22cb70e3c819dddcd51c007727eb0b18f02c3d9282e2b633
+  sha256: 6cc20e41463fabdb3db8d9f0c97539933ffa738c3bd25b76965e56cd0690accc
   container_path: /openspec/schemas/spec-driven-sandbox/schema.yaml
 - id: TPL_DESIGN
   path: sandbox/schemas/spec-driven-sandbox/templates/design.md
@@ -849,7 +933,7 @@ sources:
 - id: TPL_TASKS
   path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md
   role: template
-  sha256: fa67d99fb4a93b12d702f89ea83e1838219d1cad1c90a4192c402278001cd30e
+  sha256: 8f4f1081bb1ffbcbc5428a704f735787ab58b521474aef5e137aa3063664237f
   container_path: /openspec/schemas/spec-driven-sandbox/templates/tasks.md
 - id: CONFIG
   path: sandbox/openspec-config.yaml
@@ -4048,7 +4132,7 @@ items:
     params: {}
   requirement: must
   modality_evidence: imperative (FF:37, FF:106 'Create every artifact the apply phase transitively depends on'); tasks is
-    apply.requires (SCHEMA:272)
+    apply.requires (SCHEMA:284)
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -4064,8 +4148,8 @@ items:
     quote: '- Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`'
   - doc: SCHEMA
     lines:
-    - 271
-    - 272
+    - 283
+    - 284
     quote: 'apply: requires: [ tasks ]'
   impl_refs: []
   derived_by: manual
@@ -4129,13 +4213,13 @@ items:
   sources:
   - doc: TPL_TASKS
     lines:
-    - 3
-    - 3
+    - 8
+    - 8
     quote: '## 1. <!-- Task Group Name -->'
   - doc: TPL_TASKS
     lines:
-    - 8
-    - 8
+    - 13
+    - 13
     quote: '## 2. <!-- Task Group Name -->'
   impl_refs: []
   derived_by: template_compiler
@@ -4156,7 +4240,7 @@ items:
       pattern: ^\s*[-*+]\s+\[[ xX]\]\s+(\d+)(?:\.\d+)+(?=\s|$|\[|:)
       min: 1
   requirement: should
-  modality_evidence: 'implicit (no binding sentence); dict must (''checkbox'' at TPL_TASKS:5); lowered: implicit: no binding
+  modality_evidence: 'implicit (no binding sentence); dict must (''checkbox'' at TPL_TASKS:10); lowered: implicit: no binding
     sentence'
   none_allowed: '-'
   applies_when: null
@@ -4167,23 +4251,23 @@ items:
   sources:
   - doc: TPL_TASKS
     lines:
-    - 5
-    - 5
+    - 10
+    - 10
     quote: '- [ ] 1.1 <!-- Task description -->'
   - doc: TPL_TASKS
     lines:
-    - 6
-    - 6
+    - 11
+    - 11
     quote: '- [ ] 1.2 <!-- Task description -->'
   - doc: TPL_TASKS
     lines:
-    - 10
-    - 10
+    - 15
+    - 15
     quote: '- [ ] 2.1 <!-- Task description -->'
   - doc: TPL_TASKS
     lines:
-    - 11
-    - 11
+    - 16
+    - 16
     quote: '- [ ] 2.2 <!-- Task description -->'
   impl_refs: []
   derived_by: template_compiler
@@ -4219,8 +4303,8 @@ items:
     quote: '- Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`'
   - doc: TPL_TASKS
     lines:
-    - 5
-    - 6
+    - 10
+    - 11
     quote: '- [ ] 1.1 <!-- Task description --> - [ ] 1.2 <!-- Task description -->'
   impl_refs: []
   derived_by: manual
@@ -4238,11 +4322,11 @@ items:
   check:
     kind: item_format
     params:
-      pattern: ^##\s+(?:\d+\.(?=\s|$)|Workflow follow-up\b)
+      pattern: ^##\s+(?:\d+\.(?=\s|$)|Baseline\s*$|Workflow follow-up\b)
       of_pattern: ^##\s
   requirement: must
-  modality_evidence: 'imperative (SCHEMA:218 ''Group related tracked tasks under ## numbered headings''); the optional `##
-    Workflow follow-up` section (SCHEMA:225) is the one unnumbered ## heading'
+  modality_evidence: 'imperative (SCHEMA:218 ''Group related tracked tasks under ## numbered headings''); the `## Baseline`
+    section (SCHEMA:243) and the optional `## Workflow follow-up` section (SCHEMA:225) are the two unnumbered ## headings'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -4260,6 +4344,11 @@ items:
     - 224
     - 225
     quote: preserve those steps as plain bullets in an optional `## Workflow follow-up` section at the end of tasks.md.
+  - doc: SCHEMA
+    lines:
+    - 243
+    - 243
+    quote: and record the result in a `## Baseline` section at the top of tasks.md
   impl_refs: []
   derived_by: manual
   template: C-F10
@@ -4292,8 +4381,8 @@ items:
   sources:
   - doc: TPL_TASKS
     lines:
-    - 3
-    - 6
+    - 8
+    - 11
     quote: '## 1. <!-- Task Group Name --> - [ ] 1.1 <!-- Task description -->'
   - doc: FF
     lines:
@@ -4331,8 +4420,8 @@ items:
   sources:
   - doc: TPL_TASKS
     lines:
-    - 5
-    - 5
+    - 10
+    - 10
     quote: '- [ ] 1.1 <!-- Task description -->'
   - doc: FF
     lines:
@@ -4542,6 +4631,130 @@ items:
   template: ''
   log_only: false
   note: every task says how its completion is verified
+- id: openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded
+  scope: specific
+  class: structure
+  stage: ff
+  target:
+    type: artifact
+    ref: tasks
+    state: final
+  check:
+    kind: openspec_ff.tasks
+    params:
+      rule: baseline_recorded
+  requirement: must
+  modality_evidence: 'imperative (SCHEMA:241-245 ''record the result in a `## Baseline` section at the top of tasks.md, as
+    plain bullets: the command as you ran it, in backticks''); the served template opens with the section (TPL_TASKS:3-5)'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  - trace
+  sources:
+  - doc: SCHEMA
+    lines:
+    - 241
+    - 245
+    quote: '- Before any code is changed, run the existing repository tests for the files the change will touch (test files
+      named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md,
+      as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`.'
+  - doc: TPL_TASKS
+    lines:
+    - 3
+    - 5
+    quote: '## Baseline - Command: <!-- the test command, as run before any code change -->'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: tasks.md has a `## Baseline` section that names a command in a code span (what the section says failed is not judged
+    here)
+- id: openspec_ff.ff.run.openspec_ff_evidence.baseline_run
+  scope: specific
+  class: evidence
+  stage: ff
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.evidence
+    params:
+      rule: baseline_run
+  requirement: must
+  modality_evidence: imperative (SCHEMA:241-242 'Before any code is changed, run the existing repository tests for the files
+    the change will touch')
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  - trace
+  sources:
+  - doc: SCHEMA
+    lines:
+    - 241
+    - 245
+    quote: '- Before any code is changed, run the existing repository tests for the files the change will touch (test files
+      named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md,
+      as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'a command the `## Baseline` section of tasks.md names is a valid run of the repository''s tests (runner output in
+    its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none) made before the first
+    change to the code (the first source change, facts.source_change_steps), in any stage -- a run made during explore counts.
+    Which tests it ran is not judged'
+- id: openspec_ff.ff.penalty.false_baseline
+  scope: specific
+  class: evidence
+  stage: ff
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.penalty
+    params:
+      rule: false_baseline
+  requirement: must
+  modality_evidence: 'imperative (SCHEMA:241-245 ''record the result in a `## Baseline` section at the top of tasks.md, as
+    plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`''); VF:145 verify reads
+    its runs against that section'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - sandbox_file
+  - trace
+  sources:
+  - doc: SCHEMA
+    lines:
+    - 241
+    - 245
+    quote: '- Before any code is changed, run the existing repository tests for the files the change will touch (test files
+      named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md,
+      as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`.'
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: 'A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change)
+      is not a CRITICAL issue: name it in the report as failing before the change.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'the `## Baseline` section of tasks.md is true of the run: a command it names was run, validly, before the first code
+    change, and the tests it lists as failing are the ones the last such run showed failing -- none left out, none added,
+    `none` when none failed. Outside the rule, worth 0, with no section or no command in it; unavailable when the run''s summary
+    counts failures its output does not name; worth 0 to a run that changed no code'
 - id: openspec_ff.ff.tasks.unimplemented
   scope: specific
   class: content
@@ -5929,7 +6142,7 @@ items:
     params:
       rule: has_tasks
   requirement: must
-  modality_evidence: apply tracks tasks.md (SCHEMA:273) and is blocked without a checkbox task (AP:51-53)
+  modality_evidence: apply tracks tasks.md (SCHEMA:285) and is blocked without a checkbox task (AP:51-53)
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -5940,8 +6153,8 @@ items:
   sources:
   - doc: SCHEMA
     lines:
-    - 272
-    - 273
+    - 284
+    - 285
     quote: 'requires: [ tasks ] tracks: tasks.md'
   - doc: AP
     lines:
@@ -6099,7 +6312,7 @@ items:
   template: ''
   log_only: false
   note: a task that names a test command is ticked only after a valid run of that command, made after the task's last code
-    change
+    change; a run made before the run's first code change is the baseline and verifies no task
 - id: openspec_ff.apply.tasks.unimplemented.2
   scope: specific
   class: content
@@ -6268,45 +6481,6 @@ items:
   template: ''
   log_only: false
   note: no majority among 2 samples (kinds ['openspec_ff.cli', 'prohibited_action'])
-- id: openspec_ff.apply.run.openspec_ff_evidence.test_or_check
-  scope: specific
-  class: evidence
-  stage: apply
-  target:
-    type: action
-    ref: run
-    state: final
-  check:
-    kind: openspec_ff.evidence
-    params:
-      rule: test_or_check
-  requirement: must
-  modality_evidence: 'MUST (SCHEMA:232-233 ''Each task group MUST verify its own work as it lands: run the existing repository
-    tests that cover it, or write a check script ... and run it'')'
-  none_allowed: '-'
-  applies_when: null
-  weight: 1.0
-  gate: null
-  availability:
-  - trace
-  sources:
-  - doc: SCHEMA
-    lines:
-    - 232
-    - 234
-    quote: '- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write
-      a check script under /openspec/changes/issue/checks/ and run it.'
-  - doc: CONFIG
-    lines:
-    - 14
-    - 14
-    quote: From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/.
-  impl_refs: []
-  derived_by: manual
-  template: ''
-  log_only: false
-  note: 'in the apply window a valid run of the repository''s tests (runner output in its own observation: an echoed summary,
-    a dummy test under /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/'
 - id: openspec_ff.apply.run.openspec_ff_cli.instructions_apply
   scope: specific
   class: evidence
@@ -6715,8 +6889,8 @@ items:
   sources:
   - doc: SCHEMA
     lines:
-    - 275
-    - 275
+    - 287
+    - 287
     quote: work through pending tasks, mark complete as you go.
   impl_refs: []
   derived_by: llm_extract
@@ -6745,8 +6919,8 @@ items:
   sources:
   - doc: SCHEMA
     lines:
-    - 276
-    - 278
+    - 288
+    - 290
     quote: When a task is unclear, implement the most plausible reading against the specs and design and note it under the
       task in tasks.md (a plain line, not a checkbox).
   impl_refs: []
@@ -8446,6 +8620,56 @@ items:
   template: ''
   log_only: false
   note: no majority among 2 samples (kinds ['unimplemented'])
+- id: openspec_ff.verify.run.openspec_ff_evidence.run_after_change
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.evidence
+    params:
+      rule: run_after_change
+  requirement: must
+  modality_evidence: imperative (VF:145 'After your last code change, run the repository tests that cover the code you changed
+    and every check script under' checks/; CW:84-85 'Before it writes the report, verify runs the repository tests ... and
+    every check script'); MUST (SCHEMA:232-233 'Each task group MUST verify its own work as it lands')
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: After your last code change, run the repository tests that cover the code you changed and every check script under
+      `/openspec/changes/issue/checks/`.
+  - doc: CW
+    lines:
+    - 84
+    - 85
+    quote: Before it writes the report, verify runs the repository tests that cover the change and every check script under
+      `/openspec/changes/issue/checks/`, after the last code change.
+  - doc: SCHEMA
+    lines:
+    - 232
+    - 234
+    quote: '- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write
+      a check script under /openspec/changes/issue/checks/ and run it.'
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: 'after the last change to the code (the last source change, facts.last_change_write), anywhere up to the end of the
+    run, a valid run of the repository''s tests (runner output in its own observation: an echoed summary, a dummy test under
+    /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/. A
+    run made only before the change does not count; not applicable to a run that changed no code. Takes the place of apply''s
+    test_or_check, which any run in the apply window passed'
 - id: openspec_ff.verify.penalty.no_run_after_change
   scope: specific
   class: evidence
@@ -8503,7 +8727,8 @@ items:
   requirement: must
   modality_evidence: 'VF:189 ''If no issues and no checks were skipped: "All checks passed. Ready for archive."''; VF:190
     ''If any check was skipped ... do not claim readiness''; VF:145 ''If you ran nothing after your last code change, mark
-    the affected checks `Not verified` and do not claim readiness''; VF:145 and VF:172 a failed test or check script is CRITICAL'
+    the affected checks `Not verified` and do not claim readiness''; VF:145 and VF:172 a failed test or check script is CRITICAL;
+    VF:145 ''A test that also failed in the baseline ... is not a CRITICAL issue'''
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8536,13 +8761,21 @@ items:
     - 172
     - 172
     quote: A test or check script that failed when you last ran it after your final edit
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: 'A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change)
+      is not a CRITICAL issue: name it in the report as failing before the change.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
   note: the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after
     the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change;
-    a check script whose outcome cannot be read is no passing result)
+    a check script whose outcome cannot be read is no passing result). A test run that fails only in tests the baseline (a
+    valid repository test run before the first code change) showed failing is no failed run; without a baseline run every
+    failure counts
 - id: openspec_ff.verify.penalty.task_count_mismatch
   scope: specific
   class: evidence
@@ -8589,7 +8822,8 @@ items:
       rule: critical_missing
   requirement: must
   modality_evidence: VF:70-71 'Add CRITICAL issue for each listed incomplete task'; VF:145 'A run that fails is a CRITICAL
-    issue'; VF:172 a test or check script that failed on its last run is listed under CRITICAL
+    issue'; VF:172 a test or check script that failed on its last run is listed under CRITICAL; VF:145 'A test that also failed
+    in the baseline ... is not a CRITICAL issue'
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8612,13 +8846,21 @@ items:
     - 172
     - 172
     quote: A test or check script that failed when you last ran it after your final edit
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: 'A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change)
+      is not a CRITICAL issue: name it in the report as failing before the change.'
   impl_refs: []
   derived_by: manual
   template: ''
   log_only: true
   note: 'when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL
     issue (0 with no report, or a report older than the last code change). When nothing was due the run stands outside the
-    rule: worth 1 when it ran something and nothing failed, 0 when it ran nothing'
+    rule: worth 1 when it ran something and nothing failed, 0 when it ran nothing. A test run that fails only in tests the
+    baseline (a valid repository test run before the first code change) showed failing is no failed run; without a baseline
+    run every failure counts'
 - id: openspec_ff.verify.penalty.left_broken
   scope: specific
   class: evidence
@@ -8634,7 +8876,8 @@ items:
   requirement: should
   modality_evidence: 'CW:88-89 ''go back to apply, fix what the report names, and run verify again''; VF:193 ''fix each CRITICAL
     item'' -- at most twice, then the run may archive with the report as it stands: should. VF:145 ''A failing test left out
-    of a re-run ... still counts as failing'''
+    of a re-run ... still counts as failing''; VF:145 ''A test that also failed in the baseline ... is not a CRITICAL issue'',
+    ''Without a baseline run, every failing test counts as a failure of the change'''
   none_allowed: '-'
   applies_when: null
   weight: 1.0
@@ -8659,6 +8902,17 @@ items:
     - 145
     - 145
     quote: A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing.
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: 'A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change)
+      is not a CRITICAL issue: name it in the report as failing before the change.'
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: Without a baseline run, every failing test counts as a failure of the change.
   impl_refs: []
   derived_by: manual
   template: ''
@@ -8666,7 +8920,8 @@ items:
   note: at the end of the run no test or check script stands failed since the last code change and tasks.md holds no open
     task. A failure is cleared by a later passing run of the same test, a directory or label above it or the whole suite,
     not by one narrowed below what failed (workflow_rubric/results.py). A run that ran nothing after the change stands outside
-    the rule, worth 0
+    the rule, worth 0. A test run that fails only in tests the baseline (a valid repository test run before the first code
+    change) showed failing is no failed run; without a baseline run every failure counts
 - id: openspec_ff.archive.change.path_match.archived
   scope: common
   class: content
@@ -9137,8 +9392,8 @@ items:
     quote: Loop through artifacts in dependency order (artifacts with no pending dependencies first)
   - doc: SCHEMA
     lines:
-    - 267
-    - 269
+    - 279
+    - 281
     quote: "requires:\n      - specs\n      - design"
   - doc: SP
     lines:
@@ -12478,8 +12733,8 @@ appendix:
   - statement: schema-108
     doc: SCHEMA
     lines:
-    - 266
-    - 266
+    - 278
+    - 278
     quote: Reference specs for what needs to be built, design for how to build it.
     modality: should
     reason: 'G4: not checkable by rule ()'

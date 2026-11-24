@@ -260,7 +260,7 @@ exclude:
   - {statement: "*", kind: openspec.capabilities, reason: "duplicates the manual declared / listed_have_specs / specs_listed items (SCHEMA:34-37, SCHEMA:74)"}
   - {statement: "*", kind: openspec.read_files, reason: "duplicates the manual dependency reads (FF:56, FF:107) and context-file reads (AP:74, VF:41), whose windows run from the dependency's write to the dependent artifact / to apply's first code change"}
   - {statement: "*", kind: openspec.tasks, reason: "duplicates the manual has_tasks / verification items (SCHEMA:211-229)"}
-  - {statement: "*", kind: openspec_ff.evidence, reason: "duplicates the manual apply test_or_check item (SCHEMA:232-234)"}
+  - {statement: "*", kind: openspec_ff.evidence, reason: "duplicates the manual baseline_run and run_after_change items (SCHEMA:241-245, VF:145, SCHEMA:232-234)"}
   - {statement: "*", kind: openspec_ff.holds, reason: "duplicates the manual code-change gate (CW:22)"}
   - {statement: "*", kind: openspec_ff.verify, reason: "duplicates the manual open_tasks_critical items, kept at should: both sides are the agent's writing (P6)"}
   - {statement: "*", kind: openspec_ff.no_fetch, reason: "duplicates the manual global no_fetch item (CW:42-44, CONFIG:13), which already names every fetching command"}
@@ -736,10 +736,10 @@ manual:
     target: {type: artifact, ref: tasks, state: stage_end}
     check: {kind: artifact_exists, params: {}}
     gate: {zero_stage: true}
-    modality_evidence: "imperative (FF:37, FF:106 'Create every artifact the apply phase transitively depends on'); tasks is apply.requires (SCHEMA:272)"
+    modality_evidence: "imperative (FF:37, FF:106 'Create every artifact the apply phase transitively depends on'); tasks is apply.requires (SCHEMA:284)"
     sources:
       - {path: docs/stages/01-ff.md, lines: [106, 106], quote: "- Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`"}
-      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [271, 272], quote: "apply: requires: [ tasks ]"}
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [283, 284], quote: "apply: requires: [ tasks ]"}
   # -- proposal
   - id: openspec_ff.ff.proposal.section_present.modified_capabilities
     stage: ff
@@ -1023,17 +1023,18 @@ manual:
     modality_evidence: "MUST (SCHEMA:219): every checkbox line carries its X.Y id"
     sources:
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [219, 219], quote: "- Each tracked task MUST be a checkbox: `- [ ] X.Y Task description`"}
-      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [5, 6], quote: "- [ ] 1.1 <!-- Task description --> - [ ] 1.2 <!-- Task description -->"}
+      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [10, 11], quote: "- [ ] 1.1 <!-- Task description --> - [ ] 1.2 <!-- Task description -->"}
   - id: openspec_ff.ff.tasks.item_format.groups
     stage: ff
     class: structure
     requirement: must
     target: {type: artifact, ref: tasks, state: final}
-    check: {kind: item_format, params: {pattern: '^##\s+(?:\d+\.(?=\s|$)|Workflow follow-up\b)', of_pattern: '^##\s'}}
-    modality_evidence: "imperative (SCHEMA:218 'Group related tracked tasks under ## numbered headings'); the optional `## Workflow follow-up` section (SCHEMA:225) is the one unnumbered ## heading"
+    check: {kind: item_format, params: {pattern: '^##\s+(?:\d+\.(?=\s|$)|Baseline\s*$|Workflow follow-up\b)', of_pattern: '^##\s'}}
+    modality_evidence: "imperative (SCHEMA:218 'Group related tracked tasks under ## numbered headings'); the `## Baseline` section (SCHEMA:243) and the optional `## Workflow follow-up` section (SCHEMA:225) are the two unnumbered ## headings"
     sources:
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [218, 218], quote: "- Group related tracked tasks under ## numbered headings"}
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [224, 225], quote: "preserve those steps as plain bullets in an optional `## Workflow follow-up` section at the end of tasks.md."}
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [243, 243], quote: "and record the result in a `## Baseline` section at the top of tasks.md"}
   - id: openspec_ff.ff.tasks.tasks.verification
     stage: ff
     class: content
@@ -1052,7 +1053,7 @@ manual:
     check: {kind: no_template_residue, params: {patterns: ['<!-- Task Group Name -->', '<!-- Task description -->']}}
     modality_evidence: "SCHEMA:211 'Follow the template below for tracked tasks' / FF:100 'fill in its sections': the template's placeholders left in place are no task"
     sources:
-      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [3, 6], quote: "## 1. <!-- Task Group Name --> - [ ] 1.1 <!-- Task description -->"}
+      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [8, 11], quote: "## 1. <!-- Task Group Name --> - [ ] 1.1 <!-- Task description -->"}
       - {path: docs/stages/01-ff.md, lines: [100, 100], quote: "Use `template` as the structure for your output file - fill in its sections"}
   - id: openspec_ff.ff.tasks.tasks.unchecked_at_plan
     stage: ff
@@ -1106,7 +1107,7 @@ manual:
     check: {kind: no_template_residue, params: {patterns: *ff_fill_marks}}
     modality_evidence: "FF:100 'fill in its sections': a value that is only a fill-in mark is a placeholder left in place"
     sources:
-      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [5, 5], quote: "- [ ] 1.1 <!-- Task description -->"}
+      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [10, 10], quote: "- [ ] 1.1 <!-- Task description -->"}
       - {path: docs/stages/01-ff.md, lines: [100, 100], quote: "Use `template` as the structure for your output file - fill in its sections"}
     note: "a list item (a task's box and X.Y id aside) or table cell holding only a fill-in mark: x, ..., ?"
   # -- dependency reads and the project context
@@ -1165,6 +1166,42 @@ manual:
     modality_evidence: "prohibition (FF:63; FF:101-103)"
     note: "the CLI's context / rules blocks are not copied into tasks.md"
     sources: *ctx_sources
+  - id: openspec_ff.ff.tasks.openspec_ff_tasks.baseline_recorded
+    stage: ff
+    class: structure
+    requirement: must
+    target: {type: artifact, ref: tasks, state: final}
+    check: {kind: openspec_ff.tasks, params: {rule: baseline_recorded}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (SCHEMA:241-245 'record the result in a `## Baseline` section at the top of tasks.md, as plain bullets: the command as you ran it, in backticks'); the served template opens with the section (TPL_TASKS:3-5)"
+    sources:
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [241, 245], quote: "- Before any code is changed, run the existing repository tests for the files the change will touch (test files named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md, as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`."}
+      - {path: sandbox/schemas/spec-driven-sandbox/templates/tasks.md, lines: [3, 5], quote: "## Baseline - Command: <!-- the test command, as run before any code change -->"}
+    note: "tasks.md has a `## Baseline` section that names a command in a code span (what the section says failed is not judged here)"
+  - id: openspec_ff.ff.run.openspec_ff_evidence.baseline_run
+    stage: ff
+    class: evidence
+    requirement: must
+    check: {kind: openspec_ff.evidence, params: {rule: baseline_run}}
+    availability: [sandbox_file, trace]
+    modality_evidence: "imperative (SCHEMA:241-242 'Before any code is changed, run the existing repository tests for the files the change will touch')"
+    sources:
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [241, 245], quote: "- Before any code is changed, run the existing repository tests for the files the change will touch (test files named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md, as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`."}
+    note: "a command the `## Baseline` section of tasks.md names is a valid run of the repository's tests (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none) made before the first change to the code (the first source change, facts.source_change_steps), in any stage -- a run made during explore counts. Which tests it ran is not judged"
+  # penalty item (reward/penalty.py), log_only: what the Baseline section says against the runs made before the first code change
+  - id: openspec_ff.ff.penalty.false_baseline
+    stage: ff
+    class: evidence
+    requirement: must
+    target: {type: action, ref: run, state: final}
+    check: {kind: openspec_ff.penalty, params: {rule: false_baseline}}
+    availability: [sandbox_file, trace]
+    log_only: true
+    modality_evidence: "imperative (SCHEMA:241-245 'record the result in a `## Baseline` section at the top of tasks.md, as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`'); VF:145 verify reads its runs against that section"
+    sources:
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [241, 245], quote: "- Before any code is changed, run the existing repository tests for the files the change will touch (test files named after them, or test files that import them) and record the result in a `## Baseline` section at the top of tasks.md, as plain bullets: the command as you ran it, in backticks, and the tests that fail in it, or `none`."}
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not a CRITICAL issue: name it in the report as failing before the change."}
+    note: "the `## Baseline` section of tasks.md is true of the run: a command it names was run, validly, before the first code change, and the tests it lists as failing are the ones the last such run showed failing -- none left out, none added, `none` when none failed. Outside the rule, worth 0, with no section or no command in it; unavailable when the run's summary counts failures its output does not name; worth 0 to a run that changed no code"
   # ============================================================== apply
   - id: openspec_ff.apply.run.doc_read.ap
     stage: apply
@@ -1229,9 +1266,9 @@ manual:
     target: {type: artifact, ref: tasks, state: final}
     check: {kind: openspec.tasks, params: {rule: has_tasks}}
     gate: {zero_stage: true}
-    modality_evidence: "apply tracks tasks.md (SCHEMA:273) and is blocked without a checkbox task (AP:51-53)"
+    modality_evidence: "apply tracks tasks.md (SCHEMA:285) and is blocked without a checkbox task (AP:51-53)"
     sources:
-      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [272, 273], quote: "requires: [ tasks ] tracks: tasks.md"}
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [284, 285], quote: "requires: [ tasks ] tracks: tasks.md"}
       - {path: docs/stages/02-apply.md, lines: [51, 51], quote: "- If `state: \"blocked\"`: show the message and pause implementation."}
     note: "tasks.md holds a checkbox task with a description"
   - id: openspec_ff.apply.tasks.openspec_ff_tasks.done_or_reasoned
@@ -1254,7 +1291,7 @@ manual:
     check: {kind: openspec.tasks, params: {rule: verified}}
     availability: [sandbox_file, trace]
     modality_evidence: "implicit: a task states how to verify its completion (SCHEMA:227-229) and is ticked only when implemented (AP:156) -- a stated test command is run, validly, before the tick; inferred, so should"
-    note: "a task that names a test command is ticked only after a valid run of that command, made after the task's last code change"
+    note: "a task that names a test command is ticked only after a valid run of that command, made after the task's last code change; a run made before the run's first code change is the baseline and verifies no task"
     sources:
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [227, 229], quote: "- Each task MUST state how to verify completion (a test, command, observable behavior, or delivered artifact). Put the verification in that task's checkbox description."}
       - {path: docs/stages/02-apply.md, lines: [156, 156], quote: "- Only mark a task `- [x]` when its specified behavior is fully implemented, not when it is partially done or deferred"}
@@ -1269,17 +1306,6 @@ manual:
     sources:
       - {path: docs/stages/02-apply.md, lines: [97, 98], quote: "- Mark the task complete at its returned `sourcePath` and `line`: `- [ ]` → `- [x]` - Rerun the apply instructions and confirm that task is now done and progress changed"}
     note: "each write of tasks.md that ticks a box is followed by `openspec instructions apply` before the next ticking write (ratio)"
-  - id: openspec_ff.apply.run.openspec_ff_evidence.test_or_check
-    stage: apply
-    class: evidence
-    requirement: must
-    check: {kind: openspec_ff.evidence, params: {rule: test_or_check}}
-    availability: [trace]
-    modality_evidence: "MUST (SCHEMA:232-233 'Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script ... and run it')"
-    sources:
-      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [232, 234], quote: "- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."}
-      - {path: sandbox/openspec-config.yaml, lines: [14, 14], quote: "From the ff action on, scripts written to reproduce or check behavior live in /openspec/changes/issue/checks/."}
-    note: "in the apply window a valid run of the repository's tests (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/"
   # ============================================================== verify (once: verify.md)
   - id: openspec_ff.verify.run.doc_read.vf
     stage: verify
@@ -1420,6 +1446,18 @@ manual:
       - {path: docs/stages/03-verify.md, lines: [163, 163], quote: "In each Status cell, report the results of checks that ran and `Not verified (<reason>)` for every skipped check."}
       - {path: docs/stages/03-verify.md, lines: [186, 186], quote: "\"X critical issue(s) found. Fix before archiving.\""}
     note: "a table cell or list item holding only a fill-in mark (x, ..., ?), or the template's 'X critical issue(s)' / 'Y warning(s)' / 'Z suggestion(s)'"
+  - id: openspec_ff.verify.run.openspec_ff_evidence.run_after_change
+    stage: verify
+    class: evidence
+    requirement: must
+    check: {kind: openspec_ff.evidence, params: {rule: run_after_change}}
+    availability: [trace]
+    modality_evidence: "imperative (VF:145 'After your last code change, run the repository tests that cover the code you changed and every check script under' checks/; CW:84-85 'Before it writes the report, verify runs the repository tests ... and every check script'); MUST (SCHEMA:232-233 'Each task group MUST verify its own work as it lands')"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`."}
+      - {path: docs/core-workflow.md, lines: [84, 85], quote: "Before it writes the report, verify runs the repository tests that cover the change and every check script under `/openspec/changes/issue/checks/`, after the last code change."}
+      - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [232, 234], quote: "- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."}
+    note: "after the last change to the code (the last source change, facts.last_change_write), anywhere up to the end of the run, a valid run of the repository's tests (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/. A run made only before the change does not count; not applicable to a run that changed no code. Takes the place of apply's test_or_check, which any run in the apply window passed"
   # penalty items (reward/penalty.py): what verify.md says against what the run did. log_only -- evaluated and reported,
   # never part of compliance; their mean is the second score, openspec_ff/penalty. Names: <stage>.penalty.<item>.
   - id: openspec_ff.verify.penalty.no_run_after_change
@@ -1443,14 +1481,15 @@ manual:
     check: {kind: openspec_ff.penalty, params: {rule: false_clean_claim}}
     availability: [trace]
     log_only: true
-    modality_evidence: "VF:189 'If no issues and no checks were skipped: \"All checks passed. Ready for archive.\"'; VF:190 'If any check was skipped ... do not claim readiness'; VF:145 'If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness'; VF:145 and VF:172 a failed test or check script is CRITICAL"
+    modality_evidence: "VF:189 'If no issues and no checks were skipped: \"All checks passed. Ready for archive.\"'; VF:190 'If any check was skipped ... do not claim readiness'; VF:145 'If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness'; VF:145 and VF:172 a failed test or check script is CRITICAL; VF:145 'A test that also failed in the baseline ... is not a CRITICAL issue'"
     sources:
       - {path: docs/stages/03-verify.md, lines: [189, 189], quote: "If no issues and no checks were skipped: \"All checks passed. Ready for archive.\""}
       - {path: docs/stages/03-verify.md, lines: [190, 190], quote: "If any check was skipped and there are no CRITICAL issues: do not claim readiness."}
       - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "If you ran nothing after your last code change, mark the affected checks `Not verified` and do not claim readiness."}
       - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A run that fails is a CRITICAL issue."}
       - {path: docs/stages/03-verify.md, lines: [172, 172], quote: "A test or check script that failed when you last ran it after your final edit"}
-    note: "the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change; a check script whose outcome cannot be read is no passing result)"
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not a CRITICAL issue: name it in the report as failing before the change."}
+    note: "the report does not say 'All checks passed' / 'Ready for archive' when a run stood failed, when nothing was run after the last code change, or when tasks.md held an open task (0 with no report, or a report older than the last code change; a check script whose outcome cannot be read is no passing result). A test run that fails only in tests the baseline (a valid repository test run before the first code change) showed failing is no failed run; without a baseline run every failure counts"
   - id: openspec_ff.verify.penalty.task_count_mismatch
     stage: verify
     class: evidence
@@ -1471,12 +1510,13 @@ manual:
     check: {kind: openspec_ff.penalty, params: {rule: critical_missing}}
     availability: [trace]
     log_only: true
-    modality_evidence: "VF:70-71 'Add CRITICAL issue for each listed incomplete task'; VF:145 'A run that fails is a CRITICAL issue'; VF:172 a test or check script that failed on its last run is listed under CRITICAL"
+    modality_evidence: "VF:70-71 'Add CRITICAL issue for each listed incomplete task'; VF:145 'A run that fails is a CRITICAL issue'; VF:172 a test or check script that failed on its last run is listed under CRITICAL; VF:145 'A test that also failed in the baseline ... is not a CRITICAL issue'"
     sources:
       - {path: docs/stages/03-verify.md, lines: [70, 71], quote: "- If `progress.remaining` is greater than 0: - Add CRITICAL issue for each listed incomplete task."}
       - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A run that fails is a CRITICAL issue."}
       - {path: docs/stages/03-verify.md, lines: [172, 172], quote: "A test or check script that failed when you last ran it after your final edit"}
-    note: "when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL issue (0 with no report, or a report older than the last code change). When nothing was due the run stands outside the rule: worth 1 when it ran something and nothing failed, 0 when it ran nothing"
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not a CRITICAL issue: name it in the report as failing before the change."}
+    note: "when a run stood failed or tasks.md held an open task as the report was last written, the report lists a CRITICAL issue (0 with no report, or a report older than the last code change). When nothing was due the run stands outside the rule: worth 1 when it ran something and nothing failed, 0 when it ran nothing. A test run that fails only in tests the baseline (a valid repository test run before the first code change) showed failing is no failed run; without a baseline run every failure counts"
   - id: openspec_ff.verify.penalty.left_broken
     stage: verify
     class: evidence
@@ -1485,12 +1525,14 @@ manual:
     check: {kind: openspec_ff.penalty, params: {rule: left_broken}}
     availability: [trace]
     log_only: true
-    modality_evidence: "CW:88-89 'go back to apply, fix what the report names, and run verify again'; VF:193 'fix each CRITICAL item' -- at most twice, then the run may archive with the report as it stands: should. VF:145 'A failing test left out of a re-run ... still counts as failing'"
+    modality_evidence: "CW:88-89 'go back to apply, fix what the report names, and run verify again'; VF:193 'fix each CRITICAL item' -- at most twice, then the run may archive with the report as it stands: should. VF:145 'A failing test left out of a re-run ... still counts as failing'; VF:145 'A test that also failed in the baseline ... is not a CRITICAL issue', 'Without a baseline run, every failing test counts as a failure of the change'"
     sources:
       - {path: docs/core-workflow.md, lines: [88, 89], quote: "If the report holds a CRITICAL issue, go back to apply, fix what the report names, and run verify again, rewriting `verify.md`."}
       - {path: docs/stages/03-verify.md, lines: [193, 193], quote: "if the report holds a CRITICAL issue and you have gone back fewer than two times, go back to the apply action (`/opsx/stages/02-apply.md`) and fix each CRITICAL item"}
       - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A failing test left out of a re-run (`-k`, `--deselect`, `--ignore`) still counts as failing."}
-    note: "at the end of the run no test or check script stands failed since the last code change and tasks.md holds no open task. A failure is cleared by a later passing run of the same test, a directory or label above it or the whole suite, not by one narrowed below what failed (workflow_rubric/results.py). A run that ran nothing after the change stands outside the rule, worth 0"
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "A test that also failed in the baseline (the `## Baseline` section of `tasks.md`, run before any code change) is not a CRITICAL issue: name it in the report as failing before the change."}
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "Without a baseline run, every failing test counts as a failure of the change."}
+    note: "at the end of the run no test or check script stands failed since the last code change and tasks.md holds no open task. A failure is cleared by a later passing run of the same test, a directory or label above it or the whole suite, not by one narrowed below what failed (workflow_rubric/results.py). A run that ran nothing after the change stands outside the rule, worth 0. A test run that fails only in tests the baseline (a valid repository test run before the first code change) showed failing is no failed run; without a baseline run every failure counts"
   # ============================================================== archive (core-workflow.md, "Archive, Then Finish")
   - id: openspec_ff.archive.run.openspec_ff_archive.after_verify
     stage: archive
