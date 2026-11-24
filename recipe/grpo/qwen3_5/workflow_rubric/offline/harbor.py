@@ -26,6 +26,7 @@ files for those roots, the replay for the rest.
 from __future__ import annotations
 
 import json
+import logging
 import posixpath
 import re
 from collections.abc import Iterator, Mapping
@@ -34,8 +35,10 @@ from typing import TYPE_CHECKING, Any
 
 from ..context import Collected
 from ..replay import replay
-from ..trace import openhands
+from ..trace import openhands, shell
 from ..trace.model import Run, Step
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..schema import Rubric
@@ -198,7 +201,81 @@ def collected_from_replay(run: Run, rubric: Rubric, workdir: str = "/testbed", i
     count (online collection does not read the repository wholesale either). dirs: parents of those
     files up to their root, plus directories the run made under a root. No diff, no base tree.
     ``initial``: files the sandbox held before the run (e.g. a workflow's templates under an artifact root).
+
+    A run that keeps a folder in one of its workflow's shell variables (``checks.SHELL_VARS``: agentos' ``$SPEC_PATH``)
+    is replayed twice, the second time with the variables' values known, as ``engine.evaluate`` builds its facts twice:
+    the replay reads one command at a time, so ``cat > "$SPEC_PATH/tasks.md"`` is otherwise a write to an unknown path
+    and the file is missing here although the sandbox had it (:func:`_shell_vars`).
     """
+    col = _collect(run, rubric, workdir, initial)
+    if shell.KNOWN_VARS.get():
+        return col
+    try:
+        known = _shell_vars(run, rubric, col)
+    except Exception:  # noqa: BLE001 -- the first replay stands
+        logger.debug("shell variables for the replay of %s failed", run.instance_id, exc_info=True)
+        known = {}
+    if not known:
+        return col
+    token = shell.KNOWN_VARS.set(known)
+    try:
+        return _collect(run, rubric, workdir, initial)
+    finally:
+        shell.KNOWN_VARS.reset(token)
+
+
+_PATH_TOKEN = re.compile(r"/[\w./@+-]+")
+
+
+def _observed_dirs(run: Run, rubric: Rubric, workdir: str) -> dict[str, str]:
+    """Directory artifact -> the directory at one of its locations that the commands' output names most often (the
+    first seen on a tie). The output is what the shell printed, so a path there has its variables filled in
+    (``Created: /tmp/agent-os/specs/2026-11-23-fix-x``, an ``ls``); a variable part is a plain name -- the documents'
+    placeholders (``[this-spec]``, ``$DATED_SPEC_NAME``, ``<YYYY-MM-DD>-<name>``), which a ``cat`` of them prints, are none."""
+    roots = _roots(rubric, workdir)
+    out: dict[str, str] = {}
+    for aid, art in rubric.artifacts.items():
+        if art.kind != "dir":
+            continue
+        counts: dict[str, int] = {}
+        for t in art.locations:
+            rx = _location_rx(t, roots, workdir)
+            if rx is None:
+                continue
+            head = re.compile(rx.pattern.removesuffix("(?:/.*)?").replace("[^/]+", r"\w[\w.-]*") + r"(?=/|$)")
+            for step in run.steps:
+                for a in step.actions:
+                    for tok in _PATH_TOKEN.findall(a.observation or ""):
+                        m = head.match(tok.rstrip("."))
+                        if m:
+                            counts[m.group(0)] = counts.get(m.group(0), 0) + 1
+        if counts:
+            out[aid] = max(counts, key=lambda k: counts[k])  # dicts keep insertion order: the first seen wins a tie
+    return out
+
+
+def _shell_vars(run: Run, rubric: Rubric, col: Collected) -> dict[str, str]:
+    """The workflow's shell variables with their values, for the second replay: the ones ``engine.known_shell_vars``
+    reads off the replayed sandbox; when that sandbox has no such folder -- every file of it was written through the
+    variable -- off the folder the commands' output names (:func:`_observed_dirs`)."""
+    from .. import checks, engine
+    from .. import facts as F
+
+    checks.load_common()
+    if rubric.workflow not in checks.SHELL_VARS:
+        return {}
+    facts = F.build(rubric, run, col)
+    known = engine.known_shell_vars(rubric, run, facts)
+    if known:
+        return known
+    seen = {aid: d for aid, d in _observed_dirs(run, rubric, col.workdir or "/testbed").items() if not facts.artifact_paths.get(aid)}
+    if not seen:
+        return {}
+    facts.artifact_paths.update(seen)
+    return engine.known_shell_vars(rubric, run, facts)
+
+
+def _collect(run: Run, rubric: Rubric, workdir: str, initial: Mapping[str, str] | None) -> Collected:
     rep = replay(run, workdir, initial=initial)
     roots = _roots(rubric, workdir)
     code_roots = {v for k, v in roots.items() if k == "code" or v == workdir}

@@ -1093,3 +1093,30 @@ def test_a_report_that_notes_an_expected_failure_is_read_in_the_wordings_runs_us
     for text in ("These are expected failures because the tests assert the old output.", "- The two failing tests are expected because they compare hardcoded values", "**Expected Failures (asserting old behavior):**"):
         assert K._COLLECTIVE.match(text), text
     assert not K._COLLECTIVE.match("- 66 other existing Lambda tests pass")
+
+
+def test_offline_replay_keeps_the_files_written_through_the_spec_folder_variable():
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflow_rubric.offline.harbor import collected_from_replay
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.model import Action, Run, Step
+
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    G.load_plugins(rub)
+    spec = "/tmp/agent-os/specs/2026-11-23-fix-edge-hyphens"
+    sh = lambda n, command, observation="": Step(n=n, actions=[Action(kind="shell", name="bash", command=command, observation=observation)])  # noqa: E731
+    setup = 'TODAY=$(date +%Y-%m-%d) && SPEC_NAME="fix-edge-hyphens" && SPEC_PATH="/tmp/agent-os/specs/${TODAY}-${SPEC_NAME}" && mkdir -p $SPEC_PATH/planning && echo "Created: $SPEC_PATH"'
+    write = "cat > \"$SPEC_PATH/planning/requirements.md\" << 'EOF'\n# Spec Requirements: fix-edge-hyphens\nbody\nEOF"
+
+    def run_of(*steps):
+        return Run(instance_id="t", steps=list(steps))
+
+    # every file goes through $SPEC_PATH (shape-spec.md's own snippet): the folder is read off what the shell printed
+    col = collected_from_replay(run_of(sh(1, "cat /agent-os/commands/shape-spec/shape-spec.md", "mkdir -p /tmp/agent-os/specs/[this-spec]/planning\n" * 3), sh(2, setup, f"Created: {spec}"), sh(3, write)), rub)
+    assert col.files == {f"{spec}/planning/requirements.md": "# Spec Requirements: fix-edge-hyphens\nbody\n"}
+    # one file by its literal path, the next through the variable: the folder is in the replayed sandbox
+    literal = f"mkdir -p {spec}/planning && printf 'the task\\n' > {spec}/planning/initialization.md"
+    col = collected_from_replay(run_of(sh(1, setup), sh(2, literal), sh(3, write)), rub)
+    assert sorted(col.files) == [f"{spec}/planning/initialization.md", f"{spec}/planning/requirements.md"]
+    # nothing names the folder: the write stays unknown, as before
+    assert collected_from_replay(run_of(sh(1, setup), sh(2, write)), rub).files == {}
