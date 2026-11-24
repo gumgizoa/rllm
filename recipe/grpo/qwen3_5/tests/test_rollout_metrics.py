@@ -35,7 +35,40 @@ def test_behavior_counts_exploration_and_test_runs():
         _step(("file_editor", {"command": "str_replace", "path": "/testbed/src/a.py", "old_str": "a", "new_str": "b"})),
         _step(("terminal", {"command": "pytest -x"})),
     ]
-    assert behavior(_episode("t", 1.0, True, steps)) == {"rollout/turns_before_edit": 4.0, "rollout/test_runs": 2.0}
+    assert behavior(_episode("t", 1.0, True, steps)) == {"rollout/turns_before_edit": 4.0, "rollout/test_runs": 2.0, "rollout/test_after_last_edit": 1.0}
+
+
+def test_test_runs_cover_go_and_javascript_runners():
+    runs = lambda cmd: behavior(_episode("t", 0.0, False, [_step(("terminal", {"command": cmd}))]))["rollout/test_runs"]
+    for cmd in (
+        "cd /app && go test ./pkg/... -run TestFoo",
+        "npm test",
+        "npm run test -- --watch=false",
+        "yarn test src/a.test.ts",
+        "pnpm test",
+        "npx jest src/a.test.js",
+        "npx vitest run",
+        "./node_modules/.bin/mocha test/a.js",
+        "node --test",
+        "node tests/run.js",
+    ):
+        assert runs(cmd) == 1.0, cmd
+    for cmd in ("go build ./...", "npm install", "npm run build", "node scripts/gen.js", "grep -rn latest src/"):
+        assert runs(cmd) == 0.0, cmd
+
+
+def test_test_after_last_edit_reads_the_order_of_the_last_edit_and_the_last_test():
+    edit = ("file_editor", {"command": "str_replace", "path": "/testbed/src/a.py", "old_str": "a", "new_str": "b"})
+    test = ("terminal", {"command": "pytest -q"})
+    after = lambda *steps: behavior(_episode("t", 0.0, False, steps)).get("rollout/test_after_last_edit")
+    assert after(_step(edit), _step(test)) == 1.0
+    assert after(_step(test), _step(edit)) == 0.0  # the final code was never tested
+    assert after(_step(edit), _step(test), _step(edit)) == 0.0  # tested, then changed again
+    assert after(_step(edit)) == 0.0
+    assert after(_step(edit, test)) == 1.0  # two calls of one step, in order
+    assert after(_step(test, edit)) == 0.0
+    assert after(_step(("terminal", {"command": "sed -i 's/a/b/' src/a.py && pytest -q"}))) == 1.0  # one command: edit, then test
+    assert after(_step(test), _step(("finish", {}))) is None  # no edit: nothing to have tested
 
 
 def test_shell_writes_count_as_edits_unless_they_target_documents():
