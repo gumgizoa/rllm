@@ -983,6 +983,38 @@ wf1121 학습 분석(`REPORT.md`의 N-3)에 따른 변경임. 문서는 기존 �
 | `implement_tasks.penalty.phase2_fail.edited_after_fail` | 설명만 바꿈 | note에 "기존 테스트 파일의 원래 줄을 바꾼 수정은 그 파일의 실패한 테스트에 대한 시도가 아니고, 그 뒤의 통과는 세지 않음"을 더함. 규칙은 `reward/penalty_tests.py`. |
 | `implement_tasks.penalty.phase2_fail.last_result_pass` | 설명만 바꿈 | 위와 같음. |
 
+## compliance를 측정 대상별 신호 3개로 계산 (2026-11-24)
+
+### 변경 내역
+
+compliance 식을 바꿈. 보상식(`0.7 · verifier · (0.7 + 0.3 · compliance) + 0.3 · penalty`)과 penalty 항목은 그대로임.
+
+| 결정 | 바꾼 것 |
+|---|---|
+| 신호 3개 | `compliance = 0.3 · form + 0.3 · accuracy + 0.4 · action`. 각 신호는 속한 항목의 가중 통과율(must 1.0, should 0.25). 단계별 structure × content 곱셈, 신호 6개(단계 4개, order, process)의 평균을 없앰(`workflow_rubric/aggregate.py`의 `three_signals`, rubric의 `scoring.aggregate: three_signals`). |
+| 항목의 신호 | accuracy는 문서 내용을 과제·저장소·실행 기록과 대조하는 15개 항목(`derive_rubric.py`의 `ACCURACY`). action은 class가 evidence인 나머지 항목과 금지 규칙 2개(`ACTION`), 그리고 아래 미리 읽기 항목. form은 그 밖의 항목(파일, 절 제목, 라벨, 필드 채움과 형식). |
+| 게이트 | 게이트 15개(단계 점수 0, 상한 0.1)를 조건으로 쓰지 않음. 일반 항목으로 채점됨. |
+| 단계 수행 여부 | 단계는 명령 문서 하나와 그 산출물 하나의 쌍임(shape-spec.md와 requirements.md, write-spec.md와 spec.md, create-tasks.md와 tasks.md, implement-tasks.md와 저장소 수정). 수행한 단계는 세 조건을 모두 만족함: 산출물이 있고 자기 내용이 50단어 이상, 산출물을 처음 쓰기 전에 그 단계의 명령 문서를 읽음, 앞 단계 산출물 중 쓰인 것은 모두 자기 산출물보다 먼저 쓰임. 수행하지 않은 단계의 항목은 모두 0점이고, global 항목은 수행한 단계의 비율만큼만 인정됨(`reward/stages.py`의 `agentos_bugfix.stage_done`). |
+| 자기 내용 | 산출물에서 제목 줄, 명령 문서에 그대로 있는 줄, 명령 문서의 대괄호 문구, 굵은 라벨, 채움 표시만 있는 줄을 빼고 남은 단어 수(`stages.own_words`). 템플릿 복사와 머리말만 쓴 문서는 0단어임. |
+| order 항목 | 채점하지 않음(판정과 기록은 계속함). 읽고 씀과 산출물 순서는 단계 수행 여부가 맡음. |
+| 미리 읽기 | 다음 단계 문서를 앞 단계 산출물을 쓰기 전에 읽은 것은 단계를 무효로 하지 않고, action 신호의 항목 1개로 감점함. 점수는 write-spec.md, create-tasks.md, implement-tasks.md 중 미리 읽지 않은 문서의 비율, 가중치 8(`agentos_bugfix.read_ahead`). |
+| 자체 검증 기준값 | `template_copy_stage_max` 0.1을 0.76으로, `no_artifacts_stage_max` 0.0을 0.22로 바꿈. 계획 문서가 템플릿 복사이거나 없어도 implement-tasks.md를 읽고 저장소를 고쳤으면 구현 단계는 수행한 것으로 보기 때문임. 계획 세 단계는 0점이고 compliance는 각각 0.29, 0.11임. |
+
+### 문서 변경
+
+없음.
+
+### rubric 변경
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `global.run.order.commands` | 채점에서 뺌 | `log_only: true`. 판정 결과는 항목 신호로 계속 기록됨. |
+| `global.run.read_ahead` | 더함 | 미리 읽지 않은 문서의 비율. evidence, must, 가중치 8. |
+| `shape_spec.stage.carried_out` | 더함 | 단계 수행 여부. `log_only: true`(집계가 읽기만 함). 문서 SS, 산출물 requirements. |
+| `write_spec.stage.carried_out` | 더함 | 위와 같음. 문서 WS, 산출물 spec. |
+| `create_tasks.stage.carried_out` | 더함 | 위와 같음. 문서 CT, 산출물 tasks. |
+| `implement_tasks.stage.carried_out` | 더함 | 위와 같음. 문서 IT, 산출물은 저장소의 첫 수정. |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

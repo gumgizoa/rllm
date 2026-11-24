@@ -29,6 +29,9 @@ score. Most global items are prohibitions and write rules that a run doing nothi
 they act like the structure items -- a multiplier on the work they govern, never credit by
 themselves (a frontmatter stub would otherwise keep a whole signal, 1/7 of the reward, for not
 installing anything). The unscaled rate is the ``process_rate`` diagnostic.
+
+``aggregate: three_signals`` scores by what an item measures instead (see :func:`three_signals`): no product, no
+gate, and a stage that was not carried out earns nothing.
 """
 
 from __future__ import annotations
@@ -183,6 +186,69 @@ def kind_matrix(rubric: Rubric, results: dict[str, Result], scoring: dict) -> tu
     return signals, total
 
 
+def three_signals(rubric: Rubric, results: dict[str, Result], scoring: dict) -> tuple[dict[str, float], float, dict[str, StageScore]]:
+    """compliance = sum over the signals of weight x (weighted pass rate of the signal's items).
+
+    ``scoring.three_signals``::
+
+        weights: {form: 0.3, accuracy: 0.3, action: 0.4}
+        accuracy: [item ids]      # items that compare what a document says with the task, the repository or the run
+        action: [item ids]        # items of another class that judge an action; every ``evidence`` item is one already
+        done_kind: <check kind>   # the kind of the items that say whether a stage was carried out
+
+    An item belongs to ``accuracy`` or ``action`` when listed (or, for ``action``, when its class is ``evidence``),
+    otherwise to ``form``. Inside a signal an item weighs ``weight x item_weight[requirement]``; ``gate`` is not read,
+    so a gate item is an item like any other.
+
+    A stage is carried out when its ``done_kind`` item passed (a stage with no such item always is). Every item of a
+    stage not carried out scores 0 -- also one that would be ``not_applicable``, so nothing is gained by leaving a
+    stage out. A ``global`` item counts for the share of stages carried out: most are prohibitions and write rules
+    that a run doing nothing keeps. ``not_applicable`` items of a carried-out stage and ``unavailable`` items leave
+    both numerator and denominator; a signal with no item left is left out and the other weights are rescaled.
+
+    ``log_only`` items, the ``done_kind`` items and items of weight 0 are not scored. Signals: one per name in
+    ``weights``, and ``done_stages``. The stage scores returned are each stage's weighted pass rate over its items
+    (0 when not carried out), for reports; the total does not read them.
+    """
+    cfg = scoring.get("three_signals") or {}
+    weights = {str(k): float(v) for k, v in (cfg.get("weights") or {"form": 0.3, "accuracy": 0.3, "action": 0.4}).items()}
+    accuracy, action, done_kind = set(cfg.get("accuracy") or ()), set(cfg.get("action") or ()), cfg.get("done_kind")
+    done = {st.id: True for st in rubric.stages}
+    for i in rubric.items:
+        if done_kind and i.check.kind == done_kind and i.stage in done:
+            r = results.get(i.id)
+            done[i.stage] = bool(r is not None and r.status == "pass")
+    share = sum(done.values()) / len(done) if done else 1.0
+    pairs: dict[str, list[tuple[float, float]]] = {k: [] for k in weights}
+    by_stage: dict[str, list[tuple[float, float]]] = {sid: [] for sid in done}
+    for i in rubric.items:
+        r = results.get(i.id)
+        w = weight(i, scoring)
+        if i.log_only or w <= 0 or i.check.kind == done_kind or r is None or r.status == "unavailable":
+            continue
+        if i.stage == "global":
+            if r.status not in SCORED:
+                continue
+            s = r.score * share
+        elif not done.get(i.stage, True):
+            s = 0.0
+        elif r.status not in SCORED:
+            continue
+        else:
+            s = r.score
+        name = "accuracy" if i.id in accuracy else "action" if (i.id in action or i.cls == "evidence") else "form"
+        if name in pairs:
+            pairs[name].append((s, w))
+        if i.stage in by_stage:
+            by_stage[i.stage].append((s, w))
+    signals = {k: v for k, v in ((k, _wmean(p)) for k, p in pairs.items()) if v is not None}
+    den = sum(weights[k] for k in signals)
+    total = sum(weights[k] * v for k, v in signals.items()) / den if den > 0 else 0.0
+    signals["done_stages"] = float(sum(done.values()))
+    stages = {sid: StageScore(_wmean(p) or 0.0, None, None, 1.0, not done[sid], len(p)) for sid, p in by_stage.items()}
+    return signals, total, stages
+
+
 def _item_scores(rubric: Rubric, results: dict[str, Result], scoring: dict) -> dict[str, float]:
     """Item id -> score of every scored (pass / fail) item, with ``item_signals: true``; empty otherwise. A log, never
     part of the reward: the total and the stage signals are computed as before."""
@@ -197,6 +263,9 @@ def score(rubric: Rubric, results: dict[str, Result], engine_errors: int = 0) ->
     if scoring.get("aggregate") == "kind_matrix":
         signals, total = kind_matrix(rubric, results, scoring)
         return Scores(signals, total, {}, _diagnostics(rubric, results, engine_errors), total_name=scoring.get("total") or "score", items=items)
+    if scoring.get("aggregate") == "three_signals":
+        signals, total, stages = three_signals(rubric, results, scoring)
+        return Scores(signals, total, stages, _diagnostics(rubric, results, engine_errors), items=items)
     stages = {st.id: group_score(rubric.items_for(st.id), results, scoring) for st in rubric.stages}
     glob = [i for i in rubric.items_for("global") if not i.log_only]
     signals: dict[str, float] = {}

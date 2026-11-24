@@ -19,3 +19,4 @@ register_shell_vars("agentos_bugfix", _v2.spec_folder_vars)  # the same shape-sp
 # module registers every kind the rubric names
 from . import penalty as _penalty  # noqa: E402, F401
 from . import task_text as _task_text  # noqa: E402, F401  -- the kinds that read the task description
+from . import stages as _stages  # noqa: E402, F401  -- stage carried out, document read ahead (the three_signals aggregate)

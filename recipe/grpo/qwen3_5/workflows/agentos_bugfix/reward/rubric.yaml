@@ -13,17 +13,15 @@ generated:
     status: passed
     golden: 1.0
     golden_signals:
-      order: 1.0
-      process: 1.0
-      stage.shape_spec: 1.0
-      stage.write_spec: 1.0
-      stage.create_tasks: 1.0
-      stage.implement_tasks: 1.0
+      form: 1.0
+      accuracy: 1.0
+      action: 1.0
+      done_stages: 4.0
     golden_failing: []
     thresholds:
       honest_golden_min: 0.95
       honest_tolerance: 0.02
-      template_copy_stage_max: 0.1
+      template_copy_stage_max: 0.76
       frontmatter_stub_compliance_max: 0.05
       x_fill_no_real_test_compliance_max: 0.5
       none_expl_min_drop: 0.005
@@ -39,7 +37,7 @@ generated:
       stub_then_rewrite_min_drop: 0.005
       invisible_write_min_drop: 0.005
       no_reads_min_drop: 0.005
-      no_artifacts_stage_max: 0.0
+      no_artifacts_stage_max: 0.22
       fabricated_commands_min_drop: 0.005
       fabricated_ids_min_drop: 0.005
       full_suite_rerun_min_drop: 0.00125
@@ -60,7 +58,7 @@ generated:
     - mutation: variant:review_group
       kind: honest
       status: ok
-      compliance: 0.9913
+      compliance: 0.9909
     - mutation: variant:suite_failures
       kind: honest
       status: ok
@@ -100,27 +98,27 @@ generated:
     - mutation: template_copy
       kind: exploit
       status: ok
-      compliance: 0.25
+      compliance: 0.2829
     - mutation: frontmatter_stub
       kind: exploit
       status: ok
-      compliance: 0.0429
+      compliance: 0.0
     - mutation: x_fill
       kind: exploit
       status: ok
-      compliance: 0.25
+      compliance: 0.2084
     - mutation: x_fill_bare
       kind: exploit
       status: ok
-      compliance: 0.1921
+      compliance: 0.0
     - mutation: none_expl
       kind: exploit
       status: ok
-      compliance: 0.9037
+      compliance: 0.7617
     - mutation: neg_phrase
       kind: exploit
       status: ok
-      compliance: 0.9143
+      compliance: 0.921
     - mutation: contradictory_none
       kind: exploit
       status: n/a
@@ -136,39 +134,39 @@ generated:
     - mutation: echo_evidence
       kind: exploit
       status: ok
-      compliance: 0.9786
+      compliance: 0.9785
     - mutation: tmp_dummy_tests
       kind: exploit
       status: ok
-      compliance: 0.973
+      compliance: 0.9758
     - mutation: agent_runner
       kind: exploit
       status: ok
-      compliance: 0.9786
+      compliance: 0.9785
     - mutation: glob_read
       kind: exploit
       status: ok
-      compliance: 0.8889
+      compliance: 0.9141
     - mutation: cp_read
       kind: exploit
       status: ok
-      compliance: 0.8831
+      compliance: 0.9114
     - mutation: stub_then_rewrite
       kind: exploit
       status: ok
-      compliance: 0.6931
+      compliance: 0.9248
     - mutation: invisible_write
       kind: exploit
       status: ok
-      compliance: 0.5108
+      compliance: 0.284
     - mutation: no_reads
       kind: exploit
       status: ok
-      compliance: 0.6879
+      compliance: 0.0
     - mutation: no_artifacts
       kind: exploit
       status: ok
-      compliance: 0.0185
+      compliance: 0.1054
     - mutation: fabricated_commands
       kind: exploit
       status: n/a
@@ -184,7 +182,7 @@ generated:
     - mutation: stale_rerun
       kind: exploit
       status: ok
-      compliance: 0.9339
+      compliance: 0.8651
     - mutation: load_error_none
       kind: exploit
       status: n/a
@@ -192,7 +190,7 @@ generated:
     - mutation: early_edit
       kind: exploit
       status: ok
-      compliance: 0.7626
+      compliance: 0.5609
     - mutation: repro_left_in_repo
       kind: exploit
       status: n/a
@@ -208,15 +206,15 @@ generated:
     - mutation: exec_before_stage_doc
       kind: exploit
       status: ok
-      compliance: 0.7297
+      compliance: 0.5597
     - mutation: hidden_failure
       kind: exploit
       status: ok
-      compliance: 0.9898
+      compliance: 0.9676
     - mutation: precheck_tasks
       kind: exploit
       status: ok
-      compliance: 0.9779
+      compliance: 0.9875
     - mutation: archive_cp
       kind: exploit
       status: n/a
@@ -238,7 +236,7 @@ generated:
     from: workflows/agentos_v2/reward/rubric.yaml
     by: workflows/agentos_bugfix/derive_rubric.py
     dropped_items: 48
-    kept_items: 173
+    kept_items: 178
 sources:
 - id: CT
   path: docs/commands/create-tasks/create-tasks.md
@@ -6132,10 +6130,336 @@ items:
   impl_refs: []
   derived_by: manual
   template: C-A3
+  log_only: true
+  note: 'not scored since 2026-11-24: what it judged is the stages'' carried-out test and the read-ahead item'
+- id: agentos_bugfix.global.run.read_ahead
+  scope: specific
+  class: evidence
+  stage: global
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.read_ahead
+    params:
+      pairs:
+      - - WS
+        - requirements
+      - - CT
+        - spec
+      - - IT
+        - tasks
+  requirement: must
+  modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
+    SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
+  none_allowed: '-'
+  applies_when: null
+  weight: 8.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 14
+    - 14
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  - doc: CW
+    lines:
+    - 27
+    - 28
+    quote: Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with
+      its report.
+  - doc: SS
+    lines:
+    - 3
+    - 3
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  - doc: CW
+    lines:
+    - 81
+    - 81
+    quote: Only implement-tasks PHASE 2 changes the repository.
+  - doc: SP
+    lines:
+    - 70
+    - 71
+    quote: 2. Carry out the four command documents under /agent-os/commands/ one after another, opening each one when you
+      reach it and doing its PHASEs in order.
+  - doc: IT
+    lines:
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
+  impl_refs: []
+  derived_by: manual
+  template: ''
   log_only: false
-  note: 'each command document read when its command begins, then its files written: initialization.md (PHASE 1), requirements.md,
-    spec.md, tasks.md, the first repository edit, final-verification.md; a document first seen before the previous file was
-    written (read ahead, e.g. all four at once) voids its pair; a write counts only when its file is substantive'
+  note: the share of write-spec.md, create-tasks.md and implement-tasks.md not first read before the previous stage's product
+    was written; reading ahead voids no stage
+- id: agentos_bugfix.shape_spec.stage.carried_out
+  scope: specific
+  class: evidence
+  stage: shape_spec
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.stage_done
+    params:
+      doc: SS
+      earlier: []
+      min_words: 50
+      artifact: requirements
+  requirement: must
+  modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
+    SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 14
+    - 14
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  - doc: CW
+    lines:
+    - 27
+    - 28
+    quote: Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with
+      its report.
+  - doc: SS
+    lines:
+    - 3
+    - 3
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  - doc: CW
+    lines:
+    - 81
+    - 81
+    quote: Only implement-tasks PHASE 2 changes the repository.
+  - doc: SP
+    lines:
+    - 70
+    - 71
+    quote: 2. Carry out the four command documents under /agent-os/commands/ one after another, opening each one when you
+      reach it and doing its PHASEs in order.
+  - doc: IT
+    lines:
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'the stage was carried out: requirements made (its own words >= min_words), SS read before its first write, the earlier
+    products written before it; every item of a stage that was not scores 0'
+- id: agentos_bugfix.write_spec.stage.carried_out
+  scope: specific
+  class: evidence
+  stage: write_spec
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.stage_done
+    params:
+      doc: WS
+      earlier:
+      - requirements
+      min_words: 50
+      artifact: spec
+  requirement: must
+  modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
+    SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 14
+    - 14
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  - doc: CW
+    lines:
+    - 27
+    - 28
+    quote: Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with
+      its report.
+  - doc: SS
+    lines:
+    - 3
+    - 3
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  - doc: CW
+    lines:
+    - 81
+    - 81
+    quote: Only implement-tasks PHASE 2 changes the repository.
+  - doc: SP
+    lines:
+    - 70
+    - 71
+    quote: 2. Carry out the four command documents under /agent-os/commands/ one after another, opening each one when you
+      reach it and doing its PHASEs in order.
+  - doc: IT
+    lines:
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'the stage was carried out: spec made (its own words >= min_words), WS read before its first write, the earlier products
+    written before it; every item of a stage that was not scores 0'
+- id: agentos_bugfix.create_tasks.stage.carried_out
+  scope: specific
+  class: evidence
+  stage: create_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.stage_done
+    params:
+      doc: CT
+      earlier:
+      - requirements
+      - spec
+      min_words: 50
+      artifact: tasks
+  requirement: must
+  modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
+    SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 14
+    - 14
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  - doc: CW
+    lines:
+    - 27
+    - 28
+    quote: Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with
+      its report.
+  - doc: SS
+    lines:
+    - 3
+    - 3
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  - doc: CW
+    lines:
+    - 81
+    - 81
+    quote: Only implement-tasks PHASE 2 changes the repository.
+  - doc: SP
+    lines:
+    - 70
+    - 71
+    quote: 2. Carry out the four command documents under /agent-os/commands/ one after another, opening each one when you
+      reach it and doing its PHASEs in order.
+  - doc: IT
+    lines:
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'the stage was carried out: tasks made (its own words >= min_words), CT read before its first write, the earlier products
+    written before it; every item of a stage that was not scores 0'
+- id: agentos_bugfix.implement_tasks.stage.carried_out
+  scope: specific
+  class: evidence
+  stage: implement_tasks
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: agentos_bugfix.stage_done
+    params:
+      doc: IT
+      earlier:
+      - requirements
+      - spec
+      - tasks
+      min_words: 50
+  requirement: must
+  modality_evidence: CW:14 'Open each command document when you reach it'; CW:27 'Each command runs once, in this order';
+    SS:3 PHASEs in order; CW:81 only implement-tasks PHASE 2 changes /testbed
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: CW
+    lines:
+    - 14
+    - 14
+    quote: 'Open each command document when you reach it, and work from that document rather than from memory:'
+  - doc: CW
+    lines:
+    - 27
+    - 28
+    quote: Each command runs once, in this order, and its document ends by naming the next one; implement-tasks ends with
+      its report.
+  - doc: SS
+    lines:
+    - 3
+    - 3
+    quote: Carefully carry out the PHASE sections below in order, finishing one before the next.
+  - doc: CW
+    lines:
+    - 81
+    - 81
+    quote: Only implement-tasks PHASE 2 changes the repository.
+  - doc: SP
+    lines:
+    - 70
+    - 71
+    quote: 2. Carry out the four command documents under /agent-os/commands/ one after another, opening each one when you
+      reach it and doing its PHASEs in order.
+  - doc: IT
+    lines:
+    - 44
+    - 44
+    quote: IF all tasks are now marked as done (with `- [x]`, or with ⚠️ where a test could not be made to pass) in `/tmp/agent-os/specs/[this-spec]/tasks.md`,
+      continue with PHASE 3 below.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: 'the stage was carried out: the repository made (written to), IT read before its first write, the earlier products
+    written before it; every item of a stage that was not scores 0'
 - id: agentos_bugfix.global.run.prohibited_action.test_file_write
   scope: common
   class: evidence
@@ -7150,25 +7474,44 @@ scoring:
   item_weight:
     must: 1.0
     should: 0.25
-  stage:
-    formula: sigma_kappa
   substantive_threshold: 0.5
   windows: reads
   next_read: after_start
-  signals:
-  - order
-  - process
-  - stage:*
-  process_scale: stage_mean
-  compliance: mean
   selftest:
-    template_copy_stage_max: 0.1
+    template_copy_stage_max: 0.76
     frontmatter_stub_compliance_max: 0.05
     x_fill_no_real_test_compliance_max: 0.5
     honest_golden_min: 0.95
     full_suite_rerun_min_drop: 0.00125
+    no_artifacts_stage_max: 0.22
   close_on_artifact: true
   item_signals: true
+  aggregate: three_signals
+  three_signals:
+    weights:
+      form: 0.3
+      accuracy: 0.3
+      action: 0.4
+    done_kind: agentos_bugfix.stage_done
+    accuracy:
+    - agentos_bugfix.shape_spec.requirements.cross_ref.existing_code_paths
+    - agentos_bugfix.shape_spec.requirements.cross_ref
+    - agentos_bugfix.shape_spec.initialization.item_format.text
+    - agentos_bugfix.shape_spec.requirements.agentos_bugfix_requirements.initial_description
+    - agentos_bugfix.create_tasks.tasks.agentos_bugfix_tasks.total
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.incomplete_listed
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.test_counts
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.failed_listed
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.spec_name
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.tasks_status
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.suite_status
+    - agentos_bugfix.implement_tasks.final_verification.agentos_bugfix_report.overall_status
+    - agentos_bugfix.implement_tasks.tasks.agentos_bugfix_tasks.ticked_after_work
+    - agentos_bugfix.implement_tasks.tasks.agentos_bugfix_tasks.ticked_passing
+    - agentos_bugfix.implement_tasks.tasks.agentos_bugfix_tasks.warned_after_attempts
+    action:
+    - agentos_bugfix.shape_spec.spec.agentos_bugfix_holds
+    - agentos_bugfix.shape_spec.verifications_dir.agentos_bugfix_paths_written
 conflicts:
 - type: documented
   description: create-tasks PHASE 1 reads spec.md / requirements.md only when they are not in the conversation context (CT:13),

@@ -59,7 +59,7 @@ WRITE_EVENTS = ("first", "last", "last_in_window")
 PROCESS_SCALES = (None, "stage_mean")  # scoring.process_scale (see aggregate)
 MATRIX_KINDS = (None, "cells", "rules")  # scoring.matrix.kind (see aggregate.kind_matrix)
 CATEGORIES = ("", "P", "F", "E", "C", "R", "Q", "A")  # Item.category (see aggregate.kind_matrix)
-AGGREGATES = (None, "stages", "kind_matrix")  # scoring.aggregate
+AGGREGATES = (None, "stages", "kind_matrix", "three_signals")  # scoring.aggregate
 
 
 class RubricError(ValueError):
@@ -395,6 +395,18 @@ def validate(r: Rubric) -> None:
         errors.append(f"scoring.aggregate {(r.scoring or {}).get('aggregate')!r} (one of {AGGREGATES[1:]})")
     if (r.scoring or {}).get("aggregate") == "kind_matrix" and any(not i.category for i in r.items if not i.log_only):
         errors.append("scoring.aggregate kind_matrix: every scored item needs a category")
+    if (r.scoring or {}).get("aggregate") == "three_signals":
+        cfg = (r.scoring or {}).get("three_signals") or {}
+        ids = {i.id for i in r.items}
+        unknown = sorted((set(cfg.get("accuracy") or ()) | set(cfg.get("action") or ())) - ids)
+        if unknown:
+            errors.append(f"scoring.three_signals names items the rubric does not have: {unknown[:5]}")
+        if set(cfg.get("weights") or {"form", "accuracy", "action"}) - {"form", "accuracy", "action"}:
+            errors.append(f"scoring.three_signals.weights {sorted(cfg['weights'])} (form, accuracy, action)")
+        if cfg.get("done_kind"):
+            judged = [i.stage for i in r.items if i.check.kind == cfg["done_kind"]]
+            if sorted(judged) != sorted(st.id for st in r.stages):
+                errors.append(f"scoring.three_signals.done_kind {cfg['done_kind']!r}: one item per stage, found for {sorted(judged)}")
     kind = ((r.scoring or {}).get("matrix") or {}).get("kind")
     if kind not in MATRIX_KINDS:
         errors.append(f"scoring.matrix.kind {kind!r} (one of {MATRIX_KINDS[1:]})")

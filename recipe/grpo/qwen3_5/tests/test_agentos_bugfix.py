@@ -145,7 +145,7 @@ def test_rubric_is_the_one_derived_from_agentos_v2():
     items = str(rub["items"]) + str(rub["artifacts"]) + str(rub["stages"])
     for word in ("agentos_v2", "visuals", "Roadmap", "User Stories", "implementation_dir"):
         assert word not in items, word
-    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + len(D.ADDED) + len(D.PENALTY) and len(rub["items"]) >= 150  # + the T4, T1 and T5 items, + the penalty items
+    assert len(rub["items"]) + len(report["dropped_items"]) == 207 + len(D.ADDED) + len(D.PENALTY) + 1 + len(D.STAGE_PRODUCTS) and len(rub["items"]) >= 150  # + the T4, T1 and T5 items, + the penalty items, + the read-ahead item and the stage_done items
     # a template placeholder whose wording changed here is still a placeholder left in
     residue = next(it for it in rub["items"] if it["id"].endswith("shape_spec.requirements.no_template_residue"))
     assert any("task description or the repository" in x.replace("\\", "") for x in residue["check"]["params"]["patterns"])
@@ -390,7 +390,7 @@ def test_the_self_check_passes_on_the_reformatted_run_and_the_whole_suite_run():
     path = RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"
     recorded = yaml.safe_load(path.read_text(encoding="utf-8"))["generated"]["selftest"]
     assert recorded["status"] == "passed" and recorded["failures"] == []
-    assert D.SELFTEST == {"full_suite_rerun_min_drop": MU.SHOULD_DROP}
+    assert D.SELFTEST == {"full_suite_rerun_min_drop": MU.SHOULD_DROP, "template_copy_stage_max": 0.76, "no_artifacts_stage_max": 0.22}  # the last two: three_signals, below
     rub = G.with_docs(S.load(path), RECIPE / "workflows" / NAME)
     assert G.load_plugins(rub) == []
     th, _ = G.thresholds_of(rub)
@@ -927,3 +927,94 @@ def test_the_expected_failure_claims_and_edited_existing_test_files_are_logged(t
     assert got["penalty_loosened_test_files"] == 1.0  # the final patch changes a line tests/test_slug.py had
     # logged only: the reward reads agentos_bugfix/penalty, not these
     assert SPEC.penalty_signal == "agentos_bugfix/penalty"
+
+
+# -- compliance by three signals (2026-11-24): aggregate.three_signals, reward/stages.py -------------------------------
+def _mutated(*names):
+    """name -> Report of the golden run ("golden") and of the self-test mutations ``names``."""
+    import copy
+
+    from recipe.grpo.qwen3_5.workflow_rubric import engine
+    from recipe.grpo.qwen3_5.workflow_rubric import schema as S
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import mutations as MU
+    from recipe.grpo.qwen3_5.workflow_rubric.generator import selftest as G
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+
+    rub = G.with_docs(S.load(RECIPE / "workflows" / NAME / "reward" / "rubric.yaml"), RECIPE / "workflows" / NAME)
+    G.load_plugins(rub)
+    run, col = golden.golden(rub)
+    env = MU.Env.build(rub, run)
+    by_name = {m.name: m for m in MU.MUTATIONS}
+    out = {"golden": engine.evaluate(rub, run, col)}
+    for n in names:
+        out[n] = engine.evaluate(rub, *by_name[n].fn(copy.deepcopy(run), copy.deepcopy(col), rub, env=env))
+    return rub, out
+
+
+def _done(rep):
+    return {i.split(".")[1] for i, r in rep.results.items() if i.endswith(".stage.carried_out") and r.status == "pass"}
+
+
+def test_compliance_is_three_weighted_pass_rates_and_the_order_item_is_not_scored():
+    from recipe.grpo.qwen3_5.workflow_rubric import aggregate
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import derive_rubric as D
+
+    rub, reps = _mutated()
+    rep = reps["golden"]
+    scoring = aggregate.scoring_of(rub)
+    assert scoring["aggregate"] == "three_signals" and scoring["three_signals"]["weights"] == {"form": 0.3, "accuracy": 0.3, "action": 0.4}
+    assert set(rep.scores.signals) == {"form", "accuracy", "action", "done_stages"} and rep.scores.compliance == pytest.approx(1.0)
+    assert len(scoring["three_signals"]["accuracy"]) == len(D.ACCURACY) == 15
+    by_id = {i.id: i for i in rub.items}
+    order = next(i for i in rub.items if i.check.kind == "order")
+    assert order.log_only and rep.results[order.id].status == "pass"  # judged and logged, not scored
+    ahead = by_id[f"{NAME}.global.run.read_ahead"]
+    assert not ahead.log_only and ahead.cls == "evidence" and ahead.weight == D.READ_AHEAD_WEIGHT == 8.0
+    assert [by_id[f"{NAME}.{st.id}.stage.carried_out"].log_only for st in rub.stages] == [True] * 4
+
+    # the total is recomputed by hand from one failed item of each signal: nothing else (no gate, no product) moves it
+    import copy
+
+    results = copy.deepcopy(rep.results)
+    failed = {"form": f"{NAME}.write_spec.spec.section_present.goal", "accuracy": scoring["three_signals"]["accuracy"][0], "action": ahead.id}
+    name_of = lambda i: "accuracy" if i.id in scoring["three_signals"]["accuracy"] else "action" if (i.id in scoring["three_signals"]["action"] or i.cls == "evidence") else "form"  # noqa: E731
+    assert {k: name_of(by_id[v]) for k, v in failed.items()} == {k: k for k in failed}
+    den = {"form": 0.0, "accuracy": 0.0, "action": 0.0}
+    for i in rub.items:
+        if not i.log_only and i.weight > 0 and results[i.id].status in ("pass", "fail"):
+            den[name_of(i)] += aggregate.weight(i, scoring)
+    for iid in failed.values():
+        results[iid].status, results[iid].score = "fail", 0.0
+    want = sum(w * (1 - aggregate.weight(by_id[failed[k]], scoring) / den[k]) for k, w in scoring["three_signals"]["weights"].items())
+    assert aggregate.score(rub, results).compliance == pytest.approx(want)
+    assert aggregate.weight(ahead, scoring) / den["action"] == pytest.approx(8 / den["action"]) and 0.15 < 8 / den["action"] < 0.25
+
+
+def test_a_stage_is_carried_out_on_its_own_document_and_product():
+    rub, reps = _mutated("template_copy", "no_artifacts", "no_reads", "x_fill", "frontmatter_stub", "glob_read")
+    assert _done(reps["golden"]) == {"shape_spec", "write_spec", "create_tasks", "implement_tasks"}
+    # planning files that are template copies, or missing: those stages earn nothing, the implementation is still judged
+    for name in ("template_copy", "no_artifacts"):
+        rep = reps[name]
+        assert _done(rep) == {"implement_tasks"}, name
+        assert [rep.scores.stages[s].score for s in ("shape_spec", "write_spec", "create_tasks")] == [0.0, 0.0, 0.0]
+    assert "0 own words" in reps["template_copy"].results[f"{NAME}.write_spec.stage.carried_out"].detail
+    assert reps["template_copy"].scores.compliance < 0.3 and reps["no_artifacts"].scores.compliance < 0.12
+    # no document read: nothing was carried out, so the global items earn nothing either
+    assert _done(reps["no_reads"]) == set() and reps["no_reads"].scores.compliance == 0.0
+    assert reps["frontmatter_stub"].scores.compliance <= 0.05 and reps["x_fill"].scores.compliance <= 0.5
+    # reading every document at the start voids no stage; the read-ahead item pays for it
+    rep = reps["glob_read"]
+    assert _done(rep) == _done(reps["golden"])
+    assert rep.results[f"{NAME}.global.run.read_ahead"].score < 1.0 and 0.01 < 1.0 - rep.scores.compliance < 0.2
+
+
+def test_own_words_leaves_out_what_the_template_gives():
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix.reward import stages as ST
+
+    doc = (DOCS / "commands" / "write-spec" / "write-spec.md").read_text(encoding="utf-8")
+    lines = frozenset(n for n in map(ST._norm, doc.splitlines()) if n)
+    holes = frozenset(m.lower() for m in ST._HOLE.findall(doc))
+    assert ST.own_words(doc, lines, holes) == 0  # the command document itself
+    assert ST.own_words("# Spec\n\n## Goal\n\n**Goal:** x\n- ...\n- [ ] TBD\n", lines, holes) == 0  # headings, labels, fill-in marks
+    assert ST.own_words("## Goal\nslugify strips hyphens at both edges of the slug\n", lines, holes) == 9
