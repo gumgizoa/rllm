@@ -442,3 +442,31 @@ def test_a_run_that_could_not_be_scored_keeps_no_penalty_rule(rubric, monkeypatc
         got = {s.name: s.value for s in out.signals}
         assert out.reward == 1.0 and got["openspec_ff/compliance"] == 0.0 and got["openspec_ff/engine_errors"] == 1.0
         assert got.get("openspec_ff/penalty") == want
+
+
+def test_the_baseline_is_one_reading_for_the_compliance_item_the_claim_and_the_excused_failures(rubric):
+    FB, LB = P.item_id("false_baseline"), P.ITEM_PREFIX + "left_broken"
+    broken = {**ALL, "false_clean_claim": 0.0, "critical_missing": 0.0, "left_broken": 0.0, "false_baseline": 0.0}
+
+    # the command recorded without the -q it was run with: the same runner on the same file is that run
+    bare = lambda text: text.replace(f"- Command: `{SG.TEST_CMD}`", f"- Command: `{SG.TEST_CMD.removesuffix(' -q')}`")  # noqa: E731
+    run, col = _golden(rubric)
+    run, col = _tasks_writes(run, bare), _files(col, bare)
+    assert engine.evaluate(rubric, run, col).results[BASE_RUN].status == "pass"
+    got, _, _ = _score(rubric, run, col)
+    assert got == ALL
+
+    # a test fails before the first code change and after the last, and tasks.md has no Baseline section: the run
+    # recorded no baseline, so nothing is excused -- the failure counts like any other
+    drop = lambda text: text.replace(f"## Baseline\n\n- Command: `{SG.TEST_CMD}`\n- Failing before the change: none\n\n", "")  # noqa: E731
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col, record=False)
+    got, _, rep = _score(rubric, _tasks_writes(_fail_last_test(run), drop), _files(col, drop))
+    assert got == broken and "no baseline run" in rep.results[LB].detail
+
+    # the section names another command than the one that was run: the same
+    other = lambda text: text.replace(f"- Command: `{SG.TEST_CMD}`", "- Command: `python -m pytest tests/test_other.py -q`")  # noqa: E731
+    run, col = _golden(rubric)
+    run, col = _fail_baseline(run, col, record=False)
+    got, _, rep = _score(rubric, _tasks_writes(_fail_last_test(run), other), _files(col, other))
+    assert got == broken and "was not run" in rep.results[FB].detail

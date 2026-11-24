@@ -85,7 +85,6 @@ Nothing the agent writes can make these raise: malformed text is a failing rule,
 
 from __future__ import annotations
 
-import posixpath
 import re
 from dataclasses import dataclass, field
 
@@ -95,7 +94,6 @@ from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import penalty as PEN
 from recipe.grpo.qwen3_5.workflow_rubric import results as R
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
-from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_candidates, _norm_cmd
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 from recipe.grpo.qwen3_5.workflows.openspec_ff.reward import checks as CK
@@ -226,8 +224,7 @@ _selection = R.selection  # what narrows a test run below its files: the common 
 
 def _check_scripts(ctx: EvalContext) -> set[str]:
     """Absolute paths of the files the trace wrote under the change's checks/ directory."""
-    d = CK.check_dir(ctx)
-    return {posixpath.normpath(path) for path, evs in ctx.facts.writes.items() if path.startswith(d) and any(e.ok is not False and e.op not in ("delete", "move_out") for e in evs)}
+    return CK.check_script_paths(ctx)
 
 
 _PARAM = re.compile(r"^(?P<base>[^\[]*)(?P<param>\[.*\])?$", re.S)
@@ -263,12 +260,15 @@ def _failing(run) -> list[Name]:
 
 
 def baseline(ctx: EvalContext) -> tuple[int | None, list[Name]]:
-    """(step of the first valid repository test run before the first code change, the tests those runs showed failing).
-    (None, []) when the run made no such run -- or changed the code at a step the trace does not show."""
+    """(step of the first baseline run, the tests the baseline runs showed failing). The baseline is the one tasks.md
+    records (``checks.baseline_runs``: the valid runs before the first code change that its ``## Baseline`` section
+    names), what the documents read failures against and what ``baseline_run`` / ``false_baseline`` look at -- a run
+    the section does not name excuses nothing. (None, []) when there is no such run -- or the code changed at a step
+    the trace does not show."""
     changes = F.source_change_steps(ctx)
     if not changes:
         return None, []
-    runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and r.step < changes[0]]
+    runs = CK.baseline_runs(ctx) or []
     if not runs:
         return None, []
     return int(min(r.step for r in runs)), list(dict.fromkeys(n for r in runs for n in _failing(r)))
@@ -304,10 +304,7 @@ def _baseline_claim(ctx: EvalContext, q: "Measured") -> None:
         q.outside["false_baseline"] = False
         q.baseline_note = "tasks.md has no Baseline section" if cmds is None else "the Baseline section names no command"
         return
-    changes = F.source_change_steps(ctx)
-    first = changes[0] if changes else ctx.facts.n_steps + 2
-    wanted = set().union(*(_command_candidates(c) for c in cmds))
-    runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and r.step < first and wanted & {_norm_cmd(x) for x in (r.command, r.segment) if x}]
+    runs = CK.baseline_runs(ctx)
     if not runs:
         q.baseline_true = False
         q.baseline_note = f"{cmds[0][:50]!r} was not run, validly, before the first code change"

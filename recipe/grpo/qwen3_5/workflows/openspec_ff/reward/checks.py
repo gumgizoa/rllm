@@ -61,8 +61,9 @@ import re
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
+from recipe.grpo.qwen3_5.workflow_rubric import results as R
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
-from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_run
+from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_candidates, _norm_cmd
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
@@ -310,6 +311,36 @@ def baseline_commands(text: str | None) -> list[str] | None:
     return [c.strip() for c in _CODE.findall(body) if c.strip() and c.strip().lower() not in ("none", "n/a")]
 
 
+def check_script_paths(ctx: EvalContext) -> set[str]:
+    """Absolute paths of the files the trace wrote under the change's checks/ directory."""
+    d = check_dir(ctx)
+    return {posixpath.normpath(path) for path, evs in ctx.facts.writes.items() if path.startswith(d) and any(e.ok is not False and e.op not in ("delete", "move_out") for e in evs)}
+
+
+def baseline_runs(ctx: EvalContext) -> list | None:
+    """The baseline the run recorded: the valid repository test runs made before the first code change that a command
+    of tasks.md's ``## Baseline`` section names -- the same command (or runner segment) once normalised, else the same
+    runner on the same targets (``pytest tests/x.py`` recorded with ``-q`` is that run). None without the section; []
+    when it names no command or none of them was run. One reading for ``baseline_run``, ``false_baseline`` and the
+    failures the penalty items take as there before the change."""
+    cmds = baseline_commands(tasks_text(ctx))
+    if cmds is None:
+        return None
+    if not cmds:
+        return []
+    changes = F.source_change_steps(ctx)
+    first = changes[0] if changes else ctx.facts.n_steps + 2
+    wd = ctx.collected.workdir
+    wanted = set().union(*(_command_candidates(c) for c in cmds))
+    same = {(runner, targets) for _, runner, targets in OS._runner_spans(" ".join(f"`{c}`" for c in cmds), wd) if targets}
+    return [
+        r
+        for r in ctx.facts.runs
+        if r.kind == "test" and r.valid and r.step < first
+        and (wanted & {_norm_cmd(x) for x in (r.command, r.segment) if x} or (r.runner, frozenset(refs.norm_path(t, wd) for t in r.targets)) in same)
+    ]
+
+
 @register("openspec_ff.evidence", params={"rule": True, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("baseline_run", "run_after_change")})
 def evidence(item: Item, ctx: EvalContext) -> Result:
     """rule ``baseline_run``: a command tasks.md's ``## Baseline`` section names is a valid repository test run made before the first code change.
@@ -324,11 +355,10 @@ def evidence(item: Item, ctx: EvalContext) -> Result:
         changes = F.source_change_steps(ctx)
         if not changes and ctx.facts.unseen_repo_paths:  # the code changed at a step the trace does not show: "before it" cannot be shown
             return Result.no(item, "the code change is not in the trace: no run can be placed before it")
-        before = (1, changes[0] if changes else ctx.facts.n_steps + 2)
         where = f"before the first code change (step {changes[0]})" if changes else "(the run changed no code)"
-        for c in cmds:
-            if _command_run(item, ctx, c, before, "test").status == "pass":
-                return Result.ok(item, f"baseline {c[:50]!r} run {where}")
+        runs = baseline_runs(ctx)
+        if runs:
+            return Result.ok(item, f"baseline {runs[0].segment[:50]!r} run at step {runs[0].step}, {where}")
         return Result.no(item, f"no command of the Baseline section is a valid test run {where}")
     if rule == "run_after_change":
         last = F.last_change_write(ctx)
@@ -337,8 +367,8 @@ def evidence(item: Item, ctx: EvalContext) -> Result:
         runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and r.step > last]
         if runs:
             return Result.ok(item, f"valid test run at step {runs[0].step}, after the last code change (step {last})")
-        scripts = written_checks(ctx)
-        ran = sorted({(step, path) for step, path in F.executed_paths(ctx) if step > last and path in scripts})
+        # the runs the penalty item ``no_run_after_change`` counts (``results.executions``)
+        ran = sorted({(step, path) for path, rs in R.executions(ctx, check_script_paths(ctx)).items() for step, _ in rs if step > last})
         if ran:
             return Result.ok(item, f"ran {ran[0][1]} at step {ran[0][0]}, after the last code change (step {last})")
         return Result.no(item, f"no valid test run and no check script executed after the last code change (step {last})")
