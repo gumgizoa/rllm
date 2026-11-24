@@ -99,6 +99,7 @@ class _Replayer:
         for p in self.state:
             self._add_parents(p)
         self.history: dict[str, list[str | None]] = {}  # editor undo stack per path
+        self.own_lines: dict[str, set[str]] = {}  # path -> non-blank lines this run's own writes put into the file
         self.out = Replay()
 
     # -- bookkeeping -----------------------------------------------------------------------
@@ -121,8 +122,12 @@ class _Replayer:
         return p in self.dirs or bool(self._under(p))
 
     def _event(self, path: str, step: int, idx: int, op: str, ok: bool | None, content: str | None, source: str, prior: str | None = None, prior_known: bool = False) -> None:
+        own = self.own_lines.setdefault(path, set())
+        removed = _removed_existing(op, ok, prior, content, prior_known, own)
+        if ok is not False and content is not None:
+            own |= _lines(content) - (_lines(prior) if prior_known and prior is not None else set())
         self.out.writes.setdefault(path, []).append(WriteEvent(path=path, step=step, op=op, ok=ok, content=content, source=source, action_index=idx,
-                                                              removed_existing=_removed_existing(op, ok, prior, content, prior_known)))
+                                                              removed_existing=removed))
 
     def _gap(self, step: int, idx: int, command: str) -> None:
         entry = (step, idx, command)
@@ -244,6 +249,8 @@ class _Replayer:
             content = op.body
             lost = content is None and prior is not None
         else:  # append
+            if op.body is not None:  # the appended lines are the run's own even when the file's prior content is unknown
+                self.own_lines.setdefault(path, set()).update(_lines(op.body))
             if exists:
                 content = None if (prior is None or op.body is None) else prior + op.body
             else:
@@ -300,13 +307,19 @@ class _Replayer:
             self.out.moves.append((step, src, dst))
 
 
-def _removed_existing(op: str, ok: bool | None, prior: str | None, content: str | None, prior_known: bool) -> bool | None:
+def _lines(text: str | None) -> set[str]:
+    return {ln.strip() for ln in (text or "").splitlines() if ln.strip()}
+
+
+def _removed_existing(op: str, ok: bool | None, prior: str | None, content: str | None, prior_known: bool, own: set[str] = frozenset()) -> bool | None:
     """Did this write drop or change a non-blank line the file had before it? None when unknowable.
 
     A file that did not exist before (``prior_known`` False) cannot lose a line: False. A failed write
     changes nothing: False. A delete / move-out of a known existing file: True. Otherwise both the prior
     and the new content must be known; the answer is whether any prior non-blank line is absent from the
-    new content (so a pure addition -- a new test function appended or inserted -- is False)."""
+    new content (so a pure addition -- a new test function appended or inserted -- is False). Lines this
+    run's own earlier writes put into the file (``own``) are not the file's: changing a test function the
+    run itself added to an existing module is no change of the module's existing lines."""
     if ok is False:
         return False
     if not prior_known:
@@ -315,9 +328,7 @@ def _removed_existing(op: str, ok: bool | None, prior: str | None, content: str 
         return True
     if prior is None or content is None:
         return None
-    before = {ln.strip() for ln in prior.splitlines() if ln.strip()}
-    after = {ln.strip() for ln in content.splitlines() if ln.strip()}
-    return bool(before - after)
+    return bool(_lines(prior) - _lines(content) - own)
 
 
 def replay(run: Run, start_cwd: str | None, initial: Mapping[str, str] | None = None, fresh: tuple[str, ...] = FRESH_PREFIXES) -> Replay:

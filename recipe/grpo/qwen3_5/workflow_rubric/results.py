@@ -45,6 +45,18 @@ MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\
 WHOLE = "*"  # the key of a runner run that names no file
 
 _NARROW_OPT = re.compile(r"^(?:-k|-m|--deselect|--ignore|--ignore-glob)(?:=(?P<v>.*))?$")
+_NARROW_ATTACHED = re.compile(r"^-(?P<o>[km])(?P<v>[^=-].*)$")  # `-kfoo`, `-mslow`: the value written onto the option
+_INTERPRETER = re.compile(r"(?:^|/)(?:python|pypy)[\d.]*$")
+_GIT_OPTS = r"(?:(?:-[Cc]|--git-dir|--work-tree)\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*"  # `git -C /testbed stash`
+
+
+def _module_flag(toks: list[str], i: int) -> bool:
+    """``toks[i]`` (``-m`` or ``-mNAME``) is the interpreter's module option, not a marker filter: it follows the
+    interpreter, with nothing but interpreter options between them (``python -u -W ignore -m pytest``)."""
+    j = i - 1
+    while j >= 0 and (toks[j].startswith("-") or (j > 0 and toks[j - 1] in ("-W", "-X"))):
+        j -= 1
+    return j >= 0 and _INTERPRETER.search(toks[j]) is not None
 
 
 # --------------------------------------------------------------------------------------------
@@ -143,12 +155,12 @@ def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = 
 # --------------------------------------------------------------------------------------------
 # Runs with the change stashed away
 # --------------------------------------------------------------------------------------------
-_STASH = re.compile(r"\bgit\s+stash\b(?:[ \t]+(?:-\S+[ \t]+)*([a-z]+)\b)?")
+_STASH = re.compile(r"\bgit\s+" + _GIT_OPTS + r"stash\b(?:[ \t]+(?:-\S+[ \t]+)*([a-z]+)\b)?")
 _STASH_BACK = frozenset({"pop", "apply"})
 _STASH_NOTHING = frozenset({"list", "show", "drop", "clear", "branch", "create", "store"})
 
 
-_CHECKOUT = re.compile(r"\bgit\s+(checkout|restore)\b([^;&|\n]*)")
+_CHECKOUT = re.compile(r"\bgit\s+" + _GIT_OPTS + r"(checkout|restore)\b([^;&|\n]*)")
 _BRANCHING = frozenset({"-b", "-B", "--orphan", "--detach", "-"})
 
 
@@ -271,9 +283,12 @@ def selection(segment: str) -> tuple[str, ...]:
     while i < len(toks):
         t = toks[i]
         m = _NARROW_OPT.match(t)
-        if m and t == "-m" and i and re.search(r"(?:^|/)python[\d.]*$", toks[i - 1]):  # `python -m pytest`: the module, not a marker
-            m = None
-        if m:
+        attached = _NARROW_ATTACHED.match(t) if m is None else None
+        if (m and t == "-m" or attached and attached.group("o") == "m") and _module_flag(toks, i):  # `python -m pytest`: the module, not a marker
+            m = attached = None
+        if attached:
+            sel.append(f"-{attached.group('o')} {attached.group('v')}")
+        elif m:
             v = m.group("v")
             if v is None and i + 1 < len(toks):
                 i += 1

@@ -147,6 +147,7 @@ class Hit:
     labels: list[tuple[str, list[str]]] = field(default_factory=list)  # (dotted label, base dirs it resolves against)
     module: str | None = None  # `python -m X`: X
     no_run: str = ""  # the flag that makes it a non-run
+    loose: list[str] = field(default_factory=list)  # relative path targets written under a cwd the trace does not know
     code: str | None = None  # inline python source
 
 
@@ -211,6 +212,7 @@ def _path_targets(hit: Hit, ops: list[str], *, all_paths: bool) -> None:
         if not (all_paths or "/" in file_part or re.search(r"\.[A-Za-z]{1,6}$", file_part)):
             continue
         if cwd is None and not file_part.startswith(("/", "~")):
+            hit.loose.append(file_part)
             continue
         p = shell.resolve(file_part, cwd)
         hit.targets.append(p)
@@ -461,15 +463,19 @@ def selects(hit: Hit, workdir: str | None) -> bool | None:
     (``python -c "...pytest.main(...)"``), whose selection is not read."""
     if hit.runner.name == "python-inline":
         return None
-    if hit.targets or hit.node_ids or hit.labels:
+    cwd, wd = hit.seg.cwd, (workdir or "").rstrip("/")
+
+    def root(path: str) -> bool:  # the repository root itself (`pytest .`, `pytest /testbed`) narrows nothing
+        return bool(wd) and (cwd is not None or path.startswith("/")) and shell.resolve(path, cwd).rstrip("/") == wd
+
+    if any(not root(t) for t in hit.targets) or hit.node_ids or hit.labels:
         return True
     words = [w for w in _runner_args(hit) if w not in (">", ">>", "2>", "&>")]
     if any(w.split("=", 1)[0] in _NARROWING for w in words):
         return True
     ops, _ = _operands([shell.Word(w) for w in words], _VALUE_OPTS.get(hit.runner.name, _GENERIC_ARG))
-    if any(o and o not in _SUBCOMMANDS for o in ops):
+    if any(o and o not in _SUBCOMMANDS and not root(o) for o in ops):
         return True
-    cwd, wd = hit.seg.cwd, (workdir or "").rstrip("/")
     return bool(cwd and wd and cwd.rstrip("/") != wd and cwd.startswith(wd + "/"))
 
 
@@ -1066,6 +1072,13 @@ def _target_problem(hit: Hit, c: _Ctx, step: int) -> str:
                 p = posixpath.join(base, *parts[:k]) + ".py"
                 if c.is_created(p, step):
                     return f"test target created by the agent ({_rel(p, c.workdir) or p})"
+    for t in hit.loose:  # `cd $REPO && pytest tests/test_new.py`: the directory is unknown, the file's own path is not
+        rel = posixpath.normpath(t).lstrip("./")
+        if c.base_present is not None and c.base_present.get(rel) is False:  # read from the repository root, as such a path usually is
+            return f"test target not in the base tree ({rel})"
+        made = next((p for p in c.created if p.endswith("/" + rel) and c.is_created(p, step)), None)
+        if made:
+            return f"test target created by the agent ({_rel(made, c.workdir) or made})"
     if not hit.script and not hit.targets and not hit.labels and c.workdir and hit.seg.cwd and _rel(hit.seg.cwd, c.workdir) is None:
         return f"runs outside the repository (cwd {hit.seg.cwd})"
     return ""
@@ -1213,7 +1226,11 @@ def runs_from(
             if a.kind != "shell" or not a.command:
                 continue
             segs = shell.flat(split(a.command, cwd_track.get((step.n, idx)))[0])
-            for m in _ALIAS.finditer("\n".join(s.text for s in segs)):
+            text = "\n".join(s.text for s in segs)
+            for m in _ALIAS.finditer(text):
+                value = text[m.end() :].lstrip("'\"").split(None, 1)[0].rstrip("'\";") if m.group(1) and text[m.end() :].strip() else ""
+                if m.group(1) and _PYTHON.match(m.group(1)) and _PYTHON.match(posixpath.basename(value)):
+                    continue  # `alias python=python3`: still the interpreter
                 c.aliases.add(m.group(1) or m.group(2))
             hits = {i: h for i, seg in enumerate(segs) if (h := classify(seg)) is not None}
             if not hits:
@@ -1223,16 +1240,23 @@ def runs_from(
             order = sorted(hits)
             assigned = _assign([hits[i] for i in order], found)
             ids_out = output_ids(obs)
+            stopped = False  # `pytest a && pytest b` with a failing: the shell ran nothing after it
             for k, i in enumerate(order):
                 hit = hits[i]
-                out.append(_fact(step.n, idx, a.command, obs, segs, i, hit, hits, _merge(assigned.get(k, [])), ids_out, c))
+                summary = _merge(assigned.get(k, []))
+                if k:
+                    chained = all(segs[j].op_before == "&&" for j in range(order[k - 1] + 1, i + 1))
+                    shared = [id(s) for s in assigned.get(k, [])] == [id(s) for s in assigned.get(k - 1, [])]
+                    before = _merge(assigned.get(k - 1, []))
+                    stopped = chained and (stopped or (shared and before is not None and before.failed + before.errors > 0))
+                out.append(_fact(step.n, idx, a.command, obs, segs, i, hit, hits, None if stopped else summary, ids_out, c))
     return out
 
 
 def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx) -> RunFact:
     seg = hit.seg
     rf = RunFact(step=step, action_index=idx, command=command, segment=seg.text, runner=hit.runner.name, kind=hit.runner.kind, observation=obs[:MAX_OBSERVATION])  # type: ignore[arg-type]
-    rf.targets = list(dict.fromkeys([norm_path(t, c.workdir) for t in hit.targets] + [lbl for lbl, _ in hit.labels]))
+    rf.targets = [t for t in dict.fromkeys([norm_path(t, c.workdir) for t in hit.targets] + [lbl for lbl, _ in hit.labels]) if t]  # the root itself names no file
     rf.ids = list(dict.fromkeys([norm_path(n, c.workdir) for n in hit.node_ids] + rf.targets + ids_out))[:MAX_IDS]
     reasons: list[str] = []
     if hit.runner.kind == "build":

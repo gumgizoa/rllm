@@ -64,7 +64,7 @@ _SCRIPT_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "
 
 _TEST_PATH = re.compile(
     r"(?:^|/)(?:tests|__tests__|spec)/|^/?(?:test|testing)/|(?:^|/)(?:test|testing)/(?!.*\.py$)"
-    r"|(?:^|/)test_[^/]*\.py$|(?:^|/)[^/]*_tests?\.py$|(?:^|/)conftest\.py$"
+    r"|(?:^|/)test_[^/]*\.py$|(?:^|/)[^/]*_tests?\.py$|(?:^|/)tests\.py$|(?:^|/)conftest\.py$"
     r"|_test\.go$|\.(?:test|spec)\.[cm]?[jt]sx?$|_(?:spec|test)\.rb$|(?:^|/)test_[^/]*\.(?:rb|php)$"
     r"|(?:^|/)[^/]*Tests?\.(?:java|kt|cs|scala|php)$|_test\.(?:rs|cc|cpp|c|exs?)$"
 )

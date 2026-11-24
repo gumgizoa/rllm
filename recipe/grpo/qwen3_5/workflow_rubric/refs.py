@@ -255,6 +255,8 @@ def norm_path(p: str, workdir: str | None = None) -> str:
     # an artifact's path value carries the template's own annotations (AI-DLC "[full path] [requirement tags]",
     # "[full path] (modify in place | create)"): the path is what precedes them
     p = _ANNOTATION.sub("", p.strip()[:1000]).strip().strip("`'\"").rstrip(",;.")
+    if p.rstrip("/") in ("/app", "/testbed") or (workdir and p.rstrip("/") == workdir.rstrip("/")):
+        return ""  # the repository root itself (`pytest /testbed`), not a file named after it
     if workdir:
         wd = workdir.rstrip("/") + "/"
         if p.startswith(wd):
