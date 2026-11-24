@@ -49,26 +49,9 @@ GIT_HISTORY_RE = re.compile(
     r"\bgit\s+(?:log|rev-list|branch|for-each-ref)\b[^|;&\n]*(?:--all|--branches|--remotes|--tags|\s-a\b)"
     r"|\bgit\s+(?:reflog|fsck|cat-file|name-rev)\b"
     r"|\bgit\s+(?:show|diff|checkout|cherry-pick|restore|revert|format-patch)\b[^|;&\n]*\b[0-9a-f]{7,40}\b")
-TEST_RUN_PATTERNS = [
-    r"\bpytest\b", r"\bgo\s+test\b", r"\bnpm\s+(run\s+)?test\b", r"\bnpx\s+jest\b",
-    r"\byarn\s+test\b", r"\bjest\b", r"\bmocha\b", r"\bunittest\b", r"\btox\b",
-    r"\bmake\s+test\b", r"\bgotestsum\b",
-    r"\bginkgo\b", r"\bansible-test\s+(units|integration|sanity)\b", r"\bvitest\b",
-    r"\bcargo\s+test\b", r"\bpnpm\s+(run\s+)?test\b",
-]
-# The runner was missing or ran nothing: such an attempt observed no baseline. `0 passing` is
-# word-bounded so `10 passing` does not match; a bare `No such file or directory` is not here
-# because real test output prints it whenever a test exercises a missing file.
-TOOL_MISSING_RE = re.compile(
-    r"command not found|<returncode>127</returncode>|\bError 127\b|is not recognized as"
-    r"|ModuleNotFoundError: No module named 'pytest'|No module named pytest"
-    r"|executable file not found"
-    r"|ECONNREFUSED|ECONNRESET|Connection refused|could not connect"
-    r"|\b0 passing\b|no tests? (?:ran|found|to run|were run)|collected 0 items"
-    r"|ERROR collecting|INTERNALERROR",
-    re.I,
-)
-TEST_PATH_RE = re.compile(r"(^|/)(tests?|__tests__|spec)/|[-_.](test|spec)\.[a-z]+$|(^|/)test[-_][^/]+$")
+# What a test run is, whether it really ran, and what a test file is: the shared layer's readings
+# (``workflow_rubric``), the ones every other workflow's scorer and the training metrics use -- see
+# ``test_runs`` below and ``facts.is_test_path``.
 SCRATCH_HINT_RE = re.compile(
     r"(^|/)(reproduce|repro|final_test|test_fix|verify|scratch|tmp|temp|debug|check|sample|demo)[^/]*$",
     re.I)
@@ -174,17 +157,33 @@ def is_repo_write(a: Action) -> bool:
     return any(not OUTSIDE_REPO_RE.match(t) for t in targets)
 
 
-def is_test_attempt(a: Action) -> bool:
-    return a.kind == "shell" and matches_any(command_skeleton(a.command or ""), TEST_RUN_PATTERNS)
-
-
 def probes_git_history(a: Action) -> bool:
     return a.kind == "shell" and GIT_HISTORY_RE.search(command_skeleton(a.command or "")) is not None
 
 
-def ran_something(a: Action) -> bool:
-    """A test attempt whose output does not say the tool was missing or ran nothing."""
-    return not TOOL_MISSING_RE.search(a.observation or "")
+def test_runs(run: Run, workdir: str | None = None) -> list:
+    """The run's test-runner invocations by the shared layer (``workflow_rubric.evidence.runs_from``, read through
+    ``facts.build`` with no rubric, as ``rollout_metrics`` reads a rollout): ``RunFact``s of kind ``test``. One is an
+    attempt whatever came of it; ``valid`` when tests really ran (the runner is a segment's verb -- ``cat tox.ini``,
+    ``pip install pytest`` are none --, its own summary with at least one test in this call's output, targets that
+    existed before the agent wrote them). ``workdir``: the repository root (None when the task does not say)."""
+    from recipe.grpo.qwen3_5.workflow_rubric import facts as SF
+    from recipe.grpo.qwen3_5.workflow_rubric.context import Collected
+    from recipe.grpo.qwen3_5.workflow_rubric.schema import Rubric
+
+    try:
+        rubric = Rubric(workflow="", sources=[], roots={}, stages=[], artifacts={}, items=[], scoring={})
+        facts = SF.build(rubric, run, Collected(workdir=workdir, mode="offline"))
+    except Exception:  # noqa: BLE001 -- agent text the replay cannot take: no test run read
+        return []
+    return [r for r in facts.runs if r.kind == "test"]
+
+
+def is_test_path(path: str) -> bool:
+    """A test file by the shared layer's rule (``workflow_rubric.facts.is_test_path``)."""
+    from recipe.grpo.qwen3_5.workflow_rubric import facts as SF
+
+    return SF.is_test_path(path)
 
 
 # --- artifact traces ----------------------------------------------------------------------
@@ -300,7 +299,7 @@ def diff_files(patch: str) -> tuple[list[str], list[str]]:
 
 # --- the record ---------------------------------------------------------------------------
 
-def analyse(run: Run) -> dict:
+def analyse(run: Run, workdir: str | None = None) -> dict:
     acts = [(s.n, a) for s in run.steps for a in s.actions if a.acts]
     shell = [(n, a) for n, a in acts if a.kind == "shell"]
 
@@ -309,9 +308,9 @@ def analyse(run: Run) -> dict:
     for r in reads:
         read_step.setdefault(r["doc"], r["step"])
 
-    attempts = [(n, a) for n, a in shell if is_test_attempt(a)]
-    test_attempt_steps = sorted({n for n, _ in attempts})
-    test_run_steps = sorted({n for n, a in attempts if ran_something(a)})
+    runs = test_runs(run, workdir)
+    test_attempt_steps = sorted({int(r.step) for r in runs})
+    test_run_steps = sorted({int(r.step) for r in runs if r.valid})
     first_test_run = test_run_steps[0] if test_run_steps else None
 
     first_write = next((n for n, a in acts if is_write(a)), None)
@@ -390,7 +389,7 @@ def analyse(run: Run) -> dict:
         "patch_empty": not run.patch.strip(),
         "diff_files": touched,
         "diff_files_added": added,
-        "diff_test_files": [p for p in touched if TEST_PATH_RE.search(p)],
+        "diff_test_files": [p for p in touched if is_test_path(p)],
         "diff_backup_files": [p for p in touched if BACKUP_RE.search(p)],
         "diff_scratch_suspects": sorted({p for p in added if SCRATCH_HINT_RE.search(p)
                                          or BACKUP_RE.search(p) or ARTIFACT_RE.search(p)}),

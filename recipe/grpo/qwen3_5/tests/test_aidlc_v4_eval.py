@@ -290,13 +290,15 @@ def _replace_command(turns, old, new, obs=None):
         ("grep -n settings /testbed/tests/runtests.py | head -20", False),
         ("head -50 /testbed/tests/runtests.py", False),
         ("echo 'pytest tests/test_mod.py'", False),
-        ("bash /tmp/pytest.sh", False),  # the agent wrote it (agent_files below)
+        ("bash /tmp/pytest.sh", False),  # a script, not a runner in command position
+        ("pip install pytest", False),
     ],
 )
 def test_what_counts_as_a_test_run(command, test_run):
+    """A command that invokes a test runner, by the shared layer's classifier (``workflow_rubric.evidence``)."""
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
-    assert EV.is_test_attempt(command, agent_files=["/tmp/pytest.sh"]) is test_run
+    assert EV.is_test_attempt(command) is test_run
 
 
 @pytest.mark.parametrize(

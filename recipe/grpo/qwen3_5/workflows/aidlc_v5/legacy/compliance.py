@@ -6,8 +6,9 @@
             test suite ever ran (a baseline never observed cannot have been reported truthfully)
 
 Copied from ``aidlc_v4/reward/compliance.py``, with two readings of ``evidence.py`` in place of the
-rubric's: "a real test suite ran" is ``evidence.ran_real_test`` (Django's runner counts; a lookup that
-names a runner, a runner script the agent wrote and a run on the agent's own test files do not), and
+rubric's: "a real test suite ran" is ``read.ran_real_test`` (a valid test run by the shared layer,
+``workflow_rubric.evidence``: Django's runner counts; a lookup that names a runner, a runner script the agent
+wrote, a run on the agent's own test files and a run with no test summary in its output do not), and
 each artifact's band is ``evidence.stage_band`` (a skeleton copy or an artifact with nothing under its
 frontmatter earns 0, not 2; ``Assumptions: none`` is filled).
 
@@ -84,16 +85,17 @@ def stage_fractions(facts: dict) -> dict[int, float]:
     return {st: p / 7 for st, p in points.items()}
 
 
-def compliance(run: Run) -> dict:
+def compliance(run: Run, workdir: str | None = None) -> dict:
     """Signals, their mean, and the facts they came from (for logging).
 
     ``run.artifact_files`` is what the sandbox held at the end, and it is authoritative: a stage
     whose file is not there scores 0. The rubric would otherwise grade the text it reconstructs
     from the writes in the trajectory, which survives any deletion it does not recognise as one
     (``os.remove``, a script that clears /tmp) -- a file that no longer exists would still score.
+    ``workdir``: the repository root, for the shared layer's reading of the test runs.
     """
     facts = F.analyse(run)
-    facts["ran_real_test_suite"] = EV.ran_real_test(run)
+    facts["ran_real_test_suite"] = EV.ran_real_test(run, workdir)
     for path, text in run.artifact_files.items():
         if path in A.ARTIFACT_PATHS:
             facts["stage_artifact_band"][str(A.ARTIFACT_PATHS[path])] = EV.stage_band(A.ARTIFACT_PATHS[path], text)

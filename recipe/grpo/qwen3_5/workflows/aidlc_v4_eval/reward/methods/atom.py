@@ -451,7 +451,7 @@ def d7b(m):
     if not m.p1:
         return None
     test = _field(m.p1, "Build & Test Commands", "Test")
-    if test and not is_none(test) and (targets := EV.test_targets(test)) is not None:
+    if test and not is_none(test) and (targets := EV.test_targets(test, workdir=m.workdir)) is not None:
         return float(any(not _WHOLE_SUITE.fullmatch(t) for t in targets))
     return None
 
@@ -837,7 +837,7 @@ def h1b(m):
     if w4 is None or not m.p1:
         return None
     build = _field(m.p1, "Build & Test Commands", "Build")
-    if build and not is_none(build) and command_core(build) and EV.test_targets(build) is None and not EV.is_env_setup(build):
+    if build and not is_none(build) and command_core(build) and not EV.is_test_attempt(build) and not EV.is_env_setup(build):
         return 1.0 if m.obs.command_runs(build, after=w4, before=m.w.get(5)) else 0.0
     return None
 
@@ -851,7 +851,7 @@ def h1c(m):
     if w4 is None or not m.p1:
         return None
     named = (_field(m.p1, "Build & Test Commands", "Build"), _field(m.p5, "Build", "Command"))
-    build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
+    build = next((b for b in named if b and not is_none(b) and not EV.is_test_attempt(b) and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
     builds = obs.command_runs(build, after=w4, before=w5) if build else []
     failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
     if failed_at is None:
@@ -870,11 +870,12 @@ def h4a(m):
     nothing)."""
     if not (m.p1 and m.p5):
         return None
-    t1, t5 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or ""), EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "")
+    t1 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or "", workdir=m.workdir)
+    t5 = EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "", workdir=m.workdir)
     if not (t1 and t5):
         return None
     after4 = m.w.get(4)
-    runs5 = [EV.test_targets(cmd) for _, cmd, _ in m.obs.tests_in(after=after4)] if after4 is not None else []
+    runs5 = [m.obs.targets(r) for r in m.obs.tests_in(after=after4)] if after4 is not None else []
     rerun = any(tt and all(_covers(tt, t) for t in t1) for tt in runs5)
     return float(rerun or all(_covers(t5, t) for t in t1))
 

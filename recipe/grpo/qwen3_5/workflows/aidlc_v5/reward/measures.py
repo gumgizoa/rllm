@@ -91,10 +91,13 @@ class _Failed:
 
 class Measures:
     """``files``: what was collected from the sandbox (container path -> text), the five artifacts and whatever
-    else the artifact directory held."""
+    else the artifact directory held. ``facts``: the shared layer's facts of the run (the engine's
+    ``EvalContext.facts``), whose test runs (``evidence.runs_from``) are the ones read here; ``workdir``: the
+    repository root (``Collected.workdir``). Without ``facts`` they are built from the episode (``read.bare_facts``)."""
 
-    def __init__(self, task, episode, files: dict[str, str]):
+    def __init__(self, task, episode, files: dict[str, str], facts=None, workdir: str | None = None):
         self.task, self.episode, self.files = task, episode, files
+        self._facts, self.workdir = facts, workdir
         self._values: dict[str, float | None | _Failed] = {}
 
     # -- measurements -------------------------------------------------------------------------------
@@ -181,8 +184,23 @@ class Measures:
         return run
 
     @cached_property
+    def shared(self):
+        """The shared layer's facts of the run (``workflow_rubric.facts.build``)."""
+        if self._facts is not None:
+            return self._facts
+        from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _episode_diff, _task_workdir
+
+        self.workdir = self.workdir or _task_workdir(self.task)
+        return EV.bare_facts(self.episode, self.workdir, _episode_diff(self.episode))
+
+    @cached_property
+    def runs(self) -> list:
+        """The shared layer's test-runner invocations of the run (``RunFact``s of kind ``test``, valid or not)."""
+        return EV.test_runs_of(self.shared)
+
+    @cached_property
     def obs(self) -> EV.Observed:
-        return observe(self.run)
+        return observe(self.run, self.shared, self.workdir)
 
     @cached_property
     def parsed(self) -> dict[int, dict | None]:
@@ -324,7 +342,7 @@ class Measures:
         """The test targets artifact 01 recorded (empty without 01)."""
         if self.p1 is None:
             return set()
-        return set(EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "") or [])
+        return set(EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "", workdir=self.workdir) or [])
 
     @cached_property
     def evidence_runs(self) -> list:
@@ -334,7 +352,7 @@ class Measures:
         if self.p1 is None:
             return []
         rt = self.recorded_targets
-        recorded = [r for r in self.baseline_runs if rt and (t := EV.test_targets(r[1])) and set(t) <= rt]
+        recorded = [r for r in self.baseline_runs if rt and (t := self.obs.targets(r)) and set(t) <= rt]
         return recorded or self.baseline_runs
 
     @cached_property
@@ -405,8 +423,8 @@ class Measures:
         compares with the baseline (step24 000346), nor a run on stashed source."""
         candidates = [r for r in self.post if not _ON_STASH.search(r[1])] or self.post
         command = _field(self.p5, "Existing Tests vs Baseline", "Command")
-        selection = set(EV.test_targets(command or "") or []) or self.recorded_targets
-        return [r for r in candidates if selection and (t := EV.test_targets(r[1])) and set(t) <= selection] or candidates
+        selection = set(EV.test_targets(command or "", workdir=self.workdir) or []) or self.recorded_targets
+        return [r for r in candidates if selection and (t := self.obs.targets(r)) and set(t) <= selection] or candidates
 
     @cached_property
     def regressed(self) -> bool | None:
@@ -447,8 +465,8 @@ class Measures:
         either is unknown (05 Step 4 allows the unchanged source only for what the baseline did not include)."""
         from .methods.atom import _covers  # (atom imports this module)
 
-        t1 = EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "") if self.p1 else None
-        targets = EV.test_targets(segment)
+        t1 = EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "", workdir=self.workdir) if self.p1 else None
+        targets = EV.test_targets(segment, workdir=self.workdir)
         return not (t1 and targets) or any(_covers(t1, t) or _covers([t], x) for t in targets for x in t1)
 
     @cached_property

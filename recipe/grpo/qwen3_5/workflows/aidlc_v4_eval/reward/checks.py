@@ -38,7 +38,7 @@ def inputs(task, episode) -> dict:
 def measures(ctx: EvalContext) -> Measures:
     """The run's readings, one per evaluation (kept on the context)."""
     if "aidlc" not in ctx.cache:
-        ctx.cache["aidlc"] = Measures(ctx.collected.inputs["task"], ctx.collected.inputs["episode"], ctx.collected.files)
+        ctx.cache["aidlc"] = Measures(ctx.collected.inputs["task"], ctx.collected.inputs["episode"], ctx.collected.files, facts=ctx.facts, workdir=ctx.collected.workdir)
     return ctx.cache["aidlc"]
 
 

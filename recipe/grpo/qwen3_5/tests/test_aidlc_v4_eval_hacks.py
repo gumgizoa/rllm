@@ -915,13 +915,15 @@ def test_several_test_ids_on_one_line_break_one_per_line():
     assert r.score()["aidlc/atom/D12b"] == 0.0
 
 
-def test_a_test_function_called_from_python_c_is_a_test_run():
-    """sympy's environment has no pytest: runs call the covering test function directly."""
+def test_a_test_runner_called_from_python_c_is_a_test_run():
+    """A runner called from Python (the shared layer's ``python-inline``: ``pytest.main(``, ``unittest.main(``,
+    ``sympy.test(``, ``get_runner(``, ``TextTestRunner(`` ...) is a test-runner invocation. A test function imported and
+    called directly prints no result summary of a runner: the shared layer does not read it as one (until 2026-11-24
+    this verifier did, for sympy's environment that has no pytest)."""
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward import read as EV
 
-    assert EV.is_test_attempt('python3 -c "from sympy.core.tests.test_evalf import test_evalf_bugs; test_evalf_bugs()"')
+    assert not EV.is_test_attempt('python3 -c "from sympy.core.tests.test_evalf import test_evalf_bugs; test_evalf_bugs()"')
     assert not EV.is_test_attempt('python -c "import sympy; print(sympy.sqrt(4))"')
-    assert not EV.is_test_attempt('python -c "from test_repro import test_fix; test_fix()"', agent_files={"/testbed/test_repro.py"})
     # the package's own runner, and test classes run through unittest (swebv100 000097, 000014)
     assert EV.is_test_attempt("python -c \"import sympy; sympy.test('sympy.physics.hep.tests.test_gamma_matrices')\"")
     assert EV.is_test_attempt('python -c "import unittest\nfrom tests.admin_utils.tests import UtilsTests\nunittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(UtilsTests))"')
@@ -929,8 +931,6 @@ def test_a_test_function_called_from_python_c_is_a_test_run():
     # (step24 000119, 000427; swebv100 000028)
     assert EV.is_test_attempt("python -c \"import django\nfrom django.test.utils import get_runner\nfrom django.conf import settings\nget_runner(settings)().run_tests(['auth_tests.test_checks'])\"")
     assert EV.is_test_attempt('python -c "from sympy.combinatorics.tests.test_permutations import *; import unittest; unittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromModule(m))"')
-    own = "python -c \"from django.test.utils import get_runner\nget_runner(settings)().run_tests(['test_repro'])\""
-    assert not EV.is_test_attempt(own, agent_files={"/testbed/test_repro.py"})
     program = "import unittest\nfrom tests.expressions.tests import T\nunittest.TextTestRunner().run(unittest.TestLoader().loadTestsFromTestCase(T))"
     assert EV.is_test_attempt(f"cd /testbed && python << 'PYEOF'\n{program}\nPYEOF")
     assert not EV.is_test_attempt(f"cat > /tmp/notes.md << 'EOF'\n{program}\nEOF")
@@ -1074,7 +1074,7 @@ def test_expected_failures_are_not_failures():
     from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.read import failures
 
     assert failures("Ran 162 tests in 0.1s\n\nOK (skipped=1, expected failures=1)") == 0
-    assert failures("FAILED (failures=2, errors=1)") == 3
+    assert failures("Ran 5 tests in 0.1s\n\nFAILED (failures=2, errors=1)") == 3
 
 
 def test_na_is_no_path():

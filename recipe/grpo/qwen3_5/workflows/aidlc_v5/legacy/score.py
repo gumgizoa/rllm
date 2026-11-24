@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import base64
 
+from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _task_workdir
+
 from .compliance import compliance
 from .episode import episode_to_run
 from .rubric import artifacts as A
@@ -54,7 +56,7 @@ def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     run = episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", "")))
     patch = (getattr(episode, "artifacts", None) or {}).get("patch")
     run.patch = patch or ""
-    c = compliance(run)
+    c = compliance(run, _task_workdir(task))
     facts = c["facts"]
     u = S.unit_scores(facts, S.PROFILES["v4"])
     u["order"] = c["order"]["value"]
