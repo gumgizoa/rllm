@@ -249,12 +249,17 @@ _QUOTES = re.compile(r"^['\"`]+|['\"`]+$")
 
 
 _ANNOTATION = re.compile(r"\s+(?:[\[(]|[—–]\s|-\s).*$", re.S)  # "src/x.py [R1, R2]", "src/x.py (modify in place)", "src/x.py — why"
+# "pkg/transform.py:apply_transform", "pkg/x.py:123", "pkg/x.py:12:5": a symbol or line after the file; a pytest id's "::" stays
+_LOCATION = re.compile(r"^(?P<p>.*\.[A-Za-z][A-Za-z0-9]{0,7}):(?!:)(?:[A-Za-z_][\w.]*|\d+(?::\d+)?)$")
 
 
 def norm_path(p: str, workdir: str | None = None) -> str:
     # an artifact's path value carries the template's own annotations (AI-DLC "[full path] [requirement tags]",
     # "[full path] (modify in place | create)"): the path is what precedes them
     p = _ANNOTATION.sub("", p.strip()[:1000]).strip().strip("`'\"").rstrip(",;.")
+    m = _LOCATION.match(p) if "::" not in p and "://" not in p else None
+    if m:
+        p = m.group("p")
     if p.rstrip("/") in ("/app", "/testbed") or (workdir and p.rstrip("/") == workdir.rstrip("/")):
         return ""  # the repository root itself (`pytest /testbed`), not a file named after it
     if workdir:
@@ -617,7 +622,7 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
                 continue
             if arg.get("final") and e.path not in change_paths(ctx):
                 continue
-            if arg.get("source") and (e.op == "unknown" or e.path not in source_paths(ctx)):  # a source file of the final change, edited by the agent
+            if arg.get("source") and (e.op in ("unknown", "restore") or e.path not in source_paths(ctx)):  # a source file of the final change, edited by the agent
                 continue
             if arg.get("created") is not None and is_new_path(ctx, e.path) != bool(arg["created"]):
                 continue
@@ -641,9 +646,16 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
             if in_window(step, w) and path in targets:
                 yield (step, path)
     elif name == "command":
+        from .results import segments
+
         rx = re.compile(arg["pattern"])
         for c in f.commands:
-            if in_window(c.step, w) and rx.search(c.command):
+            if not in_window(c.step, w):
+                continue
+            # each command the line runs, as its words: a heredoc body or a quoted string is data, not a command
+            segs = segments(ctx, c)
+            texts = [" ".join(seg.argv) for seg in segs] if segs else [c.command]
+            if any(rx.search(t) for t in texts):
                 yield c
     else:
         raise RefError(f"fact {name!r}")

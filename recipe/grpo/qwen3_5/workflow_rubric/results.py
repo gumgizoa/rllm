@@ -31,17 +31,19 @@ from .trace import shell
 MAX_CMD = 20_000
 MAX_TEXT = 400_000
 EXIT = re.compile(r"\[(?:The command completed with exit code|Command finished with exit code)\s+(-?\d+)\.?\]")
+# a script's own lower-case verdict (``check_x failed``, ``❌ ... failed``): not ``0 failed``, ``no ... failed``, ``if failed``
+_FAILED_WORD = r"(?<![\w-])(?<!\b0 )(?<!\bno )(?<!\bnot )(?<!\bif )(?<!\bno tests )(?<!\bnothing )failed\b(?![-_(])(?!\s*[:=]\s*0\b)"
 FAIL_TEXT = re.compile(
     r"Traceback \(most recent call last\)|\bAssertionError\b|^\s*(?:FAIL|FAILED|ERROR)\b|\b[1-9]\d* (?:failed|errors?)\b|\bFAILED \(|"
-    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b",
+    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b|❌|" + _FAILED_WORD,
     re.M,
 )
 # A verdict line a script prints about itself: read against an exit code of 0 only when the output is the script's alone.
-VERDICT_TEXT = re.compile(r"^\s*(?:FAIL|FAILED)\b|\b[1-9]\d* failed\b|\bFAILED \(", re.M)
+VERDICT_TEXT = re.compile(r"^\s*(?:FAIL|FAILED)\b|\b[1-9]\d* failed\b|\bFAILED \(|❌|" + _FAILED_WORD, re.M)
 # What python prints at start-up when the environment holds a broken .pth file: the environment's, not the script's.
 PTH_NOISE = re.compile(r"Error processing line \d+ of [^\n]*\.pth:\n.*?Remainder of file ignored\n?", re.S)
-PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b", re.M | re.I)
-MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b")
+PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b|✅", re.M | re.I)
+MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b|[✅❌]")
 WHOLE = "*"  # the key of a runner run that names no file
 
 _NARROW_OPT = re.compile(r"^(?:-k|-m|--deselect|--ignore|--ignore-glob)(?:=(?P<v>.*))?$")
@@ -272,9 +274,15 @@ class TestResult:
     failed_ids: tuple[str, ...] = ()  # a failing valid runner run: the ids of its failed tests, when its output names them all (:func:`run_failed_ids`)
 
 
+# options whose value is no test selection (``-W ignore::DeprecationWarning``, ``-p no:cacheprovider``, ``-o k=v``): the
+# runner's value-taking options and the interpreter's ``-W`` / ``-X``, the selecting ones (above) and ``-c`` (inline code) aside
+_VALUE_OPTS = (E._PYTEST_ARG | {"-W", "-X"}) - {"-k", "-m", "--deselect", "--ignore", "--ignore-glob", "-c"}
+
+
 def selection(segment: str) -> tuple[str, ...]:
     """What narrows a test run below its target files: ``-k``/``-m``/``--deselect``/``--ignore`` with their values,
-    and ``file::test`` ids. Empty for a run of whole files or directories."""
+    and ``file::test`` ids. Empty for a run of whole files or directories. The value of another option
+    (``-W ignore::DeprecationWarning``) selects nothing."""
     try:
         toks = shlex.split(segment or "")
     except ValueError:
@@ -294,7 +302,9 @@ def selection(segment: str) -> tuple[str, ...]:
                 i += 1
                 v = toks[i]
             sel.append(f"{t.split('=')[0]} {v}")
-        elif "::" in t:
+        elif t in _VALUE_OPTS:
+            i += 1  # its value
+        elif "::" in t and not t.startswith("-"):
             sel.append(t)
         i += 1
     return tuple(sorted(sel))

@@ -12,7 +12,10 @@ A :class:`~.context.RunFact` is *valid* only when all of these hold:
 
 * the runner is the verb of a segment (after ``cd``/``timeout``/``env``/``bash -c`` wrappers), and
   the segment is not a no-run invocation (``--help``, ``--collect-only``, ``--version`` ...);
-* the summary is in THIS call's observation (the final call's observation is never seen) and
+* the summary is in THIS call's observation -- or, for a command the terminal left running, in the output of the
+  empty commands sent right after it (``_continued``) -- (the final call's observation is never seen); for one
+  pytest session the last pytest summary it printed (not one of a session run inside its tests, ``inner_sessions``),
+  and
   reports N >= 1 tests run; zero-test outputs (``collected 0 items``, ``no tests ran``,
   ``Ran 0 tests``, deselected / skipped only, collection errors only), invocation errors (errors only,
   all of them the runner failing to load its selection: ``unittest.loader._FailedTest``, ``Failed to
@@ -82,6 +85,8 @@ RUNNERS: dict[str, Runner] = {
         Runner("setup.py-test", "test", "any"),
         Runner("sympy-bin-test", "test", "sympy"),  # bin/test, bin/doctest
         Runner("python-inline", "test", "any"),  # python -c / heredoc calling pytest.main( sympy.test( ...
+        Runner("test-file", "test", "any"),  # a repository test file run directly: python tests/test_x.py, node test/x.test.js
+        Runner("node-test", "test", "tap"),  # node --test
         Runner("trial", "test", "unittest"),
         Runner("go-test", "test", "go"),
         Runner("cargo-test", "test", "cargo"),
@@ -104,6 +109,7 @@ RUNNERS: dict[str, Runner] = {
         Runner("setup.py-build", "build", "build"),
         Runner("tsc", "build", "build"),
         Runner("go-build", "build", "build"),
+        Runner("go-vet", "build", "build"),
         Runner("cargo-build", "build", "build"),
         Runner("make", "build", "build"),
         Runner("cmake-build", "build", "build"),
@@ -130,6 +136,7 @@ _DJANGO_ARG = frozenset(
 _SYMPY_ARG = frozenset({"-k", "--timeout", "--seed", "--split", "--durations", "--subprocess", "--rerun"})
 _GENERIC_ARG = frozenset({"-t", "--testNamePattern", "-g", "--grep", "--reporter", "-R", "--config", "-c", "--timeout", "--run", "-run", "-p", "--format", "-f"})
 _NO_RUN = frozenset({"--help", "-h", "--version", "-V", "--collect-only", "--co", "--fixtures", "--markers", "--setup-plan", "--dry-run", "--list", "-list", "--help-all"})
+_JS_RUNNERS = frozenset({"jest", "vitest", "mocha", "jasmine"})
 _MAKE_SKIP = frozenset({"clean", "distclean", "install", "uninstall", "help", "dist", "lint", "format", "fmt", "docs", "doc"})
 
 TEST_CALL = re.compile(r"\bpytest\.main\s*\(|\bunittest\.main\s*\(|\bsympy\.(?:test|doctest)\s*\(|\bcall_command\(\s*['\"]test['\"]|\bruntests\s*\(|\bget_runner\s*\(|\bTextTestRunner\s*\(")
@@ -327,13 +334,26 @@ def _script_hit(seg: shell.Segment, path_text: str, rest: list[shell.Word]) -> H
     if base == "manage.py" and rest and rest[0].text == "test":
         bases = [posixpath.dirname(script)] if script else []
         return _labels_hit(seg, RUNNERS["django-manage"], rest[1:], _DJANGO_ARG, [*bases, seg.cwd], script=script)
+    if base in ("django-admin.py", "django-admin") and rest and rest[0].text == "test":
+        return _labels_hit(seg, RUNNERS["django-admin"], rest[1:], _DJANGO_ARG, [seg.cwd], script=script)
     if base == "setup.py" and rest:
         sub = rest[0].text
         if sub == "test":
             return Hit(RUNNERS["setup.py-test"], seg, script=script)
         if sub in ("build", "build_ext", "build_py"):
             return Hit(RUNNERS["setup.py-build"], seg, script=script)
-    return None
+        return None
+    return _test_file_hit(seg, script, path_text)
+
+
+def _test_file_hit(seg: shell.Segment, script: str | None, path_text: str) -> Hit | None:
+    """A test file run by path (``python tests/test_x.py``, ``node test/x.test.js``): a test run when it is a repository
+    test file that was there before the run (:func:`_own_script` drops the others), read by its output like any runner."""
+    from .facts import is_test_path  # facts builds on this module
+
+    if script is None or not is_test_path(path_text):
+        return None
+    return Hit(RUNNERS["test-file"], seg, script=script)
 
 
 def classify(seg: shell.Segment) -> Hit | None:
@@ -356,6 +376,16 @@ def classify(seg: shell.Segment) -> Hit | None:
     if verb in ("tox", "nox"):
         _, opts = _operands(rest, frozenset({"-e", "-c", "-s", "--session", "-r"}))
         return Hit(RUNNERS[verb], seg, no_run=_no_run(opts))
+    if verb == "node":
+        ops, opts = _operands(rest, frozenset({"-r", "--require", "--import", "--loader", "-e", "--eval", "-p", "--print", "--test-name-pattern", "--test-reporter"}))
+        if "--test" in opts:
+            hit = Hit(RUNNERS["node-test"], seg, no_run=_no_run(opts))
+            _path_targets(hit, ops, all_paths=True)
+            return hit
+        if ops and not ({"-e", "--eval", "-p", "--print"} & opts):
+            script = shell.resolve(ops[0], seg.cwd) if (seg.cwd is not None or ops[0].startswith(("/", "~"))) else None
+            return _test_file_hit(seg, script, ops[0])
+        return None
     if verb in ("django-admin", "django-admin.py") and sub == "test":
         return _labels_hit(seg, RUNNERS["django-admin"], rest[1:], _DJANGO_ARG, [seg.cwd])
     if verb == "trial":
@@ -364,11 +394,16 @@ def classify(seg: shell.Segment) -> Hit | None:
         if sub == "test":
             _, opts = _operands(rest[1:], _GENERIC_ARG)
             return Hit(RUNNERS["go-test"], seg, no_run=_no_run(opts))
-        return Hit(RUNNERS["go-build"], seg) if sub == "build" else None
+        return Hit(RUNNERS["go-build"], seg) if sub == "build" else Hit(RUNNERS["go-vet"], seg) if sub == "vet" else None
     if verb == "cargo":
         if sub == "test":
             return Hit(RUNNERS["cargo-test"], seg, no_run=_no_run(_texts(rest[1:])))
         return Hit(RUNNERS["cargo-build"], seg) if sub == "build" else None
+    if verb in ("yarn", "pnpm", "bun") and rest and (rest[0].text in _JS_RUNNERS or (rest[0].text in ("run", "exec", "dlx", "x") and len(rest) > 1 and rest[1].text in _JS_RUNNERS)):
+        k = 0 if rest[0].text in _JS_RUNNERS else 1  # `yarn jest ...`, `pnpm exec vitest ...`: the package's own runner
+        inner = shell.Segment(text=seg.text, verb=rest[k].text, argv=seg.argv, redirects=seg.redirects, heredoc=seg.heredoc, cwd=seg.cwd,
+                              op_before=seg.op_before, cmd=_texts(rest[k:]), words=rest[k:], cmd_start=0)  # fmt: skip
+        return classify(inner)
     if verb in ("npm", "yarn", "pnpm", "bun"):
         args = _texts(rest)
         if args[:1] in (["test"], ["t"]) or (args[:1] == ["run"] and len(args) > 1 and args[1].startswith("test")):
@@ -463,6 +498,8 @@ def selects(hit: Hit, workdir: str | None) -> bool | None:
     (``python -c "...pytest.main(...)"``), whose selection is not read."""
     if hit.runner.name == "python-inline":
         return None
+    if hit.runner.name == "test-file":  # a file run directly names that file, wherever it lives
+        return True
     cwd, wd = hit.seg.cwd, (workdir or "").rstrip("/")
 
     def root(path: str) -> bool:  # the repository root itself (`pytest .`, `pytest /testbed`) narrows nothing
@@ -488,6 +525,8 @@ def full_suite(seg: shell.Segment, workdir: str | None) -> bool:
     except Exception:  # noqa: BLE001 -- agent text: an unparsable segment is not evidence of anything
         return False
     if hit is None or hit.runner.kind != "test" or hit.no_run or any(w in _NO_RUN for w in _runner_args(hit)):
+        return False
+    if hit.runner.name == "test-file":  # a file run directly names that file: never the whole suite
         return False
     wd = (workdir or "").rstrip("/")
     if not wd or (seg.cwd or "").rstrip("/") != wd:
@@ -544,11 +583,21 @@ class Summary:
 _N = r"\d+(?:\.\d+)?"
 _PYTEST_WORDS = r"passed|failed|errors?|skipped|xfailed|xpassed|deselected|warnings?|rerun"
 _PYTEST_SUMMARY = re.compile(rf"^[ =]*(?P<c>\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))*) in {_N}(?:s| seconds)(?: \([\d:]+\))?[ =]*$", re.M)
+# pytest-pretty replaces the summary line with a block: ``Results (0.74s):`` and one indented ``N word`` line per outcome
+_PYTEST_PRETTY = re.compile(rf"^Results \({_N}s\):[ \t]*\n(?P<c>(?:[ \t]+\d+ (?:{_PYTEST_WORDS})[ \t]*(?:\n|$))+)", re.M)
+# the terminal's notice that the command is still running: its remaining output comes with the next empty command(s)
+_STILL_RUNNING = re.compile(r"\[The command (?:has no new output after|timed out after) [\d.]+ seconds\. You may wait longer to see additional output by sending empty command ''")
 _PYTEST_NONE = re.compile(rf"^[ =]*no tests ran in {_N}(?:s| seconds)[ =]*$", re.M)
 _PYTEST_COLLECTED = re.compile(r"^collect(?:ed|ing \.\.\. collected) (\d+) items?\b", re.M)
 _PYTEST_INTERRUPTED = re.compile(r"Interrupted: \d+ errors? during collection|^ERROR collecting\b|^_+ ERROR collecting", re.M)
-_PYTEST_LINE = re.compile(r"^(\S+?\.py::\S+)\s+(PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b|^(PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS) (\S+?\.py::\S+)", re.M)
+# pytest -v: ``nodeid OUTCOME``; pytest 3 writes ``nodeid <- defining/file.py OUTCOME`` for a test defined in another file
+_FROM = r"(?: <- \S+)?"
+_PYTEST_LINE = re.compile(rf"^(\S+?\.py::\S+){_FROM}\s+(PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b|^(PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS) (\S+?\.py::\S+)", re.M)
 _PYTEST_DOTS = re.compile(r"^(?:\S+\.py )?([.FEsxX]+)\s*\[\s*\d+%\]\s*$", re.M)
+# a progress line the run stopped in (``-x``, an interrupt): no percentage, the next thing printed is a report section
+_PYTEST_DOTS_CUT = re.compile(r"^(?:\S+\.py )?([.FEsxX]+)[ \t]*\n(?:[ \t]*\n)*(?=={3,} (?:FAILURES|ERRORS|short test summary info|warnings summary) =|!{3,} )", re.M)
+# pytest's own usage errors: the selection named nothing it could collect
+_PYTEST_USAGE = re.compile(r"(?:^|\.\.\. )ERROR: (?:file or directory not found|not found): \S.*$|^ERROR: usage: .*$", re.M)
 _UT_RAN = re.compile(rf"^Ran (\d+) tests? in {_N}s\s*$", re.M)
 _UT_RESULT = re.compile(r"^(OK|FAILED|PASSED|NO TESTS RAN)\b(?: \(([^)\n]*)\))?\s*$", re.M)
 _SYMPY = re.compile(rf"tests finished: (?P<c>[^\n]*?),? in {_N} seconds", re.M)
@@ -565,6 +614,8 @@ _PHPUNIT = re.compile(r"^Tests: (\d+), Assertions: \d+(?P<rest>[^\n]*)", re.M)
 _MAVEN = re.compile(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+), Skipped: (\d+)", re.M)
 _CTEST = re.compile(r"(\d+)% tests passed, (\d+) tests? failed out of (\d+)", re.M)
 _COUNT_WORD = re.compile(r"(\d+) ([a-z ]+)")
+# TAP totals of node's built-in runner (``# pass 3`` / ``# fail 0``; the spec reporter writes ``ℹ pass 3``)
+_TAP = re.compile(r"^[#ℹ] (tests|suites|pass|fail|cancelled|skipped|skip|todo) (\d+)\s*$", re.M)
 # Per-test lines of unittest (-v) and sympy, read only when an output holds no summary of any kind (the summary
 # line was cut off): ``test_x (mod.Class) ... ok`` / ``... FAIL`` / ``... ERROR`` / ``... skipped '...'``,
 # unittest's progress dots (only next to a unittest failure header or the django runner's first lines), and
@@ -577,7 +628,8 @@ _SYMPY_LINE = re.compile(r"^(test_\w+) (ok|E|F|f|s|X|w)\s*(?:\[(?:OK|FAIL)\])?\s
 
 # Unanchored shapes of every summary above: what an output producer must not be able to print.
 _SHAPES = re.compile(
-    rf"\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))* in {_N}(?:s| seconds)\b|\bRan \d+ tests? in {_N}s|tests finished: \d+ passed"
+    rf"\d+ (?:{_PYTEST_WORDS})(?:, \d+ (?:{_PYTEST_WORDS}))* in {_N}(?:s| seconds)\b|\bRan \d+ tests? in {_N}s|tests finished: \d+ passed|\bResults \({_N}s\):\s*\d+ (?:{_PYTEST_WORDS})"
+    r"|^[#ℹ] (?:pass|fail) \d+\s*$"
     rf"|\b\d+ passing\b|test result: ok\. \d+ passed|\b\d+ examples?, \d+ failures?|^Tests:\s+\d+|Tests run: \d+, Failures|tests passed, \d+ tests? failed out of"
     rf"|\bOK \(\d+ tests?|\.py::\S+ PASSED\b|^PASSED \S+::|--- PASS: \S+|\bok\s+[\w./-]+\s+{_N}s\b"
     r"|\.\.\. (?:ok|FAIL|ERROR|skipped|expected failure|unexpected success)\b|\btest_\w+ (?:ok|[EFfsXw])(?:\s*\[(?:OK|FAIL)\])?(?=\s*$|\s*[\"'\\])",
@@ -622,40 +674,28 @@ def summaries(text: str) -> list[Summary]:
     out: list[Summary] = []
     pytest_found = False
     for m in _PYTEST_SUMMARY.finditer(text):
+        if not re.search(r"\d+ (?!warnings?\b)\w", m.group("c")):
+            continue  # `7 warnings in 0.00s`: what pytest prints when nothing ran (a usage error), no test count
         s = Summary("pytest", m.start())
         _pytest_counts(s, m.group("c"))
         if s.ran == 0:
             s.zero = "only deselected / skipped"
         out.append(s)
         pytest_found = True
+    for m in _PYTEST_PRETTY.finditer(text):
+        s = Summary("pytest", m.start())
+        _pytest_counts(s, m.group("c"))
+        if s.ran == 0:
+            s.zero = "only deselected / skipped"
+        out.append(s)
+        pytest_found = True
+    out.sort(key=lambda x: x.pos)
     for m in _PYTEST_NONE.finditer(text):
         out.append(Summary("pytest", m.start(), zero="no tests ran"))
         pytest_found = True
     if not pytest_found:
-        seen: dict[str, str] = {}
-        last = -1
-        for m in _PYTEST_LINE.finditer(text):
-            nid, outcome = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
-            seen.setdefault(nid, outcome)
-            last = m.start()
-        dots = "".join(m.group(1) for m in _PYTEST_DOTS.finditer(text))
-        if seen or dots:
-            s = Summary("pytest", max(last, 0))
-            if seen:
-                for outcome in seen.values():
-                    if outcome == "PASSED":
-                        s.passed += 1
-                    elif outcome == "FAILED":
-                        s.failed += 1
-                    elif outcome == "ERROR":
-                        s.errors += 1
-                    elif outcome == "SKIPPED":
-                        s.skipped += 1
-                    else:
-                        s.xfail += 1
-            else:
-                s.passed, s.failed, s.errors = dots.count("."), dots.count("F"), dots.count("E")
-                s.skipped, s.xfail = dots.count("s"), dots.count("x") + dots.count("X")
+        s = _pytest_lines_summary(text)
+        if s is not None:
             out.append(s)
     if any(s.family == "pytest" for s in out):
         collected = [int(m.group(1)) for m in _PYTEST_COLLECTED.finditer(text)]
@@ -791,12 +831,116 @@ def summaries(text: str) -> list[Summary]:
     for m in _CTEST.finditer(text):
         total, failed = int(m.group(3)), int(m.group(2))
         out.append(Summary("ctest", m.start(), passed=max(0, total - failed), failed=failed, phrases=[m.group(0)] if total else [], zero="" if total else "zero tests"))
+    tap = [m for m in _TAP.finditer(text) if m.group(1) != "suites"]
+    if any(m.group(1) in ("pass", "fail") for m in tap):
+        s = Summary("tap", max(m.start() for m in tap))
+        for m in tap:
+            k, word = int(m.group(2)), m.group(1)
+            if word == "pass":
+                s.passed += k
+                if k:
+                    s.phrases.append(f"pass {k}")
+            elif word == "fail":
+                s.failed += k
+            elif word == "cancelled":
+                s.errors += k
+            elif word in ("skipped", "skip", "todo"):
+                s.skipped += k
+        s.zero = "" if s.ran else "zero tests"
+        out.append(s)
     if not out:
         extra = _per_test_summary(text)
         if extra is not None:
             out.append(extra)
     out.sort(key=lambda s: s.pos)
     return out
+
+
+def pytest_outcomes(text: str, start: int = 0) -> dict[str, str]:
+    """node id -> outcome of pytest's per-test lines (``-v`` lines, ``-rA`` / short-summary lines) from ``start`` on."""
+    seen: dict[str, str] = {}
+    for m in _PYTEST_LINE.finditer(text, start):
+        nid, outcome = (m.group(1), m.group(2)) if m.group(1) else (m.group(4), m.group(3))
+        seen.setdefault(nid, outcome)
+    return seen
+
+
+def _count_outcomes(s: Summary, outcomes: Iterable[str]) -> Summary:
+    for outcome in outcomes:
+        if outcome == "PASSED":
+            s.passed += 1
+        elif outcome == "FAILED":
+            s.failed += 1
+        elif outcome == "ERROR":
+            s.errors += 1
+        elif outcome == "SKIPPED":
+            s.skipped += 1
+        else:
+            s.xfail += 1
+    return s
+
+
+def _pytest_dots(text: str, start: int = 0) -> list[re.Match]:
+    return sorted([*_PYTEST_DOTS.finditer(text, start), *_PYTEST_DOTS_CUT.finditer(text, start)], key=lambda m: m.start())
+
+
+def _pytest_lines_summary(text: str, start: int = 0) -> Summary | None:
+    """A pytest summary counted from per-test lines or progress dots, for an output whose summary line is missing (cut
+    off by ``| head`` / ``| tail``, or the run stopped)."""
+    seen = pytest_outcomes(text, start)
+    dots = _pytest_dots(text, start)
+    if not seen and not dots:
+        return None
+    if seen:
+        last = max(m.start() for m in _PYTEST_LINE.finditer(text, start))
+        return _count_outcomes(Summary("pytest", last), seen.values())
+    d = "".join(m.group(1) for m in dots)
+    return Summary("pytest", dots[-1].start(), passed=d.count("."), failed=d.count("F"), errors=d.count("E"), skipped=d.count("s"), xfail=d.count("x") + d.count("X"))
+
+
+_SESSION = re.compile(r"^={3,} test session starts ={3,}$", re.M)
+_REPORT_SECTION = re.compile(r"^={3,} (?:FAILURES|ERRORS) ={3,}$|^-{3,} Captured (?:stdout|stderr|log) \w+ -{3,}$", re.M)
+
+
+# with ``-s`` pytest -v prints a test's outcome after the test's own output, on a line of its own
+_BARE_OUTCOME = re.compile(r"^(PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)(?:[ \t]+\[\s*\d+%\])?[ \t]*$", re.M)
+
+
+def _capture_off(seg: shell.Segment) -> bool:
+    return any(w in ("--capture=no", "--capture", "-s") or (re.fullmatch(r"-[A-Za-z]+", w) is not None and "s" in w and not w.startswith("-r")) for w in seg.cmd)
+
+
+def inner_sessions(found: list[Summary], text: str, capture_off: bool = False) -> list[Summary]:
+    """``found`` without the pytest summaries one pytest run printed for sessions it ran inside its tests (pytester, in
+    pytest's own suite): a summary after which the output still has per-test lines or progress dots, or one of a session
+    that started inside a failure report (after ``= FAILURES =`` / ``--- Captured stdout call ---``), is not the run's
+    last word; with output capture off (``-s``), so is one followed by the outer test's bare outcome line. When no summary
+    is left, the run's per-test lines count instead (with ``-s``, the bare outcome lines after the inner session)."""
+    text = _sane(text)
+    py = [s for s in found if s.family == "pytest"]
+    if not py:
+        return found
+    report = _REPORT_SECTION.search(text)
+
+    def inner(s: Summary) -> bool:
+        if pytest_outcomes(text, s.pos + 1) or _pytest_dots(text, s.pos + 1) or (capture_off and _BARE_OUTCOME.search(text, s.pos + 1)):
+            return True
+        starts = [m.start() for m in _SESSION.finditer(text, 0, s.pos)]
+        if not starts or report is None or report.start() > starts[-1]:
+            return False
+        return not any(starts[-1] < o.pos < s.pos for o in py)  # the first summary after a session that began in a report
+
+    drop = [s for s in py if inner(s)]
+    if not drop:
+        return found
+    keep = [s for s in found if s not in drop]
+    if not any(s.family == "pytest" for s in keep):
+        bare = list(_BARE_OUTCOME.finditer(text, max(s.pos for s in drop) + 1)) if capture_off else []
+        # with -s the progress marks next to the inner session are its own; the outer outcomes are the bare lines
+        whole = _count_outcomes(Summary("pytest", bare[-1].start()), [m.group(1) for m in bare]) if bare else _pytest_lines_summary(text)
+        if whole is not None:
+            keep.append(whole)
+    return sorted(keep, key=lambda s: s.pos)
 
 
 def _per_test_summary(text: str) -> Summary | None:
@@ -906,7 +1050,7 @@ def _merge(parts: list[Summary]) -> Summary | None:
 
 
 _IDS = (
-    re.compile(r"^(\S+?\.py::\S+?)\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b", re.M),
+    re.compile(rf"^(\S+?\.py::\S+?){_FROM}\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b", re.M),
     re.compile(r"^(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS) (\S+?\.py::[^\s]+)", re.M),
     re.compile(r"^_{3,} (\S+?\.py)[:.](\w+) _{3,}", re.M),
     re.compile(r"^((?:\S+/)?\S+\.py)\[\d+\]", re.M),
@@ -931,7 +1075,7 @@ def output_ids(text: str) -> list[str]:
 
 _FAILING = (
     re.compile(r"^(?:FAILED|ERROR) (\S+?::\S+)", re.M),  # pytest short summary
-    re.compile(r"^(\S+?\.py::\S+?)\s+(?:FAILED|ERROR)\b", re.M),  # pytest -v
+    re.compile(rf"^(\S+?\.py::\S+?){_FROM}\s+(?:FAILED|ERROR)\b", re.M),  # pytest -v
     re.compile(r"^_{3,} (\S+?\.py):(\w+) _{3,}", re.M),  # sympy failure / exception sections
 )
 _UT_FAILING = re.compile(r"^(?:FAIL|ERROR): (\w+) \(([\w.]+)\)", re.M)
@@ -1035,6 +1179,12 @@ def _missing(hit: Hit, obs: str) -> str:
     return ""
 
 
+def _own_script(hit: Hit, c: _Ctx, step: int) -> bool:
+    """A test file run directly that is not a repository test file from before the run (an agent-made script, a file
+    outside the repository): the run's own script, which is no test run at all."""
+    return hit.runner.name == "test-file" and (hit.script is None or bool(c.existed(hit.script, step, "test file")))
+
+
 def _shadowed(hit: Hit, c: _Ctx, step: int) -> str:
     seg = hit.seg
     verb = seg.verb or ""
@@ -1082,6 +1232,31 @@ def _target_problem(hit: Hit, c: _Ctx, step: int) -> str:
     if not hit.script and not hit.targets and not hit.labels and c.workdir and hit.seg.cwd and _rel(hit.seg.cwd, c.workdir) is None:
         return f"runs outside the repository (cwd {hit.seg.cwd})"
     return ""
+
+
+def _repository_part(hit: Hit, obs: str, c: _Ctx, step: int) -> tuple[list[str], Summary] | None:
+    """A pytest run whose targets mix repository test files with the run's own (outside the repository, or made by
+    the agent): (the repository targets, relative; a summary counted from the per-test lines of their tests) -- the
+    run is judged by that part. None when the targets are not mixed, or the output shows no result of the repository
+    part (the summary line counts both parts together, so it cannot stand for it)."""
+    if hit.runner.family != "pytest" or not hit.targets or hit.labels or hit.loose or (hit.script and c.existed(hit.script, step, "runner script")):
+        return None
+    good = [t for t in hit.targets if not c.existed(t, step, "test target")]
+    if not good or len(good) == len(hit.targets):
+        return None
+    rel = [r for r in (_rel(t, c.workdir) for t in good) if r and r != "."]
+    if len(rel) < len(good):
+        return None
+
+    def ours(nid: str) -> bool:
+        f = nid.split("::")[0]
+        return any(f == r or f.startswith(r.rstrip("/") + "/") for r in rel)
+
+    outcomes = [o for nid, o in pytest_outcomes(_sane(obs)).items() if ours(nid)]
+    part = _count_outcomes(Summary("pytest", 0), outcomes)
+    if part.ran < 1:
+        return None
+    return rel, part
 
 
 def _producer(i: int, segs: list[shell.Segment], hits: dict[int, Hit], outputs: set[str], c: _Ctx, step: int) -> str:
@@ -1221,9 +1396,10 @@ def runs_from(
     """
     c = _Ctx(base_present, created, workdir, writes, last_step if last_step is not None else (run.steps[-1].n if run.steps else 0))
     out: list[RunFact] = []
+    later = _continued(run)
     for step in run.steps:
         for idx, a in enumerate(step.actions):
-            if a.kind != "shell" or not a.command:
+            if a.kind != "shell" or not a.command or not a.command.strip():
                 continue
             segs = shell.flat(split(a.command, cwd_track.get((step.n, idx)))[0])
             text = "\n".join(s.text for s in segs)
@@ -1233,10 +1409,16 @@ def runs_from(
                     continue  # `alias python=python3`: still the interpreter
                 c.aliases.add(m.group(1) or m.group(2))
             hits = {i: h for i, seg in enumerate(segs) if (h := classify(seg)) is not None}
+            hits = {i: h for i, h in hits.items() if not _own_script(h, c, step.n)}
             if not hits:
                 continue
-            obs = clean_observation(a.observation, a.command)
+            obs = clean_observation((a.observation or "") + later.get((step.n, idx), ""), a.command)
             found = summaries(obs)
+            pyhits = [h for h in hits.values() if h.runner.family == "pytest" and h.runner.kind == "test"]
+            if len(pyhits) == 1 and not pyhits[0].seg.loops:  # one pytest session: its summary is the last one it printed
+                found = inner_sessions(found, obs, _capture_off(pyhits[0].seg))
+                py = [s for s in found if s.family == "pytest"]
+                found = [s for s in found if s.family != "pytest" or s is py[-1]]
             order = sorted(hits)
             assigned = _assign([hits[i] for i in order], found)
             ids_out = output_ids(obs)
@@ -1250,6 +1432,28 @@ def runs_from(
                     before = _merge(assigned.get(k - 1, []))
                     stopped = chained and (stopped or (shared and before is not None and before.failed + before.errors > 0))
                 out.append(_fact(step.n, idx, a.command, obs, segs, i, hit, hits, None if stopped else summary, ids_out, c))
+    return out
+
+
+def _continued(run: Run) -> dict[tuple[int, int], str]:
+    """(step, action index) of a command the terminal left running (:data:`_STILL_RUNNING`) -> the output that came
+    with the calls to the same tool that sent no command right after it (the empty command the notice asks for, or
+    keys), while each was still the same process: a test run that takes longer than the terminal waits prints its
+    summary there, and the model reads it there. Another command ends it; so does output that shows the runner was
+    interrupted (``KeyboardInterrupt``: a summary after it is of the tests that happened to finish)."""
+    acts = [((st.n, i), a) for st in run.steps for i, a in enumerate(st.actions)]
+    out: dict[tuple[int, int], str] = {}
+    for j, (key, a) in enumerate(acts):
+        if a.kind != "shell" or not (a.command or "").strip() or not _STILL_RUNNING.search(a.observation or ""):
+            continue
+        more, last = [], a.observation or ""
+        for _, b in acts[j + 1 :]:
+            if b.name != a.name or (b.command or "").strip() or b.path or not _STILL_RUNNING.search(last) or "KeyboardInterrupt" in (b.observation or ""):
+                break
+            last = b.observation or ""
+            more.append(last)
+        if more:
+            out[key] = "\n" + "\n".join(more)
     return out
 
 
@@ -1270,6 +1474,12 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
         failed = _BUILD_FAIL.search(obs) is not None
         rf.passed, rf.errors, rf.collected = (0, 1, 1) if failed else (1, 0, 1)
     else:
+        mixed = _repository_part(hit, obs, c, step)
+        if mixed is not None:  # repository test files run together with the run's own: the repository part is the run
+            good, summary = mixed
+            rf.targets = [t for t in rf.targets if t in good]
+            rf.ids = list(dict.fromkeys([norm_path(n, c.workdir) for n in hit.node_ids if norm_path(n, c.workdir).split("::")[0] in good] + rf.targets
+                                        + [i for i in ids_out if any(i.split("::")[0] == g or i.startswith(g.rstrip("/") + "/") for g in good)]))[:MAX_IDS]
         if summary is not None:
             rf.passed, rf.failed, rf.errors, rf.skipped = summary.passed, summary.failed, summary.errors, summary.skipped + summary.xfail
             rf.collected = max(summary.collected, summary.ran + summary.skipped)
@@ -1283,7 +1493,7 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
         why = _shadowed(hit, c, step)
         if why:
             reasons.append(why)
-        why = _target_problem(hit, c, step)
+        why = _target_problem(hit, c, step) if mixed is None else ""
         if why:
             reasons.append(why)
         if obs.strip():
@@ -1293,7 +1503,9 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
             if hit.code is not None and shaped(hit.code):
                 reasons.append("output producer: the inline test code prints a summary itself")
             if summary is None:
-                reasons.append("no test summary in the output")
+                usage = _PYTEST_USAGE.search(_sane(obs)) if hit.runner.family == "pytest" else None
+                line = usage.group(0).lstrip(". ")[:100] if usage else ""
+                reasons.append(("pytest usage error" if "usage:" in line else "test target not found") + f" ({line})" if usage else "no test summary in the output")
             elif summary.ran < 1:
                 reasons.append(f"zero tests ({summary.zero or 'none ran'})")
             else:

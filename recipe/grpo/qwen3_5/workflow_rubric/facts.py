@@ -56,7 +56,7 @@ from .trace.model import Run
 
 logger = logging.getLogger(__name__)
 
-WRITE_OPS = frozenset({"create", "overwrite", "append", "edit", "unknown", "move_in"})  # events that put content at a path
+WRITE_OPS = frozenset({"create", "overwrite", "append", "edit", "unknown", "move_in", "restore"})  # events that put content at a path
 DATE_RX = r"\d{4}-\d{2}-\d{2}"
 _NAME = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PYTHON = re.compile(r"^(?:python|pypy)[0-9.]*$")
@@ -65,6 +65,7 @@ _SCRIPT_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "
 _TEST_PATH = re.compile(
     r"(?:^|/)(?:tests|__tests__|spec)/|^/?(?:test|testing)/|(?:^|/)(?:test|testing)/(?!.*\.py$)"
     r"|(?:^|/)test_[^/]*\.py$|(?:^|/)[^/]*_tests?\.py$|(?:^|/)tests\.py$|(?:^|/)conftest\.py$"
+    r"|(?:^|/)test-data/|(?:^|/)test/test(?!cases\.py$)[^/_][^/]*\.py$"
     r"|_test\.go$|\.(?:test|spec)\.[cm]?[jt]sx?$|_(?:spec|test)\.rb$|(?:^|/)test_[^/]*\.(?:rb|php)$"
     r"|(?:^|/)[^/]*Tests?\.(?:java|kt|cs|scala|php)$|_test\.(?:rs|cc|cpp|c|exs?)$"
 )
@@ -93,7 +94,9 @@ def is_test_path(path: str) -> bool:
     A singular ``test/`` or ``testing/`` directory counts at the repository root (pytest's ``testing/``)
     and for non-Python trees (``src/test/java``); inside a Python package it is the package's own test
     *framework* (``django/test/testcases.py``, ``sympy/testing/runtests.py``): library code, a test only
-    when the file itself is named like one."""
+    when the file itself is named like one -- ``test_x.py``, or in such a ``test/`` package ``testx.py`` (mypy's
+    ``mypy/test/teststubgen.py``; django's ``testcases.py`` is the framework). A ``test-data/`` tree (mypy's
+    ``test-data/unit/check-x.test`` cases) holds tests written as data."""
     return bool(path) and _TEST_PATH.search(path) is not None
 
 
@@ -191,7 +194,9 @@ def source_change_steps(ctx: EvalContext) -> list[int]:
     """Steps of the run's source changes, in order: repo writes to a non-test code or config file of the final
     change (:func:`change_paths`). Not a source change: a test file the agent wrote or edited (judged by the
     test-file items), a README / requirements text, one of the run's own scripts (:func:`is_run_script`), and git
-    putting content back (stash / checkout / apply -- an ``unknown`` write is no edit the agent authored). These are
+    putting content back wholesale (stash / ``checkout .`` -- an ``unknown`` write is no edit the agent authored). A
+    ``git checkout -- P`` / ``git restore P`` (op ``restore``) of a file the run had changed does change the code; of an
+    unchanged file it is no write at all (``ok`` False). These are
     the writes that can change what the tests say about the code that was handed in."""
     cached = ctx.cache.get("source_change_steps")
     if cached is not None:
@@ -467,13 +472,13 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
 def _same_call_order(f: Facts, workdir: str | None) -> None:
     """Mark the runs that come after a repository write of their own call (``RunFact.after_write_same_call``): the
     written path (absolute, or relative to the repository) appears in the command's text before the run's segment.
-    Git putting content back (an ``unknown`` write) is no write of the agent's."""
+    Git putting content back (an ``unknown`` or ``restore`` write) is no write of the agent's."""
     if not workdir or not f.runs or not f.repo_writes:
         return
     pre = workdir.rstrip("/") + "/"
     by_call: dict[tuple[int, int], set[str]] = {}
     for e in f.repo_writes:
-        if e.ok is not False and e.op != "unknown":
+        if e.ok is not False and e.op not in ("unknown", "restore"):
             by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
     for r in f.runs:
         paths = by_call.get((int(r.step), r.action_index))
