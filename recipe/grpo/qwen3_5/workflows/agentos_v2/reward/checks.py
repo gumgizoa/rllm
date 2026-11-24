@@ -718,17 +718,26 @@ def _window_end_text(ctx: EvalContext, aid: str, w) -> str | None:
     return None if t is None else M.strip_fence(t[:MAX_TEXT])[0]
 
 
+_PLACEHOLDER_DIR = re.compile(r"^/tmp/(?:[\w.-]+/)*(?:\[[^\]/]+\]|<[^>/]+>|\$\{?\w+\}?)/")
+# a path token may hold the documents' placeholder for the spec folder: /tmp/agent-os/specs/[this-spec]/verify/x.py
+_TMP_PLACEHOLDER_PATH = re.compile(r"(?<![\w/])(/tmp/(?:[\w.-]+/)*(?:\[[^\]/\s]+\]|<[^>/\s]+>)(?:/[\w.-]+)+)")
+
+
 def named_paths(desc: str, workdir: str | None) -> set[str]:
     """Paths a task names: repository-relative ones (code spans first, then bare path tokens) and absolute ``/tmp`` ones."""
     s = _URL.sub(" ", desc or "")[:2000]
-    cands = [*_CODE.findall(s), *(m.group(1) for m in _PATHLIKE.finditer(_CODE.sub(" ", s)))]
+    bare = _CODE.sub(" ", s)
+    cands = [*_CODE.findall(s), *_TMP_PLACEHOLDER_PATH.findall(bare), *(m.group(1) for m in _PATHLIKE.finditer(_TMP_PLACEHOLDER_PATH.sub(" ", bare)))]
     out = set()
     for c in cands:
         c = c.strip().strip(".,;:()'\"")
         if not c or " " in c or c.startswith(("http", "-")):
             continue
         if c.startswith("/tmp/"):
-            out.add(posixpath.normpath(c))
+            # the documents write the spec folder as a placeholder (create-tasks.md 129, implement-tasks.md 39:
+            # ``/tmp/agent-os/specs/[this-spec]/verify/``); a task line that copies it names the file under that folder
+            m = _PLACEHOLDER_DIR.search(c)
+            out.add(posixpath.normpath(c[m.end():]) if m and c[m.end():].strip("/") else posixpath.normpath(c))
             continue
         q = refs.norm_path(c, workdir).rstrip("/")
         if not q or posixpath.basename(q) in _SPEC_DOCS or q.startswith(("agent-os/", "tmp/")):
@@ -757,6 +766,31 @@ def _same_file(name: str, path: str) -> bool:
     name = name.strip("/")
     path = path.rstrip("/")
     return bool(name) and (path == name or path.endswith("/" + name))
+
+
+# a task whose work is running tests: "Run the tests of X.py", "Execute all tests for ..."
+RUN_TESTS = re.compile(r"(?i)\b(?:run|re-?run|execute)\b[^.\n]{0,80}\btests?\b")
+_TEST_FILE = re.compile(r"(?i)(?:^|/)(?:test_[^/]*|[^/]*_test)\.\w+$|(?:^|/)tests?/")
+
+
+def named_work_steps(ctx: EvalContext, desc: str, files: set[str], w) -> list[int]:
+    """Steps that did the work of a task line naming ``files`` (2026-11-24; five runs of wf1121 step 27 did the work and
+    failed on the name): the steps of :func:`file_evidence_steps`, and
+
+    * for a name that is no file the run wrote, ran or read anywhere -- a directory spelled wrong
+      (``dask/test_multiprocessing.py`` for ``dask/tests/test_multiprocessing.py``) -- the same by its last part;
+    * for a task that runs tests (:data:`RUN_TESTS`) and names only code files ("Run all tests for utils.py"), every
+      test-runner call: the tests of a code file are run by running its tests, not the file. A task that names a test
+      file is held to that file."""
+    reads = bool(READ_VERB.match(desc))
+    steps = file_evidence_steps(ctx, files, w, reads=reads)
+    whole = (1, ctx.facts.n_steps + 1)
+    loose = {posixpath.basename(f) for f in files if "/" in f.strip("/") and not file_evidence_steps(ctx, {f}, whole, reads=True)}
+    if loose:
+        steps = steps + file_evidence_steps(ctx, loose, w, reads=reads)
+    if RUN_TESTS.search(desc) and not any(_TEST_FILE.search(f) for f in files):
+        steps = steps + [int(r.step) for r in ctx.facts.runs if r.kind == "test"]
+    return steps
 
 
 def file_evidence_steps(ctx: EvalContext, names: set[str], w, reads: bool = False) -> list[int]:
@@ -1306,7 +1340,7 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
                 continue
             if nf:  # B-1 / B-8 row 2: files by name and path suffix, reading tasks by their reads, other tasks by any work
                 files = named_files(t["rest"], ctx.collected.workdir)
-                steps = file_evidence_steps(ctx, files, w, reads=bool(READ_VERB.match(t["rest"]))) if files else work_steps(ctx, d)
+                steps = named_work_steps(ctx, t["rest"], files, w) if files else work_steps(ctx, d)
                 if not any(w[0] <= x <= s for x in steps):
                     bad.append(t["id"])
                 continue
@@ -1862,8 +1896,29 @@ def _num(v: str | None) -> int | None:
         return None
 
 
+_SEC_NUMBER = re.compile(r"^\s*\d+[.)]\s*")
+
+
+def _report_section(text: str, title: str, short: str | None = None) -> str | None:
+    """The report section titled ``title`` (the title starts with it). A report that leaves the template's number off
+    its headings, or numbers them otherwise (``## Test Suite Results`` for ``## 2. Test Suite Results``), still has
+    the section: the first heading whose title, without a leading number, starts with ``title`` without its number --
+    or with ``short`` (``Incomplete`` for ``Incomplete or Issues``). Added 2026-11-24 (accuracy review of wf1121)."""
+    body = M.section(text, title, match="prefix")
+    if body is not None or text is None:
+        return body
+    lines, kinds, hi = M._view(text)
+    heads = M._heads(lines, kinds)
+    wants = [w for w in (_SEC_NUMBER.sub("", title), short) if w]
+    for j, (i, lv, got) in enumerate(heads):
+        if any(M.title_matches(_SEC_NUMBER.sub("", got), w, "prefix") for w in wants):
+            end = next((i2 for i2, lv2, _ in heads[j + 1 :] if lv2 <= lv), hi)
+            return "\n".join(lines[i + 1 : end])
+    return None
+
+
 def _status(text: str, section: str) -> str:
-    body = M.section(text, section, match="prefix") if section else text
+    body = _report_section(text, section) if section else text
     v = M.field_value(body or "", "Status") if body is not None else None
     return M.clean_value(v or "")
 
@@ -1903,7 +1958,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
             return Result.ok(item, f"{st[:30]}: check script(s) failed: {failing[:3]}") if failing else Result.no(item, f"{st[:30]}, but every check script passed")
         return Result.no(item, f"Status {st[:40]!r} is none of the three" if st else "no Test Suite Results Status")
     if rule == "test_counts":
-        summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
+        summ = M.section(text, "Test Summary") or _report_section(text, suite) or text
         f_, e_ = _num(M.field_value(summ, "Failing")), _num(M.field_value(summ, "Errors"))
         if f_ is None and e_ is None:
             return Result.no(item, "no Failing / Errors counts")
@@ -1959,7 +2014,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 return _report_on_scripts(item, rule, text, suite, scripts)
         if not runs:
             return Result.no(item, "no valid PHASE 3 test run to compare with")
-        summ = M.section(text, "Test Summary") or M.section(text, suite, match="prefix") or text
+        summ = M.section(text, "Test Summary") or _report_section(text, suite) or text
         got = {k: _num(M.field_value(summ, k)) for k in ("Total Tests", "Passing", "Failing", "Errors")}
 
         def score(r) -> int:
@@ -2003,7 +2058,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
             return Result.no(item, f"Status {st[:40]!r} is none of the three")
         # A-8 (``in_section``): a failing test counts as named only inside the Failed Tests section (the Test Suite Results
         # section when the report has none), not in Notes or elsewhere
-        hay = ((M.section(text, "Failed Tests", match="prefix") or M.section(text, suite, match="prefix") or "") if p.get("in_section") else text)
+        hay = ((M.section(text, "Failed Tests", match="prefix") or _report_section(text, suite) or "") if p.get("in_section") else text)
         if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
             left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
             if not left:
@@ -2041,7 +2096,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 if open_:
                     return Result.ok(item, "Issues Found")
                 if p.get("issues_listed"):  # the template's Incomplete or Issues lists tasks that "have issues" too
-                    sec = M.section(text, "Incomplete or Issues")
+                    sec = _report_section(text, "Incomplete or Issues", short="Incomplete")
                     if [ln for ln in M.content_lines(sec or "") if ln.strip() and not M.is_none(ln.strip("-* \"'"))]:
                         return Result.ok(item, "Issues Found, with issues listed")
                 return Result.no(item, "Issues Found, but every task is ticked")
@@ -2052,7 +2107,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
             warned = [t["id"] for t in ts if t["warned"] or (not t["checked"] and t["box"] is not None)]
         if not warned:
             return Result.not_applicable(item, "no task marked ⚠️")
-        sec = M.section(text, "Incomplete or Issues")
+        sec = _report_section(text, "Incomplete or Issues", short="Incomplete")
         lines = [ln for ln in M.content_lines(sec or "") if ln.strip() and not M.is_none(ln.strip("-* \"'"))]
         return Result.ok(item, f"{len(lines)} line(s) listed") if lines else Result.no(item, f"tasks open or marked ⚠️ {warned[:3]}, but Incomplete or Issues lists none")
     if rule == "spec_name":

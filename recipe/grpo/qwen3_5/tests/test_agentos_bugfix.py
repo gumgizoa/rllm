@@ -1120,3 +1120,50 @@ def test_offline_replay_keeps_the_files_written_through_the_spec_folder_variable
     assert sorted(col.files) == [f"{spec}/planning/initialization.md", f"{spec}/planning/requirements.md"]
     # nothing names the folder: the write stays unknown, as before
     assert collected_from_replay(run_of(sh(1, setup), sh(2, write)), rub).files == {}
+
+
+def test_a_task_line_that_names_a_file_is_held_to_the_work_not_to_the_spelling():
+    from types import SimpleNamespace as NS
+
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as K
+
+    # the documents' placeholder for the spec folder names the file under it
+    assert K.named_files("1.1 Write the check script /tmp/agent-os/specs/[this-spec]/verify/test_fix.py", "/testbed") == {"verify/test_fix.py"}
+    assert K.named_files("1.1 Write `/tmp/agent-os/specs/[spec-path]/verify/test_fix.py`", "/testbed") == {"verify/test_fix.py"}
+    assert K._same_file("verify/test_fix.py", "/tmp/agent-os/specs/2026-11-23-x/verify/test_fix.py")
+    assert K.named_files("1.2 Edit /tmp/agent-os/specs/2026-11-23-x/verify/test_fix.py", "/testbed") == {"/tmp/agent-os/specs/2026-11-23-x/verify/test_fix.py"}
+
+    def ctx(runs=(), executed=(), repo_writes=()):
+        facts = NS(writes={}, repo_writes=[NS(step=s, path=p, ok=True) for s, p in repo_writes], runs=[NS(step=s, kind="test") for s in runs], n_steps=30, _cwd_track={})
+        return NS(facts=facts, collected=NS(workdir=None), cache={"executed_paths": list(executed)})
+
+    w = (10, 20)
+    import recipe.grpo.qwen3_5.workflow_rubric.facts as F
+
+    real = F.executed_paths
+    F.executed_paths = lambda c: c.cache["executed_paths"]
+    try:
+        # "run the tests of <code file>": running tests is the work
+        assert K.named_work_steps(ctx(runs=[12]), "2.3 Run all tests for dask/utils.py", {"dask/utils.py"}, w) == [12]
+        # ... but a task that names a test file is held to that file
+        assert K.named_work_steps(ctx(runs=[12]), "2.3 Run tests/test_nanops.py", {"tests/test_nanops.py"}, w) == []
+        assert K.named_work_steps(ctx(runs=[12], executed=[(12, "tests/test_nanops.py")]), "2.3 Run tests/test_nanops.py", {"tests/test_nanops.py"}, w) == [12]
+        # a directory spelled wrong: the file by its last part, when the name as written is no file of the run
+        assert K.named_work_steps(ctx(executed=[(15, "dask/tests/test_multiprocessing.py")]), "1.3 Run dask/test_multiprocessing.py", {"dask/test_multiprocessing.py"}, w) == [15]
+        both = ctx(executed=[(15, "b/utils.py")], repo_writes=[(25, "a/utils.py")])  # a/utils.py is a file of the run: no other utils.py stands in for it
+        assert K.named_work_steps(both, "1.3 Update a/utils.py", {"a/utils.py"}, w) == [25]
+        # a code-changing task is not done by a test run
+        assert K.named_work_steps(ctx(runs=[12]), "1.2 Fix the parser in dask/utils.py", {"dask/utils.py"}, w) == []
+    finally:
+        F.executed_paths = real
+
+
+def test_report_sections_are_found_without_the_template_number():
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as K
+
+    report = "# Verification Report\n\n**Status:** Passed\n\n## Tasks Verification\n\n**Status:** All Complete\n\n### Incomplete\n- 2.1 left open\n\n## 3) Test Suite Results\n\n**Status:** All Passing\n\n## Notes\n- **Status:** n/a\n"
+    assert K._status(report, "1. Tasks Verification") == "All Complete" and K._status(report, "2. Test Suite Results") == "All Passing"
+    assert K._report_section(report, "Incomplete or Issues", short="Incomplete").strip() == "- 2.1 left open"
+    assert K._report_section(report, "Incomplete or Issues") is None and K._report_section(report, "2. Roadmap") is None
+    numbered = "## 1. Tasks Verification\n**Status:** Issues Found\n## 2. Test Suite Results\n**Status:** Some Failures\n"
+    assert (K._status(numbered, "1. Tasks Verification"), K._status(numbered, "2. Test Suite Results")) == ("Issues Found", "Some Failures")

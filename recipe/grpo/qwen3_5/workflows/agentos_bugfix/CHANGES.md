@@ -1061,6 +1061,30 @@ step 27 재채점(256개 실행, 테스트 실행 1228번): 유효한 테스트 
 
 없음.
 
+## 남은 판정 오류 세 가지 수정 (2026-11-24)
+
+### 변경 내역
+
+정확도 항목 대조에서 찾은 나머지 판정 오류 가운데 세 가지를 고침(`agentos_v2/reward/checks.py`; agentos_v2도 같은 함수를 씀).
+
+| 결정 | 바꾼 것 |
+|---|---|
+| 작업 줄의 파일 이름 | `ticked_after_work`는 작업 줄이 파일을 이름으로 적으면 그 파일을 쓰거나 실행한 단계만 작업으로 봤음. 두 경우를 더 받음(`named_work_steps`). 테스트를 돌리는 작업("Run all tests for utils.py")이 코드 파일만 적었으면 테스트 실행이 작업임. 적은 경로가 실행 어디에도 없는 파일이면(디렉터리를 틀리게 적은 `dask/test_multiprocessing.py`) 파일 이름만으로 맞춤. 테스트 파일을 적은 작업은 그 파일을 돌려야 하고, 코드를 고치는 작업은 테스트 실행으로 대신할 수 없음. |
+| 자리 표시 경로 | 문서는 spec 폴더를 `/tmp/agent-os/specs/[this-spec]/verify/`로 적음(create-tasks.md 129, implement-tasks.md 39). 작업 줄이 이 표기를 그대로 쓰면 그 폴더 아래 파일(`verify/test_fix.py`)을 적은 것으로 읽음(`named_paths`). |
+| 보고서 절 제목 | 절 제목에서 템플릿의 번호를 뺐거나 다르게 붙인 보고서(`## Test Suite Results`)도 그 절을 찾음. `Incomplete or Issues`는 `Incomplete`로 시작하는 제목도 받음(`_report_section`). |
+
+step 27 재채점에서 바뀐 판정: `tasks.ticked_after_work` 6건 통과로, `report.incomplete_listed` 1건, `report.tasks_status`·`suite_status`·`overall_status` 각 1건(같은 실행) 통과로. 내려간 판정은 없음.
+
+고치지 않은 것: 통과 결과 뒤에 docstring만 고친 변경을 코드 변경으로 세는 것(3건). 변경이 docstring뿐인지는 고치기 전과 후의 파일 전체가 있어야 가릴 수 있는데 실행 기록에는 대개 없음. `ticked_after_work`에서 작업 줄이 가져오는 쪽 파일을 적은 1건도 그대로임.
+
+### 문서 변경
+
+없음.
+
+### rubric 변경
+
+없음.
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`
