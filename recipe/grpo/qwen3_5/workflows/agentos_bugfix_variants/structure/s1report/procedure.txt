@@ -1,0 +1,11 @@
+
+For this task the steps above are followed by one more: a written verification
+report, taken from Agent OS. Its description is in /agent-os; the report goes
+to a dated folder under /tmp/agent-os/specs/.
+
+1. The first thing you do is open /agent-os/overview.md. The /agent-os
+   directory sits directly under /, not inside the repository.
+2. Work the task the way the steps above describe. When the change is made
+   and tested, write the report as overview.md describes it.
+3. During the task you get no answers and no reviews. Every turn includes a
+   tool call, and finish comes once the verification report has been written.

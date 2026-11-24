@@ -5,7 +5,8 @@
 # 모델은 다른 서버에 떠 있다고 보고 OpenAI 호환 endpoint 주소만 받는다. endpoint 하나에 shard 하나.
 #
 # usage: run_eval.sh <workflow> <run key> <served-model-name> <base-url[,base-url...]> [attempts=3] [task_indices]
-#   workflow         agentos_bugfix_v0base | _v1result | _v2place | _v3pre | _v4docs | _v5all | _v2fplace | agentos_bugfix | none
+#   workflow         agentos_bugfix_v0base | _v1result | _v2place | _v3pre | _v4docs | _v5all | _v2fplace (문장 변형)
+#                    agentos_bugfix_s1report | _s2after | _s3tasks | _s4prompt (구조 변형) | agentos_bugfix | none
 #   run key          결과 폴더 이름에 붙는 모델 표시 (예: base, step27)
 #   base-url         http://host:port/v1 형태. 쉼표로 여러 개 주면 그 수만큼 shard 로 나눠 동시에 돈다
 #   task_indices     주면 그 과제만 첫 endpoint 로 돈다 (smoke 용, 예: 0,1,2). 결과 폴더 이름에 -smoke 가 붙는다

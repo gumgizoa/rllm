@@ -22,6 +22,20 @@ Candidates (what they aim at, measured on the SWE-bench Verified runs of 2026-11
     D  keep the default system prompt's testing lines next to the pipeline text
     J  verify/ scripts hold test functions and are run with the test runner
 
+Structure variants (second round, 2026-11-25) change which documents are written and when, not single sentences.
+The sentence variants left the resolve rate of the untrained model where it was, so these place steps between
+no workflow and agentos_bugfix. All four keep openhands-sdk's default procedure section in the system prompt
+(``structure/default-procedure.txt``) and add a paragraph that points to ``/agent-os/overview.md``; their
+hand-written texts are in ``structure/<name>/``:
+
+    s1report  solve the usual way, then write the final verification report only (overview.md is the one document)
+    s2after   solve the usual way, then carry out the four commands as the written record of the change
+    s3tasks   create-tasks and implement-tasks only: one planning document (tasks.md) before the code
+    s4prompt  agentos_bugfix as it is, except that the system prompt keeps the default procedure section
+
+    none -> s1report -> s3tasks -> s4prompt -> agentos_bugfix adds one thing per step; s2after against s1report
+    shows what the three planning documents cost when they come after the change.
+
 ``--check`` exits 1 when ``variants/`` is not what this file would write.
 """
 
@@ -46,6 +60,15 @@ VARIANTS: dict[str, str] = {
     "agentos_bugfix_v2fplace": "XEKF",  # v2place plus F; not in the default run list
 }
 DEFAULT_RUN = ["agentos_bugfix_v0base", "agentos_bugfix_v1result", "agentos_bugfix_v2place", "agentos_bugfix_v3pre", "agentos_bugfix_v4docs", "agentos_bugfix_v5all"]
+
+# name -> (folder under structure/, command documents shipped)
+STRUCTURE: dict[str, tuple[str, list[str]]] = {
+    "agentos_bugfix_s1report": ("s1report", []),
+    "agentos_bugfix_s2after": ("s2after", ["shape", "write", "tasks", "impl"]),
+    "agentos_bugfix_s3tasks": ("s3tasks", ["tasks", "impl"]),
+    "agentos_bugfix_s4prompt": ("s4prompt", ["shape", "write", "tasks", "impl"]),
+}
+STRUCTURE_RUN = list(STRUCTURE)
 
 OVERVIEW = "docs/overview.md"
 SHAPE = "docs/commands/shape-spec/shape-spec.md"
@@ -270,17 +293,80 @@ def edits(f: frozenset[str]) -> list[tuple[str, str, str]]:
 def render(flags: str) -> dict[str, str]:
     texts = {name: (SRC / name).read_text() for name in FILES}
     for file, old, new in edits(frozenset(flags)):
-        text = texts[file]
-        if old.startswith("__BLOCK__"):
-            start, end = old[len("__BLOCK__") :].split("__TO__")
-            if text.count(start) != 1 or text.count(end) != 1:
-                raise SystemExit(f"{file}: block markers not found exactly once")
-            i, j = text.index(start), text.index(end) + len(end)
-            texts[file] = text[:i] + new + text[j:]
-            continue
-        if text.count(old) != 1:
-            raise SystemExit(f"{file}: expected exactly one occurrence, found {text.count(old)}: {old[:90]!r}")
-        texts[file] = text.replace(old, new)
+        _replace(texts, file, old, new)
+    return texts
+
+
+def _replace(texts: dict[str, str], file: str, old: str, new: str) -> None:
+    text = texts[file]
+    if old.startswith("__BLOCK__"):
+        start, end = old[len("__BLOCK__") :].split("__TO__")
+        if text.count(start) != 1 or text.count(end) != 1:
+            raise SystemExit(f"{file}: block markers not found exactly once")
+        i, j = text.index(start), text.index(end) + len(end)
+        texts[file] = text[:i] + new + text[j:]
+        return
+    if text.count(old) != 1:
+        raise SystemExit(f"{file}: expected exactly one occurrence, found {text.count(old)}: {old[:90]!r}")
+    texts[file] = text.replace(old, new)
+
+
+# s3tasks: create-tasks and implement-tasks without spec.md / requirements.md; create-tasks makes the spec folder.
+S3_EDITS: list[tuple[str, str, str]] = [
+    (TASKS, "create a tasks breakdown from a given spec and requirements for a new feature", "create a tasks breakdown from the task description for a new feature"),
+    (
+        TASKS,
+        "__BLOCK__# PHASE 1: Get Spec Requirements__TO__(`/agent-os/commands/write-spec/write-spec.md`) first.\n",
+        "# PHASE 1: Initialize the Spec Folder and Study the Change\n\n"
+        "The FIRST STEP is to create the spec folder. Determine a kebab-case spec name from the task description, then create the folder:\n\n"
+        "```bash\n"
+        "# Get today's date in YYYY-MM-DD format\n"
+        "TODAY=$(date +%Y-%m-%d)\n\n"
+        "# Determine kebab-case spec name from the task description\n"
+        'SPEC_NAME="[kebab-case-name]"\n\n'
+        "# Store this path for output\n"
+        'SPEC_PATH="/tmp/agent-os/specs/${TODAY}-${SPEC_NAME}"\n\n'
+        "# Create the spec folder and the folder for its verification report\n"
+        "mkdir -p $SPEC_PATH/verifications\n\n"
+        'echo "Created spec folder: $SPEC_PATH"\n'
+        "```\n\n"
+        "Then study the change: read the task description in the task message again and explore the code it is about in the repository, until you know what has to change and where. In this run there is no spec.md and no requirements.md; the task description and the repository take their place.\n",
+    ),
+    (TASKS, "Now that you have the spec.md AND/OR requirements.md, please break those down into", "Now that you know what has to change, please break that down into"),
+    (
+        TASKS,
+        "1. **Analyze spec and requirements**: Read and analyze the spec.md and/or requirements.md to inform the tasks list you will create.",
+        "1. **Analyze the task description and the code**: Read and analyze the task description and the code it is about to inform the tasks list you will create.",
+    ),
+    (
+        TASKS,
+        "### Step 1: Analyze Spec & Requirements\n\nRead each of these files (whichever are available) and analyze them to understand the requirements for this feature implementation:\n"
+        "- `/tmp/agent-os/specs/[this-spec]/spec.md`\n- `/tmp/agent-os/specs/[this-spec]/planning/requirements.md`\n\n",
+        "### Step 1: Analyze the Task Description & the Code\n\nGo over the task description and the code you studied in PHASE 1 to understand the requirements for this feature implementation.\n\n",
+    ),
+    (IMPL, "Now that we have a spec and tasks list ready for implementation", "Now that we have a tasks list ready for implementation"),
+    (IMPL, "1. Analyze the provided spec.md and requirements.md", "1. Analyze the task description and the current task group in tasks.md"),
+]
+_COMMANDS = {"shape": SHAPE, "write": WRITE, "tasks": TASKS, "impl": IMPL}
+_SECTION = ("<PROBLEM_SOLVING_WORKFLOW>\n", "</PROBLEM_SOLVING_WORKFLOW>")
+
+
+def render_structure(name: str) -> dict[str, str]:
+    """A structure variant's files: agentos_bugfix's, with ``structure/<folder>/`` texts in place of its own."""
+    folder, commands = STRUCTURE[name]
+    own = HERE / "structure" / folder
+    texts = {_COMMANDS[c]: (SRC / _COMMANDS[c]).read_text() for c in commands}
+    if folder == "s3tasks":
+        for file, old, new in S3_EDITS:
+            _replace(texts, file, old, new)
+    for rel, src in ((OVERVIEW, own / "overview.md"), ("instruction.md", own / "instruction.md")):
+        texts[rel] = (src if src.is_file() else SRC / rel).read_text()
+    system = (SRC / SYSTEM).read_text()
+    a, b = _SECTION
+    if system.count(a) != 1 or system.count(b) != 1:
+        raise SystemExit(f"{SYSTEM}: procedure section markers not found exactly once")
+    i, j = system.index(a) + len(a), system.index(b)
+    texts[SYSTEM] = system[:i] + (HERE / "structure" / "default-procedure.txt").read_text() + (own / "procedure.txt").read_text() + system[j:]
     return texts
 
 
@@ -290,11 +376,21 @@ def main() -> int:
     ap.add_argument("--list", action="store_true", help="print each variant with its candidates and the number of edits")
     args = ap.parse_args()
     stale = []
-    for name, flags in VARIANTS.items():
-        texts = render(flags)
+    for name in [*VARIANTS, *STRUCTURE]:
+        flags = VARIANTS.get(name)
+        texts = render(flags) if flags is not None else render_structure(name)
         if args.list:
-            print(f"{name:28s} {flags:14s} {len(edits(frozenset(flags)))} edits")
+            if flags is not None:
+                print(f"{name:28s} {flags:14s} {len(edits(frozenset(flags)))} edits")
+            else:
+                print(f"{name:28s} {'structure':14s} {len(texts)} files, commands: {', '.join(STRUCTURE[name][1]) or 'none'}")
             continue
+        have = {str(q.relative_to(OUT / name)) for q in (OUT / name).rglob("*") if q.is_file()} if (OUT / name).is_dir() else set()
+        for extra in sorted(have - set(texts) - {"LICENSE-agent-os"}):
+            if args.check:
+                stale.append(f"variants/{name}/{extra} (not generated)")
+            else:
+                (OUT / name / extra).unlink()
         for rel, text in texts.items():
             path = OUT / name / rel
             if args.check:

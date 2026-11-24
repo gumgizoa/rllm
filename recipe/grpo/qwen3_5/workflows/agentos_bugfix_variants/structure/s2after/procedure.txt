@@ -1,0 +1,18 @@
+
+For this task the steps above are followed by Agent OS's written record of
+the change. Once the change is made and tested, shape-spec writes down the
+requirements, write-spec the specification and create-tasks the task list of
+that change, and implement-tasks checks the work against the list and
+verifies the result. The documents are in /agent-os; what the commands write
+goes to a dated spec folder under /tmp/agent-os/specs/.
+
+1. The first thing you do is open /agent-os/overview.md. The /agent-os
+   directory sits directly under /, not inside the repository.
+2. Work the task the way the steps above describe. When the change is made
+   and tested, carry out the four command documents under /agent-os/commands/
+   one after another, opening each one when you reach it and doing its PHASEs
+   in order.
+3. During the task you get no answers and no reviews. Questions a document
+   raises are answered by you and written down as assumptions, every turn
+   includes a tool call, and finish comes once the final verification report
+   has been written.

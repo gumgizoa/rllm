@@ -13,6 +13,7 @@
 | 파일 | 내용 |
 |---|---|
 | `build.py` | `agentos_bugfix` 문서에서 정해진 문장을 찾아 바꿔 `variants/<이름>/` 에 씀 |
+| `structure/` | 구조 변형의 손으로 쓴 원문 (overview, instruction, system prompt 문단)과 기본 system prompt의 절차 구역 |
 | `variants/` | 생성물 (문서, instruction, system prompt). 직접 고치지 않음 |
 | `__init__.py` | 변형마다 `WorkflowSpec` 을 만들어 `SPECS` 로 내보냄. `workflows/__init__.py` 가 등록함 |
 | `run_eval.sh` | 워크플로 하나를 평가함 |
@@ -56,6 +57,39 @@
 | `agentos_bugfix_v5all` | X A L H E K B M G C I D J | 전부 합친 것 | 28 |
 | `agentos_bugfix_v2fplace` | X E K F | 예비 (기본 실행 목록에 없음) | 6 |
 
+## 구조 변형 (2차, 2026-11-25)
+
+- 만든 이유: 1차 중간 결과(499 과제 × 1회)에서 문장 변형이 학습 전 모델의 해결률을 움직이지 못함
+  - 학습 전 모델: 대조 51.5%, v0base 50.9%, v5all 50.7%, v1result 52.1%, v2place 49.3%, 워크플로 없음 59.3%
+  - 1회 실행끼리의 차이는 95% 구간 반폭이 약 4%p임 (기존 3회 실행 자료에서 시도 하나씩 뽑아 잰 값). 위 변형은 모두 대조와 구분되지 않음
+  - 문장 변형은 전부 "코드 수정 전에 문서 넷"이라는 구조를 유지함. 손실이 그 구조에서 오는지는 문장 변형으로 알 수 없음
+- 구조 변형은 어떤 문서를 언제 쓰는지를 바꿈
+- 네 변형 모두 system prompt의 기본 절차 구역(탐색, 분석, 테스트, 구현, 검증 다섯 항목)을 남기고, 그 뒤에 `/agent-os/overview.md` 를 가리키는 문단을 붙임
+  - 대조(`agentos_bugfix`)는 그 구역을 Agent OS 안내로 통째로 바꿈
+- 공통 수정 X는 넣지 않음. 1차 smoke에서 모델이 따르지 않았고, `s4prompt` 가 대조와 한 가지만 다르게 하기 위함
+
+| 워크플로 이름 | 코드 수정 전에 쓰는 문서 | 코드 수정 뒤에 쓰는 문서 | system prompt 절차 구역 |
+|---|---|---|---|
+| (워크플로 없음) | 없음 | 없음 | 기본 |
+| `agentos_bugfix_s1report` | 없음 | 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix_s2after` | 없음 | requirements, spec, tasks, 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix_s3tasks` | tasks | 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix_s4prompt` | requirements, spec, tasks | 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix` (대조) | requirements, spec, tasks | 보고서 | Agent OS 안내로 교체 |
+
+- 읽는 법: 워크플로 없음 → `s1report` → `s3tasks` → `s4prompt` → 대조 순서로 한 가지씩 더해짐
+  - 워크플로 없음 → `s1report`: 워크플로 문서를 먼저 열고 마지막에 보고서를 쓰는 것의 비용
+  - `s1report` → `s3tasks`: 코드 전에 작업 목록 하나를 쓰고 implement-tasks 규칙을 따르는 것의 비용
+  - `s3tasks` → `s4prompt`: 계획 문서 둘(requirements, spec)을 더 쓰는 것의 비용
+  - `s4prompt` → 대조: system prompt의 기본 절차 구역을 지우는 것의 비용
+  - `s1report` → `s2after`: 같은 문서 넷을 코드 수정 뒤에 쓸 때의 비용. `s2after` 가 `s1report` 에 가깝고 `s4prompt` 가 낮으면 문서 양이 아니라 "코드 전에 계획"이 원인임
+- 변형별 차이
+  - `s1report`: 문서는 overview.md 하나뿐임. 보고서 양식은 그 안에 있고 작업 목록 절은 뺌
+  - `s2after`: 명령 문서 넷은 대조와 같음. overview.md가 "먼저 평소대로 풀고, 수정과 테스트가 끝난 뒤 네 명령을 기록으로 수행"이라고 정함
+  - `s3tasks`: create-tasks가 spec 폴더를 만들고 과제 글과 저장소에서 바로 작업 목록을 만듦 (create-tasks 5곳, implement-tasks 2곳 수정)
+  - `s4prompt`: 대조와 다른 파일은 system prompt 하나임
+- 한계: 1회 실행의 구간 반폭이 4%p라 한 단계의 차이가 그보다 작으면 가릴 수 없음. 7.8%p가 한두 단계에 몰려 있을 때만 위치가 보임
+
 ## 평가를 돌릴 장비에 필요한 것
 
 - 이 브랜치의 checkout과 rllm이 설치된 파이썬 환경
@@ -90,6 +124,13 @@ bash $D/run_all.sh base <served-model-name> <endpoints> 3 \
   agentos_bugfix_v1result agentos_bugfix_v2place agentos_bugfix_v3pre agentos_bugfix_v4docs
 ```
 
+```bash
+# 5. 구조 변형 (2차)
+bash $D/run_all.sh base <served-model-name> <endpoints> 1 \
+  agentos_bugfix_s1report agentos_bugfix_s4prompt agentos_bugfix_s3tasks agentos_bugfix_s2after
+```
+
+- 구조 변형의 순서는 정보가 큰 순서임: `s1report` 와 `s4prompt` 가 양 끝을 먼저 가름
 - endpoint를 쉼표로 여러 개 주면 그 수만큼 shard로 나눠 동시에 돎 (과제 i → shard i % endpoint 수)
 - 설정은 기존 평가와 같음: step_limit 250, thinking on, instruction suffix, FinishTool만 기본 도구, strict_tool_calls, git history 숨김, 에이전트 네트워크 차단, sampling은 `recipe/eval/config/qwen3_5.yaml`
 - 결과 위치: `$RLLM_HOME/eval_results/wfvar/<워크플로>__<run key>_x<attempts>/`
