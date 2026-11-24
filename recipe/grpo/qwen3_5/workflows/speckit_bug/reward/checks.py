@@ -126,15 +126,8 @@ def _window(item: Item, ctx: EvalContext):
 def _in(ctx: EvalContext, m: T.Mark, w) -> bool:
     """Mark ``m`` lies in the step window ``w``, its bounds read by R2: at the window's first step only after the
     source changes made there, at its (open) end step only before the source changes made there (``sed -i ... &&
-    pytest`` runs after the change, ``pytest ...; sed -i ...`` before it)."""
-    if w is None:
-        return False
-    if refs.in_window(m.step, w):
-        return m.step != w[0] or T.after_all(m, [c for c in T.change_marks(ctx) if c.step == w[0]])
-    if w[1] is not None and m.step == w[1]:
-        at = [c for c in T.change_marks(ctx) if c.step == w[1]]
-        return bool(at) and T.before_all(m, at)
-    return False
+    pytest`` runs after the change, ``pytest ...; sed -i ...`` before it): the shared ``testread.in_step_window``."""
+    return T.in_step_window(ctx, m, w)
 
 
 def _artifact(item: Item) -> str:

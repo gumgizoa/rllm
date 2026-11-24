@@ -330,6 +330,16 @@ def _after_step(ctx: EvalContext, r, c: int) -> bool:
     return r.step > c or (r.step == c and _late_run(ctx, r))
 
 
+def _before_write(ctx: EvalContext, r, e) -> bool:
+    """The runner run ``r`` comes before the repository write ``e``: an earlier step, or the same call before the write
+    (``pytest ...; sed -i ...``, R2); a run or write that cannot be placed in a call of the trace is not before it."""
+    if r.step != e.step:
+        return r.step < e.step
+    if not getattr(r, "command", None) or getattr(e, "action_index", None) is None or T._command(ctx, r.step, r.action_index) is None:
+        return False
+    return T.before(T.run_mark(r), T.write_mark(ctx, e))
+
+
 def read_steps(ctx: EvalContext, paths: list[str], w) -> dict[str, list[int]]:
     """Absolute path -> steps in the window that read it: an editor view of it, or a reading verb of a shell segment
     naming it (cwd, globs and loops resolved against the paths)."""
@@ -1412,7 +1422,8 @@ def _action_of(ctx: EvalContext, step: int, index: int | None):
 
 def added_test_functions(ctx: EvalContext, e) -> set[str]:
     """The test functions / classes a repository write ``e`` adds: named in the text its call put into the file and not in
-    the text it replaced (an editor replace or insert, a created file, a shell command such as ``cat >> f <<EOF``). A
+    the text it replaced (an editor replace or insert, a created file, a shell command such as ``cat >> f <<EOF`` or
+    ``printf '...\\ndef test_x():...' >> f``, its escapes decoded). A
     write that changed or removed an existing line (``removed_existing``) adds none: the documents never change an
     existing test line."""
     if getattr(e, "removed_existing", None):
@@ -1423,7 +1434,10 @@ def added_test_functions(ctx: EvalContext, e) -> set[str]:
     if a.kind in ("replace", "insert", "create", "write"):
         return test_names(a.text) - test_names(a.old)
     if a.kind == "shell":
-        return test_names(a.command)
+        # the command's text, and the same with printf / ``echo -e`` escapes decoded: ``printf '\ndef test_x():...' >> f``
+        # puts its newlines in as ``\n``, so the definition starts a line only once they are read as printf reads them
+        cmd = a.command or ""
+        return test_names(cmd) | test_names(shell._c_escapes(cmd)[0])
     return set()
 
 
@@ -1443,12 +1457,13 @@ def module_tests(ctx: EvalContext, w=None) -> dict[str, tuple[int, set[str]]]:
     return out
 
 
-def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) -> dict[str, list[tuple[int, str]]]:
-    """Per module of :func:`module_tests`: (step, pass | fail) of the valid runs with the change in place that select it
-    (its path, a directory or label above it, or the whole suite) after the first added function. A run fails it when it
-    has failures and a failing test id names one of the added functions (or, the ids unknown, when it has failures)."""
+def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) -> dict[str, list[tuple[int, str, T.Mark]]]:
+    """Per module of :func:`module_tests`: (step, pass | fail, the run's mark) of the valid runs with the change in place
+    that select it (its path, a directory or label above it, or the whole suite) after the first added function. A run
+    fails it when it has failures and a failing test id names one of the added functions (or, the ids unknown, when it
+    has failures)."""
     wd = ctx.collected.workdir
-    out: dict[str, list[tuple[int, str]]] = {}
+    out: dict[str, list[tuple[int, str, T.Mark]]] = {}
     for r in change_runs(ctx):
         if not refs.in_window(r.step, w):
             continue
@@ -1460,7 +1475,7 @@ def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) 
             if r.step <= first or not (whole or any(R.selects(t, m) for t in files)):
                 continue
             fails = bad and (not ids or any(n in i for i in ids for n in names))
-            out.setdefault(m, []).append((int(r.step), "fail" if fails else "pass"))
+            out.setdefault(m, []).append((int(r.step), "fail" if fails else "pass", T.run_mark(r)))
     return out
 
 
@@ -1571,7 +1586,8 @@ def checks(item: Item, ctx: EvalContext) -> Result:
     # the runs of each script in the window, the change in place (R3), with their place in their call (R2)
     marked = {s: [x for x in r if refs.in_window(x.step, w)] for s, r in T.script_runs(ctx, set(scripts)).items()}
     runs = {s: [(x.step, x.outcome) for x in r] for s, r in marked.items()}
-    runs.update(_module_results(ctx, mods, w))
+    mod_runs = _module_results(ctx, mods, w)
+    runs.update({m: [(st, o) for st, o, _ in v] for m, v in mod_runs.items()})
     pool = [s for s in scripts if runs.get(s)] + [m for m in sorted(mods) if runs.get(m)]
     unrun: list[str] = []
     if p.get("unrun"):  # A-9 row 19: a test written in the window and never run is a test that did not pass
@@ -1592,8 +1608,9 @@ def checks(item: Item, ctx: EvalContext) -> Result:
         if s in marked:  # a check script: its last run after every code change (R2) and after its own last write (R4)
             last = marked[s][-1]
             ok = last.outcome == "pass" and T.after_all(last.mark, marks) and T.current(last.mark, T.own_writes(ctx, s))
-        else:  # a module the run added tests to: its last run after the change and after the module's last write (R4)
-            ok = rs[-1][1] == "pass" and rs[-1][0] > last_change and all(rs[-1][0] > m.step for m in T.own_writes(ctx, s))
+        else:  # a module the run added tests to: its last run after the change (R2) and after the module's last write (R4)
+            at = mod_runs[s][-1][2]
+            ok = rs[-1][1] == "pass" and T.after_all(at, marks) and T.current(at, T.own_writes(ctx, s))
         ok = ok or (rs[-1][1] == "fail" and any(m > st for st, o in rs if o == "fail" for m in acks))
         good += ok
         if not ok:
@@ -1657,11 +1674,12 @@ def _phase3_edits(ctx: EvalContext) -> list:
 
 
 def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
-    """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
+    """Valid test runs of PHASE 3; ``after_fix``: only those after its last source write (a fix round's re-run) -- a
+    later step, or the same call after the write (``sed -i ... && pytest``, R2), as :func:`_after_step` reads PHASE 2."""
     w = phase3_window(ctx)
     runs = [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
     late = _phase3_edits(ctx) if after_fix else []
-    return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
+    return [r for r in runs if _after_step(ctx, r, max(e.step for e in late))] if late else runs
 
 
 def fallback_window(ctx: EvalContext):
@@ -1786,8 +1804,9 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         if not late:
             return Result.ok(item, "no repository write after PHASE 3 began")
         runs = _phase3_runs(ctx)
-        failed_before = any(r.step < late[0].step and r.failed + r.errors > 0 for r in runs)
-        rerun_after = any(r.step > late[-1].step for r in runs)
+        # R2: in one call a run before the first PHASE 3 write is before it, one after the last write is after it
+        failed_before = any(_before_write(ctx, r, late[0]) and r.failed + r.errors > 0 for r in runs)
+        rerun_after = any(_after_step(ctx, r, late[-1].step) for r in runs)
         p = item.check.params or {}
         w3 = phase3_window(ctx)
         if p.get("dir") and w3:  # a test the agent wrote is a check script: its failing run sends back as well

@@ -52,6 +52,25 @@ def change_writes(ctx: EvalContext) -> list:
     return ctx.cache[key]
 
 
+def git_put_back(ctx: EvalContext, e) -> bool:
+    """The repository write ``e`` is git putting content back, not a write the agent authored (R1): a ``git checkout`` /
+    ``git restore`` of a path (op ``restore``), or a write of no known content (op ``unknown``) made by a call that runs
+    git (``git stash`` / ``pop`` / ``apply``, ``git checkout .``, ``reset --hard``). An ``unknown`` write of any other
+    call (``xargs sed -i``, a patch that cannot be read) is the agent's."""
+    if e.op == "restore":
+        return True
+    if e.op != "unknown":
+        return False
+    cmd = _command(ctx, int(e.step), e.action_index)
+    if not cmd:
+        return False
+    try:
+        segs = shell.flat(shell.split(cmd, ctx.collected.workdir)[0])
+    except Exception:  # noqa: BLE001 -- agent text
+        return False
+    return any(s.verb == "git" for s in segs)
+
+
 def change_steps(ctx: EvalContext) -> list[int]:
     """Steps of the source changes (R1): ``facts.source_change_steps``."""
     return F.source_change_steps(ctx)
@@ -144,6 +163,20 @@ def after_change(ctx: EvalContext, m: Mark, w=None, upto: int | None = None) -> 
 def before_change(ctx: EvalContext, m: Mark, w=None) -> bool:
     """``m`` comes before every source change (of the window ``w``)."""
     return before_all(m, change_marks(ctx, w))
+
+
+def in_step_window(ctx: EvalContext, m: Mark, w) -> bool:
+    """Mark ``m`` lies in the step window ``w`` (``refs.window``: [a, b)), its bounds read by R2: at the window's first
+    step only after the source changes made there, at its (open) end step only before the source changes made there
+    (``sed -i ... && pytest`` runs after the change, ``pytest ...; sed -i ...`` before it)."""
+    if w is None:
+        return False
+    if refs.in_window(m.step, w):
+        return m.step != w[0] or after_all(m, [c for c in change_marks(ctx) if c.step == w[0]])
+    if w[1] is not None and m.step == w[1]:
+        at = [c for c in change_marks(ctx) if c.step == w[1]]
+        return bool(at) and before_all(m, at)
+    return False
 
 
 # --------------------------------------------------------------------------------------------
@@ -472,6 +505,8 @@ __all__ = [
     "current_runs",
     "edited_files",
     "failed_names",
+    "git_put_back",
+    "in_step_window",
     "last_result",
     "mentions_test_file",
     "name_of",

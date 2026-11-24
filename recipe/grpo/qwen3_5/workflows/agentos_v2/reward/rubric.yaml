@@ -7033,6 +7033,8 @@ items:
     params:
       rule: pass_last
       dir: '{artifact}/{SPEC}/checks'
+      module_tests: true
+      unrun: true
   requirement: must
   modality_evidence: imperative (IT:39 'Running ONLY the tests you've written ... and ensuring those tests pass')
   none_allowed: '-'
@@ -7053,7 +7055,10 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: each check script run in implement-tasks last ran passing, after the last code change
+  note: 'each check script run in implement-tasks, and each existing repository test module the run added test functions to
+    (module_tests; create-tasks.md:215, core-workflow.md:84-85), last ran passing, after the last code change and after its
+    own last write; a test written and never run afterwards (a check script with a verdict, or a module whose added functions
+    no later run selected: unrun) is one that did not pass (11-24 review R1-R4, as agentos_bugfix)'
 - id: agentos_v2.implement_tasks.run.agentos_v2_verify.code_frozen
   scope: specific
   class: evidence

@@ -9358,22 +9358,8 @@ items:
     ref: run
     state: final
   check:
-    kind: speckit.holds
-    params:
-      predicate:
-        counts:
-          fact: valid_run
-          kind: test
-          window:
-          - - stage_start:implement
-            - last:
-                fact: repo_edit
-                final: true
-                source: true
-                window: stage:implement
-          - stage_end:implement
-          which: last
-          failed_or_errors: 0
+    kind: speckit_sdd.tests_pass
+    params: {}
   requirement: should
   modality_evidence: '''Validate that tests pass'' (IM:79); a pre-existing failure the change does not touch can remain: should'
   none_allowed: '-'
@@ -9393,7 +9379,9 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: ''
+  note: the last valid test run in the implement window after its last code change (a source write; in one call, after the
+    write; a run with the change stashed is none) has no failure but those the baseline already had -- a valid run before
+    every source change that ran the test and failed it by name (04-implement.md:62; 11-24 review R1-R3, R5-R6)
 - id: speckit_sdd.implement.unimplemented.unimplemented.8
   scope: specific
   class: content

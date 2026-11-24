@@ -1,7 +1,7 @@
 {
  "config": {
   "path": "generator.yaml",
-  "sha256": "4bdeeee1c9acc3621bf0b1408f0f4e184aa03cb140385bb80e668f9e7584e1ae"
+  "sha256": "9f1dbd986d34bdcfc13bf24fb6abc9f45984b26b10d8c90ef2c2cfcd677777f6"
  },
  "generator": "workflow_rubric.generator 0.1",
  "kinds": "registry",
@@ -10,7 +10,7 @@
   "cli": "2.1.283",
   "model": "claude-opus-5-5"
  },
- "rubric_sha256": "7c52d285647bed4877222b17f6aeb1647e4f65a77d00fc279c9fb9a0865d9bd1",
+ "rubric_sha256": "b6e398d5b39648d11de05279e559c5ed41c6a30f8a59b667ffb7e826bbbb1cf9",
  "sources": {
   "docs/core-workflow.md": "72f8bc0b024b600bfe58a5288dc604d7c558e171b0ae74d62b7cd83392757254",
   "docs/stages/01-specify.md": "297d880bd04b1fa00e1ea6426798d89caadb00c6ecd57a06ac66e93820b13d58",

@@ -170,6 +170,10 @@ class Timeline:
     # [a, b): where the final verification's test runs are looked for, as the compliance item ``verify.suite_run`` reads
     # it (``checks.comparison_window`` with its fallback, after the last PHASE 3 repository write). None: nowhere
     verify: tuple[int, int] | None = None
+    # the step of the last PHASE 3 fix write when it opens ``verify``: a run at that step counts only when it comes after
+    # the write in its call (``sed -i ... && pytest``, R2: ``existing_late`` / ``own_late`` / ``script_late``). None: the
+    # window's first step counts whole
+    verify_fix: int | None = None
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
     report: int | None = None
 
@@ -311,7 +315,11 @@ def timeline(ctx: Any) -> Timeline:
     w = C.comparison_window(ctx, fallback=True)
     if w is not None:
         late = C._phase3_edits(ctx) if C.phase3_window(ctx) is not None else []  # a fix round: only the runs after it
-        tl.verify = (max([int(w[0]), *(int(e.step) + 1 for e in late)]), int(w[1]))
+        fix = max((int(e.step) for e in late), default=None)
+        if fix is not None and fix >= int(w[0]):  # from the last fix write on; at its step, the runs after it in the call (R2)
+            tl.verify, tl.verify_fix = (fix, int(w[1])), fix
+        else:
+            tl.verify = (int(w[0]), int(w[1]))
     tl.group_ends = _group_ends(ctx)
     tl.group_marked = C.group_end_marks(ctx)
     return tl
@@ -588,7 +596,12 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
     elif tl.related is False:
         out[P3_RUN] = (None, True)  # R7 cannot be read without the related-tests listing: unavailable
     else:  # the stretch ``verify.suite_run`` reads: its first step included, the fallback when PHASE 3 cannot be placed
-        put(P3_RUN, any(vw[0] <= x < vw[1] for x in tl.existing_runs) and bool(_own_current(tl, [x for x in tl.own_runs if vw[0] <= x < vw[1]], vw[1])))
+
+        def in_vw(x: int, late: set[int]) -> bool:  # at the step of the last fix write: after it in the call (R2)
+            return vw[0] <= x < vw[1] and (x != tl.verify_fix or x in late)
+
+        own_late = tl.own_late | tl.script_late
+        put(P3_RUN, any(in_vw(x, tl.existing_late) for x in tl.existing_runs) and bool(_own_current(tl, [x for x in tl.own_runs if in_vw(x, own_late)], vw[1])))
     if tl.p3 is None or tl.report is None:
         for name in (P3_CAUSE, P3_EDITED, P3_LAST):
             outside(name, tested)

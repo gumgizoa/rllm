@@ -1,7 +1,7 @@
 {
  "config": {
   "path": "generator.yaml",
-  "sha256": "c0d0cbae2169abbc0b93053b4f58a1f8bb440d02295930169e7211ae253b4702"
+  "sha256": "544172029ac1304cd7ad28ac57d4a38c9d165a86bd78a5d9bccef925feea16a0"
  },
  "generator": "workflow_rubric.generator 0.1",
  "kinds": "registry",
@@ -14,7 +14,7 @@
   "date": "2026-11-13",
   "what": "test_file_write->test_file_modify on the prohibited_action item; created_files.tests log_only; sources re-hashed after v5 test-rule docs rebuild (2026-11-07); source quotes, line numbers and document hashes brought up to the documents after the add-only test rule, core-workflow.md:56 and the create-tasks.md:215 heading, no check changed (2026-11-13)"
  },
- "rubric_sha256": "9ed5fa1df7b27dc3315f32c509795168efb9d20d30508c5783c20487111b2a50",
+ "rubric_sha256": "464428aa4c29862aba8263263a0d64ea2ef0513beb203ca924bd348c6e996bf0",
  "sources": {
   "docs/commands/create-tasks/create-tasks.md": "156a5fadec4ebce371b1aa182ebabbeac2042b1dfbacecde3c4c3a277a9428c8",
   "docs/commands/implement-tasks/implement-tasks.md": "de6c13ec1324c39b4ae558dd7a4cebdc45ea77f344cca3e6172b3a14f52ed539",

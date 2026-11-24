@@ -37,6 +37,11 @@ vendored as ``openspec_kinds.py`` (that port is not on this branch) and used as 
   no such run. A run that changed no code stands outside ``run_after_change``; without the related-tests listing
   (offline) it is unavailable. The shared readings (``testread``): a run of the change's own call after the write
   counts (R2), a run with the change put away does not (R3).
+* ``openspec_ff.checks`` -- ``{rule: run_after_change}``: every check script the run wrote under the change's
+  checks/ (and did not delete) ran after the last code change and after its own last write (03-verify.md:145 "After
+  your last code change, run ... every check script under ``/openspec/changes/issue/checks/``"; R1-R4 of the 11-24
+  review: ``testread.script_runs`` / ``current_runs``) (ratio). A run whose outcome cannot be read still ran; whether
+  it passed is the penalty items' question. Not applicable without a code change or without a check script.
 * ``openspec_ff.tasks`` -- ``{rule: baseline_recorded}``: tasks.md has a ``## Baseline`` section that names a command
   in a code span; and the task list's history across its two locations (active, archived):
   ``{rule: written}`` -- a content write of it in the window; ``{rule: rerun_after_tick}`` -- each write that
@@ -378,6 +383,33 @@ def evidence(item: Item, ctx: EvalContext) -> Result:
     return Result.no(item, f"unknown rule {rule!r}")
 
 
+@register("openspec_ff.checks", params={"rule": True}, availability=("trace",), common=False, choices={"rule": ("run_after_change",)})
+def check_scripts_run(item: Item, ctx: EvalContext) -> Result:
+    """rule ``run_after_change``: every check script written under the change's checks/ ran after the last code change and after its own last write (ratio)."""
+    rule = str((item.check.params or {}).get("rule"))
+    if rule != "run_after_change":
+        return Result.no(item, f"unknown rule {rule!r}")
+    last = F.last_change_write(ctx)
+    if last is None:
+        return Result.not_applicable(item, "the run changed no code")
+    if last is UNKNOWN:
+        return Result.no(item, "the code change is not in the trace: no run can be placed after it")
+    # a script the run deleted itself is no check script any more (the archive's move keeps it)
+    scripts = sorted(p for p in check_script_paths(ctx) if not ((ev := [e for e in ctx.facts.writes.get(p, []) if e.ok is not False]) and ev[-1].op == "delete"))
+    if not scripts:
+        return Result.not_applicable(item, "no check script under checks/")
+    runs = T.script_runs(ctx, set(scripts))  # results.executions, the change in place (R3)
+    bad = []
+    for s in scripts:
+        # R4: a run of the script as it stands (after its last write); R1 / R2: after every source change, in its call after the write
+        if not any(T.after_change(ctx, x.mark) for x in T.current_runs(runs.get(s, []), T.own_writes(ctx, s))):
+            bad.append(posixpath.basename(s))
+    good = len(scripts) - len(bad)
+    if bad:
+        return Result.ratio(item, good, len(scripts), f"not run after the last code change (step {last}) and its own last write: {bad[:3]}")
+    return Result.ratio(item, good, len(scripts), f"{good} check script(s) run after the last code change (step {last}) and their own last write")
+
+
 def related_after_change(ctx: EvalContext) -> tuple[str, object, int]:
     """R7 after the last code change: (``testread.related_run``'s status, the first run of the tests that cover the
     change, how many valid runs came after the change at all). The runs are the valid ones with the change in place
@@ -611,7 +643,7 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-__all__ = ["cli", "archive", "delta", "evidence", "tasks", "verify", "created_files", "no_fetch", "holds", "paths_written", "note", "invocations", "succeeded", "lists_critical", "archive_calls", "open_without_reason"]
+__all__ = ["cli", "archive", "delta", "evidence", "check_scripts_run", "tasks", "verify", "created_files", "no_fetch", "holds", "paths_written", "note", "invocations", "succeeded", "lists_critical", "archive_calls", "open_without_reason"]
 
 # the openspec_ff.penalty kind (the log_only penalty items) lives in penalty.py, which builds on the helpers above;
 # imported last so that loading this module registers every kind the rubric names

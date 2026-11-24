@@ -37,6 +37,10 @@ rules by phase (``speckit.task_lines``), the artifact reads (``speckit.read``), 
   test related to the change asks for any valid test run there; a window with no code change is all "before" and
   all "after" (as the step windows these rules replace read it).
 
+* ``speckit_sdd.tests_pass`` -- "Validate that tests pass" (04-implement.md:79): the last valid test run after the
+  window's last code change (R1-R3) has no failure but those the baseline already had (R5 / R6: the baseline is a valid
+  run before every source change, 04-implement.md:62; the last of them that ran the test failed it by name).
+
 * ``speckit_sdd.tasks`` -- tasks.md rules this port adds or that need the trace::
 
       {rule: story_tests}        every user-story phase has a ``### Tests for User Story N`` part whose tasks name a
@@ -360,6 +364,35 @@ def exec_related(item: Item, ctx: EvalContext) -> Result:
     if status == "none":
         return Result.ok(item, f"{len(runs)} valid test run(s) {where}; no repository test is related to the change") if runs else Result.no(item, f"no valid test run {where}")
     return Result.no(item, f"no valid run of the tests related to the change (or the whole suite) {where}; {len(runs)} other run(s)")
+
+
+@register("speckit_sdd.tests_pass", params={"window": False}, availability=("trace",), common=False)
+def tests_pass(item: Item, ctx: EvalContext) -> Result:
+    """The last valid test run after the window's last code change has no failure the baseline does not already have (04-implement.md:79 "Validate that tests pass"; :62 the baseline)."""
+    w = _window(item, ctx)
+    if w is None:
+        return Result.no(item, "window empty")
+    changes = T.change_marks(ctx, w)  # R1; none: the whole window is "after" (as the step window it replaces read it)
+    # the change in place (R3), after every code change of the window -- in one call, after the write (R2)
+    runs = [r for r in T.change_runs(ctx) if refs.in_window(r.step, w) and T.after_all(T.run_mark(r), changes)]
+    where = f"after the last code change (step {changes[-1].step})" if changes else "in the window (no code change there)"
+    if not runs:
+        return Result.no(item, f"no valid test run {where}")
+    last = runs[-1]
+    names = T.failed_names(last)
+    if names == ():
+        return Result.ok(item, f"step {last.step}: the last valid test run {where} passes")
+    # R6: the baseline is a run of the unchanged code before implementing (04-implement.md:62 "Before implementing, also
+    # run the existing repository tests related to the change and record the baseline"): valid runs before every source
+    # change of the run; a failure the last of them that ran the test failed by name is no failure of the change
+    every = T.change_marks(ctx)
+    baselines = [T.as_result(ctx, r) for r in T.change_runs(ctx) if every and T.before_all(T.run_mark(r), every)]
+    new = T.new_failures(names, baselines)
+    if new is None:
+        return Result.no(item, f"step {last.step}: the last valid test run {where} fails tests its output does not name")
+    if new:
+        return Result.no(item, f"step {last.step}: the last valid test run {where} fails {new[:3]}, not failing in the baseline")
+    return Result.ok(item, f"step {last.step}: the last valid test run {where} fails only as the baseline did ({list(names)[:3]})")
 
 
 # --------------------------------------------------------------------------------------------
