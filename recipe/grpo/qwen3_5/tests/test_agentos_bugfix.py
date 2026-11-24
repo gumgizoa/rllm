@@ -1018,3 +1018,78 @@ def test_own_words_leaves_out_what_the_template_gives():
     assert ST.own_words(doc, lines, holes) == 0  # the command document itself
     assert ST.own_words("# Spec\n\n## Goal\n\n**Goal:** x\n- ...\n- [ ] TBD\n", lines, holes) == 0  # headings, labels, fill-in marks
     assert ST.own_words("## Goal\nslugify strips hyphens at both edges of the slug\n", lines, holes) == 9
+
+
+# -- accuracy review of wf1121 step 27 (2026-11-24): two verdicts that went against runs doing what the documents say ---
+def test_the_report_is_compared_with_a_run_of_the_repository_tests_and_the_own_tests_together():
+    import dataclasses
+
+    from recipe.grpo.qwen3_5.workflow_rubric.context import EvalContext
+    from recipe.grpo.qwen3_5.workflows.agentos_bugfix import selftest_golden as golden
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as K
+
+    rub, reps = _mutated()
+    params = {i.check.params["rule"]: i.check.params for i in rub.items if i.check.kind == f"{NAME}.report" and i.check.params.get("own_with_repo")}
+    assert set(params) == {"test_counts", "failed_listed", "suite_status"} and all(p["scripts_dir"].endswith("/verify") for p in params.values())
+
+    def ctx_with(change):
+        run, col = golden.golden(rub)
+        from recipe.grpo.qwen3_5.workflow_rubric import facts as F
+
+        ctx = EvalContext(rubric=rub, run=run, collected=col, facts=F.build(rub, run, col))
+        last = K.comparison_runs(ctx, after_fix=True, fallback=True, final_code=True)[-1]
+        at = ctx.facts.runs.index(last)
+        last = dataclasses.replace(last, targets=["tests/test_slug.py"])  # the golden runs the whole suite; name a repository test file
+        ctx.facts.runs[at] = change(last)
+        ctx.cache.clear()
+        return ctx, last
+
+    own = f"{golden.CHECKS}/test_edges.py"
+    mixed = lambda r: dataclasses.replace(r, valid=False, reason=f"test target outside the repository ({own})", targets=[*r.targets, own], passed=r.passed + 3)  # noqa: E731
+    ctx, last = ctx_with(mixed)
+    steps = lambda runs: [(r.step, r.passed) for r in runs]  # noqa: E731
+    assert (last.step, last.passed + 3) not in steps(K.comparison_runs(ctx, after_fix=True, fallback=True, final_code=True))
+    assert (last.step, last.passed + 3) in steps(K.comparison_runs(ctx, after_fix=True, fallback=True, final_code=True, own_dir=golden.CHECKS))
+    # the run's own tests alone, a test elsewhere under /tmp, or a repository test the agent made: not such a run
+    for change in (
+        lambda r: dataclasses.replace(r, valid=False, reason=f"test target outside the repository ({own})", targets=[own]),
+        lambda r: dataclasses.replace(r, valid=False, reason="test target outside the repository (/tmp/t.py)", targets=[*r.targets, "/tmp/t.py"]),
+        lambda r: dataclasses.replace(r, valid=False, reason=f"test target outside the repository ({own})", targets=[*r.targets, own, "/tmp/t.py"]),
+    ):
+        ctx, last = ctx_with(change)
+        assert K.own_with_repo_runs(ctx, golden.CHECKS) == []
+
+
+def test_a_report_that_notes_an_expected_failure_is_read_in_the_wordings_runs_use():
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as K
+
+    said = lambda text: any(rx.search(text) for rx in K.EXPECTED_WORDS)  # noqa: E731
+    for text in (
+        "it asserts the behavior the task asks to change, so this is an expected failure",
+        "**Expected Failures (asserting old behavior):**",
+        "The failure is expected as the change adds `PackageType` to the response.",
+        "This is an expected change in behavior.",
+        "This is an EXPECTED REGRESSION - the test was written to verify the OLD behavior",
+        "- `tests/test_loss.py::test_result_0` - Fails (expected: old API)",
+        "they were written for the old API that requires a `batch_size` parameter",
+        "The single failing test (`test_contains`) is due to intentional behavior change",
+    ):
+        assert said(text), text
+    for text in ("3 tests failed", "This failure is unrelated to the change", "Expected `ValueError`, got `TypeError`", "pre-existing failure, not caused by this change"):
+        assert not said(text), text
+
+    name = {"tests/test_iv.py::TestInterval::test_contains", "test_contains"}
+    # the name on a line of its own, the reason in a list item or a bold-labelled paragraph below it
+    sec = "**tests/test_iv.py::TestInterval::test_contains**\n- **Reason:** an expected failure: it asserts the old behavior\n\n**tests/test_iv.py::test_other**\n- **Reason:** unrelated\n"
+    assert K._entries(sec, name) == ["**tests/test_iv.py::TestInterval::test_contains**\n- **Reason:** an expected failure: it asserts the old behavior\n"]
+    sec = "**tests/test_iv.py::TestInterval::test_contains**\n\n```\nassert x\n```\n\n**Reason:** expected regression\n\n### Notes\n- other\n"
+    assert "expected regression" in K._entries(sec, name)[0] and "other" not in K._entries(sec, name)[0]
+    # list entries: the next entry ends it, a Reason item at the same indent does not
+    sec = "1. tests/test_iv.py::TestInterval::test_contains\n   - Reason: asserts the old behavior\n2. tests/test_iv.py::test_other\n   - Reason: unrelated\n"
+    assert K._entries(sec, name) == ["1. tests/test_iv.py::TestInterval::test_contains\n   - Reason: asserts the old behavior"]
+    sec = "- tests/test_iv.py::TestInterval::test_contains\n- Reason: asserts the old behavior\n- tests/test_iv.py::test_other\n"
+    assert K._entries(sec, name) == ["- tests/test_iv.py::TestInterval::test_contains\n- Reason: asserts the old behavior"]
+    # paragraphs about the listed failures together
+    for text in ("These are expected failures because the tests assert the old output.", "- The two failing tests are expected because they compare hardcoded values", "**Expected Failures (asserting old behavior):**"):
+        assert K._COLLECTIVE.match(text), text
+    assert not K._COLLECTIVE.match("- 66 other existing Lambda tests pass")

@@ -1015,6 +1015,31 @@ compliance 식을 바꿈. 보상식(`0.7 · verifier · (0.7 + 0.3 · compliance
 | `create_tasks.stage.carried_out` | 더함 | 위와 같음. 문서 CT, 산출물 tasks. |
 | `implement_tasks.stage.carried_out` | 더함 | 위와 같음. 문서 IT, 산출물은 저장소의 첫 수정. |
 
+## 정확도 항목 판정 오류 두 가지 수정 (2026-11-24)
+
+### 변경 내역
+
+wf1121 step 27 실행 256개에서 정확도 신호 항목의 실패를 모두 실제 실행과 대조해 찾은 판정 오류 가운데, 문서와 부딪히는 두 가지를 고침.
+
+| 결정 | 바꾼 것 |
+|---|---|
+| 자기 테스트를 함께 돌린 실행 | 저장소 테스트와 `verify/`의 자기 테스트를 한 명령으로 돌린 실행은 "test target outside the repository"로 무효였고, 보고서는 더 앞의 다른 실행과 비교됐음. implement-tasks.md PHASE 3 Step 2는 "바꾼 파일의 테스트 모듈과 직접 쓴 테스트"를 돌리고 그 수를 보고서에 적으라고 함. 보고서 항목 세 개가 이런 실행도 비교 대상으로 삼음(`agentos_v2/reward/checks.py`의 `own_with_repo_runs`, 매개변수 `own_with_repo`). 대상은 모든 테스트 경로가 `verify/` 아래이거나 에이전트가 만들지 않은 저장소 파일이고, 저장소 파일이 하나 이상인 실행임. 실행의 유효 판정 자체와 다른 항목은 바꾸지 않음. |
+| 기대 실패 표기 | implement-tasks.md 39행대로 Failed Tests에 테스트를 적고 기대 실패라고 쓴 보고서 일곱 개를 읽지 못했음. 표현을 더 받음("asserting old behavior", "the failure is expected", "expected regression", "expected change in behavior", "intentional behavior change", "(expected: old API)"). 항목의 범위를 넓힘(이름 줄과 같은 들여쓰기의 `- **Reason:**` 줄, 이름이 한 줄을 차지할 때 그 아래 문단). Failed Tests 절의 문단과, 적힌 실패를 한꺼번에 말하는 문단("These are expected failures ...")도 읽음(`EXPECTED_WORDS`, `_entries`, `reported_as_expected`). 이 판정을 같이 쓰는 penalty 항목(PHASE 2·3 실패 처리)에도 적용됨. |
+
+step 27 재채점에서 바뀐 판정: `report.test_counts` 12건 통과로, 1건 점수 0.5에서 0.75로. `tasks.ticked_passing` 7건 통과로. 다른 정확도 항목은 바뀌지 않음. 기대 실패를 적은 실행 6개의 penalty가 0.22에서 0.33 오름.
+
+### 문서 변경
+
+없음.
+
+### rubric 변경
+
+| 항목 id | 처리 | 내용 |
+|---|---|---|
+| `implement_tasks.final_verification.agentos_bugfix_report.test_counts` | 설정값을 더함 | `own_with_repo: true`. |
+| `implement_tasks.final_verification.agentos_bugfix_report.failed_listed` | 설정값을 더함 | `own_with_repo: true`, `scripts_dir`. |
+| `implement_tasks.final_verification.agentos_bugfix_report.suite_status` | 설정값을 더함 | `own_with_repo: true`, `scripts_dir`. |
+
 ## 확인
 
 - `python -m recipe.grpo.qwen3_5.workflows.agentos_bugfix.build --upstream <v2.1.1 worktree> --check`

@@ -280,6 +280,38 @@ def change_runs(ctx: EvalContext) -> list:
     return ctx.cache[key]
 
 
+_OUTSIDE_TARGET = re.compile(r"^test target outside the repository \((.+)\)$")
+
+
+def own_with_repo_runs(ctx: EvalContext, d: str | None) -> list:
+    """Test runs, change in place, that are not valid only because the command names a test of the run's own under ``d``
+    (the spec folder's verify/) besides tests of the repository: ``pytest tests/test_x.py /tmp/.../verify/test_fix.py``.
+    implement-tasks.md has the verification run "the test modules that cover the files you changed, and the tests you
+    wrote" and the report give that run's counts, so the report is compared with such a run too (2026-11-24). Every
+    target is under ``d`` or a repository file the agent did not create, and at least one is of the repository; a run of
+    the run's own tests alone stays what it was (the check scripts' results)."""
+    wd = (ctx.collected.workdir or "").rstrip("/")
+    if not d or not wd:
+        return []
+    key = f"agentos_v2.own_with_repo_runs:{d}"
+    if key not in ctx.cache:
+        fx = ctx.facts
+        pre, created = d.rstrip("/") + "/", getattr(fx, "_created", None) or {}
+        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
+        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))
+        out = []
+        for r in fx.runs:
+            m = _OUTSIDE_TARGET.match(r.reason or "")
+            if r.valid or r.kind != "test" or not m or not m.group(1).startswith(pre) or R.run_stashed(r, before, marks):
+                continue
+            targets = [posixpath.normpath(t if t.startswith("/") else posixpath.join(wd, t)) for t in (x.split("::")[0] for x in r.targets)]
+            repo = [t for t in targets if t.startswith(wd + "/")]
+            if repo and all(t.startswith(pre) or t in repo for t in targets) and not any(t in created for t in repo):
+                out.append(r)
+        ctx.cache[key] = out
+    return ctx.cache[key]
+
+
 def _content_events(ctx: EvalContext, path: str) -> list:
     return [e for e in ctx.facts.writes.get(path, []) if e.ok is not False and e.op in F.WRITE_OPS]
 
@@ -1002,13 +1034,26 @@ def warned_groups(ctx: EvalContext, aid: str, w, d: str | None) -> list[tuple[di
 # --------------------------------------------------------------------------------------------
 # how a report says that a failing test asserts the behavior the task changes (implement-tasks.md of agentos_bugfix, T1:
 # "list that test under Failed Tests ..., noting that it is an expected failure")
+# 2026-11-24 (accuracy review of wf1121 step 27: seven reports that did what implement-tasks.md 39 asks were not read):
+# the verbs in any form ("asserting old behavior", "written for the old API", "verify the OLD behavior"), "the failure is
+# expected" / "fail as expected", "expected regression", "expected change in behavior", "intentional behavior change",
+# "(expected: old API)"
 EXPECTED_WORDS = (
-    re.compile(r"(?i)\b(?:asserts?|expects?|checks?|tests?|encodes?)\b[^.\n]{0,120}\b(?:old|previous|prior|former|original|buggy|legacy)\s+behaviou?r"),
+    re.compile(r"(?i)\b(?:assert(?:s|ed|ing)?|expect(?:s|ed|ing)?|check(?:s|ed|ing)?|tests?|tested|testing|encod(?:es?|ed|ing)|verif(?:y|ies|ied|ying)|written|wrote)\b[^.\n]{0,120}"
+               r"\b(?:old|previous|prior|former|original|buggy|legacy)\s+(?:behaviou?r|API|output|signature|semantics|result)"),
     re.compile(r"(?i)\b(?:asserts?|expects?|checks?)\b[^.\n]{0,120}\b(?:this|the)\s+(?:task|change|fix|issue)\s+(?:removes|changes|fixes|asks)"),
-    re.compile(r"(?i)\bexpected\s+(?:to\s+fail|failure)\b"),
-    re.compile(r"(?i)\btest\s+(?:should|needs?\s+to)\s+be\s+updated\b"),
+    re.compile(r"(?i)\bexpected\s+(?:to\s+fail|failures?|regressions?)\b"),
+    re.compile(r"(?i)\b(?:failures?|failing\s+tests?|fails?)\s+(?:is|are|as)\s+expected\b"),
+    re.compile(r"(?i)\bexpected\s+change\s+in\s+behaviou?r\b|\bintentional(?:ly)?\s+(?:behaviou?r\s+change|change[sd]?\b[^.\n]{0,40}\bbehaviou?r)"),
+    re.compile(r"(?i)\bexpected\s*:\s*(?:the\s+)?(?:old|previous|former|legacy)\b"),
+    re.compile(r"(?i)\btests?\s+(?:should|needs?\s+to)\s+be\s+updated\b"),
 )
 _BULLET_START = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+# a list item that goes on about the entry above it instead of starting the next one
+_ENTRY_NOTE = re.compile(r"(?i)^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*|__)?(?:reason|note|why|cause|explanation|resolution|status|expected|got)\b")
+# a paragraph that speaks of the listed failures together: "These are expected failures ...", "The two failing tests are
+# expected because ...", a "**Expected Failures (asserting old behavior):**" heading line over the list
+_COLLECTIVE = re.compile(r"(?i)^\W*(?:these|those|all|both|the\s+(?:\w+\s+){0,3}(?:failing|failed)\s+tests?\b|the\s+(?:above|existing)\s+tests?\b|expected\s+failures?\b)")
 
 
 def runner_result(r, workdir: str | None) -> R.TestResult:
@@ -1046,19 +1091,27 @@ def _paragraphs(text: str) -> list[str]:
 
 
 def _entries(section: str, forms: set[str]) -> list[str]:
-    """Each entry of a list section that names one of ``forms``: the line with the name and the lines under it that are
-    indented deeper (a reason on the next line, ``- **Reason:** ...`` sub-bullets), up to the next line at the same or a
-    shallower indent."""
+    """Each entry of a list section that names one of ``forms``: the line with the name and the lines that belong to it,
+    up to the next entry. Lines indented deeper belong to it (a reason on the next line, ``- **Reason:** ...``
+    sub-bullets); so does a list item at the same indent that goes on about it (:data:`_ENTRY_NOTE`); and when the name
+    stands on a line of its own that is no list item (``**file::test**``, then a code block and ``**Reason:** ...``),
+    everything down to the next line of that kind -- a bare test id or a line that is bold as a whole."""
     lines = section.splitlines()
     out = []
     for i, ln in enumerate(lines):
         if not any(f in ln for f in forms):
             continue
         ind = len(ln) - len(ln.lstrip())
+        listed = bool(_BULLET_START.match(ln))
         block = [ln]
         for nxt in lines[i + 1 :]:
-            if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= ind:
+            if nxt.lstrip().startswith("#"):
                 break
+            if nxt.strip() and len(nxt) - len(nxt.lstrip()) <= ind:
+                if listed and not _ENTRY_NOTE.match(nxt):
+                    break
+                if not listed and not _BULLET_START.match(nxt) and ("::" in nxt or re.fullmatch(r"\s*(?:\*\*|__)[^*_:]+(?:\*\*|__)\s*", nxt)):
+                    break
             block.append(nxt)
         out.append("\n".join(block))
     return out
@@ -1071,9 +1124,9 @@ def _test_names_of(test_id: str) -> set[str]:
 
 
 def reported_as_expected(ctx: EvalContext, test_id: str) -> bool:
-    """The final report lists ``test_id`` under Failed Tests, and that entry (its line and the lines indented under it)
-    -- or a paragraph of Notes that names the test or its file -- says it asserts the behavior the task changes
-    (:data:`EXPECTED_WORDS`)."""
+    """The final report lists ``test_id`` under Failed Tests, and that entry (:func:`_entries`) -- or a paragraph of
+    Failed Tests or Notes that names the test or its file, or speaks of the listed failures together
+    (:data:`_COLLECTIVE`) -- says it asserts the behavior the task changes (:data:`EXPECTED_WORDS`)."""
     text = _text(ctx, "final_verification") if "final_verification" in ctx.rubric.artifacts else None
     if not text:
         return False
@@ -1084,7 +1137,7 @@ def reported_as_expected(ctx: EvalContext, test_id: str) -> bool:
         return False
     file_part = test_id.split("::")[0] if "::" in test_id else None
     notes = M.section(text, "Notes", match="prefix") or ""
-    paras = [b for b in _paragraphs(notes) if any(f in b for f in forms) or (file_part and file_part.lstrip("./") in b)]
+    paras = [b for b in (*_paragraphs(failed), *_paragraphs(notes)) if any(f in b for f in forms) or (file_part and file_part.lstrip("./") in b) or _COLLECTIVE.match(b)]
     return any(rx.search(x) for x in (*lines, *paras) for rx in EXPECTED_WORDS)
 
 
@@ -1602,10 +1655,10 @@ def _phase3_edits(ctx: EvalContext) -> list:
             and not (e.op in ("delete", "move_out") and F.is_new_path(ctx, e.path) and e.path not in keep)]
 
 
-def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
+def _phase3_runs(ctx: EvalContext, after_fix: bool = False, pool: list | None = None) -> list:
     """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
     w = phase3_window(ctx)
-    runs = [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
+    runs = [r for r in (change_runs(ctx) if pool is None else pool) if refs.in_window(r.step, w)] if w else []
     late = _phase3_edits(ctx) if after_fix else []
     return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
 
@@ -1649,14 +1702,14 @@ def final_code_window(ctx: EvalContext):
     return (a, b) if a < b else None
 
 
-def final_code_runs(ctx: EvalContext) -> list:
+def final_code_runs(ctx: EvalContext, pool: list | None = None) -> list:
     """The valid test runs (change in place) after the last change to the code or the tests and before the report --
     a run of the same call as that change counts when the change comes first in the command (``sed -i ... && pytest``)."""
     fc = _final_change(ctx)
     if fc is None:
         return []
     last, b = fc
-    return [r for r in change_runs(ctx) if (last < r.step or (last == r.step and r.after_write_same_call)) and r.step < b]
+    return [r for r in (change_runs(ctx) if pool is None else pool) if (last < r.step or (last == r.step and r.after_write_same_call)) and r.step < b]
 
 
 def comparison_window(ctx: EvalContext, fallback: bool = False, final_code: bool = False):
@@ -1671,15 +1724,17 @@ def comparison_window(ctx: EvalContext, fallback: bool = False, final_code: bool
     return w
 
 
-def comparison_runs(ctx: EvalContext, after_fix: bool = False, fallback: bool = False, final_code: bool = False) -> list:
+def comparison_runs(ctx: EvalContext, after_fix: bool = False, fallback: bool = False, final_code: bool = False, own_dir: str | None = None) -> list:
     """The valid test runs (change in place) in :func:`comparison_window`; ``after_fix`` as :func:`_phase3_runs`. In the
-    fallback window and the final-code window no code change comes after its start, so there is no fix round to skip."""
+    fallback window and the final-code window no code change comes after its start, so there is no fix round to skip.
+    ``own_dir``: the runs of :func:`own_with_repo_runs` count as well."""
+    pool = sorted([*change_runs(ctx), *own_with_repo_runs(ctx, own_dir)], key=lambda r: (r.step, r.action_index)) if own_dir else None
     if final_code and _final_change(ctx) is not None:
-        return final_code_runs(ctx)
+        return final_code_runs(ctx, pool)
     if phase3_window(ctx) is not None or not fallback:
-        return _phase3_runs(ctx, after_fix=after_fix)
+        return _phase3_runs(ctx, after_fix=after_fix, pool=pool)
     w = fallback_window(ctx)
-    return [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
+    return [r for r in (change_runs(ctx) if pool is None else pool) if refs.in_window(r.step, w)] if w else []
 
 
 def comparison_script_results(ctx: EvalContext, d: str | None, fallback: bool = False, final_code: bool = False) -> dict[str, str]:
@@ -1863,7 +1918,7 @@ def _report_on_scripts(item: Item, rule: str, text: str, suite: str, scripts: di
 
 @register(
     "agentos_v2.report",
-    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "final_code": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False, "scripts_dir": False},
+    params={"rule": True, "artifact": False, "suite_section": False, "fix_round": False, "dir": False, "issues_listed": False, "phase3_fallback": False, "final_code": False, "script_results": False, "open_tasks": False, "standing": False, "in_section": False, "scripts_dir": False, "own_with_repo": False},
     availability=("sandbox_file", "trace"),
     common=False,
     choices={"rule": ("test_counts", "failed_listed", "suite_status", "tasks_status", "incomplete_listed", "spec_name", "overall_status")},
@@ -1896,7 +1951,8 @@ def report(item: Item, ctx: EvalContext) -> Result:
     if rule in ("test_counts", "failed_listed", "suite_status"):
         fallback = bool(p.get("phase3_fallback"))
         final_code = bool(p.get("final_code"))  # the last run after the last change, in whichever phase (N-1)
-        runs = comparison_runs(ctx, after_fix=bool(p.get("fix_round")), fallback=fallback, final_code=final_code)  # after a fix round the report is about the re-run
+        own = _expand_dir(ctx, str(p.get("scripts_dir") or SCRIPTS_DIR)) if p.get("own_with_repo") else None
+        runs = comparison_runs(ctx, after_fix=bool(p.get("fix_round")), fallback=fallback, final_code=final_code, **({"own_dir": own} if own else {}))  # after a fix round the report is about the re-run
         if not runs and p.get("script_results"):
             scripts = comparison_script_results(ctx, _expand_dir(ctx, str(p.get("scripts_dir") or SCRIPTS_DIR)), fallback, final_code)
             if scripts:

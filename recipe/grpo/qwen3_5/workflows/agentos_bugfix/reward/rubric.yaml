@@ -5234,6 +5234,7 @@ items:
       phase3_fallback: true
       script_results: true
       final_code: true
+      own_with_repo: true
   requirement: must
   modality_evidence: imperative (IT:241 'Include these counts ... in your final verification report')
   none_allowed: '-'
@@ -5279,6 +5280,7 @@ items:
       phase3_fallback: true
       script_results: true
       final_code: true
+      own_with_repo: true
       standing: true
       in_section: true
   requirement: must
@@ -5392,6 +5394,7 @@ items:
       phase3_fallback: true
       script_results: true
       final_code: true
+      own_with_repo: true
       standing: true
   requirement: must
   modality_evidence: IT:297 the status choices, judged against the run (a claim the run refutes)

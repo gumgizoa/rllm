@@ -632,6 +632,11 @@ def _review_fixes(it: dict) -> None:
         # it ran, instead of running the same tests once more (build.py T1); the report is compared with those runs
         p["final_code"] = True
         it["note"] = FINAL_CODE_NOTES[p["rule"]]
+        # 2026-11-24: a run of the repository's tests together with the run's own tests under verify/ is a run the report
+        # may be about (implement-tasks.md PHASE 3 Step 2: "the test modules that cover the files you changed, and the
+        # tests you wrote"); it was left out as "test target outside the repository" (``checks.own_with_repo_runs``)
+        p["own_with_repo"] = True
+        p.setdefault("scripts_dir", CHECKS_DIR)
     if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
         p["phase3_fallback"] = True
         p["final_code"] = True  # N-1
