@@ -14,7 +14,7 @@ import re
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
-from ..measures import _regressed
+from ..measures import _regressed, hidden_attempts
 from ..read import DUPLICATE, R_LINE, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file
 from . import STAGES, method
 
@@ -106,10 +106,6 @@ _LABEL_LINE = re.compile(r"^\s*[-*]\s*[A-Z][\w /&().-]*:")
 _ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
 
 _REDUCE = re.compile(r"(?<!\S)-[a-zA-Z]*q[a-zA-Z]*\b|--quiet\b|--tb=(?:short|line|no)\b|--no-header\b")
-
-_STASH = re.compile(r"^\s*git\s+stash(?:\s+(?:push|save)\b.*)?\s*$|^\s*(?:git\s+apply|patch)\b.*\s-R\b")
-
-_UNSTASH = re.compile(r"^\s*git\s+stash\s+(?:pop|apply)\b")
 
 _CODE_LIKE = re.compile(r"_|\.|[a-z][A-Z]")
 
@@ -888,18 +884,11 @@ def h7(m):
     w4 = m.w.get(4)
     if w4 is None:
         return None
-    hidden, rebuilt, ran = False, False, False
-    for n, cmd, _ in m.obs.shell:
-        if n <= w4:
-            continue
-        for s in _plain_segments(cmd):
-            if _UNSTASH.match(s):
-                hidden = False
-            elif _STASH.match(s):
-                hidden = True
-            elif EV.is_test_attempt(s):
-                ran = True
-                rebuilt |= hidden
+    edits = sorted({n for steps in m.obs.edit_steps.values() for n in steps})
+    rebuilt, ran = False, False
+    for _, _s, _, hidden in hidden_attempts(m.obs.shell, w4, edits):  # the shared marks (R3)
+        ran = True
+        rebuilt |= hidden
     if not ran:
         return None
     return 0.0 if rebuilt else 1.0

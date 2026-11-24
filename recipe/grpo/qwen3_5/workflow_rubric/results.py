@@ -185,20 +185,35 @@ def _checkout_moves(sub: str, args: str, paths: set[str]) -> bool:
     return False
 
 
+# a patch applied in reverse puts the change away (aidlc's reading, now every workflow's: 통일-검토.md R3); applied
+# forwards again it is back. ``git apply --check`` / ``--stat`` / ``--numstat`` / ``--summary`` change nothing.
+_APPLY = re.compile(r"(?:\bgit\s+" + _GIT_OPTS + r"apply\b|(?<![\w./-])patch\b)([^;&|\n]*)")
+_REVERSE = re.compile(r"(?:^|\s)(?:-R|--reverse|-[A-Za-z]*R[A-Za-z]*)(?=\s|$)")
+_APPLY_NOTHING = re.compile(r"(?:^|\s)(?:--check|--stat|--numstat|--summary|--dry-run)(?=\s|$)")
+
+
 def stash_marks(command: str, checkout_paths: set[str] | None = None) -> list[tuple[int, bool]]:
-    """(position, stashed away after it) for every ``git stash`` of a command that moves the change: push forms put it
-    away, ``pop`` / ``apply`` bring it back; ``list`` / ``show`` / ``drop`` and the like move nothing. With
-    ``checkout_paths`` (the repository files other than tests the run edited itself), a ``git checkout`` / ``git restore`` of one of them puts the
-    change away too (implement-tasks.md 135 names ``git stash`` as an example of running a test without the change)."""
+    """(position, stashed away after it) for every command that moves the change: ``git stash`` push forms put it
+    away, ``pop`` / ``apply`` bring it back (``list`` / ``show`` / ``drop`` and the like move nothing); ``git apply -R``
+    / ``patch -R`` put it away and the same applied forwards brings it back. With ``checkout_paths`` (the repository
+    files other than tests the run edited itself), a ``git checkout`` / ``git restore`` of one of them puts the change
+    away too (implement-tasks.md 135 names ``git stash`` as an example of running a test without the change)."""
     out = []
     for m in _STASH.finditer(command or ""):
         sub = m.group(1)
         if sub in _STASH_NOTHING:
             continue
         out.append((m.start(), sub not in _STASH_BACK))
+    for m in _APPLY.finditer(command or ""):
+        args = m.group(1) or ""
+        if command[: m.start()].rstrip().endswith(("which", "command -v", "type")) or _APPLY_NOTHING.search(args):
+            continue
+        if m.group(0).lstrip().startswith("patch") and not re.search(r"(?:^|\s)(?:-p\d|-i|<|-R|--reverse|-[A-Za-z]*R)", args):
+            continue  # ``patch`` with nothing of a patch run (a word in prose, ``patch.object``) moves nothing
+        out.append((m.start(), bool(_REVERSE.search(args))))
     if checkout_paths:
         out += [(m.start(), True) for m in _CHECKOUT.finditer(command or "") if _checkout_moves(m.group(1), m.group(2), checkout_paths)]
-        out.sort()
+    out.sort()
     return out
 
 

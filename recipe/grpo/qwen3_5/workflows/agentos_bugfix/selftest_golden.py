@@ -792,6 +792,9 @@ def golden(rubric=None, variant: str | None = None) -> tuple[Run, object]:
     run = Run(instance_id=f"selftest/agentos_bugfix/{variant or 'golden'}", steps=s.steps)
     base = {"README.md": README, "setup.cfg": SETUP_CFG, "docs/index.rst": DOCS_INDEX, "textkit/__init__.py": INIT_PY, "textkit/slug.py": SLUG_PY}
     collected = simulate(run, workdir=WORKDIR, base_sha=BASE_SHA, base_tree=BASE_TREE, artifact_dirs=(SPECS,), base_files=base)
+    # what collect.py's exec 3 lists online for the change to textkit/slug.py: its test module (R7 reads it; offline the
+    # listing is None and the items about the existing tests of the changed code are unavailable)
+    collected.related_tests = {"textkit/slug.py": ["tests/test_slug.py"]}
     if "sed_test_line" in v:  # what ``reward/penalty.inputs`` hands the rules from the patch the episode recorded
         collected.inputs = {**collected.inputs, "test_patch": test_sections(SED_TEST_PATCH)}
     return run, collected

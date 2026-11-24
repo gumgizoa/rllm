@@ -273,10 +273,10 @@ ADDED = (
      ("The **Status** at the top of the report follows from the two sections below it:",),
      "IT: 'The **Status** at the top of the report follows from the two sections below it'",
      "the Status at the top is the one the Tasks Verification and Test Suite Results Statuses give (T4)"),
-    (f"{NEW}_verify.suite_run", "phase2_run", {},
+    (f"{NEW}_verify.suite_run", "phase2_run", {"related": True},
      ("- Running the tests you've written ... and the existing tests of the code you changed, and ensuring they pass.",),
      "imperative (IT: 'Running the tests you've written ... and the existing tests of the code you changed')",
-     "while implementing (before every task is ticked), a valid run of the repository's tests after the last code change (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row 9)"),
+     "while implementing (before every task is ticked), a valid run of the existing tests of the changed code (a test file related to a changed source file, or the whole suite; Collected.related_tests, unavailable offline: R7 of the 11-24 review) after the last code change (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row 9)"),
     (f"{NEW}_tasks.ticked_after_work", "ticked_passing", {"dir": CHECKS_DIR, "suite_section": SUITE_NEW},
      (_T5_FIX, _T1_EXPECTED),
      "imperative (IT: 'fix the change or that test and run the tests again before you tick the task group's last sub-task')",
@@ -298,6 +298,8 @@ def _added(items: list[dict], docs: dict[str, Doc]) -> list[dict]:
         new = copy.deepcopy(items[at])
         new["id"] = new["id"].rsplit(".", 1)[0] + "." + rule
         new["check"]["params"] = {"rule": rule, **params}
+        if params.get("related"):  # R7: the related-tests listing is read from the sandbox
+            new["availability"] = sorted({*(new.get("availability") or []), "related_tests"})
         new["requirement"], new["weight"], new["derived_by"], new["log_only"] = "must", 1.0, "manual", False
         new["modality_evidence"] = evidence
         new["sources"] = [{"doc": "IT", "lines": list(h), "quote": q} for q, h in zip(quotes, hits, strict=True)]
@@ -362,7 +364,7 @@ def _penalty_items(items: list[dict], docs: dict[str, Doc]) -> list[dict]:
                 "applies_when": None,
                 "weight": 1.0,
                 "gate": None,
-                "availability": ["trace"],
+                "availability": ["trace", "related_tests"] if rule.endswith("_run.existing_and_own") else ["trace"],
                 "sources": [{"doc": doc, "lines": list(h), "quote": q} for q, h in zip(quotes, hits, strict=True)],
                 "impl_refs": [],
                 "derived_by": "manual",
@@ -530,6 +532,10 @@ def _review_fixes(it: dict) -> None:
         p["script_results"] = True
     if kind == f"{NEW}.verify" and p.get("rule") == "suite_run":  # D-1
         p["phase3_fallback"] = True
+        # R7 of the 11-24 review (implement-tasks.md 131 "the test modules that cover the files you changed"): a run of the
+        # existing tests of the changed code, or the whole suite; the listing comes from the sandbox (collect.py exec 3)
+        p["related"] = True
+        it["availability"] = sorted({*(it.get("availability") or []), "related_tests"})
     if it["id"].endswith("create_tasks.tasks.item_format.checkbox_lines"):  # B-4
         p["pattern"] = BOX_FINER
         p["nested_under"] = True

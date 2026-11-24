@@ -60,7 +60,14 @@ def _writes(path):
     return lambda a: a.path == path and a.kind in ("create", "replace")
 
 
+# what collect.py's exec 3 finds for the golden change online: the tests that cover tinyconf/values.py (R7 reads it;
+# without it -- offline -- no_run_after_change is unavailable)
+RELATED = {"tinyconf/values.py": ["tests/test_values.py"]}
+
+
 def _score(rubric, run, col):
+    if col.related_tests is None:
+        col.related_tests = dict(RELATED)
     rep = engine.evaluate(rubric, run, col)
     out = P.post(rep)
     return {r: out.get(P.signal(r)) for r in P.RULES}, out, rep  # None: the item was unavailable
@@ -303,6 +310,7 @@ def test_the_baseline_run_verifies_no_task(rubric):
 def test_a_run_made_only_before_the_code_change_is_no_run_after_it(rubric):
     AFTER = "openspec_ff.verify.run.openspec_ff_evidence.run_after_change"
     run, col = _golden(rubric)
+    col.related_tests = dict(RELATED)
     assert engine.evaluate(rubric, run, col).results[AFTER].status == "pass"
     edit = _step_of(run, _is_edit)
     assert any(_is_check(a) or _is_test(a) for st in run.steps[:edit] for a in st.actions)  # the check script and the baseline, before the change
@@ -347,9 +355,10 @@ def test_a_check_script_whose_outcome_cannot_be_read_ran_and_is_no_passing_resul
             acts.append(a)
         st.actions = acts
     got, out, rep = _score(rubric, run, col)
-    # something ran after the change (no_run_after_change), nothing is known to stand failed (left_broken) and
+    # only the check script ran after the change: no run of the tests that cover the change (no_run_after_change, R7 of
+    # the 11-24 review: a check script alone is no such run); nothing is known to stand failed (left_broken) and
     # nothing had to be CRITICAL -- but no readable result says the checks passed, so the clean claim is unsupported
-    assert got == {**ALL, "false_clean_claim": 0.0}
+    assert got == {**ALL, "false_clean_claim": 0.0, "no_run_after_change": 0.0}
     assert "runs not_run" in rep.results[P.ITEM_PREFIX + "false_clean_claim"].detail
 
 

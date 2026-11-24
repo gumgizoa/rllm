@@ -7,8 +7,10 @@ true of what the run did. They are rubric items (``openspec_ff.<stage>.penalty.<
 ``openspec_ff/penalty`` (their mean), next to ``openspec_ff/compliance``.
 
     rule (item)            1 when
-    no_run_after_change    after the last change to the code, the run executed a valid repository test run or a
-                           check script it wrote under /openspec/changes/issue/checks/
+    no_run_after_change    after the last change to the code, the run ran the repository tests that cover the
+                           changed code (a target related to a changed source file, or the whole suite:
+                           ``checks.related_after_change``, R7 of the 11-24 review; a check script alone is no such
+                           run); unavailable without the related-tests listing (offline)
     false_clean_claim      the report's Final Assessment is true: it does not say "All checks passed" / "Ready for
                            archive" when a run failed, when nothing was run, or when tasks.md held an open task
     task_count_mismatch    the report's "X/Y tasks" is what tasks.md held when the report was written
@@ -54,13 +56,17 @@ whose outcome the trace does not show (no exit code, no pass or failure text) ra
 ``no_run_after_change`` -- and is no passing result.
 
 The baseline (the tasks instruction of schema.yaml, which has it recorded in tasks.md; 03-verify.md step 8): the
-valid repository test runs made before the first code change, whether or not tasks.md records them -- what was
-failing before the change is read from the runs, never from what the run wrote about them. A test run after the last code change that fails only in tests the baseline already showed failing is read
+valid repository test runs made before the first code change that the ``## Baseline`` section names
+(``checks.baseline_runs``) -- what was failing before the change is read from those runs, never from what the run
+wrote about them. A test run after the last code change that fails only in tests that were already failing is read
 as a run with no failure -- nothing in it is the change's doing, so it is not due as CRITICAL, does not contradict
-"All checks passed" and leaves nothing broken. This holds only when every failure of the run can be named from its
-output (as many failing test names as its summary counts) and each of them failed in the baseline; a run with one
-new failure among old ones is a failed run. Without a baseline run every failure counts: a run that did not look
-before it changed the code cannot say a failure was there already. Check scripts have no baseline (the run wrote them).
+"All checks passed" and leaves nothing broken. A test is already failing when, in the last baseline run that ran it,
+it failed by name (``testread.preexisting``, R5 / R6 of the 11-24 review). This holds only when every failure of the
+run can be named from its output; a run with one new failure among old ones is a failed run. Without a baseline run
+every failure counts: a run that did not look before it changed the code cannot say a failure was there already.
+Check scripts have no baseline (the run wrote them); a check script's result counts only from a run after its last
+write (R4). Runs with the change put away (``git stash`` .. ``pop``, R3) are left out; a run of the change's own call
+after the write is after the change (R2).
 
 ``false_baseline`` is read from tasks.md as it stands at the end and from the runs made before the first code change:
 
@@ -93,6 +99,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import penalty as PEN
 from recipe.grpo.qwen3_5.workflow_rubric import results as R
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
@@ -231,19 +238,7 @@ _PARAM = re.compile(r"^(?P<base>[^\[]*)(?P<param>\[.*\])?$", re.S)
 Name = tuple[tuple[str, ...], str]  # (the module it is in, as path components -- empty when the output does not say; the test)
 
 
-def name_of(tid: str) -> Name:
-    """One name for a test however a runner printed it: ``tests/test_io.py::TestA::test_x``, the pytest section
-    ``TestA.test_x`` and unittest's ``tests.test_io.TestA.test_x`` are all ``(("tests", "test_io"), "TestA.test_x")``
-    (the section form, which names no file, has an empty module)."""
-    m = _PARAM.match(tid.strip())
-    base, param = (m.group("base"), m.group("param") or "") if m else (tid.strip(), "")
-    if "::" in base:
-        head, *rest = base.split("::")
-        mod = [c for c in (head[:-3] if head.endswith(".py") else head).split("/") if c and c != "."]
-    else:
-        rest = base.split(".")
-        mod, rest = rest[:-2], rest[-2:]
-    return tuple(mod), ".".join(rest[-2:]) + param
+name_of = T.name_of  # one name for a test however a runner printed it: the shared rule (R5)
 
 
 def _same_test(a: Name, b: Name) -> bool:
@@ -259,19 +254,19 @@ def _failing(run) -> list[Name]:
     return list(dict.fromkeys(name_of(i) for i in E.failing_ids(run.observation or "")))
 
 
-def baseline(ctx: EvalContext) -> tuple[int | None, list[Name]]:
-    """(step of the first baseline run, the tests the baseline runs showed failing). The baseline is the one tasks.md
-    records (``checks.baseline_runs``: the valid runs before the first code change that its ``## Baseline`` section
-    names), what the documents read failures against and what ``baseline_run`` / ``false_baseline`` look at -- a run
-    the section does not name excuses nothing. (None, []) when there is no such run -- or the code changed at a step
-    the trace does not show."""
+def baseline(ctx: EvalContext) -> tuple[int | None, list[R.TestResult]]:
+    """(step of the first baseline run, the baseline runs as results). The baseline is the one tasks.md records
+    (``checks.baseline_runs``: the valid runs before the first code change that its ``## Baseline`` section names),
+    what the documents read failures against and what ``baseline_run`` / ``false_baseline`` look at -- a run the
+    section does not name excuses nothing. (None, []) when there is no such run -- or the code changed at a step the
+    trace does not show."""
     changes = F.source_change_steps(ctx)
     if not changes:
         return None, []
     runs = CK.baseline_runs(ctx) or []
     if not runs:
         return None, []
-    return int(min(r.step for r in runs)), list(dict.fromkeys(n for r in runs for n in _failing(r)))
+    return int(min(r.step for r in runs)), [T.as_result(ctx, r) for r in sorted(runs, key=lambda r: (r.step, r.action_index))]
 
 
 _FAILING_LINE = re.compile(r"(?im)^[ \t]*(?:[-*+][ \t]+)?\**[ \t]*fail\w*\b[^:\n]*:(?P<rest>.*)$")
@@ -328,16 +323,15 @@ def _baseline_claim(ctx: EvalContext, q: "Measured") -> None:
                        + (f"; not listed: {', '.join(left_out[:3])}" if left_out else "") + (f"; listed, not failing: {', '.join(added[:3])}" if added else ""))
 
 
-def _as_before(run, known: list[Name]) -> bool:
-    """Every failure of ``run`` was failing before the first code change: its output names as many failing tests as
-    its summary counts, and each of them failed in the baseline."""
-    names = _failing(run)
-    # the same test printed with and without its file is one failure
-    distinct = [n for i, n in enumerate(names) if not any(_same_test(n, o) for o in names[:i])]
-    return bool(known) and len(distinct) >= run.failed + run.errors > 0 and all(any(_same_test(n, k) for k in known) for n in names)
+def _as_before(run, baselines: list[R.TestResult]) -> bool:
+    """Every failure of ``run`` was failing before the first code change: its output names every failing test, and
+    each of them failed by name in the last baseline run that ran it (``testread.new_failures``, R5 / R6)."""
+    if not baselines or run.failed + run.errors <= 0:
+        return False
+    return T.new_failures(T.failed_names(run), baselines) == []
 
 
-def _runs_after(ctx: EvalContext, last_change, known: list[Name] | None = None) -> tuple[list[R.TestResult], list[tuple[int, str, str]]]:
+def _runs_after(ctx: EvalContext, last_change, known: list[R.TestResult] | None = None) -> tuple[list[R.TestResult], list[tuple[int, str, str]]]:
     """What ran after ``last_change``: the readable results (every valid test run; every run of a check script whose
     outcome the trace shows), and all of it as (step, what, passed | failed | failed as before the change | ran).
     A test run that fails only in tests of ``known`` (the baseline's failures) is a result with no failure. A check
@@ -346,17 +340,19 @@ def _runs_after(ctx: EvalContext, last_change, known: list[Name] | None = None) 
     wd = ctx.collected.workdir
     results: list[R.TestResult] = []
     shown: list[tuple[int, str, str]] = []
-    for r in ctx.facts.runs:
-        if r.kind == "test" and r.valid and r.step > last_change:
+    timed = last_change is not UNKNOWN
+    for r in T.change_runs(ctx):  # the change in place (R3)
+        if timed and T.after_change(ctx, T.run_mark(r)):  # after the last source change, in its call after the write (R2)
             files = R.run_files(r, wd)
             ok = r.failed + r.errors == 0
             before = not ok and _as_before(r, known or [])
             results.append(R.TestResult(int(r.step), ok or before, True, files or (R.WHOLE,), R.selection(r.segment)))
             shown.append((int(r.step), "test " + (" ".join(files) or r.segment[:80]), "passed" if ok else "failed as before the change" if before else "failed"))
-    for path, runs in R.executions(ctx, _check_scripts(ctx)).items():
-        for step, out in runs:
-            if step <= last_change:
+    for path, runs in T.script_runs(ctx, _check_scripts(ctx)).items():
+        for x in T.current_runs(runs, T.own_writes(ctx, path)):  # a result of the script as it stands (R4)
+            if not timed or not T.after_change(ctx, x.mark):
                 continue
+            step, out = x.step, x.outcome
             if out is not None:
                 results.append(R.TestResult(int(step), out == "pass", False, (path,)))
             shown.append((int(step), "check " + path, {"pass": "passed", "fail": "failed"}.get(out or "", "ran")))
@@ -375,10 +371,13 @@ def measure(ctx: EvalContext) -> Measured:
     q.applicable = True
     q.last_change = None if last is UNKNOWN else int(last)
     q.baseline_step, known = baseline(ctx)
-    q.baseline_failed = len(known)
+    q.baseline_failed = len({i for b in known for i in b.failed_ids})
     _baseline_claim(ctx, q)
     results, q.runs = _runs_after(ctx, last, known)
-    q.ran_after_change = bool(q.runs)
+    status, hit, n = CK.related_after_change(ctx)  # R7: the tests that cover the change, or the whole suite
+    if status == "unavailable":
+        q.unavailable.add("no_run_after_change")
+    q.ran_after_change = hit is not None or (status == "none" and n > 0)
     q.left_broken = [_name(k) for k in R.standing_failures(results)]
     at_end = _tasks_at(ctx, 10**9)
     if at_end and at_end[1] > at_end[0]:
@@ -454,7 +453,7 @@ def _detail(q: Measured, rule: str) -> str:
     return (f"due: {'; '.join(q.must_be_critical)}; " if q.must_be_critical else f"nothing had to be CRITICAL (runs {q.case}{base}); ") + f"CRITICAL {'listed' if q.lists_critical else 'not listed'}"
 
 
-@register("openspec_ff.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": tuple(RULES)})
+@register("openspec_ff.penalty", params={"rule": True}, availability=("trace", "related_tests"), common=False, choices={"rule": tuple(RULES)})
 def penalty(item: Item, ctx: EvalContext) -> Result:
     """rule: no_run_after_change | false_clean_claim | task_count_mismatch | critical_missing | left_broken | false_baseline -- passes
     when the run did it right (see the module docstring). A run the rule stands outside of is not applicable, worth 0

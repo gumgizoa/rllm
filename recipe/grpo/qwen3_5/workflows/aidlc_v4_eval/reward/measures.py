@@ -20,8 +20,11 @@ import re
 from functools import cached_property
 from statistics import mean
 
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
+
 from . import read as EV
 from . import skeleton as A
+from . import trace as F
 from .judge import judge_checks
 from .read import (
     SOURCE_EXT,
@@ -42,8 +45,13 @@ CONTRADICTED = EV.CONTRADICTED
 # A plan target that changes nothing: `common.py (verify existing fix)` (no "(modify in place)" / "(create)").
 _VERIFY_ONLY = re.compile(r"\((?![^)]*\b(?:modify|create)\b)[^)]*\b(?:verify|verification|check|inspect|read|no change)\b[^)]*\)", re.I)
 
-# A test run on stashed source (`git stash && pytest`) tests the baseline, not the change (step24 000003).
-_ON_STASH = re.compile(r"\bgit\s+stash\b(?!\s+(?:pop|apply|list|show))")
+# A test run on stashed source (`git stash && pytest`) tests the baseline, not the change (step24 000003): the shared
+# rule (``on_stash``), not a regex of this scorer's own.
+
+def plain_segments(command: str) -> list[str]:
+    """The command split at ``&&`` / ``||`` / ``;`` / newlines, quoted strings kept."""
+    return [s.strip() for s in re.split(r"&&|\|\||;|\n", F.drop_heredoc_bodies(command or "")) if s.strip()]
+
 
 # A test's name in an artifact field, not its file's (`tests/test_mod.py::test_parse` names test_parse only)
 _TEST_NAME = re.compile(r"\b(test_\w+)(?!\w|\.py\b|/)")
@@ -53,22 +61,63 @@ def test_names(text: str | None) -> list[str]:
     return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
 
 
+def on_stash(command: str) -> bool:
+    """A test attempt of the command runs with the change put away (``git stash && pytest x; git stash pop``): the
+    shared marks (``testread.stash_flags``, R3 of the 11-24 review: ``git stash`` .. ``pop`` / ``apply``, ``git apply
+    -R`` / ``patch -R`` and back)."""
+    segs = plain_segments(command)
+    flags, _ = T.stash_flags(F.drop_heredoc_bodies(command or ""), segs)
+    return any(f and EV.is_test_attempt(s) for s, f in zip(segs, flags, strict=False))
+
+
+def hidden_attempts(shell, after: int, edit_steps) -> list[tuple[int, str, str, bool]]:
+    """(step, segment, output, put away) of every test attempt after step ``after``: the change put away by the shared
+    marks (R3), carried from one command to the next until a mark brings it back or the run edits the repository again
+    (the shared rule: a put-away change never brought back was thrown away, what is written next is a new change)."""
+    edits = sorted(set(edit_steps))
+    hidden, since, out = False, after, []
+    for n, cmd, o in shell:
+        if n <= after:
+            continue
+        if hidden and any(since < e <= n for e in edits):
+            hidden = False
+        segs = plain_segments(cmd)
+        flags, after_cmd = T.stash_flags(F.drop_heredoc_bodies(cmd or ""), segs, hidden)
+        out += [(n, s, o, f) for s, f in zip(segs, flags, strict=False) if EV.is_test_attempt(s)]
+        if after_cmd != hidden or T.R.stash_marks(F.drop_heredoc_bodies(cmd or "")):
+            since = n
+        hidden = after_cmd
+    return out
+
+
 def _regressed(out: str, failing1: str | None, baseline_runs: list) -> bool | None:
-    """The last stage-5 run fails a test the baseline did not; None when that cannot be told -- the run executed no
-    test (an import or setUpClass error: step24 000119, 000140), or the baseline failed something it did not name
-    (step24 000123) and 01 names nothing. ``baseline_runs`` are the recorded selection's (an earlier attempt under
-    the wrong settings that errored is not the baseline the run reports: step24 000042)."""
+    """The last stage-5 run fails a test that was not already failing (the shared reading, ``workflow_rubric/testread``;
+    R5 / R6 of the 11-24 review): a test is already failing when, in the last baseline run that ran it, it failed by
+    name. A failure the output does not name cannot be matched and is new; a baseline run that failed a test without
+    naming it explains nothing. None when that cannot be told -- the run executed no test (an import or setUpClass
+    error: step24 000119, 000140) -- and when there is no valid baseline run to compare with (item 23 of the review:
+    step24 000123, a baseline that executed no test, is no baseline; regressions are then not judged).
+    ``baseline_runs`` are the recorded selection's (an earlier attempt under the wrong settings that errored is not the
+    baseline the run reports: step24 000042). ``failing1`` (what artifact 01 wrote) is no baseline run and is not read."""
     if EV.ran_no_test(out):
         return None
-    known = set(test_names(failing1)) | {t for _, _, o in baseline_runs for t in EV.failed_tests(o)}
-    base_counts = [EV.failures(o) for _, _, o in baseline_runs]
-    named = EV.failed_tests(out)
-    if named:
-        new = [t for t in named if t not in known]
-        if new and not known and any(base_counts):
-            return None
-        return bool(new)
-    return EV.failures(out) > max(base_counts, default=0)
+    valid = [o for _, _, o in baseline_runs if not EV.ran_no_test(o)]
+    if not valid:
+        return None
+    n = EV.failures(out)
+    if n <= 0:
+        return False
+    named = list(dict.fromkeys(EV.failed_tests(out)))
+    if len(named) < n:
+        return True  # a failure the output does not name is new
+    for t in named:
+        last = None
+        for o in valid:  # the last baseline run that ran the test: it names it failed, or reads its state
+            if t in EV.failed_tests(o) or EV.test_state(o, t) is not None:
+                last = o
+        if last is None or t not in EV.failed_tests(last):
+            return True
+    return False
 
 
 class _Failed:
@@ -410,7 +459,7 @@ class Measures:
         """The runs 05's Regressions / Pre-existing / Outstanding describe: the last runs of the recorded selection (05
         Command, else 01 Test) after the last edit; an exploratory run of other tests after it is not what the report
         compares with the baseline (step24 000346), nor a run on stashed source."""
-        candidates = [r for r in self.post if not _ON_STASH.search(r[1])] or self.post
+        candidates = [r for r in self.post if not on_stash(r[1])] or self.post
         command = _field(self.p5, "Existing Tests vs Baseline", "Command")
         selection = set(EV.test_targets(command or "", workdir=self.workdir) or []) or self.recorded_targets
         return [r for r in candidates if selection and (t := self.obs.targets(r)) and set(t) <= selection] or candidates

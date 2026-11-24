@@ -252,8 +252,10 @@ def test_the_existing_tests_are_run_while_implementing():
     rub, run, col, rep, res = _scored("expected_failure")
     last = next(it for it in rub.items if it.id.endswith("pass_last"))
     assert res["pass_last"].status == "pass"
-    last.check.params.pop("fix_round")  # agentos_v2's rule: any repository write makes the earlier runs stale
-    assert engine.evaluate(rub, run, col).results[last.id].status == "fail"
+    # agentos_v2's item (no fix_round) reads the change the same way since the 11-24 review (R1): git putting content back
+    # is no code change there either, so the earlier runs are not made stale by it
+    last.check.params.pop("fix_round")
+    assert engine.evaluate(rub, run, col).results[last.id].status == "pass"
 
 
 def test_a_test_sub_task_is_not_ticked_over_a_failing_test():

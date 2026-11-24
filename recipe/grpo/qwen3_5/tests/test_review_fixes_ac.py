@@ -196,6 +196,7 @@ def _golden_with(variant=None, insert=None, edit=None):
         run = Run(instance_id=run.instance_id, steps=[Step(n, st.actions, st.message) for n, st in enumerate(steps, 1)])
         base = {"README.md": golden.README, "setup.cfg": golden.SETUP_CFG, "docs/index.rst": golden.DOCS_INDEX, "textkit/__init__.py": golden.INIT_PY, "textkit/slug.py": golden.SLUG_PY}
         col = simulate(run, workdir=golden.WORKDIR, base_sha=golden.BASE_SHA, base_tree=golden.BASE_TREE, artifact_dirs=(golden.SPECS,), base_files=base)
+        col.related_tests = {"textkit/slug.py": ["tests/test_slug.py"]}  # what the golden's collection lists online (R7)
     if edit is not None:
         edit(col)
     got = {}
@@ -319,7 +320,8 @@ def test_a_failure_the_change_stashed_away_also_shows_is_excused_and_one_it_does
     assert C.excused_failures(ctx, [(("test", tid), fail)]) == {("test", tid)}
     assert C.excused_failures(ctx, [(("test", "tests/test_a.py::test_y"), fail)]) == set()
     ctx.cache["agentos_v2.stashed_results"] = [R.TestResult(12, False, True, ("tests",))]
-    assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == {("key", "tests/test_a.py")}
+    # a file unit (its failed tests not named) cannot be matched by name: the change's (R5 of the 11-24 review)
+    assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == set()
     ctx.cache["agentos_v2.stashed_results"] = [R.TestResult(12, True, True, ("tests",))]
     assert C.excused_failures(ctx, [(("key", "tests/test_a.py"), fail)]) == set()
 

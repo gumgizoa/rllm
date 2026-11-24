@@ -1494,30 +1494,30 @@ manual:
     stage: implement
     class: evidence
     requirement: must
-    check: {kind: exec_evidence, params: {kind: test, window: ["stage_start:implement", [{first: {fact: repo_edit, final: true, window: "stage:implement"}}, "stage_end:implement"]]}}
-    availability: [trace]
+    check: {kind: speckit_sdd.exec, params: {rule: baseline}}
+    availability: [trace, related_tests]
     modality_evidence: "CW:79-80 'The existing tests related to the change are run before implementing, for a baseline'; IM:62 'Before implementing, also run the existing repository tests'"
     sources:
       - {path: docs/core-workflow.md, lines: [79, 80], quote: "The existing tests related to the change are run before implementing, for a baseline, and again afterwards."}
       - {path: docs/stages/04-implement.md, lines: [62, 62], quote: "Before implementing, also run the existing repository tests related to the change and record the baseline; run them again after"}
-    note: "a valid run of base-repository tests in the implement window before its first code change (an echoed summary, a dummy test under /tmp or an agent-written runner is none)"
+    note: "a valid run of base-repository tests in the implement window before its first code change (a source write), of the tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline). An echoed summary, a dummy test under /tmp, an agent-written runner or a run with the change stashed is none (11-24 review R1-R3, R7)"
   - id: speckit_sdd.implement.run.exec_evidence.after_change
     stage: implement
     class: evidence
     requirement: must
-    check: {kind: exec_evidence, params: {kind: test, window: [["stage_start:implement", {last: {fact: repo_edit, final: true, window: "stage:implement"}}], "stage_end:implement"]}}
-    availability: [trace]
+    check: {kind: speckit_sdd.exec, params: {rule: after_change}}
+    availability: [trace, related_tests]
     modality_evidence: "CW:80 'and again afterwards'; IM:65 'then run existing tests for changed modules'; IM:79"
     sources:
       - {path: docs/core-workflow.md, lines: [79, 80], quote: "The existing tests related to the change are run before implementing, for a baseline, and again afterwards."}
       - {path: docs/stages/04-implement.md, lines: [65, 65], quote: "- **Polish and validation**: Polish phase tasks, then run existing tests for changed modules"}
       - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
-    note: "a valid run of base-repository tests after the window's last code change, inside the implement window"
+    note: "a valid run of base-repository tests after the window's last code change (a source write), inside the implement window, of the tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline; 11-24 review R1-R3, R7)"
   - id: speckit_sdd.implement.run.speckit_holds.tests_pass
     stage: implement
     class: evidence
     requirement: should
-    check: {kind: speckit.holds, params: {predicate: {counts: {fact: valid_run, kind: test, window: [["stage_start:implement", {last: {fact: repo_edit, final: true, window: "stage:implement"}}], "stage_end:implement"], which: last, failed_or_errors: 0}}}}
+    check: {kind: speckit.holds, params: {predicate: {counts: {fact: valid_run, kind: test, window: [["stage_start:implement", {last: {fact: repo_edit, final: true, source: true, window: "stage:implement"}}], "stage_end:implement"], which: last, failed_or_errors: 0}}}}
     availability: [trace]
     modality_evidence: "'Validate that tests pass' (IM:79); a pre-existing failure the change does not touch can remain: should"
     sources:
@@ -1869,13 +1869,13 @@ manual:
     stage: implement_2
     class: evidence
     requirement: must
-    check: {kind: exec_evidence, params: {kind: test, window: [["stage_start:implement_2", {last: {fact: repo_edit, final: true, window: "stage:implement_2"}}], "stage_end:implement_2"]}}
+    check: {kind: speckit_sdd.exec, params: {rule: after_change}}
     applies_when: *round2
-    availability: [trace]
+    availability: [trace, related_tests]
     modality_evidence: "completion validation (IM:79) of the round's work; CW:80"
     sources:
       - {path: docs/stages/04-implement.md, lines: [79, 79], quote: "- Validate that tests pass: the verification scripts in `FEATURE_DIR/checks/` and the existing repository tests related to the change"}
-    note: "a valid run of base-repository tests in the round-2 implement window, after its last code change"
+    note: "a valid run of base-repository tests in the round-2 implement window, after its last code change (a source write), of the tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline; 11-24 review R1-R3, R7)"
   - id: speckit_sdd.implement_2.run.speckit_sdd_checks.pass_last
     stage: implement_2
     class: evidence

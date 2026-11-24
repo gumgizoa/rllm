@@ -458,11 +458,13 @@ class Observed:
 
     @property
     def source_edits(self) -> dict[str, int]:
-        """Edits to the repository's own files: files the run itself brought into being at the
-        repository root, or that are test- or note-like, are the run's scratch (reproduction
-        scripts, summaries), not source the existing tests depend on."""
+        """Edits to the repository's own source files: files the run itself brought into being at the
+        repository root, or that are note-like, are the run's scratch (reproduction scripts, summaries),
+        not source the existing tests depend on; and a test file -- one the run created, or an existing
+        test module it added tests to -- is no source change (R1 of the 11-24 review: "before any source
+        file is modified", 01-reverse-engineering.md; the shared ``facts.source_change_steps``)."""
         new = self.new_files
-        return {p: n for p, n in self.edited.items() if not (p in new and ("/" not in p or is_test_file(p) or F.DOCLIKE_RE.search(p)))}
+        return {p: n for p, n in self.edited.items() if not (is_test_file(p) or (p in new and ("/" not in p or F.DOCLIKE_RE.search(p))))}
 
     @property
     def remaining(self) -> dict[str, int]:

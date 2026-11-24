@@ -14,7 +14,7 @@ import re
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
-from ..measures import STASH_SEG, UNSTASH_SEG, _regressed, plain_segments, test_names
+from ..measures import _regressed, hidden_attempts, plain_segments, test_names
 from ..read import DUPLICATE, R_LINE, SOURCE_EXT, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file
 from . import STAGES, method
 
@@ -993,18 +993,22 @@ def h4c(m):
     """Stage 5 also runs the test modules that cover every file changed (05 Step 4 "MANDATORY: Also run the test
     modules that cover every file changed in Stage 4 ... whether or not the baseline included them"): for each changed
     source file with a covering module the run knows of (``_covering_modules``), a test run after artifact 04 targets
-    one of them (the module, or a test in it). The share of those files; None when no changed file has one. (Modules
-    that cover a file by importing it are not read: the trajectory does not show the imports.) v5."""
+    one of them (the module, or a test in it), or a run of the whole suite does (R7 of the 11-24 review). The share of
+    those files; None when no changed file has one. (Modules that cover a file by importing it are not read: the
+    trajectory does not show the imports, and this scorer's collection has no sandbox listing of related tests --
+    ``Collected.related_tests``, which the shared ``testread.related_run`` reads.) v5."""
     w4 = m.w.get(4)
     if w4 is None or m.final is None:
         return None
     sources = [p for p in m.changed_now if p not in m.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, m.tests) and not m.is_repro(p)]
-    runs = [t for r in m.obs.tests_in(after=w4, before=m.w.get(5)) if (t := m.obs.targets(r))]
+    entries = m.obs.tests_in(after=w4, before=m.w.get(5))
+    whole = any(m.obs.whole_suite(r) for r in entries)  # R7 of the 11-24 review: the whole suite runs every covering module
+    runs = [t for r in entries if (t := m.obs.targets(r))]
     verdicts = []
     for p in sources:
         mods = _covering_modules(m, p)
         if mods:
-            verdicts.append(any(_covers(tt, mod) or any(_covers([mod], x) for x in tt) for tt in runs for mod in mods))
+            verdicts.append(whole or any(_covers(tt, mod) or any(_covers([mod], x) for x in tt) for tt in runs for mod in mods))
     return _frac(verdicts) if verdicts else None
 
 
@@ -1019,18 +1023,10 @@ def h7(m):
     w4 = m.w.get(4)
     if w4 is None:
         return None
-    hidden, rebuilt, ran = False, False, False
-    for n, cmd, _ in m.obs.shell:
-        if n <= w4:
-            continue
-        for s in plain_segments(cmd):
-            if UNSTASH_SEG.match(s):
-                hidden = False
-            elif STASH_SEG.match(s):
-                hidden = True
-            elif EV.is_test_attempt(s):
-                ran = True
-                rebuilt |= hidden and m.rebuilds_baseline(s)
+    rebuilt, ran = False, False
+    for _, s, _, hidden in hidden_attempts(m.obs.shell, w4, m.edit_steps_all):  # the shared marks (R3)
+        ran = True
+        rebuilt |= hidden and m.rebuilds_baseline(s)
     if not ran:
         return None
     return 0.0 if rebuilt else 1.0

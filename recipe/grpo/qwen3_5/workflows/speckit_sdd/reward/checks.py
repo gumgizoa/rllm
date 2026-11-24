@@ -20,7 +20,22 @@ rules by phase (``speckit.task_lines``), the artifact reads (``speckit.read``), 
                            then -- after a code change and with the script itself unchanged -- passing (ratio)
       {rule: before_code}  a check script ran failing before the window's first code change
       {rule: pass_last}    each verification script's last run in the window passes, after the window's last code
-                           change (ratio)
+                           change and after the script's own last write (ratio)
+
+  The shared readings (``workflow_rubric/testread.py``, the 11-24 review): a code change is a source write (R1); in
+  one shell call a run after the write is after it and a run before it before it (R2); a run with the change put
+  away (``git stash`` .. ``pop``) is left out (R3); a script's result counts from a run after its last write (R4).
+
+* ``speckit_sdd.exec`` -- the existing repository tests related to the change (core-workflow.md:79-80, 04-implement.md:62,
+  :65, :79), in the implement window::
+
+      {rule: baseline}      a valid run, before the window's first code change, of the tests related to the changed
+                            source files (``Collected.related_tests``) or of the whole suite
+      {rule: after_change}  the same after the window's last code change
+
+  R1-R3 as above, R7 for "related". Unavailable without the related-tests listing (offline); a repository with no
+  test related to the change asks for any valid test run there; a window with no code change is all "before" and
+  all "after" (as the step windows these rules replace read it).
 
 * ``speckit_sdd.tasks`` -- tasks.md rules this port adds or that need the trace::
 
@@ -70,6 +85,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric import results as R
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.replay import content_at
@@ -272,44 +288,78 @@ def checks(item: Item, ctx: EvalContext) -> Result:
         got = [s for s in check_scripts(ctx, d) if any(refs.in_window(e.step, w) for e in _content_events(ctx, s))]
         return Result.ok(item, f"{len(got)} written: {[posixpath.basename(s) for s in got][:3]}") if got else Result.no(item, f"no script written under {d}/ in the window")
     scripts = check_scripts(ctx, d, upto=end - 1)
-    runs = executions(ctx, set(scripts))
-    runs = {s: [(st, o) for st, o in r if refs.in_window(st, w)] for s, r in runs.items()}
+    # every run of each script in the window, with its place in its call (R2), the change in place (R3)
+    runs = {s: [x for x in r if refs.in_window(x.step, w)] for s, r in T.script_runs(ctx, set(scripts)).items()}
     pool = _named_in_tasks(ctx, scripts) or [s for s in scripts if runs.get(s)]
-    changes = _change_steps(ctx, w)
+    changes = T.change_marks(ctx, w)  # the source changes of the window (R1)
     if rule == "before_code":
         if not changes:
             return Result.no(item, "no code change in the window")
         first = changes[0]
         if getattr(ctx.facts, "unseen_repo_paths", None):
             return Result.no(item, "a repository change the trace does not show: its time is unknown")
-        reds = [(st, posixpath.basename(s)) for s in scripts for st, o in runs.get(s, []) if o == "fail" and st < first]
-        return Result.ok(item, f"{reds[0][1]} failed at step {reds[0][0]}, before the first code change (step {first})") if reds else Result.no(item, f"no check script ran failing before the first code change (step {first})")
+        reds = [(x.step, posixpath.basename(s)) for s in scripts for x in runs.get(s, []) if x.outcome == "fail" and T.before_all(x.mark, changes)]
+        return Result.ok(item, f"{reds[0][1]} failed at step {reds[0][0]}, before the first code change (step {first.step})") if reds else Result.no(item, f"no check script ran failing before the first code change (step {first.step})")
     if not pool:
         return Result.no(item, f"no verification script under {d}/")
     good, bad = 0, []
     if rule == "red_green":
         for s in pool:
             rs = runs.get(s, [])
-            writes = [e.step for e in _content_events(ctx, s)]
+            writes = T.own_writes(ctx, s)
             ok = any(
-                fo == "fail" and po == "pass" and fs < ps and any(fs < c < ps for c in changes) and not any(fs < x < ps for x in writes)
-                for fs, fo in rs
-                for ps, po in rs
+                f.outcome == "fail" and g.outcome == "pass" and T.before(f.mark, g.mark)
+                and any(T.after(c, f.mark) and T.before(c, g.mark) for c in changes)
+                and not any(T.after(x, f.mark) and T.before(x, g.mark) for x in writes)
+                for f in rs
+                for g in rs
             )
             good += ok
             if not ok:
                 bad.append(posixpath.basename(s))
         return Result.ratio(item, good, len(pool), f"not seen failing, then passing after a code change: {bad[:3]}" if bad else f"{good} script(s) red, then green")
     if rule == "pass_last":
-        last_change = changes[-1] if changes else w[0]
+        last_change = changes[-1].step if changes else w[0]
         for s in pool:
             rs = runs.get(s, [])
-            ok = bool(rs) and rs[-1][1] == "pass" and rs[-1][0] > last_change
+            # the last run, of the script as it stands (R4), after every code change of the window (R1 / R2)
+            ok = bool(rs) and rs[-1].outcome == "pass" and T.after_all(rs[-1].mark, changes) and T.current(rs[-1].mark, T.own_writes(ctx, s))
             good += ok
             if not ok:
                 bad.append(posixpath.basename(s))
         return Result.ratio(item, good, len(pool), f"not passing after the last code change (step {last_change}): {bad[:3]}" if bad else f"{good} script(s) pass after step {last_change}")
     return Result.no(item, f"unknown rule {rule!r}")
+
+
+# --------------------------------------------------------------------------------------------
+# speckit_sdd.exec
+# --------------------------------------------------------------------------------------------
+@register("speckit_sdd.exec", params={"rule": True, "window": False}, availability=("trace", "related_tests"), common=False, choices={"rule": ("baseline", "after_change")})
+def exec_related(item: Item, ctx: EvalContext) -> Result:
+    """rule: baseline | after_change -- a valid run of the existing tests related to the change (or the whole suite) before the window's first code change / after its last; unavailable offline."""
+    p = item.check.params or {}
+    rule = str(p.get("rule"))
+    w = _window(item, ctx)
+    if w is None:
+        return Result.no(item, "window empty")
+    changes = T.change_marks(ctx, w)  # none: the whole window is before / after (as the step windows read it)
+    runs = [r for r in T.change_runs(ctx) if refs.in_window(r.step, w)]
+    if rule == "baseline":
+        runs = [r for r in runs if T.before_all(T.run_mark(r), changes)]
+        where = f"before the first code change (step {changes[0].step})" if changes else "in the window (no code change there)"
+    elif rule == "after_change":
+        runs = [r for r in runs if T.after_all(T.run_mark(r), changes)]
+        where = f"after the last code change (step {changes[-1].step})" if changes else "in the window (no code change there)"
+    else:
+        return Result.no(item, f"unknown rule {rule!r}")
+    status, hit = T.related_run(ctx, runs)
+    if status == "unavailable":
+        return Result.unavailable(item, "related tests not collected (offline): which tests are related to the change is not known")
+    if hit is not None:
+        return Result.ok(item, f"step {hit.step}: {hit.segment[:60]!r}, {where}")
+    if status == "none":
+        return Result.ok(item, f"{len(runs)} valid test run(s) {where}; no repository test is related to the change") if runs else Result.no(item, f"no valid test run {where}")
+    return Result.no(item, f"no valid run of the tests related to the change (or the whole suite) {where}; {len(runs)} other run(s)")
 
 
 # --------------------------------------------------------------------------------------------

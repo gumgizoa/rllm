@@ -329,6 +329,26 @@ def test_the_repository_part_of_a_mixed_run_counts():
     assert not r.valid
 
 
+
+def test_a_mixed_run_cut_by_tail_counts_from_its_summary_line():
+    # wf1121 step 27 getmoto__moto-7111_4 step 53: an own test under the spec folder and a repository module in one
+    # pytest call, `| tail -60` leaving only the FAILED short-summary lines and the summary line
+    cmd = ("cd /testbed && python -m pytest /tmp/agent-os/specs/s/verify/test_package_type_default.py tests/test_awslambda/test_lambda.py "
+           "tests/test_awslambda/test_lambda.py -v 2>&1 | tail -60")
+    out = ("=========================== short test summary info ============================\n"
+           "FAILED tests/test_awslambda/test_lambda.py::test_a - AssertionError\n"
+           "FAILED tests/test_awslambda/test_lambda.py::test_b - AssertionError\n" + _summary("4 failed, 136 passed"))
+    (r,) = _runs([(cmd, out)])
+    # was (0 passed, 2 failed): what the visible lines say; the summary line is the run's
+    assert (r.valid, r.passed, r.failed, r.targets) == (True, 136, 4, ["tests/test_awslambda/test_lambda.py"])
+    # the own target's results the output shows are taken off the summary
+    shown = "/tmp/agent-os/specs/s/verify/test_package_type_default.py::test_own FAILED [  1%]\n" + out
+    (r,) = _runs([(cmd, shown)])
+    assert (r.valid, r.passed, r.failed) == (True, 136, 3)
+    # no summary line (cut off): the repository tests' per-test lines, as before
+    (r,) = _runs([(cmd, out.split("============================== ")[0])])
+    assert (r.valid, r.passed, r.failed) == (True, 0, 2)
+
 # ---- 14. pytest-pretty; output that arrives after the terminal's wait (ported from 96099612) -------------------------
 _WAIT = (
     "\n[The command has no new output after 30 seconds. You may wait longer to see additional output by sending empty command '', send other commands to "

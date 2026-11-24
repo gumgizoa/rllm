@@ -498,8 +498,8 @@ def selects(hit: Hit, workdir: str | None) -> bool | None:
     (``python -c "...pytest.main(...)"``), whose selection is not read."""
     if hit.runner.name == "python-inline":
         return None
-    if hit.runner.name == "test-file":  # a file run directly names that file, wherever it lives
-        return True
+    if hit.runner.name == "test-file":  # a test file run directly names that file, wherever it lives (an outside or
+        return True  # agent-made target dropped from ``targets`` is still a selection, never the whole suite)
     cwd, wd = hit.seg.cwd, (workdir or "").rstrip("/")
 
     def root(path: str) -> bool:  # the repository root itself (`pytest .`, `pytest /testbed`) narrows nothing
@@ -525,8 +525,6 @@ def full_suite(seg: shell.Segment, workdir: str | None) -> bool:
     except Exception:  # noqa: BLE001 -- agent text: an unparsable segment is not evidence of anything
         return False
     if hit is None or hit.runner.kind != "test" or hit.no_run or any(w in _NO_RUN for w in _runner_args(hit)):
-        return False
-    if hit.runner.name == "test-file":  # a file run directly names that file: never the whole suite
         return False
     wd = (workdir or "").rstrip("/")
     if not wd or (seg.cwd or "").rstrip("/") != wd:
@@ -1234,11 +1232,14 @@ def _target_problem(hit: Hit, c: _Ctx, step: int) -> str:
     return ""
 
 
-def _repository_part(hit: Hit, obs: str, c: _Ctx, step: int) -> tuple[list[str], Summary] | None:
+def _repository_part(hit: Hit, obs: str, c: _Ctx, step: int, summary: Summary | None = None) -> tuple[list[str], Summary] | None:
     """A pytest run whose targets mix repository test files with the run's own (outside the repository, or made by
-    the agent): (the repository targets, relative; a summary counted from the per-test lines of their tests) -- the
-    run is judged by that part. None when the targets are not mixed, or the output shows no result of the repository
-    part (the summary line counts both parts together, so it cannot stand for it)."""
+    the agent): (the repository targets, relative; the repository part's counts) -- the run is judged by that part.
+    None when the targets are not mixed, or the output shows no result of the repository part (it is valid when a
+    repository test ran, by its per-test lines). The counts: the run's own summary line (``summary`` with printed
+    counts) minus the per-test results of the other targets that the output shows -- a ``| tail`` that leaves only the
+    short-summary lines does not make the repository part what those lines say (wf1121 step 27 getmoto__moto-7111_4:
+    "4 failed, 136 passed" read as 0 passed, 2 failed); without a summary line, the repository tests' per-test lines."""
     if hit.runner.family != "pytest" or not hit.targets or hit.labels or hit.loose or (hit.script and c.existed(hit.script, step, "runner script")):
         return None
     good = [t for t in hit.targets if not c.existed(t, step, "test target")]
@@ -1252,10 +1253,16 @@ def _repository_part(hit: Hit, obs: str, c: _Ctx, step: int) -> tuple[list[str],
         f = nid.split("::")[0]
         return any(f == r or f.startswith(r.rstrip("/") + "/") for r in rel)
 
-    outcomes = [o for nid, o in pytest_outcomes(_sane(obs)).items() if ours(nid)]
-    part = _count_outcomes(Summary("pytest", 0), outcomes)
+    seen = pytest_outcomes(_sane(obs))
+    part = _count_outcomes(Summary("pytest", 0), [o for nid, o in seen.items() if ours(nid)])
     if part.ran < 1:
         return None
+    if summary is not None and summary.family == "pytest" and summary.phrases:  # the run's own summary line: all of it, less the other targets' shown results
+        other = _count_outcomes(Summary("pytest", 0), [o for nid, o in seen.items() if not ours(nid)])
+        whole = Summary("pytest", summary.pos, passed=max(summary.passed - other.passed, 0), failed=max(summary.failed - other.failed, 0), errors=max(summary.errors - other.errors, 0),
+                        skipped=max(summary.skipped - other.skipped, 0), xfail=max(summary.xfail - other.xfail, 0), phrases=list(summary.phrases))
+        whole.collected = whole.ran + whole.skipped
+        return rel, whole
     return rel, part
 
 
@@ -1474,7 +1481,7 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
         failed = _BUILD_FAIL.search(obs) is not None
         rf.passed, rf.errors, rf.collected = (0, 1, 1) if failed else (1, 0, 1)
     else:
-        mixed = _repository_part(hit, obs, c, step)
+        mixed = _repository_part(hit, obs, c, step, summary)
         if mixed is not None:  # repository test files run together with the run's own: the repository part is the run
             good, summary = mixed
             rf.targets = [t for t in rf.targets if t in good]

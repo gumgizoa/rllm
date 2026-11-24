@@ -124,7 +124,9 @@ def test_a_fail_row_over_a_clean_run_is_not_what_the_run_printed():
 def test_verified_with_the_existing_tests_not_run_again_fails():
     _, status = _score(_retext(_actions(), TEST_MD, _row("skipped")))
     assert status[P + "unrun"] == "fail"
-    assert status[P + "outcome"] == "not_applicable"  # no row names a test run: nothing to hold to its output
+    # no row names a repository test run; the reproduction row runs a check script, whose recorded pass is held to how the
+    # script came out (R4 of the 11-24 review: check-script rows are judged too)
+    assert status[P + "outcome"] == "pass"
 
 
 def test_a_round_never_begun_is_one_missing_report():

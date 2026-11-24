@@ -133,3 +133,15 @@ def test_rewriting_an_own_added_test_is_no_change_of_the_existing_module():
     assert _write_events(f"cat > {_MOD} << 'EOF'\nimport unittest\nEOF")[-1][2] is True
     # a module whose content before the run is unknown stays unknowable (None), not a change
     assert _write_events(add, fix_own, initial={_MOD: None})[-1][2] is None
+
+
+# ---- a test file run directly selects that file: never the whole suite (agentos_bugfix full_suite_phase2) ---------
+
+
+def test_a_test_file_run_directly_is_no_whole_suite_run():
+    # step 23 getmoto__moto-6802_5 step 24: the run's own check script under the spec folder, run by python
+    assert not _full_suite("python /tmp/agent-os/specs/s/verify/test_x.py")
+    assert not _full_suite("python tests/test_a.py")
+    # must keep its reading: a bare runner at the repository root is the whole suite
+    assert _full_suite("pytest")
+    assert _full_suite("python -m pytest")
