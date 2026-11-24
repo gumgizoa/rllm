@@ -337,7 +337,9 @@ def run_files(run: Any, workdir: str | None) -> tuple[str, ...]:
 def selects(target: str, file: str) -> bool:
     """A runner target selects repository test file ``file``: the file or a test in it, a directory above it, or a
     dotted label of it -- its module (``utils_tests.test_duration``), a class or test in the module, or a package above
-    it (``utils_tests``), with or without the leading directories of the path."""
+    it (``utils_tests``), with or without the leading directories of the path. A label that starts at the path's first
+    directory follows the path from there: ``tests.annotations.tests`` names ``tests/annotations/tests.py`` and no other
+    app's ``tests.py``, although its first component is the file name of every one of them."""
     t = target.split("::")[0].rstrip("/")
     if not t:
         return False
@@ -345,6 +347,10 @@ def selects(target: str, file: str) -> bool:
         return t == file or file.startswith(t + "/")
     stem = file[:-3] if file.endswith(".py") else file
     parts = t.split(".")
+    dirs = stem.split("/")
+    if len(dirs) > 1 and parts[0] == dirs[0]:
+        n = min(len(parts), len(dirs))
+        return parts[:n] == dirs[:n]
     for n in range(len(parts), 0, -1):
         c = "/".join(parts[:n])
         if stem == c or stem.endswith("/" + c):
