@@ -45,7 +45,9 @@ def _status(observation: str):
 
 
 # The harness refused the call, so nothing in it ran: the terminal reads two commands where one
-# was meant, or a previous command is still running, or the arguments failed validation. The
+# was meant, or a previous command is still running, or the arguments failed validation, or the
+# call names a tool the harness does not have ("Tool 'str_replace' not found. Available: [...]":
+# an editor command used as a tool name reads as an edit by its arguments, but nothing ran). The
 # refusal is always the very start of the observation (after the optional error banner); the same
 # words later in an observation are a command's own output and do not count. The previous command's
 # output may stand between the "[Below is the output ...]" header and the "is NOT executed" notice.
@@ -53,7 +55,8 @@ _REJECTED = re.compile(
     r"\A\s*(?:\[An error occurred during execution\.\]\s*)?"
     r"(?:Cannot execute multiple commands at once"
     r"|\[Below is the output of the previous command\.\][\s\S]*?\[Your command \"[\s\S]*?\" is NOT executed\."
-    r"|Error validating tool ')"
+    r"|Error validating tool '"
+    r"|Tool '[^'\n]*' not found)"
 )
 
 
