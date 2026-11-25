@@ -213,6 +213,14 @@ def only_own_tests(ctx: Any, r: Any, files: tuple[str, ...], whole: bool, added:
     by_ids = bool(ids) and all(any(n == f or n.endswith("/" + f) or f.endswith("/" + n) for n in named) for f in files)
     if by_ids and all(any(part.split("[")[0] in added for part in s.split("::")[1:]) for s in ids):
         return True
+    # go has no ``file::name``: its own test is run by ``-run TestNew``; jest / vitest by ``-t "title"``
+    sel = [s for s in R.selection(getattr(r, "segment", "") or "")]
+    go = [a.strip("^$'\"").split("/")[0] for s in sel if s.startswith("-run ") for a in s[5:].split("|")]
+    if go and added and all(a in added for a in go):
+        return True
+    titles = [s[3:].strip("^$'\"") for s in sel if s.startswith("-t ")]
+    if titles and added and all(any(n and (n in t or t in n) for t in added) for n in titles):
+        return True
     return all(F.is_test_path(f) and F.is_new_path(ctx, f) for f in files)
 
 
@@ -414,7 +422,7 @@ def own_test(tl: Timeline, unit: tuple[str, str], failing: Result) -> bool:
     file_part = what.split("::")[0]
     if any(file_part == f or file_part.endswith("/" + f) for f in tl.new_test_files):
         return True
-    names = {x.split("[")[0] for x in what.split("::")[1:]} if kind == "test" else set()
+    names = ({x.split("[")[0] for x in what.split("::")[1:]} | C.other_name_forms(what)) if kind == "test" else set()
     return bool(names & tl.added_tests)
 
 

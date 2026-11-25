@@ -111,7 +111,7 @@ classify:
       - '<!--.*?-->'
       - '^\s*1 \| 2\s*$'
       - 'converged \| tasks_appended'
-      - 'Example: no append-only guard detected in path/to/module\.py when writing tasks\.md'
+      - 'Example: no append-only guard detected in path/to/module\.\w+ when writing tasks\.md'
     literal:
       - '^#{2} Convergence Findings'
       - '^\| ID \| Gap Type \|'
@@ -508,7 +508,7 @@ manual:
     stage: global
     class: evidence
     requirement: must
-    check: {kind: speckit_sdd.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|plan|tasks|research|data-model|quickstart|requirements|convergence(?:-2)?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    check: {kind: speckit_sdd.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:spec|plan|tasks|research|data-model|quickstart|requirements|convergence(?:-2)?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
     availability: [trace]
     modality_evidence: "prohibition (CW:82 'Nothing of the workflow lands in `/testbed`')"
     sources:
@@ -518,7 +518,7 @@ manual:
     stage: global
     class: evidence
     requirement: must
-    check: {kind: speckit_sdd.paths_written, params: {pattern: '^/tmp/(?!speckit-sdd/specs/001-issue/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$'}}
+    check: {kind: speckit_sdd.paths_written, params: {pattern: '^/tmp/(?!speckit-sdd/specs/001-issue/)\S*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl)$'}}
     availability: [trace]
     modality_evidence: "CW:84 'A script written anywhere else ... breaks this rule'"
     sources:
@@ -1720,7 +1720,7 @@ manual:
     target: {type: artifact, ref: convergence}
     class: content
     requirement: must
-    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.py', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
+    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.\w+', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
     modality_evidence: "the skeleton's value choices and example row (CV:136-141) are what the report fills"
     sources: &report_residue
       - {path: docs/stages/05-converge.md, lines: [136, 137], quote: "- **Round**: 1 | 2 - **Outcome**: converged | tasks_appended"}
@@ -2022,7 +2022,7 @@ manual:
     target: {type: artifact, ref: convergence_2}
     class: content
     requirement: must
-    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.py', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
+    check: {kind: no_template_residue, params: {patterns: ['Example: no append-only guard detected in path/to/module\.\w+', 'Add append-only enforcement', '\*\*Round\*\*:\s*1\s*\|\s*2', 'converged\s*\|\s*tasks_appended']}}
     modality_evidence: "the skeleton's value choices and example row (CV:136-141) are what the report fills"
     sources: *report_residue
   - id: speckit_sdd.converge_2.convergence_2.speckit_sdd_report.findings

@@ -140,8 +140,12 @@ match = F.same_file  # ``name`` (as tasks.md wrote it) denotes repository file `
 # --------------------------------------------------------------------------------------------
 # a reading or checking verb (B-1's list, and the verbs of a sub-task that checks instead of changing)
 _CHECK_VERB = re.compile(r"(?i)^\s*(?:\*\*)?\s*(?:verify|confirm|check|ensure|validate|test|run)\b")
-# a path of any extension: a token with a ``/`` (its last part with an extension), or a bare ``name.ext``
-_ANYPATH = re.compile(r"(?<![\w/.-])[~./]*(?:[\w.-]+/)+[\w.-]*\w\.[A-Za-z0-9]{1,8}\b|(?<![\w/.-])[\w-][\w.-]*\.[A-Za-z][A-Za-z0-9]{0,7}\b")
+# a path of any extension: a token with a ``/`` (its last part with an extension), a bare ``name.ext``, or one of the
+# build files that have no extension (``Makefile``, ``Dockerfile``)
+_ANYPATH = re.compile(
+    r"(?<![\w/.-])[~./]*(?:[\w.-]+/)+[\w.-]*\w\.[A-Za-z0-9]{1,8}\b|(?<![\w/.-])[\w-][\w.-]*\.[A-Za-z][A-Za-z0-9]{0,7}\b"
+    r"|(?<![\w/.-])(?:[\w.-]+/)*(?:Makefile|Dockerfile|Jenkinsfile|Procfile|Gemfile|Rakefile|Caddyfile|Taskfile|Justfile)\b"
+)
 
 
 def change_lines(tasks_md: str) -> list[str]:

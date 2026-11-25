@@ -60,7 +60,9 @@ _STORY = re.compile(r"\bUser\s+Story\s+(\d+)\b", re.I)
 _US = re.compile(r"\[US(\d+)\]")
 _P = re.compile(r"\[P\]")
 _CODE = re.compile(r"`([^`\n]+)`")
-_PATHLIKE = re.compile(r"(?<![\w@:/.-])((?:\.{0,2}/)?[\w.-]+(?:/[\w.-]+)+/?|[\w-]+\.[A-Za-z][A-Za-z0-9]{0,7})(?![\w/-])")
+# a path segment: plain, an npm scope (``@scope``), or a route file / group of the JavaScript frameworks (``[id]``, ``(app)``)
+_SEG = r"(?:@?[\w.+$-]+|\[[\w.-]+\][\w.-]*|\([\w.-]+\))"
+_PATHLIKE = re.compile(r"(?<![\w@:/.-])((?:\.{0,2}/)?" + _SEG + r"(?:/" + _SEG + r")+/?|\.?[\w-]+(?:\.[\w-]+)*\.[A-Za-z][A-Za-z0-9]{0,7})(?![\w/-])")
 _URL = re.compile(r"\b[a-z][a-z0-9+.-]*://\S+", re.I)
 _MODIFY = re.compile(
     r"^\s*(?:\[[^\]\n]*\]\s*)*(?:create|add|implement|modify|update|fix|change|edit|refactor|remove|delete|rename|write|extend|rewrite|replace|adjust|correct|handle)\b",

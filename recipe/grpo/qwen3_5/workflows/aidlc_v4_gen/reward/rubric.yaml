@@ -11064,7 +11064,7 @@ items:
     kind: prohibited_action
     params:
       action: test_file_write
-      pattern: (?:^|/)tests?/
+      pattern: (?:^|/)tests?/|_test\.go$|[._-](?:test|spec)\.[cm]?[jt]sx?$|(?:^|/)(?:__tests__|__snapshots__|__mocks__|testdata|spec|e2e|cypress)/
   requirement: must
   modality_evidence: prohibition (CW:141 'DO NOT MODIFY', CG:30 'MANDATORY — do not')
   none_allowed: '-'

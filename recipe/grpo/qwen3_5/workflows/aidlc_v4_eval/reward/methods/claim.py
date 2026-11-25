@@ -46,6 +46,7 @@ from ..read import (
     R_LINE,
     SUPPORTED,
     TEST_ID,
+    test_ids,
     _field,
     _section_none,
     both_ways,
@@ -70,6 +71,13 @@ _STEP_REF = re.compile(r"\bStep\s+(\d+)", re.I)
 _SYMBOL = re.compile(r"`([\w.]+)`|\b([A-Za-z_]\w{3,})\s*\(")
 _PATCH_DEF = re.compile(r"^(?:[-+ ]\s*|@@[^@]*@@\s*)(?:async\s+)?(?:def|class)\s+(\w+)", re.M)  # changed, context and hunk-header lines
 
+# go ``func (r *T) Name(`` / ``type Name``; javascript ``function name(``, ``class Name``, ``const name =``, a method ``name(...) {``
+_OTHER_DEF = re.compile(
+    r"^(?:[-+ ]\s*|@@[^@]*@@\s*)(?:func\s+(?:\([^)]*\)\s*)?(\w+)|type\s+(\w+)\b|(?:export\s+)?(?:default\s+)?(?:async\s+)?function\*?\s+(\w+)|(?:export\s+)?(?:abstract\s+)?class\s+(\w+)"
+    r"|(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=|(?:public|private|protected|static|async)\s+(?:static\s+|async\s+)*(\w+)\s*\()",
+    re.M,
+)
+_CAMEL_NAME = re.compile(r"(?<![\w.])([a-z]+(?:[A-Z][a-z0-9]+)+\w*)")  # lowerCamelCase
 _CODE_NAME = re.compile(r"(?<![\w.])((?:_*[a-z]+(?:_[a-z0-9]+)+|[A-Z][a-z]+(?:[A-Z][a-z0-9]+)+)\w*)")  # snake_case or CamelCase, code-like
 
 
@@ -88,7 +96,10 @@ def _patch_symbols(patch: str | None) -> dict[str, set[str]]:
         if not m:
             continue
         changed = "\n".join(ln[1:] for ln in section.splitlines() if ln[:1] in "+-" and not ln.startswith(("+++", "---")))
-        out[norm_path(m.group(2))] = set(_PATCH_DEF.findall(section)) | {n for n in _CODE_NAME.findall(changed) if len(n) >= 6}
+        names = set(_PATCH_DEF.findall(section)) | {n for n in _CODE_NAME.findall(changed) if len(n) >= 6}
+        if re.search(r"\.(?:go|[cm]?[jt]sx?|vue|svelte)$", m.group(2)):  # go / javascript: their definitions and their casing
+            names |= {next(g for g in d if g) for d in _OTHER_DEF.findall(section)} | {n for n in _CAMEL_NAME.findall(changed) if len(n) >= 6}
+        out[norm_path(m.group(2))] = names
     return out
 
 
@@ -117,7 +128,7 @@ def e1_baseline_tests(m):
     """The tests 01's Baseline names appear in the baseline run's output."""
     if m.p1 is None or not m.evidence_runs:
         return None
-    names = sorted({*TEST_ID.findall(m.passing1 or ""), *TEST_ID.findall(m.failing1 or "")})
+    names = sorted({*test_ids(m.passing1), *test_ids(m.failing1)})
     if names and names_test_ids(m.evidence_out):
         return membership(names, [n in m.evidence_out for n in names])
     return None

@@ -101,7 +101,7 @@ MAX_CMD = 20_000
 MAX_TEXT = 400_000
 SCRIPTS_DIR = "/tmp/speckit-sdd/.specify/scripts/bash"
 _EXIT = re.compile(r"\[(?:The command completed with exit code|Command finished with exit code)\s+(-?\d+)\.?\]")
-_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
+_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl|php)$")
 _GAPS = ("missing", "partial", "contradicts", "unrequested")
 _SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 _CONVERGED = re.compile(r"Converged\s*[—–-]+\s*the implementation satisfies the spec, plan,? and tasks", re.I)
@@ -628,11 +628,31 @@ def _appends_only(prev: str, new: str) -> bool:
 # --------------------------------------------------------------------------------------------
 # speckit_sdd.report
 # --------------------------------------------------------------------------------------------
+def _split_cells(s: str) -> list[str]:
+    """Split a table row at its column bars: a ``|`` inside a code span is the command's own pipe (``go test ./... |
+    tail -5``), not a column -- markdown renders it so only when escaped, but the reports are written as text and a
+    command cell holds what was typed. A row whose backticks do not pair up is split at every bar."""
+    if "`" not in s or s.count("`") % 2:
+        return re.split(r"(?<!\\)\|", s)
+    out, cur, code, prev = [], [], False, ""
+    for ch in s:
+        if ch == "`":
+            code = not code
+        if ch == "|" and not code and prev != "\\":
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+        prev = ch
+    out.append("".join(cur))
+    return out
+
+
 def _cells(line: str) -> list[str]:
     s = line.strip()
     s = s[1:] if s.startswith("|") else s
     s = s[:-1] if s.endswith("|") and not s.endswith("\\|") else s
-    return [c.strip() for c in re.split(r"(?<!\\)\|", s)]
+    return [c.strip() for c in _split_cells(s)]
 
 
 def finding_rows(text: str) -> list[dict[str, str]]:
@@ -797,6 +817,7 @@ def paths_written(item: Item, ctx: EvalContext) -> Result:
 _FETCH = re.compile(
     r"(?i)(?:\b(?:curl|wget|lynx|w3m|aria2c)\b[^\n|;&]*\bhttps?://"
     r"|\b(?:urlopen|urlretrieve|requests\.(?:get|post|head|request)|httpx\.(?:get|post|head|stream))\s*\(\s*[rbuf]?['\"]https?://"
+    r"|\b(?:fetch|got|axios|axios\.(?:get|post|head|request)|https?\.(?:get|request)|http\.(?:Get|Post|Head|NewRequest)[A-Za-z]*)\s*\((?:\s*(?:ctx|\"GET\"|http\.MethodGet)\s*,)?\s*['\"`]https?://"
     r"|\bgit\s+clone\b[^\n|;&]*\bhttps?://)"
 )
 

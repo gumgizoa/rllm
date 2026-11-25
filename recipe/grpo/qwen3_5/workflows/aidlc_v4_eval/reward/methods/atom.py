@@ -21,17 +21,20 @@ from . import STAGES, method
 _LITERALS = {1: ["Recorded before any source file was modified."], 4: ["- Executed: no"]}
 
 # A test id, not a test file's name (`test_x.py` names a file: D12b asks for test ids)
-_TEST_LIKE = re.compile(r"::|\btest_\w+\b(?!\.py\b)|\w+ \([\w.]+\)|\.[Tt]est\w*\b")
+# (go: a test function's name; jest / vitest: ``describe › title``, or a title as a code span of several words)
+_TEST_LIKE = re.compile(r"::|\btest_\w+\b(?!\.py\b)|\w+ \([\w.]+\)|\.[Tt]est\w*\b|(?<![\w.:/-])(?:Test|Example|Benchmark|Fuzz)[A-Z_0-9]\w*\b(?!\.\w)|\s[›>]\s|`[^`\s]+(?:\s+[^`\s]+){2,}`")
 
 _ARROW = re.compile(r"->|→")
 
 _WHOLE_SUITE = re.compile(r"(?:\./)?(?:tests?|testing)?/?|\.")
 
-_ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|rs|java|rb|c|h|cpp|cfg|toml|ini))\b")
+_ISSUE_PATH = re.compile(r"(?<![\w/.-])((?:[\w-]+/)+[\w.-]+\.(?:py|pyi|js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|go|rs|java|rb|c|h|cpp|cfg|toml|ini))\b")
 
 _PERF = re.compile(r"\b(?:performance|slow(?:er|ly)?|fast(?:er)?|speed|memory|complexity|efficien\w*|latency|O\(|quadratic|linear time|time-?out)\b", re.I)
 
-_LANG = {"py": "python", "pyi": "python", "js": "javascript", "ts": "typescript", "go": "go", "rs": "rust", "java": "java", "rb": "ruby", "c": "c", "h": "c", "cpp": "c++"}
+_LANG = {"py": "python", "pyi": "python", "js": "javascript", "jsx": "javascript", "mjs": "javascript", "cjs": "javascript", "ts": "typescript", "tsx": "typescript", "mts": "typescript", "cts": "typescript", "go": "go", "rs": "rust", "java": "java", "rb": "ruby", "c": "c", "h": "c", "cpp": "c++"}
+
+_LANG_ALIASES = {"javascript": ("javascript", "js", "node", "nodejs", "node.js", "ecmascript"), "typescript": ("typescript", "ts"), "go": ("go", "golang")}
 
 # A document: any .md, or a .txt / .rst named as a plan, summary, report, notes or design (a bare .rst is as often
 # a reproduction's input -- a sphinx issue's index.rst -- as a document)
@@ -50,6 +53,9 @@ _ASK_USER = re.compile(
 )
 
 _PY_SCRIPT = re.compile(r"\bpython[\d.]*\s+(?!-[mc]\b)[^\s|;&]+\.py\b")
+# a go / javascript script run, and what its failing looks like when the exit code is hidden behind a pipe
+_OTHER_SCRIPT = re.compile(r"\bgo\s+run\s+\S|\b(?:node|tsx|ts-node|bun|deno\s+run)\s+(?!-[ep]\b)[^\s|;&]+\.[cm]?[jt]sx?\b")
+_OTHER_CRASH = re.compile(r"^panic: |^goroutine \d+ \[running\]|^exit status [1-9]\d*\s*$|^\S+\.go:\d+:\d+: |^\w*Error(?: \[\w+\])?: [^\n]*\n\s+at ", re.M)
 
 # A python run of inline code or a module (G7c): `python -c <code>`, `python -m <module>`
 _PY_INLINE = re.compile(r"(?:^|[\s(;&|])python[\d.]*\s+(?:-c\s+(?P<code>.+)|-m\s+(?P<module>[\w.]+))", re.S)
@@ -91,13 +97,38 @@ def _runs_package(command: str, packages: set[str]) -> bool:
     return False
 
 
+_GO_RUN = re.compile(r"\bgo\s+run\s+(?:-\S+\s+)*(\S+)")
+_NODE_INLINE = re.compile(r"\b(?:node|bun|tsx|ts-node)\s+(?:-\S+\s+)*(?:-e|-p|--eval|--print)\s+(?P<code>.+)", re.S)
+
+
+def _runs_edited(command: str, edited: set[str]) -> bool:
+    """The command runs go or javascript code the run edited: ``go run`` of a package directory or file holding an
+    edited ``.go`` file, or ``node -e`` requiring / importing an edited module by its path."""
+    cmd = F.drop_heredoc_bodies(command or "")
+    for target in _GO_RUN.findall(cmd):
+        d = norm_path(target).rstrip("/").removesuffix("/...").strip("./")
+        if any(p.endswith(".go") and (p == d or (d and p.startswith(d + "/")) or (not d and "/" not in p)) for p in edited):
+            return True
+    for hit in _NODE_INLINE.finditer(cmd):
+        code = hit.group("code")
+        for ref in re.findall(r"(?:require\(|from\s+|import\()\s*['\"`]\.{0,2}/?([\w./@-]+)['\"`]", code):
+            ref = re.sub(r"\.[cm]?[jt]sx?$", "", ref.strip("./"))
+            if ref and any(re.sub(r"\.[cm]?[jt]sx?$", "", p) in (ref, ref + "/index") or re.sub(r"\.[cm]?[jt]sx?$", "", p).endswith("/" + ref) for p in edited):
+                return True
+    return False
+
+
 # A module boundary written in Owning module: a dotted name (`django.db.models`) or a path (`django/db/models`)
 _BOUNDARY = re.compile(r"(?<![\w./])((?:[A-Za-z_]\w*)(?:[./][A-Za-z_]\w*)+)/?(?![\w])")
 
 # A signature a plan Contract names: `parse(s)`, `QuerySet.filter(**kwargs)`
 _SIGNATURE = re.compile(r"(?<![\w.])((?:\w+\.)*(\w+))\s*\(([^()]*)\)")
 
-_DEF_LINE = re.compile(r"^([-+])\s*(?:async\s+)?def\s+(\w+)\s*\(([^)]*)\)", re.M)
+# (go ``func (r *T) name(params)``; javascript / typescript ``function name(params)``, a method ``name(params) {``)
+_DEF_LINE = re.compile(
+    r"^([-+])\s*(?:(?:async\s+)?def\s+|func\s+(?:\([^)]*\)\s*)?|(?:export\s+)?(?:default\s+)?(?:async\s+)?function\*?\s+|(?:(?:public|private|protected|static|async)\s+)+)(\w+)\s*\(([^)]*)\)",
+    re.M,
+)
 
 _NEW_CONTRACT = re.compile(r"\b(?:new|introduc\w*|add(?:s|ed)?)\b", re.I)
 
@@ -334,7 +365,7 @@ def b11(m):
     if not any(m.w.values()):
         return None
     left = m.art_dir or m.obs.created
-    extra = [p for p in left if p.startswith(A.ARTIFACT_DIR + "/") and p not in A.ARTIFACT_PATHS and not m.is_repro(p) and not re.search(r"\.(?:py|sh)$", p)]
+    extra = [p for p in left if p.startswith(A.ARTIFACT_DIR + "/") and p not in A.ARTIFACT_PATHS and not m.is_repro(p) and not re.search(r"\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go)$", p)]
     return 0.0 if extra else 1.0
 
 
@@ -373,7 +404,8 @@ def d3b(m):
     if not m.p1:
         return None
     owning = _field(m.p1, "Affected Scope", "Owning module") or ""
-    bounds = [norm_path(b.replace(".", "/")) if "/" not in b else norm_path(b) for b in _BOUNDARY.findall(owning)]
+    found = [b for b in _BOUNDARY.findall(owning) if not re.search(r"\.(?:go|[cm]?[jt]sx?|json|ya?ml|mod)$", b)]  # a file's name is no module
+    bounds = [norm_path(b.replace(".", "/")) if "/" not in b else norm_path(b) for b in found]
     bounds = [b.rstrip("/") for b in bounds if b and not b.endswith((".py", ".md", ".txt"))]
     # the source files listed (a test file listed there belongs to Existing Tests, not to the owning module)
     files1 = [norm_path(f) for f in claimed_paths(_field(m.p1, "Affected Scope", "Files")) if not EV.is_test_file(norm_path(f), m.tests)]
@@ -383,8 +415,16 @@ def d3b(m):
     def inside(f: str, b: str) -> bool:
         # under the boundary directory, the boundary's own module file (`matplotlib.figure` for lib/matplotlib/figure.py),
         # at any depth (a `lib/` or `src/` source root before it)
-        return f == b or f.startswith(b + "/") or f"/{b}/" in f"/{f}" or f"/{f}".endswith(f"/{b}.py")
+        return f == b or f.startswith(b + "/") or f"/{b}/" in f"/{f}" or re.search(rf"/{re.escape(b)}\.(?:py|go|[cm]?[jt]sx?)$", f"/{f}") is not None
 
+    # a go import path (``github.com/o/r/pkg/auth``) or an npm name (``@scope/pkg``) names the module from outside the
+    # repository: the directory it ends in is the boundary; one that ends in none (the root package) decides nothing
+    outside = [b for b in bounds if "." in b.split("/")[0] or f"@{b}" in owning]
+    for b in outside:
+        parts = b.split("/")
+        tails = ["/".join(parts[i:]) for i in range(1, len(parts))]
+        bounds.remove(b)
+        bounds += [t for t in tails if any(f.startswith(t + "/") or f"/{t}/" in f"/{f}" for f in files1)][:1]
     if bounds and files1:
         return _frac([any(inside(f, b) for b in bounds) for f in files1])
     return None
@@ -400,7 +440,8 @@ def d4a(m):
     langs = {_LANG[e] for e in exts if e in _LANG}
     lang = (_field(m.p1, "Affected Scope", "Language/framework") or "").lower()
     if langs and lang:
-        return float(any(re.search(rf"(?<![\w+]){re.escape(x)}(?![\w+])", lang) for x in langs))
+        # (a language is named in more than one way: ``JS`` / ``Node.js``, ``TS``, ``Golang``)
+        return float(any(re.search(rf"(?<![\w+]){re.escape(a)}(?![\w+])", lang) for x in langs for a in _LANG_ALIASES.get(x, (x,))))
     return None
 
 
@@ -747,7 +788,7 @@ def g4b(m):
     """No new test file added to the repository."""
     if m.final is None:
         return None
-    new_tests = [p for p in m.final[1] if EV.is_test_file(norm_path(p), m.tests) and not m.is_repro(p) and "/" in p and p.endswith(".py") and "/_build/" not in p]
+    new_tests = [p for p in m.final[1] if EV.is_test_file(norm_path(p), m.tests) and not m.is_repro(p) and "/" in p and re.search(r"\.(?:py|go|[cm]?[jt]sx?)$", p) and "/_build/" not in p]
     return 0.0 if new_tests else 1.0
 
 
@@ -798,7 +839,8 @@ def g7c(m):
     if m.obs.attempts_in(after=start4, before=w4):
         return 0.0
     packages = _packages(m.obs.source_edits)
-    return 0.0 if any(_runs_package(cmd, packages) for _, cmd, _ in m.obs.shell_in(after=start4, before=w4)) else 1.0
+    edited = {norm_path(p) for p in m.obs.source_edits}
+    return 0.0 if any(_runs_package(cmd, packages) or _runs_edited(cmd, edited) for _, cmd, _ in m.obs.shell_in(after=start4, before=w4)) else 1.0
 
 
 @method("atom/G8b", materials=("AP", "COLLECT", "NONE"))
@@ -1064,11 +1106,11 @@ def h17(m):
         if any(r.outcome == "fail" for r in repro_runs):
             return True
         runs = obs.attempts_in(after=start5, before=n) + repro_runs
-        runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1])]
+        runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1]) or _OTHER_SCRIPT.search(r[1])]
         build = _field(m.p1, "Build & Test Commands", "Build") if m.p1 else None
         if build and not is_none(build) and command_core(build):
             runs += obs.command_runs(build, after=start5, before=n)
-        return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) or "Traceback (most recent call last)" in out for _, cmd, out in runs)
+        return any(failures(out) > 0 or EV.exit_code(cmd, out) not in (None, 0) or "Traceback (most recent call last)" in out or _OTHER_CRASH.search(out) is not None for _, cmd, out in runs)
 
     edits5 = m.edits5
     return 0.0 if edits5 and not failed_before(edits5[0]) else 1.0

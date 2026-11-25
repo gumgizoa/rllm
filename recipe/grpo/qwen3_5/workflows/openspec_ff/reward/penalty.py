@@ -243,7 +243,7 @@ name_of = T.name_of  # one name for a test however a runner printed it: the shar
 
 def _same_test(a: Name, b: Name) -> bool:
     """The same test: the same name, in the same module where both outputs name one (one path may be the tail of the other)."""
-    if a[1] != b[1]:
+    if a[1] != b[1] and not T.same_title(a[1], b[1]):
         return False
     n = min(len(a[0]), len(b[0]))
     return n == 0 or a[0][-n:] == b[0][-n:]
@@ -273,6 +273,11 @@ _FAILING_LINE = re.compile(r"(?im)^[ \t]*(?:[-*+][ \t]+)?\**[ \t]*fail\w*\b[^:\n
 _TEST_WORD = re.compile(r"[\w./-]*(?:::[\w.\[\]-]+)+|\b(?:\w+\.)*[Tt]est\w*(?:\.\w+)*(?:\[[^\]\s]*\])?")
 
 
+_SPAN = re.compile(r"`([^`\n]+)`")
+_COMMAND = re.compile(r"(?:cd|go|npm|npx|yarn|pnpm|bun|node|pytest|python[0-9.]*|jest|vitest|mocha|make|tox|git)\b")
+_RUNNER_WORD = re.compile(r"\b(?:go|npm|yarn|pnpm|bun)\s+(?:run\s+)?tests?\b|\bmake\s+tests?\b")
+
+
 def listed_failing(section: str) -> list[Name]:
     """The tests the Baseline section lists as failing: the test ids on its ``Failing ...:`` line and the lines under
     it, up to the next labelled bullet. Empty for ``none`` / an empty line / no such line."""
@@ -288,7 +293,15 @@ def listed_failing(section: str) -> list[Name]:
     text = "\n".join(lines)
     if _NONE.match(text.strip().strip("`* \t")):
         return []
-    return list(dict.fromkeys(name_of(w) for w in _TEST_WORD.findall(text)))
+    names: list[str] = []
+    for ln in lines:
+        # a jest / vitest test is listed by its title: a code span of several words that is no command
+        titles = [c.strip() for c in _SPAN.findall(ln) if len(c.split()) >= 3 and not _COMMAND.match(c.strip()) and "::" not in c]
+        names += titles
+        rest = _SPAN.sub(lambda m: " " if m.group(1).strip() in titles else m.group(0), ln)
+        # the word ``test`` of a command (``go test ./...``, ``npm test``) is no test's name
+        names += _TEST_WORD.findall(_RUNNER_WORD.sub(" ", rest))
+    return list(dict.fromkeys(name_of(w) for w in names))
 
 
 def _baseline_claim(ctx: EvalContext, q: "Measured") -> None:

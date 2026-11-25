@@ -439,7 +439,7 @@ manual:
     stage: global
     class: evidence
     requirement: must
-    check: {kind: agentos_v2.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    check: {kind: agentos_v2.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
     availability: [trace]
     modality_evidence: "CW:86-87 'Nothing that belongs to the workflow goes into /testbed'"
     sources:
@@ -449,7 +449,7 @@ manual:
     stage: global
     class: evidence
     requirement: should
-    check: {kind: agentos_v2.paths_written, params: {pattern: '^/tmp/(?!agent-os/specs/[^/]+/checks/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$'}}
+    check: {kind: agentos_v2.paths_written, params: {pattern: '^/tmp/(?!agent-os/specs/[^/]+/checks/)\S*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl)$'}}
     availability: [trace]
     modality_evidence: "CW:87 'scratch files to S/checks/' (where, not a prohibition: should)"
     sources:

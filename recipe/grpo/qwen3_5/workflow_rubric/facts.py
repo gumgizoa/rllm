@@ -60,7 +60,11 @@ WRITE_OPS = frozenset({"create", "overwrite", "append", "edit", "unknown", "move
 DATE_RX = r"\d{4}-\d{2}-\d{2}"
 _NAME = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PYTHON = re.compile(r"^(?:python|pypy)[0-9.]*$")
-_SCRIPT_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "ts-node", "ruby", "perl", "php", "Rscript", "julia", "lua", "source", "."})
+_SCRIPT_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "ts-node", "ts-node-esm", "tsx", "bun", "ruby", "perl", "php", "Rscript", "julia", "lua", "source", "."})
+# node / deno / bun / tsx: the options that take a value, and the sub-command before the script (``deno run x.ts``)
+_JS_INTERP = frozenset({"node", "deno", "bun", "tsx", "ts-node", "ts-node-esm"})
+_JS_INTERP_ARG = frozenset({"-r", "--require", "--import", "--loader", "--experimental-loader", "--tsconfig", "-P", "--project", "--conditions", "-C", "--env-file", "--inspect-port", "--cwd", "--config", "-c"})
+_GO_RUN_ARG = frozenset({"exec", "tags", "mod", "modfile", "ldflags", "gcflags", "asmflags", "p", "C", "overlay", "pkgdir", "toolexec", "buildmode", "compiler", "installsuffix"})
 
 _TEST_PATH = re.compile(
     r"(?:^|/)(?:tests|__tests__|spec)/|^/?(?:test|testing)/|(?:^|/)(?:test|testing)/(?!.*\.py$)"
@@ -68,14 +72,25 @@ _TEST_PATH = re.compile(
     r"|(?:^|/)test-data/|(?:^|/)test/test(?!cases\.py$)[^/_][^/]*\.py$"
     r"|_test\.go$|\.(?:test|spec)\.[cm]?[jt]sx?$|_(?:spec|test)\.rb$|(?:^|/)test_[^/]*\.(?:rb|php)$"
     r"|(?:^|/)[^/]*Tests?\.(?:java|kt|cs|scala|php)$|_test\.(?:rs|cc|cpp|c|exs?)$"
+    # what tests keep beside the code in Go and JavaScript / TypeScript: go's ``testdata/`` (golden files, inputs),
+    # jest's ``__snapshots__/`` / ``__mocks__/`` / ``__fixtures__/``, end-to-end suites (``e2e/``, ``cypress/``,
+    # ``x.cy.ts``), a test file named with a dash or an underscore (``x-test.ts``), a snapshot or golden file
+    r"|(?:^|/)(?:testdata|__snapshots__|__mocks__|__fixtures__|e2e|cypress)/|[-_](?:test|spec)\.[cm]?[jt]sx?$|\.cy\.[cm]?[jt]sx?$|\.snap$|\.golden$"
 )
 # Untracked paths that running or building a project leaves behind: not an edit the trace hides.
 _GENERATED = re.compile(
     r"(?:^|/)(?:__pycache__|\.pytest_cache|\.mypy_cache|\.ruff_cache|\.hypothesis|\.benchmarks|\.tox|\.nox|\.eggs|\.venv|venv|node_modules|htmlcov|\.coverage[^/]*)(?:/|$)"
     r"|^(?:build|dist)/|\.egg-info(?:/|$)|\.py[cod]$|\.so$|\.o$|\.log$|\.sqlite3?$|\.db$"
+    # go: a coverage or profile output (not ``*.test``: mypy's test data has that name); JavaScript / TypeScript:
+    # coverage, incremental build info
+    r"|(?:^|/)(?:coverage|cover|c)\.out$|\.(?:cover|prof)profile$|(?:^|/)(?:coverage|\.nyc_output|\.turbo|\.vitest-cache|\.jest-cache)(?:/|$)|\.tsbuildinfo$"
+    # a workspace package's build output (``packages/x/dist/``); what an install rewrites (lock files, ``go.sum``)
+    r"|(?:^|/)(?:packages|apps|libs)/[^/]+/(?:dist|build|\.next|\.nuxt)/|(?:^|/)(?:go\.sum|go\.work\.sum|package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)$"
 )
-_CODE_EXT = re.compile(r"\.(?:py|pyx|pyi|js|jsx|ts|tsx|mjs|cjs|go|rs|java|kt|scala|c|cc|cpp|h|hpp|cs|rb|php|swift|m|sh|pl|lua|r|jl|ex|exs|toml|cfg|ini|ya?ml|json)$", re.I)
-_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
+# (with the JavaScript / TypeScript module forms, and the grammar and template files a parser or a code generator is
+# built from: peggy's ``src/parser.pegjs``, gqlgen's ``codegen/*.gotpl`` are the code those tasks change)
+_CODE_EXT = re.compile(r"\.(?:py|pyx|pyi|js|jsx|ts|tsx|mjs|cjs|mts|cts|vue|svelte|pegjs|peggy|gotpl|gohtml|tmpl|go|rs|java|kt|scala|c|cc|cpp|h|hpp|cs|rb|php|swift|m|sh|pl|lua|r|jl|ex|exs|toml|cfg|ini|ya?ml|json)$|(?:^|/)go\.(?:mod|work)$", re.I)
+_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl|php)$")
 # a throwaway name: one of these words, then a separator, a digit or the extension (``repro_x.py``, ``check.py``, ``debug2.sh``)
 _SCRATCH_NAME = re.compile(r"(?i)^(?:repro|reproduce|reproducer|reproduction|debug|scratch|tmp|temp|check|verify|tests?|try|demo|example|run|issue|bug|fix)[_\-.\d]")
 
@@ -283,6 +298,40 @@ def last_change_write(ctx: EvalContext):
     return UNKNOWN if ctx.facts.unseen_repo_paths else None
 
 
+def repo_language(ctx: EvalContext) -> str | None:
+    """The language the run worked in: ``py``, ``go`` or ``js`` (JavaScript / TypeScript), by the files it changed,
+    wrote and looked at and by the runners it started; None when the run shows none of the three. For the few rules
+    whose reading of a name depends on the language's conventions (a camelCase identifier is how Go and JavaScript
+    spell one; in a Python run such a word stays what it was read as before)."""
+    cache = getattr(ctx, "cache", None)
+    if cache is None or getattr(ctx, "facts", None) is None:  # a context without a run behind it: nothing to read
+        return None
+    cached = cache.get("facts.repo_language", "?")
+    if cached != "?":
+        return cached
+    from collections import Counter
+
+    from .collect import source_language
+
+    n: Counter = Counter()
+    for p in getattr(getattr(ctx, "collected", None), "diff", None) or {}:
+        n[source_language(p)] += 3
+    for e in ctx.facts.repo_writes:
+        n[source_language(e.path)] += 2
+    for step in getattr(getattr(ctx, "run", None), "steps", None) or []:
+        for a in step.actions:
+            if a.kind == "view" and a.path:
+                n[source_language(a.path)] += 1
+    by_runner = {"go-test": "go", "go-build": "go", "go-vet": "go", "jest": "js", "vitest": "js", "mocha": "js", "npm-test": "js", "npm-build": "js", "tsc": "js"}
+    for r in ctx.facts.runs:
+        lang = by_runner.get(r.runner) or ("py" if r.runner in ("pytest", "unittest", "django", "tox", "python-inline", "test-file") else None)
+        n[lang] += 2
+    n.pop(None, None)
+    out = n.most_common(1)[0][0] if n else None
+    ctx.cache["facts.repo_language"] = out
+    return out
+
+
 def executed_paths(ctx: EvalContext) -> list[tuple[int, str]]:
     """(step, normalised path) of every script the run executed -- ``python x.py``, ``bash x.sh``,
     ``./x``, ``node x.js``, ``source x`` -- and every runner target; paths as ``refs.norm_path`` gives them."""
@@ -315,6 +364,47 @@ def _executed(seg: shell.Segment) -> list[str]:
     if _PYTHON.match(verb):
         mode, val, _ = evidence.py_args(words[1:])
         return path(val or "") if mode == "script" else []
+    rest = [w.text for w in words[1:]]
+    if verb in ("yarn", "pnpm", "bun", "npm") and rest:  # `yarn tsx x.ts`, `pnpm exec ts-node x.ts`, `bun run x.ts`
+        k = 1 if rest[0] in ("run", "exec", "dlx", "x") and len(rest) > 1 else 0
+        if rest[k] in _JS_INTERP:
+            verb, rest = rest[k], rest[k + 1 :]
+        elif verb == "bun" and _SCRIPT_EXT.search(rest[k]):
+            rest = rest[k:]
+        else:
+            return []
+    if verb == "go":  # `go run x.go [y.go] [args]`, `go run ./cmd/repro`: the files, or the package directory
+        if not rest or rest[0] != "run":
+            return []
+        ops, i = [], 1
+        while i < len(rest):
+            t = rest[i]
+            if t.startswith("-") and len(t) > 1 and not ops:
+                i += 2 if ("=" not in t and t.lstrip("-") in _GO_RUN_ARG) else 1
+                continue
+            if ops and not t.endswith(".go"):
+                break  # the program's own arguments
+            ops.append(t)
+            if not t.endswith(".go"):
+                break  # a package: one operand
+            i += 1
+        return [p for t in ops for p in path(t)]
+    if verb in _JS_INTERP:
+        ops, i = [], 0
+        while i < len(rest):
+            t = rest[i]
+            if t in ("-e", "--eval", "-p", "--print", "--test"):
+                return []
+            if t.startswith("-") and len(t) > 1:
+                i += 2 if ("=" not in t and t in _JS_INTERP_ARG) else 1
+                continue
+            ops.append(t)
+            i += 1
+        if ops and verb in ("deno", "bun") and ops[0] in ("run", "test", "x"):
+            if ops[0] != "run":
+                return []
+            ops = ops[1:]
+        return path(ops[0]) if ops else []
     if verb in _SCRIPT_VERBS:
         ops = [w.text for w in words[1:] if not w.text.startswith("-")]
         if verb in ("bash", "sh", "zsh", "dash", "ksh") and any(w.text.startswith("-") and "c" in w.text[1:] for w in words[1:2]):
@@ -778,6 +868,93 @@ def _date_unseen(f: Facts, unseen: list[str], diff: Mapping[str, str], pre: str)
     return out
 
 
+# Go / JavaScript tools that rewrite files of the repository as their job, and what each can have written. A file the
+# final change holds that no traced write made is such a tool's when one of them ran: the write is dated at that
+# command, as a script's side effect is (:func:`_date_unseen`), not left as a change from outside the trace.
+_WEB_FILE = re.compile(r"\.(?:[cm]?[jt]sx?|json|md|mdx|css|scss|less|ya?ml|vue|svelte|html|graphql)$")
+_GO_MOD_FILE = re.compile(r"(?:^|/)(?:go\.mod|go\.sum|go\.work|go\.work\.sum)$|(?:^|/)vendor/")
+_JS_DEP_FILE = re.compile(r"(?:^|/)(?:package\.json|package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|\.yarnrc\.yml|\.pnp\.c?js)$")
+_SNAPSHOT_FILE = re.compile(r"\.snap$|(?:^|/)__snapshots__/")
+_WRITING_SCRIPT = re.compile(r"(?:^|[:._-])(?:build|generate|gen|codegen|parser|format|fmt|lint|fix|prettier|compile|prepare|docs?|proto|schema|types|snapshots?|update)(?:$|[:._-])")
+_PM = frozenset({"npm", "yarn", "pnpm", "bun"})
+
+
+def _tool_scope(seg: shell.Segment, workdir: str):
+    """None, or the test (repo-relative path -> bool) of what the tool command ``seg`` can have rewritten."""
+    cmd = [w for w in (seg.cmd or seg.argv or []) if w]
+    if not cmd:
+        return None
+    verb, args = posixpath.basename(cmd[0]), cmd[1:]
+    flags = {a for a in args if a.startswith("-")}
+    ops = [a for a in args if not a.startswith("-")]
+
+    def under(rx: re.Pattern | None, operands: list[str]):
+        roots = []
+        for o in operands:
+            if seg.cwd is None and not o.startswith("/"):
+                return lambda rel: rx is None or rx.search(rel) is not None  # where it ran is unknown: by kind only
+            a = shell.resolve(o.rstrip("/").removesuffix("/...").removesuffix("..."), seg.cwd).rstrip("/")
+            roots.append("" if a == workdir.rstrip("/") else a[len(workdir.rstrip("/")) + 1 :] if a.startswith(workdir.rstrip("/") + "/") else None)
+        roots = [r for r in roots if r is not None] if operands else [""]
+        return lambda rel: (rx is None or rx.search(rel) is not None) and any(r == "" or rel == r or rel.startswith(r + "/") for r in roots)
+
+    if verb in ("gofmt", "goimports", "gofumpt") and any(f.lstrip("-").startswith("w") or f == "-w" for f in flags):
+        return under(re.compile(r"\.go$"), ops)
+    if verb == "go" and ops[:1] == ["fmt"]:
+        return under(re.compile(r"\.go$"), ops[1:])
+    if verb == "go" and ops[:1] == ["generate"]:
+        return lambda rel: _GO_MOD_FILE.search(rel) is None and _JS_DEP_FILE.search(rel) is None
+    if verb == "go" and (ops[:1] == ["get"] or ops[:2] in (["mod", "tidy"], ["mod", "vendor"], ["mod", "download"], ["mod", "edit"], ["work", "sync"])):
+        return lambda rel: _GO_MOD_FILE.search(rel) is not None
+    if verb == "prettier" and flags & {"--write", "-w"}:
+        return under(_WEB_FILE, ops)
+    if verb == "eslint" and any(f.startswith("--fix") for f in flags):
+        return under(_WEB_FILE, ops)
+    if verb in ("jest", "vitest") and (flags & {"-u", "--updateSnapshot", "--update", "--ci=false"}):
+        return lambda rel: _SNAPSHOT_FILE.search(rel) is not None
+    if verb in _PM:
+        if ops[:1] and ops[0] in ("install", "i", "ci", "add", "remove", "rm", "update", "up", "upgrade", "dedupe", "link") or (verb == "yarn" and not ops):
+            return lambda rel: _JS_DEP_FILE.search(rel) is not None
+        k = 1 if ops[:1] in (["run"], ["run-script"]) else 0
+        script = ops[k] if len(ops) > k else ""
+        if script in ("test", "t", "tst") and (flags & {"-u", "--updateSnapshot", "--update"}):
+            return lambda rel: _SNAPSHOT_FILE.search(rel) is not None
+        if script and _WRITING_SCRIPT.search(script) and not re.match(r"tests?(?:$|[:._-])", script):
+            return lambda rel: _JS_DEP_FILE.search(rel) is None and _GO_MOD_FILE.search(rel) is None
+    return None
+
+
+def _date_by_tool(f: Facts, unseen: list[str], diff: Mapping[str, str], workdir: str, authored: tuple[int, int] | None = None) -> list[WriteEvent]:
+    """A write event, content unknown, for each changed file no traced write made that a tool the run started can have
+    written (:func:`_tool_scope`). ``go generate`` rewriting ``generated.go``, ``go mod tidy`` rewriting ``go.sum``,
+    ``prettier --write .`` reformatting a file, ``jest -u`` rewriting a snapshot are the run's own changes, made at a
+    step the trace shows. Which step: the first such command after the run's first own write (``authored``: its step
+    and action) -- what a generator or a formatter writes differs from the commit once the sources do; a build run
+    before any edit (``npm run build`` to look at the project) rewrote the file to what it was. With no such command
+    after it, the first one."""
+    if not unseen:
+        return []
+    tools: list[tuple[int, int, object]] = []
+    for cmd in f.commands:
+        try:
+            segs = shell.flat(shell.split(cmd.command, cmd.cwd)[0])
+        except Exception:  # noqa: BLE001 -- agent text
+            continue
+        for sg in segs:
+            scope = _tool_scope(sg, workdir)
+            if scope is not None:
+                tools.append((cmd.step, cmd.action_index, scope))
+    out: list[WriteEvent] = []
+    for path in unseen:
+        st = diff.get(path)
+        able = [(step, idx) for step, idx, scope in tools if scope(path)]
+        hit = next((t for t in able if authored is not None and t > authored), able[0] if able else None)
+        if hit is not None:
+            op = "delete" if st == "D" else "create" if st in ("A", "?") else "edit"
+            out.append(WriteEvent(path=path, step=hit[0], op=op, content=None, source="other", action_index=hit[1]))
+    return out
+
+
 def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | None) -> None:
     if not workdir:
         if c.diff:
@@ -818,6 +995,12 @@ def _repo_writes(f: Facts, rubric: Rubric, c: Collected, roots, workdir: str | N
             repo.extend(dated)
             unseen = [p for p in unseen if p not in {e.path for e in dated}]
             f.notes.append(f"repo changes dated by the first command naming them: {[(e.path, e.step) for e in dated[:5]]}" + (f" (+{len(dated) - 5})" if len(dated) > 5 else ""))
+        own = [(int(e.step), int(e.action_index or 0)) for e in repo if e.ok is not False and e.op not in ("unknown", "restore")]
+        by_tool = _date_by_tool(f, unseen, c.diff, workdir, min(own) if own else None)
+        if by_tool:
+            repo.extend(by_tool)
+            unseen = [p for p in unseen if p not in {e.path for e in by_tool}]
+            f.notes.append(f"repo changes dated by the tool command that makes them: {[(e.path, e.step) for e in by_tool[:5]]}" + (f" (+{len(by_tool) - 5})" if len(by_tool) > 5 else ""))
     repo.sort(key=lambda e: (e.step, e.action_index))
     f.repo_writes = repo
     ok = [e for e in repo if e.ok is not False]

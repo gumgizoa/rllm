@@ -472,7 +472,7 @@ REQ_H2 = ("Initial Description", "Requirements Discussion", "Requirements Summar
 REQ_H3 = ("First Round Questions", "Existing Code to Reference", "Functional Requirements", "Reusability Opportunities", "Scope Boundaries", "Technical Considerations")
 # E-5 row 10: overview.md 56, 89: scratch files go to S/verify/ -- any file under /tmp outside the spec folder,
 # and a script in the spec folder outside verify/ (as before). ``verify/`` with its slash: verifications/ is not it.
-SCRATCH_PATTERN = r"^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!verify/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$"
+SCRATCH_PATTERN = r"^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!verify/)\S*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl)$"
 FEATURE_LINE = r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*)?Feature\b"
 # B-6 row 5: create-tasks.md now says tasks.md keeps its three sections (build.py T10); the section item cites it.
 KEEP_SECTIONS_QUOTE = "Whatever you adapt, every tasks.md keeps the example's three sections: `## Overview` with its `Total Tasks:` line, `## Task List`, and `## Execution Order`"

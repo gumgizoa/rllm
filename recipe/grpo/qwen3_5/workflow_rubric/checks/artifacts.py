@@ -670,7 +670,13 @@ def _under(mod: str, prefix: str) -> bool:
 
 
 _DEF = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)\s*\(", re.M)
-_GREP_LINE = re.compile(r"^(\S+?\.py)[:-]\d+[:-]")
+# go: ``func TestX(t *testing.T)`` (Example / Benchmark / Fuzz alike) in a ``_test.go`` file; jest / vitest / mocha: the
+# title of ``it('...')`` / ``test("...")`` in a test file -- what those runners print (or do not, in a quiet run)
+_GO_DEF = re.compile(r"^\s*func\s+((?:Test|Example|Benchmark|Fuzz)\w*)\s*\(", re.M)
+_JS_DEF = re.compile(r"(?<![\w.])(?:it|test)(?:\.(?:only|skip|each|concurrent|failing|todo))*\s*\(\s*(['\"`])((?:(?!\1).)+)\1")
+_JS_TEST_FILE = re.compile(r"(?:[._-](?:test|spec)\.[cm]?[jt]sx?|(?:^|/)(?:__tests__|tests?|spec)/[^\n]*\.[cm]?[jt]sx?)$")
+_OTHER_DEF_HINT = re.compile(r"\bfunc (?:Test|Example|Benchmark|Fuzz)|(?<![\w.])(?:it|test)(?:\.\w+)*\(")
+_GREP_LINE = re.compile(r"^(\S+?\.(?:py|go|[cm]?[jt]sx?))[:-]\d+[:-]")
 _LINE_NO = re.compile(r"^\s*\d+(?:\t|[:-])")  # an editor view / `cat -n` / `grep -n` line number
 
 
@@ -691,15 +697,16 @@ def _observed_defs(ctx: EvalContext) -> dict[str, set[str]]:
     out: dict[str, set[str]] = {}
 
     def add(rel: str, text: str, step: int) -> None:
-        if not rel.endswith(".py") or rel.startswith("/") or is_new_path(ctx, rel) or first_write.get(rel, 1 << 30) <= step:
+        rx = _DEF if rel.endswith(".py") else _GO_DEF if rel.endswith("_test.go") else _JS_DEF if _JS_TEST_FILE.search(rel) else None
+        if rx is None or rel.startswith("/") or is_new_path(ctx, rel) or first_write.get(rel, 1 << 30) <= step:
             return
-        for name in _DEF.findall(text[:400_000]):
-            out.setdefault(name, set()).update(_dotted(rel))
+        for m in rx.finditer(text[:400_000]):
+            out.setdefault(m.group(m.lastindex), set()).update(_dotted(rel))
 
     for st in ctx.run.steps:
         for idx, a in enumerate(st.actions):
             obs = a.observation or ""
-            if "def test" not in obs:
+            if "def test" not in obs and not _OTHER_DEF_HINT.search(obs):
                 continue
             cwd = cwd_track.get((st.n, idx), wd)
             targets: list[str] = []
@@ -757,6 +764,9 @@ def _anchored(entry: str, scopes: set[str], defs: dict[str, set[str]]) -> bool:
     entry the runs selected (it, or a scope above or below it); a test entry whose name a base file under a run's
     selection defines (``def test_y``), in the module the entry names if it names one. Prose has no such shape."""
     mod, name = _entry_parts(entry)
+    title = _title_of(entry, defs)
+    if title is not None:  # a go test function or a jest / vitest title the shown source defines
+        mod, name = title
     if name is None:
         # a file / module entry: path- or dotted-shaped (or a label a run named), inside or around what a run named --
         # the whole-suite scope does not vouch for a file it never named ("tests/test_ghost.py", "all tests")
@@ -769,7 +779,67 @@ def _anchored(entry: str, scopes: set[str], defs: dict[str, set[str]]) -> bool:
         return False
     if not mod:
         return True
+    if title is not None and "." not in mod and any(mod in f.split(".") for f in files):
+        return True  # go: ``followschema.TestX`` names the package by its directory's own name
     return any(_overlap(mod, f) or _overlap(mod.rsplit(".", 1)[0], f) for f in files)
+
+
+_TITLE_SEP = re.compile(r"\s+[›>]\s+")
+_JS_LINE = re.compile(r"^\s*(?:[✓✔√✕×✗○●]|(?:PASS|FAIL)\s)\s*(.+?)(?:\s+\(?\d+(?:\.\d+)?\s?m?s\)?)?\s*$", re.M)
+
+
+def _plain(entry: str) -> str:
+    """One recorded id as typed: no markdown marks, no reasoning after an arrow."""
+    s = re.sub(r"\s+", " ", entry[:500]).strip().strip("`*'\"")
+    return re.split(r"\s+(?:->|→|=>)\s+", s, maxsplit=1)[0].strip().strip("`*'\"")
+
+
+def _title_parts(text: str) -> tuple[str | None, list[str]]:
+    """(file, title segments) of a jest / vitest id: ``test/a.spec.js::describe › name``, ``test/a.test.ts > describe >
+    name``, ``describe › name`` or a bare title."""
+    file = None
+    if "::" in text:
+        file, text = text.split("::", 1)
+    segs = [x.strip() for x in _TITLE_SEP.split(text) if x.strip()]
+    if file is None and segs and _JS_TEST_FILE.search(segs[0]):
+        file, segs = segs[0], segs[1:]
+    return file, segs
+
+
+def _title_of(entry: str, defs: dict[str, set[str]]) -> tuple[str | None, str] | None:
+    """(module, name) when the entry is a test the shown source defines by a name python's shapes do not hold: a go
+    function (``TestX``, ``pkg.TestX``, ``TestX/sub``) or a jest / vitest title (free text, the last segment of
+    ``describe › name``)."""
+    s = _plain(entry)
+    file, segs = _title_parts(s)
+    for cand in ([segs[-1]] if segs else []) + [s]:
+        if cand in defs and not re.fullmatch(r"test\w*", cand):
+            mods = _dotted(file) if file else []
+            return (mods[0] if mods else None), cand
+    tok = s.split(" ")[0].split("/")[0]
+    head, _, last = tok.rpartition(".")
+    if last in defs and re.fullmatch(r"(?:Test|Example|Benchmark|Fuzz)\w*", last):
+        return (head or None), last
+    return None
+
+
+def _printed_titles(runs) -> set[str]:
+    """What jest / vitest runs printed as test names: each test line's text and its ``describe › name`` segments."""
+    out: set[str] = set()
+    for r in runs:
+        for text in [m.group(1) for m in _JS_LINE.finditer((r.observation or "")[-400_000:])] + [i for i in evidence.js_failing_ids(r.observation or "")]:
+            file, segs = _title_parts(text.strip())
+            out.update(x for x in (text.strip(), " › ".join(segs), *(segs[-1:]), *([file] if file else [])) if x)
+    return out
+
+
+def _titled(entry: str, titles: set[str]) -> bool:
+    """The entry is a test name a jest / vitest run printed: the whole name, or its last ``describe › name`` segment."""
+    if not titles:
+        return False
+    s = _plain(entry)
+    _file, segs = _title_parts(s)
+    return s in titles or bool(segs) and (segs[-1] in titles or " › ".join(segs) in titles)
 
 
 def _same_test(entry: str, pool: list[str]) -> bool:
@@ -792,7 +862,8 @@ def _test_id(item: Item, ctx: EvalContext, entries: list[str], w, run_kind) -> R
     runs = [r for r in ctx.facts.runs if r.valid and refs.in_window(r.step, w) and (run_kind is None or r.kind == run_kind)]
     hay = "\n".join(h for r in runs for h in (*r.ids, *r.targets, r.command, r.segment, r.observation) if h)
     scopes = _run_scopes(ctx, runs)
-    hits = [x for x in entries if any(k in hay for k in _id_keys(x)) or (runs and _anchored(x, scopes, _observed_defs(ctx)))]
+    titles = _printed_titles(runs)
+    hits = [x for x in entries if any(k in hay for k in _id_keys(x)) or _titled(x, titles) or (runs and _anchored(x, scopes, _observed_defs(ctx)))]
     misses = [x for x in entries if x not in hits]
     return Result.ratio(item, len(hits), len(entries), f"{len(hits)}/{len(entries)} ids in valid runs" + (f"; not: {misses[:3]}" if misses else ""))
 
@@ -815,9 +886,19 @@ def _failed_test_id(item: Item, ctx: EvalContext, entries: list[str], w, run_kin
         v = refs.select(ctx, listed)
         vals = [v] if isinstance(v, str) else [str(x) for x in (v or [])]
         listed_ids = [x for val in vals for x in M.split_list(_subjects(val)) if not M.is_none(x) and not M.is_placeholder(x)]
-    hits = [x for x in entries if _same_test(x, failing) or _same_test(x, listed_ids) or (hay and any(k in hay for k in _id_keys(x)))]
+    failed_titles = {t for f in failing for t in _title_forms(f)}
+    listed_titles = {t for f in listed_ids for t in _title_forms(_plain(f))}
+    hits = [x for x in entries if _same_test(x, failing) or _same_test(x, listed_ids) or _titled(x, failed_titles) or _titled(x, listed_titles) or (hay and any(k in hay for k in _id_keys(x)))]
     misses = [x for x in entries if x not in hits]
     return Result.ratio(item, len(hits), len(entries), f"{len(hits)}/{len(entries)} ids failed in a valid run or listed" + (f"; not: {misses[:3]}" if misses else ""))
+
+
+def _title_forms(test_id: str) -> set[str]:
+    """The forms one jest / vitest id is written in: the id, ``describe › name``, the name."""
+    if " " not in test_id and "::" not in test_id:
+        return set()  # a python / go id: its own shapes are compared by `_same_test`
+    _file, segs = _title_parts(test_id)
+    return {x for x in (test_id, " › ".join(segs), *(segs[-1:])) if x}
 
 
 _ARROW = re.compile(r"\s*(?:->|→|=>)\s*")

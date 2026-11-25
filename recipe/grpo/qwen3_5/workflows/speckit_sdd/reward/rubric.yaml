@@ -9919,7 +9919,7 @@ items:
     params:
       patterns:
       - converged\ \|\ tasks_appended
-      - Example:\ no\ append\-only\ guard\ detected\ in\ path/to/module\.py\ when\ writing\ tasks\.md
+      - Example:\ no\ append\-only\ guard\ detected\ in\ path/to/module\.\w+\ when\ writing\ tasks\.md
   requirement: should
   modality_evidence: 'binding docs/stages/05-converge.md:130-132 ''write a compact, severity-graded summary to this round''s
     report: `FEATURE_DIR/convergen...'' (implicit: -); dict implicit'
@@ -9964,7 +9964,7 @@ items:
     kind: no_template_residue
     params:
       patterns:
-      - 'Example: no append-only guard detected in path/to/module\.py'
+      - 'Example: no append-only guard detected in path/to/module\.\w+'
       - Add append-only enforcement
       - \*\*Round\*\*:\s*1\s*\|\s*2
       - converged\s*\|\s*tasks_appended
@@ -11159,7 +11159,7 @@ items:
     params:
       patterns:
       - converged\ \|\ tasks_appended
-      - Example:\ no\ append\-only\ guard\ detected\ in\ path/to/module\.py\ when\ writing\ tasks\.md
+      - Example:\ no\ append\-only\ guard\ detected\ in\ path/to/module\.\w+\ when\ writing\ tasks\.md
   requirement: should
   modality_evidence: 'binding docs/stages/05-converge.md:130-132 ''write a compact, severity-graded summary to this round''s
     report: `FEATURE_DIR/convergen...'' (implicit: -); dict implicit'
@@ -11205,7 +11205,7 @@ items:
     kind: no_template_residue
     params:
       patterns:
-      - 'Example: no append-only guard detected in path/to/module\.py'
+      - 'Example: no append-only guard detected in path/to/module\.\w+'
       - Add append-only enforcement
       - \*\*Round\*\*:\s*1\s*\|\s*2
       - converged\s*\|\s*tasks_appended
@@ -12455,7 +12455,7 @@ items:
   check:
     kind: speckit_sdd.created_files
     params:
-      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|plan|tasks|research|data-model|quickstart|requirements|convergence(?:-2)?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
+      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:spec|plan|tasks|research|data-model|quickstart|requirements|convergence(?:-2)?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
   requirement: must
   modality_evidence: prohibition (CW:82 'Nothing of the workflow lands in `/testbed`')
   none_allowed: '-'
@@ -12488,7 +12488,7 @@ items:
   check:
     kind: speckit_sdd.paths_written
     params:
-      pattern: ^/tmp/(?!speckit-sdd/specs/001-issue/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
+      pattern: ^/tmp/(?!speckit-sdd/specs/001-issue/)\S*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl)$
   requirement: must
   modality_evidence: CW:84 'A script written anywhere else ... breaks this rule'
   none_allowed: '-'

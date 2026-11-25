@@ -315,7 +315,7 @@ def script_runs(ctx: EvalContext, paths: set[str], keep_stashed: bool = False) -
         segs = R.segments(ctx, c)
         cmd = c.command or ""
         for i, seg in enumerate(segs):
-            hit = R.executed_by(seg) & paths
+            hit = R.runs_of(seg, paths)
             if not hit:
                 continue
             m = Mark(int(c.step), c.action_index, _find(cmd, seg.text or ""))
@@ -405,6 +405,25 @@ def last_result(runs: list[ScriptRun], writes: list[Mark]) -> ScriptRun | None:
 # --------------------------------------------------------------------------------------------
 _PARAM = re.compile(r"^(?P<base>[^\[]*)(?P<param>\[.*\])?$", re.S)
 Name = tuple[tuple[str, ...], str]
+_JS_SEP = re.compile(r"\s+[›>]\s+")
+_JS_TITLE = re.compile(r"\s[›>]\s|^[^\s./:]+(?:\s+[^\s]+){2,}$")  # ``describe › title``, or a title of three words or more
+
+
+def _js_tail(name: str) -> str | None:
+    """The title of a jest / vitest name (``describe › title`` -> ``title``); None for a name that has no such form."""
+    segs = _JS_SEP.split(name.strip())
+    return segs[-1].strip() if len(segs) > 1 else None
+
+
+def _js_norm(name: str) -> str:
+    return " › ".join(x.strip() for x in _JS_SEP.split(name.strip()))
+
+
+def same_title(a: str, b: str) -> bool:
+    """Two names are one jest / vitest test: ``describe › title`` and the title alone (as a document lists it), or the
+    same name with ``>`` for ``›``. False for names that have no such form (python's, go's)."""
+    ta, tb = _js_tail(a), _js_tail(b)
+    return (ta is not None and ta == b.strip()) or (tb is not None and tb == a.strip()) or (ta is not None and tb is not None and _js_norm(a) == _js_norm(b))
 
 
 def name_of(tid: str) -> Name:
@@ -413,6 +432,8 @@ def name_of(tid: str) -> Name:
     (the section form, which names no file, has an empty module)."""
     m = _PARAM.match((tid or "").strip())
     base, param = (m.group("base"), m.group("param") or "") if m else ((tid or "").strip(), "")
+    if "::" not in base and _JS_TITLE.search(base):  # a jest / vitest title written without its file: the name as it is
+        return (), (tid or "").strip()
     if "::" in base:
         head, *rest = base.split("::")
         mod = [c for c in (head[:-3] if head.endswith(".py") else head).split("/") if c and c != "."]
@@ -426,7 +447,7 @@ def same_test(a: str, b: str) -> bool:
     """Two printed test ids name the same test: the same name, in the same module where both name one (one path may
     be the tail of the other)."""
     x, y = name_of(a), name_of(b)
-    if x[1] != y[1]:
+    if x[1] != y[1] and not same_title(x[1], y[1]):
         return False
     n = min(len(x[0]), len(y[0]))
     return n == 0 or x[0][-n:] == y[0][-n:]
@@ -517,6 +538,9 @@ def mentions_test_file(r: Any, path: str, workdir: str | None) -> bool:
     stem = posixpath.splitext(posixpath.basename(rel))[0]
     if stem not in ("tests", "test", "__init__") and re.search(r"(?<![\w/])" + re.escape(stem) + r"(?![\w])", text):
         return True
+    bare = re.sub(r"[._-](?:test|spec)$", "", stem)  # ``slug.test.ts``: jest / vitest take ``slug`` as a pattern on test paths
+    if bare != stem and bare not in ("index", "main", "test", "tests", "spec") and re.search(r"(?<![\w/.-])" + re.escape(bare) + r"(?![\w-])", r.command or ""):
+        return True
     dotted = ".".join(x for x in posixpath.splitext(rel)[0].split("/") if x)
     if "." in dotted and re.search(r"(?<![\w.])" + re.escape(dotted) + r"(?![\w])", text):
         return True  # the module's dotted path: a python -c importing it (``from tests.decorators.tests import X``), a label
@@ -594,6 +618,13 @@ def _named_after(path: str, test: str) -> bool:
     directory there named after one of the source's packages below the top one (``tests/utils_tests/`` for
     ``django/utils/``, ``tests/admin_docs/`` for ``django/contrib/admindocs/``) -- not a same-named module of another
     package (``tests/generic_views/test_base.py`` is no test of ``django/db/models/base.py``)."""
+    from .collect import go_test_ere, js_test_ere, source_language
+
+    lang = source_language(path)
+    if lang == "go":  # the package's own tests: the ``*_test.go`` files of its directory
+        return re.search(go_test_ere(path), test) is not None
+    if lang == "js":  # ``<stem>.test.ts``, ``__tests__/<stem>.js``, the test folder of a directory's ``index``
+        return re.search(js_test_ere(path), test) is not None
     parts = path.rsplit("/", 1)
     stem = posixpath.splitext(parts[-1])[0]
     if stem == "__init__" and len(parts) == 2:
@@ -637,18 +668,44 @@ def related_tests(ctx: EvalContext) -> list[str] | None:
 def _changed_sources(ctx: EvalContext) -> list[str]:
     """The changed Python source files the related tests are looked up for: the diff's (``collect.changed_sources``),
     else the run's source changes (``facts.source_paths``)."""
-    from .collect import changed_sources
+    from .collect import changed_sources, source_language
 
     if ctx.collected.diff is not None:
         return changed_sources(ctx.collected)
-    return sorted(p for p in F.source_paths(ctx) if p.endswith(".py"))
+    return sorted(p for p in F.source_paths(ctx) if p.endswith(".py") or source_language(p) in ("go", "js"))
 
 
 def runs_related(ctx: EvalContext, r: Any, tests: list[str]) -> bool:
-    """The valid run ``r`` ran tests of the changed code: the whole suite, or a target naming one of ``tests`` (the file,
-    its stem, a directory holding it, Django's label)."""
+    """The valid run ``r`` ran tests of the changed code: the whole suite, a target naming one of ``tests`` (the file,
+    its stem, a directory holding it, Django's label), or a JavaScript run of the package directory holding one."""
     wd = ctx.collected.workdir
-    return whole_suite(ctx, r) or any(mentions_test_file(r, t, wd) or targets_dir_of(r, t, wd) for t in tests)
+    if whole_suite(ctx, r) or any(mentions_test_file(r, t, wd) or targets_dir_of(r, t, wd) for t in tests):
+        return True
+    below = _package_dir(ctx, r)
+    return bool(below) and any(_rel(t, wd).startswith(below + "/") for t in tests)
+
+
+_JS_RUNS = frozenset({"npm-test", "jest", "vitest", "mocha", "jasmine"})
+
+
+def _package_dir(ctx: EvalContext, r: Any) -> str | None:
+    """The directory (repo-relative) whose tests a jest / vitest run or a package script ran by where it started: one
+    below the repository root, with no path or path pattern given (``cd packages/arktype-validator && yarn test --run``
+    runs that workspace package's tests). None for any other run."""
+    if getattr(r, "runner", None) not in _JS_RUNS or r.targets:
+        return None
+    wd = (ctx.collected.workdir or "").rstrip("/")
+    start = getattr(ctx.facts, "_cwd_track", {}).get((getattr(r, "step", None), getattr(r, "action_index", None)))
+    try:
+        segs = shell.flat(shell.split(r.command or r.segment, start or wd)[0])
+        want = (r.segment or "").strip()
+        seg = next((s for s in segs if (s.text or "").strip() == want), None)
+        hit = E.classify(seg) if seg is not None else None
+    except Exception:  # noqa: BLE001
+        return None
+    if hit is None or not wd or not seg.cwd or not seg.cwd.startswith(wd + "/") or E.path_patterns(hit):
+        return None
+    return seg.cwd[len(wd) + 1 :].rstrip("/") or None
 
 
 def related_run(ctx: EvalContext, runs: list) -> tuple[str, Any]:
@@ -714,6 +771,7 @@ __all__ = [
     "run_stashed",
     "runs_related",
     "same_test",
+    "same_title",
     "script_history",
     "script_runs",
     "seen_files",

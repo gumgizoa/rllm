@@ -39,16 +39,46 @@ from .trace import Run, _args, _text
 SUPPORTED, PARTIAL, CONTRADICTED = 1.0, 0.5, 0.0
 
 SOURCE_EXT = re.compile(
-    r"\.(py|pyi|pyx|js|jsx|mjs|cjs|ts|tsx|go|rs|java|kt|rb|php|c|h|cc|cpp|hpp|cs|swift|sh|"
+    r"\.(py|pyi|pyx|js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|svelte|go|gotpl|pegjs|proto|rs|java|kt|rb|php|c|h|cc|cpp|hpp|cs|swift|sh|"
     r"yaml|yml|toml|json|cfg|ini|txt|md|rst|html|css|sql)$",
     re.I,
 )
 
-PATH_RE = re.compile(r"[\w./-]*[\w-]/[\w./-]+|[\w-]+\.[A-Za-z]{1,5}\b")
+# (a path segment may be an npm scope or a route file of the JavaScript frameworks -- ``packages/@scope/x``, ``app/[id].tsx``
+# -- and a build file has no extension: ``Makefile``, ``Dockerfile``)
+PATH_RE = re.compile(r"@?[\w./-]*[\w-]/(?:[\w.@-]|\[[\w.-]+\])(?:[\w./@-]|\[[\w.-]+\])*|[\w-]+\.[A-Za-z]{1,5}\b|(?<![\w/.-])(?:Makefile|Dockerfile)\b")
 
 PATH_LINE_RE = re.compile(r"((?:[\w./-]*/)?[\w-]+\.[A-Za-z]{1,5}):(\d+)")
 
 TEST_ID = re.compile(r"\b(test_\w+)")
+# The names Go and JavaScript / TypeScript give a test: a go test function (``TestX``; Example / Benchmark / Fuzz
+# alike) -- not python's class in an id (``::TestX::``, ``TestX.test_y``, ``mod.TestX``) -- and a jest / vitest title,
+# written as a code span of several words or as ``describe › title``.
+GO_TEST_ID = re.compile(r"(?<![\w.:/-])((?:Test|Example|Benchmark|Fuzz)[A-Z_0-9]\w*)(?![\w.:(]|/\S*\.py)")
+_JS_TITLE_SPAN = re.compile(r"`([^`\n]+)`")
+_NOT_A_TITLE = re.compile(r"^\s*(?:cd|go|npm|npx|yarn|pnpm|bun|node|pytest|python[0-9.]*|jest|vitest|mocha|make|tox|git)\b|::|\.py\b")
+_NAMED_OUTPUT = re.compile(r"\btest_\w+|^\s*(?:---|===) (?:PASS|FAIL|RUN|SKIP):?\s+\w+|^\s*[✓✔√✕×✗●]\s+\S", re.M)
+
+
+def other_test_ids(text: str | None) -> list[str]:
+    """The go and jest / vitest test names in an artifact's text (:data:`GO_TEST_ID`; a code span of three words or
+    more that is no command, the title after its last ``›``)."""
+    t = text or ""
+    out = list(GO_TEST_ID.findall(t))
+    for span in _JS_TITLE_SPAN.findall(t):
+        span = span.strip()
+        if _NOT_A_TITLE.search(span):
+            continue
+        if re.search(r"\s[›>]\s", span):
+            out.append(re.split(r"\s+[›>]\s+", span)[-1].strip())
+        elif len(span.split()) >= 3:
+            out.append(span)
+    return list(dict.fromkeys(x for x in out if x))
+
+
+def test_ids(text: str | None) -> list[str]:
+    """Every test name in an artifact's text: python's ``test_x`` and the go / jest / vitest ones."""
+    return list(dict.fromkeys([*TEST_ID.findall(text or ""), *other_test_ids(text)]))
 
 # An R id named anywhere (``Exercises: R1, R3``); a requirement line of artifact 02 is ``R_LINE`` (skeleton ``R_ID``).
 R_REF = re.compile(r"\bR\d+\b")
@@ -239,7 +269,7 @@ def passed_count(out: str) -> int | None:
 
 
 def names_test_ids(out: str) -> bool:
-    return TEST_ID.search(out) is not None
+    return _NAMED_OUTPUT.search(out) is not None
 
 
 def last_exit(out: str) -> int | None:
@@ -853,7 +883,11 @@ def _hit_targets(hit, workdir: str | None) -> list[str]:
     files = [f for f in (_repo_path(t, workdir) for t in hit.targets) if f and f not in named]
     loose = [t[2:] if t.startswith("./") else t for t in hit.loose]
     labels = [lbl for lbl, _ in hit.labels]
-    options = [o for o in SR.selection(hit.seg.text) if o.startswith("-")]
+    if hit.runner.name in ("go-test", "npm-test", "jest", "vitest", "mocha", "jasmine"):
+        # go / jest / vitest: what narrows the run is its value (``-run TestX`` -> TestX, a path pattern, a package)
+        options = [o.split(" ", 1)[1] for o in SR.selection(hit.seg.text) if " " in o and o.split(" ", 1)[0] in ("-run", "-skip", "-t", "--testPathPattern", "path", "pkg")]
+    else:
+        options = [o for o in SR.selection(hit.seg.text) if o.startswith("-")]
     return list(dict.fromkeys([*nodes, *files, *loose, *labels, *options]))
 
 
@@ -925,6 +959,8 @@ def command_has_tokens(command: str, tokens) -> bool:
 
 INSTALL = re.compile(
     r"^(?:sudo\s+)?(?:(?:pip3?|python[0-9.]*\s+-m\s+pip|uv\s+pip|conda|mamba|micromamba|gem|cargo)\s+install|(?:apt|apt-get|yum|dnf|apk)\s+(?:install|add)|(?:npm|pnpm)\s+(?:install|i|add)|yarn\s+add|python[0-9.]*\s+setup\.py\s+(?:install|develop))\b"
+    # go and the other JavaScript forms: ``npm ci``, ``yarn install`` / a bare ``yarn``, ``bun install``, ``go mod download``
+    r"|^(?:sudo\s+)?(?:(?:npm\s+(?:ci|update|rebuild|link)|yarn\s+(?:install|up)|bun\s+(?:install|add|i)|(?:pnpm|yarn)\s+dlx|npx\s+(?:--yes|-y)|corepack\s+(?:enable|prepare|install)|go\s+get|go\s+mod\s+(?:download|tidy|vendor)|go\s+work\s+sync)\b|yarn(?:\s+--?[\w-]+(?:=\S+)?)*\s*$|go\s+install\b(?!(?:\s+-\S+)*\s+\.))"
 )
 
 

@@ -276,7 +276,7 @@ SCRIPT_EXT_RE = re.compile(r"\.(py|js|mjs|cjs|ts|tsx|go|sh|rb|java|pl)$", re.I)
 
 DOCLIKE_RE = re.compile(r"\.(txt|md|patch|diff|rst)$|(^|/)[^/]*(plan|summary|report|notes)[^/]*$", re.I)
 
-RUNNER = r"(?:python[0-9.]*|node|ts-node|npx\s+ts-node|go\s+run|bash|sh|zsh|ruby|perl|java)"
+RUNNER = r"(?:python[0-9.]*|node|ts-node|tsx|bun(?:\s+run)?|deno\s+run|(?:npx|bunx|pnpm\s+exec|pnpm|yarn)\s+(?:ts-node|tsx)|go\s+run|bash|sh|zsh|ruby|perl|java)"
 
 
 def matches_any(text: str, patterns) -> bool:

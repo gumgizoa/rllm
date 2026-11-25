@@ -297,6 +297,19 @@ _DOT_SLASH = re.compile(r"(?<![\w./-])\./(?=[\w-])")
 _PY_SCRIPT = re.compile(_SEG_START + r"python\s+(?=[\w./-]+\.py(?:\s|$))")
 
 
+# JavaScript: the package managers' ways to start one tool or one script -- ``npx jest`` / ``yarn jest`` / ``pnpm exec
+# jest`` are ``jest``; ``yarn test x`` / ``pnpm run test x`` / ``npm test -- x`` are ``npm run test x``.
+_JS_BIN = r"(?:jest|vitest|mocha|jasmine|ava|tsc|eslint|prettier|tsx|ts-node|playwright|cypress)"
+_JS_EXEC = re.compile(_SEG_START + r"(?:npx(?:\s+(?:--yes|-y|--no-install|--no))*|bunx|(?:pnpm|yarn|npm)\s+exec(?:\s+--)?|(?:pnpm|yarn)\s+dlx)\s+(?=[\w@./-])")
+_JS_PM_BIN = re.compile(_SEG_START + r"(?:yarn|pnpm|bun)\s+(?:run\s+)?(?=" + _JS_BIN + r"(?:\s|$))")
+_JS_TEST = re.compile(_SEG_START + r"(?:npm|yarn|pnpm|bun)\s+(?:test|tst|t)(?=\s|$)")
+_JS_SCRIPT = re.compile(
+    _SEG_START + r"(?:(?:npm|yarn|pnpm|bun)\s+run(?:-script)?|yarn|pnpm)\s+"
+    r"(?!(?:add|install|i|ci|remove|rm|exec|dlx|up|update|upgrade|why|list|ls|init|publish|link|config|cache|workspaces?|run|create|audit|outdated|pack|info|bin|set|version|store|import|patch|rebuild|prune|dedupe|-\S*)(?:\s|$))([\w:.@/-]+)"
+)
+_JS_SEP = re.compile(r"((?:^|(?<=&&)|(?<=;)|(?<=\|\|))\s*npm run [\w:.@/-]+)\s+--(?=\s|$)")
+
+
 def _canon_invocation(c: str) -> str:
     if len(c) > 4000:
         return c
@@ -309,6 +322,12 @@ def _canon_invocation(c: str) -> str:
     c = _WORKDIR_PREFIX.sub("", c)
     c = _DOT_SLASH.sub("", c)
     c = _PY_SCRIPT.sub(" ", c)
+    if re.search(r"\b(?:npx|bunx|npm|yarn|pnpm|bun)\b", c):
+        c = _JS_EXEC.sub(" ", c)
+        c = _JS_PM_BIN.sub(" ", c)
+        c = _JS_TEST.sub(" npm run test", c)
+        c = _JS_SCRIPT.sub(lambda m: f" npm run {m.group(1)}", c)
+        c = _JS_SEP.sub(r"\1", _WS.sub(" ", c).strip())
     return _WS.sub(" ", c).strip()
 
 

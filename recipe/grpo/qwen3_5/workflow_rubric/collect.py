@@ -60,7 +60,11 @@ PRUNE = (".git", "node_modules", "__pycache__")
 
 _MARK = "@@WFR"
 _FAIL = b"\x01WFRFAIL"  # appended to a git listing whose command failed
-_GIT = "GIT_OPTIONAL_LOCKS=0 git -c safe.directory='*' -c core.fsmonitor=false --literal-pathspecs"
+# core.fileMode=false: a task image whose working tree differs from its HEAD by the executable bit alone (a copy
+# that made every file 755: 74 of the 99 Go / JS / TS images looked at, 600 to 8,000 files each) starts with every
+# such file "modified"; neither the status before the run nor the diff after it is to list a file whose content
+# is the commit's.
+_GIT = "GIT_OPTIONAL_LOCKS=0 git -c safe.directory='*' -c core.fsmonitor=false -c core.fileMode=false --literal-pathspecs"
 _PH = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _SHA = re.compile(r"[0-9a-f]{7,64}")
 _BATCH_CHARS = 48_000
@@ -443,7 +447,7 @@ def parse_files(output: str, c: Collected) -> None:
 # --------------------------------------------------------------------------------------------
 # Exec 2: git diff, untracked files, base-tree membership
 # --------------------------------------------------------------------------------------------
-_KNOWN_EXT = frozenset("py pyi pyx js jsx mjs cjs ts tsx go rs rb java kt scala c cc cpp h hpp cs php sh bash pl lua swift r toml cfg ini json yaml yml txt md rst lock xml html css sql".split())
+_KNOWN_EXT = frozenset("py pyi pyx js jsx mjs cjs ts tsx go rs rb java kt scala c cc cpp h hpp cs php sh bash pl lua swift r toml cfg ini json yaml yml txt md rst lock xml html css sql mts cts vue svelte mod sum".split())
 _TOKEN = re.compile(r"[\w./@+-]+")
 _DOTTED = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+")
 _URL = re.compile(r"(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]*://\S+")
@@ -718,9 +722,61 @@ MAX_CHANGED_FOR_TESTS = 20
 MAX_SYMBOLS = 40
 MAX_RELATED_BYTES = 256 * 1024
 # A test file by path, for GNU grep -E: the Python-side ``facts.is_test_path`` is the final word.
-_TEST_PATH_ERE = r"(^|/)(tests|__tests__|spec|test|testing)/|(^|/)test_[^/]*\.py$|(^|/)[^/]*_tests?\.py$|(^|/)conftest\.py$|_test\.go$|\.(test|spec)\.[cm]?[jt]sx?$|_(spec|test)\.rb$"
+_TEST_PATH_ERE = r"(^|/)(tests|__tests__|spec|test|testing)/|(^|/)test_[^/]*\.py$|(^|/)[^/]*_tests?\.py$|(^|/)conftest\.py$|_test\.go$|[._-](test|spec)\.[cm]?[jt]sx?$|\.cy\.[cm]?[jt]sx?$|_(spec|test)\.rb$|(^|/)(testdata|__snapshots__|__mocks__|__fixtures__|e2e|cypress)/"
 _SOURCE_EXT = re.compile(r"\.(?:py|pyx|pyi)$")
+_GO_EXT = re.compile(r"\.go$")
+_JS_EXT = re.compile(r"(?<!\.d)\.(?:[cm]?[jt]sx?|vue|svelte)$")  # not a ``.d.ts`` declaration file
+_JS_TEST_DIR = "(__tests__|tests|test|spec|specs)"
+_JS_SUFFIX = r"\.[cm]?[jt]sx?"
 _IDENT = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def source_language(path: str) -> str | None:
+    """``py`` / ``go`` / ``js`` (JavaScript and TypeScript) for a source path whose related tests can be looked up."""
+    if _SOURCE_EXT.search(path):
+        return "py"
+    if _GO_EXT.search(path):
+        return "go"
+    return "js" if _JS_EXT.search(path) else None
+
+
+def go_test_ere(path: str) -> str:
+    """ERE for the test files of the Go package source file ``path`` is in: go's tests live in the package's own
+    directory (``pkg/auth/token.go`` -> ``pkg/auth/*_test.go``) and ``go test`` runs them as one."""
+    d = posixpath.dirname(path)
+    return "^" + (re.escape(d) + "/" if d else "") + r"[^/]*_test\.go$"
+
+
+def js_test_ere(path: str) -> str:
+    """ERE for a test *path* named after JavaScript / TypeScript source file ``path``: ``<stem>.test.ts`` /
+    ``<stem>.spec.js`` / ``<stem>-test.js`` anywhere, or a file called ``<stem>`` under a test directory
+    (``test/<stem>.ts``, ``__tests__/<stem>.js``). A module that is its directory's ``index`` is named by the directory:
+    the test files of the directory's own test folder (``lib/rules/x/index.js`` -> ``lib/rules/x/__tests__/*``) and the
+    ones named after the directory."""
+    d, base = posixpath.split(path)
+    stem = _JS_EXT.sub("", base)
+    alts = []
+    if stem == "index" and d:
+        alts.append("^" + re.escape(d) + "/" + _JS_TEST_DIR + "/")
+        alts.append("^" + re.escape(d) + "/index[._-](test|spec)" + _JS_SUFFIX + "$")
+        stem = posixpath.basename(d)
+    if stem and stem != "index":
+        x = re.escape(stem)
+        alts.append(f"(^|/){x}[._-](test|spec){_JS_SUFFIX}$")
+        alts.append(f"(^|/){_JS_TEST_DIR}/(.*/)?{x}{_JS_SUFFIX}$")
+    return "|".join(alts) or "^$"
+
+
+def _js_import_ere(path: str) -> str:
+    """ERE a test file's text matches when it imports the module by a path ending in its name (``from '../src/slug'``,
+    ``require("./slug.js")``, ``import('../slug')``); for a directory's ``index``, by the directory (``'../rules/x'``)."""
+    d, base = posixpath.split(path)
+    stem = _JS_EXT.sub("", base)
+    if stem == "index" and d:
+        name = re.escape(posixpath.basename(d)) + "(/index(" + _JS_SUFFIX + ")?)?"
+    else:
+        name = re.escape(stem) + "(" + _JS_SUFFIX + ")?"
+    return "(from|import|require)[[:space:]]*\\(?[[:space:]]*['\"]([^'\"]*/)?" + name + "['\"]"
 
 
 def _module_parts(path: str) -> tuple[str, str, str]:
@@ -809,6 +865,15 @@ def related_script(workdir: str, base_sha: str, changed: list[str]) -> str:
         f"echo \"{_MARK} NTESTS $(tr -cd '\\000' < \"$TL\" | wc -c)\"",
     ]
     for path in changed[:MAX_CHANGED_FOR_TESTS]:
+        lang = source_language(path)
+        if lang in ("go", "js"):  # by name (go: the package's own tests) and, for JavaScript / TypeScript, by import
+            by_name = f"grep -zE {shlex.quote(go_test_ere(path) if lang == 'go' else js_test_ere(path))} < \"$TL\" | tr '\\000' '\\n'; "
+            by_import = f"xargs -0 -r grep -lE -e {shlex.quote(_js_import_ere(path))} -- < \"$TL\" 2>/dev/null; " if lang == "js" else ""
+            lines += [
+                f"echo '{_MARK} REL {base64.b64encode(path.encode('utf-8')).decode('ascii')}'",
+                "{ " + by_name + by_import + "} | sort -u | head -c " + str(MAX_RELATED_BYTES) + " | base64 -w0; echo",
+            ]
+            continue
         stem, dotted, parent = _module_parts(path)
         if not stem or not _IDENT.match(stem):
             continue
@@ -878,12 +943,13 @@ def parse_related(output: str, c: Collected, changed: list[str]) -> None:
 
 
 def changed_sources(c: Collected) -> list[str]:
-    """The diff's code paths exec 3 looks up tests for: no test files, no run byproducts, Python only."""
+    """The diff's code paths exec 3 looks up tests for: no test files, no run byproducts; Python, Go, JavaScript and
+    TypeScript sources (:func:`source_language`)."""
     from .facts import is_generated, is_test_path
 
     if not c.diff:
         return []
-    return sorted(p for p in c.diff if _SOURCE_EXT.search(p) and not is_test_path(p) and not is_generated(p))
+    return sorted(p for p in c.diff if source_language(p) and not is_test_path(p) and not is_generated(p))
 
 
 # --------------------------------------------------------------------------------------------
@@ -941,4 +1007,4 @@ def collect(sandbox, rubric: Rubric, info: TaskInfo, run: Run | None) -> Collect
     return c
 
 
-__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "changed_sources", "collect", "parse_related", "related_script", "resolve_roots", "scan_plan", "status_paths", "task_info", "wants_related"]
+__all__ = ["MAX_BYTES", "MAX_FILES", "TaskInfo", "candidate_paths", "changed_sources", "source_language", "go_test_ere", "js_test_ere", "collect", "parse_related", "related_script", "resolve_roots", "scan_plan", "status_paths", "task_info", "wants_related"]
