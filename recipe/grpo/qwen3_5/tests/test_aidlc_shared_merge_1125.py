@@ -351,3 +351,106 @@ def test_d3_a_run_stopped_at_its_first_failure_did_not_run_what_it_covers():
     ctx2 = _ctx([sh("cd /testbed && python -m pytest -q tests/test_mod.py", out2 + BAD)], diff={})
     b2 = T.as_result(ctx2, ctx2.facts.runs[0])
     assert not b2.stopped and T.ran_test(b2, "tests/test_mod.py::test_b")
+
+
+# ==== D5: the existing tests of the changed code ======================================================================
+def _git(repo: Path, *args: str) -> str:
+    import os
+    import subprocess
+
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True, env=env).stdout
+
+
+def _listing(tmp_path: Path, files: dict[str, str], changed: dict[str, str]) -> dict[str, list[str]] | None:
+    import subprocess
+
+    from recipe.grpo.qwen3_5.workflow_rubric import collect as C
+
+    r = tmp_path / "testbed"
+    for p, text in files.items():
+        (r / p).parent.mkdir(parents=True, exist_ok=True)
+        (r / p).write_text(text)
+    _git(r, "init", "-q")
+    _git(r, "add", "-A")
+    _git(r, "commit", "-qm", "base")
+    base = _git(r, "rev-parse", "HEAD").strip()
+    for p, text in changed.items():
+        (r / p).write_text(text)
+    c = Collected(workdir=str(r), base_sha=base)
+    out = subprocess.run(["sh", "-c", C._command(C.related_script(str(r), base, list(changed)))], check=True, capture_output=True, text=True, timeout=60).stdout
+    C.parse_related(out, c, list(changed))
+    return c.related_tests
+
+
+def test_d5_the_listing_holds_tests_importing_a_re_exported_name(tmp_path):
+    # D5 case 7 (M2): Q is defined in the changed query_utils.py and imported by the test through the package
+    files = {
+        "django/db/models/query_utils.py": "class Q:\n    def negate(self):\n        return 1\n",
+        "django/db/models/__init__.py": "from django.db.models.query_utils import Q\n",
+        "tests/queries/test_q.py": "from django.db.models import F, Q\n",
+        "tests/other/test_misc.py": "Q = 1\n",  # must keep its reading: a short name outside an import is nothing
+        "tests/model_forms/test_models.py": "x = 1\n",  # a distant package name (models): no test of query_utils.py
+    }
+    rel = _listing(tmp_path, files, {"django/db/models/query_utils.py": "class Q:\n    def negate(self):\n        return 2\n"})
+    assert rel == {"django/db/models/query_utils.py": ["tests/queries/test_q.py"]}
+
+
+def test_d5_the_listing_holds_tests_calling_a_management_command(tmp_path):
+    # D5 case 15 (M2): the changed loaddata command is reached through call_command("loaddata")
+    files = {
+        "django/core/management/commands/loaddata.py": "class Command:\n    def handle(self):\n        return 1\n",
+        "tests/fixtures_regress/tests.py": "from django.core import management\nmanagement.call_command('loaddata', 'x.json')\n",
+        "tests/user_commands/tests.py": "management.call_command('dumpdata')\n",  # must keep: another command
+    }
+    rel = _listing(tmp_path, files, {"django/core/management/commands/loaddata.py": "class Command:\n    def handle(self):\n        return 2\n"})
+    assert rel == {"django/core/management/commands/loaddata.py": ["tests/fixtures_regress/tests.py"]}
+
+
+def test_d5_a_package_name_matches_only_near_the_package(tmp_path):
+    # D5 case 19 (M2): fields/__init__.py does not claim other packages' test_fields.py
+    files = {
+        "django/db/models/fields/__init__.py": "class AutoField:\n    def check(self):\n        return 1\n",
+        "tests/contenttypes_tests/test_fields.py": "x = 1\n",
+        "django/db/models/fields/tests/test_fields.py": "x = 1\n",  # must keep: the package's own tests
+    }
+    rel = _listing(tmp_path, files, {"django/db/models/fields/__init__.py": "class AutoField:\n    def check(self):\n        return 2\n"})
+    assert rel == {"django/db/models/fields/__init__.py": ["django/db/models/fields/tests/test_fields.py"]}
+
+
+def test_d5_a_python_c_importing_the_test_module_by_its_dotted_path_targets_it():
+    from types import SimpleNamespace
+
+    # D5 case 3 (M2): python -c runs tests/decorators/tests.py through `from tests.decorators.tests import ...`
+    r = SimpleNamespace(command='cd /testbed && python -c "from tests.decorators.tests import MethodDecoratorTests; import unittest; unittest.main()"', targets=[], ids=[])
+    assert T.mentions_test_file(r, "tests/decorators/tests.py", WD)
+    # must keep its reading: another module of the package is not it
+    assert not T.mentions_test_file(r, "tests/decorators/other.py", WD)
+
+
+def test_d5_offline_the_tests_named_after_the_file_that_the_run_saw_near_it():
+    view = lambda p, obs="x = 1": Action("view", "file_editor", path=p, observation=obs)  # noqa: E731
+    acts = [
+        view(f"{WD}/sympy/core/tests/test_mod.py"),
+        view(f"{WD}/tests/generic_views/test_base.py"),  # D5 case 12: another package's test_base.py
+        sh(f"cat {WD}/astropy/io/fits/tests/test_card.py", f"cat: {WD}/astropy/io/fits/tests/test_card.py: No such file or directory" + BAD),  # case 8: not there
+        view(f"{WD}/tests/test_util.py"),
+        view(f"{WD}/tests/utils_tests/test_datastructures.py"),  # D5 case 4: Django's tests/<package>_tests/
+        view(f"{WD}/tests/admin_docs/test_utils.py"),
+        sh("cd /testbed && python -m pytest sympy/core/tests/test_mod.py", PASS + OK),
+    ]
+    ctx = _ctx(acts, diff={"sympy/core/mod.py": "M", "django/db/models/base.py": "M", "astropy/io/fits/card.py": "M", "pkg/util.py": "M"}, base=())
+    assert ctx.collected.related_tests is None
+    assert T.related_for(ctx, "sympy/core/mod.py") == ["sympy/core/tests/test_mod.py"]
+    assert T.related_for(ctx, "django/db/models/base.py") is None
+    assert T.related_for(ctx, "astropy/io/fits/card.py") is None
+    assert T.related_for(ctx, "pkg/util.py") == ["tests/test_util.py"]  # must keep: the top-level tests/ of a package
+    assert T.related_for(ctx, "django/utils/datastructures.py") == ["tests/utils_tests/test_datastructures.py"]
+    assert T.related_for(ctx, "django/contrib/admindocs/utils.py") == ["tests/admin_docs/test_utils.py"]
+    (run,) = [r for r in ctx.facts.runs if r.valid]
+    assert T.related_file_run(ctx, "sympy/core/mod.py", [run]) is True
+    assert T.related_file_run(ctx, "pkg/util.py", [run]) is False
+    assert T.related_run(ctx, [run]) == ("hit", run)
+    # must keep its reading: offline with no test of the changed code seen, the related tests are unknown
+    bare = _ctx([sh("cd /testbed && python -m pytest tests/test_mod.py", PASS + OK)], diff={"django/db/models/base.py": "M"}, base=())
+    assert T.related_tests(bare) is None and T.related_run(bare, bare.facts.runs) == ("unavailable", None)

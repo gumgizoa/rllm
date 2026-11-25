@@ -192,8 +192,9 @@ def test_speckit_sdd_wants_a_run_of_the_tests_related_to_the_change():
     assert _sdd({"strkit/text.py": ["tests/test_text.py"]}) == {"baseline": "pass", "after_change": "pass"}
     # a run of other tests than the ones of the changed code is no such run (R7)
     assert _sdd({"strkit/text.py": ["tests/test_other_module.py"]}) == {"baseline": "fail", "after_change": "fail"}
-    # offline (no listing): not judged
-    assert _sdd(None) == {"baseline": "unavailable", "after_change": "unavailable"}
+    # offline (no listing): the test modules named after the changed file that the run saw near it (D5 of the 11-25
+    # merge): the golden's tests/test_text.py
+    assert _sdd(None) == {"baseline": "pass", "after_change": "pass"}
 
 
 # ---- speckit_bug: a check is seen failing before the change, by its own run (R4) ---------------------------------------

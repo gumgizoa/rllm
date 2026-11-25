@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import re
 
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
+
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
@@ -976,39 +978,22 @@ def h4a(m):
     return float(rerun or all(_covers(t5, t) for t in t1))
 
 
-def _covering_modules(m, path: str) -> list[str]:
-    """The test modules the run knows of that cover a source file by name (05 Step 4 "the module's tests named after
-    the file"): ``test_<stem>.py``, ``<stem>_test.py``, ``tests/<stem>.py`` -- or, for a package's ``__init__.py``, its
-    directory's name."""
-    parts = norm_path(path).rsplit("/", 1)
-    stem = parts[-1].rsplit(".", 1)[0]
-    if stem == "__init__" and len(parts) == 2:
-        stem = parts[0].rsplit("/", 1)[-1]
-    names = {f"test_{stem}.py", f"{stem}_test.py", f"tests_{stem}.py", f"test{stem}.py"}
-    return sorted(q for q in m.known if EV.is_test_file(q, m.tests) and (q.rsplit("/", 1)[-1] in names or q.endswith(f"/tests/{stem}.py")))
-
-
 @method("atom/H4c", materials=("PATCH", "EDIT", "SEEN", "TESTFILE", "TARGET", "TEST", "WRITE"))
 def h4c(m):
     """Stage 5 also runs the test modules that cover every file changed (05 Step 4 "MANDATORY: Also run the test
     modules that cover every file changed in Stage 4 ... whether or not the baseline included them"): for each changed
-    source file with a covering module the run knows of (``_covering_modules``), a test run after artifact 04 targets
-    one of them (the module, or a test in it), or a run of the whole suite does (R7 of the 11-24 review). The share of
-    those files; None when no changed file has one. (Modules that cover a file by importing it are not read: the
-    trajectory does not show the imports, and this scorer's collection has no sandbox listing of related tests --
-    ``Collected.related_tests``, which the shared ``testread.related_run`` reads.) v5."""
+    source file whose existing tests are known, a valid test run after artifact 04 targets one of them (the module, a
+    test in it, its directory or label, a ``python -c`` importing it by its dotted path), or a run of the whole suite
+    does. The covering tests are the shared reading's (``testread.related_file_run``, R7 of the 11-24 review, D5 of the
+    11-25 merge): the sandbox's related-tests listing when collected (named after the file, importing it or a name it
+    defines); without it, the test modules named after the file that the run saw there near it. The share of those
+    files; None when no changed file has known tests. v5."""
     w4 = m.w.get(4)
     if w4 is None or m.final is None:
         return None
     sources = [p for p in m.changed_now if p not in m.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, m.tests) and not m.is_repro(p)]
-    entries = m.obs.tests_in(after=w4, before=m.w.get(5))
-    whole = any(m.obs.whole_suite(r) for r in entries)  # R7 of the 11-24 review: the whole suite runs every covering module
-    runs = [t for r in entries if (t := m.obs.targets(r))]
-    verdicts = []
-    for p in sources:
-        mods = _covering_modules(m, p)
-        if mods:
-            verdicts.append(whole or any(_covers(tt, mod) or any(_covers([mod], x) for x in tt) for tt in runs for mod in mods))
+    runs = [r for e in m.obs.tests_in(after=w4, before=m.w.get(5)) for r in e.runs if r.valid]
+    verdicts = [v for p in sources if (v := T.related_file_run(m.ctx, p, runs)) is not None]
     return _frac(verdicts) if verdicts else None
 
 

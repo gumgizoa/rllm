@@ -736,37 +736,60 @@ def _module_parts(path: str) -> tuple[str, str, str]:
 
 
 def _name_ere(path: str, stem: str) -> str:
-    """ERE for a test *path* named after ``path``: ``test_<stem>*.py``, ``<stem>_test(s).py``, a directory ``<stem>/``,
-    or the same for the module's package (``axes/_base.py`` -> ``test_axes.py``), looked for near the module only --
-    under its parent directory, under its grandparent when that is itself nested (``lib/matplotlib/``), under a
-    top-level ``tests/`` / ``test/`` / ``testing/`` or ``<top>/tests/``, or at the repository root -- so
-    ``astropy/timeseries/core.py`` does not claim every package's ``test_core.py``."""
+    """ERE for a test *path* named after ``path``: ``test_<stem>*.py``, ``<stem>_test(s).py`` or a directory ``<stem>/``,
+    looked for near the module only -- under its parent directory, under its grandparent when that is itself nested
+    (``lib/matplotlib/``), under a top-level ``tests/`` / ``test/`` / ``testing/`` or ``<top>/tests/``, or at the
+    repository root -- so ``astropy/timeseries/core.py`` does not claim every package's ``test_core.py``. A package's
+    name (the module's package, ``axes/_base.py`` -> ``test_axes.py``; a package's ``__init__.py``) is looked for under
+    the parent and grandparent only: ``models``, ``fields``, ``management`` name test files all over a test tree
+    (``django/db/models/query_utils.py`` does not claim every app's ``test_models.py``: D5 of the 11-25 merge)."""
     parts = path.split("/")
+    init = parts[-1] == "__init__.py"
     pkg = parts[-2] if len(parts) >= 2 and parts[-2] not in ("src", "lib") else ""
-    where = ["(tests|test|testing)/"]
+    near = []
     if len(parts) >= 2:
-        where.append(re.escape("/".join(parts[:-1])) + "/")
+        near.append(re.escape("/".join(parts[:-1])) + "/")
     if len(parts) >= 4:
-        where.append(re.escape("/".join(parts[:-2])) + "/")
+        near.append(re.escape("/".join(parts[:-2])) + "/")
+    where = ["(tests|test|testing)/", *near]
     if len(parts) > 1:
         where.append(re.escape(parts[0]) + "/(tests|test|testing)/")
-    stems = [re.escape(stem)] + ([re.escape(pkg)] if pkg and _IDENT.match(pkg) and pkg != stem else [])
-    names = "|".join(f"test_?{x}[^/]*\\.py|{x}_tests?\\.py" for x in stems)
-    pre = "^(" + "|".join(where) + ")"
-    # a directory named after the module itself (``tests/queries/``); package names (``models/``) are too generic
-    return rf"{pre}(.*/)?({names})$|^({names})$|{pre}(.*/)?{re.escape(stem)}/"
+
+    def names(xs: list[str]) -> str:
+        return "|".join(f"test_?{x}[^/]*\\.py|{x}_tests?\\.py" for x in xs)
+
+    alts = []
+    if not init:
+        pre = "^(" + "|".join(where) + ")"
+        mod = names([re.escape(stem)])
+        # a directory named after the module itself (``tests/queries/``)
+        alts += [rf"{pre}(.*/)?({mod})$", rf"^({mod})$", rf"{pre}(.*/)?{re.escape(stem)}/"]
+    pkgs = [stem] if init else ([pkg] if pkg and _IDENT.match(pkg) and pkg != stem else [])
+    if pkgs and near:
+        alts.append(rf"^({'|'.join(near)})(.*/)?({names([re.escape(x) for x in pkgs])})$")
+    return "|".join(alts) or "^$"
 
 
-def _content_regexes(stem: str, dotted: str, parent: str) -> list[str]:
+def _content_regexes(stem: str, dotted: str, parent: str, path: str = "") -> list[str]:
     """ERE patterns a test file's text matches when it imports the module (``from a.b import``, ``import a.b``,
-    ``from a import b``); the symbol pattern is added in the shell from the diff."""
+    ``from a import b``), or, for a Django management command (``management/commands/<stem>.py``), calls it
+    (``call_command("<stem>"``); the symbol patterns are added in the shell from the diff."""
     out = []
     if dotted:
         d = re.escape(dotted)
         out.append(rf"^[[:space:]]*(from[[:space:]]+{d}[[:space:]]+import|import[[:space:]]+{d}([^A-Za-z0-9_.]|$))")
     if parent and stem:
         out.append(rf"^[[:space:]]*from[[:space:]]+{re.escape(parent)}[[:space:]]+import([^A-Za-z0-9_]|$).*([^A-Za-z0-9_]|^){re.escape(stem)}([^A-Za-z0-9_]|$)")
+    if re.search(r"(?:^|/)management/commands/[^/]+\.py$", path) and stem:
+        out.append(rf"call_command\([[:space:]]*['\"]{re.escape(stem)}['\"]")
     return out
+
+
+def _ancestors(dotted: str) -> list[str]:
+    """The packages above a dotted module, nearest first (``django.db.models.query_utils`` -> ``django.db.models``,
+    ``django.db``): where a name the module defines can be re-exported from (``from django.db.models import Q``)."""
+    parts = dotted.split(".")
+    return [".".join(parts[:k]) for k in range(len(parts) - 1, 1, -1)]
 
 
 def related_script(workdir: str, base_sha: str, changed: list[str]) -> str:
@@ -794,20 +817,31 @@ def related_script(workdir: str, base_sha: str, changed: list[str]) -> str:
         name_ere = _name_ere(path, stem)
         # (c) symbols the diff touches: def / class names in changed lines and hunk headers (dunder and
         # names of <= 3 characters are too common to mean anything)
-        sym = (
+        names = (
             f"{{ G diff -U0 {sha} -- {qp} 2>/dev/null; [ -f {qp} ] && G ls-files --error-unmatch {qp} >/dev/null 2>&1 || cat {qp} 2>/dev/null; }}"
             " | grep -oE '(^|[^A-Za-z0-9_])(def|class)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' | sed -E 's/^.*(def|class)[[:space:]]+//'"
-            " | grep -vE '^__|^.{1,3}$' | sort -u | head -n " + str(MAX_SYMBOLS) + " | paste -sd '|' -"
         )
-        content = [*_content_regexes(stem, dotted, parent)]
+        sym = names + " | grep -vE '^__|^.{1,3}$' | sort -u | head -n " + str(MAX_SYMBOLS) + " | paste -sd '|' -"
+        # (d) a name the diff touches imported from a package above the module, whatever its length: the module
+        # reached through a re-export (``from django.db.models import Q`` for ``django/db/models/query_utils.py``)
+        sym_all = names + " | grep -vE '^__' | sort -u | head -n " + str(MAX_SYMBOLS) + " | paste -sd '|' -"
+        anc = "|".join(re.escape(a) for a in _ancestors(dotted))
+        content = [*_content_regexes(stem, dotted, parent, path)]
         content_args = " ".join(f"-e {shlex.quote(c)}" for c in content)
+        reexport = (
+            f"[ -n \"$SZ\" ] && SB=\"-e ^[[:space:]]*from[[:space:]]+({anc})[[:space:]]+import([^A-Za-z0-9_]|$).*([^A-Za-z0-9_]|^)($SZ)([^A-Za-z0-9_]|$)\""
+            if anc
+            else ":"
+        )
         lines += [
             f"echo '{_MARK} REL {b64}'",
             f"SY=$({sym})",
+            f"SZ=$({sym_all})",
             "SA=\"\"; [ -n \"$SY\" ] && SA=\"-e (^|[^A-Za-z0-9_])($SY)([^A-Za-z0-9_]|$)\"",
+            f"SB=\"\"; {reexport}",
             "{ "
             f"grep -zE {shlex.quote(name_ere)} < \"$TL\" | tr '\\000' '\\n'; "
-            f"xargs -0 -r grep -lE {content_args} $SA -- < \"$TL\" 2>/dev/null; "
+            f"xargs -0 -r grep -lE {content_args} $SA $SB -- < \"$TL\" 2>/dev/null; "
             "} | sort -u | head -c " + str(MAX_RELATED_BYTES) + " | base64 -w0; echo",
         ]
     lines += ['rm -f "$TL" 2>/dev/null', f"echo '{_MARK} END'"]

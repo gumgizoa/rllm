@@ -28,8 +28,9 @@ R5  failing tests are named by ``evidence.failing_ids`` (``results.run_failed_id
 R6  a test that fails after the change was already failing when, in the last baseline run that ran it, it failed by
     name (:func:`preexisting`). Which runs are baseline runs is the workflow's (its documents say).
 R7  the existing tests of the changed code ran: a valid run after the change that targets a test file related to a
-    changed source file (``Collected.related_tests``, read from the sandbox) or runs the whole suite
-    (:func:`related_run`).
+    changed source file (``Collected.related_tests``, read from the sandbox; offline, the tests named after it that the
+    run saw near it) or runs the whole suite (:func:`related_run`, per file :func:`related_file_run`; a ``python -c``
+    importing the module by its dotted path targets it).
 
 Nothing the agent writes can make these raise.
 """
@@ -516,6 +517,9 @@ def mentions_test_file(r: Any, path: str, workdir: str | None) -> bool:
     stem = posixpath.splitext(posixpath.basename(rel))[0]
     if stem not in ("tests", "test", "__init__") and re.search(r"(?<![\w/])" + re.escape(stem) + r"(?![\w])", text):
         return True
+    dotted = ".".join(x for x in posixpath.splitext(rel)[0].split("/") if x)
+    if "." in dotted and re.search(r"(?<![\w.])" + re.escape(dotted) + r"(?![\w])", text):
+        return True  # the module's dotted path: a python -c importing it (``from tests.decorators.tests import X``), a label
     if re.search(r"runtests\.py|manage\.py\s+test", r.command or ""):
         parts = [x for x in rel.split("/")[:-1] if x not in ("tests", "test", "testing")]
         label = ".".join(parts + [stem])
@@ -536,13 +540,108 @@ def targets_dir_of(r: Any, path: str, workdir: str | None) -> bool:
     return False
 
 
-def related_tests(ctx: EvalContext) -> list[str] | None:
-    """The repository test files related to the changed source files (``Collected.related_tests``); None when not
-    collected (offline, or the sandbox step failed)."""
+_NOFILE = re.compile(r"No such file or directory|does not exist|cannot access|can't open file|Invalid `path`", re.I)
+_HIT_LINE = re.compile(r"^(/?[\w.-]+(?:/[\w.-]+)+\.\w+)(?::\d+:|$)", re.M)
+_LISTS = frozenset({"grep", "egrep", "rg", "find", "git"})
+
+
+def seen_files(ctx: EvalContext) -> set[str]:
+    """Repo-relative files the run saw that were there before it: a file an editor view showed, one a read command
+    printed with no missing-file message about it, a path a ``grep -r`` / ``find`` / ``git ls-files`` printed, a valid
+    runner's target, a diff entry that is no addition -- a file the run made itself aside."""
+    key = "testread.seen_files"
+    if key in ctx.cache:
+        return ctx.cache[key]
+    wd = (ctx.collected.workdir or "").rstrip("/")
+    out: set[str] = set()
+
+    def add(p: str, cwd: str | None = None) -> None:
+        p = posixpath.normpath(shell.resolve(p, cwd or wd or "/"))
+        if wd and p.startswith(wd + "/"):
+            out.add(p[len(wd) + 1 :])
+
+    for step in getattr(ctx.run, "steps", None) or []:
+        for a in step.actions:
+            if a.kind == "view" and a.path and not _NOFILE.search((a.observation or "")[:500]):
+                add(a.path)
+    for c in getattr(ctx.facts, "commands", None) or []:
+        obs = c.observation or ""
+        for seg in R.segments(ctx, c):
+            try:
+                for p in shell.read_targets(seg, []):
+                    if not any(_NOFILE.search(ln) and posixpath.basename(p) in ln for ln in obs.splitlines()):
+                        add(p, seg.cwd)
+            except Exception:  # noqa: BLE001 -- agent text
+                pass
+            if seg.verb in _LISTS:
+                for m in _HIT_LINE.finditer(obs[-R.MAX_TEXT :]):
+                    add(m.group(1), seg.cwd)
+    for r in ctx.facts.runs:
+        if r.valid:
+            for t in r.targets or []:
+                add(t.split("::")[0])
+    out |= {p for p, st in (ctx.collected.diff or {}).items() if st not in ("A", "?")}
+    out = {p for p in out if not F.is_new_path(ctx, p)}
+    ctx.cache[key] = out
+    return out
+
+
+def _named_after(path: str, test: str) -> bool:
+    """Test file ``test`` is named after source file ``path`` (05 Step 4 "the module's tests named after the file"):
+    ``test_<stem>.py``, ``<stem>_test.py``, ``tests_<stem>.py``, ``test<stem>.py``, ``tests/<stem>.py`` -- for a package's
+    ``__init__.py``, the package's name -- and it sits near the source: under the source file's own directory (its
+    package's ``tests/``), or in the repository's top-level test directory directly (``tests/test_util.py``) or under a
+    directory there named after one of the source's packages below the top one (``tests/utils_tests/`` for
+    ``django/utils/``, ``tests/admin_docs/`` for ``django/contrib/admindocs/``) -- not a same-named module of another
+    package (``tests/generic_views/test_base.py`` is no test of ``django/db/models/base.py``)."""
+    parts = path.rsplit("/", 1)
+    stem = posixpath.splitext(parts[-1])[0]
+    if stem == "__init__" and len(parts) == 2:
+        stem = parts[0].rsplit("/", 1)[-1]
+    names = {f"test_{stem}.py", f"{stem}_test.py", f"tests_{stem}.py", f"test{stem}.py"}
+    base = posixpath.basename(test)
+    if not (base in names or test.endswith(f"/tests/{stem}.py")):
+        return False
+    home = parts[0] if len(parts) == 2 else ""
+    if not home or test.startswith(home + "/"):
+        return True
+    top, *dirs = test.split("/")[:-1] or [""]
+    if top not in ("tests", "test", "testing"):
+        return False
+    pkgs = {c.replace("_", "") for c in home.split("/")[1:] if c not in ("src", "lib")}
+    return not dirs or any(d.replace("_", "") in pkgs or any(x in pkgs for x in d.split("_")) for d in dirs)
+
+
+def related_for(ctx: EvalContext, path: str) -> list[str] | None:
+    """The existing repository tests of changed source file ``path`` (repo-relative; R7, D5 of the 11-25 merge): the
+    sandbox's listing when it was collected (``Collected.related_tests``: named after it, importing it or a name it
+    defines, calling its management command); offline, the test files named after it that the run saw there near it
+    (:func:`seen_files`, :func:`_named_after`). None when that is unknown: not listed, or offline with none found."""
     rel = ctx.collected.related_tests
-    if rel is None:
-        return None
-    return sorted({t for ts in rel.values() for t in ts})
+    if rel is not None:
+        return sorted(rel[path]) if path in rel else None
+    found = sorted(t for t in seen_files(ctx) if F.is_test_path(t) and _named_after(path, t))
+    return found or None
+
+
+def related_tests(ctx: EvalContext) -> list[str] | None:
+    """The repository test files related to the changed source files: the listing's (``Collected.related_tests``);
+    offline, those :func:`related_for` finds for the changed Python sources. None when not collected and none found."""
+    rel = ctx.collected.related_tests
+    if rel is not None:
+        return sorted({t for ts in rel.values() for t in ts})
+    found = {t for p in _changed_sources(ctx) for t in related_for(ctx, p) or []}
+    return sorted(found) or None
+
+
+def _changed_sources(ctx: EvalContext) -> list[str]:
+    """The changed Python source files the related tests are looked up for: the diff's (``collect.changed_sources``),
+    else the run's source changes (``facts.source_paths``)."""
+    from .collect import changed_sources
+
+    if ctx.collected.diff is not None:
+        return changed_sources(ctx.collected)
+    return sorted(p for p in F.source_paths(ctx) if p.endswith(".py"))
 
 
 def runs_related(ctx: EvalContext, r: Any, tests: list[str]) -> bool:
@@ -554,8 +653,9 @@ def runs_related(ctx: EvalContext, r: Any, tests: list[str]) -> bool:
 
 def related_run(ctx: EvalContext, runs: list) -> tuple[str, Any]:
     """R7 over ``runs`` (valid runs already chosen by when they ran): ``("unavailable", None)`` when the related tests
-    were not collected; ``("none", None)`` when the repository has no test related to the change; ``("hit", run)`` for
-    the first run that ran tests of the changed code; ``("miss", None)`` otherwise."""
+    are unknown (not collected, and offline none found: :func:`related_tests`); ``("none", None)`` when the repository
+    has no test related to the change; ``("hit", run)`` for the first run that ran tests of the changed code;
+    ``("miss", None)`` otherwise."""
     tests = related_tests(ctx)
     if tests is None:
         return "unavailable", None
@@ -565,6 +665,15 @@ def related_run(ctx: EvalContext, runs: list) -> tuple[str, Any]:
         if runs_related(ctx, r, tests):
             return "hit", r
     return "miss", None
+
+
+def related_file_run(ctx: EvalContext, path: str, runs: list) -> bool | None:
+    """R7 for one changed source file: some run of ``runs`` ran its existing tests (:func:`related_for`) or the whole
+    suite; None when its tests are unknown or it has none (aidlc_v5 H4c asks it per file)."""
+    tests = related_for(ctx, path)
+    if not tests:
+        return None
+    return any(runs_related(ctx, r, tests) for r in runs)
 
 
 __all__ = [
@@ -597,6 +706,8 @@ __all__ = [
     "path_write_mark",
     "preexisting",
     "ran_test",
+    "related_file_run",
+    "related_for",
     "related_run",
     "related_tests",
     "run_mark",
@@ -605,6 +716,7 @@ __all__ = [
     "same_test",
     "script_history",
     "script_runs",
+    "seen_files",
     "stash_flags",
     "stash_runs",
     "stashed",
