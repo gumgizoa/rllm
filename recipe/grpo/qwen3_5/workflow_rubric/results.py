@@ -42,6 +42,8 @@ FAIL_TEXT = re.compile(
 VERDICT_TEXT = re.compile(r"^\s*(?:FAIL|FAILED)\b|\b[1-9]\d* failed\b|\bFAILED \(|❌|" + _FAILED_WORD, re.M)
 # What python prints at start-up when the environment holds a broken .pth file: the environment's, not the script's.
 PTH_NOISE = re.compile(r"Error processing line \d+ of [^\n]*\.pth:\n.*?Remainder of file ignored\n?", re.S)
+# A line a logger or python's warnings print (``WARNING: ...``, ``x.py:3: UserWarning: ...``): no verdict of the script's.
+WARNING_LINE = re.compile(r"^[ \t]*(?:\[?WARNING\]?\b|[^\n]*\b\w*Warning:)[^\n]*$", re.M)
 PASS_TEXT = re.compile(r"\b\d+ passed\b|^\s*OK\b|\bPASS(?:ED)?\b|\ball (?:checks|tests) pass(?:ed)?\b|\bpassed\b|✅", re.M | re.I)
 MARK_WORDS = re.compile(r"(?i)\b(?:fail\w*|error\w*|pass\w*|ok|traceback|assert\w*)\b|[✅❌]")
 WHOLE = "*"  # the key of a runner run that names no file
@@ -75,16 +77,94 @@ def segments(ctx: EvalContext, c) -> list[shell.Segment]:
     return ctx.cache[key]
 
 
+def label_files(label: str, bases: list[str]) -> set[str]:
+    """The files a dotted runner label can name, read against each base directory: ``a.b.C.test_x`` from ``tests/`` is
+    ``tests/a/b/C/test_x.py``, ``tests/a/b/C.py``, ``tests/a/b.py`` or ``tests/a.py`` (Django's ``runtests.py``,
+    ``manage.py test``, unittest)."""
+    parts = [x for x in label.split(".") if x]
+    return {posixpath.normpath(posixpath.join(b, *parts[:k]) + ".py") for b in bases if b for k in range(len(parts), 0, -1)}
+
+
+_PY_IMPORT = re.compile(r"(?:^|[;\n(]|\s)(?:import[ \t]+([A-Za-z_]\w*)\b|from[ \t]+([A-Za-z_]\w*)[ \t]+import\b)")
+_PY_PATH_RUN = re.compile(r"""\bexec\s*\(\s*open\s*\(\s*(['"])([^'"\n]+)\1|\brunpy\.run_path\s*\(\s*(['"])([^'"\n]+)\3|spec_from_file_location\s*\([^,()]*,\s*(['"])([^'"\n]+)\5""")
+_SYS_PATH = re.compile(r"""sys\.path\.(?:insert\s*\(\s*-?\d+\s*,|append\s*\()\s*(['"])([^'"\n]+)\1""")
+
+
+def inline_runs(seg: shell.Segment) -> set[str]:
+    """Absolute paths of the scripts a ``python -c`` / ``python - <<EOF`` segment runs by importing them
+    (``import repro``, ``from repro import main``: the module beside the directory it starts in or one it puts on
+    ``sys.path``) or by executing their file (``exec(open('x.py').read())``, ``runpy.run_path('x.py')``). A file name in
+    the code's text is no run (a code that writes the script runs nothing of it)."""
+    words = seg.cmd_words
+    if not words or not seg.verb or not _INTERPRETER.search(seg.verb) or seg.cwd is None:
+        return set()
+    mode, val, _ = E.py_args(words[1:])
+    code = val if mode == "code" else (seg.stdin_text if mode == "stdin" else None)
+    if not code:
+        return set()
+    code = code[:MAX_CMD]
+    dirs = [seg.cwd] + [shell.resolve(m.group(2), seg.cwd) for m in _SYS_PATH.finditer(code)]
+    out = {posixpath.normpath(posixpath.join(d, (m.group(1) or m.group(2)) + ".py")) for m in _PY_IMPORT.finditer(code) for d in dirs}
+    out |= {posixpath.normpath(shell.resolve(m.group(2) or m.group(4) or m.group(6), seg.cwd)) for m in _PY_PATH_RUN.finditer(code)}
+    return out
+
+
 def executed_by(seg: shell.Segment) -> set[str]:
-    """Absolute paths the segment executes: a script it runs (``python x.py``, ``bash x.sh``, ``./x``) or a runner target."""
+    """Absolute paths the segment executes: a script it runs (``python x.py``, ``bash x.sh``, ``./x``), one a
+    ``python -c`` imports or executes (:func:`inline_runs`), or a runner target -- a file, or the files a dotted label
+    names (:func:`label_files`: ``runtests.py repro_issue`` from ``tests/`` runs ``tests/repro_issue.py``)."""
     out: set[str] = set()
     try:
         out |= {posixpath.normpath(p) for p in F._executed(seg) if p}
         hit = E.classify(seg)
         if hit is not None:
             out |= {posixpath.normpath(shell.resolve(t, seg.cwd)) for t in hit.targets if t}
+            for label, bases in hit.labels:
+                out |= label_files(label, bases)
+        out |= inline_runs(seg)
     except Exception:  # noqa: BLE001 -- agent text
         pass
+    return out
+
+
+def _direct(seg: shell.Segment) -> set[str]:
+    """Paths the segment executes itself (an interpreter's script, ``./x``, a ``python -c`` import), not as a runner's
+    target."""
+    try:
+        return {posixpath.normpath(p) for p in F._executed(seg) if p} | inline_runs(seg)
+    except Exception:  # noqa: BLE001 -- agent text
+        return set()
+
+
+_NOT_FOUND = re.compile(r"can't open file|No such file or directory|ERROR: file or directory not found|ERROR: not found:", re.I)
+
+
+def started(segs: list[shell.Segment], i: int, observation: str, path: str, command: str = "") -> bool:
+    """Segment ``i``'s run of ``path`` started: not a file that was not there (``can't open file``, ``No such file or
+    directory``, pytest's ``file or directory not found`` naming it), and for a runner given it as a target or label,
+    not a runner that died before it loaded the file (no result summary, and the output never names the file:
+    ``runtests.py tests/x.py`` stopping in ``build_suite``). A run that did not start has no result."""
+    obs = E.clean_observation(observation or "", command)[-MAX_TEXT:]
+    base = posixpath.basename(path)
+    if any(_NOT_FOUND.search(ln) and base in ln for ln in obs.splitlines()):
+        return False
+    if path in _direct(segs[i]):
+        return True
+    stem = posixpath.splitext(base)[0]
+    try:
+        found = E.summaries(obs)
+    except Exception:  # noqa: BLE001 -- agent text
+        found = []
+    return bool(found) or base in obs or re.search(r"(?<![\w])" + re.escape(stem) + r"(?![\w])", obs) is not None
+
+
+def _file_outcomes(obs: str, path: str) -> list[str]:
+    """pytest's per-test outcomes of the tests in ``path`` (``x.py::test_a PASSED``), by the node ids' file part."""
+    out = []
+    for nid, res in E.pytest_outcomes(obs).items():
+        f = nid.split("::", 1)[0]
+        if f and (path == f or path.endswith("/" + f.lstrip("./"))):
+            out.append(res)
     return out
 
 
@@ -107,17 +187,28 @@ def exit_code(observation: str) -> int | None:
         return None
 
 
-def own_exit_known(segs: list[shell.Segment], i: int, code: int | None) -> bool:
+_SHOW_VERBS = frozenset({"cat", "echo", "printf", "head", "tail", "ls", "true", "wc", "sed", "grep"})
+
+
+def own_exit_known(segs: list[shell.Segment], i: int, code: int | None, shown: bool = True) -> bool:
     """The call's exit code ``code`` is segment ``i``'s own: ``i`` is the command's last segment, or the call ended with
     0 and every list operator after ``i`` is ``&&`` (had ``i`` failed, nothing after it would have run and the call
     could not end with 0). A segment that feeds a pipe, or is followed by ``;`` / ``||`` / a new line, has no known
-    code of its own."""
+    code of its own (``|| true`` hides it). A code other than 0 is ``i``'s when only ``&&`` follows it, its output went
+    to a file and what follows only shows text that nothing shows (``shown`` False): ``python x.py > out.txt && cat
+    out.txt`` ending with 1 and printing nothing never reached the ``cat``."""
     if code is None:
         return False
     if i == len(segs) - 1:
         return True
-    if code != 0 or segs[i + 1].op_before == "|":
+    if segs[i + 1].op_before == "|":
         return False
+    if code != 0:
+        return (
+            not shown
+            and any(o in (">", ">>", "&>", "&>>") for o, _ in segs[i].redirects)
+            and all(s.op_before == "&&" and s.verb in _SHOW_VERBS for s in segs[i + 1 :])
+        )
     return all(s.op_before in ("&&", "|") for s in segs[i + 1 :])
 
 
@@ -129,27 +220,50 @@ def runs_something(seg: shell.Segment) -> bool:
         return False
 
 
-def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "") -> str | None:
-    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run, by its call's own output.
+def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = "", path: str | None = None) -> str | None:
+    """``pass`` / ``fail`` / None (cannot tell) for segment ``i``'s run (of ``path``, when given), by its call's own
+    output. A run that did not start (:func:`started`) is no run at all; the callers leave it out.
+
+    A runner given the script as one target of several (``pytest a.py repro.py``) is read by that file's own test lines;
+    a runner given only it, by its result summary (``FAILED (errors=1)``, ``1 passed``). A run that had not finished
+    when the output stopped (``no new output after 30 seconds``) failed when a failure verdict was already printed, and
+    cannot be told otherwise (a pass line so far is no pass).
 
     When the call's exit code is the segment's own (:func:`own_exit_known`) it decides: not 0 is a failure, 0 a pass --
     unless the output is the segment's alone (no other runner or script in the call, no other segment that could print
-    such words) and holds a verdict line (``FAIL...`` / ``N failed`` / ``FAILED (``). Otherwise the output's words are
-    read: failure text when no other segment could have printed such words, pass text when there is no failure text.
-    The start-up errors python prints for a broken ``.pth`` file in the environment are not read."""
+    such words) and holds a verdict line (``FAIL...`` / ``N failed`` / ``FAILED (``): a failure line wins over a pass
+    line the same script prints. Otherwise the output's words are read: failure text when no other segment could have
+    printed such words, pass text when there is no failure text. The start-up errors python prints for a broken
+    ``.pth`` file in the environment are not read."""
     obs = E.clean_observation(observation or "", command)
     body = PTH_NOISE.sub("", EXIT.sub("", obs))[-MAX_TEXT:]
     code = exit_code(obs)
     foreign = others_print(segs, i, MARK_WORDS)
-    if own_exit_known(segs, i, code):
+    if path is not None and path not in _direct(segs[i]):
+        lines = _file_outcomes(body, path)
+        if lines:
+            return "fail" if any(x in ("FAILED", "ERROR") for x in lines) else ("pass" if "PASSED" in lines else None)
+        hit = E.classify(segs[i])
+        named = {posixpath.normpath(shell.resolve(t, segs[i].cwd)) for t in (hit.targets if hit else []) if t}
+        if hit is not None and named <= {path} and len(hit.labels) <= 1:
+            found = E.summaries(body)
+            if found:
+                failed = sum(x.failed + x.errors for x in found)
+                return "fail" if failed else ("pass" if sum(x.passed for x in found) else None)
+        if hit is not None and (len(named | {path}) > 1 or len(hit.labels) > 1):
+            return None  # other targets' results are no result of this file
+    said = WARNING_LINE.sub("", body)  # a logged warning (``IERSWarning: failed to download``) is no verdict
+    if E._STILL_RUNNING.search(observation or ""):
+        return "fail" if not foreign and (VERDICT_TEXT.search(said) or FAIL_TEXT.search(said)) else None
+    if own_exit_known(segs, i, code, shown=bool(body.strip())):
         if code != 0:
             return "fail"
         alone = not foreign and not any(runs_something(s) for j, s in enumerate(segs) if j != i)
-        return "fail" if alone and VERDICT_TEXT.search(body) else "pass"
-    failed_text = bool(FAIL_TEXT.search(body)) and not foreign
+        return "fail" if alone and VERDICT_TEXT.search(said) else "pass"
+    failed_text = bool(FAIL_TEXT.search(said)) and not foreign
     if failed_text:
         return "fail"
-    if not foreign and PASS_TEXT.search(body) and not FAIL_TEXT.search(body):
+    if not foreign and PASS_TEXT.search(body) and not FAIL_TEXT.search(said):
         return "pass"
     return None
 
@@ -264,11 +378,10 @@ def executions(ctx: EvalContext, paths: set[str]) -> dict[str, list[tuple[int, s
         segs = segments(ctx, c)
         for i, seg in enumerate(segs):
             hit = executed_by(seg) & paths
-            if not hit:
-                continue
-            res = outcome(segs, i, c.observation or "", c.command or "") if c.step < ctx.facts.n_steps else None
             for p in sorted(hit):
-                out[p].append((c.step, res))
+                if c.step < ctx.facts.n_steps and not started(segs, i, c.observation or "", p, c.command or ""):
+                    continue
+                out[p].append((c.step, outcome(segs, i, c.observation or "", c.command or "", p) if c.step < ctx.facts.n_steps else None))
     return out
 
 

@@ -410,9 +410,19 @@ class ShellEntry(tuple):
     (``raw``), the directory it ran in (``cwd``, the shared layer's tracking) and the shared layer's test-runner
     invocations in it (``runs``: ``RunFact``s of kind ``test``, valid or not)."""
 
-    def __new__(cls, n: int, flat: str, out: str, raw: str = "", cwd: str | None = None, runs=()):
+    def __new__(cls, n: int, flat: str, out: str, raw: str = "", cwd: str | None = None, runs=(), action: int = 0):
         self = super().__new__(cls, (n, flat, out))
-        self.raw, self.cwd, self.runs = raw, cwd, list(runs)
+        self.raw, self.cwd, self.runs, self.action = raw, cwd, list(runs), action
+        return self
+
+
+class ScriptEntry(tuple):
+    """One shell call that ran a script of the run's own, as ``(step, command with whitespace collapsed, output)``,
+    carrying the shared reading's ``outcome`` of that run (``pass`` / ``fail`` / None: ``results.outcome``)."""
+
+    def __new__(cls, n: int, flat: str, out: str, outcome: str | None = None):
+        self = super().__new__(cls, (n, flat, out))
+        self.outcome = outcome
         return self
 
 
@@ -439,6 +449,10 @@ class Observed:
     source_steps: dict[str, list[int]] = field(default_factory=dict)
     last_step: int = 0
     workdir: str | None = None  # the repository root, as the shared layer reads it
+    ctx: object = field(default=None, repr=False, compare=False)  # the shared layer's context of the run
+    # a script path as an artifact records it (``norm_path``) -> every absolute path the script has had
+    # (``testread.script_history``: the paths the artifacts' versions recorded, both ends of a move)
+    histories: dict[str, set[str]] = field(default_factory=dict)
 
     # -- derived views --
 
@@ -492,15 +506,28 @@ class Observed:
 
     # -- queries --
 
-    def ran(self, path: str, after: int | None = None, before: int | None = None) -> list[tuple[int, str, str]]:
-        """Shell steps that executed ``path`` -- with an interpreter or test runner, directly, or by
-        importing it as a module from a ``python -c`` one-liner -- within (after, before)."""
-        name = norm_path(path).rsplit("/", 1)[-1]
-        if not name:
+    def ran(self, path: str, after: int | None = None, before: int | None = None) -> list[ScriptEntry]:
+        """Shell calls that ran the script at ``path`` within (after, before), each with its outcome: the shared reading
+        (``testread.script_runs``, D2 of the 11-25 merge). A run opened the script's file under a path it has had
+        (``histories``, else ``path`` itself): an interpreter, a ``python -c`` that imports or executes it, a runner
+        given the file or a dotted label naming it (Django's ``runtests.py repro``). A run that never started (no such
+        file, a runner that died before loading it) is none. The call's last run of it gives the outcome."""
+        if self.ctx is None or not norm_path(path or ""):
             return []
-        # The command as written, not flattened: a heredoc that writes the script and the line that runs it
-        # are separate segments only while the newline is there (``evidence.runs_script``).
-        return [(n, c, o) for (n, c, o), raw in zip(self.shell, self.shell_raw, strict=True) if (after is None or n > after) and (before is None or n < before) and runs_script(raw, name)]
+        paths = self.histories.get(norm_path(path)) or ST.script_history(self.ctx, [path])
+        last: dict[tuple[int, int], tuple[tuple[int, int, int], str | None]] = {}
+        for runs in ST.script_runs(self.ctx, paths, keep_stashed=True).values():
+            for r in runs:
+                k, where = (r.mark.step, r.mark.action), (r.mark.step, r.mark.action, r.mark.pos if r.mark.pos is not None else -1)
+                if k not in last or last[k][0] <= where:
+                    last[k] = (where, r.outcome)
+        entries = {(e[0], e.action): e for e in self.shell}
+        out = []
+        for (n, a), (_, res) in sorted(last.items()):
+            e = entries.get((n, a))
+            if e is not None and (after is None or n > after) and (before is None or n < before):
+                out.append(ScriptEntry(n, e[1], e[2], res))
+        return out
 
     def tests_in(self, after: int | None = None, before: int | None = None) -> list[ShellEntry]:
         return [e for e in self.test_runs if (after is None or e[0] > after) and (before is None or e[0] < before)]
@@ -600,6 +627,7 @@ def _observe(run: Run, watch: Iterable[str] = (), shared=None, workdir: str | No
     obs = Observed(workdir=workdir)
     if ctx is None:
         ctx = bare_context(run, workdir or TEXT_CWD)
+    obs.ctx = ctx
     for e in ST.change_writes(ctx):
         obs.source_steps.setdefault(norm_path(e.path), []).append(int(e.step))
     runs: dict[tuple[int, int], list] = {}
@@ -641,7 +669,7 @@ def _observe(run: Run, watch: Iterable[str] = (), shared=None, workdir: str | No
             flat = re.sub(r"\s+", " ", cmd).strip()
             # (the shared layer parses the same episode: the same steps, the same calls in each)
             here = [r for r in runs.get((step.n, idx), []) if r.command == cmd]
-            entry = ShellEntry(step.n, flat, out, raw=cmd, cwd=cwd_track.get((step.n, idx)), runs=here)
+            entry = ShellEntry(step.n, flat, out, raw=cmd, cwd=cwd_track.get((step.n, idx)), runs=here, action=idx)
             obs.shell.append(entry)
             obs.shell_raw.append(cmd)
             if here:

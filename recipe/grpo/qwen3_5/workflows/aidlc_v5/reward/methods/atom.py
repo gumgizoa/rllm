@@ -1045,7 +1045,7 @@ def h8a(m):
     if not (repro and w4 is not None and not m.edits_unseen):
         return None
     runs = obs.ran(repro, after=w4, before=m.w.get(5))
-    failing = [n for n, cmd, out in runs if (code := EV.exit_code(cmd, out)) is not None and code != 0]
+    failing = [r[0] for r in runs if r.outcome == "fail"]
     if not failing:
         return None
     changes = [n for ns in obs.source_steps.values() for n in ns] + obs.edit_steps.get(norm_path(repro), []) + ([obs.written(repro)] if obs.written(repro) else [])
@@ -1156,13 +1156,13 @@ def h10(m):
 @method("atom/H11", materials=("AP", "COLLECT", "NONE", "SCRIPT", "EXIT", "EDIT", "WRITE"))
 def h11(m):
     """A reproduction that failed, or requirements left unmet, are outstanding failures (a run that never started --
-    "can't open file" -- is no result)."""
+    "can't open file" -- is no run: ``Observed.ran``)."""
     p5, repro, obs = m.p5, m.repro, m.obs
     if not p5:
         return None
     result, unmet = (_field(p5, "Reproduction Script", "Result") or "").lower(), _field(p5, "Reproduction Script", "Unmet requirements")
-    last_runs = [r for r in (obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []) if not EV._NOT_STARTED.search(r[2])]
-    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and EV.exit_code(last_runs[-1][1], last_runs[-1][2]) not in (None, 0))
+    last_runs = obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []
+    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and last_runs[-1].outcome == "fail")
     if failed and (outstanding := _section_none(p5, "Outstanding Failures")) is not None:
         return 0.0 if outstanding else 1.0
     return None
@@ -1274,7 +1274,10 @@ def h17(m):
     obs, repro, start5 = m.obs, m.repro, m.start5
 
     def failed_before(n: int) -> bool:
-        runs = obs.attempts_in(after=start5, before=n) + (obs.ran(repro, after=start5, before=n) if repro else [])
+        repro_runs = obs.ran(repro, after=start5, before=n) if repro else []
+        if any(r.outcome == "fail" for r in repro_runs):
+            return True
+        runs = obs.attempts_in(after=start5, before=n) + repro_runs
         runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1])]
         build = _field(m.p1, "Build & Test Commands", "Build") if m.p1 else None
         if build and not is_none(build) and command_core(build):

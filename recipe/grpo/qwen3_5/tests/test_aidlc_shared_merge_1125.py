@@ -143,3 +143,134 @@ def test_d1_aidlc_reads_the_shared_change():
         obs = rd.observe(_aidlc_run(acts), workdir=WD, ctx=rd.bare_context(_aidlc_run(acts), WD, {"pkg/mod.py": "M"}))
         assert obs.source_steps == {"pkg/mod.py": [3]}
         assert (obs.first_edit, obs.last_edit) == (3, 3)
+
+
+# ==== D2: a script of the run's own -- its runs and their results =====================================================
+def _read(command: str, observation: str, path: str, cwd: str = WD):
+    """(ran, outcome) of ``path`` in one call, as ``testread.script_runs`` reads it: None for no run."""
+    from recipe.grpo.qwen3_5.workflow_rubric import results as R
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+
+    segs = shell.flat(shell.split(command, cwd)[0])
+    for i, seg in enumerate(segs):
+        if path in R.executed_by(seg):
+            if not R.started(segs, i, observation, path, command):
+                return None
+            return R.outcome(segs, i, observation, command, path)
+    return None
+
+
+DJANGO_FAILED = (
+    "Found 5 test(s).\n..E..\nERROR: test_xor (reproduce_xor_issue.XorParityTest.test_xor)\nTraceback (most recent call last):\n"
+    '  File "/testbed/tests/reproduce_xor_issue.py", line 42\nAttributeError: x\n\nRan 5 tests in 0.001s\n\nFAILED (errors=1)\n'
+)
+
+
+def test_d2_a_django_label_runs_the_script_and_its_summary_is_the_result():
+    # D2 case 1 (R1): `runtests.py reproduce_xor_issue` from tests/ runs tests/reproduce_xor_issue.py; `| tail` hides
+    # the exit code, the runner's summary says FAILED
+    assert _read("cd /testbed/tests && python runtests.py reproduce_xor_issue 2>&1 | tail -20", DJANGO_FAILED + OK, f"{WD}/tests/reproduce_xor_issue.py") == "fail"
+    # must keep its reading: a runner of another label does not run the script
+    assert _read("cd /testbed/tests && python runtests.py queries 2>&1 | tail -20", "Ran 9 tests in 0.1s\n\nOK\n" + OK, f"{WD}/tests/reproduce_xor_issue.py") is None
+
+
+def test_d2_a_runner_given_the_script_among_others_is_read_by_its_own_lines():
+    # D2 case 6 (R5): pytest of another test and the script; the call fails (exit 1) for the other test only
+    out = "testing/test_fixture.py::test_state FAILED [ 50%]\nreproduce_issue.py::test_records PASSED [100%]\n==== 1 failed, 1 passed in 0.04s ====\n"
+    cmd = "cd /testbed && python -m pytest testing/test_fixture.py::test_state reproduce_issue.py -v"
+    assert _read(cmd, out + BAD, f"{WD}/reproduce_issue.py") == "pass"
+    # must keep its reading: the script's own test failing fails it
+    assert _read(cmd, out.replace("test_state FAILED", "test_state PASSED").replace("test_records PASSED", "test_records FAILED") + BAD, f"{WD}/reproduce_issue.py") == "fail"
+
+
+def test_d2_a_run_that_never_started_is_no_run():
+    # D2 case 3 / 13 (O1): the file is not there; case 16 (R5): the runner dies in build_suite before loading it
+    assert (
+        _read(
+            "cd /testbed && python test_signature.py",
+            "python: can't open file '/testbed/test_signature.py': [Errno 2] No such file or directory\n[The command completed with exit code 2.]",
+            f"{WD}/test_signature.py",
+        )
+        is None
+    )
+    crash = (
+        "Testing against Django installed in '/testbed/django'\nTraceback (most recent call last):\n"
+        '  File "tests/runtests.py", line 569, in <module>\n  File "/testbed/django/test/runner.py", line 575, in build_suite\n'
+        "TypeError: 'NoneType' object is not iterable\n"
+    )
+    assert _read("cd /testbed && python tests/runtests.py tests/queries/test_qs_combinators.py -v 2 2>&1 | head -150", crash + OK, f"{WD}/tests/queries/test_qs_combinators.py") is None
+    # must keep its reading: a script that ran and reports another file missing failed; a runner whose traceback shows
+    # the script's file loaded it (D2 case 11)
+    assert _read("cd /testbed && python repro.py", "FileNotFoundError: [Errno 2] No such file or directory: 'data.txt'" + BAD, f"{WD}/repro.py") == "fail"
+    loaded = 'Traceback (most recent call last):\n  File "/testbed/tests/test_radio_issue.py", line 3, in <module>\nRuntimeError: Model class doesn\'t declare an explicit app_label\n'
+    assert _read("cd /testbed/tests && python runtests.py test_radio_issue", loaded + BAD, f"{WD}/tests/test_radio_issue.py") == "fail"
+
+
+def test_d2_an_unfinished_run_fails_only_by_a_failure_already_printed():
+    still = (
+        "\n[The command has no new output after 30 seconds. You may wait longer to see additional output by sending empty command '', "
+        "send other commands to interact with the current process, send keys to interrupt/kill the command, or use the timeout parameter "
+        "in execute_bash for future commands.]"
+    )
+    # D2 case 9 (O3): a pass line so far is no pass
+    assert _read("cd /testbed && python test_lock.py", "PASS: lock() returns True on success" + still, f"{WD}/test_lock.py") is None
+    # D2 case 19: a failure verdict already printed is a failure
+    assert _read("cd /testbed && python test_float.py", "FAIL: Result is a float: 0.999954602131298" + still, f"{WD}/test_float.py") == "fail"
+
+
+def test_d2_the_exit_code_and_the_verdict_lines():
+    # D2 case 7 (O4): `|| true` hides the exit code and the output has no verdict
+    assert _read("cd /testbed && timeout 10 python test_x.py || true", "WARNING: Could not find expected output" + OK, f"{WD}/test_x.py") is None
+    # D2 case 17 (O4): `> file && cat file` ending with 1 and showing nothing never reached the cat: the script's 1
+    assert _read("cd /testbed && python test_reproduction.py > /tmp/test_output.txt 2>&1 && cat /tmp/test_output.txt", BAD, f"{WD}/test_reproduction.py") == "fail"
+    # D2 case 4 / 14 (O5): exit 0, but a failure verdict -- contradicting a later pass line -- fails it
+    assert _read("cd /testbed && python test_widget.py", "FAIL: Second widget should NOT be checked\nRESULT: Bug is NOT reproducible" + OK, f"{WD}/test_widget.py") == "fail"
+    assert _read("cd /testbed && python test_drag.py", "FAILED: Draggable property lost!\nSOME TESTS FAILED: 0/3 passed" + OK, f"{WD}/test_drag.py") == "fail"
+    # D2 case 2 (O2): `| head` hides the exit code; the summary says it passed
+    assert _read("cd /testbed && python -m pytest test_repro.py 2>&1 | head -60", "test_repro.py .\n==== 1 passed, 7 warnings in 0.2s ====\n" + OK, f"{WD}/test_repro.py") == "pass"
+    # must keep its reading: an exit code of 0 with a pass line passes, one of 1 fails
+    assert _read("cd /testbed && python test_x.py", "All checks passed" + OK, f"{WD}/test_x.py") == "pass"
+    assert _read("cd /testbed && python test_x.py", "done" + BAD, f"{WD}/test_x.py") == "fail"
+
+
+def test_d2_python_c_runs_a_script_only_by_importing_or_executing_it():
+    # D2 case 10 / 20 (R2): a `python -c` that writes the script's text runs nothing of it
+    assert _read("cd /testbed && python -c \"open('/testbed/test_translate.py', 'w').write('import os')\"", "File fixed" + OK, f"{WD}/test_translate.py") is None
+    # must keep its reading: importing it from the directory it sits in runs it
+    assert _read('cd /testbed && python -c "import test_translate; test_translate.main()"', "PASS" + OK, f"{WD}/test_translate.py") == "pass"
+
+
+def test_d2_a_script_is_run_under_every_path_it_has_had():
+    # D2 case 5 (R3): the script recorded at tests/model_formsets_regress/test_can_add.py, moved to tests/, run there
+    old, new = f"{WD}/tests/model_formsets_regress/test_can_add.py", f"{WD}/tests/test_can_add.py"
+    ctx = _ctx([create(old), sh(f"mv {old} {new}"), sh(f"cd {WD} && python {new}", "ModuleNotFoundError: No module named 'x'" + BAD)], diff={})
+    hist = T.script_history(ctx, ["tests/model_formsets_regress/test_can_add.py"])
+    assert {old, new} <= hist
+    assert [(x.step, x.outcome) for rs in T.script_runs(ctx, hist).values() for x in rs] == [(3, "fail")]
+    # must keep its reading: a file of the same name elsewhere that the run never moved is another script
+    assert f"{WD}/other/test_can_add.py" not in hist
+    # a bare file name names every file of that name the run wrote
+    assert old in T.script_history(ctx, ["test_can_add.py"])
+
+
+def test_d2_aidlc_reads_the_reproduction_runs_by_the_shared_reading():
+    # D2 case 1 / 11 (R1): aidlc's own reading found the label run but not its result (`| tail`): the summary gives it
+    from recipe.grpo.qwen3_5.workflows.aidlc_v4_eval.reward.trace import Action as AAction
+
+    acts = [
+        AAction("create", "file_editor", path=f"{WD}/tests/repro_issue.py", text="import unittest\n", status="ok", observation="File created successfully"),
+        AAction("shell", "terminal", command="cd /testbed/tests && python runtests.py repro_issue 2>&1 | tail -20", observation=DJANGO_FAILED + OK),
+        AAction("shell", "terminal", command="cd /testbed && python missing_repro.py", observation="python: can't open file '/testbed/missing_repro.py': [Errno 2] No such file or directory" + OK),
+    ]
+    for rd in (RD4, RD5):
+        obs = rd.observe(_aidlc_run(acts), workdir=WD, ctx=rd.bare_context(_aidlc_run(acts), WD, {}))
+        assert [(r[0], r.outcome) for r in obs.ran("tests/repro_issue.py")] == [(2, "fail")]
+        assert obs.ran("missing_repro.py") == []  # (O1) never started: no run
+
+
+def test_d2_a_logged_warning_is_no_verdict():
+    # v5run1 000003: exit 0, "All tests PASSED!", and astropy's `IERSWarning: failed to download ...` on the way
+    out = "WARNING: IERSWarning: failed to download https://x/finals2000A.all [astropy.utils.iers.iers]\n  PASSED\nAll tests PASSED!\n"
+    assert _read("cd /testbed && python reproduce_issue.py 2>&1", out + OK, f"{WD}/reproduce_issue.py") == "pass"
+    # must keep its reading: the script's own lower-case verdict still fails it
+    assert _read("cd /testbed && python reproduce_issue.py 2>&1", "check_slug: failed\n" + OK, f"{WD}/reproduce_issue.py") == "fail"

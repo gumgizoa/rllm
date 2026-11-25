@@ -15,7 +15,12 @@ R3  a run while the change is put away -- ``git stash`` .. ``pop`` / ``apply``, 
     edited file, ``git apply -R`` / ``patch -R`` -- is a run of the unchanged code, not of the change
     (:func:`stashed`, :func:`change_runs`, :func:`stash_runs`, :func:`script_runs`).
 R4  a script of the run's own is read by ``results.executions`` / ``results.outcome``; its result counts only from a run
-    after its last write before that point (:func:`current_runs`, :func:`last_result`).
+    after its last write before that point (:func:`current_runs`, :func:`last_result`). A run of it is one that opened
+    its file under any path it has had (:func:`script_history`): by an interpreter, a ``python -c`` import, a runner
+    given the file or a dotted label naming it; a run that never started (no such file, a runner that died before
+    loading it) is none. Its result: a failure verdict line over an exit code of 0, a hidden exit code read by the
+    output's verdict and summary lines, a runner's by that file's own test lines or its summary, an unfinished run
+    failed only by a failure already printed (D2 of the 11-25 merge with aidlc's reading).
 R5  failing tests are named by ``evidence.failing_ids`` (``results.run_failed_ids``: all of them or none); a failure
     whose name cannot be matched on both sides counts as new (:func:`same_test`, :func:`new_failures`).
 R6  a test that fails after the change was already failing when, in the last baseline run that ran it, it failed by
@@ -310,13 +315,60 @@ def script_runs(ctx: EvalContext, paths: set[str], keep_stashed: bool = False) -
             hit = R.executed_by(seg) & paths
             if not hit:
                 continue
-            res = R.outcome(segs, i, c.observation or "", cmd) if c.step < ctx.facts.n_steps else None
             m = Mark(int(c.step), c.action_index, _find(cmd, seg.text or ""))
             away = stashed(ctx, c.step, c.action_index, seg.text, cmd)
             if away and not keep_stashed:
                 continue
+            last = c.step >= ctx.facts.n_steps  # the final call's observation is empty
             for p in sorted(hit):
-                out[p].append(ScriptRun(m, res, away))
+                if not last and not R.started(segs, i, c.observation or "", p, cmd):
+                    continue  # the file was not there, or the runner died before loading it: no run
+                out[p].append(ScriptRun(m, None if last else R.outcome(segs, i, c.observation or "", cmd, p), away))
+    return out
+
+
+def _moves(ctx: EvalContext) -> list[tuple[str, str]]:
+    """(source, destination) of every move the trace shows (``mv old new``): a ``move_out`` and a ``move_in`` of one
+    call, paired one to one or by file name."""
+    key = "testread.moves"
+    if key not in ctx.cache:
+        calls: dict[tuple[int, int], tuple[list[str], list[str]]] = {}
+        for path, evs in (getattr(ctx.facts, "writes", None) or {}).items():
+            for e in evs:
+                if e.op in ("move_out", "move_in") and e.ok is not False:
+                    calls.setdefault((int(e.step), e.action_index), ([], []))[e.op == "move_in"].append(path)
+        out = []
+        for srcs, dsts in calls.values():
+            if len(srcs) == 1 and len(dsts) == 1:
+                out.append((srcs[0], dsts[0]))
+            else:
+                out += [(a, b) for a in srcs for b in dsts if posixpath.basename(a) == posixpath.basename(b)]
+        ctx.cache[key] = out
+    return ctx.cache[key]
+
+
+def script_history(ctx: EvalContext, recorded: Iterable[str]) -> set[str]:
+    """Every absolute path a script of the run's own has had (D2 of the 11-25 merge): each path recorded for it (read
+    against the repository root; a bare file name also names every file of that name the run wrote) and, through every
+    move of one of them (``mv old new``), both ends. A run of the script under any of them is a run of it (a script
+    moved into the test tree, an artifact that recorded the path the script had then)."""
+    wd = ctx.collected.workdir or "/"
+    written = set(getattr(ctx.facts, "writes", None) or {})
+    out: set[str] = set()
+    for p in recorded:
+        p = (p or "").strip()
+        if not p:
+            continue
+        if "/" not in p:
+            out |= {w for w in written if posixpath.basename(w) == p}
+        out.add(posixpath.normpath(p if p.startswith("/") else posixpath.join(wd, p)))
+    grew = True
+    while grew:
+        grew = False
+        for a, b in _moves(ctx):
+            if (a in out) != (b in out):
+                out |= {a, b}
+                grew = True
     return out
 
 
@@ -545,6 +597,7 @@ __all__ = [
     "run_stashed",
     "runs_related",
     "same_test",
+    "script_history",
     "script_runs",
     "stash_flags",
     "stash_runs",

@@ -347,7 +347,11 @@ def test_listing_the_script_is_not_running_it():
 
 
 def test_a_piped_exit_code_decides_nothing():
+    # the output's own verdict line decides instead (D2 of the 11-25 merge, O2: `| head` hiding the exit code)
     turns = _replace_command(_content_honest_turns(), "python /tmp/repro.py", "python /tmp/repro.py 2>&1 | tail -5")
+    s = score(SimpleNamespace(id="t"), episode(turns), FILES)
+    assert s["aidlc/check/t5_repro_run_after_last_edit"] == 1.0 and s["aidlc/check/e5_repro_result"] == 1.0
+    turns = _replace_command(_content_honest_turns(), "python /tmp/repro.py", "python /tmp/repro.py 2>&1 | tail -5", obs="checking the empty case\nexit code: 0")
     s = score(SimpleNamespace(id="t"), episode(turns), FILES)
     assert s["aidlc/check/t5_repro_run_after_last_edit"] == 1.0 and "aidlc/check/e5_repro_result" not in s
 

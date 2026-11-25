@@ -251,7 +251,12 @@ class Measures:
 
     @cached_property
     def obs(self) -> EV.Observed:
-        return observe(self.run, self.shared, self.workdir, ctx=self.ctx)
+        obs = observe(self.run, self.shared, self.workdir, ctx=self.ctx)
+        recorded = self.repro_recorded
+        if recorded:
+            history = T.script_history(obs.ctx, recorded)
+            obs.histories = {norm_path(p): history for p in recorded}
+        return obs
 
     @cached_property
     def parsed(self) -> dict[int, dict | None]:
@@ -459,6 +464,23 @@ class Measures:
     def repro_paths(self) -> list[str]:
         """Every reproduction script path 03 and 04 record."""
         return [p for st in (3, 4) if self.parsed.get(st) for p in claimed_paths(_field(self.parsed[st], "Reproduction Script", "Path"))]
+
+    @cached_property
+    def repro_recorded(self) -> list[str]:
+        """Every reproduction script path artifacts 03 and 04 recorded, in any version the run wrote (the shared
+        replay's contents of their writes) or collected: the paths the script had while the run went on (D2)."""
+        out = list(self.repro_paths)
+        writes = getattr(self.ctx.facts, "writes", None) or {}
+        for path, st in A.ARTIFACT_PATHS.items():
+            if st not in (3, 4):
+                continue
+            for e in writes.get(path, []):
+                if e.content:
+                    try:
+                        out += claimed_paths(_field(A.parse(st, e.content), "Reproduction Script", "Path"))
+                    except Exception:  # noqa: BLE001 -- a version the parser cannot take records nothing
+                        continue
+        return list(dict.fromkeys(norm_path(p) for p in out if p))
 
     def is_repro(self, path: str) -> bool:
         return any(same_file(path, q) for q in self.repro_paths)
