@@ -692,11 +692,11 @@ _OTHER_SELECTION = frozenset({"-run", "-skip", "-t", "--testPathPattern", "path"
 
 
 def _package_under(key: str, test_id: str) -> bool:
-    """A go test id ``import/path::TestX`` is in the package directory ``key`` names (a path relative to the
+    """A go test id ``import/path::TestX`` (or ``import/path``: the package itself) is in the package directory ``key`` names (a path relative to the
     repository, a tree): the directory's components are in the import path, in order, from one of its components on
     (``pkg/auth`` in ``github.com/o/r/pkg/auth`` and in ``github.com/o/r/pkg/auth/internal``)."""
-    pkg, sep, _ = test_id.partition("::")
-    if not sep or "/" not in pkg or re.search(r"\.\w{1,5}$", pkg.rsplit("/", 1)[-1]) or key == WHOLE or key.startswith("/"):
+    pkg, _, _ = test_id.partition("::")  # (a package that did not build is named by its import path alone)
+    if "/" not in pkg or re.search(r"\.\w{1,5}$", pkg.rsplit("/", 1)[-1]) or key == WHOLE or key.startswith("/"):
         return False
     kp, pp = [c for c in key.strip("/").split("/") if c and c != "."], pkg.split("/")
     return bool(kp) and any(pp[j : j + len(kp)] == kp for j in range(len(pp) - len(kp) + 1))
@@ -721,6 +721,8 @@ def _other_keeps(sel: str, test_id: str) -> bool:
     file_part, _, name = test_id.partition("::")
     if not name:
         file_part, name = "", test_id
+    if "::" not in test_id and opt in ("-run", "-skip", "-t"):
+        return True  # the unit is a package that did not build / a file that did not load: any test of it that ran shows it does
     if opt in ("-run", "-skip"):
         hit = _go_pattern(val, name)
         return hit is not None and hit == (opt == "-run")

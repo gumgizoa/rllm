@@ -231,12 +231,14 @@ def test_go_package_that_did_not_build_is_read():
     """``FAIL pkg [build failed]`` had no time on its line and was no result at all. Next to a passing package the
     run read as all passed; alone it was "no test summary in the output". It is one error: with other results a
     failing run, alone a run that loaded no test -- what a pytest run of collection errors only is."""
-    for text in (GO_BUILD_FAILED, GO_SETUP_FAILED):
+    for text in (GO_BUILD_FAILED, GO_SETUP_FAILED, GO_BUILD_SYNTAX):
         s = _one(text)
         assert (s.family, s.passed, s.failed, s.errors) == ("go", 0, 0, 1)
-    (alone,) = _runs([("go test ./openapi3gen/", GO_BUILD_FAILED)])
+    (alone,) = _runs([("go test ./openapi3gen/", GO_BUILD_SYNTAX)])
     assert not alone.valid and alone.errors == 1 and alone.targets == ["openapi3gen"]
     assert alone.reason == "invocation error (only load / collection errors: [build failed])"
+    (setup,) = _runs([("go test ./codegen/testserver/followschema", GO_SETUP_FAILED)])
+    assert not setup.valid and setup.reason == "invocation error (only load / collection errors: [setup failed])"
     (mixed,) = _runs([("go test ./...", "ok  \tgithub.com/getkin/kin-openapi/routers\t0.013s\n" + GO_BUILD_FAILED)])
     assert mixed.valid and (mixed.passed, mixed.failed, mixed.errors) == (1, 0, 1), mixed.reason
 
@@ -253,6 +255,68 @@ def test_go_run_that_matched_no_test_ran_none():
     ran = "=== RUN   TestA\n--- PASS: TestA (0.00s)\nPASS\nok  \tgithub.com/o/r/a\t0.010s\n"
     (run,) = _runs([("cd a && go test -run TestA -v", ran)])
     assert run.valid and run.passed == 1
+
+
+GO_BUILD_SYNTAX = """# github.com/getkin/kin-openapi/openapi3gen [github.com/getkin/kin-openapi/openapi3gen.test]
+openapi3gen/openapi3gen_test.go:345:14: syntax error: unexpected newline, expected comma or )
+FAIL	github.com/getkin/kin-openapi/openapi3gen [build failed]
+FAIL
+"""
+TS_JEST_MISSING = """FAIL packages/cli/src/api/compile.test.ts
+  ● Test suite failed to run
+
+    packages/cli/src/api/compile.test.ts:12:23 - error TS2339: Property 'compileAll' does not exist on type 'typeof import("/testbed/packages/cli/src/api/compile")'.
+
+    12     const out = compile.compileAll(files)
+                             ~~~~~~~~~~
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        2.1 s
+Ran all test suites matching /compile.test/i.
+"""
+
+
+def test_a_build_that_failed_on_code_that_is_not_there_yet_is_a_failing_run():
+    """In go and typescript a test written before its implementation does not fail, it does not build: ``undefined:
+    openapi3gen.WithFieldNameGenerator``, ``TS2339 Property 'compileAll' does not exist``. That run -- the failing run
+    the workflows ask for before the change -- was no test run at all (in the rollouts 44 of 145 build-failure-only
+    runs). It is a valid run of one error; a build that failed on a syntax error, a package that cannot be set up or a
+    file that cannot be parsed stays a run that loaded nothing, and python's collection errors are read as before."""
+    (go,) = _runs([("go test ./openapi3gen/", GO_BUILD_FAILED)])
+    assert go.valid and (go.passed, go.failed, go.errors) == (0, 0, 1) and go.targets == ["openapi3gen"], go.reason
+    assert R.run_failed_ids(go.failed, go.errors, GO_BUILD_FAILED) == ("github.com/getkin/kin-openapi/openapi3gen",)
+    for output in (
+        "# github.com/o/r/pkg/auth [github.com/o/r/pkg/auth.test]\npkg/auth/token_test.go:20:9: s.Retry undefined (type *Signer has no field or method Retry)\nFAIL\tgithub.com/o/r/pkg/auth [build failed]\nFAIL\n",
+        "# github.com/o/r/pkg/auth [github.com/o/r/pkg/auth.test]\npkg/auth/token_test.go:20:21: too many arguments in call to Sign\n\thave (string, Options)\n\twant (string)\nFAIL\tgithub.com/o/r/pkg/auth [build failed]\nFAIL\n",
+    ):
+        (r,) = _runs([("go test ./pkg/auth", output)])
+        assert r.valid and r.errors == 1, r.reason
+    (ts,) = _runs([("yarn test --testPathPattern=\"packages/cli/src/api/compile.test.ts\"", TS_JEST_MISSING)])
+    assert ts.valid and (ts.passed, ts.failed, ts.errors) == (0, 0, 1), ts.reason
+    esm = JEST_BROKEN.replace("Jest encountered an unexpected token", "SyntaxError: The requested module '../lib/rules/index.js' does not provide an export named 'ignoreSingle'")
+    (js,) = _runs([("npx jest lib/rules", esm)])
+    assert js.valid and js.errors == 1, js.reason
+    # one test file given to go is compiled alone: "undefined" there says nothing about the code
+    alone = "# command-line-arguments [command-line-arguments.test]\n./huma_test.go:31:13: undefined: NewAPI\nFAIL\tcommand-line-arguments [build failed]\nFAIL\n"
+    (r,) = _runs([("go test -v -run TestPathParam ./huma_test.go", alone)], base={"huma_test.go": True})
+    assert not r.valid and r.reason == "invocation error (only load / collection errors: [build failed])", r.reason
+    # the package that did not build stands failing until a run of it passes: any test of it that ran shows it builds
+    ok = "=== RUN   TestSchema\n--- PASS: TestSchema (0.00s)\nPASS\nok  \tgithub.com/getkin/kin-openapi/openapi3gen\t0.010s\n"
+    red = _result(1, "go test ./openapi3gen/", GO_BUILD_FAILED)
+    assert [u for u, _ in R.standing_units([red])] == [("test", "github.com/getkin/kin-openapi/openapi3gen")]
+    for command in ("go test ./openapi3gen/... -v", "go test -run TestSchema ./openapi3gen", "go test ./... -v"):
+        assert R.standing_units([red, _result(2, command, ok)]) == [], command
+    assert R.standing_units([red, _result(2, "go test ./openapi3 -v", ok.replace("openapi3gen", "openapi3"))]) != []  # another package
+    # what is not that: a syntax error (go, jest, vitest), a module that is missing, python's collection error
+    missing_module = JEST_BROKEN.replace("Jest encountered an unexpected token", "Cannot find module '../lib/newFeature' from 'lib/rules/x/__tests__/index.js'").replace("SyntaxError: ", "")
+    for command, output in (("go test ./openapi3gen/", GO_BUILD_SYNTAX), ("npx jest lib/rules", JEST_BROKEN), ("npx vitest run test/cookie.test.ts", VITEST_BROKEN), ("npx jest lib/rules", missing_module)):
+        (r,) = _runs([(command, output)])
+        assert not r.valid and r.reason.startswith("invocation error (only load / collection errors:"), (command, r.reason)
+    py = "==================================== ERRORS ====================================\n___ ERROR collecting tests/test_new.py ___\nImportError: cannot import name 'new_thing' from 'pkg'\n=========================== short test summary info ============================\nERROR tests/test_new.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.12s ===============================\n"
+    (r,) = _runs([("pytest tests/test_new.py", py)], base={"tests/test_new.py": True})
+    assert not r.valid and "collection" in r.reason, r.reason
 
 
 def test_go_failure_whose_test_line_was_cut_off_is_a_failure():

@@ -1897,14 +1897,30 @@ _LOADER_TEXT = re.compile(
 )
 
 
-def invocation_error(observation: str, summary: Summary | None) -> str:
+# A build that failed because the test uses what the code does not have: in a compiled language that is what a test
+# written before its implementation does when run (go ``undefined: pkg.NewThing``, ``x.Retry undefined (type T has no
+# field or method Retry)``, a call with the arguments the change will take; typescript ``TS2304 Cannot find name``,
+# ``TS2339 Property 'x' does not exist on type``, ``TS2305 ... has no exported member``, ``TS2554 Expected 2 arguments``;
+# an ES module that ``does not provide an export named`` it). A syntax error, a package that cannot be set up, a module
+# that cannot be found are not that: such a run loaded nothing for a reason of its own.
+_NOT_YET_THERE = re.compile(
+    r"^\S+\.go:\d+:\d+: (?:undefined: |[^\n]*\bhas no field or method\b|[^\n]*\bnot declared by package\b|unknown field |too many arguments in call|not enough arguments in call|[^\n]*\(missing method )"
+    r"|\bTS(?:2304|2339|2305|2551|2552|2554|2555|2724|2353)\b|does not provide an export named",
+    re.M,
+)
+
+
+def invocation_error(observation: str, summary: Summary | None, missing_code: bool = True) -> str:
     """Why a run whose only outcome is errors never ran a test of its selection ('' if it did, or had other outcomes).
 
     The runner could not load what it was asked to run: django's / unittest's ``unittest.loader._FailedTest``
     for a label that does not import, ``Failed to import test module``, a ``ModuleNotFoundError``, pytest's
     ``ERROR collecting`` / ``errors during collection``; go's ``FAIL pkg [build failed]`` / ``[setup failed]`` (the
     package or its test files did not compile), jest's ``Test suite failed to run`` and vitest's ``Failed Suites``
-    (the test file could not be loaded). Such output counts the load failures as test errors
+    (the test file could not be loaded) -- but not a go / typescript build that failed on something the code does not
+    have yet (:data:`_NOT_YET_THERE`): that is the failing run of a test written before its implementation, and it stays
+    a valid run of one error (``missing_code`` False: the caller knows the build could not have found the code, as
+    when go was given one test file). Such output counts the load failures as test errors
     ("Ran 1 test ... FAILED (errors=1)") but no test ran -- a baseline of it records nothing (legacy
     ``truth_none.py`` invocation errors). Errors of real tests (a unittest error header naming a test class)
     keep the run valid, as does any pass or failure next to the load errors."""
@@ -1916,6 +1932,8 @@ def invocation_error(observation: str, summary: Summary | None) -> str:
     if heads:
         return "invocation error (the runner could not load the selection: unittest.loader._FailedTest)" if all(_LOADER_CLASS.search(h) for h in heads) else ""
     m = _LOADER_TEXT.search(obs)
+    if missing_code and m and m.group(0).startswith(("[build failed]", "Test suite failed to run", "Failed Suites")) and _NOT_YET_THERE.search(obs):
+        return ""  # go / typescript: the test does not compile against code that is not there yet -- its failing run
     return f"invocation error (only load / collection errors: {m.group(0)})" if m else ""
 
 
@@ -2071,7 +2089,10 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
                 same = _in_command(summary.phrases, command)
                 if same:
                     reasons.append(f"summary text in the command ({same!r})")
-                why = invocation_error(obs, summary)
+                # `go test ./x_test.go` compiles that file alone: what the package's other files define is "undefined"
+                # there whatever the code has, so such a build failure is not the failing run of a test written first
+                files_only = hit.runner.name == "go-test" and any(t.endswith(".go") for t in hit.targets)
+                why = invocation_error(obs, summary, missing_code=not files_only)
                 if why:
                     reasons.append(why)
     rf.valid = not reasons
