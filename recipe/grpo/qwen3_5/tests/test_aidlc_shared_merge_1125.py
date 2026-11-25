@@ -274,3 +274,80 @@ def test_d2_a_logged_warning_is_no_verdict():
     assert _read("cd /testbed && python reproduce_issue.py 2>&1", out + OK, f"{WD}/reproduce_issue.py") == "pass"
     # must keep its reading: the script's own lower-case verdict still fails it
     assert _read("cd /testbed && python reproduce_issue.py 2>&1", "check_slug: failed\n" + OK, f"{WD}/reproduce_issue.py") == "fail"
+
+
+# ==== D3: one test's state in a run's output ==========================================================================
+def test_d3_a_passed_line_says_the_test_passed():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+
+    # D3 case 1 / 2 / 8 (P1, P2): aidlc's passed-name reader, now the shared one -- whatever else failed in the run
+    out = "sklearn/svm/tests/test_sparse.py::test_linearsvc_iris PASSED\nsklearn/svm/tests/test_sparse.py::test_other FAILED\n==== 1 failed, 1 passed in 1.0s ===="
+    assert E.test_state(out, "test_linearsvc_iris") is True
+    assert E.test_state("test_trunc_time_func (db_functions.datetime.test_extract_trunc.DateFunctionTests) ... ok\n", "test_trunc_time_func") is True
+    # must keep its reading: a name the output does not hold is unknown (a quiet run names no passing test)
+    assert E.test_state("..F\n==== 1 failed, 2 passed in 0.1s ====", "test_linearsvc_iris") is None
+
+
+def test_d3_unittest_s_two_line_form():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+
+    # D3 case 3 / 16 (P4): unittest -v prints the name, then the docstring line ending with the result
+    out = "test_far_expiration (tests.responses.test_cookie.SetCookieTests)\nCookie will expire when a distant expiration time is provided. ... ok\n\nRan 11 tests in 0.01s\n\nOK\n"
+    assert E.test_state(out, "test_far_expiration") is True
+    assert E.test_state(out.replace("provided. ... ok", "provided. ... FAIL"), "test_far_expiration") is False
+    # must keep its reading: a name line whose next line is no result says nothing
+    assert E.test_state("test_far_expiration (tests.responses.test_cookie.SetCookieTests)\nsome log line\n", "test_far_expiration") is None
+
+
+def test_d3_sympy_s_file_mark_is_the_file_s():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+
+    # D3 case 7 (F1): `[FAIL]` at the end is the file's mark; the test's own word is `ok`
+    assert E.test_state("test_issue_10156 ok                                                       [FAIL]\n", "test_issue_10156") is True
+    # must keep its reading: the test's own F fails it
+    assert E.test_state("test_issue_10157 F                                                        [FAIL]\n", "test_issue_10157") is False
+
+
+def test_d3_failing_ids_the_shared_reader_missed():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+
+    # D3 case 18 (F2): a parameter id holding spaces
+    out = "sklearn/model_selection/tests/test_search.py::test_validate_parameter_grid_input[0-TypeError-Parameter grid is not a dict or a list (0)] FAILED\n"
+    assert "sklearn/model_selection/tests/test_search.py::test_validate_parameter_grid_input[0-TypeError-Parameter grid is not a dict or a list (0)]" in E.failing_ids(out)
+    assert E.test_state(out, "test_validate_parameter_grid_input") is False  # a bare name fails when a parameter of it fails
+    # D3 case 13 (F2): a setup error's section
+    setup = "____________ ERROR at setup of test_plot_tree_gini ____________\n==== 1 passed, 2 errors in 0.5s ===="
+    assert "test_plot_tree_gini" in E.failing_ids(setup) and E.test_state(setup, "test_plot_tree_gini") is False
+    # D3 case 6 (F2): a test module Django's loader could not import
+    loader = "ERROR: messages_tests.test_mixins (unittest.loader._FailedTest)\nImportError: Failed to import test module: messages_tests.test_mixins\n"
+    assert "messages_tests.test_mixins" in E.failing_ids(loader) and E.test_state(loader, "test_mixins") is False
+    # must keep its reading: a plain short-summary id
+    assert E.failing_ids("FAILED tests/test_a.py::test_b - assert 1 == 2\n") == ["tests/test_a.py::test_b"]
+
+
+def test_d3_a_quiet_run_s_failure_section_fails_the_test():
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+
+    # D3 case 5 / 12 (F4): `-q` prints the failure only as its section's header
+    out = (
+        "F\n=================================== FAILURES ===================================\n"
+        "____________ RequestsTestCase.test_BASICAUTH_TUPLE_HTTP_200_OK_GET _____________\nE   TypeError: x\n==== 1 failed in 0.3s ===="
+    )
+    assert E.test_state(out, "test_BASICAUTH_TUPLE_HTTP_200_OK_GET") is False
+    for rd in (RD4, RD5):  # aidlc reads it by the shared function
+        assert rd.test_state(out, "test_BASICAUTH_TUPLE_HTTP_200_OK_GET") is False
+
+
+def test_d3_a_run_stopped_at_its_first_failure_did_not_run_what_it_covers():
+    # D3 case 10 (P4): `pytest -x -q` stopped at the first failure; the test it covers but never names is not known
+    # to have run, so it cannot be "already failing" or "passing" by that run
+    out = "F\n____ test_a ____\nE   assert 0\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n==== 1 failed in 0.1s ====\n"
+    ctx = _ctx([sh("cd /testbed && python -m pytest -x -q tests/test_mod.py", out + BAD)], diff={})
+    b = T.as_result(ctx, ctx.facts.runs[0])
+    assert b.stopped and not T.ran_test(b, "tests/test_mod.py::test_b")
+    assert T.ran_test(b, "tests/test_mod.py::test_a")  # the one it names failed
+    # must keep its reading: the same run without -x went through the file
+    out2 = out.replace("!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!\n", "")
+    ctx2 = _ctx([sh("cd /testbed && python -m pytest -q tests/test_mod.py", out2 + BAD)], diff={})
+    b2 = T.as_result(ctx2, ctx2.facts.runs[0])
+    assert not b2.stopped and T.ran_test(b2, "tests/test_mod.py::test_b")

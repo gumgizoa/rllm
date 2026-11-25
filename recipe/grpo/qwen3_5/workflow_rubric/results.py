@@ -400,6 +400,17 @@ class TestResult:
     keys: tuple[str, ...]  # the script's path, or the test files the runner run names (``WHOLE`` when none)
     selection: tuple[str, ...] = ()  # what narrows a runner run below its files (:func:`selection`)
     failed_ids: tuple[str, ...] = ()  # a failing valid runner run: the ids of its failed tests, when its output names them all (:func:`run_failed_ids`)
+    stopped: bool = False  # a runner run that stops at its first failures (``-x``, ``--maxfail``, ``--failfast``): what it covers need not have run
+
+
+_STOP_OPT = re.compile(r"(?:^|\s)(?:-x|--exitfirst|--maxfail(?:=|\s+)\d+|--failfast|-[a-wyz]*x[a-z]*)(?=\s|$)")
+_STOPPED = re.compile(r"stopping after \d+ failures?|Interrupted: stopping after", re.I)
+
+
+def stops_early(segment: str, observation: str = "") -> bool:
+    """A runner run that may stop before it ran all it covers: ``-x`` / ``--exitfirst`` / ``--maxfail N`` /
+    ``--failfast`` on its command, or pytest's ``stopping after N failures`` in its output."""
+    return _STOP_OPT.search(segment or "") is not None or _STOPPED.search(observation or "") is not None
 
 
 # options whose value is no test selection (``-W ignore::DeprecationWarning``, ``-p no:cacheprovider``, ``-o k=v``): the

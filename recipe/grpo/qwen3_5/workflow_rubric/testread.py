@@ -22,7 +22,9 @@ R4  a script of the run's own is read by ``results.executions`` / ``results.outc
     output's verdict and summary lines, a runner's by that file's own test lines or its summary, an unfinished run
     failed only by a failure already printed (D2 of the 11-25 merge with aidlc's reading).
 R5  failing tests are named by ``evidence.failing_ids`` (``results.run_failed_ids``: all of them or none); a failure
-    whose name cannot be matched on both sides counts as new (:func:`same_test`, :func:`new_failures`).
+    whose name cannot be matched on both sides counts as new (:func:`same_test`, :func:`new_failures`). A test's state
+    in one output is ``evidence.test_state`` (its line's verdict word, unittest's two-line form, or a failing id);
+    a test the output does not name is not known to have run unless the run went through all it covers (no ``-x``).
 R6  a test that fails after the change was already failing when, in the last baseline run that ran it, it failed by
     name (:func:`preexisting`). Which runs are baseline runs is the workflow's (its documents say).
 R7  the existing tests of the changed code ran: a valid run after the change that targets a test file related to a
@@ -446,14 +448,18 @@ def as_result(ctx: EvalContext, r: Any) -> R.TestResult:
     whole = whole_suite(ctx, r)
     n_failed, n_errors = int(r.failed or 0), int(r.errors or 0)
     keys = files if files and not whole else (R.WHOLE,)
-    return R.TestResult(int(r.step), not (n_failed + n_errors), True, keys, R.selection(r.segment), R.run_failed_ids(n_failed, n_errors, r.observation or ""))
+    failed_ids = R.run_failed_ids(n_failed, n_errors, r.observation or "")
+    return R.TestResult(int(r.step), not (n_failed + n_errors), True, keys, R.selection(r.segment), failed_ids, R.stops_early(r.segment, r.observation or ""))
 
 
 def ran_test(b: R.TestResult, tid: str) -> bool:
     """Baseline result ``b`` ran test ``tid``: it names the test among its failures, or its targets and selection cover
-    the test (``results.runs_test``)."""
+    the test (``results.runs_test``) -- not for a run that stops at its first failures (``-x``, ``--maxfail``: D3 of
+    the 11-25 merge), which need not have reached a test it covers."""
     if any(same_test(tid, i) for i in b.failed_ids):
         return True
+    if b.stopped and not b.passed:
+        return False
     try:
         return bool(b.runner) and R.runs_test(b, tid)
     except Exception:  # noqa: BLE001 -- agent text

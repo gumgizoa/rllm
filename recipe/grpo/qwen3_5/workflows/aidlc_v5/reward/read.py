@@ -203,26 +203,12 @@ def found_no_tests(out: str) -> bool:
     return total is not None and total.ran < 1
 
 
-_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
-_STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b")
-_STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b")
-
-
 def test_state(out: str, name: str) -> bool | None:
-    """Whether test ``name`` (a function name, ``test_x``) passed in a run's output: False when a line naming it
-    reports a failure or error (pytest ``FAILED`` / ``ERROR``, unittest ``... FAIL``, ``FAIL: test_x (...)``),
-    True when a line reports it passed (``PASSED``, ``... ok``) and none failed, None when no line says
-    (a quiet ``pytest -q`` names no passing test). A file or directory of that name is not the test
-    (``test_solveset.py::test_solve_sqrt_fail FAILED`` says nothing of ``test_solveset``: step24 004741 000464)."""
-    pat = re.compile(rf"(?<![\w/]){re.escape(name)}(?!\w|\.py\b|/)")
-    # (colours stripped first: ``\x1b[32mPASSED`` has no word boundary before PASSED -- 137 of 4,011 baseline
-    # readings on swebv100 + step24 were lost to it)
-    lines = [ln for ln in _ANSI.sub("", out).splitlines() if pat.search(ln)]
-    if any(_STATE_FAIL.search(ln) for ln in lines):
-        return False
-    if any(_STATE_PASS.search(ln) for ln in lines):
-        return True
-    return None
+    """Whether test ``name`` (a function name, ``test_x``) passed in a run's output: the shared reading
+    (``evidence.test_state``, D3 of the 11-25 merge: this scorer's reading of the lines that name the test --
+    ``PASSED`` / ``... ok`` / ``FAILED`` / ``ERROR`` -- with unittest's two-line form, sympy's file mark taken off, and
+    the shared failing ids: a failure either reader finds is a failure). None when no line says."""
+    return SE.test_state(out, name)
 
 
 def _test_name(test_id: str) -> str:

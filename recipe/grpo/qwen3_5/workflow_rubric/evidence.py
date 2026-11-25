@@ -1071,19 +1071,25 @@ def output_ids(text: str) -> list[str]:
     return list(dict.fromkeys(out))[:MAX_IDS]
 
 
+_NODE = r"\S+?::[^\s\[]+(?:\[[^\]\n]*\])?"  # a pytest node id; its parameter part may hold spaces (``test_x[0-a list (0)]``)
 _FAILING = (
-    re.compile(r"^(?:FAILED|ERROR) (\S+?::\S+)", re.M),  # pytest short summary
-    re.compile(rf"^(\S+?\.py::\S+?){_FROM}\s+(?:FAILED|ERROR)\b", re.M),  # pytest -v
+    re.compile(rf"^(?:FAILED|ERROR) ({_NODE})", re.M),  # pytest short summary
+    re.compile(rf"^(\S+?\.py::[^\s\[]+?(?:\[[^\]\n]*\])?){_FROM}\s+(?:FAILED|ERROR)\b", re.M),  # pytest -v
     re.compile(r"^_{3,} (\S+?\.py):(\w+) _{3,}", re.M),  # sympy failure / exception sections
 )
 _UT_FAILING = re.compile(r"^(?:FAIL|ERROR): (\w+) \(([\w.]+)\)", re.M)
-_PYTEST_SECTION = re.compile(r"^_{3,} ((?:\w+\.)?test\w*(?:\[[^\]\n]*\])?) _{3,}$", re.M)
+# a module the unittest loader could not import (Django ``ERROR: app.test_x (unittest.loader._FailedTest)``): every
+# test of it failed to run, named by the module
+_UT_LOADER_FAILING = re.compile(r"^ERROR: ([\w.]+) \(unittest\.loader\.(?:_FailedTest|ModuleImportFailure)\)", re.M)
+_PYTEST_SECTION = re.compile(r"^_{3,} (?:ERROR at (?:setup|teardown) of )?((?:\w+\.)?test\w*(?:\[[^\]\n]*\])?) _{3,}$", re.M)
 
 
 def failing_ids(text: str) -> list[str]:
-    """Ids of the tests a run's output reports as failed or errored: pytest node ids (short summary, ``-v`` lines,
-    ``___ Class.test_x ___`` sections), unittest / django ``test_x (module.Class)`` as ``module.Class.test_x``, sympy
-    ``file.py::test_x``, go ``TestX``. A unittest loader failure (``unittest.loader._FailedTest``) is not a test."""
+    """Ids of the tests a run's output reports as failed or errored: pytest node ids (short summary, ``-v`` lines --
+    a parameter id may hold spaces --, ``___ Class.test_x ___`` sections, ``___ ERROR at setup of test_x ___``),
+    unittest / django ``test_x (module.Class)`` as ``module.Class.test_x``, a test module the unittest loader could not
+    import (``ERROR: app.test_x (unittest.loader._FailedTest)``) as ``app.test_x``, sympy ``file.py::test_x``, go
+    ``TestX`` (D3 of the 11-25 merge with aidlc's reading)."""
     text = _sane(text)
     out: list[str] = []
     for rx in _FAILING:
@@ -1094,9 +1100,58 @@ def failing_ids(text: str) -> list[str]:
         if "loader._FailedTest" in where or "loader.ModuleImportFailure" in where:
             continue
         out.append(where if where.endswith("." + name) else f"{where}.{name}")
+    out += [m.group(1) for m in _UT_LOADER_FAILING.finditer(text)]
     out += [m.group(1) for m in _PYTEST_SECTION.finditer(text)]
     out += [m.group(2) for m in _GO_TEST.finditer(text) if m.group(1) == "FAIL"]
     return list(dict.fromkeys(out))[:MAX_IDS]
+
+
+def own_name(test_id: str) -> str:
+    """A test id's own name: ``tests/x.py::TestC::test_a[1]``, ``mod.TestC.test_a`` and ``test_a`` are ``test_a``."""
+    return re.split(r"::|\.", (test_id or "").split("[", 1)[0])[-1]
+
+
+_STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b")
+_STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b")
+_SYMPY_FILE_MARK = re.compile(r"\s*\[(?:OK|FAIL)\]\s*$")  # sympy's file-level mark at the end of a test's line
+_SYMPY_STATE = re.compile(r"^\s*test_\w+\s+(ok|E|F)\s*$")
+_UT_NAME_LINE = re.compile(r"^\s*test\w*\s+\([\w.]+\)\s*$")  # unittest -v: the result follows on the next line
+_UT_NEXT = re.compile(r"\.\.\.\s*(ok|FAIL|ERROR)\s*$")
+
+
+def test_state(text: str, name: str) -> bool | None:
+    """Whether test ``name`` passed in a run's output (D3 of the 11-25 merge with aidlc's reading): False when a line
+    naming it reports a failure or error (pytest ``FAILED`` / ``ERROR``, unittest ``... FAIL``, ``FAIL: test_x
+    (...)``, ``ERROR at setup of test_x``, sympy ``test_x F``) or :func:`failing_ids` names it (a ``-q`` failure
+    section ``___ Class.test_x ___``; a bare function name fails when any parameter id of it fails); True when a line
+    reports it passed (``PASSED``, ``... ok``, unittest's name line followed by a docstring line ending ``... ok``, sympy
+    ``test_x ok`` -- the file's ``[OK]`` / ``[FAIL]`` at the line's end is the file's, not the test's); None when no line
+    says (a quiet ``pytest -q`` names no passing test, and a name the output does not hold is unknown). A file or
+    directory of that name is not the test (``test_solveset.py::test_x FAILED`` says nothing of ``test_solveset``)."""
+    if not name:
+        return None
+    pat = re.compile(rf"(?<![\w/]){re.escape(name)}(?!\w|\.py\b|/)")
+    lines = _sane(_ANSI.sub("", text or "")).splitlines()
+    failed = passed = False
+    for k, ln in enumerate(lines):
+        if not pat.search(ln):
+            continue
+        body = _SYMPY_FILE_MARK.sub("", ln)
+        sym = _SYMPY_STATE.match(body)
+        if sym:
+            failed |= sym.group(1) != "ok"
+            passed |= sym.group(1) == "ok"
+        elif _STATE_FAIL.search(body):
+            failed = True
+        elif _STATE_PASS.search(body):
+            passed = True
+        elif _UT_NAME_LINE.match(body) and k + 1 < len(lines) and (nxt := _UT_NEXT.search(lines[k + 1])):
+            failed |= nxt.group(1) != "ok"
+            passed |= nxt.group(1) == "ok"
+    if not failed:
+        own = own_name(name)
+        failed = any(i == name or own_name(i) == own for i in failing_ids(text or ""))
+    return False if failed else (True if passed else None)
 
 
 # ============================================================================================
@@ -1543,6 +1598,8 @@ __all__ = [
     "clean_observation",
     "output_ids",
     "failing_ids",
+    "own_name",
+    "test_state",
     "invocation_error",
     "runs_from",
 ]
