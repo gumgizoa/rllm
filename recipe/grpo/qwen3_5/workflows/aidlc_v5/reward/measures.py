@@ -134,11 +134,13 @@ class Measures:
     """``files``: what was collected from the sandbox (container path -> text), the five artifacts and whatever
     else the artifact directory held. ``facts``: the shared layer's facts of the run (the engine's
     ``EvalContext.facts``), whose test runs (``evidence.runs_from``) are the ones read here; ``workdir``: the
-    repository root (``Collected.workdir``). Without ``facts`` they are built from the episode (``read.bare_facts``)."""
+    repository root (``Collected.workdir``); ``ctx``: the engine's context of the run, whose shared readings of the
+    code change (``testread``) are the ones used here. Without them they are built from the episode
+    (``read.bare_context``)."""
 
-    def __init__(self, task, episode, files: dict[str, str], facts=None, workdir: str | None = None):
+    def __init__(self, task, episode, files: dict[str, str], facts=None, workdir: str | None = None, ctx=None):
         self.task, self.episode, self.files = task, episode, files
-        self._facts, self.workdir = facts, workdir
+        self._facts, self.workdir, self._ctx = facts if facts is not None else getattr(ctx, "facts", None), workdir, ctx
         self._values: dict[str, float | None | _Failed] = {}
 
     # -- measurements -------------------------------------------------------------------------------
@@ -225,6 +227,17 @@ class Measures:
         return run
 
     @cached_property
+    def ctx(self):
+        """The shared layer's context of the run: the engine's, else one built from the episode (``read.bare_context``;
+        in the repository root ``read.TEXT_CWD`` when the task names none, as the artifacts' commands are read)."""
+        if self._ctx is not None and self._ctx.collected.workdir:
+            return self._ctx
+        from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _episode_diff, _task_workdir
+
+        self.workdir = self.workdir or _task_workdir(self.task)
+        return EV.bare_context(self.episode, self.workdir or EV.TEXT_CWD, _episode_diff(self.episode))
+
+    @cached_property
     def shared(self):
         """The shared layer's facts of the run (``workflow_rubric.facts.build``)."""
         if self._facts is not None:
@@ -241,7 +254,7 @@ class Measures:
 
     @cached_property
     def obs(self) -> EV.Observed:
-        return observe(self.run, self.shared, self.workdir)
+        return observe(self.run, self.shared, self.workdir, ctx=self.ctx)
 
     @cached_property
     def parsed(self) -> dict[int, dict | None]:
@@ -346,10 +359,17 @@ class Measures:
 
     @cached_property
     def timing_unknown(self) -> bool:
+        """The patch changed a source file no write of the trajectory shows (the shared layer's ``unseen_repo_paths``:
+        a change made outside the trace, so when the code last changed is unknown)."""
         if self.final is None:
             return False
-        obs = self.obs
-        return any(p not in self.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, self.tests) and not any(same_file(p, q) for q in obs.edited) for p in self.changed_now)
+        return bool(self.unseen_sources)
+
+    @cached_property
+    def unseen_sources(self) -> list[str]:
+        """Source files of the patch that no write of the trajectory shows (``facts.unseen_repo_paths``, the task's test
+        files and new files aside)."""
+        return [p for p in getattr(self.ctx.facts, "unseen_repo_paths", None) or [] if p not in self.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, self.tests)]
 
     def changed(self, path: str) -> bool:
         return any(same_file(path, q) for q in self.changed_now) if self.final is not None else self.obs.changed(path)
@@ -529,12 +549,8 @@ class Measures:
 
     @cached_property
     def edits_unseen(self) -> bool:
-        """The patch changed a source file the trajectory never shows being edited."""
-        final, obs = self.final, self.obs
-        return final is not None and any(
-            q not in set(final[1]) and not EV.is_test_file(q, self.tests) and re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) and not any(same_file(q, e) for e in obs.edited)
-            for q in final[0]
-        )
+        """The patch changed a source file the trajectory never shows being edited (:attr:`unseen_sources`)."""
+        return self.final is not None and any(re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) for q in self.unseen_sources)
 
     @cached_property
     def art_writes(self) -> dict[int, list[int]]:
@@ -551,4 +567,4 @@ class Measures:
     def edits5(self) -> list[int]:
         """The source edits of stage 5 (between its start and artifact 05)."""
         w5 = self.w.get(5)
-        return sorted(n for p in self.obs.source_edits for n in self.obs.edit_steps.get(p, []) if self.start5 < n < w5)
+        return sorted(n for ns in self.obs.source_steps.values() for n in ns if self.start5 < n < w5)

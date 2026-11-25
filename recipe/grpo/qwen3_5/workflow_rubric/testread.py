@@ -2,11 +2,15 @@
 (tasks/2026-11-24-test-reading-consistency/통일-검토.md, rules R1-R7). The workflows keep only what their documents
 make different -- which runs are the baseline, which tests are their own -- and pass it in.
 
-R1  the code change is a source-file write (:func:`change_steps`, :func:`change_writes`: ``facts.source_change_steps``).
-    A test file, the run's own scripts and git putting content back are no change. A test of the run's own is held to
-    its own writes instead (R4).
+R1  the code change is a write to an application source file of the repository (:func:`change_steps`,
+    :func:`change_writes`: ``facts.is_change_write``), whether or not the final change keeps it (a reverted edit was a
+    modification; 11-25 merge with aidlc's reading, D1). A test file, the run's own scripts and helper files (a new
+    ``settings.py`` at the root, a helper app ``test_app/``), files outside the repository, removing a scratch or
+    regenerated file and git putting content back are no change. A test of the run's own is held to its own writes
+    instead (R4).
 R2  where a test run and a write share one shell call, their order in the command's text decides: ``sed -i ... &&
     pytest`` runs after the write, ``pytest ...; sed -i ...`` before it (:class:`Mark`, :func:`after`, :func:`before`).
+    A script run that itself edits the source is the change: neither before nor after it (:func:`write_mark`).
 R3  a run while the change is put away -- ``git stash`` .. ``pop`` / ``apply``, a ``git checkout`` / ``restore`` of an
     edited file, ``git apply -R`` / ``patch -R`` -- is a run of the unchanged code, not of the change
     (:func:`stashed`, :func:`change_runs`, :func:`stash_runs`, :func:`script_runs`).
@@ -46,8 +50,7 @@ def change_writes(ctx: EvalContext) -> list:
     """The repository writes that are source changes (``facts.source_change_steps`` counts their steps), in order."""
     key = "testread.change_writes"
     if key not in ctx.cache:
-        keep = F.source_paths(ctx)
-        evs = [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep]
+        evs = [e for e in ctx.facts.repo_writes if F.is_change_write(ctx, e)]
         ctx.cache[key] = sorted(evs, key=lambda e: (int(e.step), e.action_index))
     return ctx.cache[key]
 
@@ -102,14 +105,35 @@ def _find(cmd: str, what: str) -> int | None:
     return i if i >= 0 else None
 
 
+def _script_write_pos(ctx: EvalContext, cmd: str, step: int, action: int, path: str) -> int | None:
+    """Where in ``cmd`` the python run that wrote ``path`` (absolute) starts: the segment whose code writes it
+    (``python3 fix.py`` after ``cat > fix.py <<EOF ...``, ``python - <<EOF``), else the call's only python segment; None
+    when that cannot be told. The run of a script that edits the source is the change itself (R1 / R2): its mark is the
+    run's own place, so a run of that script in the call is neither before nor after it, and a run later in the text
+    is after it. The text of a heredoc body is no order of execution."""
+    cwd = next((c.cwd for c in getattr(ctx.facts, "commands", None) or [] if int(c.step) == step and c.action_index == action), None)
+    try:
+        segs = shell.split(cmd[: R.MAX_CMD], cwd)[0]
+        ops = shell.write_ops(cmd[: R.MAX_CMD], cwd)
+    except Exception:  # noqa: BLE001 -- agent text
+        return None
+    py = [k for k, s in enumerate(segs) if s.verb and R._INTERPRETER.search(s.verb)]
+    own = [op.seg for op in ops if op.source == "python" and posixpath.normpath(op.path or "") == path and 0 <= op.seg < len(segs)]
+    k = own[0] if own else (py[0] if len(py) == 1 else None)
+    return None if k is None else _find(cmd, segs[k].text or "")
+
+
 def write_mark(ctx: EvalContext, e) -> Mark:
     """The mark of repository write ``e`` (repo-relative path): in a shell call, where its path first appears in the
-    command (absolute, else relative); an editor write is its whole action."""
+    command (absolute, else relative); a write a python script made when it ran, where that run starts
+    (:func:`_script_write_pos`); an editor write is its whole action."""
     cmd = _command(ctx, int(e.step), e.action_index)
     if cmd is None:
         return Mark(int(e.step), e.action_index, 0)
     wd = (ctx.collected.workdir or "").rstrip("/")
     path = e.path if e.path.startswith("/") else (wd + "/" + e.path if wd else e.path)
+    if e.source == "python":
+        return Mark(int(e.step), e.action_index, _script_write_pos(ctx, cmd, int(e.step), e.action_index, path))
     pos = _find(cmd, path)
     return Mark(int(e.step), e.action_index, pos if pos is not None else _find(cmd, e.path))
 

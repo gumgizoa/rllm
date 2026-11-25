@@ -245,7 +245,7 @@ def _rewrites(m) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
     was written (that is A3b's concern)."""
     obs, art_writes, write_step, repro = m.obs, m.art_writes, m.w, m.repro
     doc_steps = _doc_steps(m)
-    edits = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []))
+    edits = sorted(n for ns in obs.source_steps.values() for n in ns)
 
     def next_began(k: int) -> int | None:
         first = art_writes[k][0]
@@ -852,7 +852,7 @@ def h1c(m):
     failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
     if failed_at is None:
         return None
-    fixes = [k for p in obs.source_edits for k in obs.edit_steps.get(p, []) if k > failed_at]
+    fixes = [k for ns in obs.source_steps.values() for k in ns if k > failed_at]
     fixed = min(fixes + [n for n, cmd, out in builds if n > failed_at and EV.exit_code(cmd, out) == 0], default=None)
     checks = [n for n, _, _ in obs.tests_in(after=failed_at, before=w5)] + ([n for n, _, _ in obs.ran(repro, after=failed_at, before=w5)] if repro else [])
     return float(not checks or (fixed is not None and fixed < min(checks)))
@@ -910,7 +910,7 @@ def h8a(m):
     failing = [n for n, cmd, out in runs if (code := EV.exit_code(cmd, out)) is not None and code != 0]
     if not failing:
         return None
-    changes = [n for p in [*obs.source_edits, repro] for n in obs.edit_steps.get(norm_path(p), []) + ([obs.written(repro)] if p == repro and obs.written(repro) else [])]
+    changes = [n for ns in obs.source_steps.values() for n in ns] + obs.edit_steps.get(norm_path(repro), []) + ([obs.written(repro)] if obs.written(repro) else [])
     actions = sorted(changes + [n for n, _, _ in runs])
     if any(n > failing[-1] for n in actions):
         return 1.0
@@ -941,7 +941,7 @@ def h9a(m):
     w4, w5, obs, repro = m.w.get(4), m.w.get(5), m.obs, m.repro
     if w4 is None:
         return None
-    fixes = [n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if n > w4 and (w5 is None or n < w5)]
+    fixes = [n for ns in obs.source_steps.values() for n in ns if n > w4 and (w5 is None or n < w5)]
     if not fixes:
         return None
     last = max(fixes)

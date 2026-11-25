@@ -28,6 +28,7 @@ from statistics import mean
 from recipe.grpo.qwen3_5.workflow_rubric import evidence as SE
 from recipe.grpo.qwen3_5.workflow_rubric import facts as SF
 from recipe.grpo.qwen3_5.workflow_rubric import results as SR
+from recipe.grpo.qwen3_5.workflow_rubric import testread as ST
 from recipe.grpo.qwen3_5.workflow_rubric.refs import norm_path as _repo_path
 from recipe.grpo.qwen3_5.workflow_rubric.trace import shell as SH
 
@@ -432,6 +433,10 @@ class Observed:
     test_attempts: list[ShellEntry] = field(default_factory=list)
     test_runs: list[ShellEntry] = field(default_factory=list)  # ... and the calls holding a valid one (tests really ran)
     writes: dict[str, list[int]] = field(default_factory=dict)  # watched report path -> every successful write step
+    # repository source file -> every step that changed it: the shared layer's code change (``testread.change_writes``,
+    # R1 of the 11-24 review as merged on 11-25, D1: a write to an application source file, whatever tool made it,
+    # reverted or not; no test file, helper file, file outside the repository or removed scratch file)
+    source_steps: dict[str, list[int]] = field(default_factory=dict)
     last_step: int = 0
     workdir: str | None = None  # the repository root, as the shared layer reads it
 
@@ -458,13 +463,9 @@ class Observed:
 
     @property
     def source_edits(self) -> dict[str, int]:
-        """Edits to the repository's own source files: files the run itself brought into being at the
-        repository root, or that are note-like, are the run's scratch (reproduction scripts, summaries),
-        not source the existing tests depend on; and a test file -- one the run created, or an existing
-        test module it added tests to -- is no source change (R1 of the 11-24 review: "before any source
-        file is modified", 01-reverse-engineering.md; the shared ``facts.source_change_steps``)."""
-        new = self.new_files
-        return {p: n for p, n in self.edited.items() if not (is_test_file(p) or (p in new and ("/" not in p or F.DOCLIKE_RE.search(p))))}
+        """Source file -> the first step that changed it: the shared layer's code change (``source_steps``; R1 of the
+        11-24 review, "before any source file is modified", 01-reverse-engineering.md / core-workflow.md:79)."""
+        return {p: steps[0] for p, steps in self.source_steps.items() if steps}
 
     @property
     def remaining(self) -> dict[str, int]:
@@ -478,7 +479,7 @@ class Observed:
     @property
     def last_edit(self) -> int | None:
         """The last step any source file changed (a file edited twice counts at its second edit)."""
-        steps = [n for p in self.source_edits for n in self.edit_steps.get(p, [self.source_edits[p]])]
+        steps = [n for ns in self.source_steps.values() for n in ns]
         return max(steps) if steps else None
 
     def first_write(self, path: str) -> int | None:
@@ -487,7 +488,7 @@ class Observed:
 
     def source_edits_in(self, after: int | None, before: int | None) -> list[str]:
         """Repository source files changed strictly within (after, before)."""
-        return [p for p in self.source_edits for n in self.edit_steps.get(p, []) if (after is None or n > after) and (before is None or n < before)]
+        return [p for p, ns in self.source_steps.items() for n in ns if (after is None or n > after) and (before is None or n < before)]
 
     # -- queries --
 
@@ -585,16 +586,22 @@ def _from_cwd(command: str, target: str) -> str:
     return m.group(1).rstrip("/") + "/" + target.removeprefix("./")
 
 
-def _observe(run: Run, watch: Iterable[str] = (), shared=None, workdir: str | None = None) -> Observed:
+def _observe(run: Run, watch: Iterable[str] = (), shared=None, workdir: str | None = None, ctx=None) -> Observed:
     """Index ``run``. ``watch`` are report paths whose successful writes are recorded in ``writes``
     (and kept out of ``created``), matched exactly or, for a directory ending in ``/``, by prefix.
 
     ``shared``: the shared layer's facts of the same run (``workflow_rubric.facts.build``), whose ``runs`` say which
     calls invoke a test runner and which of those really ran tests (``RunFact.valid``: the runner in command position,
     its own summary with a test run in this call's output, targets that existed before the agent -- a lookup, an
-    install, ``--collect-only``, a run of only agent-written tests or a runner that did not start is no valid run)."""
+    install, ``--collect-only``, a run of only agent-written tests or a runner that did not start is no valid run).
+    ``ctx``: the shared layer's context of the run, whose code change (``testread.change_writes``) is ``source_steps``
+    (without it, one is built from ``run``: ``bare_context``)."""
     watch = list(watch)
     obs = Observed(workdir=workdir)
+    if ctx is None:
+        ctx = bare_context(run, workdir or TEXT_CWD)
+    for e in ST.change_writes(ctx):
+        obs.source_steps.setdefault(norm_path(e.path), []).append(int(e.step))
     runs: dict[tuple[int, int], list] = {}
     for r in getattr(shared, "runs", None) or []:
         if r.kind == "test":
@@ -850,6 +857,23 @@ def test_runs_of(shared) -> list:
     return [r for r in (getattr(shared, "runs", None) or []) if r.kind == "test"]
 
 
+def bare_context(episode, workdir: str | None, diff: dict[str, str] | None = None):
+    """The shared layer's context of ``episode`` (an rLLM episode, or a run already parsed into steps of actions) with
+    no rubric: its facts (:func:`bare_facts`) and what the shared readings of the code change need (``testread``)."""
+    from recipe.grpo.qwen3_5.workflow_rubric.context import Collected, EvalContext, Facts
+    from recipe.grpo.qwen3_5.workflow_rubric.schema import Rubric
+    from recipe.grpo.qwen3_5.workflow_rubric.trace.episode import episode_to_run
+
+    rubric = Rubric(workflow="", sources=[], roots={}, stages=[], artifacts={}, items=[], scoring={})
+    col = Collected(workdir=workdir, diff=diff, mode="offline")
+    try:
+        run = episode if hasattr(episode, "steps") else episode_to_run(episode)
+        facts = SF.build(rubric, run, col)
+    except Exception:  # noqa: BLE001 -- a harness without a trace front end, or agent text the replay cannot take
+        run, facts = None, Facts()
+    return EvalContext(rubric=rubric, run=run, collected=col, facts=facts)
+
+
 def bare_facts(episode, workdir: str | None, diff: dict[str, str] | None = None):
     """The shared layer's facts of ``episode`` -- an rLLM episode, or a run already parsed into steps of actions --
     with no rubric (as ``rollout_metrics.test_evidence`` reads a rollout): for a reading made without the engine's
@@ -1018,10 +1042,11 @@ def final_words(episode) -> str:
     return " ".join(x for x in said if x).strip()
 
 
-def observe(run: Run, shared=None, workdir: str | None = None) -> Observed:
+def observe(run: Run, shared=None, workdir: str | None = None, ctx=None) -> Observed:
     """The shared trajectory index, with the five artifact paths watched (their writes are the
-    stage write steps, not repository edits); ``shared``: the shared layer's facts of the run (its test runs)."""
-    return _observe(run, watch=A.ARTIFACT_PATHS, shared=shared, workdir=workdir)
+    stage write steps, not repository edits); ``shared``: the shared layer's facts of the run (its test runs);
+    ``ctx``: its context (the code change)."""
+    return _observe(run, watch=A.ARTIFACT_PATHS, shared=shared, workdir=workdir, ctx=ctx)
 
 
 def _section_none(parsed: dict | None, section: str) -> bool | None:
