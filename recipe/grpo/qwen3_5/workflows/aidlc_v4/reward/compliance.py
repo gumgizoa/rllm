@@ -77,15 +77,16 @@ def stage_fractions(facts: dict) -> dict[int, float]:
     return {st: p / 7 for st, p in points.items()}
 
 
-def compliance(run: Run) -> dict:
+def compliance(run: Run, workdir: str | None = None) -> dict:
     """Signals, their mean, and the facts they came from (for logging).
 
     ``run.artifact_files`` is what the sandbox held at the end, and it is authoritative: a stage
     whose file is not there scores 0. The rubric would otherwise grade the text it reconstructs
     from the writes in the trajectory, which survives any deletion it does not recognise as one
     (``os.remove``, a script that clears /tmp) -- a file that no longer exists would still score.
+    ``workdir``: the repository root, for the shared layer's reading of the test runs (``facts.test_runs``).
     """
-    facts = F.analyse(run)
+    facts = F.analyse(run, workdir)
     present = {A.ARTIFACT_PATHS[p] for p in run.artifact_files if p in A.ARTIFACT_PATHS}
     facts["stage_artifact_band"] = {k: (v if int(k) in present else 0) for k, v in facts["stage_artifact_band"].items()}
     order = order_v6(facts["aidlc_read_step"], artifact_write_steps(run))

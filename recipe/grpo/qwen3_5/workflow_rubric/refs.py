@@ -184,7 +184,7 @@ def _fact_event(ctx: EvalContext, spec: dict):
 
 def _unseen_edits(ctx: EvalContext, q: dict) -> list[str]:
     """The repo changes the trace does not show (``Facts.unseen_repo_paths``) that a ``repo_edit`` query's filters admit."""
-    from .facts import change_paths, is_new_path, is_test_path
+    from .facts import change_paths, is_new_path, is_repo_test_file
 
     unseen = list(getattr(ctx.facts, "unseen_repo_paths", None) or [])
     if not unseen:
@@ -193,7 +193,7 @@ def _unseen_edits(ctx: EvalContext, q: dict) -> list[str]:
     outside = select_union(ctx, q["paths_not_in"]) if "paths_not_in" in q else None
     out = []
     for p in unseen:
-        if q.get("test_paths") is not None and is_test_path(p) != bool(q["test_paths"]):
+        if q.get("test_paths") is not None and is_repo_test_file(ctx, p) != bool(q["test_paths"]):
             continue
         if q.get("final") and p not in change_paths(ctx):
             continue
@@ -249,12 +249,19 @@ _QUOTES = re.compile(r"^['\"`]+|['\"`]+$")
 
 
 _ANNOTATION = re.compile(r"\s+(?:[\[(]|[—–]\s|-\s).*$", re.S)  # "src/x.py [R1, R2]", "src/x.py (modify in place)", "src/x.py — why"
+# "pkg/transform.py:apply_transform", "pkg/x.py:123", "pkg/x.py:12:5": a symbol or line after the file; a pytest id's "::" stays
+_LOCATION = re.compile(r"^(?P<p>.*\.[A-Za-z][A-Za-z0-9]{0,7}):(?!:)(?:[A-Za-z_][\w.]*|\d+(?::\d+)?)$")
 
 
 def norm_path(p: str, workdir: str | None = None) -> str:
     # an artifact's path value carries the template's own annotations (AI-DLC "[full path] [requirement tags]",
     # "[full path] (modify in place | create)"): the path is what precedes them
     p = _ANNOTATION.sub("", p.strip()[:1000]).strip().strip("`'\"").rstrip(",;.")
+    m = _LOCATION.match(p) if "::" not in p and "://" not in p else None
+    if m:
+        p = m.group("p")
+    if p.rstrip("/") in ("/app", "/testbed") or (workdir and p.rstrip("/") == workdir.rstrip("/")):
+        return ""  # the repository root itself (`pytest /testbed`), not a file named after it
     if workdir:
         wd = workdir.rstrip("/") + "/"
         if p.startswith(wd):
@@ -425,7 +432,7 @@ def _keyed_ids(scope: str, arg: dict) -> set[str]:
 
 
 def _fact_values(ctx: EvalContext, arg: dict, spec: dict):
-    from .facts import change_paths, is_generated, is_test_path
+    from .facts import change_paths, is_generated, is_repo_test_file
 
     f, c = ctx.facts, ctx.collected
     name = arg.get("name") or arg.get("fact")
@@ -443,7 +450,7 @@ def _fact_values(ctx: EvalContext, arg: dict, spec: dict):
         if name == "untracked_paths":
             return {p for p, s in c.diff.items() if s == "?" and not is_generated(p)}
         paths = {p for p, s in c.diff.items() if s != "D" and not (s == "?" and is_generated(p))}
-        return {p for p in paths if is_test_path(p)} if name == "diff_test_paths" else paths
+        return {p for p in paths if is_repo_test_file(ctx, p)} if name == "diff_test_paths" else paths
     if name == "repo_write_paths":
         paths = {e.path for e in f.repo_writes if in_window(e.step, w) and e.ok is not False}
         return paths & change_paths(ctx) if arg.get("final") else paths
@@ -587,7 +594,7 @@ def _unrecorded_failure(r, recorded: list[str]) -> bool:
 
 def matching(ctx: EvalContext, arg: dict) -> Iterable:
     """The fact records a predicate's ``exists``/``absent``/``counts`` ranges over."""
-    from .facts import change_paths, executed_paths, is_new_path, is_test_path, source_paths
+    from .facts import change_paths, executed_paths, is_new_path, is_repo_test_file, source_paths
 
     f = ctx.facts
     name = arg["fact"]
@@ -611,11 +618,11 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
         for e in f.repo_writes:
             if e.ok is False or not in_window(e.step, w):
                 continue
-            if arg.get("test_paths") is not None and is_test_path(e.path) != bool(arg["test_paths"]):
+            if arg.get("test_paths") is not None and is_repo_test_file(ctx, e.path) != bool(arg["test_paths"]):
                 continue
             if arg.get("final") and e.path not in change_paths(ctx):
                 continue
-            if arg.get("source") and (e.op == "unknown" or e.path not in source_paths(ctx)):  # a source file of the final change, edited by the agent
+            if arg.get("source") and (e.op in ("unknown", "restore") or e.path not in source_paths(ctx)):  # a source file of the final change, edited by the agent
                 continue
             if arg.get("created") is not None and is_new_path(ctx, e.path) != bool(arg["created"]):
                 continue
@@ -639,9 +646,16 @@ def matching(ctx: EvalContext, arg: dict) -> Iterable:
             if in_window(step, w) and path in targets:
                 yield (step, path)
     elif name == "command":
+        from .results import segments
+
         rx = re.compile(arg["pattern"])
         for c in f.commands:
-            if in_window(c.step, w) and rx.search(c.command):
+            if not in_window(c.step, w):
+                continue
+            # each command the line runs, as its words: a heredoc body or a quoted string is data, not a command
+            segs = segments(ctx, c)
+            texts = [" ".join(seg.argv) for seg in segs] if segs else [c.command]
+            if any(rx.search(t) for t in texts):
                 yield c
     else:
         raise RefError(f"fact {name!r}")

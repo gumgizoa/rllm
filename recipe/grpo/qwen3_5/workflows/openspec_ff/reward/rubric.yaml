@@ -8670,6 +8670,49 @@ items:
     /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/. A
     run made only before the change does not count; not applicable to a run that changed no code. Takes the place of apply''s
     test_or_check, which any run in the apply window passed'
+- id: openspec_ff.verify.run.openspec_ff_checks.run_after_change
+  scope: specific
+  class: evidence
+  stage: verify
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: openspec_ff.checks
+    params:
+      rule: run_after_change
+  requirement: must
+  modality_evidence: imperative (VF:145 'After your last code change, run ... every check script under' checks/; CW:84-85
+    'Before it writes the report, verify runs ... every check script under `/openspec/changes/issue/checks/`, after the last
+    code change')
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: VF
+    lines:
+    - 145
+    - 145
+    quote: After your last code change, run the repository tests that cover the code you changed and every check script under
+      `/openspec/changes/issue/checks/`.
+  - doc: CW
+    lines:
+    - 84
+    - 85
+    quote: Before it writes the report, verify runs the repository tests that cover the change and every check script under
+      `/openspec/changes/issue/checks/`, after the last code change.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: false
+  note: every check script the run wrote under /openspec/changes/issue/checks/ (and did not delete) ran after the last code
+    change (a source write; in one call, after the write; a run with the change stashed is none) and after the script's own
+    last write (ratio; 11-24 review R1-R4). Whether it passed is the penalty items' question; not applicable without a code
+    change or a check script
 - id: openspec_ff.verify.penalty.no_run_after_change
   scope: specific
   class: evidence

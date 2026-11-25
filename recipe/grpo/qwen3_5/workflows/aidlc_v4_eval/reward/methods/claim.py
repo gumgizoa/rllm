@@ -42,7 +42,6 @@ from ..measures import test_names
 from ..read import (
     CONTRADICTED,
     DUPLICATE,
-    NO_TESTS,
     PARTIAL,
     R_LINE,
     SUPPORTED,
@@ -152,7 +151,7 @@ def e1_baseline_none(m):
         return None
     obs, w1 = m.obs, m.w[1]
     if not m.evidence_runs:
-        if any(NO_TESTS.search(o) for _, _, o in obs.attempts_in(before=w1 if w1 is not None else obs.first_edit)):
+        if any(EV.found_no_tests(o) for _, _, o in obs.attempts_in(before=w1 if w1 is not None else obs.first_edit)):
             return SUPPORTED
         return None
     out = m.evidence_out
@@ -227,7 +226,7 @@ def t1_baseline_before_write(m):
     if m.p1 is None:
         return None
     obs, w1 = m.obs, m.w[1]
-    looked = obs.tests_in(before=w1) or (m.both_none and any(NO_TESTS.search(o) for _, _, o in obs.attempts_in(before=w1)))
+    looked = obs.tests_in(before=w1) or (m.both_none and any(EV.found_no_tests(o) for _, _, o in obs.attempts_in(before=w1)))
     return SUPPORTED if looked else CONTRADICTED
 
 
@@ -478,17 +477,17 @@ def t5_repro_run_after_last_edit(m):
 
 @method("check/e5_repro_result", materials=("AP", "COLLECT", "PATH", "SCRIPT", "EXIT", "EDIT", "WRITE"), family=E, timed_by_edits=True)
 def e5_repro_result(m):
-    """05's reproduction Result (pass / fail) matches the exit code of that run."""
+    """05's reproduction Result (pass / fail) matches the outcome of that run (the shared reading, ``results.outcome``:
+    a failure verdict over an exit code of 0, a hidden exit code read by the output's verdict lines)."""
     if m.p5 is None or not m.repro:
         return None
     runs = _repro_runs(m)
     if not runs:
         return None
     result = (_field(m.p5, "Reproduction Script", "Result") or "").lower()
-    code = EV.exit_code(runs[-1][1], runs[-1][2])
-    if code is None or not result:
+    if runs[-1].outcome is None or not result:
         return None
-    failed = code != 0
+    failed = runs[-1].outcome == "fail"
     if result.startswith("pass"):
         return CONTRADICTED if failed else SUPPORTED
     if result.startswith("fail"):

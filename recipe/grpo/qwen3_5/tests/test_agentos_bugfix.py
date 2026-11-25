@@ -252,8 +252,10 @@ def test_the_existing_tests_are_run_while_implementing():
     rub, run, col, rep, res = _scored("expected_failure")
     last = next(it for it in rub.items if it.id.endswith("pass_last"))
     assert res["pass_last"].status == "pass"
-    last.check.params.pop("fix_round")  # agentos_v2's rule: any repository write makes the earlier runs stale
-    assert engine.evaluate(rub, run, col).results[last.id].status == "fail"
+    # agentos_v2's item (no fix_round) reads the change the same way since the 11-24 review (R1): git putting content back
+    # is no code change there either, so the earlier runs are not made stale by it
+    last.check.params.pop("fix_round")
+    assert engine.evaluate(rub, run, col).results[last.id].status == "pass"
 
 
 def test_a_test_sub_task_is_not_ticked_over_a_failing_test():
@@ -583,6 +585,56 @@ def test_the_tests_are_run_after_the_last_source_change_and_in_phase_3():
     # a run that never gets to the stretch scores 0.0 there: no source change, PHASE 3 not placed
     v, a = _test_items(src=[], own_runs=[12, 32], existing_runs=[13, 33], p2_end=30)
     assert (v[run2], a[run2]) == (0.0, False) and (v[run3], a[run3]) == (0.0, False)
+
+
+def test_a_test_file_changed_after_the_last_run_is_a_change_the_tests_have_to_come_after():
+    run2, cause = "phase2_run.existing_and_own", "phase3_fail.cause_checked"
+    # source at 20, both runs at 22-23, a test added to a repository test file at 25 and never run: as the compliance
+    # item verify.phase2_run reads it, no test ran after the last change
+    kw = dict(src=[20], own_runs=[22], existing_runs=[23], results=[_res(23, True, "tests/test_a.py", runner=True)], p2_end=30)
+    assert _test_items(**kw)[0][run2] == 1.0
+    v, a = _test_items(changes=[20, 25], **kw)
+    assert v[run2] == 0.0 and a[run2]
+    assert (v[cause], a[cause]) == (0.0, False)  # PHASE 3 not placed and the final tests never ran
+    # run again after the test change: kept
+    v, _ = _test_items(changes=[20, 25], src=[20], own_runs=[22, 27], existing_runs=[23, 27], results=[_res(27, True, "tests/test_a.py", runner=True)], p2_end=30)
+    assert v[run2] == v[cause] == 1.0
+    # a test written before the code is no change the failure items start at: its failing run at 6 is not asked about
+    v, a = _test_items(changes=[5, 8], src=[8], results=[_res(6, False, "tests/test_a.py", runner=True), _res(9, True, "tests/test_a.py", runner=True)], own_runs=[9], existing_runs=[9], p2_end=30)
+    assert (v["phase2_fail.edited_after_fail"], a["phase2_fail.edited_after_fail"]) == (1.0, False)
+
+
+def test_the_final_verification_run_is_looked_for_where_the_compliance_item_looks():
+    run3 = "phase3_run.existing_and_own"
+    # the tests run in the command that ticks the last task (step 30 = PHASE 3 start): verify.suite_run counts that step
+    v, a = _test_items(src=[10], own_runs=[30], existing_runs=[30], p2_end=30, p3=30, report=40)
+    assert (v[run3], a[run3]) == (1.0, True)
+    # PHASE 3 cannot be placed (a box left open): the fallback stretch the compliance item reads, after the last change
+    # and the last write of tasks.md
+    v, a = _test_items(src=[10], own_runs=[27], existing_runs=[28], p2_end=40, report=40, verify=(26, 40))
+    assert (v[run3], a[run3]) == (1.0, True)
+    assert _test_items(src=[10], own_runs=[20], existing_runs=[21], p2_end=40, report=40, verify=(26, 40))[0][run3] == 0.0
+    # a fix round in PHASE 3: only the runs after its last repository write
+    assert _test_items(src=[10, 35], own_runs=[32], existing_runs=[33], p2_end=30, p3=30, report=40, verify=(36, 40))[0][run3] == 0.0
+    assert _test_items(src=[10, 35], own_runs=[37], existing_runs=[38], p2_end=30, p3=30, report=40, verify=(36, 40))[0][run3] == 1.0
+    # no stretch at all (no code change, no report): the run never did what the item is about
+    v, a = _test_items(src=[], own_runs=[12], existing_runs=[13], p2_end=30)
+    assert (v[run3], a[run3]) == (0.0, False)
+
+
+def test_an_existing_test_made_to_pass_by_editing_it_is_still_failing():
+    edited, last = "phase2_fail.edited_after_fail", "phase2_fail.last_result_pass"
+    fail, ok = _res(7, False, "tests/test_a.py", runner=True), _res(9, True, "tests/test_a.py", runner=True)
+    base = dict(results=[fail, ok], own_runs=[9], existing_runs=[7, 9], p2_end=30)
+    # the code is fixed at 8 and the test passes at 9: both items kept
+    v, _ = _test_items(src=[5, 8], **base)
+    assert v[edited] == v[last] == 1.0
+    # instead a line the existing test file had is changed at 8: no attempt at the failure, and the pass does not clear it
+    v, a = _test_items(src=[5], test_edits=[8], test_edits_of={"tests/test_a.py": [8]}, loosen_steps={"tests/test_a.py": [8]}, **base)
+    assert (v[edited], a[edited]) == (0.0, True) and (v[last], a[last]) == (0.0, True)
+    # the same edit of a test file the run created is fixing its own test
+    v, _ = _test_items(src=[5], test_edits=[3, 8], test_edits_of={"tests/test_a.py": [3, 8]}, **base)
+    assert v[edited] == v[last] == 1.0
 
 
 def test_a_failure_while_implementing_is_edited_per_task_group_and_every_failed_test_passes_at_its_last_run():

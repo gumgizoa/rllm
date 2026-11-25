@@ -3,7 +3,7 @@
     model         ``Run`` / ``Step`` / ``Action``: the harness-independent view of a run
     front end     openhands-sdk tool calls -> actions (``parse_openhands``), rLLM episode -> ``Run``
                   (``episode_to_run``)
-    commands      shell writes, document reads, test-run patterns, heredocs, artifact traces
+    commands      shell writes, document reads, heredocs, artifact traces
                   (``trace_artifacts``) and diff files
 
 Copied from the vendored rubric (legacy/rubric: ``model.py``, ``frontends/openhands.py``, ``facts.py``
@@ -255,39 +255,7 @@ GIT_HISTORY_RE = re.compile(
     r"|\bgit\s+(?:show|diff|checkout|cherry-pick|restore|revert|format-patch)\b[^|;&\n]*\b[0-9a-f]{7,40}\b"
 )
 
-TEST_RUN_PATTERNS = [
-    r"\bpytest\b",
-    r"\bgo\s+test\b",
-    r"\bnpm\s+(run\s+)?test\b",
-    r"\bnpx\s+jest\b",
-    r"\byarn\s+test\b",
-    r"\bjest\b",
-    r"\bmocha\b",
-    r"\bunittest\b",
-    r"\btox\b",
-    r"\bmake\s+test\b",
-    r"\bgotestsum\b",
-    r"\bginkgo\b",
-    r"\bansible-test\s+(units|integration|sanity)\b",
-    r"\bvitest\b",
-    r"\bcargo\s+test\b",
-    r"\bpnpm\s+(run\s+)?test\b",
-]
-
-# The runner was missing or ran nothing: such an attempt observed no baseline. `0 passing` is
-# word-bounded so `10 passing` does not match; a bare `No such file or directory` is not here
-# because real test output prints it whenever a test exercises a missing file.
-TOOL_MISSING_RE = re.compile(
-    r"command not found|<returncode>127</returncode>|\bError 127\b|is not recognized as"
-    r"|ModuleNotFoundError: No module named 'pytest'|No module named pytest"
-    r"|executable file not found"
-    r"|ECONNREFUSED|ECONNRESET|Connection refused|could not connect"
-    r"|\b0 passing\b|no tests? (?:ran|found|to run|were run)|collected 0 items"
-    r"|ERROR collecting|INTERNALERROR",
-    re.I,
-)
-
-TEST_PATH_RE = re.compile(r"(^|/)(tests?|__tests__|spec)/|[-_.](test|spec)\.[a-z]+$|(^|/)test[-_][^/]+$")
+# What a test run is, whether it ran and what a test file is: the shared layer's (``read.py``), not patterns here.
 
 SCRATCH_HINT_RE = re.compile(r"(^|/)(reproduce|repro|final_test|test_fix|verify|scratch|tmp|temp|debug|check|sample|demo)[^/]*$", re.I)
 
@@ -397,11 +365,6 @@ def is_repo_write(a: Action) -> bool:
 
 def probes_git_history(a: Action) -> bool:
     return a.kind == "shell" and GIT_HISTORY_RE.search(command_skeleton(a.command or "")) is not None
-
-
-def ran_something(a: Action) -> bool:
-    """A test attempt whose output does not say the tool was missing or ran nothing."""
-    return not TOOL_MISSING_RE.search(a.observation or "")
 
 
 @dataclass

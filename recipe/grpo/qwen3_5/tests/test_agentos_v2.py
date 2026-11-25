@@ -218,3 +218,34 @@ def test_a_count_of_zero_failures_in_a_scripts_output_is_not_a_failure():
     # with the script's own exit code 0, an error count it prints is output it expected (pylint's "17 errors"), not
     # its verdict (H-4: tasks/2026-11-20-agentos-bugfix-reward-fixes/01-H-계획.md)
     assert read("2 errors", 0) == "pass"
+
+
+def test_the_whole_suite_is_one_rule_for_the_prohibition_and_for_the_requirement():
+    """``_whole`` (verify.whole_suite, and the WHOLE key of a result) reads what ``evidence.full_suite`` reads for the
+    PHASE 2 prohibition: a runner at the repository root that selects nothing, from the directory the call started in."""
+    from types import SimpleNamespace as NS
+
+    from recipe.grpo.qwen3_5.workflow_rubric import evidence as E
+    from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
+    from recipe.grpo.qwen3_5.workflows.agentos_v2.reward import checks as C
+
+    wd = "/testbed"
+
+    def whole(command, start=wd):
+        segs = shell.flat(shell.split(command, start)[0])
+        hit = next(s for s in segs if E.classify(s) is not None)
+        r = NS(step=3, action_index=0, command=command, segment=hit.text, targets=[])
+        ctx = NS(facts=NS(_cwd_track={(3, 0): start}))
+        return C._whole(r, wd, ctx), any(E.full_suite(s, wd) for s in segs)
+
+    for command, start, want in [
+        ("python -m pytest", wd, True),
+        ("cd /testbed && python -m pytest -q", wd, True),
+        ("python -m pytest tests/", wd, False),  # a target is a selection
+        ("python -m pytest tests -k slug", wd, False),  # and so is a filter
+        ("cd /testbed/textkit && python -m pytest", wd, False),  # one package
+        ("python -m pytest", "/testbed/textkit", False),  # a cd of an earlier call
+        ("cd /testbed && python -m pytest", "/testbed/textkit", True),
+    ]:
+        got, prohibited = whole(command, start)
+        assert got is want and prohibited is want, (command, start, got, prohibited)

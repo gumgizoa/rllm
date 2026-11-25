@@ -286,3 +286,24 @@ def test_hook_rejects_a_penalty_without_its_signal_or_out_of_range(train_module)
         train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, "speckit_bug/compliance", 0.0, 0.3, "speckit_bug/penalty", 1.0)
     with pytest.raises(ValueError, match="penalty_gate"):
         train_module.make_budget_scaled_grouping_hook(1.0, "mul", 0.2, "speckit_bug/compliance", 0.0, 0.3, "speckit_bug/penalty", 0.2, "solved")
+
+
+def test_related_item_counts_a_run_that_follows_the_edit_in_the_same_command():
+    ev = _ev()
+    task = SimpleNamespace(id=TASK, metadata=META)
+    sed = "sed -i 's/a/b/' src/_pytest/setuponly.py"
+    run = "python -m pytest testing/test_setuponly.py -q"
+    out = "....\n4 passed in 0.20s\n[Command finished with exit code 0]"
+    after = ev.score(task, _trace(EDIT_OTHER, ("terminal", {"command": f"cd /testbed && {sed} && {run}"}, out)), _data(ev, FILES))
+    assert after["speckit_bug/test.penalty.related_test_run.after_last_edit"] == 1.0
+    # the same two in the other order: the tests ran on the code before the edit
+    first = ev.score(task, _trace(EDIT_OTHER, ("terminal", {"command": f"cd /testbed && {run}; {sed}"}, out)), _data(ev, FILES))
+    assert first["speckit_bug/test.penalty.related_test_run.after_last_edit"] == 0.0
+
+
+def test_before_the_change_ends_at_the_first_source_change_not_at_any_repository_write():
+    # a reproduction script written into the repository at step 2, the source changed at step 5
+    writes = [SimpleNamespace(step=2, ok=True, path="reproduce_bug.py"), SimpleNamespace(step=5, ok=True, path="pkg/mod.py")]
+    ctx = SimpleNamespace(facts=SimpleNamespace(repo_writes=writes), cache={"source_change_steps": [5]})
+    assert checks.first_edit(ctx, (1, 10)) == 5
+    assert checks.first_edit(ctx, (1, 5)) is None  # no source change in the window

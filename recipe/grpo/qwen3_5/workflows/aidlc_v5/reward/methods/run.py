@@ -14,8 +14,8 @@ def entry(m):
 
 @method("run/ran_real_test", materials=("TEST",))
 def ran_real_test(m):
-    """Some step ran the repository's tests."""
-    return float(EV.ran_real_test(m.run))
+    """Some step ran the repository's tests: a valid test run by the shared layer (``RunFact.valid``)."""
+    return float(EV.ran_real_test(m.shared))
 
 
 @method("run/fidelity", materials=("AP", "COLLECT", "PATH", "PATCH"))

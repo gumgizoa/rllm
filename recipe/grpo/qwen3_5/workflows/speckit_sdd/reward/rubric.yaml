@@ -8693,16 +8693,9 @@ items:
     ref: run
     state: final
   check:
-    kind: exec_evidence
+    kind: speckit_sdd.exec
     params:
-      kind: test
-      window:
-      - stage_start:implement
-      - - first:
-            fact: repo_edit
-            final: true
-            window: stage:implement
-        - stage_end:implement
+      rule: baseline
   requirement: must
   modality_evidence: CW:79-80 'The existing tests related to the change are run before implementing, for a baseline'; IM:62
     'Before implementing, also run the existing repository tests'
@@ -8712,6 +8705,7 @@ items:
   gate: null
   availability:
   - trace
+  - related_tests
   sources:
   - doc: CW
     lines:
@@ -8728,8 +8722,9 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: a valid run of base-repository tests in the implement window before its first code change (an echoed summary, a dummy
-    test under /tmp or an agent-written runner is none)
+  note: a valid run of base-repository tests in the implement window before its first code change (a source write), of the
+    tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline). An echoed summary,
+    a dummy test under /tmp, an agent-written runner or a run with the change stashed is none (11-24 review R1-R3, R7)
 - id: speckit_sdd.implement.run.exec_evidence.after_change
   scope: specific
   class: evidence
@@ -8739,16 +8734,9 @@ items:
     ref: run
     state: final
   check:
-    kind: exec_evidence
+    kind: speckit_sdd.exec
     params:
-      kind: test
-      window:
-      - - stage_start:implement
-        - last:
-            fact: repo_edit
-            final: true
-            window: stage:implement
-      - stage_end:implement
+      rule: after_change
   requirement: must
   modality_evidence: CW:80 'and again afterwards'; IM:65 'then run existing tests for changed modules'; IM:79
   none_allowed: '-'
@@ -8757,6 +8745,7 @@ items:
   gate: null
   availability:
   - trace
+  - related_tests
   sources:
   - doc: CW
     lines:
@@ -8778,7 +8767,9 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: a valid run of base-repository tests after the window's last code change, inside the implement window
+  note: a valid run of base-repository tests after the window's last code change (a source write), inside the implement window,
+    of the tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline; 11-24 review
+    R1-R3, R7)
 - id: speckit_sdd.implement.run.speckit_sdd_script.prerequisites
   scope: specific
   class: evidence
@@ -9367,21 +9358,8 @@ items:
     ref: run
     state: final
   check:
-    kind: speckit.holds
-    params:
-      predicate:
-        counts:
-          fact: valid_run
-          kind: test
-          window:
-          - - stage_start:implement
-            - last:
-                fact: repo_edit
-                final: true
-                window: stage:implement
-          - stage_end:implement
-          which: last
-          failed_or_errors: 0
+    kind: speckit_sdd.tests_pass
+    params: {}
   requirement: should
   modality_evidence: '''Validate that tests pass'' (IM:79); a pre-existing failure the change does not touch can remain: should'
   none_allowed: '-'
@@ -9401,7 +9379,9 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: ''
+  note: the last valid test run in the implement window after its last code change (a source write; in one call, after the
+    write; a run with the change stashed is none) has no failure but those the baseline already had -- a valid run before
+    every source change that ran the test and failed it by name (04-implement.md:62; 11-24 review R1-R3, R5-R6)
 - id: speckit_sdd.implement.unimplemented.unimplemented.8
   scope: specific
   class: content
@@ -10700,16 +10680,9 @@ items:
     ref: run
     state: final
   check:
-    kind: exec_evidence
+    kind: speckit_sdd.exec
     params:
-      kind: test
-      window:
-      - - stage_start:implement_2
-        - last:
-            fact: repo_edit
-            final: true
-            window: stage:implement_2
-      - stage_end:implement_2
+      rule: after_change
   requirement: must
   modality_evidence: completion validation (IM:79) of the round's work; CW:80
   none_allowed: '-'
@@ -10718,6 +10691,7 @@ items:
   gate: null
   availability:
   - trace
+  - related_tests
   sources:
   - doc: IM
     lines:
@@ -10729,7 +10703,9 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: a valid run of base-repository tests in the round-2 implement window, after its last code change
+  note: a valid run of base-repository tests in the round-2 implement window, after its last code change (a source write),
+    of the tests related to the changed files or the whole suite (Collected.related_tests; unavailable offline; 11-24 review
+    R1-R3, R7)
 - id: speckit_sdd.implement_2.run.speckit_sdd_script.prerequisites
   scope: specific
   class: evidence

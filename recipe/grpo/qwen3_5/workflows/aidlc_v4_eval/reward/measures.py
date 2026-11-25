@@ -20,8 +20,11 @@ import re
 from functools import cached_property
 from statistics import mean
 
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
+
 from . import read as EV
 from . import skeleton as A
+from . import trace as F
 from .judge import judge_checks
 from .read import (
     SOURCE_EXT,
@@ -42,8 +45,13 @@ CONTRADICTED = EV.CONTRADICTED
 # A plan target that changes nothing: `common.py (verify existing fix)` (no "(modify in place)" / "(create)").
 _VERIFY_ONLY = re.compile(r"\((?![^)]*\b(?:modify|create)\b)[^)]*\b(?:verify|verification|check|inspect|read|no change)\b[^)]*\)", re.I)
 
-# A test run on stashed source (`git stash && pytest`) tests the baseline, not the change (step24 000003).
-_ON_STASH = re.compile(r"\bgit\s+stash\b(?!\s+(?:pop|apply|list|show))")
+# A test run on stashed source (`git stash && pytest`) tests the baseline, not the change (step24 000003): the shared
+# rule (``on_stash``), not a regex of this scorer's own.
+
+def plain_segments(command: str) -> list[str]:
+    """The command split at ``&&`` / ``||`` / ``;`` / newlines, quoted strings kept."""
+    return [s.strip() for s in re.split(r"&&|\|\||;|\n", F.drop_heredoc_bodies(command or "")) if s.strip()]
+
 
 # A test's name in an artifact field, not its file's (`tests/test_mod.py::test_parse` names test_parse only)
 _TEST_NAME = re.compile(r"\b(test_\w+)(?!\w|\.py\b|/)")
@@ -53,22 +61,63 @@ def test_names(text: str | None) -> list[str]:
     return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
 
 
+def on_stash(command: str) -> bool:
+    """A test attempt of the command runs with the change put away (``git stash && pytest x; git stash pop``): the
+    shared marks (``testread.stash_flags``, R3 of the 11-24 review: ``git stash`` .. ``pop`` / ``apply``, ``git apply
+    -R`` / ``patch -R`` and back)."""
+    segs = plain_segments(command)
+    flags, _ = T.stash_flags(F.drop_heredoc_bodies(command or ""), segs)
+    return any(f and EV.is_test_attempt(s) for s, f in zip(segs, flags, strict=False))
+
+
+def hidden_attempts(shell, after: int, edit_steps) -> list[tuple[int, str, str, bool]]:
+    """(step, segment, output, put away) of every test attempt after step ``after``: the change put away by the shared
+    marks (R3), carried from one command to the next until a mark brings it back or the run edits the repository again
+    (the shared rule: a put-away change never brought back was thrown away, what is written next is a new change)."""
+    edits = sorted(set(edit_steps))
+    hidden, since, out = False, after, []
+    for n, cmd, o in shell:
+        if n <= after:
+            continue
+        if hidden and any(since < e <= n for e in edits):
+            hidden = False
+        segs = plain_segments(cmd)
+        flags, after_cmd = T.stash_flags(F.drop_heredoc_bodies(cmd or ""), segs, hidden)
+        out += [(n, s, o, f) for s, f in zip(segs, flags, strict=False) if EV.is_test_attempt(s)]
+        if after_cmd != hidden or T.R.stash_marks(F.drop_heredoc_bodies(cmd or "")):
+            since = n
+        hidden = after_cmd
+    return out
+
+
 def _regressed(out: str, failing1: str | None, baseline_runs: list) -> bool | None:
-    """The last stage-5 run fails a test the baseline did not; None when that cannot be told -- the run executed no
-    test (an import or setUpClass error: step24 000119, 000140), or the baseline failed something it did not name
-    (step24 000123) and 01 names nothing. ``baseline_runs`` are the recorded selection's (an earlier attempt under
-    the wrong settings that errored is not the baseline the run reports: step24 000042)."""
+    """The last stage-5 run fails a test that was not already failing (the shared reading, ``workflow_rubric/testread``;
+    R5 / R6 of the 11-24 review): a test is already failing when, in the last baseline run that ran it, it failed by
+    name. A failure the output does not name cannot be matched and is new; a baseline run that failed a test without
+    naming it explains nothing. None when that cannot be told -- the run executed no test (an import or setUpClass
+    error: step24 000119, 000140) -- and when there is no valid baseline run to compare with (item 23 of the review:
+    step24 000123, a baseline that executed no test, is no baseline; regressions are then not judged).
+    ``baseline_runs`` are the recorded selection's (an earlier attempt under the wrong settings that errored is not the
+    baseline the run reports: step24 000042). ``failing1`` (what artifact 01 wrote) is no baseline run and is not read."""
     if EV.ran_no_test(out):
         return None
-    known = set(test_names(failing1)) | {t for _, _, o in baseline_runs for t in EV.failed_tests(o)}
-    base_counts = [EV.failures(o) for _, _, o in baseline_runs]
-    named = EV.failed_tests(out)
-    if named:
-        new = [t for t in named if t not in known]
-        if new and not known and any(base_counts):
-            return None
-        return bool(new)
-    return EV.failures(out) > max(base_counts, default=0)
+    valid = [o for _, _, o in baseline_runs if not EV.ran_no_test(o)]
+    if not valid:
+        return None
+    n = EV.failures(out)
+    if n <= 0:
+        return False
+    named = list(dict.fromkeys(EV.failed_tests(out)))
+    if len(named) < n:
+        return True  # a failure the output does not name is new
+    for t in named:
+        last = None
+        for o in valid:  # the last baseline run that ran the test: it names it failed, or reads its state
+            if t in EV.failed_tests(o) or EV.test_state(o, t) is not None:
+                last = o
+        if last is None or t not in EV.failed_tests(last):
+            return True
+    return False
 
 
 class _Failed:
@@ -80,10 +129,15 @@ class _Failed:
 
 class Measures:
     """``files``: what was collected from the sandbox (container path -> text), the five artifacts and whatever
-    else the artifact directory held."""
+    else the artifact directory held. ``facts``: the shared layer's facts of the run (the engine's
+    ``EvalContext.facts``), whose test runs (``evidence.runs_from``) are the ones read here; ``workdir``: the
+    repository root (``Collected.workdir``); ``ctx``: the engine's context of the run, whose shared readings of the
+    code change (``testread``) are the ones used here. Without them they are built from the episode
+    (``read.bare_context``)."""
 
-    def __init__(self, task, episode, files: dict[str, str]):
+    def __init__(self, task, episode, files: dict[str, str], facts=None, workdir: str | None = None, ctx=None):
         self.task, self.episode, self.files = task, episode, files
+        self._facts, self.workdir, self._ctx = facts if facts is not None else getattr(ctx, "facts", None), workdir, ctx
         self._values: dict[str, float | None | _Failed] = {}
 
     # -- measurements -------------------------------------------------------------------------------
@@ -170,8 +224,39 @@ class Measures:
         return run
 
     @cached_property
+    def ctx(self):
+        """The shared layer's context of the run: the engine's, else one built from the episode (``read.bare_context``;
+        in the repository root ``read.TEXT_CWD`` when the task names none, as the artifacts' commands are read)."""
+        if self._ctx is not None and self._ctx.collected.workdir:
+            return self._ctx
+        from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _episode_diff, _task_workdir
+
+        self.workdir = self.workdir or _task_workdir(self.task)
+        return EV.bare_context(self.episode, self.workdir or EV.TEXT_CWD, _episode_diff(self.episode))
+
+    @cached_property
+    def shared(self):
+        """The shared layer's facts of the run (``workflow_rubric.facts.build``)."""
+        if self._facts is not None:
+            return self._facts
+        from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _episode_diff, _task_workdir
+
+        self.workdir = self.workdir or _task_workdir(self.task)
+        return EV.bare_facts(self.episode, self.workdir, _episode_diff(self.episode))
+
+    @cached_property
+    def runs(self) -> list:
+        """The shared layer's test-runner invocations of the run (``RunFact``s of kind ``test``, valid or not)."""
+        return EV.test_runs_of(self.shared)
+
+    @cached_property
     def obs(self) -> EV.Observed:
-        return observe(self.run)
+        obs = observe(self.run, self.shared, self.workdir, ctx=self.ctx)
+        recorded = self.repro_recorded
+        if recorded:
+            history = T.script_history(obs.ctx, recorded)
+            obs.histories = {norm_path(p): history for p in recorded}
+        return obs
 
     @cached_property
     def parsed(self) -> dict[int, dict | None]:
@@ -276,10 +361,17 @@ class Measures:
 
     @cached_property
     def timing_unknown(self) -> bool:
+        """The patch changed a source file no write of the trajectory shows (the shared layer's ``unseen_repo_paths``:
+        a change made outside the trace, so when the code last changed is unknown)."""
         if self.final is None:
             return False
-        obs = self.obs
-        return any(p not in self.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, self.tests) and not any(same_file(p, q) for q in obs.edited) for p in self.changed_now)
+        return bool(self.unseen_sources)
+
+    @cached_property
+    def unseen_sources(self) -> list[str]:
+        """Source files of the patch that no write of the trajectory shows (``facts.unseen_repo_paths``, the task's test
+        files and new files aside)."""
+        return [p for p in getattr(self.ctx.facts, "unseen_repo_paths", None) or [] if p not in self.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, self.tests)]
 
     def changed(self, path: str) -> bool:
         return any(same_file(path, q) for q in self.changed_now) if self.final is not None else self.obs.changed(path)
@@ -313,7 +405,7 @@ class Measures:
         """The test targets artifact 01 recorded (empty without 01)."""
         if self.p1 is None:
             return set()
-        return set(EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "") or [])
+        return set(EV.test_targets(_field(self.p1, "Build & Test Commands", "Test") or "", workdir=self.workdir) or [])
 
     @cached_property
     def evidence_runs(self) -> list:
@@ -323,7 +415,7 @@ class Measures:
         if self.p1 is None:
             return []
         rt = self.recorded_targets
-        recorded = [r for r in self.baseline_runs if rt and (t := EV.test_targets(r[1])) and set(t) <= rt]
+        recorded = [r for r in self.baseline_runs if rt and (t := self.obs.targets(r)) and set(t) <= rt]
         return recorded or self.baseline_runs
 
     @cached_property
@@ -373,6 +465,23 @@ class Measures:
         """Every reproduction script path 03 and 04 record."""
         return [p for st in (3, 4) if self.parsed.get(st) for p in claimed_paths(_field(self.parsed[st], "Reproduction Script", "Path"))]
 
+    @cached_property
+    def repro_recorded(self) -> list[str]:
+        """Every reproduction script path artifacts 03 and 04 recorded, in any version the run wrote (the shared
+        replay's contents of their writes) or collected: the paths the script had while the run went on (D2)."""
+        out = list(self.repro_paths)
+        writes = getattr(self.ctx.facts, "writes", None) or {}
+        for path, st in A.ARTIFACT_PATHS.items():
+            if st not in (3, 4):
+                continue
+            for e in writes.get(path, []):
+                if e.content:
+                    try:
+                        out += claimed_paths(_field(A.parse(st, e.content), "Reproduction Script", "Path"))
+                    except Exception:  # noqa: BLE001 -- a version the parser cannot take records nothing
+                        continue
+        return list(dict.fromkeys(norm_path(p) for p in out if p))
+
     def is_repro(self, path: str) -> bool:
         return any(same_file(path, q) for q in self.repro_paths)
 
@@ -392,10 +501,10 @@ class Measures:
         """The runs 05's Regressions / Pre-existing / Outstanding describe: the last runs of the recorded selection (05
         Command, else 01 Test) after the last edit; an exploratory run of other tests after it is not what the report
         compares with the baseline (step24 000346), nor a run on stashed source."""
-        candidates = [r for r in self.post if not _ON_STASH.search(r[1])] or self.post
+        candidates = [r for r in self.post if not on_stash(r[1])] or self.post
         command = _field(self.p5, "Existing Tests vs Baseline", "Command")
-        selection = set(EV.test_targets(command or "") or []) or self.recorded_targets
-        return [r for r in candidates if selection and (t := EV.test_targets(r[1])) and set(t) <= selection] or candidates
+        selection = set(EV.test_targets(command or "", workdir=self.workdir) or []) or self.recorded_targets
+        return [r for r in candidates if selection and (t := self.obs.targets(r)) and set(t) <= selection] or candidates
 
     @cached_property
     def regressed(self) -> bool | None:
@@ -412,12 +521,8 @@ class Measures:
 
     @cached_property
     def edits_unseen(self) -> bool:
-        """The patch changed a source file the trajectory never shows being edited."""
-        final, obs = self.final, self.obs
-        return final is not None and any(
-            q not in set(final[1]) and not EV.is_test_file(q, self.tests) and re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) and not any(same_file(q, e) for e in obs.edited)
-            for q in final[0]
-        )
+        """The patch changed a source file the trajectory never shows being edited (:attr:`unseen_sources`)."""
+        return self.final is not None and any(re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) for q in self.unseen_sources)
 
     @cached_property
     def art_writes(self) -> dict[int, list[int]]:
@@ -434,4 +539,4 @@ class Measures:
     def edits5(self) -> list[int]:
         """The source edits of stage 5 (between its start and artifact 05)."""
         w5 = self.w.get(5)
-        return sorted(n for p in self.obs.source_edits for n in self.obs.edit_steps.get(p, []) if self.start5 < n < w5)
+        return sorted(n for ns in self.obs.source_steps.values() for n in ns if self.start5 < n < w5)

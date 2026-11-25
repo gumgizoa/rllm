@@ -30,9 +30,18 @@ vendored as ``openspec_kinds.py`` (that port is not on this branch) and used as 
   ``{rule: baseline_run}`` -- a command the ``## Baseline`` section of tasks.md names (a code span) is a valid run of
   the repository's tests (``evidence.py``) made before the first code change, in any stage (schema.yaml tasks
   instruction: "Before any code is changed, run the existing repository tests ... and record the result");
-  ``{rule: run_after_change}`` -- after the last code change, a valid run of the repository's tests or the execution
-  of a script the run wrote under the change's ``checks/`` directory, anywhere up to the end of the run
-  (03-verify.md step 8, "Run the Evidence"). A run that changed no code stands outside ``run_after_change``.
+  ``{rule: run_after_change}`` -- after the last code change, a valid run of the repository tests that cover the code
+  changed: a target related to a changed source file (``Collected.related_tests``, read from the sandbox; the same
+  set schema.yaml's tasks instruction names) or the whole suite (03-verify.md:145 "run the repository tests that
+  cover the code you changed"; R7 of the 11-24 review), anywhere up to the end of the run. A check script alone is
+  no such run. A run that changed no code stands outside ``run_after_change``; without the related-tests listing
+  (offline) it is unavailable. The shared readings (``testread``): a run of the change's own call after the write
+  counts (R2), a run with the change put away does not (R3).
+* ``openspec_ff.checks`` -- ``{rule: run_after_change}``: every check script the run wrote under the change's
+  checks/ (and did not delete) ran after the last code change and after its own last write (03-verify.md:145 "After
+  your last code change, run ... every check script under ``/openspec/changes/issue/checks/``"; R1-R4 of the 11-24
+  review: ``testread.script_runs`` / ``current_runs``) (ratio). A run whose outcome cannot be read still ran; whether
+  it passed is the penalty items' question. Not applicable without a code change or without a check script.
 * ``openspec_ff.tasks`` -- ``{rule: baseline_recorded}``: tasks.md has a ``## Baseline`` section that names a command
   in a code span; and the task list's history across its two locations (active, archived):
   ``{rule: written}`` -- a content write of it in the window; ``{rule: rerun_after_tick}`` -- each write that
@@ -61,8 +70,9 @@ import re
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
-from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_run
+from recipe.grpo.qwen3_5.workflow_rubric.checks.artifacts import _command_candidates, _norm_cmd
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 from recipe.grpo.qwen3_5.workflow_rubric.trace import shell
@@ -310,10 +320,39 @@ def baseline_commands(text: str | None) -> list[str] | None:
     return [c.strip() for c in _CODE.findall(body) if c.strip() and c.strip().lower() not in ("none", "n/a")]
 
 
-@register("openspec_ff.evidence", params={"rule": True, "window": False}, availability=("sandbox_file", "trace"), common=False, choices={"rule": ("baseline_run", "run_after_change")})
+def check_script_paths(ctx: EvalContext) -> set[str]:
+    """Absolute paths of the files the trace wrote under the change's checks/ directory."""
+    d = check_dir(ctx)
+    return {posixpath.normpath(path) for path, evs in ctx.facts.writes.items() if path.startswith(d) and any(e.ok is not False and e.op not in ("delete", "move_out") for e in evs)}
+
+
+def baseline_runs(ctx: EvalContext) -> list | None:
+    """The baseline the run recorded: the valid repository test runs made before the first code change that a command
+    of tasks.md's ``## Baseline`` section names -- the same command (or runner segment) once normalised, else the same
+    runner on the same targets (``pytest tests/x.py`` recorded with ``-q`` is that run). None without the section; []
+    when it names no command or none of them was run. One reading for ``baseline_run``, ``false_baseline`` and the
+    failures the penalty items take as there before the change."""
+    cmds = baseline_commands(tasks_text(ctx))
+    if cmds is None:
+        return None
+    if not cmds:
+        return []
+    wd = ctx.collected.workdir
+    wanted = set().union(*(_command_candidates(c) for c in cmds))
+    same = {(runner, targets) for _, runner, targets in OS._runner_spans(" ".join(f"`{c}`" for c in cmds), wd) if targets}
+    # before the first code change (R1), a run of its own call placed before the write included (R2)
+    return [
+        r
+        for r in T.change_runs(ctx)
+        if T.before_change(ctx, T.run_mark(r))
+        and (wanted & {_norm_cmd(x) for x in (r.command, r.segment) if x} or (r.runner, frozenset(refs.norm_path(t, wd) for t in r.targets)) in same)
+    ]
+
+
+@register("openspec_ff.evidence", params={"rule": True, "window": False}, availability=("sandbox_file", "trace", "related_tests"), common=False, choices={"rule": ("baseline_run", "run_after_change")})
 def evidence(item: Item, ctx: EvalContext) -> Result:
     """rule ``baseline_run``: a command tasks.md's ``## Baseline`` section names is a valid repository test run made before the first code change.
-    rule ``run_after_change``: after the last code change, a valid repository test run or the execution of a check script written under the change's checks/."""
+    rule ``run_after_change``: after the last code change, a valid run of the repository tests that cover the changed code (or the whole suite); unavailable without the related-tests listing."""
     rule = str((item.check.params or {}).get("rule"))
     if rule == "baseline_run":
         cmds = baseline_commands(tasks_text(ctx))
@@ -324,25 +363,63 @@ def evidence(item: Item, ctx: EvalContext) -> Result:
         changes = F.source_change_steps(ctx)
         if not changes and ctx.facts.unseen_repo_paths:  # the code changed at a step the trace does not show: "before it" cannot be shown
             return Result.no(item, "the code change is not in the trace: no run can be placed before it")
-        before = (1, changes[0] if changes else ctx.facts.n_steps + 2)
         where = f"before the first code change (step {changes[0]})" if changes else "(the run changed no code)"
-        for c in cmds:
-            if _command_run(item, ctx, c, before, "test").status == "pass":
-                return Result.ok(item, f"baseline {c[:50]!r} run {where}")
+        runs = baseline_runs(ctx)
+        if runs:
+            return Result.ok(item, f"baseline {runs[0].segment[:50]!r} run at step {runs[0].step}, {where}")
         return Result.no(item, f"no command of the Baseline section is a valid test run {where}")
     if rule == "run_after_change":
         last = F.last_change_write(ctx)
         if last is None:
             return Result.not_applicable(item, "the run changed no code")
-        runs = [r for r in ctx.facts.runs if r.kind == "test" and r.valid and r.step > last]
-        if runs:
-            return Result.ok(item, f"valid test run at step {runs[0].step}, after the last code change (step {last})")
-        scripts = written_checks(ctx)
-        ran = sorted({(step, path) for step, path in F.executed_paths(ctx) if step > last and path in scripts})
-        if ran:
-            return Result.ok(item, f"ran {ran[0][1]} at step {ran[0][0]}, after the last code change (step {last})")
-        return Result.no(item, f"no valid test run and no check script executed after the last code change (step {last})")
+        status, hit, n = related_after_change(ctx)
+        if status == "unavailable":
+            return Result.unavailable(item, "related tests not collected (offline): which tests cover the change is not known")
+        if hit is not None:
+            return Result.ok(item, f"valid test run at step {hit.step}, after the last code change (step {last}), of the tests that cover it")
+        if status == "none" and n:
+            return Result.ok(item, f"{n} valid test run(s) after the last code change (step {last}); no repository test is related to the change")
+        return Result.no(item, f"no valid run of the tests that cover the change after the last code change (step {last}); {n} other test run(s)")
     return Result.no(item, f"unknown rule {rule!r}")
+
+
+@register("openspec_ff.checks", params={"rule": True}, availability=("trace",), common=False, choices={"rule": ("run_after_change",)})
+def check_scripts_run(item: Item, ctx: EvalContext) -> Result:
+    """rule ``run_after_change``: every check script written under the change's checks/ ran after the last code change and after its own last write (ratio)."""
+    rule = str((item.check.params or {}).get("rule"))
+    if rule != "run_after_change":
+        return Result.no(item, f"unknown rule {rule!r}")
+    last = F.last_change_write(ctx)
+    if last is None:
+        return Result.not_applicable(item, "the run changed no code")
+    if last is UNKNOWN:
+        return Result.no(item, "the code change is not in the trace: no run can be placed after it")
+    # a script the run deleted itself is no check script any more (the archive's move keeps it)
+    scripts = sorted(p for p in check_script_paths(ctx) if not ((ev := [e for e in ctx.facts.writes.get(p, []) if e.ok is not False]) and ev[-1].op == "delete"))
+    if not scripts:
+        return Result.not_applicable(item, "no check script under checks/")
+    runs = T.script_runs(ctx, set(scripts))  # results.executions, the change in place (R3)
+    bad = []
+    for s in scripts:
+        # R4: a run of the script as it stands (after its last write); R1 / R2: after every source change, in its call after the write
+        if not any(T.after_change(ctx, x.mark) for x in T.current_runs(runs.get(s, []), T.own_writes(ctx, s))):
+            bad.append(posixpath.basename(s))
+    good = len(scripts) - len(bad)
+    if bad:
+        return Result.ratio(item, good, len(scripts), f"not run after the last code change (step {last}) and its own last write: {bad[:3]}")
+    return Result.ratio(item, good, len(scripts), f"{good} check script(s) run after the last code change (step {last}) and their own last write")
+
+
+def related_after_change(ctx: EvalContext) -> tuple[str, object, int]:
+    """R7 after the last code change: (``testread.related_run``'s status, the first run of the tests that cover the
+    change, how many valid runs came after the change at all). The runs are the valid ones with the change in place
+    (R3), after every source change (R1 / R2). One reading for ``run_after_change`` and ``no_run_after_change``."""
+    key = "openspec_ff.related_after_change"
+    if key not in ctx.cache:
+        after = [r for r in T.change_runs(ctx) if T.after_change(ctx, T.run_mark(r))]
+        status, hit = T.related_run(ctx, after)
+        ctx.cache[key] = (status, hit, len(after))
+    return ctx.cache[key]
 
 
 # --------------------------------------------------------------------------------------------
@@ -566,7 +643,7 @@ def holds(item: Item, ctx: EvalContext) -> Result:
     return Result.ok(item, "holds") if refs.predicate(ctx, pred) else Result.no(item, "does not hold")
 
 
-__all__ = ["cli", "archive", "delta", "evidence", "tasks", "verify", "created_files", "no_fetch", "holds", "paths_written", "note", "invocations", "succeeded", "lists_critical", "archive_calls", "open_without_reason"]
+__all__ = ["cli", "archive", "delta", "evidence", "check_scripts_run", "tasks", "verify", "created_files", "no_fetch", "holds", "paths_written", "note", "invocations", "succeeded", "lists_critical", "archive_calls", "open_without_reason"]
 
 # the openspec_ff.penalty kind (the log_only penalty items) lives in penalty.py, which builds on the helpers above;
 # imported last so that loading this module registers every kind the rubric names

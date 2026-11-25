@@ -98,6 +98,14 @@ repository prohibitions and the test runs. What they cannot say:
 * ``agentos_v2.created_files`` / ``agentos_v2.paths_written`` -- no test / scratch file created in the repository;
   no file written at a path ``pattern`` names.
 
+Test behaviour is read by the rules every workflow shares (``workflow_rubric/testread.py``, the 11-24 review): a code
+change is a source write (R1; a test written first does not end "before the code"); in one shell call a run after
+the write is after it (R2); a run with the change put away (``git stash`` .. ``pop``, a checkout of an edited file,
+``git apply -R``) is no run of the change (R3); a test of the run's own is read off its runs after its last write
+(R4); a failure is already there without the change when the last stash run that ran it failed it by name (R5 / R6).
+With ``related`` (agentos_bugfix), ``verify``'s ``phase2_run`` / ``suite_run`` ask for a run of the existing tests of
+the changed code -- a target related to a changed source file, or the whole suite (R7; unavailable offline).
+
 Nothing the agent writes can make these raise: malformed text is a failing rule, never an exception.
 """
 
@@ -111,6 +119,7 @@ from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
 from recipe.grpo.qwen3_5.workflow_rubric import results as R
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register, register_shell_vars
 from recipe.grpo.qwen3_5.workflow_rubric.context import UNKNOWN, EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.replay import content_at
@@ -146,19 +155,37 @@ _CODE_GROUP = re.compile(r"(?i)\b(?:fix\w*|implement\w*|change|modify)\b")
 _TEST_NOUN = re.compile(r"(?i)\b(?:tests?|check\s+scripts?|checks)\b")  # "check" alone is code: "Add check for db_table"
 _WRITE_WIDE = re.compile(r"(?i)\b(?:write|add|create|author|draft|extend|update)\b")
 _STARTS_TEST = re.compile(r"(?i)^\s*(?:\*\*)?tests?\b")
+_CHECK_TITLE = re.compile(r"(?i)\b(?:tests?|testing|verif\w*)\b")  # a group title that names a check (wide reading)
+_CHECK_TASK = re.compile(r"(?i)^\s*(?:\*\*)?(?:verify|confirm|review)\b")  # a task line that leads with checking
+_CODE_VERB = re.compile(r"(?i)\b(?:fix|implement|change|modify|patch|edit|refactor)\b")  # ... unless it also changes code
 
 
-def check_group(title: str, wide: bool = False) -> bool:
-    """A task group that checks tests rather than implements: a test-review group (and, ``wide``, a verification group)."""
-    return bool((_CHECK_GROUP if wide else _REVIEW_GROUP).search(title or ""))
+def check_group(title: str, wide: bool = False, tasks: list[str] | tuple[str, ...] = ()) -> bool:
+    """A task group that checks tests rather than implements: a test-review group (and, ``wide``, a verification group).
+
+    ``wide`` also reads the group's task lines (``tasks``, every one of them, the ``N.0`` line included): a title that
+    names tests or verification anywhere ("Basic Functionality Verification", "Integration Test for ...") over task
+    lines that are all test work -- writing or running tests, or verifying / confirming / reviewing -- is a verification
+    group too (11-23 table row 13). A title alone is not enough there ("Input Validation" implements), nor are test
+    lines under a title that names no check."""
+    if (_CHECK_GROUP if wide else _REVIEW_GROUP).search(title or ""):
+        return True
+    return wide and bool(tasks) and bool(_CHECK_TITLE.search(title or "")) and all(test_work(t) for t in tasks)
 
 
-def implementation_group(title: str, wide: bool = False) -> bool:
+def implementation_group(title: str, wide: bool = False, tasks: list[str] | tuple[str, ...] = ()) -> bool:
     """A task group the test-first rule applies to: not a test-review group (``wide``: nor a verification group, nor a
     documentation group that names no code change)."""
-    if check_group(title, wide):
+    if check_group(title, wide, tasks):
         return False
     return not (wide and _DOCS_GROUP.search(title or "") and not _CODE_GROUP.search(title or ""))
+
+
+def test_work(text: str) -> bool:
+    """A task line that checks rather than changes code (the wide reading): it writes or runs tests, or it leads with
+    verifying, confirming or reviewing and changes no code ("Verify the bug is fixed", "Review existing tests in tests/";
+    not "Verify and fix the parser")."""
+    return writes_tests(text, True) or runs_tests(text, wide=True) or (bool(_CHECK_TASK.match(text or "")) and not _CODE_VERB.search(text or ""))
 
 
 def writes_tests(text: str, wide: bool = False) -> bool:
@@ -260,24 +287,17 @@ _segments, _executed_by, _others_print, _exit_code = R.segments, R.executed_by, 
 outcome, executions = R.outcome, R.executions
 
 
-def edited_sources(ctx: EvalContext) -> set[str]:
-    """Repository files other than tests the run edited itself (not git putting content back): the files a
-    ``git checkout`` / ``git restore`` can put the change of away (``results.stash_marks``)."""
-    return {e.path for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_test_path(e.path) and not F.is_generated(e.path)}
+# Repository files other than tests the run edited itself, and the steps of the writes it authored: what a checkout can
+# put away and what ends a put-away change (the shared rule, ``testread``, R3)
+edited_sources, authored_write_steps = T.edited_files, T.authored_steps
 
 
 def change_runs(ctx: EvalContext) -> list:
-    """The valid test runs made with the change in place: a run while the change is stashed away (from a ``git stash``
-    to the next ``pop`` / ``apply``, or to the next repository write the agent authors) tested the old code, and says
-    nothing of the code the report, the ticks and the PHASE 2 / 3 checks are about (the common rule,
-    ``results.stash_states``)."""
-    key = "agentos_v2.change_runs"
-    if key not in ctx.cache:
-        fx = ctx.facts
-        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
-        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))  # a checkout of an edited source file too (F-3)
-        ctx.cache[key] = [r for r in fx.runs if r.valid and r.kind == "test" and not R.run_stashed(r, before, marks)]
-    return ctx.cache[key]
+    """The valid test runs made with the change in place: a run while the change is put away (from a ``git stash`` to
+    the next ``pop`` / ``apply``, a checkout of an edited file or ``git apply -R``, up to the next repository write the
+    agent authors) tested the old code, and says nothing of the code the report, the ticks and the PHASE 2 / 3 checks
+    are about (the shared rule, ``testread.change_runs``, R3)."""
+    return T.change_runs(ctx)
 
 
 def _content_events(ctx: EvalContext, path: str) -> list:
@@ -285,12 +305,39 @@ def _content_events(ctx: EvalContext, path: str) -> list:
 
 
 def _change_steps(ctx: EvalContext, w, authored: bool = False) -> list[int]:
-    """Steps of the writes to repository files that are part of the final change (run byproducts aside), in the window;
-    ``authored``: without git putting content back (``git stash`` / ``stash pop`` / ``checkout``), which edits nothing."""
-    keep = F.change_paths(ctx)
-    return sorted(
-        {e.step for e in ctx.facts.repo_writes if e.ok is not False and e.path in keep and not F.is_generated(e.path) and refs.in_window(e.step, w) and not (authored and e.op == "unknown")}
-    )
+    """Steps of the code changes in the window: source writes (R1, ``facts.source_change_steps``) -- a test file of the
+    run's own (written first, as create-tasks.md 128-129 asks) and git putting content back are no code change.
+    ``authored`` is kept for the callers; git's own writes are never source changes."""
+    return sorted({int(x) for x in F.source_change_steps(ctx) if refs.in_window(x, w)})
+
+
+def _late(ctx: EvalContext, m: T.Mark) -> bool:
+    """The run at ``m`` comes after a source change of its own call (``sed -i ... && pytest``, R2)."""
+    at = [c for c in T.change_marks(ctx) if (c.step, c.action) == (m.step, m.action)]
+    return bool(at) and T.after_all(m, at)
+
+
+def _late_run(ctx: EvalContext, r) -> bool:
+    """:func:`_late` of a runner run; a run that cannot be placed in a call (no command) keeps its own same-call mark."""
+    if not getattr(r, "command", None) or T._command(ctx, r.step, r.action_index) is None:  # not a call of the trace
+        return bool(getattr(r, "after_write_same_call", False))
+    return _late(ctx, T.run_mark(r))
+
+
+def _after_step(ctx: EvalContext, r, c: int) -> bool:
+    """The runner run ``r`` comes after the source change of step ``c``: a later step, or the same call after the
+    write (R2)."""
+    return r.step > c or (r.step == c and _late_run(ctx, r))
+
+
+def _before_write(ctx: EvalContext, r, e) -> bool:
+    """The runner run ``r`` comes before the repository write ``e``: an earlier step, or the same call before the write
+    (``pytest ...; sed -i ...``, R2); a run or write that cannot be placed in a call of the trace is not before it."""
+    if r.step != e.step:
+        return r.step < e.step
+    if not getattr(r, "command", None) or getattr(e, "action_index", None) is None or T._command(ctx, r.step, r.action_index) is None:
+        return False
+    return T.before(T.run_mark(r), T.write_mark(ctx, e))
 
 
 def read_steps(ctx: EvalContext, paths: list[str], w) -> dict[str, list[int]]:
@@ -551,6 +598,15 @@ def blocks(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # tasks.md
 # --------------------------------------------------------------------------------------------
+def _group_task_texts(ts: list[dict]) -> dict[str, list[str]]:
+    """Task group heading -> the text of every task line under it (the ``N.0`` line included), for :func:`check_group`."""
+    out: dict[str, list[str]] = {}
+    for t in ts:
+        if t["group"]:
+            out.setdefault(t["group"]["heading"], []).append(t["rest"])
+    return out
+
+
 def task_lines(text: str | None) -> list[dict]:
     """Every task line of tasks.md (outside fences and comments), with the task group it sits under."""
     out: list[dict] = []
@@ -849,26 +905,32 @@ def _test_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
 
 
 def timed_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str, bool]]:
-    """:func:`_test_results` with, per result, whether its run came after a repository write of its own call
-    (``RunFact.after_write_same_call``: ``sed -i ... && pytest``). Within one step a failure comes last."""
-    out = [(st, o, False) for st, o in _script_results(ctx, d)]
-    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass", bool(getattr(r, "after_write_same_call", False))) for r in change_runs(ctx)]
+    """:func:`_test_results` with, per result, whether its run came after a source change of its own call
+    (``sed -i ... && pytest``, R2). Within one step a failure comes last."""
+    out = [(x.step, x.outcome, _late(ctx, x.mark)) for x in _script_runs(ctx, d) if x.outcome in ("pass", "fail")]
+    out += [(r.step, "fail" if r.failed + r.errors > 0 else "pass", _late_run(ctx, r)) for r in change_runs(ctx)]
     return sorted(out, key=lambda x: (x[0], x[1] == "fail"))
 
 
-def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
-    """(step, ``pass`` | ``fail``) of every run of a check script under ``d`` whose outcome can be read."""
+def _script_runs(ctx: EvalContext, d: str | None) -> list[T.ScriptRun]:
+    """Every run of a check script under ``d`` with the change in place (R3), in order."""
     if not d:
         return []
-    return [(st, o) for rs in executions(ctx, set(check_scripts(ctx, d))).values() for st, o in rs if o in ("pass", "fail")]
+    return sorted((x for rs in T.script_runs(ctx, set(check_scripts(ctx, d))).values() for x in rs), key=lambda x: (x.step, x.mark.action))
+
+
+def _script_results(ctx: EvalContext, d: str | None) -> list[tuple[int, str]]:
+    """(step, ``pass`` | ``fail``) of every run of a check script under ``d`` whose outcome can be read, the change in
+    place (R3)."""
+    return [(x.step, x.outcome) for x in _script_runs(ctx, d) if x.outcome in ("pass", "fail")]
 
 
 def _failing_results_at(ctx: EvalContext, d: str | None, step: int) -> list[R.TestResult]:
     """The failing results of ``step`` (as :func:`timed_results` reads them): valid runner runs with the change in place,
     and check-script runs under ``d``."""
-    out = [runner_result(r, ctx.collected.workdir) for r in change_runs(ctx) if r.step == step and r.failed + r.errors > 0]
+    out = [runner_result(r, ctx.collected.workdir, ctx) for r in change_runs(ctx) if r.step == step and r.failed + r.errors > 0]
     if d:
-        out += [R.TestResult(step, False, False, (s_,)) for s_, rs in executions(ctx, set(check_scripts(ctx, d))).items() if any(st == step and o == "fail" for st, o in rs)]
+        out += [R.TestResult(step, False, False, (s_,)) for s_, rs in T.script_runs(ctx, set(check_scripts(ctx, d))).items() if any(x.step == step and x.outcome == "fail" for x in rs)]
     return out
 
 
@@ -1011,22 +1073,19 @@ EXPECTED_WORDS = (
 _BULLET_START = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 
 
-def runner_result(r, workdir: str | None) -> R.TestResult:
+def runner_result(r, workdir: str | None, ctx: EvalContext | None = None) -> R.TestResult:
     """A valid runner run as a :class:`results.TestResult`: its files (``WHOLE`` for the whole suite), what narrows it,
     and the ids of its failed tests when its output names them all."""
     files = R.run_files(r, workdir)
-    whole = bool(_whole(r, workdir))
+    whole = bool(_whole(r, workdir, ctx))
     return R.TestResult(int(r.step), not (r.failed + r.errors), True, files if files and not whole else (R.WHOLE,), R.selection(r.segment), R.run_failed_ids(r.failed, r.errors, r.observation or ""))
 
 
 def stashed_results(ctx: EvalContext) -> list[R.TestResult]:
-    """The valid runner runs made with the change stashed away (the complement of :func:`change_runs`), as results."""
+    """The valid runner runs made with the change put away (the complement of :func:`change_runs`), as results."""
     key = "agentos_v2.stashed_results"
     if key not in ctx.cache:
-        fx = ctx.facts
-        edits = sorted({int(e.step) for e in fx.repo_writes if e.ok is not False and e.op != "unknown" and not F.is_generated(e.path)})
-        before, marks = R.stash_states(fx.commands, edits, edited_sources(ctx))
-        ctx.cache[key] = [runner_result(r, ctx.collected.workdir) for r in fx.runs if r.valid and r.kind == "test" and R.run_stashed(r, before, marks)]
+        ctx.cache[key] = [runner_result(r, ctx.collected.workdir, ctx) for r in T.stash_runs(ctx)]
     return ctx.cache[key]
 
 
@@ -1095,18 +1154,20 @@ def excused_failures(ctx: EvalContext, units) -> set:
     * an existing test that asserts the behavior the task asks to change: a test unit of a runner run, in a test file the
       run did not create, not a test function the run added (F-2's reading), that the final report lists under Failed
       Tests and says asserts the old behavior (:func:`reported_as_expected`);
-    * a failure that is there without the change: a valid runner run with the change stashed away ran the unit and
-      failed it -- the test among its failed ids, or (a file unit) a run of that file that failed. When the check was made
-      does not matter: it is what the run itself found out.
+    * a failure that is there without the change: in the last valid runner run with the change put away that ran the
+      test, the test failed by name (``testread.preexisting``: R5 / R6 of the 11-24 review; the stash runs are this
+      workflow's baseline, implement-tasks.md 135). A failure whose name the output does not give -- a file unit --
+      cannot be matched and is the change's (R5). When the check was made does not matter: it is what the run itself
+      found out.
     """
     out = set()
-    stashed = [s for s in stashed_results(ctx) if not s.passed]
+    stashed = stashed_results(ctx)
     added = None
     wd = (ctx.collected.workdir or "").rstrip("/") + "/"
     for unit, failing in units:
         kind, what = unit
         if kind == "test":
-            if any(any(R._under(what, i) and R._under(i, what) for i in s.failed_ids) for s in stashed):
+            if T.preexisting(what, stashed):
                 out.add(unit)
                 continue
             if not failing.runner:
@@ -1120,8 +1181,6 @@ def excused_failures(ctx: EvalContext, units) -> set:
                 continue
             if reported_as_expected(ctx, what):
                 out.add(unit)
-        elif any(R.runs_key(s, what) for s in stashed):
-            out.add(unit)
     return out
 
 
@@ -1166,7 +1225,8 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
             wide = bool(p.get("wide_words"))
             details = task_details(text) if wide else {}
             pool = [(g, [t for t in ts if t["group"] and t["group"]["heading"] == g["heading"] and not t["id"].endswith(".0")]) for g, _ in gs]
-            pool = [(g, subs) for g, subs in pool if implementation_group(g["title"], wide)]
+            lines = _group_task_texts(ts)
+            pool = [(g, subs) for g, subs in pool if implementation_group(g["title"], wide, lines.get(g["heading"], []))]
             if not pool:
                 return Result.no(item, "no implementation task group")
             good, bad = 0, []
@@ -1187,8 +1247,9 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
         counts = {len(ts), len([t for t in ts if not t["id"].endswith(".0")]), len(gs)}
         if p.get("impl_counts"):  # the same three counts over the implementation groups (the test-review group left out)
             wide = bool(p.get("wide_words"))
-            impl = [t for t in ts if t["group"] and not check_group(t["group"]["title"], wide)]
-            counts |= {len(impl), len([t for t in impl if not t["id"].endswith(".0")]), len([g for g, _ in gs if not check_group(g["title"], wide)])}
+            lines = _group_task_texts(ts)
+            impl = [t for t in ts if t["group"] and not check_group(t["group"]["title"], wide, lines.get(t["group"]["heading"], []))]
+            counts |= {len(impl), len([t for t in impl if not t["id"].endswith(".0")]), len([g for g, _ in gs if not check_group(g["title"], wide, lines.get(g["heading"], []))])}
         return Result.ok(item, f"Total Tasks {n}") if n in counts and n > 0 else Result.no(item, f"Total Tasks {n} counts none of {sorted(counts)}")
     w = _window(item, ctx)
     path = ctx.facts.artifact_paths.get(aid)
@@ -1361,7 +1422,8 @@ def _action_of(ctx: EvalContext, step: int, index: int | None):
 
 def added_test_functions(ctx: EvalContext, e) -> set[str]:
     """The test functions / classes a repository write ``e`` adds: named in the text its call put into the file and not in
-    the text it replaced (an editor replace or insert, a created file, a shell command such as ``cat >> f <<EOF``). A
+    the text it replaced (an editor replace or insert, a created file, a shell command such as ``cat >> f <<EOF`` or
+    ``printf '...\\ndef test_x():...' >> f``, its escapes decoded). A
     write that changed or removed an existing line (``removed_existing``) adds none: the documents never change an
     existing test line."""
     if getattr(e, "removed_existing", None):
@@ -1372,7 +1434,10 @@ def added_test_functions(ctx: EvalContext, e) -> set[str]:
     if a.kind in ("replace", "insert", "create", "write"):
         return test_names(a.text) - test_names(a.old)
     if a.kind == "shell":
-        return test_names(a.command)
+        # the command's text, and the same with printf / ``echo -e`` escapes decoded: ``printf '\ndef test_x():...' >> f``
+        # puts its newlines in as ``\n``, so the definition starts a line only once they are read as printf reads them
+        cmd = a.command or ""
+        return test_names(cmd) | test_names(shell._c_escapes(cmd)[0])
     return set()
 
 
@@ -1392,24 +1457,25 @@ def module_tests(ctx: EvalContext, w=None) -> dict[str, tuple[int, set[str]]]:
     return out
 
 
-def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) -> dict[str, list[tuple[int, str]]]:
-    """Per module of :func:`module_tests`: (step, pass | fail) of the valid runs with the change in place that select it
-    (its path, a directory or label above it, or the whole suite) after the first added function. A run fails it when it
-    has failures and a failing test id names one of the added functions (or, the ids unknown, when it has failures)."""
+def _module_results(ctx: EvalContext, mods: dict[str, tuple[int, set[str]]], w) -> dict[str, list[tuple[int, str, T.Mark]]]:
+    """Per module of :func:`module_tests`: (step, pass | fail, the run's mark) of the valid runs with the change in place
+    that select it (its path, a directory or label above it, or the whole suite) after the first added function. A run
+    fails it when it has failures and a failing test id names one of the added functions (or, the ids unknown, when it
+    has failures)."""
     wd = ctx.collected.workdir
-    out: dict[str, list[tuple[int, str]]] = {}
+    out: dict[str, list[tuple[int, str, T.Mark]]] = {}
     for r in change_runs(ctx):
         if not refs.in_window(r.step, w):
             continue
         files = R.run_files(r, wd)
-        whole = bool(_whole(r, wd))
+        whole = bool(_whole(r, wd, ctx))
         bad = r.failed + r.errors > 0
         ids = E.failing_ids(r.observation or "") if bad else []
         for m, (first, names) in mods.items():
             if r.step <= first or not (whole or any(R.selects(t, m) for t in files)):
                 continue
             fails = bad and (not ids or any(n in i for i in ids for n in names))
-            out.setdefault(m, []).append((int(r.step), "fail" if fails else "pass"))
+            out.setdefault(m, []).append((int(r.step), "fail" if fails else "pass", T.run_mark(r)))
     return out
 
 
@@ -1517,9 +1583,11 @@ def checks(item: Item, ctx: EvalContext) -> Result:
                 return Result.no(item, late)
         return Result.ok(item, f"{len(got)} written: {[posixpath.basename(s) for s in got][:3]}")
     scripts = check_scripts(ctx, d, upto=end - 1)
-    runs = executions(ctx, set(scripts))
-    runs = {s: [(st, o) for st, o in r if refs.in_window(st, w)] for s, r in runs.items()}
-    runs.update(_module_results(ctx, mods, w))
+    # the runs of each script in the window, the change in place (R3), with their place in their call (R2)
+    marked = {s: [x for x in r if refs.in_window(x.step, w)] for s, r in T.script_runs(ctx, set(scripts)).items()}
+    runs = {s: [(x.step, x.outcome) for x in r] for s, r in marked.items()}
+    mod_runs = _module_results(ctx, mods, w)
+    runs.update({m: [(st, o) for st, o, _ in v] for m, v in mod_runs.items()})
     pool = [s for s in scripts if runs.get(s)] + [m for m in sorted(mods) if runs.get(m)]
     unrun: list[str] = []
     if p.get("unrun"):  # A-9 row 19: a test written in the window and never run is a test that did not pass
@@ -1530,14 +1598,19 @@ def checks(item: Item, ctx: EvalContext) -> Result:
         unrun += [m for m in sorted(mods) if not runs.get(m)]  # a module whose added tests no run selected afterwards
     if not pool and not unrun:
         return Result.no(item, f"no check script under {d}/ run in the window")
-    changes = _change_steps(ctx, w, authored=bool(p.get("fix_round")))  # the documents' check of a failure against the unchanged code is a stash and a pop
-    last_change = changes[-1] if changes else w[0]
+    marks = T.change_marks(ctx, w)  # the source changes of the window (R1); git's own writes are none
+    last_change = marks[-1].step if marks else w[0]
     # the documents' way out of a test that cannot be made to pass: its sub-task is marked ⚠️ after the attempts (at least one)
     acks = [g["step"] for g, shown in warned_groups(ctx, "tasks", w, d) if shown] if p.get("warned") else []
     good, bad = 0, []
     for s in pool:
         rs = runs[s]
-        ok = rs[-1][1] == "pass" and rs[-1][0] > last_change
+        if s in marked:  # a check script: its last run after every code change (R2) and after its own last write (R4)
+            last = marked[s][-1]
+            ok = last.outcome == "pass" and T.after_all(last.mark, marks) and T.current(last.mark, T.own_writes(ctx, s))
+        else:  # a module the run added tests to: its last run after the change (R2) and after the module's last write (R4)
+            at = mod_runs[s][-1][2]
+            ok = rs[-1][1] == "pass" and T.after_all(at, marks) and T.current(at, T.own_writes(ctx, s))
         ok = ok or (rs[-1][1] == "fail" and any(m > st for st, o in rs if o == "fail" for m in acks))
         good += ok
         if not ok:
@@ -1595,19 +1668,18 @@ def _phase3_edits(ctx: EvalContext) -> list:
     if start is None:
         return []
     s = 1 if start is UNKNOWN else start
-    keep = F.change_paths(ctx)
-    # removing a file the run made that the final change does not keep is clean-up (core-workflow.md 88-89: nothing of the
-    # workflow stays in the repository), no code change (F-3, 1-4 row 16)
-    return [e for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.step > s and not F.is_generated(e.path)
-            and not (e.op in ("delete", "move_out") and F.is_new_path(ctx, e.path) and e.path not in keep)]
+    # a code change is a source write (R1): removing a file the run made that the final change does not keep is
+    # clean-up (core-workflow.md 88-89), and a test file is no code change either
+    return [e for e in T.change_writes(ctx) if e.step > s]
 
 
 def _phase3_runs(ctx: EvalContext, after_fix: bool = False) -> list:
-    """Valid test runs of PHASE 3; ``after_fix``: only those after its last repository write (a fix round's re-run)."""
+    """Valid test runs of PHASE 3; ``after_fix``: only those after its last source write (a fix round's re-run) -- a
+    later step, or the same call after the write (``sed -i ... && pytest``, R2), as :func:`_after_step` reads PHASE 2."""
     w = phase3_window(ctx)
     runs = [r for r in change_runs(ctx) if refs.in_window(r.step, w)] if w else []
     late = _phase3_edits(ctx) if after_fix else []
-    return [r for r in runs if r.step > max(e.step for e in late)] if late else runs
+    return [r for r in runs if _after_step(ctx, r, max(e.step for e in late))] if late else runs
 
 
 def fallback_window(ctx: EvalContext):
@@ -1652,25 +1724,30 @@ def comparison_script_results(ctx: EvalContext, d: str | None, fallback: bool = 
     if not d or w is None:
         return {}
     last: dict[str, str] = {}
-    for s_, rs in executions(ctx, set(check_scripts(ctx, d))).items():
-        known = [o for st, o in rs if o in ("pass", "fail") and refs.in_window(st, w)]
+    for s_, rs in T.script_runs(ctx, set(check_scripts(ctx, d))).items():
+        # the script as it stands (R4: runs after its last write), the change in place (R3)
+        known = [x.outcome for x in T.current_runs(rs, T.own_writes(ctx, s_)) if x.outcome in ("pass", "fail") and refs.in_window(x.step, w)]
         if known:
             last[s_] = known[-1]
     return last
 
 
-def _whole(r, workdir: str | None) -> bool:
+def _whole(r, workdir: str | None, ctx: EvalContext | None = None) -> bool:
+    """The run is of the whole suite, by the one rule the prohibition of it reads too (``evidence.full_suite``, the
+    common ``prohibited_action`` ``full_suite``): a runner at the repository root that selects nothing. The run's
+    command is split from the directory it started in (``ctx``: the tracked one; without it the repository root), so a
+    ``cd`` of the command or of an earlier call counts: ``cd pkg && pytest`` runs one package. A target (``pytest
+    tests/``) or a filter (``-k``) is a selection, as it is for the prohibition."""
+    start = getattr(getattr(ctx, "facts", None), "_cwd_track", {}).get((getattr(r, "step", None), getattr(r, "action_index", None)))
     try:
-        segs = shell.flat(shell.split(r.segment or r.command, workdir)[0])
+        segs = shell.flat(shell.split(r.command or r.segment, start or workdir)[0])
     except Exception:  # noqa: BLE001
-        segs = []
-    if any(E.full_suite(s, workdir) for s in segs):
-        return True
-    ts = [refs.norm_path(t, workdir).rstrip("/") for t in (r.targets or [])]
-    return bool(ts) and all("/" not in t and "::" not in t and "." not in t and re.match(r"(?i)^(?:tests?|testing|t)$", t) for t in ts)
+        return False
+    want = (r.segment or "").strip()
+    return any(E.full_suite(s, workdir) for s in segs if not want or (s.text or "").strip() == want)
 
 
-@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False, "phase3_fallback": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
+@register("agentos_v2.verify", params={"rule": True, "fix_round": False, "dir": False, "phase3_fallback": False, "related": False}, availability=("trace",), common=False, choices={"rule": ("code_frozen", "suite_run", "whole_suite", "phase2_run")})
 def verify(item: Item, ctx: EvalContext) -> Result:
     """rule: code_frozen | suite_run | whole_suite | phase2_run -- PHASE 3 (from every task ticked to the report): no repository write after it begins; a valid test run in it; one of them the whole suite; a valid test run before it, after the last code change."""
     rule = str((item.check.params or {}).get("rule"))
@@ -1688,10 +1765,16 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         changes = [c for c in _change_steps(ctx, w, authored=True) if c < end]
         if not changes:
             return Result.not_applicable(item, "no code change before PHASE 3")
-        # a run of the same call as the last change counts when the change comes first in the command (``sed -i ... && pytest``)
-        runs = [r for r in change_runs(ctx) if (changes[-1] < r.step or (changes[-1] == r.step and r.after_write_same_call)) and r.step < end]
+        # a run of the same call as the last change counts when the change comes first in the command (``sed -i ... && pytest``, R2)
+        runs = [r for r in change_runs(ctx) if _after_step(ctx, r, changes[-1]) and r.step < end]
         if not runs:
             return Result.no(item, f"no valid test run between the code change of step {changes[-1]} and PHASE 3 (step {end})")
+        if (item.check.params or {}).get("related"):  # R7: the existing tests of the changed code, or the whole suite
+            status, hit = T.related_run(ctx, runs)
+            if status == "unavailable":
+                return Result.unavailable(item, "related tests not collected (offline): which tests cover the change is not known")
+            if status == "miss":
+                return Result.no(item, f"{len(runs)} valid test run(s) after the code change of step {changes[-1]}, none of the tests of the changed code nor the whole suite")
         # A-9 row 9: every task group that changes code is tested before the next group's code (implement-tasks.md 39-40:
         # each group's last sub-task runs the tests). The stretches are cut at the group ends (``group_end_steps``)
         ends = [e for e in group_end_steps(ctx) if e < end] + [end]
@@ -1707,7 +1790,7 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         good, bad = 0, []
         for i, (_, last) in enumerate(coded):
             until = coded[i + 1][0] if i + 1 < len(coded) else end
-            if any((last < r.step or (last == r.step and r.after_write_same_call)) and r.step < until for r in every):
+            if any(_after_step(ctx, r, last) and r.step < until for r in every):
                 good += 1
             else:
                 bad.append(f"code changed at step {last}, next group's code at step {until} with no valid test run between")
@@ -1721,8 +1804,9 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         if not late:
             return Result.ok(item, "no repository write after PHASE 3 began")
         runs = _phase3_runs(ctx)
-        failed_before = any(r.step < late[0].step and r.failed + r.errors > 0 for r in runs)
-        rerun_after = any(r.step > late[-1].step for r in runs)
+        # R2: in one call a run before the first PHASE 3 write is before it, one after the last write is after it
+        failed_before = any(_before_write(ctx, r, late[0]) and r.failed + r.errors > 0 for r in runs)
+        rerun_after = any(_after_step(ctx, r, late[-1].step) for r in runs)
         p = item.check.params or {}
         w3 = phase3_window(ctx)
         if p.get("dir") and w3:  # a test the agent wrote is a check script: its failing run sends back as well
@@ -1744,14 +1828,22 @@ def verify(item: Item, ctx: EvalContext) -> Result:
         if ctx.facts.unseen_repo_paths:
             return Result.no(item, "a repository change the trace does not show: its time is unknown")
         s = 1 if start is UNKNOWN else start
-        late = [e for e in ctx.facts.repo_writes if e.ok is not False and e.step > s and not F.is_generated(e.path)]
-        return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began (step {s})") if late else Result.ok(item, f"no repository write after step {s}")
+        late = [e for e in T.change_writes(ctx) if e.step > s]  # a code change is a source write (R1)
+        return Result.no(item, f"step {late[0].step}: {late[0].op} {late[0].path} after PHASE 3 began (step {s})") if late else Result.ok(item, f"no code change after step {s}")
     runs = comparison_runs(ctx, after_fix=fix_round, fallback=bool((item.check.params or {}).get("phase3_fallback")))
     if rule == "suite_run":
-        return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}") if runs else Result.no(item, "no valid test run between the last tick and the report")
+        if not runs:
+            return Result.no(item, "no valid test run between the last tick and the report")
+        if (item.check.params or {}).get("related"):  # R7: the test modules that cover the changed files, or the whole suite
+            status, hit = T.related_run(ctx, runs)
+            if status == "unavailable":
+                return Result.unavailable(item, "related tests not collected (offline): which tests cover the change is not known")
+            if status == "miss":
+                return Result.no(item, f"{len(runs)} valid test run(s) in PHASE 3, none of the tests of the changed code nor the whole suite")
+        return Result.ok(item, f"{len(runs)} valid test run(s) in PHASE 3, first at step {runs[0].step}")
     if rule == "whole_suite":
         wd = ctx.collected.workdir
-        whole = [r for r in runs if _whole(r, wd)]
+        whole = [r for r in runs if _whole(r, wd, ctx)]
         return Result.ok(item, f"step {whole[0].step}: {whole[0].segment[:60]}") if whole else Result.no(item, f"{len(runs)} PHASE 3 run(s), none of the whole suite")
     return Result.no(item, f"unknown rule {rule!r}")
 
@@ -1883,7 +1975,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
                 if bad:
                     return Result.no(item, f"All Passing, but step {best.step} has {bad} failures / errors")
                 if p.get("standing"):  # A-2: no failure of the verification left standing -- a run that left the test out does not clear it
-                    left = R.standing_units([runner_result(r, ctx.collected.workdir) for r in runs])
+                    left = R.standing_units([runner_result(r, ctx.collected.workdir, ctx) for r in runs])
                     if left:
                         (kind, what), f = left[0]
                         return Result.no(item, f"All Passing, but {what} failed at step {f.step} and no later run ran it passing ({len(left)} left)")
@@ -1907,7 +1999,7 @@ def report(item: Item, ctx: EvalContext) -> Result:
         # section when the report has none), not in Notes or elsewhere
         hay = ((M.section(text, "Failed Tests", match="prefix") or M.section(text, suite, match="prefix") or "") if p.get("in_section") else text)
         if p.get("standing"):  # A-7 row 7: every failure left standing at the end of the verification, over all its runs
-            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
+            left = _left_unfixed(ctx, [runner_result(r, ctx.collected.workdir, ctx) for r in runs], str(p.get("scripts_dir") or SCRIPTS_DIR))
             if not left:
                 return Result.not_applicable(item, "no failure left standing in the PHASE 3 runs")
             want = [what for (kind, what), _ in left if kind == "test"]

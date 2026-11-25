@@ -287,7 +287,7 @@ def measure(ctx: EvalContext) -> dict[str, Any]:
     }
 
 
-@register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace",), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
+@register("agentos_bugfix.penalty", params={"rule": True}, availability=("trace", "related_tests"), common=False, choices={"rule": (*FILE_RULES, *TEST_RULES)})
 def penalty(item: Item, ctx: EvalContext) -> Result:
     """rule: plan_files.<named | named_equals_patch | named_covers_gold>, or a test item of
     implement-tasks (phase2_run.existing_and_own, phase2_fail.<...>, phase3_run.existing_and_own, phase3_fail.<...>) --
@@ -312,6 +312,8 @@ def penalty(item: Item, ctx: EvalContext) -> Result:
     if tests is None:
         return Result.unavailable(item, "the code root is not known")
     value, judged = tests[f"{penalty_tests.STAGE}.{rule}"]
+    if value is None:  # the run items without the related-tests listing (offline): R7 cannot be read
+        return Result.unavailable(item, "related tests not collected (offline): which tests cover the change is not known")
     if not judged:
         why = "the run ran its tests there and the item's condition did not arise" if value else "the run never did what the item is about"
         return PEN.outside(item, why, premise=bool(value))

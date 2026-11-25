@@ -56,14 +56,14 @@ def r_tests_untouched(m):
 
 @method("rule/r_targeted_tests", materials=("TEST", "TARGET", "DOC", "WRITE"))
 def r_targeted_tests(m):
-    """Stage 5's test runs name their targets."""
+    """Stage 5's test runs name their targets: none runs the whole suite (``evidence.full_suite``)."""
     start5 = m.w.get(4) or m.read_step.get("05")
     if start5 is None:
         return None
     runs = m.obs.tests_in(after=start5, before=m.w.get(5))
     if not runs:
         return None
-    return 0.0 if [cmd for _, cmd, _ in runs if EV.test_targets(cmd) == []] else 1.0
+    return 0.0 if any(m.obs.whole_suite(r) for r in runs) else 1.0
 
 
 @method("rule/r_no_env_setup", materials=("SHELLCLS",))

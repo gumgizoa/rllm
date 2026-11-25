@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 from recipe.grpo.qwen3_5.workflow_rubric import facts as F
 from recipe.grpo.qwen3_5.workflow_rubric import markdown as M
 from recipe.grpo.qwen3_5.workflow_rubric import refs
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
 from recipe.grpo.qwen3_5.workflow_rubric.checks import register
 from recipe.grpo.qwen3_5.workflow_rubric.context import EvalContext, Result
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
@@ -640,8 +641,7 @@ def _checked_after_edit(item: Item, ctx: EvalContext, aid: str) -> Result:
         prev = n
     if first_tick is None:
         return Result.not_applicable(item, "no task ticked in the trace")
-    change = F.change_paths(ctx)
-    edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.path in change]
+    edits = F.source_change_steps(ctx)  # the code change is a source write (R1 of the 11-24 review)
     if not edits:
         return Result.no(item, f"task ticked at step {first_tick} with no code change in the final change")
     if first_tick < min(edits):
@@ -708,18 +708,18 @@ def _verified(item: Item, ctx: EvalContext, aid: str) -> Result:
         want = _runner_spans(desc.get(k, ""), wd)
         if not want:
             continue
-        edits = [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.step < step]
-        # a run made before the run's first code change is the baseline (tasks.md `## Baseline`): it shows what the
+        # after the task's last code change (a source write, R1) -- in its call, after the write (R2) -- and before the
+        # tick; a run made before the run's first code change is the baseline (tasks.md `## Baseline`): it shows what the
         # tests said of the unchanged code, so it verifies no task -- one ticked before any code changed included
-        after = max([*edits, first_change])
+        marks = [m for m in T.change_marks(ctx) if m.step < step] or [m for m in T.change_marks(ctx) if m.step == first_change]
         cmds = {w[0] for w in want}
         sels = {(w[1], w[2]) for w in want if w[2]}
         ok = any(
-            r.valid
-            and r.kind == "test"
-            and after < r.step < step
+            (marks or first_change == 0)
+            and T.after_all(T.run_mark(r), marks)
+            and r.step < step
             and (refs.norm_command(_norm(r.command)) in cmds or refs.norm_command(_norm(r.segment)) in cmds or (r.runner, frozenset(refs.norm_path(t, wd) for t in r.targets)) in sels)
-            for r in ctx.facts.runs
+            for r in T.change_runs(ctx)  # valid test runs, the change in place (R3)
         )
         (good if ok else bad).append(k)
     return _ratio(item, good, bad, "ticked tasks verified by a valid run of their command after their last code change (the baseline run aside)")

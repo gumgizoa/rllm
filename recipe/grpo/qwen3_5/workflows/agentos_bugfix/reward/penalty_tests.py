@@ -43,13 +43,16 @@ write; without either, the end of the run)
 PHASE 3 -- from the write that ticks the last task to the report's first write; it can be placed only when both are
 known and in that order. The three failure items ask what the run did about a failure it saw in PHASE 3. A run that
 saw none there keeps them when its final code was tested: a test ran in PHASE 3, or -- PHASE 3 placed or not -- after
-the last source change and before the report (the end of the run without one). Running the tests once more would then
+the last change to the code or the tests and before the report (the end of the run without one). Running the tests once more would then
 have shown nothing the run had not seen, and not running them costs the run item alone. A run whose final code was
 never tested loses all four.
 
     agentos_bugfix.implement_tasks.penalty.phase3_run.existing_and_own
-        1.0: as phase2_run, anywhere in PHASE 3
-        outside (0.0): PHASE 3 cannot be placed
+        1.0: a run of the existing tests and a run of an own test in the stretch the compliance item
+             ``verify.suite_run`` reads (``checks.comparison_window``): PHASE 3 from the step that ticks the last task,
+             that step included; after the last repository write of a fix round; and, when PHASE 3 cannot be placed,
+             the fallback stretch after the last change and the last write of tasks.md, before the report
+        outside (0.0): no such stretch (no code change before the report)
     agentos_bugfix.implement_tasks.penalty.phase3_fail.cause_checked
         judged: a valid runner run fails in PHASE 3 -- the document asks for the check on an existing test
         1.0: after that failure and before the report, the runner is invoked with the change stashed away
@@ -86,6 +89,15 @@ the final change does not keep, or one with a throwaway name -- ``repro_x.py``, 
 root) and git putting content back aside. A test edit is a write to a repository test file or to one of the run's
 scripts under verify/. Nothing here reads the task's reference fix or its test patch: every item is about what the run
 can know.
+
+The shared readings (``workflow_rubric/testread.py``, the 11-24 review): "after the last change" is after the last
+source change (R1) -- a run of a test of the run's own counts only when it comes after that test's last write (R4,
+implement-tasks.md 40: fix the change or that test and run the tests again); in one shell call a run after the write is
+after it (R2); a run with the change put away is a cause check, not a result (R3); a failure is there without the change
+when the last stash run that ran it failed it by name (R5 / R6, ``checks.excused_failures``). The run items'
+"existing tests" are the tests of the changed code: a target related to a changed source file, or the whole suite (R7,
+implement-tasks.md 39, 131; ``Collected.related_tests`` -- without it, offline, the two run items are unavailable).
+The attempts of ``edited_after_fail`` still count an edit of the run's own test as an attempt (implement-tasks.md 40).
 """
 
 from __future__ import annotations
@@ -94,8 +106,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ....workflow_rubric import facts as F
+from ....workflow_rubric import patch as PATCH
 from ....workflow_rubric import refs
 from ....workflow_rubric import results as R
+from ....workflow_rubric import testread as T
 from ....workflow_rubric.context import UNKNOWN
 from ...agentos_v2.reward import checks as C
 
@@ -124,11 +138,17 @@ class Timeline:
     """What the items read, in steps."""
 
     src: list[int] = field(default_factory=list)  # source changes
+    # changes to the code or the tests of the final change, as the compliance item ``verify.phase2_run`` counts them
+    # (``checks._change_steps``): what "the tests ran after the last change" is asked against. The failure items and
+    # the task-group stretches keep ``src`` -- a test written before the code fails by design, not because of a change
+    changes: list[int] = field(default_factory=list)
     test_edits: list[int] = field(default_factory=list)  # writes to repository test files and to the check scripts
     results: list[Result] = field(default_factory=list)  # readable results (check scripts, valid runner runs); cause checks aside
     stash_results: list[Result] = field(default_factory=list)  # valid runner runs with the change stashed away
     check_runs: list[int] = field(default_factory=list)  # runner invocations with the change stashed away, valid or not
     own_runs: list[int] = field(default_factory=list)  # a verify/ script ran (read or not), or the runner on an own test file
+    own_ran: list[tuple[int, tuple[str, ...]]] = field(default_factory=list)  # (step, the own tests it ran) of each such run (R4)
+    related: bool | None = True  # R7: the related-tests listing was collected (None: not; the run items cannot be judged)
     existing_runs: list[int] = field(default_factory=list)  # valid runner runs of the repository's tests, with the change in place (not only the run's own tests)
     # steps of the runs above that come after a repository write of their own call (``sed -i ... && pytest``): at the step
     # of the last source change they still ran after it (``RunFact.after_write_same_call``)
@@ -142,7 +162,18 @@ class Timeline:
     test_edits_of: dict[str, list[int]] = field(default_factory=dict)  # test file (repository-relative) or check script -> its edits
     added_tests: set[str] = field(default_factory=set)  # test functions / classes the run added to existing modules (F-2)
     new_test_files: set[str] = field(default_factory=set)  # repository test files the run created  # failure units the documents do not ask the run to fix (R2: ``checks.excused_failures``)
+    # existing repository test file -> steps of the writes that changed or removed a line it had (the trace's edits, and
+    # a file the final patch shows changed with no such write in the trace: every write to it, or step 0 without one)
+    # -- what the compliance item ``global.run.prohibited_action.test_file_write`` reads
+    loosen_steps: dict[str, list[int]] = field(default_factory=dict)
     p2_end: int = 0
+    # [a, b): where the final verification's test runs are looked for, as the compliance item ``verify.suite_run`` reads
+    # it (``checks.comparison_window`` with its fallback, after the last PHASE 3 repository write). None: nowhere
+    verify: tuple[int, int] | None = None
+    # the step of the last PHASE 3 fix write when it opens ``verify``: a run at that step counts only when it comes after
+    # the write in its call (``sed -i ... && pytest``, R2: ``existing_late`` / ``own_late`` / ``script_late``). None: the
+    # window's first step counts whole
+    verify_fix: int | None = None
     p3: int | None = None  # PHASE 3 start, when it can be placed before the report
     report: int | None = None
 
@@ -165,28 +196,9 @@ def runs_own_test(step: int, files: tuple[str, ...], whole: bool, own_tests: dic
 
 
 def _scripts_after_a_write(ctx: Any, scripts: set[str]) -> set[int]:
-    """Steps at which a check script runs after a repository write of its own call: the written path comes before the
-    script's path in the command's text (``sed -i ... && python verify/x.py``), as ``facts._same_call_order`` reads a
-    runner run."""
-    fx, wd = ctx.facts, (ctx.collected.workdir or "").rstrip("/") + "/"
-    by_call: dict[tuple[int, Any], set[str]] = {}
-    for e in fx.repo_writes:
-        if e.ok is not False and e.op != "unknown":
-            by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
-    out = set()
-    for c in fx.commands:
-        paths = by_call.get((int(c.step), c.action_index))
-        cmd = c.command or ""
-        if not paths:
-            continue
-        for s in scripts:
-            at = cmd.find(s)
-            if at < 0:
-                continue
-            pos = [i for p in paths for i in (cmd.find(wd + p) if cmd.find(wd + p) >= 0 else cmd.find(p),) if i >= 0]
-            if pos and min(pos) < at:
-                out.add(int(c.step))
-    return out
+    """Steps at which a check script runs after a source change of its own call (``sed -i ... && python verify/x.py``):
+    the shared reading of a run's place in its call (R2), as for a runner run."""
+    return {x.step for rs in T.script_runs(ctx, scripts).values() for x in rs if C._late(ctx, x.mark)}
 
 
 def only_own_tests(ctx: Any, r: Any, files: tuple[str, ...], whole: bool, added: set[str]) -> bool:
@@ -217,11 +229,12 @@ def timeline(ctx: Any) -> Timeline:
 
     # repository writes: source changes (the definition every workflow shares) and test files
     tl.src = list(F.source_change_steps(ctx))
+    tl.changes = list(tl.src)  # R1: the last change the tests have to follow is the last source change
     own_tests: dict[str, int] = {}  # repository test file -> the run's first write to it
     for e in fx.repo_writes:
         if e.ok is False or e.op == "unknown" or F.is_generated(e.path):
             continue
-        if F.is_test_path(e.path):
+        if F.is_repo_test_file(ctx, e.path):  # a script the run made at the repository root is no test (A-9 row 8)
             own_tests.setdefault(e.path, int(e.step))
             tl.test_edits.append(int(e.step))
             tl.test_edits_of.setdefault(e.path, []).append(int(e.step))
@@ -234,9 +247,18 @@ def timeline(ctx: Any) -> Timeline:
         tl.test_edits += steps
         tl.test_edits_of[path] = steps
     tl.test_edits.sort()
-    for path, runs in C.executions(ctx, checks).items():
-        for step, out in runs:
+    for e in fx.repo_writes:
+        if e.ok is not False and e.op != "unknown" and F.is_test_path(e.path) and not F.is_new_path(ctx, e.path) and e.removed_existing is True:
+            tl.loosen_steps.setdefault(e.path, []).append(int(e.step))
+    tp = ((getattr(ctx.collected, "inputs", None) or {}).get("test_patch") or {}).get("files") or {}
+    for path, body in tp.items():
+        if path not in tl.loosen_steps and F.is_test_path(path) and not F.is_new_path(ctx, path) and PATCH.changed_lines(body):
+            tl.loosen_steps[path] = sorted(tl.test_edits_of.get(path) or [0])
+    for path, runs in T.script_runs(ctx, checks).items():  # the change in place (R3)
+        for x in runs:
+            step, out = x.step, x.outcome
             tl.own_runs.append(int(step))
+            tl.own_ran.append((int(step), (path,)))
             if out:
                 tl.results.append(Result(int(step), out == "pass", False, (path,)))
     tl.script_late = _scripts_after_a_write(ctx, checks)
@@ -244,26 +266,30 @@ def timeline(ctx: Any) -> Timeline:
     added = {n for _, names in C.module_tests(ctx).values() for n in names}  # test functions the run added to existing modules
     tl.added_tests = added
     tl.new_test_files = {p for p in own_tests if F.is_new_path(ctx, p)}
-    before, marks = stash_states(fx.commands, sorted({*tl.src, *tl.test_edits}), C.edited_sources(ctx))  # where the change is put away (git stash, or a checkout of an edited source file)
+    # where the change is put away (git stash, or a checkout of an edited non-test file) and brought back: the compliance
+    # side's reading (``checks.change_runs``) -- any repository write the run authors ends it, the file a checkout put
+    # back included (11-23 table row 12: a test-data file checked out and written again left later runs "stashed")
+    tests = T.related_tests(ctx)  # R7: the existing tests of the changed code (None: not collected)
+    tl.related = tests is not None
     for r in fx.runs:
         if r.kind != "test":
             continue
-        away_now = run_stashed(r, before, marks)
+        away_now = T.run_stashed(ctx, r)  # the shared reading (R3), the compliance side's
         if away_now:
             tl.check_runs.append(int(r.step))
         if not r.valid:
             continue
         files = R.run_files(r, wd)
-        whole = bool(C._whole(r, wd))
-        res = C.runner_result(r, wd)  # with the ids of its failed tests when the output names them all
+        whole = bool(C._whole(r, wd, ctx))
+        res = C.runner_result(r, wd, ctx)  # with the ids of its failed tests when the output names them all
         if away_now:
             tl.stash_results.append(res)
             continue
         tl.results.append(res)
-        existing = not only_own_tests(ctx, r, files, whole, added)
+        existing = not only_own_tests(ctx, r, files, whole, added) and (tests is None or not tests or T.runs_related(ctx, r, tests))
         if existing:
             tl.existing_runs.append(res.step)
-        late = bool(getattr(r, "after_write_same_call", False))
+        late = C._late(ctx, T.run_mark(r))  # after a source change of its own call (R2)
         if late:
             tl.results_late.add(res.step)
             if existing:
@@ -271,6 +297,7 @@ def timeline(ctx: Any) -> Timeline:
         # a test of the run's own: a test file it had already written to when this run named it
         if runs_own_test(res.step, files, whole, own_tests):
             tl.own_runs.append(res.step)
+            tl.own_ran.append((res.step, tuple(f for f, first in own_tests.items() if first < res.step and (whole or any(selects(t, f) for t in files)))))
             if late:
                 tl.own_late.add(res.step)
     tl.results.sort(key=lambda x: (x.step, not x.passed))  # at one step, a failing result is read last
@@ -285,6 +312,14 @@ def timeline(ctx: Any) -> Timeline:
     tl.p2_end = start if start is not None else (tl.report if tl.report is not None else fx.n_steps + 1)
     if start is not None and tl.report is not None and _int(all_done) == start and start < tl.report:
         tl.p3 = start
+    w = C.comparison_window(ctx, fallback=True)
+    if w is not None:
+        late = C._phase3_edits(ctx) if C.phase3_window(ctx) is not None else []  # a fix round: only the runs after it
+        fix = max((int(e.step) for e in late), default=None)
+        if fix is not None and fix >= int(w[0]):  # from the last fix write on; at its step, the runs after it in the call (R2)
+            tl.verify, tl.verify_fix = (fix, int(w[1])), fix
+        else:
+            tl.verify = (int(w[0]), int(w[1]))
     tl.group_ends = _group_ends(ctx)
     tl.group_marked = C.group_end_marks(ctx)
     return tl
@@ -300,12 +335,66 @@ def _after(xs: list[int], late: set[int], a: int, b: int) -> list[int]:
     return [x for x in xs if a < x < b or (x == a < b and x in late)]
 
 
+def _last_change(tl: Timeline, last_src: int, end: int) -> int:
+    """The last change before ``end`` the tests have to come after: the last source change, or a later change to a
+    test file of the final change -- a test added after the last run was never run."""
+    return max([last_src, *(c for c in tl.changes if c < end)])
+
+
+def _own_current(tl: Timeline, steps: list[int], b: int) -> list[int]:
+    """Of the own-test runs at ``steps``, those that ran a test of the run's own as it stood: after that test's last
+    write before ``b`` (R4; a run of the write's own call placed after it counts). A timeline built by hand without
+    ``own_ran`` keeps every run."""
+    if not tl.own_ran:
+        return steps
+    late = tl.own_late | tl.script_late
+    out = []
+    for st in steps:
+        for s_, keys in tl.own_ran:
+            if s_ != st:
+                continue
+            writes = [w for k in keys for path, ws in tl.test_edits_of.items() if path == k or k.endswith("/" + path) or path.endswith("/" + k) for w in ws if w < b]
+            if all(w < st or (w == st and st in late) for w in writes):
+                out.append(st)
+                break
+    return out
+
+
 def _ran(tl: Timeline, a: int, b: int, after_change: bool = False) -> bool:
     """existing_and_own over the open stretch (a, b); ``after_change``: ``a`` is a source change, and a run of its own
-    call that comes after the write counts."""
+    call that comes after the write counts. An own-test run counts only after that test's last write (R4)."""
     if after_change:
-        return bool(_after(tl.existing_runs, tl.existing_late, a, b)) and bool(_after(tl.own_runs, tl.own_late, a, b))
-    return bool(_between(tl.existing_runs, a, b)) and bool(_between(tl.own_runs, a, b))
+        return bool(_after(tl.existing_runs, tl.existing_late, a, b)) and bool(_own_current(tl, _after(tl.own_runs, tl.own_late, a, b), b))
+    return bool(_between(tl.existing_runs, a, b)) and bool(_own_current(tl, _between(tl.own_runs, a, b), b))
+
+
+def _verify_window(tl: Timeline) -> tuple[int, int] | None:
+    """[a, b) of the final verification: ``tl.verify``; a timeline without it (built by hand) has PHASE 3 from its
+    start, that step included, to the report."""
+    if tl.verify is not None:
+        return tl.verify
+    return (tl.p3, tl.report) if tl.p3 is not None and tl.report is not None else None
+
+
+def _loosening(tl: Timeline, unit: tuple[str, str]) -> list[int]:
+    """The steps of the writes that changed or removed a line the unit's test file had (an existing repository test
+    file); empty for any other unit -- a check script, a test file the run created."""
+    what = unit[1].split("::")[0]
+    return sorted(s for path, steps in tl.loosen_steps.items() if path == what or what.endswith("/" + path) or path.endswith("/" + what) for s in steps)
+
+
+def pass_after_loosening(tl: Timeline, unit: tuple[str, str], results: list[Result]) -> bool:
+    """``unit`` stands cleared in ``results`` only by a result from after the run first changed or removed a line its
+    test file had -- so it is still failing: the test that passed is not the test that failed. True as well when it
+    failed only after that change (no pass of the changed test counts). The documents never let a failing existing test
+    be made to pass by editing it; the compliance item ``test_file_write`` reads the same edits."""
+    at = _loosening(tl, unit)
+    if not at:
+        return False
+    pre = [r for r in results if r.step < at[0]]
+    if not any(outcome_for(r, unit) == "fail" for r in pre):
+        return any(outcome_for(r, unit) == "fail" for r in results)
+    return unit in {u for u, _ in R.standing_units(pre)}
 
 
 def _standing(tl: Timeline, results: list[Result]) -> list[tuple[str, str]]:
@@ -401,7 +490,9 @@ def _passed_or_marked(tl: Timeline, res: list[Result], first: int) -> bool:
     implement-tasks.md 40). A failure left standing while its group is ticked is not undone by a pass in a later group."""
     for a, b in _stretches(tl, first):
         inside = [r for r in res if a < r.step <= b and r.step < tl.p2_end]
-        if not _standing(tl, inside) or tl.group_marked.get(b):
+        failed = {u for r in inside if not r.passed for u in R.failure_units(r) if u not in tl.excused}
+        left = _standing(tl, inside) or [u for u in sorted(failed) if pass_after_loosening(tl, u, inside)]
+        if not left or tl.group_marked.get(b):
             continue
         return False
     return True
@@ -419,10 +510,11 @@ def _attempts_ok(tl: Timeline, every: list[Result], first: int, edits: list[int]
         start = c0 if c0 is not None else a
         after = [r for r in inside if r.step > start or (r.step == start and r.step in tl.results_late)]
         units = {u for r in after if not r.passed for u in R.failure_units(r) if u not in tl.excused}
-        standing = {u for u, _ in R.standing_units(after)}
+        standing = {u for u, _ in R.standing_units(after)} | {u for u in units if pass_after_loosening(tl, u, after)}
         for u in units:
             seq = [(r, o) for r in after if (o := outcome_for(r, u))]
-            n = attempts(tl, seq, edits)
+            loose = set(_loosening(tl, u))  # changing a line the failing existing test had is no attempt at it
+            n = attempts(tl, seq, [e for e in edits if e not in loose])
             if n > MAX_ATTEMPTS or not (u not in standing or n >= 1):
                 return False
     return True
@@ -475,8 +567,11 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
         for name in (P2_RUN, P2_EDITED, P2_LAST):
             outside(name, False)
     else:
-        first, last = src2[0], src2[-1]
-        put(P2_RUN, _ran(tl, last, tl.p2_end, after_change=True))
+        first, last = src2[0], _last_change(tl, src2[-1], tl.p2_end)
+        if tl.related is False:
+            out[P2_RUN] = (None, True)  # R7 cannot be read without the related-tests listing: unavailable
+        else:
+            put(P2_RUN, _ran(tl, last, tl.p2_end, after_change=True))
         res = [r for r in tl.results if first < r.step < tl.p2_end and (r.passed or bad(r))]  # an excused failure is no failure here
         fails = [r.step for r in res if not r.passed]
         if fails:
@@ -489,18 +584,29 @@ def judge(tl: Timeline) -> dict[str, tuple[float, bool]]:
             outside(P2_LAST, ran)
 
     # PHASE 3. A run that ran no test there keeps the three failure items when its final code was tested all the
-    # same -- a test ran after its last source change, before the report: running the tests once more would have
-    # shown no failure the run had not seen. The run item is what it loses for not running them again.
+    # same -- a test ran after its last change to the code or the tests, before the report: running the tests once
+    # more would have shown no failure the run had not seen. The run item is what it loses for not running them again.
     end = tl.report if tl.report is not None else _NEVER
     src = [s for s in tl.src if s < end]
-    tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, src[-1], end)) or bool(_after(tl.own_runs, tl.own_late, src[-1], end)))
-    if tl.p3 is None or tl.report is None:
+    last = _last_change(tl, src[-1], end) if src else 0
+    tested = bool(src) and (bool(_after([r.step for r in tl.results], tl.results_late, last, end)) or bool(_after(tl.own_runs, tl.own_late, last, end)))
+    vw = _verify_window(tl)
+    if vw is None:
         outside(P3_RUN, False)
+    elif tl.related is False:
+        out[P3_RUN] = (None, True)  # R7 cannot be read without the related-tests listing: unavailable
+    else:  # the stretch ``verify.suite_run`` reads: its first step included, the fallback when PHASE 3 cannot be placed
+
+        def in_vw(x: int, late: set[int]) -> bool:  # at the step of the last fix write: after it in the call (R2)
+            return vw[0] <= x < vw[1] and (x != tl.verify_fix or x in late)
+
+        own_late = tl.own_late | tl.script_late
+        put(P3_RUN, any(in_vw(x, tl.existing_late) for x in tl.existing_runs) and bool(_own_current(tl, [x for x in tl.own_runs if in_vw(x, own_late)], vw[1])))
+    if tl.p3 is None or tl.report is None:
         for name in (P3_CAUSE, P3_EDITED, P3_LAST):
             outside(name, tested)
     else:
         a, b = tl.p3, tl.report
-        put(P3_RUN, _ran(tl, a, b))
         every = [r for r in tl.results if a < r.step < b]
         res = [r for r in every if r.passed or bad(r)]  # an excused failure is no failure for the fix items
         fails = [r for r in res if not r.passed]

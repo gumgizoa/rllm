@@ -104,15 +104,23 @@ class WriteEvent:
     """One write to one path, as far as the trace shows it.
 
     path        absolute for artifacts; repo-relative (to Collected.workdir) for repo writes
-    op          create | overwrite | append | edit | delete | move_in | move_out | unknown
-                (create = the replay knew no prior content; checks treat create and overwrite alike)
-    ok          the tool's own success signal (editor replies; shell failure markers), None if silent
+    op          create | overwrite | append | edit | delete | move_in | move_out | restore | unknown
+                (create = the replay knew no prior content; checks treat create and overwrite alike;
+                restore = git put the file back, ``git checkout -- P`` / ``git restore P``)
+    ok          the tool's own success signal (editor replies; shell failure markers, the exit code of a
+                command's last segment, a python script printing what it prints only when it does not write),
+                None if silent. False also for a write that changed nothing: a substitution that matched
+                nothing on known content, a restore of a file the run never changed
     content     file content right after this write, replayed; None when it cannot be replayed
     source      the tool: file_editor | heredoc | redirect | printf | python | tee | cp | mv | sed | other
     removed_existing
                 True when the write dropped or changed at least one non-blank line the file had before it
-                (a pure addition keeps every prior line and is False); None when the prior or the new
-                content is unknown. A delete of known content is True. ``prohibited_action`` with
+                (a pure addition keeps every prior line and is False; lines the run's own earlier writes
+                put into the file do not count as the file's); None when the prior or the new
+                content is unknown. A delete of a known file is True unless every line was the run's
+                own. For a file the replay had not seen: an editor replace is judged by its old and new
+                text, an append / insert / editor create is False, anything else None. A restore is
+                False. ``prohibited_action`` with
                 ``test_file_modify`` keys on this: a test added to an existing module is not a modification.
     """
 

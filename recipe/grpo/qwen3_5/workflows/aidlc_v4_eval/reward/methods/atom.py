@@ -14,7 +14,7 @@ import re
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
-from ..measures import _regressed
+from ..measures import _regressed, hidden_attempts
 from ..read import DUPLICATE, R_LINE, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file
 from . import STAGES, method
 
@@ -106,10 +106,6 @@ _LABEL_LINE = re.compile(r"^\s*[-*]\s*[A-Z][\w /&().-]*:")
 _ASK = re.compile(r"\b(?:would you like|shall i|should i|do you want|let me know|please (?:confirm|review|advise|approve)|awaiting your|your (?:approval|confirmation|input))\b", re.I)
 
 _REDUCE = re.compile(r"(?<!\S)-[a-zA-Z]*q[a-zA-Z]*\b|--quiet\b|--tb=(?:short|line|no)\b|--no-header\b")
-
-_STASH = re.compile(r"^\s*git\s+stash(?:\s+(?:push|save)\b.*)?\s*$|^\s*(?:git\s+apply|patch)\b.*\s-R\b")
-
-_UNSTASH = re.compile(r"^\s*git\s+stash\s+(?:pop|apply)\b")
 
 _CODE_LIKE = re.compile(r"_|\.|[a-z][A-Z]")
 
@@ -249,7 +245,7 @@ def _rewrites(m) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
     was written (that is A3b's concern)."""
     obs, art_writes, write_step, repro = m.obs, m.art_writes, m.w, m.repro
     doc_steps = _doc_steps(m)
-    edits = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []))
+    edits = sorted(n for ns in obs.source_steps.values() for n in ns)
 
     def next_began(k: int) -> int | None:
         first = art_writes[k][0]
@@ -451,7 +447,7 @@ def d7b(m):
     if not m.p1:
         return None
     test = _field(m.p1, "Build & Test Commands", "Test")
-    if test and not is_none(test) and (targets := EV.test_targets(test)) is not None:
+    if test and not is_none(test) and (targets := EV.test_targets(test, workdir=m.workdir)) is not None:
         return float(any(not _WHOLE_SUITE.fullmatch(t) for t in targets))
     return None
 
@@ -837,7 +833,7 @@ def h1b(m):
     if w4 is None or not m.p1:
         return None
     build = _field(m.p1, "Build & Test Commands", "Build")
-    if build and not is_none(build) and command_core(build) and EV.test_targets(build) is None and not EV.is_env_setup(build):
+    if build and not is_none(build) and command_core(build) and not EV.is_test_attempt(build) and not EV.is_env_setup(build):
         return 1.0 if m.obs.command_runs(build, after=w4, before=m.w.get(5)) else 0.0
     return None
 
@@ -851,12 +847,12 @@ def h1c(m):
     if w4 is None or not m.p1:
         return None
     named = (_field(m.p1, "Build & Test Commands", "Build"), _field(m.p5, "Build", "Command"))
-    build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
+    build = next((b for b in named if b and not is_none(b) and not EV.is_test_attempt(b) and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
     builds = obs.command_runs(build, after=w4, before=w5) if build else []
     failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
     if failed_at is None:
         return None
-    fixes = [k for p in obs.source_edits for k in obs.edit_steps.get(p, []) if k > failed_at]
+    fixes = [k for ns in obs.source_steps.values() for k in ns if k > failed_at]
     fixed = min(fixes + [n for n, cmd, out in builds if n > failed_at and EV.exit_code(cmd, out) == 0], default=None)
     checks = [n for n, _, _ in obs.tests_in(after=failed_at, before=w5)] + ([n for n, _, _ in obs.ran(repro, after=failed_at, before=w5)] if repro else [])
     return float(not checks or (fixed is not None and fixed < min(checks)))
@@ -870,11 +866,12 @@ def h4a(m):
     nothing)."""
     if not (m.p1 and m.p5):
         return None
-    t1, t5 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or ""), EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "")
+    t1 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or "", workdir=m.workdir)
+    t5 = EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "", workdir=m.workdir)
     if not (t1 and t5):
         return None
     after4 = m.w.get(4)
-    runs5 = [EV.test_targets(cmd) for _, cmd, _ in m.obs.tests_in(after=after4)] if after4 is not None else []
+    runs5 = [m.obs.targets(r) for r in m.obs.tests_in(after=after4)] if after4 is not None else []
     rerun = any(tt and all(_covers(tt, t) for t in t1) for tt in runs5)
     return float(rerun or all(_covers(t5, t) for t in t1))
 
@@ -887,18 +884,11 @@ def h7(m):
     w4 = m.w.get(4)
     if w4 is None:
         return None
-    hidden, rebuilt, ran = False, False, False
-    for n, cmd, _ in m.obs.shell:
-        if n <= w4:
-            continue
-        for s in _plain_segments(cmd):
-            if _UNSTASH.match(s):
-                hidden = False
-            elif _STASH.match(s):
-                hidden = True
-            elif EV.is_test_attempt(s):
-                ran = True
-                rebuilt |= hidden
+    edits = sorted({n for steps in m.obs.edit_steps.values() for n in steps})
+    rebuilt, ran = False, False
+    for _, _s, _, hidden in hidden_attempts(m.obs.shell, w4, edits):  # the shared marks (R3)
+        ran = True
+        rebuilt |= hidden
     if not ran:
         return None
     return 0.0 if rebuilt else 1.0
@@ -917,10 +907,10 @@ def h8a(m):
     if not (repro and w4 is not None and not m.edits_unseen):
         return None
     runs = obs.ran(repro, after=w4, before=m.w.get(5))
-    failing = [n for n, cmd, out in runs if (code := EV.exit_code(cmd, out)) is not None and code != 0]
+    failing = [r[0] for r in runs if r.outcome == "fail"]
     if not failing:
         return None
-    changes = [n for p in [*obs.source_edits, repro] for n in obs.edit_steps.get(norm_path(p), []) + ([obs.written(repro)] if p == repro and obs.written(repro) else [])]
+    changes = [n for ns in obs.source_steps.values() for n in ns] + obs.edit_steps.get(norm_path(repro), []) + ([obs.written(repro)] if obs.written(repro) else [])
     actions = sorted(changes + [n for n, _, _ in runs])
     if any(n > failing[-1] for n in actions):
         return 1.0
@@ -951,7 +941,7 @@ def h9a(m):
     w4, w5, obs, repro = m.w.get(4), m.w.get(5), m.obs, m.repro
     if w4 is None:
         return None
-    fixes = [n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if n > w4 and (w5 is None or n < w5)]
+    fixes = [n for ns in obs.source_steps.values() for n in ns if n > w4 and (w5 is None or n < w5)]
     if not fixes:
         return None
     last = max(fixes)
@@ -993,13 +983,13 @@ def h10(m):
 @method("atom/H11", materials=("AP", "COLLECT", "NONE", "SCRIPT", "EXIT", "EDIT", "WRITE"))
 def h11(m):
     """A reproduction that failed, or requirements left unmet, are outstanding failures (a run that never started --
-    "can't open file" -- is no result)."""
+    "can't open file" -- is no run: ``Observed.ran``)."""
     p5, repro, obs = m.p5, m.repro, m.obs
     if not p5:
         return None
     result, unmet = (_field(p5, "Reproduction Script", "Result") or "").lower(), _field(p5, "Reproduction Script", "Unmet requirements")
-    last_runs = [r for r in (obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []) if not EV._NOT_STARTED.search(r[2])]
-    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and EV.exit_code(last_runs[-1][1], last_runs[-1][2]) not in (None, 0))
+    last_runs = obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []
+    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and last_runs[-1].outcome == "fail")
     if failed and (outstanding := _section_none(p5, "Outstanding Failures")) is not None:
         return 0.0 if outstanding else 1.0
     return None
@@ -1070,7 +1060,10 @@ def h17(m):
     obs, repro, start5 = m.obs, m.repro, m.start5
 
     def failed_before(n: int) -> bool:
-        runs = obs.attempts_in(after=start5, before=n) + (obs.ran(repro, after=start5, before=n) if repro else [])
+        repro_runs = obs.ran(repro, after=start5, before=n) if repro else []
+        if any(r.outcome == "fail" for r in repro_runs):
+            return True
+        runs = obs.attempts_in(after=start5, before=n) + repro_runs
         runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1])]
         build = _field(m.p1, "Build & Test Commands", "Build") if m.p1 else None
         if build and not is_none(build) and command_core(build):

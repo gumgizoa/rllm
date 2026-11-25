@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import re
 
+from recipe.grpo.qwen3_5.workflow_rubric import testread as T
+
 from .. import read as EV
 from .. import skeleton as A
 from .. import trace as F
-from ..measures import STASH_SEG, UNSTASH_SEG, _regressed, plain_segments, test_names
+from ..measures import _regressed, hidden_attempts, plain_segments, test_names
 from ..read import DUPLICATE, R_LINE, SOURCE_EXT, _field, _section_none, bullets, claimed_paths, command_core, failures, is_none, norm_path, r_ids, same_file
 from . import STAGES, method
 
@@ -240,7 +242,7 @@ def _rewrites(m) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
     was written (that is A3b's concern)."""
     obs, art_writes, write_step, repro = m.obs, m.art_writes, m.w, m.repro
     doc_steps = _doc_steps(m)
-    edits = sorted(n for p in obs.source_edits for n in obs.edit_steps.get(p, []))
+    edits = sorted(n for ns in obs.source_steps.values() for n in ns)
 
     def next_began(k: int) -> int | None:
         first = art_writes[k][0]
@@ -513,7 +515,7 @@ def d7b(m):
     if not m.p1:
         return None
     test = _field(m.p1, "Build & Test Commands", "Test")
-    if test and not is_none(test) and (targets := EV.test_targets(test)) is not None:
+    if test and not is_none(test) and (targets := EV.test_targets(test, workdir=m.workdir)) is not None:
         return float(any(not _WHOLE_SUITE.fullmatch(t) for t in targets))
     return None
 
@@ -933,7 +935,7 @@ def h1b(m):
     if w4 is None or not m.p1:
         return None
     build = _field(m.p1, "Build & Test Commands", "Build")
-    if build and not is_none(build) and command_core(build) and EV.test_targets(build) is None and not EV.is_env_setup(build):
+    if build and not is_none(build) and command_core(build) and not EV.is_test_attempt(build) and not EV.is_env_setup(build):
         return 1.0 if m.obs.command_runs(build, after=w4, before=m.w.get(5)) else 0.0
     return None
 
@@ -947,12 +949,12 @@ def h1c(m):
     if w4 is None or not m.p1:
         return None
     named = (_field(m.p1, "Build & Test Commands", "Build"), _field(m.p5, "Build", "Command"))
-    build = next((b for b in named if b and not is_none(b) and EV.test_targets(b) is None and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
+    build = next((b for b in named if b and not is_none(b) and not EV.is_test_attempt(b) and not (repro and EV.runs_script(b, norm_path(repro).rsplit("/", 1)[-1]))), None)
     builds = obs.command_runs(build, after=w4, before=w5) if build else []
     failed_at = next((n for n, cmd, out in builds if EV.exit_code(cmd, out) not in (None, 0)), None)
     if failed_at is None:
         return None
-    fixes = [k for p in obs.source_edits for k in obs.edit_steps.get(p, []) if k > failed_at]
+    fixes = [k for ns in obs.source_steps.values() for k in ns if k > failed_at]
     fixed = min(fixes + [n for n, cmd, out in builds if n > failed_at and EV.exit_code(cmd, out) == 0], default=None)
     checks = [n for n, _, _ in obs.tests_in(after=failed_at, before=w5)] + ([n for n, _, _ in obs.ran(repro, after=failed_at, before=w5)] if repro else [])
     return float(not checks or (fixed is not None and fixed < min(checks)))
@@ -966,44 +968,32 @@ def h4a(m):
     nothing)."""
     if not (m.p1 and m.p5):
         return None
-    t1, t5 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or ""), EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "")
+    t1 = EV.test_targets(_field(m.p1, "Build & Test Commands", "Test") or "", workdir=m.workdir)
+    t5 = EV.test_targets(_field(m.p5, "Existing Tests vs Baseline", "Command") or "", workdir=m.workdir)
     if not (t1 and t5):
         return None
     after4 = m.w.get(4)
-    runs5 = [EV.test_targets(cmd) for _, cmd, _ in m.obs.tests_in(after=after4)] if after4 is not None else []
+    runs5 = [m.obs.targets(r) for r in m.obs.tests_in(after=after4)] if after4 is not None else []
     rerun = any(tt and all(_covers(tt, t) for t in t1) for tt in runs5)
     return float(rerun or all(_covers(t5, t) for t in t1))
-
-
-def _covering_modules(m, path: str) -> list[str]:
-    """The test modules the run knows of that cover a source file by name (05 Step 4 "the module's tests named after
-    the file"): ``test_<stem>.py``, ``<stem>_test.py``, ``tests/<stem>.py`` -- or, for a package's ``__init__.py``, its
-    directory's name."""
-    parts = norm_path(path).rsplit("/", 1)
-    stem = parts[-1].rsplit(".", 1)[0]
-    if stem == "__init__" and len(parts) == 2:
-        stem = parts[0].rsplit("/", 1)[-1]
-    names = {f"test_{stem}.py", f"{stem}_test.py", f"tests_{stem}.py", f"test{stem}.py"}
-    return sorted(q for q in m.known if EV.is_test_file(q, m.tests) and (q.rsplit("/", 1)[-1] in names or q.endswith(f"/tests/{stem}.py")))
 
 
 @method("atom/H4c", materials=("PATCH", "EDIT", "SEEN", "TESTFILE", "TARGET", "TEST", "WRITE"))
 def h4c(m):
     """Stage 5 also runs the test modules that cover every file changed (05 Step 4 "MANDATORY: Also run the test
     modules that cover every file changed in Stage 4 ... whether or not the baseline included them"): for each changed
-    source file with a covering module the run knows of (``_covering_modules``), a test run after artifact 04 targets
-    one of them (the module, or a test in it). The share of those files; None when no changed file has one. (Modules
-    that cover a file by importing it are not read: the trajectory does not show the imports.) v5."""
+    source file whose existing tests are known, a valid test run after artifact 04 targets one of them (the module, a
+    test in it, its directory or label, a ``python -c`` importing it by its dotted path), or a run of the whole suite
+    does. The covering tests are the shared reading's (``testread.related_file_run``, R7 of the 11-24 review, D5 of the
+    11-25 merge): the sandbox's related-tests listing when collected (named after the file, importing it or a name it
+    defines); without it, the test modules named after the file that the run saw there near it. The share of those
+    files; None when no changed file has known tests. v5."""
     w4 = m.w.get(4)
     if w4 is None or m.final is None:
         return None
     sources = [p for p in m.changed_now if p not in m.new_now and SOURCE_EXT.search(p) and not EV.is_test_file(p, m.tests) and not m.is_repro(p)]
-    runs = [t for _, cmd, _ in m.obs.tests_in(after=w4, before=m.w.get(5)) if (t := EV.test_targets(cmd))]
-    verdicts = []
-    for p in sources:
-        mods = _covering_modules(m, p)
-        if mods:
-            verdicts.append(any(_covers(tt, mod) or any(_covers([mod], x) for x in tt) for tt in runs for mod in mods))
+    runs = [r for e in m.obs.tests_in(after=w4, before=m.w.get(5)) for r in e.runs if r.valid]
+    verdicts = [v for p in sources if (v := T.related_file_run(m.ctx, p, runs)) is not None]
     return _frac(verdicts) if verdicts else None
 
 
@@ -1018,18 +1008,10 @@ def h7(m):
     w4 = m.w.get(4)
     if w4 is None:
         return None
-    hidden, rebuilt, ran = False, False, False
-    for n, cmd, _ in m.obs.shell:
-        if n <= w4:
-            continue
-        for s in plain_segments(cmd):
-            if UNSTASH_SEG.match(s):
-                hidden = False
-            elif STASH_SEG.match(s):
-                hidden = True
-            elif EV.is_test_attempt(s):
-                ran = True
-                rebuilt |= hidden and m.rebuilds_baseline(s)
+    rebuilt, ran = False, False
+    for _, s, _, hidden in hidden_attempts(m.obs.shell, w4, m.edit_steps_all):  # the shared marks (R3)
+        ran = True
+        rebuilt |= hidden and m.rebuilds_baseline(s)
     if not ran:
         return None
     return 0.0 if rebuilt else 1.0
@@ -1048,10 +1030,10 @@ def h8a(m):
     if not (repro and w4 is not None and not m.edits_unseen):
         return None
     runs = obs.ran(repro, after=w4, before=m.w.get(5))
-    failing = [n for n, cmd, out in runs if (code := EV.exit_code(cmd, out)) is not None and code != 0]
+    failing = [r[0] for r in runs if r.outcome == "fail"]
     if not failing:
         return None
-    changes = [n for p in [*obs.source_edits, repro] for n in obs.edit_steps.get(norm_path(p), []) + ([obs.written(repro)] if p == repro and obs.written(repro) else [])]
+    changes = [n for ns in obs.source_steps.values() for n in ns] + obs.edit_steps.get(norm_path(repro), []) + ([obs.written(repro)] if obs.written(repro) else [])
     actions = sorted(changes + [n for n, _, _ in runs])
     if any(n > failing[-1] for n in actions):
         return 1.0
@@ -1107,7 +1089,7 @@ def h18(m):
     if w4 is None or not added:
         return None
     after = max(x for x in (w4, m.obs.last_edit) if x is not None)
-    runs = [t for _, cmd, _ in m.obs.tests_in(after=after, before=m.w.get(5)) if (t := EV.test_targets(cmd))]
+    runs = [t for r in m.obs.tests_in(after=after, before=m.w.get(5)) if (t := m.obs.targets(r))]
     return _frac([any(_covers(tt, p) or any(_covers([p], x) for x in tt) for tt in runs) for p in added])
 
 
@@ -1117,7 +1099,7 @@ def h9a(m):
     w4, w5, obs, repro = m.w.get(4), m.w.get(5), m.obs, m.repro
     if w4 is None:
         return None
-    fixes = [n for p in obs.source_edits for n in obs.edit_steps.get(p, []) if n > w4 and (w5 is None or n < w5)]
+    fixes = [n for ns in obs.source_steps.values() for n in ns if n > w4 and (w5 is None or n < w5)]
     if not fixes:
         return None
     last = max(fixes)
@@ -1159,13 +1141,13 @@ def h10(m):
 @method("atom/H11", materials=("AP", "COLLECT", "NONE", "SCRIPT", "EXIT", "EDIT", "WRITE"))
 def h11(m):
     """A reproduction that failed, or requirements left unmet, are outstanding failures (a run that never started --
-    "can't open file" -- is no result)."""
+    "can't open file" -- is no run: ``Observed.ran``)."""
     p5, repro, obs = m.p5, m.repro, m.obs
     if not p5:
         return None
     result, unmet = (_field(p5, "Reproduction Script", "Result") or "").lower(), _field(p5, "Reproduction Script", "Unmet requirements")
-    last_runs = [r for r in (obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []) if not EV._NOT_STARTED.search(r[2])]
-    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and EV.exit_code(last_runs[-1][1], last_runs[-1][2]) not in (None, 0))
+    last_runs = obs.ran(repro, after=obs.last_edit, before=m.w.get(5)) if repro and obs.last_edit is not None else []
+    failed = result.startswith("fail") or bool(unmet and not is_none(unmet)) or (bool(last_runs) and last_runs[-1].outcome == "fail")
     if failed and (outstanding := _section_none(p5, "Outstanding Failures")) is not None:
         return 0.0 if outstanding else 1.0
     return None
@@ -1277,7 +1259,10 @@ def h17(m):
     obs, repro, start5 = m.obs, m.repro, m.start5
 
     def failed_before(n: int) -> bool:
-        runs = obs.attempts_in(after=start5, before=n) + (obs.ran(repro, after=start5, before=n) if repro else [])
+        repro_runs = obs.ran(repro, after=start5, before=n) if repro else []
+        if any(r.outcome == "fail" for r in repro_runs):
+            return True
+        runs = obs.attempts_in(after=start5, before=n) + repro_runs
         runs += [r for r in obs.shell_in(after=start5, before=n) if _PY_SCRIPT.search(r[1])]
         build = _field(m.p1, "Build & Test Commands", "Build") if m.p1 else None
         if build and not is_none(build) and command_core(build):

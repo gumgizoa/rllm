@@ -56,7 +56,7 @@ from .trace.model import Run
 
 logger = logging.getLogger(__name__)
 
-WRITE_OPS = frozenset({"create", "overwrite", "append", "edit", "unknown", "move_in"})  # events that put content at a path
+WRITE_OPS = frozenset({"create", "overwrite", "append", "edit", "unknown", "move_in", "restore"})  # events that put content at a path
 DATE_RX = r"\d{4}-\d{2}-\d{2}"
 _NAME = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _PYTHON = re.compile(r"^(?:python|pypy)[0-9.]*$")
@@ -64,7 +64,8 @@ _SCRIPT_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "
 
 _TEST_PATH = re.compile(
     r"(?:^|/)(?:tests|__tests__|spec)/|^/?(?:test|testing)/|(?:^|/)(?:test|testing)/(?!.*\.py$)"
-    r"|(?:^|/)test_[^/]*\.py$|(?:^|/)[^/]*_tests?\.py$|(?:^|/)conftest\.py$"
+    r"|(?:^|/)test_[^/]*\.py$|(?:^|/)[^/]*_tests?\.py$|(?:^|/)tests\.py$|(?:^|/)conftest\.py$"
+    r"|(?:^|/)test-data/|(?:^|/)test/test(?!cases\.py$)[^/_][^/]*\.py$"
     r"|_test\.go$|\.(?:test|spec)\.[cm]?[jt]sx?$|_(?:spec|test)\.rb$|(?:^|/)test_[^/]*\.(?:rb|php)$"
     r"|(?:^|/)[^/]*Tests?\.(?:java|kt|cs|scala|php)$|_test\.(?:rs|cc|cpp|c|exs?)$"
 )
@@ -93,7 +94,9 @@ def is_test_path(path: str) -> bool:
     A singular ``test/`` or ``testing/`` directory counts at the repository root (pytest's ``testing/``)
     and for non-Python trees (``src/test/java``); inside a Python package it is the package's own test
     *framework* (``django/test/testcases.py``, ``sympy/testing/runtests.py``): library code, a test only
-    when the file itself is named like one."""
+    when the file itself is named like one -- ``test_x.py``, or in such a ``test/`` package ``testx.py`` (mypy's
+    ``mypy/test/teststubgen.py``; django's ``testcases.py`` is the framework). A ``test-data/`` tree (mypy's
+    ``test-data/unit/check-x.test`` cases) holds tests written as data."""
     return bool(path) and _TEST_PATH.search(path) is not None
 
 
@@ -178,26 +181,94 @@ def is_new_path(ctx: EvalContext, rel: str) -> bool:
     return (wd + rel) in (getattr(ctx.facts, "_created", None) or {})
 
 
+def is_repo_test_file(ctx: EvalContext, rel: str) -> bool:
+    """A test file of the repository (:func:`is_test_path`), not a script the run itself made at the repository root:
+    ``/testbed/test_repro.py`` or ``test_issue.py`` written by the agent to reproduce or check the issue is the run's own
+    script, whatever its name (a file at the root that existed at BASE_SHA, such as an old project's
+    ``test_requests.py``, stays a test file). ``rel`` is repo-relative."""
+    if not is_test_path(rel):
+        return False
+    r = rel[2:] if rel.startswith("./") else rel
+    return "/" in r or not is_new_path(ctx, r)
+
+
+def _base_tops(ctx: EvalContext) -> set[str]:
+    """First path components of the repository that held a file before the run: a diff entry that is no addition, a
+    path the base tree was asked about and had, a file the run wrote over without having made it, a file it viewed, a
+    runner target. A directory the run made itself (a helper app ``test_app/``) has none."""
+    cached = ctx.cache.get("facts.base_tops")
+    if cached is not None:
+        return cached
+    c = ctx.collected
+    known: set[str] = set()
+    if c.diff:
+        known |= {p for p, s in c.diff.items() if s not in ("A", "?")}
+    if c.base_present:
+        known |= {p for p, there in c.base_present.items() if there}
+    known |= {e.path for e in ctx.facts.repo_writes if not is_new_path(ctx, e.path)}
+    wd = (c.workdir or "").rstrip("/") + "/"
+    run = getattr(ctx, "run", None)
+    for step in getattr(run, "steps", None) or []:
+        for a in step.actions:
+            if a.kind == "view" and a.path and a.path.startswith(wd):
+                known.add(a.path[len(wd) :])
+    for r in ctx.facts.runs:
+        known |= {t[len(wd) :] for t in r.targets or [] if t.startswith(wd)}
+    out = {p.split("/", 1)[0] for p in known if "/" in p}
+    ctx.cache["facts.base_tops"] = out
+    return out
+
+
+def is_source_file(ctx: EvalContext, rel: str) -> bool:
+    """``rel`` (repo-relative) is an application source file of the repository (R1; AI-DLC core-workflow.md:140
+    "MODIFY: application source code in the repository", :79 "before any source file is modified"): a non-test code or
+    config file, not a run byproduct, that either existed before the run -- whatever the final change keeps of it: an
+    edit the run reverted was still a modification -- or that the run made and the final change keeps inside a
+    directory tree the repository had (a new module of a package). A file the run made and dropped again, a file it made
+    at the repository root (``settings.py`` to run a script) and the files of a helper app it made (``test_app/``) are
+    its own means of checking, as a test file is (05 Step 7 asks for their removal; leaving one is that rule's breach,
+    not a change to the code)."""
+    if not rel or is_test_path(rel) or _CODE_EXT.search(rel) is None or is_generated(rel):
+        return False
+    if not is_new_path(ctx, rel):
+        return True
+    return "/" in rel and rel in change_paths(ctx) and rel.split("/", 1)[0] in _base_tops(ctx)
+
+
+def is_change_write(ctx: EvalContext, e) -> bool:
+    """The repository write ``e`` is a source change (R1): an authored write (not git putting content back wholesale --
+    an ``unknown`` write -- and not one that changed nothing, ``ok`` False) of an application source file
+    (:func:`is_source_file`). Removing a file is a change only when the file was the repository's and the final change
+    still has it removed: deleting a scratch script or a file the run regenerates (ply's parser tables) is not."""
+    if e.ok is False or e.op == "unknown" or not is_source_file(ctx, e.path):
+        return False
+    if e.op in ("delete", "move_out"):
+        diff = ctx.collected.diff
+        return not is_new_path(ctx, e.path) and e.path in change_paths(ctx) and (diff is None or diff.get(e.path) == "D")
+    return True
+
+
 def source_paths(ctx: EvalContext) -> set[str]:
-    """The source files of the final change: non-test code or config files of :func:`change_paths` that are not one of
-    the run's own scripts (what :func:`source_change_steps` counts writes of)."""
+    """The source files the run changed: the paths of its source-change writes (:func:`is_change_write`), what
+    :func:`source_change_steps` counts writes of."""
     cached = ctx.cache.get("source_paths")
     if cached is None:
-        cached = ctx.cache["source_paths"] = {p for p in change_paths(ctx) if not is_test_path(p) and _CODE_EXT.search(p) is not None and not is_run_script(ctx, p)}
+        cached = ctx.cache["source_paths"] = {e.path for e in ctx.facts.repo_writes if is_change_write(ctx, e)}
     return cached
 
 
 def source_change_steps(ctx: EvalContext) -> list[int]:
-    """Steps of the run's source changes, in order: repo writes to a non-test code or config file of the final
-    change (:func:`change_paths`). Not a source change: a test file the agent wrote or edited (judged by the
-    test-file items), a README / requirements text, one of the run's own scripts (:func:`is_run_script`), and git
-    putting content back (stash / checkout / apply -- an ``unknown`` write is no edit the agent authored). These are
-    the writes that can change what the tests say about the code that was handed in."""
+    """Steps of the run's source changes, in order (R1): authored writes to an application source file of the repository
+    (:func:`is_change_write`), whether or not the final change keeps them. Not a source change: a test file the agent
+    wrote or edited (judged by the test-file items), a README / requirements text, the run's own scripts and helper
+    files, a file outside the repository, removing a scratch or regenerated file, and git putting content back
+    wholesale (stash / ``checkout .`` -- an ``unknown`` write is no edit the agent authored). A ``git checkout -- P`` /
+    ``git restore P`` (op ``restore``) of a file the run had changed does change the code; of an unchanged file it is no
+    write at all (``ok`` False). These are the writes that can change what the tests say about the code."""
     cached = ctx.cache.get("source_change_steps")
     if cached is not None:
         return cached
-    keep = source_paths(ctx)
-    out = sorted(int(e.step) for e in ctx.facts.repo_writes if e.ok is not False and e.op != "unknown" and e.path in keep)
+    out = sorted(int(e.step) for e in ctx.facts.repo_writes if is_change_write(ctx, e))
     ctx.cache["source_change_steps"] = out
     return out
 
@@ -467,13 +538,13 @@ def build(rubric: Rubric, run: Run, collected: Collected, *, docs: Mapping[str, 
 def _same_call_order(f: Facts, workdir: str | None) -> None:
     """Mark the runs that come after a repository write of their own call (``RunFact.after_write_same_call``): the
     written path (absolute, or relative to the repository) appears in the command's text before the run's segment.
-    Git putting content back (an ``unknown`` write) is no write of the agent's."""
+    Git putting content back (an ``unknown`` or ``restore`` write) is no write of the agent's."""
     if not workdir or not f.runs or not f.repo_writes:
         return
     pre = workdir.rstrip("/") + "/"
     by_call: dict[tuple[int, int], set[str]] = {}
     for e in f.repo_writes:
-        if e.ok is not False and e.op != "unknown":
+        if e.ok is not False and e.op not in ("unknown", "restore"):
             by_call.setdefault((int(e.step), e.action_index), set()).add(e.path)
     for r in f.runs:
         paths = by_call.get((int(r.step), r.action_index))
@@ -1009,6 +1080,7 @@ __all__ = [
     "artifact_text",
     "owning_stage",
     "is_test_path",
+    "is_repo_test_file",
     "is_generated",
     "same_file",
     "change_paths",
@@ -1016,6 +1088,8 @@ __all__ = [
     "is_new_path",
     "is_scratch_name",
     "is_run_script",
+    "is_source_file",
+    "is_change_write",
     "source_change_steps",
     "source_paths",
     "last_change_write",

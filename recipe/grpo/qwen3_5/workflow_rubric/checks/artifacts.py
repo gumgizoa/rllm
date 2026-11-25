@@ -28,6 +28,7 @@ import re
 
 from .. import evidence, refs
 from .. import markdown as M
+from .. import testread as T
 from ..context import EvalContext, Result
 from ..refs import NORMALIZERS, RELATIONS
 from ..schema import Artifact, Item
@@ -516,15 +517,28 @@ def _command_candidates(v: str) -> set[str]:
 def _command_run(item: Item, ctx: EvalContext, v: str, w, run_kind) -> Result:
     """Without ``run_kind`` any command (or segment) run in the window; with it, a *valid* run of that kind
     (evidence.py): the recorded test command is the one that produced the evidence, not one whose run was
-    void (no summary, runner missing, zero tests). Spellings of one invocation compare equal (refs.norm_command)."""
+    void (no summary, runner missing, zero tests). Spellings of one invocation compare equal (refs.norm_command).
+    The shared test readings (``testread``): the window's bounds are read by the order inside one call (R2: at a
+    window that starts at a code change, ``pytest ...; sed -i ...`` ran before it), and a command run while the change
+    is put away (``git stash`` .. ``pop``, R3) is no run of the changed code; a whole command counts only when each of
+    its segments does."""
+
+    def placed(step: int, action: int, seg: str | None, cmd: str) -> bool:
+        m = T.Mark(int(step), action, (T._find(cmd, seg) if seg else 0))
+        return T.in_step_window(ctx, m, w) and not T.stashed(ctx, step, action, seg, cmd)
+
     known: set[str] = set()
     if run_kind is None:
         for c in ctx.facts.commands:
-            if refs.in_window(c.step, w):
-                known |= {_norm_cmd(x) for x in (c.command, *c.segments) if x}
+            cmd = c.command or ""
+            segs = [x for x in c.segments if x]
+            ok = {x: placed(c.step, c.action_index, x, cmd) for x in segs}
+            known |= {_norm_cmd(x) for x in segs if ok[x]}
+            if cmd and (all(ok.values()) if segs else placed(c.step, c.action_index, None, cmd)):
+                known.add(_norm_cmd(cmd))
     void = False
     for r in ctx.facts.runs:
-        if refs.in_window(r.step, w) and (run_kind is None or r.kind == run_kind):
+        if placed(r.step, r.action_index, r.segment, r.command or "") and (run_kind is None or r.kind == run_kind):
             forms = {_norm_cmd(x) for x in (r.command, r.segment) if x}
             if run_kind is not None and not r.valid:
                 void = void or bool(_command_candidates(v) & forms)

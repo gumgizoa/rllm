@@ -1458,6 +1458,17 @@ manual:
       - {path: docs/core-workflow.md, lines: [84, 85], quote: "Before it writes the report, verify runs the repository tests that cover the change and every check script under `/openspec/changes/issue/checks/`, after the last code change."}
       - {path: sandbox/schemas/spec-driven-sandbox/schema.yaml, lines: [232, 234], quote: "- Each task group MUST verify its own work as it lands: run the existing repository tests that cover it, or write a check script under /openspec/changes/issue/checks/ and run it."}
     note: "after the last change to the code (the last source change, facts.last_change_write), anywhere up to the end of the run, a valid run of the repository's tests (runner output in its own observation: an echoed summary, a dummy test under /tmp or an agent-written runner is none) or the execution of a script written under /openspec/changes/issue/checks/. A run made only before the change does not count; not applicable to a run that changed no code. Takes the place of apply's test_or_check, which any run in the apply window passed"
+  - id: openspec_ff.verify.run.openspec_ff_checks.run_after_change
+    stage: verify
+    class: evidence
+    requirement: must
+    check: {kind: openspec_ff.checks, params: {rule: run_after_change}}
+    availability: [trace]
+    modality_evidence: "imperative (VF:145 'After your last code change, run ... every check script under' checks/; CW:84-85 'Before it writes the report, verify runs ... every check script under `/openspec/changes/issue/checks/`, after the last code change')"
+    sources:
+      - {path: docs/stages/03-verify.md, lines: [145, 145], quote: "After your last code change, run the repository tests that cover the code you changed and every check script under `/openspec/changes/issue/checks/`."}
+      - {path: docs/core-workflow.md, lines: [84, 85], quote: "Before it writes the report, verify runs the repository tests that cover the change and every check script under `/openspec/changes/issue/checks/`, after the last code change."}
+    note: "every check script the run wrote under /openspec/changes/issue/checks/ (and did not delete) ran after the last code change (a source write; in one call, after the write; a run with the change stashed is none) and after the script's own last write (ratio; 11-24 review R1-R4). Whether it passed is the penalty items' question; not applicable without a code change or a check script"
   # penalty items (reward/penalty.py): what verify.md says against what the run did. log_only -- evaluated and reported,
   # never part of compliance; their mean is the second score, openspec_ff/penalty. Names: <stage>.penalty.<item>.
   - id: openspec_ff.verify.penalty.no_run_after_change

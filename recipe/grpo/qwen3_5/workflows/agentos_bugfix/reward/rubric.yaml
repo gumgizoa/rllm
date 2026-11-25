@@ -5921,6 +5921,7 @@ items:
       rule: suite_run
       fix_round: true
       phase3_fallback: true
+      related: true
   requirement: must
   modality_evidence: imperative (IT:239 'Run the entire tests suite for the application')
   none_allowed: '-'
@@ -5928,6 +5929,7 @@ items:
   weight: 1.0
   gate: null
   availability:
+  - related_tests
   - trace
   sources:
   - doc: IT
@@ -5953,6 +5955,7 @@ items:
     kind: agentos_bugfix.verify
     params:
       rule: phase2_run
+      related: true
   requirement: must
   modality_evidence: 'imperative (IT: ''Running the tests you''ve written ... and the existing tests of the code you changed'')'
   none_allowed: '-'
@@ -5960,6 +5963,7 @@ items:
   weight: 1.0
   gate: null
   availability:
+  - related_tests
   - trace
   sources:
   - doc: IT
@@ -5971,9 +5975,10 @@ items:
   derived_by: manual
   template: ''
   log_only: false
-  note: while implementing (before every task is ticked), a valid run of the repository's tests after the last code change
-    (T1); with more than one task group that changes code, the share of them tested before the next group's code (A-9 row
-    9)
+  note: 'while implementing (before every task is ticked), a valid run of the existing tests of the changed code (a test file
+    related to a changed source file, or the whole suite; Collected.related_tests, unavailable offline: R7 of the 11-24 review)
+    after the last code change (T1); with more than one task group that changes code, the share of them tested before the
+    next group''s code (A-9 row 9)'
 - id: agentos_bugfix.global.tasks.agentos_bugfix_tasks.later_edits
   scope: specific
   class: evidence
@@ -6911,6 +6916,7 @@ items:
   gate: null
   availability:
   - trace
+  - related_tests
   sources:
   - doc: IT
     lines:
@@ -7020,6 +7026,7 @@ items:
   gate: null
   availability:
   - trace
+  - related_tests
   sources:
   - doc: IT
     lines:

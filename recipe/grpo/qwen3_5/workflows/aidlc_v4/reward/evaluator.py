@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 
+from recipe.grpo.qwen3_5.workflow_rubric.evaluation import _task_workdir
 from recipe.grpo.qwen3_5.workflow_scoring import ComplianceEvaluation, ComplianceEvaluator
 
 from .compliance import compliance
@@ -55,7 +56,7 @@ def artifacts_from_outputs(outputs: dict[str, str]) -> dict[str, str]:
 
 def score(task, episode, artifacts: dict[str, str]) -> dict[str, float]:
     """The ``aidlc/*`` signals for one episode, given the artifacts read out of its sandbox."""
-    c = compliance(episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", ""))))
+    c = compliance(episode_to_run(episode, artifacts, instance_id=str(getattr(task, "id", ""))), _task_workdir(task))
     facts = c["facts"]
     return {
         **{f"aidlc/{k}": float(v) for k, v in c["signals"].items()},

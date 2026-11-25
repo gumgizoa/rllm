@@ -371,13 +371,14 @@ def _test_text(run, parsed: dict) -> str | None:
     return "\n\n".join(found.values()) + (f"\n\n(not read by the run: {', '.join(missing)})" if missing else "")
 
 
-def _stage5_tests(run, parsed: dict, first: bool = False) -> str | None:
+def _stage5_tests(run, parsed: dict, first: bool = False, obs: Observed | None = None) -> str | None:
     """The last test run of stage 5 (after the last source edit, before artifact 05): command and output tail.
     With ``first``, the first test run after artifact 04 instead (where a regression shows before its fix),
-    None when that is the last one too."""
-    from .read import first_write_steps, observe
+    None when that is the last one too. ``obs``: the run's index (built here, with the shared layer's test runs,
+    when not given)."""
+    from .read import bare_facts, first_write_steps, observe
 
-    obs = observe(run)
+    obs = obs if obs is not None else observe(run, bare_facts(run, None))
     w = first_write_steps(run)
     last = obs.tests_in(after=obs.last_edit if obs.last_edit is not None else w.get(4), before=w.get(5))
     runs = obs.tests_in(after=w.get(4), before=w.get(5)) if first else last
@@ -387,7 +388,7 @@ def _stage5_tests(run, parsed: dict, first: bool = False) -> str | None:
     return f"$ {command}\n" + _clean(out)[-4000:]
 
 
-def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tuple[list[tuple[str, str]], dict[str, str]]]:
+def stage_requests(run, parsed: dict, patch: str | None, task, obs: Observed | None = None) -> dict[int, tuple[list[tuple[str, str]], dict[str, str]]]:
     """stage -> (the questions to ask, the material shown), for the stages whose artifact exists."""
     issue = task_text(task) if task is not None else ""
     body = {k: (parsed.get(k) or {}).get("body") for k in range(1, 6)}
@@ -434,7 +435,7 @@ def stage_requests(run, parsed: dict, patch: str | None, task) -> dict[int, tupl
             reg = _field(parsed.get(5), "Existing Tests vs Baseline", "Regressions")
             if not reg or is_none(reg):
                 skip.add("H8g")
-            last = _stage5_tests(run, parsed)
+            last = _stage5_tests(run, parsed, obs=obs)
             if last and "H8d" not in skip:
                 material["STAGE 5 TEST RUN (the last one, output tail)"] = last
             if _section_none(parsed.get(5), "Fixes Applied") in (None, True):
@@ -563,7 +564,7 @@ def judge_checks(run, obs: Observed, parsed: dict, patch: str | None, task, seed
         return {}
     if seed is None and os.environ.get("AIDLC_JUDGE_SEED"):
         seed = int(os.environ["AIDLC_JUDGE_SEED"])
-    requests = stage_requests(run, parsed, patch, task)
+    requests = stage_requests(run, parsed, patch, task, obs)
     if not requests:
         return {}
 

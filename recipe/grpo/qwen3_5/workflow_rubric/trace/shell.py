@@ -37,7 +37,7 @@ import textwrap
 import time
 import warnings
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,8 @@ _WRAPPERS: dict[str, tuple[str | None, frozenset[str], int]] = {
     "chronic": (None, frozenset(), 0),
     "taskset": (None, frozenset(), 1),
     "npx": (None, frozenset({"-p", "--package"}), 0),
+    "npm": ("exec", frozenset({"-p", "--package", "-w", "--workspace"}), 0),  # `npm exec [--] jest`; other npm commands are npm's
+    "pnpm": ("exec", frozenset({"-C", "--dir", "--filter", "-F"}), 0),
     "uv": ("run", frozenset({"--with", "-p", "--python", "--project", "--directory", "--extra", "--group", "--env-file", "--package"}), 0),
     "poetry": ("run", frozenset({"-C", "--directory", "-P", "--project"}), 0),
     "pipenv": ("run", frozenset(), 0),
@@ -166,6 +168,14 @@ class WriteOp:
     recovered; ``target`` is the path as written. For copy/move ``dir_target`` says whether ``path``
     is a directory to move *into* (True), the destination itself (False), or unknown (None: the
     replay decides from what it knows exists).
+
+    ``restore`` puts a path back from git (``git checkout [<rev>] -- P``, ``git restore P``): ``rev`` is the revision
+    named (empty: the index or HEAD). ``tracked_only``: a tree-wide git op that leaves untracked files alone (a plain
+    ``git stash`` / ``stash pop``). ``seg``: the index of the command's top-level segment the op comes from.
+    ``nothing``: a regex whose match on an output line says the op changed nothing (``No stash entries found``,
+    ``error: corrupt patch``), set only when no other segment of the command could print it. A python script's
+    write carries the literal lines its own branch prints (``own_marks``) and those printed only where the write
+    does not happen (``skip_marks``: the other branch of its ``if``, a guard that exits before it).
     """
 
     path: str
@@ -179,6 +189,13 @@ class WriteOp:
     recursive: bool = False
     verb: str | None = None
     applied: bool = field(default=False, repr=False, compare=False)
+    rev: str = ""
+    tracked_only: bool = False
+    seg: int = -1
+    nothing: str = ""
+    own_marks: tuple[str, ...] = ()
+    skip_marks: tuple[str, ...] = ()
+    branched: bool = field(default=False, repr=False, compare=False)
 
 
 # ============================================================================================
@@ -1544,7 +1561,7 @@ class _Files:
         elif op.op == "append":
             prior = self.get(op.path) if self.has(op.path) else ""
             self.put(op.path, None if prior is None or op.body is None else prior + op.body)
-        elif op.op == "unknown":
+        elif op.op in ("unknown", "restore"):
             for p in [op.path, *self.under(op.path)]:
                 if self.has(p):
                     self.put(p, None)
@@ -1597,7 +1614,7 @@ def _stdin(seg: Segment, files: _Files, outs: dict[int, str | None]) -> tuple[bo
 def _ops(segs: list[Segment], files: _Files, depth: int) -> list[WriteOp]:
     ops: list[WriteOp] = []
     outs: dict[int, str | None] = {}
-    for seg in segs:
+    for k, seg in enumerate(segs):
         has_in, stdin = _stdin(seg, files, outs)
         py, dynamic = None, False
         if seg.verb and _PYTHON.match(seg.verb) and not seg.inner and not seg.xargs:
@@ -1620,9 +1637,28 @@ def _ops(segs: list[Segment], files: _Files, depth: int) -> list[WriteOp]:
         mine += verb_ops
         for op in mine:
             op.verb = op.verb or seg.verb
+            if depth == 0 and op.seg < 0:
+                op.seg = k
         outs[id(seg)] = "" if any(o in (">", ">>", "&>", "&>>") for o, _ in seg.redirects) else stdout
         ops += mine
+    if depth == 0:  # a "nothing" message is the op's own only when no other segment runs the same command
+        keys = [seg_key(s) for s in segs]
+        for op in ops:
+            if op.nothing and 0 <= op.seg < len(keys) and keys.count(keys[op.seg]) > 1:
+                op.nothing = ""
     return ops
+
+
+def seg_key(seg: Segment) -> str:
+    """The command a segment runs, as far as telling its messages apart needs: the verb, and for git its subcommand."""
+    words = [w.text for w in seg.cmd_words]
+    if seg.verb == "git" and words:
+        rest = words[1:]
+        i = 0
+        while i < len(rest) and rest[i].startswith("-"):
+            i += 2 if rest[i] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace") else 1
+        return "git " + (rest[i] if i < len(rest) else "")
+    return seg.verb or ""
 
 
 def _source(seg: Segment) -> str:
@@ -1911,8 +1947,12 @@ def _sed(seg, args, stdin, files, depth):
                 out.append(WriteOp(p + suffix, "copy", None, "sed", src=p, target=w.text + suffix, dir_target=False))
             prior = files.get(p)
             body = fn(prior) if (fn is not None and prior is not None) else None
-            out.append(WriteOp(p, "edit", body, "sed", target=w.text))
+            out.append(WriteOp(p, "edit", body, "sed", target=w.text, nothing=_SED_SCRIPT_ERROR))
     return out
+
+
+# sed refusing its script: it stops before reading any file, so no operand changed
+_SED_SCRIPT_ERROR = r"^sed: (?:-e expression #\d+, char \d+|file \S+ line \d+): "
 
 
 def _perl(seg, args, stdin, files, depth):
@@ -1966,23 +2006,26 @@ def _git(seg, args, stdin, files, depth):
     texts = [w.text for w in rest]
     here = Segment(seg.text, seg.verb, seg.argv, [], None, cwd, seg.op_before, loops=seg.loops)
 
-    def edits(words):
-        return [WriteOp(p, "edit", None, "other", variable=var, target=w.text) for w in words for p, var in [_target(w, here)]]
+    def restores(words, rev: str = ""):
+        return [WriteOp(p, "restore", None, "other", variable=var, target=w.text, rev=rev, nothing=_PATHSPEC_ERROR) for w in words for p, var in [_target(w, here)]]
 
     tree = WriteOp(cwd or "", "unknown", None, "other", variable=cwd is None, target=".")
     if sub in ("checkout", "restore"):
-        if "--" in texts:
-            return edits(rest[texts.index("--") + 1 :])
         if sub == "restore":
             ops, opts = _operands(rest, {"-s", "--source"})
             if _flag(opts, "", ("--staged",)) and not _flag(opts, "W", ("--worktree",)):
                 return []
-            return [tree] if any(w.text == "." for w in ops) else edits(ops)
+            rev = (opts.get("-s") or opts.get("--source") or [""])[-1]
+            return [tree] if any(w.text == "." for w in ops) else restores(ops, _rev(rev))
+        if "--" in texts:
+            before, _ = _operands(rest[: texts.index("--")], {"-b", "-B"})
+            return restores(rest[texts.index("--") + 1 :], _rev(before[0].text if before else ""))
         ops, _ = _operands(rest, {"-b", "-B"})
         if any(w.text == "." for w in ops):
             return [tree]
         paths = [w for w in ops if "/" in w.text or re.search(r"\.\w+$", w.text)]
-        return edits(paths) if paths else ([tree] if ops else [])
+        revs = [w for w in ops if w not in paths]
+        return restores(paths, _rev(revs[0].text if revs else "")) if paths else ([tree] if ops else [])
     if sub == "apply":
         if any(t in ("--check", "--stat", "--numstat", "--summary") for t in texts):
             return []
@@ -1993,9 +2036,27 @@ def _git(seg, args, stdin, files, depth):
         if ops:
             p, var = _target(ops[0], here)
             text = None if var else files.get(p)
-        return _patch_ops(text, cwd, strip, _flag(opts, "R", ("--reverse",)))
-    if sub == "stash" and (not texts or texts[0] in ("push", "pop", "apply", "save", "drop", "-u", "--include-untracked")):
-        return [] if texts and texts[0] == "drop" else [tree]
+        out = _patch_ops(text, cwd, strip, _flag(opts, "R", ("--reverse",)))
+        if "--reject" not in texts:  # without --reject git applies a patch whole or not at all
+            for op in out:
+                op.nothing = _GIT_APPLY_ERROR
+        return out
+    if sub == "stash":
+        k = 0
+        while k < len(texts) and texts[k].startswith("-"):
+            k += 1
+        action = texts[k] if k < len(texts) else "push"
+        if action not in ("push", "save", "pop", "apply"):
+            return []  # list / show / drop / clear / branch / create / store: the working tree stays as it is
+        flags = set(texts[:k]) | ({t for t in texts[k + 1 :] if t.startswith("-")} if action in ("push", "save") else set())
+        untracked = bool(flags & {"-u", "--include-untracked", "-a", "--all"})
+        if action in ("pop", "apply"):
+            return [replace(tree, tracked_only=True, nothing=_STASH_BACK_NOTHING)]
+        named = _operands(rest[k + 1 :], {"-m", "--message", "--pathspec-from-file"})[0] if action == "push" else []
+        if named:  # `git stash push -- P`: only those paths
+            return [WriteOp(p, "unknown", None, "other", variable=var, target=w.text, tracked_only=not untracked, nothing=_STASH_NOTHING)
+                    for w in named for p, var in [_target(w, here)]]
+        return [replace(tree, tracked_only=not untracked, nothing=_STASH_NOTHING)]
     if sub in ("reset",) and "--hard" in texts:
         return [tree]
     if sub in ("clean", "am", "merge", "rebase", "cherry-pick", "revert", "pull", "switch"):
@@ -2007,6 +2068,20 @@ def _git(seg, args, stdin, files, depth):
     if sub == "rm" and "--cached" not in texts:
         return _rm(here, [w for w in rest if not w.text.startswith("-")], stdin, files, depth)
     return []
+
+
+_PATHSPEC_ERROR = r"^error: pathspec .* did not match any file"  # git checks every path before it restores any
+_GIT_APPLY_ERROR = (
+    r"^error: (?:corrupt patch|patch failed|No valid patches|unrecognized input"
+    r"|.*: patch does not apply|.*: does not exist in index|.*: already exists in working directory|.*: No such file or directory)"
+)
+_STASH_NOTHING = r"^No local changes to save"
+_STASH_BACK_NOTHING = r"^No stash entries found|would be overwritten by merge|is not a stash-like commit|is not a valid reference"
+
+
+def _rev(word: str) -> str:
+    """The revision a restore takes content from; empty for the index or HEAD (what an unchanged file already holds)."""
+    return "" if word in ("", "HEAD", "@") else word
 
 
 def _patch(seg, args, stdin, files, depth):
@@ -2496,6 +2571,7 @@ class _Def:
         self.node = node
 
 
+_LIST_MUTATORS = frozenset({"append", "extend", "insert", "remove", "pop", "clear", "sort", "reverse"})
 _PATHLIKE = {"pathlib.Path", "pathlib.PurePath", "pathlib.PosixPath", "pathlib.PurePosixPath", "Path", "PurePath", "PosixPath"}
 
 
@@ -2515,6 +2591,8 @@ class _Py:
         self.active: set[int] = set()
         self.budget = 200  # function bodies entered
         self.out: list[str | None] = []  # what the script prints, in order (None: unknown)
+        self.lits: list[str] = []  # literal text of every print in the source, in source order (both branches of an if)
+        self._last_if: tuple[list[str], list[str]] | None = None  # (body, else) prints of the if statement just run
         self.failed = False
 
     def stdout(self) -> str | None:
@@ -2601,6 +2679,8 @@ class _Py:
         if isinstance(node.func, ast.Attribute):
             recv = self.expr(node.func.value)
             m = node.func.attr
+            if isinstance(recv, list) and isinstance(node.func.value, ast.Name) and m in _LIST_MUTATORS:
+                self.env[node.func.value.id] = None  # `lines.append(x)`: the list is no longer the literal it was bound to
             r = self.method(recv, m, args, kw, node)
             if r is not _MISSING:
                 return r
@@ -2627,9 +2707,13 @@ class _Py:
             return textwrap.dedent(args[0])
         if q == "open" or q == "io.open" or q == "codecs.open":
             return self.open(args[0] if args else kw.get("file"), args[1] if len(args) > 1 else kw.get("mode", "r"))
+        if q in ("exit", "quit", "sys.exit") and args and isinstance(args[0], str):
+            self.lits.append(args[0])  # sys.exit("message") prints it
         if q == "print":
             self.prints = True
             f = kw.get("file")
+            if not isinstance(f, _H) and args and all(isinstance(a, str) for a in args):
+                self.lits.append(" ".join(args))
             if f is None and "file" not in kw:
                 sep, end = kw.get("sep", " "), kw.get("end", "\n")
                 ok = all(isinstance(a, str) for a in args) and not any(isinstance(a, ast.Starred) for a in node.args)
@@ -2815,15 +2899,36 @@ class _Py:
 
     # -- statements ------------------------------------------------------------------------
     def run(self, body) -> None:
+        guards: list[str] = []  # what a guard before this point prints when it stops the script (``if x is None: print(..); exit(1)``)
+        guarded: list[WriteOp] = []
+        after = len(self.lits)
         for st in body:
+            o = len(self.ops)
+            self._last_if = None
             self.stmt(st)
             for h in list(self.temps):
                 if not any(h is v for v in self.env.values()):
                     self.close(h)
+            if guards:
+                for op in self.ops[o:]:
+                    op.skip_marks += tuple(guards)
+                    guarded.append(op)
+            if isinstance(st, ast.If) and not _is_main(st.test) and self._last_if is not None:
+                body_lits, else_lits = self._last_if
+                stops_body, stops_else = _stops(st.body), _stops(st.orelse)
+                if stops_body != stops_else and (body_lits if stops_body else else_lits):
+                    if not guards:
+                        after = len(self.lits)
+                    guards += body_lits if stops_body else else_lits
+        for op in guarded:  # the guarded write's own lines: what the script prints after the guard
+            if not op.branched:
+                op.own_marks, op.branched = tuple(self.lits[after:]), True
 
     def bind(self, target, value) -> None:
         if isinstance(target, ast.Name):
             self.env[target.id] = value
+        elif isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+            self.env[target.value.id] = None  # `lines[i] = x`: the container changed
         elif isinstance(target, (ast.Tuple, ast.List)):
             for t in target.elts:
                 self.bind(t, None)
@@ -2863,10 +2968,19 @@ class _Py:
             main = _is_main(st.test)
             if not main:
                 self.uncertain += 1
+            o0, l0 = len(self.ops), len(self.lits)
             self.run(st.body)
+            o1, l1 = len(self.ops), len(self.lits)
             self.run(st.orelse)
+            o2, l2 = len(self.ops), len(self.lits)
             if not main:
                 self.uncertain -= 1
+                body_lits, else_lits = self.lits[l0:l1], self.lits[l1:l2]
+                for op, own, other in [(op, body_lits, else_lits) for op in self.ops[o0:o1]] + [(op, else_lits, body_lits) for op in self.ops[o1:o2]]:
+                    op.skip_marks += tuple(other)
+                    if not op.branched:  # the innermost branch holding the write
+                        op.own_marks, op.branched = tuple(own), True
+                self._last_if = (body_lits, else_lits)
         elif isinstance(st, (ast.For, ast.AsyncFor, ast.While)):
             self.uncertain += 1
             if isinstance(st, (ast.For, ast.AsyncFor)):
@@ -2884,6 +2998,20 @@ class _Py:
             self.run(st.finalbody)
         elif isinstance(st, (ast.FunctionDef, ast.AsyncFunctionDef)):
             self.env[st.name] = _Def(st)
+
+
+def _stops(body) -> bool:
+    """The block ends the script or function: its last statement exits, raises or returns."""
+    if not body:
+        return False
+    last = body[-1]
+    if isinstance(last, (ast.Raise, ast.Return)):
+        return True
+    if isinstance(last, ast.Expr) and isinstance(last.value, ast.Call):
+        f = last.value.func
+        name = f.id if isinstance(f, ast.Name) else (f"{f.value.id}.{f.attr}" if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) else "")
+        return name in ("exit", "quit", "sys.exit", "os._exit")
+    return False
 
 
 def _is_main(test) -> bool:
@@ -2982,6 +3110,23 @@ def failure_markers(observation: str, paths: Iterable[str] = (), verb: str | Non
         if verb and "command not found" in line and re.search(rf"(?<![\w.-]){re.escape(verb)}(?![\w.-])", line):
             return True
     return False
+
+
+def _mark_line(text: str) -> str:
+    first = next((ln.strip() for ln in (text or "").splitlines() if ln.strip()), "")
+    return first if len(first) >= 4 and re.search(r"[A-Za-z]", first) else ""
+
+
+def branch_not_taken(op: WriteOp, observation: str) -> bool:
+    """A python script's write did not run: its output holds, as a line of its own, something the script prints only
+    where the write does not happen (``skip_marks``), and none of what the write's own branch prints (``own_marks``,
+    which must exist: with nothing to look for on the write's side, the output cannot tell)."""
+    skip = {m for m in map(_mark_line, op.skip_marks) if m}
+    own = {m for m in map(_mark_line, op.own_marks) if m}
+    if not skip or not own or not observation:
+        return False
+    lines = {ln.strip() for ln in _strip_ansi(observation).splitlines()}
+    return bool(skip & lines) and not (own & lines)
 
 
 def python_failed(observation: str) -> bool:
