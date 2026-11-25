@@ -4,7 +4,7 @@ This run follows Agent OS (v2.1.1), a spec-first workflow: the change is shaped 
 up as a specification, broken into a task list, and only then implemented and verified. With Agent OS a
 developer attaches one command document per chat turn and reads the result before attaching the next.
 Here you carry out all four command documents yourself, one after another, in this single session. That
-sequence is how this task is solved; it replaces any procedure you would otherwise follow.
+sequence is how this task is solved; the steps of the procedure in your system prompt are carried out inside it.
 
 The workflow's documents are in `/agent-os/`, a directory directly under the filesystem root `/`. It is
 not part of the repository you work in, and nothing of it exists inside the repository.

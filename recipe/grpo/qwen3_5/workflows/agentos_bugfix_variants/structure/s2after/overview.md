@@ -19,7 +19,9 @@ the change is in the repository and you have tested it.
 
 ## Then: the four commands
 
-Open each command document when you reach it, and work from that document rather than from memory:
+Open each command document when you reach it, and work from that document rather than from memory, reading
+it as described below for a change that is already made (in implement-tasks, a task your change covers
+is ticked, not implemented again):
 
 1. **shape-spec**: `/agent-os/commands/shape-spec/shape-spec.md`
    PHASE 1 creates the spec folder and saves the task description in it. PHASE 2 writes its clarifying
@@ -42,7 +44,8 @@ you back to PHASE 2 once when a test fails because of your change.
 The command documents are written for a change that is still to be made ("a new feature", "to be
 built", "write tests first"). Read them as describing the change you have made. Where a task group
 calls for tests to be written first (its x.1 sub-task), the tests you wrote or ran while making the
-change count; write more only where the change has no test yet.
+change count; write more only where the change has no test yet. If you deleted a test script you wrote
+in the first part, write it again as a script in `S/verify/`.
 
 The coding standards apply where code is written: the implement-tasks document contains them, written
 out under "User Standards & Preferences Compliance". The bold `agent-os/standards/...` lines there only
@@ -96,8 +99,8 @@ reply that calls no tool ends the session at once, with the work unfinished. So:
 ## The repository
 
 - The first part changes the repository as the task needs. Once the commands have begun, only
-  implement-tasks PHASE 2 changes it, and only for a task the change does not cover yet or, when PHASE 3
-  sends you back, to fix a test failure your change causes. shape-spec, write-spec and create-tasks read
+  implement-tasks PHASE 2 changes it: for a task the change does not cover yet, to fix a test that fails
+  because of the change, or when PHASE 3 sends you back. shape-spec, write-spec and create-tasks read
   the repository and may run commands in it, but change nothing.
 - Tests written while the commands run are scripts in `S/verify/`, or new test functions added to the
   existing repository test module that covers the changed code.

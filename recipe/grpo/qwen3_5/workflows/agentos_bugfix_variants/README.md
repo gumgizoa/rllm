@@ -18,6 +18,7 @@
 | `__init__.py` | 변형마다 `WorkflowSpec` 을 만들어 `SPECS` 로 내보냄. `workflows/__init__.py` 가 등록함 |
 | `run_eval.sh` | 워크플로 하나를 평가함 |
 | `run_all.sh` | 워크플로 여러 개를 차례로 평가함 |
+| `analyze.py` | 평가 결과에서 해결률, 최종 patch와 정답 patch의 관계(단계), 워크플로를 따랐는지를 냄 |
 
 - 바꿀 문장이 원본에 정확히 한 번 있지 않으면 빌드가 멈춤
 - `agentos_bugfix` 문서가 바뀌면 `python build.py` 로 다시 만들고 `python build.py --check` 로 확인함
@@ -41,6 +42,7 @@
 | I | tasks.md 예시에서 테스트 검토 그룹을 뺌 | create-tasks.md |
 | D | 기본 system prompt의 테스트 문장 3개를 워크플로 안내 뒤에 덧붙임 | system-prompt.j2 |
 | J | `verify/` 스크립트를 테스트 함수로 쓰고 러너로 돌림 | create-tasks.md, implement-tasks.md |
+| N | 계획 문서에는 성립해야 할 동작만 적고 코드 변경은 implement-tasks에서 정함 (3차) | overview.md, shape-spec.md, write-spec.md, create-tasks.md, implement-tasks.md |
 
 - F는 근거가 약해 예비 변형에만 넣음
 - "전체 suite 금지" 삭제와 재시도 상한 완화는 넣지 않음. 데이터에서 원인이 아닌 것으로 나옴
@@ -56,6 +58,7 @@
 | `agentos_bugfix_v4docs` | X C I | 문서 부담 | 12 |
 | `agentos_bugfix_v5all` | X A L H E K B M G C I D J | 전부 합친 것 | 28 |
 | `agentos_bugfix_v2fplace` | X E K F | 예비 (기본 실행 목록에 없음) | 6 |
+| `agentos_bugfix_p1nofix` | N | 수정 내용을 정하는 시점 (3차, 공통 수정 X 없음) | 10 |
 
 ## 구조 변형 (2차, 2026-11-25)
 
@@ -87,8 +90,101 @@
   - `s1report`: 문서는 overview.md 하나뿐임. 보고서 양식은 그 안에 있고 작업 목록 절은 뺌
   - `s2after`: 명령 문서 넷은 대조와 같음. overview.md가 "먼저 평소대로 풀고, 수정과 테스트가 끝난 뒤 네 명령을 기록으로 수행"이라고 정함
   - `s3tasks`: create-tasks가 spec 폴더를 만들고 과제 글과 저장소에서 바로 작업 목록을 만듦 (create-tasks 5곳, implement-tasks 2곳 수정)
-  - `s4prompt`: 대조와 다른 파일은 system prompt 하나임
+  - `s4prompt`: 대조와 다른 곳은 system prompt와 overview.md의 한 문장임. 대조의 overview.md는 "이 순서가 다른 절차를 대신한다"고 하는데, 기본 절차를 남긴 채 그 문장을 두면 다시 무효가 되므로 "system prompt의 절차를 이 순서 안에서 수행한다"로 바꿈
 - 한계: 1회 실행의 구간 반폭이 4%p라 한 단계의 차이가 그보다 작으면 가릴 수 없음. 7.8%p가 한두 단계에 몰려 있을 때만 위치가 보임
+
+## 3차 (2026-11-25): 손실 위치와 수정한 실행 계획
+
+### 손실이 생기는 자리
+
+- 기존 3회 실행 자료(조건당 1497 rollout)에서 최종 patch를 정답 patch와 맞대어 나눈 결과임 (저장소 밖 분석, `loss_origin.md`)
+- 손실은 두 군데임
+  - 소스 patch 없이 끝난 rollout: 학습 전 모델 2.7% → 8.7%, 학습 모델(step 27) 1.6% → 3.9% (워크플로 없음 → agentos_bugfix)
+  - 정답과 같은 자리를 고친 rollout의 해결률: 학습 전 70.7% → 65.1%, 학습 모델 71.7% → 64.4%
+- 다른 파일을 고친 비율(10.3% 대 9.9%)과 정답 파일 일부만 고친 비율(9.3% 대 10.0%)은 같음. 파일 찾기는 원인이 아님
+- 테스트 행동의 비율을 워크플로 없음과 같게 맞춰도 해결률 변화는 학습 전 −0.7%p (95% 구간 −2.5 ~ +1.4), 학습 모델 +1.0%p (−0.5 ~ +2.3). 1차 문장 변형이 겨냥한 곳은 손실의 자리가 아님
+- 같은 자리 손실은 소스를 1회만 수정한 rollout에 몰려 있음 (해결률 83% → 74%, 두 모델 모두)
+- 워크플로 조건에서 수정 내용은 계획 문서에서 정해짐
+  - 같은 과제의 푼 시도와 못 푼 시도 32쌍을 가려 놓고 읽은 결과, 계획에 적힌 수정이 통과할 것으로 판정된 것이 푼 시도 32건 중 26건, 못 푼 시도 32건 중 7건
+  - 못 푼 시도 중 22건은 계획이 틀렸고 patch가 그 계획을 그대로 따름
+- 학습 전 모델의 "소스 patch 없음" 가운데 계획 단계에서 끝난 것(전체의 4.5%)은 학습 모델에서 0건이라 겨냥하지 않기로 함
+
+### 추가한 변형: `agentos_bugfix_p1nofix`
+
+- 문서 넷과 순서는 대조와 같음. 계획 문서(requirements.md, spec.md, tasks.md)에는 성립해야 할 동작과 고칠 파일만 적고, 코드 변경 자체(어느 조건·값·호출을 무엇으로 바꾸는지)는 implement-tasks PHASE 2에서 코드를 보고 실행해 본 뒤 정하게 함
+- 대조와 다른 곳은 문서 10곳뿐임 (overview.md 1, shape-spec.md 2, write-spec.md 4, create-tasks.md 2, implement-tasks.md 1). instruction과 system prompt는 대조와 같음
+- 실행·재현을 요구하는 문장은 넣지 않음. 바뀌는 것은 수정 내용을 정하는 시점뿐임
+- 읽는 법: 대조보다 "같은 자리 rollout의 해결률"이 오르면 문서에 수정을 먼저 적는 것이 손실의 원인임. 계획을 먼저 쓰는 구조는 유지하므로, 효과가 있으면 그대로 쓸 수 있는 워크플로가 됨
+- 모델이 따랐는지는 자동으로 못 셈. spec.md 10건쯤을 읽어 코드 변경이 적혀 있는지 봐야 함
+
+### 수정한 실행 계획
+
+- 바꾼 이유
+  - 1회 실행의 95% 구간 반폭은 해결률 4.0~4.3%p, 같은 자리 해결률 4.7~5.2%p임. 3회 실행은 2.5%p, 2.9~3.1%p임. 네 변형을 1회씩 돌리면 단계 사이 차이를 가를 수 없음
+  - 학습 전 모델은 계획 단계 종료가 섞임. `s1report`, `s2after` 에는 계획 단계가 없어 그 몫(약 2.6%p)이 저절로 회복됨. 학습 모델에는 그 몫이 없음
+  - 변형은 모델로 돌려 본 적이 없음. 따르지 않으면 `s2after` 는 워크플로 없음과 같은 값이 나와 "순서가 원인"으로 잘못 읽힘
+- 순서
+  1. 따랐는지 확인: `s2after`, `s4prompt`, `p1nofix` 를 20과제씩 돌리고 `analyze.py` 의 "워크플로를 따랐는지" 표를 봄
+  2. 본 실행: 학습 모델로 `s2after`, `s4prompt`, `p1nofix` 를 3회씩, 대조와 워크플로 없음은 이미 있는 1회에 2회를 더함
+  3. 분석: `analyze.py` 로 해결률, 소스 patch 없음 비율, 같은 자리 해결률을 따로 냄. 1차 변형의 결과 폴더도 같이 넣음
+  4. `s1report`, `s3tasks` 는 `s2after` 가 대조보다 3%p 이상 높을 때만 돌림
+- 변형별로 읽는 값
+
+| 비교 | 보는 값 | 이렇게 나오면 |
+|---|---|---|
+| `s2after` − 대조 | 같은 자리 rollout의 해결률 | 오르면 코드보다 먼저 문서를 쓰는 순서가 원인 |
+| `s4prompt` − 대조 | 같은 자리 rollout의 해결률 | 오르면 system prompt의 기본 절차 구역이 사라진 것이 원인 |
+| `p1nofix` − 대조 | 같은 자리 rollout의 해결률 | 오르면 문서에 수정 내용을 먼저 적는 것이 원인 |
+| `s2after` − 워크플로 없음 | 해결률 | 0에 가까우면 문서를 뒤에 쓰는 비용은 없음 |
+
+```bash
+# 저장소 루트에서 실행함
+export RLLM_HOME=<데이터셋과 결과가 놓일 곳>
+D=recipe/grpo/qwen3_5/workflows/agentos_bugfix_variants
+W=$RLLM_HOME/eval_results/wfvar
+M=<served-model-name>; U=<endpoints>
+
+# 0. 에이전트 이미지가 없는 장비라면 과제 하나로 먼저 만듦 ("알려진 문제" 참고)
+bash $D/run_eval.sh agentos_bugfix_s2after imgbuild $M $U 1 0
+
+# 1. 따랐는지 확인 (20과제, 1회). 결과 폴더 이름 끝에 -smoke 가 붙음
+IDX=$(seq -s, 0 25 498)
+for wf in agentos_bugfix_s2after agentos_bugfix_s4prompt agentos_bugfix_p1nofix; do
+  bash $D/run_eval.sh $wf step27 $M $U 1 $IDX
+done
+python $D/analyze.py \
+  --run s2after=$W/agentos_bugfix_s2after__step27_x1-smoke \
+  --run s4prompt=$W/agentos_bugfix_s4prompt__step27_x1-smoke \
+  --run p1nofix=$W/agentos_bugfix_p1nofix__step27_x1-smoke
+
+# 2. 본 실행. 대조와 워크플로 없음은 run key 를 달리해 2회를 더함 (1차의 1회분과 합쳐 3회)
+bash $D/run_all.sh step27 $M $U 3 agentos_bugfix_s2after agentos_bugfix_s4prompt agentos_bugfix_p1nofix
+bash $D/run_all.sh step27b $M $U 2 agentos_bugfix none
+
+# 3. 분석. 쉼표로 이은 폴더는 한 조건으로 합쳐짐
+python $D/analyze.py \
+  --run 대조=$W/agentos_bugfix__step27_x1,$W/agentos_bugfix__step27b_x2 \
+  --run 없음=$W/none__step27_x1,$W/none__step27b_x2 \
+  --run s2after=$W/agentos_bugfix_s2after__step27_x3 \
+  --run s4prompt=$W/agentos_bugfix_s4prompt__step27_x3 \
+  --run p1nofix=$W/agentos_bugfix_p1nofix__step27_x3 \
+  --run v1result=$W/agentos_bugfix_v1result__step27_x1 \
+  --compare 대조 s2after --compare 대조 s4prompt --compare 대조 p1nofix --compare 없음 s2after --compare 대조 v1result \
+  --out $W/round3_step27.md
+```
+
+- 1차 결과 폴더의 이름은 그때 쓴 run key에 따라 다름. 위 `step27` 자리에 실제 이름을 넣음
+- `analyze.py` 는 표준 라이브러리만 쓰고, 정답 patch는 `$RLLM_HOME/datasets/swebench_verified_all/<과제>/tests/config.json` 에서 읽음 (다른 곳이면 `--dataset`)
+- `analyze.py` 검산 (기존 3회 실행 자료, 학습 전 모델의 워크플로 없음과 대조, 각 1497 rollout)
+  - 해결률 57.6%, 48.8%와 같은 자리 해결률 70.7%, 65.1%가 앞선 분석과 같음
+  - 단계 분류는 앞선 분석과 조건당 5건, 11건만 다름. 모두 "다른 파일"에서 "소스 patch 없음"으로 옮겨진 것임 (저장소에 남긴 임시 스크립트만 있는 patch, 소스 패키지 `django/test/` 를 잘못 센 것). 소스 patch 없음 비율은 2.9%, 9.0%로 나옴
+  - "소스 수정 step 수" 구간(1회 이하, 2회, 3회 이상)은 채점기의 trajectory 재생으로 센 값과 워크플로 없음 95.4%, 대조 92.1% 일치함. 첫 소스 수정 step은 두 조건 모두 95% 일치함
+  - 1회 이하 수정 rollout의 해결률은 84.2%, 73.3%로 나옴 (재생 기준 83.4%, 74.4%)
+- 1번에서 볼 것
+  - `s2after`: 문서 넷이 있고, "첫 소스 수정이 첫 문서 작성보다 앞"이 대부분이어야 함. "문서를 쓰기 시작한 뒤 소스를 수정함"이 높으면 문서 단계에서 코드를 다시 건드리는 것이므로 결과를 순서의 효과로 읽을 수 없음
+  - `s4prompt`, `p1nofix`: 문서 넷이 있고, "첫 소스 수정이 첫 문서 작성보다 앞"이 0에 가까워야 함
+- `s2after`, `s4prompt` 의 문서는 3차 커밋에서 고쳐짐 (검토에서 나온 모순 수정). 그 전 커밋(`4e5607bd`)으로 돌린 결과가 있으면 섞지 않음. `run_info.txt` 의 workflow fingerprint로 구분함 (이 커밋의 값: `s2after` `f988e2553be3`, `s4prompt` `4aece598c755`, `p1nofix` `46ba0e541176`)
+- 학습 모델은 지금 문서로 학습된 모델임. 구조를 바꾼 결과는 "새 구조로 학습한 모델"의 값이 아니라 "학습된 모델에 다른 구조를 준 값"임
 
 ## 평가를 돌릴 장비에 필요한 것
 
@@ -109,8 +205,8 @@
 D=recipe/grpo/qwen3_5/workflows/agentos_bugfix_variants
 export RLLM_HOME=<데이터셋과 결과가 놓일 곳>
 
-# 1. 과제 하나로 에이전트 이미지를 먼저 만듦 (아래 "알려진 문제" 참고)
-bash $D/run_eval.sh agentos_bugfix_v5all base <served-model-name> http://<host>:<port>/v1 1 0
+# 1. 과제 하나로 에이전트 이미지를 먼저 만듦 (아래 "알려진 문제" 참고). 2번과 결과 폴더가 겹치지 않게 run key 를 달리함
+bash $D/run_eval.sh agentos_bugfix_v5all imgbuild <served-model-name> http://<host>:<port>/v1 1 0
 
 # 2. smoke 3과제
 bash $D/run_eval.sh agentos_bugfix_v5all base <served-model-name> http://<host>:<port>/v1 1 0,1,2
@@ -133,10 +229,11 @@ bash $D/run_all.sh base <served-model-name> <endpoints> 1 \
 - 구조 변형의 순서는 정보가 큰 순서임: `s1report` 와 `s4prompt` 가 양 끝을 먼저 가름
 - endpoint를 쉼표로 여러 개 주면 그 수만큼 shard로 나눠 동시에 돎 (과제 i → shard i % endpoint 수)
 - 설정은 기존 평가와 같음: step_limit 250, thinking on, instruction suffix, FinishTool만 기본 도구, strict_tool_calls, git history 숨김, 에이전트 네트워크 차단, sampling은 `recipe/eval/config/qwen3_5.yaml`
-- 결과 위치: `$RLLM_HOME/eval_results/wfvar/<워크플로>__<run key>_x<attempts>/`
+- 결과 위치: `$RLLM_HOME/eval_results/wfvar/<워크플로>__<run key>_x<attempts>/`. 과제 목록(task_indices)을 주면 이름 끝에 `-smoke` 가 붙음
   - `results/s<N>.json`, `shards/s<N>/episodes/episodes/episode_*.json`, `logs/s<N>.log`, `run_info.txt`, `run.log`
   - `run.log` 마지막 줄에 `ALL DONE: <해결>/<전체> resolved` 가 찍힘
-- 끝난 shard는 다시 돌리면 건너뜀
+- 끝난 shard는 다시 돌리면 건너뜀. 오류로 끝난 과제를 다시 돌리려면 그 shard의 `results/s<N>.json` 을 지우고 다시 실행함
+- 같은 결과 폴더를 다른 과제 목록이나 다른 endpoint 수로 다시 쓰면 실행이 멈춤 (`run_sig.txt`). 그때는 run key를 달리함
 - 대조(`agentos_bugfix`)를 다시 돌리는 이유: 기존 48.8%는 다른 장비·다른 vLLM 배치에서 잰 값이라, 같은 환경의 값이 있어야 변형과 비교가 됨
 - 워크플로 없음 대조가 필요하면 워크플로 이름에 `none` 을 줌
 

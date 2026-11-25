@@ -6,10 +6,12 @@
 #
 # usage: run_eval.sh <workflow> <run key> <served-model-name> <base-url[,base-url...]> [attempts=3] [task_indices]
 #   workflow         agentos_bugfix_v0base | _v1result | _v2place | _v3pre | _v4docs | _v5all | _v2fplace (문장 변형)
-#                    agentos_bugfix_s1report | _s2after | _s3tasks | _s4prompt (구조 변형) | agentos_bugfix | none
+#                    agentos_bugfix_s1report | _s2after | _s3tasks | _s4prompt (구조 변형) | agentos_bugfix_p1nofix (3차)
+#                    agentos_bugfix (대조) | none (워크플로 없음)
 #   run key          결과 폴더 이름에 붙는 모델 표시 (예: base, step27)
 #   base-url         http://host:port/v1 형태. 쉼표로 여러 개 주면 그 수만큼 shard 로 나눠 동시에 돈다
 #   task_indices     주면 그 과제만 첫 endpoint 로 돈다 (smoke 용, 예: 0,1,2). 결과 폴더 이름에 -smoke 가 붙는다
+#                    결과 폴더 이름에는 과제 목록이 들어가지 않는다. 과제 목록이 다른 smoke 는 run key 를 달리한다
 # 환경변수 (모두 선택):
 #   RLLM_HOME  데이터셋(datasets/swebench_verified_all)과 결과가 놓이는 곳. 기본 ~/.rllm
 #   REPO       코드 위치. 기본 이 스크립트가 든 저장소
@@ -35,12 +37,21 @@ mkdir -p "$BASE/results" "$BASE/logs" "$TMPDIR"
 IFS=',' read -r -a EP <<< "$URLS"
 N=${#EP[@]}
 cd "$REPO"
+# 같은 결과 폴더를 다른 과제 목록이나 다른 endpoint 수로 다시 쓰면 끝난 shard 를 건너뛰어 일부 과제가 안 돈다. 그 경우 멈춘다.
+SIG="endpoints=$N indices=${IDX:-all}"
+if [ -f "$BASE/run_sig.txt" ] && [ "$(cat "$BASE/run_sig.txt")" != "$SIG" ]; then
+  echo "result folder $BASE was started with '$(cat "$BASE/run_sig.txt")' but this call is '$SIG'."
+  echo "Use another run key, or the same number of endpoints and the same task indices."
+  exit 3
+fi
+echo "$SIG" > "$BASE/run_sig.txt"
 {
+  echo "--- call at $(date -Is)"
   echo "workflow: $WF"; echo "run key: $KEY"; echo "served model: $SERVED"; echo "endpoints: $URLS"; echo "attempts: $ATT"
   echo "concurrency per endpoint: $CONC"; echo "task indices: ${IDX:-all 499}"; echo "repo: $REPO @ $(git rev-parse --short HEAD) ($(git status --short | wc -l) uncommitted paths)"
   echo "workflow fingerprint: $($PY -c "import sys; from recipe.grpo.qwen3_5.workflows import get_workflow; print('-' if sys.argv[1]=='none' else get_workflow(sys.argv[1]).fingerprint('openhands-sdk'))" "$WF")"
   echo "started: $(date -Is)"
-} > "$BASE/run_info.txt"
+} >> "$BASE/run_info.txt"
 for u in "${EP[@]}"; do
   curl -sf -m 10 "$u/models" > /dev/null || { echo "endpoint not reachable: $u/models" | tee -a "$BASE/run_info.txt"; exit 2; }
 done

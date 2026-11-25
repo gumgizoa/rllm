@@ -21,6 +21,10 @@ Candidates (what they aim at, measured on the SWE-bench Verified runs of 2026-11
     I  no Test Review & Gap Analysis task group in the tasks.md example
     D  keep the default system prompt's testing lines next to the pipeline text
     J  verify/ scripts hold test functions and are run with the test runner
+    N  the planning documents state what must hold, not the code change; the code change is decided in implement-tasks
+       (third round, 2026-11-25: in blind readings the plan's stated fix decided the outcome, 26/32 solved attempts had
+       a plan whose fix would pass against 7/32 unsolved ones; this keeps the four documents and their order and moves
+       only the decision)
 
 Structure variants (second round, 2026-11-25) change which documents are written and when, not single sentences.
 The sentence variants left the resolve rate of the untrained model where it was, so these place steps between
@@ -31,7 +35,8 @@ hand-written texts are in ``structure/<name>/``:
     s1report  solve the usual way, then write the final verification report only (overview.md is the one document)
     s2after   solve the usual way, then carry out the four commands as the written record of the change
     s3tasks   create-tasks and implement-tasks only: one planning document (tasks.md) before the code
-    s4prompt  agentos_bugfix as it is, except that the system prompt keeps the default procedure section
+    s4prompt  agentos_bugfix as it is, except that the system prompt keeps the default procedure section (and the one
+              overview.md sentence that says the pipeline replaces any other procedure says where its steps are carried out)
 
     none -> s1report -> s3tasks -> s4prompt -> agentos_bugfix adds one thing per step; s2after against s1report
     shows what the three planning documents cost when they come after the change.
@@ -58,6 +63,7 @@ VARIANTS: dict[str, str] = {
     "agentos_bugfix_v4docs": "XCI",
     "agentos_bugfix_v5all": "XALHEKBMGCIDJ",
     "agentos_bugfix_v2fplace": "XEKF",  # v2place plus F; not in the default run list
+    "agentos_bugfix_p1nofix": "N",  # agentos_bugfix with N only (no X), so that it differs from the control in one thing
 }
 DEFAULT_RUN = ["agentos_bugfix_v0base", "agentos_bugfix_v1result", "agentos_bugfix_v2place", "agentos_bugfix_v3pre", "agentos_bugfix_v4docs", "agentos_bugfix_v5all"]
 
@@ -140,7 +146,27 @@ def edits(f: frozenset[str]) -> list[tuple[str, str, str]]:
             "as `S/verifications/final-verification.md` is written, call `finish`.",
         )
 
+    if on("N"):
+        add(
+            OVERVIEW,
+            '## What "the feature" is\n',
+            "## What the planning documents hold\n\n"
+            "`requirements.md`, `spec.md` and `tasks.md` describe the behavior the change must produce: what happens\n"
+            "now, what must happen instead and for which inputs, what must stay as it is, and which files and\n"
+            "functions are involved. They do not state the code change itself, in code or in words (which condition,\n"
+            "value or call becomes what). The code change is decided in implement-tasks PHASE 2, with the code open.\n\n"
+            '## What "the feature" is\n',
+        )
+
     # ---------------- shape-spec.md ----------------
+    if on("N"):
+        add(SHAPE, "2. I'm thinking [specific approach]. Should we [alternative]?", "2. I assume [input or situation] should give [result]. Is that correct, or [alternative]?")
+        add(
+            SHAPE,
+            "- Ask about existing similar features to promote code reuse\n",
+            "- `requirements.md` states what must hold and which files are involved, not the code change, in code or in words\n"
+            "- Ask about existing similar features to promote code reuse\n",
+        )
     if on("B"):
         add(
             SHAPE,
@@ -181,6 +207,29 @@ def edits(f: frozenset[str]) -> list[tuple[str, str, str]]:
             "[repeat for up to 5 existing code areas]\n\n"
             "## Existing Tests\n- Test module(s): [path of each repository test module that covers the code to change]\n- Command: [the exact command that ran them]\n- Result before the change: [passed / failed / error counts, or why it could not be run]\n",
         )
+    if on("N"):
+        add(
+            WRITE,
+            "DO NOT write actual code in the spec.md document. Just describe the requirements clearly and concisely.",
+            "DO NOT write actual code in the spec.md document, and do not describe the code change in words either (which condition, value or call changes, and to what). "
+            "Describe the behavior the change must produce: what happens now, what must happen instead and for which inputs, and what must stay as it is. "
+            "The code change is decided later, during implementation.",
+        )
+        add(
+            WRITE,
+            "CONCISE sub-bullet points to clarify specific sub-requirements, design or architectual decisions that go into this requirement, or the technical approach to take when implementing this requirement]",
+            "CONCISE sub-bullet points to clarify specific sub-requirements: the inputs or situations this requirement covers and the result each must give. No code change and no technical approach]",
+        )
+        add(
+            WRITE,
+            "bullets that describe what this existing code does and how it should be re-used or replicated when building this spec]",
+            "bullets that describe what this existing code does and how it is involved in the behavior to change]",
+        )
+        add(
+            WRITE,
+            "2. **Do NOT write actual code** in the spec\n",
+            "2. **Do NOT write actual code** in the spec, **and do not state the code change in words**: the spec says what must hold, not how the code changes\n",
+        )
     if on("C"):
         add(WRITE, "- [Up to 8 CONCISE sub-bullet points", "- [Up to 4 CONCISE sub-bullet points")
         add(WRITE, "[repeat for up to a max of 10 specific requirements]", "[repeat for up to a max of 4 specific requirements]")
@@ -188,6 +237,21 @@ def edits(f: frozenset[str]) -> list[tuple[str, str, str]]:
         add(WRITE, "- [up to 10 concise descriptions of specific features that are out of scope and MUST NOT be built in this spec]", "- [up to 3 concise descriptions of specific features that are out of scope and MUST NOT be built in this spec]")
 
     # ---------------- create-tasks.md ----------------
+    if on("N"):
+        add(
+            TASKS,
+            "  - [ ] 1.2 [First change to make] in [path of the file to change]\n    - [details]\n    - Reuse pattern from: [existing code if applicable]\n"
+            "  - [ ] 1.3 [Next change to make] in [path of the file to change]\n    - [details]\n",
+            "  - [ ] 1.2 [First behavior to make hold] in [path of the file to change]\n    - [the inputs or situations it covers and the result each must give]\n    - Related code: [existing code involved, if any]\n"
+            "  - [ ] 1.3 [Next behavior to make hold] in [path of the file to change]\n    - [the inputs or situations it covers and the result each must give]\n",
+        )
+        add(
+            TASKS,
+            "- **Group related tasks:** For example,",
+            "- **State what each task must achieve, not the code change**: a sub-task says which behavior it makes hold, for which inputs, and in which file. "
+            "It does not say which condition, value or call changes to what; how the code changes is decided when the task is implemented.\n"
+            "- **Group related tasks:** For example,",
+        )
     if on("M"):
         add(
             TASKS,
@@ -238,6 +302,14 @@ def edits(f: frozenset[str]) -> list[tuple[str, str, str]]:
     )
 
     # ---------------- implement-tasks.md ----------------
+    if on("N"):
+        add(
+            IMPL,
+            "3. Implement the assigned task group according to requirements and standards\n4. Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you've implemented",
+            "3. If the task group changes code, decide the code change now: read the code the task names and choose the change that makes the behavior the task and spec.md describe hold. "
+            "The planning documents state what must hold, not how the code changes; that is decided here.\n"
+            "4. Implement the assigned task group according to requirements and standards\n5. Update `/tmp/agent-os/specs/[this-spec]/tasks.md` to update the tasks you've implemented",
+        )
     first = "writes them first" + (" and runs them once before the change to see them fail" if on("M") else "") + ", as its x.1 sub-task"
     scripts = f"check scripts under `{V}`" + (" holding test functions, run with the test runner" if on("J") else "")
     funcs = "test functions you added to " + ("the existing repository test module that covers the changed code" if on("E") else "an existing repository test module") + ", run through that module with the test runner"
@@ -361,6 +433,10 @@ def render_structure(name: str) -> dict[str, str]:
             _replace(texts, file, old, new)
     for rel, src in ((OVERVIEW, own / "overview.md"), ("instruction.md", own / "instruction.md")):
         texts[rel] = (src if src.is_file() else SRC / rel).read_text()
+    if folder == "s4prompt":
+        # The control's overview revokes "any procedure you would otherwise follow"; with the default steps kept in
+        # the system prompt that sentence would take them back again, so it says where they are carried out instead.
+        _replace(texts, OVERVIEW, "it replaces any procedure you would otherwise follow.", "the steps of the procedure in your system prompt are carried out inside it.")
     system = (SRC / SYSTEM).read_text()
     a, b = _SECTION
     if system.count(a) != 1 or system.count(b) != 1:
