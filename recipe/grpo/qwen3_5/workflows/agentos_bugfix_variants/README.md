@@ -66,32 +66,78 @@
   - 학습 전 모델: 대조 51.5%, v0base 50.9%, v5all 50.7%, v1result 52.1%, v2place 49.3%, 워크플로 없음 59.3%
   - 1회 실행끼리의 차이는 95% 구간 반폭이 약 4%p임 (기존 3회 실행 자료에서 시도 하나씩 뽑아 잰 값). 위 변형은 모두 대조와 구분되지 않음
   - 문장 변형은 전부 "코드 수정 전에 문서 넷"이라는 구조를 유지함. 손실이 그 구조에서 오는지는 문장 변형으로 알 수 없음
-- 구조 변형은 어떤 문서를 언제 쓰는지를 바꿈
-- 네 변형 모두 system prompt의 기본 절차 구역(탐색, 분석, 테스트, 구현, 검증 다섯 항목)을 남기고, 그 뒤에 `/agent-os/overview.md` 를 가리키는 문단을 붙임
-  - 대조(`agentos_bugfix`)는 그 구역을 Agent OS 안내로 통째로 바꿈
+- 구조 변형은 대조(`agentos_bugfix`)에서 한 가지씩 빼 나감. 빼는 것은 문장이 아니라 읽고 쓰는 문서와 그 시점임
+  - 대조 → `s4prompt` → `s3tasks` → `s1report` → 워크플로 없음 순서이고, 한 단계마다 뺀 것은 하나임
+  - `s2after` 는 이 줄에서 벗어난 곁가지임. `s4prompt` 에서 문서는 빼지 않고 "코드 수정 전"이라는 순서만 뺌
 - 공통 수정 X는 넣지 않음. 1차 smoke에서 모델이 따르지 않았고, `s4prompt` 가 대조와 한 가지만 다르게 하기 위함
 
-| 워크플로 이름 | 코드 수정 전에 쓰는 문서 | 코드 수정 뒤에 쓰는 문서 | system prompt 절차 구역 |
-|---|---|---|---|
-| (워크플로 없음) | 없음 | 없음 | 기본 |
-| `agentos_bugfix_s1report` | 없음 | 보고서 | 기본 + 안내 문단 |
-| `agentos_bugfix_s2after` | 없음 | requirements, spec, tasks, 보고서 | 기본 + 안내 문단 |
-| `agentos_bugfix_s3tasks` | tasks | 보고서 | 기본 + 안내 문단 |
-| `agentos_bugfix_s4prompt` | requirements, spec, tasks | 보고서 | 기본 + 안내 문단 |
-| `agentos_bugfix` (대조) | requirements, spec, tasks | 보고서 | Agent OS 안내로 교체 |
+| 워크플로 이름 | 앞 단계에서 뺀 것 | 읽는 문서 (`/agent-os/`) | 코드 수정 전에 쓰는 문서 | 코드 수정 뒤에 쓰는 문서 | system prompt 절차 구역 |
+|---|---|---|---|---|---|
+| `agentos_bugfix` (대조) | (출발점) | overview, shape-spec, write-spec, create-tasks, implement-tasks | requirements, spec, tasks | 보고서 | Agent OS 안내로 교체 |
+| `agentos_bugfix_s4prompt` | system prompt 절차 구역의 교체 | overview, shape-spec, write-spec, create-tasks, implement-tasks | requirements, spec, tasks | 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix_s3tasks` | 계획 문서 둘(requirements, spec)과 그 명령 문서(shape-spec, write-spec) | overview, create-tasks, implement-tasks | tasks | 보고서 | 기본 + 안내 문단 |
+| `agentos_bugfix_s1report` | 남은 계획 문서(tasks)와 명령 문서(create-tasks, implement-tasks) | overview | 없음 | 보고서 | 기본 + 안내 문단 |
+| (워크플로 없음) | 워크플로 문서(overview)와 보고서, 안내 문단 | 없음 | 없음 | 없음 | 기본 |
+| `agentos_bugfix_s2after` (곁가지) | `s4prompt` 에서 "코드 수정 전"이라는 순서 | overview. 코드 수정 뒤에 shape-spec, write-spec, create-tasks, implement-tasks | 없음 | requirements, spec, tasks, 보고서 | 기본 + 안내 문단 |
 
-- 읽는 법: 워크플로 없음 → `s1report` → `s3tasks` → `s4prompt` → 대조 순서로 한 가지씩 더해짐
-  - 워크플로 없음 → `s1report`: 워크플로 문서를 먼저 열고 마지막에 보고서를 쓰는 것의 비용
-  - `s1report` → `s3tasks`: 코드 전에 작업 목록 하나를 쓰고 implement-tasks 규칙을 따르는 것의 비용
-  - `s3tasks` → `s4prompt`: 계획 문서 둘(requirements, spec)을 더 쓰는 것의 비용
-  - `s4prompt` → 대조: system prompt의 기본 절차 구역을 지우는 것의 비용
-  - `s1report` → `s2after`: 같은 문서 넷을 코드 수정 뒤에 쓸 때의 비용. `s2after` 가 `s1report` 에 가깝고 `s4prompt` 가 낮으면 문서 양이 아니라 "코드 전에 계획"이 원인임
-- 변형별 차이
-  - `s1report`: 문서는 overview.md 하나뿐임. 보고서 양식은 그 안에 있고 작업 목록 절은 뺌
+- 읽는 문서는 변형에 들어 있는 문서 전부임. overview는 저장소를 보기 전 첫 행동으로 열고, 명령 문서는 그 단계에 이르렀을 때 엶
+  - `s2after` 는 명령 문서 넷이 대조와 같고, 여는 시점만 코드 수정과 테스트 뒤임
+  - 학습 모델(step 27, 499 과제 × 1회)이 실제로 연 비율: overview는 모든 변형에서 100%, 명령 문서는 `s3tasks`, `s4prompt`, 대조에서 99~100%, `s2after` 에서 85~86%
+- system prompt 절차 구역
+  - 대조는 기본 절차 구역(탐색, 분석, 테스트, 구현, 검증 다섯 항목)을 Agent OS 안내로 통째로 바꿈
+  - `s4prompt` 부터는 그 교체를 빼서 기본 절차 구역이 남고, 그 뒤에 `/agent-os/overview.md` 를 가리키는 문단이 붙음
+  - 워크플로 없음은 안내 문단도 없는 기본 system prompt임
+
+- 읽는 법: 한 단계에서 해결률이 오르면, 그 단계에서 뺀 것이 대조의 손실을 만든 것임
+  - 대조 → `s4prompt`: system prompt에서 기본 절차 구역을 지운 것의 비용
+  - `s4prompt` → `s3tasks`: 코드 전에 계획 문서 둘(requirements, spec)을 쓰는 것의 비용
+  - `s3tasks` → `s1report`: 코드 전에 작업 목록 하나를 쓰고 implement-tasks 규칙을 따르는 것의 비용
+  - `s1report` → 워크플로 없음: 워크플로 문서를 먼저 열고 마지막에 보고서를 쓰는 것의 비용. 여기까지 빼면 워크플로가 남지 않음
+  - `s4prompt` → `s2after`: 같은 문서 넷을 코드 수정 전에 쓰는 것의 비용. `s2after` 가 `s1report` 에 가깝고 `s4prompt` 가 낮으면 문서 양이 아니라 "코드 전에 계획"이 원인임
+  - `s2after` → `s1report`: 문서 셋을 코드 수정 뒤에 쓰는 것의 비용
+- 변형별로 대조에서 달라진 곳
+  - `s4prompt`: system prompt와 overview.md의 한 문장임. 대조의 overview.md는 "이 순서가 다른 절차를 대신한다"고 하는데, 기본 절차를 남긴 채 그 문장을 두면 다시 무효가 되므로 "system prompt의 절차를 이 순서 안에서 수행한다"로 바꿈
+  - `s3tasks`: shape-spec과 write-spec이 없음. create-tasks가 spec 폴더를 만들고 과제 글과 저장소에서 바로 작업 목록을 만듦 (create-tasks 5곳, implement-tasks 2곳 수정)
+  - `s1report`: 명령 문서가 없고 문서는 overview.md 하나뿐임. 보고서 양식은 그 안에 있고 작업 목록 절은 뺌
   - `s2after`: 명령 문서 넷은 대조와 같음. overview.md가 "먼저 평소대로 풀고, 수정과 테스트가 끝난 뒤 네 명령을 기록으로 수행"이라고 정함
-  - `s3tasks`: create-tasks가 spec 폴더를 만들고 과제 글과 저장소에서 바로 작업 목록을 만듦 (create-tasks 5곳, implement-tasks 2곳 수정)
-  - `s4prompt`: 대조와 다른 곳은 system prompt와 overview.md의 한 문장임. 대조의 overview.md는 "이 순서가 다른 절차를 대신한다"고 하는데, 기본 절차를 남긴 채 그 문장을 두면 다시 무효가 되므로 "system prompt의 절차를 이 순서 안에서 수행한다"로 바꿈
 - 한계: 1회 실행의 구간 반폭이 4%p라 한 단계의 차이가 그보다 작으면 가릴 수 없음. 7.8%p가 한두 단계에 몰려 있을 때만 위치가 보임
+
+### 조건별 진행 순서
+
+- 대조: overview.md → shape-spec (requirements.md) → write-spec (spec.md) → create-tasks (tasks.md) → implement-tasks (코드 수정 → 검증 → 보고서)
+- `s4prompt`: 대조와 같은 순서임. system prompt에 기본 절차 구역이 남아 있는 점만 다름
+- `s3tasks`: overview.md → create-tasks (변경 파악 → tasks.md) → implement-tasks (코드 수정 → 검증 → 보고서)
+- `s1report`: overview.md → 평소대로 코드 수정과 테스트 → 테스트 다시 실행 → 보고서
+- 워크플로 없음: 평소대로 코드 수정과 테스트 → finish
+- `s2after`: overview.md → 평소대로 코드 수정과 테스트 → 명령 문서 넷을 순서대로 열고 수행 (requirements.md, spec.md, tasks.md, 보고서)
+- "평소대로"는 system prompt의 기본 절차 구역(탐색, 분석, 테스트, 구현, 검증)대로 푸는 것임
+
+### 조건별 overview.md 내용
+
+- 생성물 `variants/<이름>/docs/overview.md` 를 대조의 `agentos_bugfix/docs/overview.md` 와 맞대어 확인함 (2026-11-26)
+- 다섯 문서 모두 `/agent-os/` 가 저장소 밖(루트 바로 아래)에 있다는 문단과, 과제 메시지의 설명이 유일한 외부 입력이라는 문단이 있음
+
+| 항목 | 대조 | `s4prompt` | `s3tasks` | `s1report` | `s2after` |
+|---|---|---|---|---|---|
+| 줄 수 | 94 | 94 | 84 | 78 | 113 |
+| 제목 | From Task to Verified Change | 대조와 같음 | 대조와 같음 | A Verified Change | From Verified Change to Written Record |
+| 도입 | spec-first임. 명령 문서 넷을 순서대로 수행함. "이 순서가 다른 절차를 대신한다" | 대조와 같고, 끝 문장만 "system prompt의 절차를 이 순서 안에서 수행한다" | Agent OS의 일부임. 작업 목록을 만든 뒤 구현하고 검증함. requirements와 spec은 쓰지 않고 과제 글과 저장소가 대신함 | Agent OS에서 검증 보고서만 씀. 평소대로 풀고, 수정과 테스트가 끝나면 보고서를 쓰고 finish함. 다른 문서는 쓰지 않음 | Agent OS를 이미 한 수정의 기록으로 씀. 먼저 평소대로 풀고, 수정과 테스트가 끝난 뒤에만 명령 넷을 수행함 |
+| 명령 목록 | 넷. 문서마다 경로와 PHASE별로 하는 일 | 대조와 같음 | 둘(create-tasks, implement-tasks). create-tasks PHASE 1이 spec 폴더를 만들고 변경을 파악함 | 없음 | 두 절로 나뉨. "First: the change"는 명령 문서를 열기 전에 풀라고 하고, 이 부분에는 명령 문서의 규칙이 적용되지 않으며 `/tmp/agent-os/` 에 아무것도 쓰지 말라고 함. "Then: the four commands"는 넷을 이미 한 수정에 대한 것으로 읽는 법을 정함 |
+| 이미 한 수정으로 읽는 법 | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | 답은 수정하며 알게 된 것으로 씀. spec과 작업 목록은 한 수정을 적음. 수정이 이미 다룬 작업은 코드를 다시 고치지 않고 체크만 함. x.1의 "테스트 먼저"는 수정 중에 쓰거나 돌린 테스트로 인정함 |
+| 반복 | 명령은 한 번씩임. PHASE 3이 PHASE 2로 한 번 돌려보내는 것만 예외 | 대조와 같음 | 대조와 같음 | 문장 없음 | 대조와 같음 |
+| 코딩 표준 안내 | 있음 (implement-tasks 안에 적혀 있다는 문단) | 대조와 같음 | 대조와 같음 | 없음 | 대조와 같음 |
+| spec 폴더 `S` | planning/initialization.md, planning/requirements.md, spec.md, tasks.md, verify/, verifications/final-verification.md | 대조와 같음 | tasks.md, verify/, verifications/final-verification.md. create-tasks가 폴더를 만듦 | verifications/final-verification.md 하나. 수정과 테스트가 끝난 뒤 만듦 | 대조와 같음 |
+| 보고서 양식 | overview에 없음. implement-tasks PHASE 3에 있고 Tasks Verification과 Test Suite Results 두 절임 | 대조와 같음 | 대조와 같음 | overview 안에 있음. Executive Summary와 Test Suite Results이고 Tasks Verification 절은 없음. 쓰기 전에 바꾼 코드의 테스트를 한 번 더 돌려 통과, 실패, 오류 수를 확인하라고 함 | 대조와 같음 |
+| 사람이 없다는 규칙 | 도구 호출 없는 답은 세션을 끝냄. 질문은 스스로 답해 requirements.md에 `(assumed)` 로 기록함. 명령이 끝나면 바로 다음 문서를 엶. 진행은 tasks.md 체크박스에 남김 | 대조와 같음 | 질문을 기록하라는 문장 대신 "과제 글이 정하지 않은 것은 저장소를 보고 스스로 정함". 나머지는 대조와 같음 | 도구 호출 없는 답은 세션을 끝냄. 답을 기다리지 않고 finish 전에 글만 보내지 않음. 그 밖의 문장은 없음 | 대조와 같고, "수정과 테스트가 끝나면 바로 첫 명령 문서를 엶"이 더해짐 |
+| 저장소 규칙 | implement-tasks PHASE 2만 저장소를 바꿈. 테스트는 `S/verify/` 스크립트나 기존 테스트 모듈에 더한 함수임. 기존 테스트 줄은 바꾸거나 지우지 않음. 워크플로 파일은 저장소에 두지 않음 | 대조와 같음 | 대조와 같음 (코드 전 단계가 create-tasks 하나) | 절이 없음. 보고서를 저장소에 두지 않는다는 문장만 있음 | 첫 부분은 과제에 필요한 대로 바꿈. 명령을 시작한 뒤에는 PHASE 2만 바꿈 (수정이 아직 다루지 않은 작업, 수정 때문에 실패하는 테스트, PHASE 3이 돌려보낸 때). "기존 테스트 줄은 바꾸지 않음" 문장은 없음 |
+| 끝 | final-verification.md를 쓰면 바로 finish | 대조와 같음 | 대조와 같음 | 대조와 같음 | 대조와 같음 |
+
+- 결과를 읽을 때 걸리는 차이
+  - `s1report` 와 `s2after` 의 첫 부분에는 "기존 테스트 줄을 바꾸거나 지우지 않음"과 "테스트는 `S/verify/` 나 기존 모듈에"라는 규칙이 없음. 워크플로 없음과 같은 조건에서 코드를 고침
+    - `s2after` 는 명령 문서(create-tasks)에 그 규칙이 남아 있지만 코드 수정이 끝난 뒤에 읽음
+  - `s1report` 의 보고서 단계는 테스트를 다시 돌리라고만 함. 대조의 PHASE 3에 있는 "내 수정 때문에 실패하면 PHASE 2로 한 번 돌아가 고침"은 없음
+  - `s3tasks` 는 대조에서 requirements와 spec에 관한 문장만 빠지고 나머지 규칙은 그대로임
+  - `s4prompt` 는 대조와 한 문장만 다름
 
 ## 3차 (2026-11-25): 손실 위치와 수정한 실행 계획
 
