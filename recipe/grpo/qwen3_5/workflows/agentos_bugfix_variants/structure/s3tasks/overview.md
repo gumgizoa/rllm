@@ -1,10 +1,8 @@
 # Agent OS: From Task to Verified Change
 
-This run follows part of Agent OS (v2.1.1): the change is broken into a task list, and only then
-implemented and verified. With Agent OS a developer attaches one command document per chat turn and
-reads the result before attaching the next. Here you carry out the two command documents yourself, one
-after the other, in this single session. No requirements document and no specification are written in
-this run: the task description and the repository take their place.
+With Agent OS a developer attaches one command document per chat turn and reads the result before
+attaching the next. Here you carry out the two command documents yourself, one after the other, in this
+single session.
 
 The workflow's documents are in `/agent-os/`, a directory directly under the filesystem root `/`. It is
 not part of the repository you work in, and nothing of it exists inside the repository.

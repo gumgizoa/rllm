@@ -24,7 +24,7 @@ mkdir -p $SPEC_PATH/verifications
 echo "Created spec folder: $SPEC_PATH"
 ```
 
-Then study the change: read the task description in the task message again and explore the code it is about in the repository, until you know what has to change and where. In this run there is no spec.md and no requirements.md; the task description and the repository take their place.
+Then study the change: read the task description in the task message again and explore the code it is about in the repository, until you know what has to change and where.
 
 # PHASE 2: Create Tasks List
 

@@ -51,6 +51,23 @@ costs, or putting the plan on paper does.
               (the final verification report is the one document). Near s1report: writing the plan down is what
               costs. Near s4prompt: the planning procedure costs, written or not.
 
+Fifth round (2026-11-26): where s3tasks loses against s1report. Of the 58 tasks s1report solved and s3tasks did
+not, 41 had the defect of the final patch in the text of tasks.md already (one of two functions named, the wrong
+place named), the patch followed the plan, and the plan was almost never revised (task lines added after the first
+write in 7.2% of all s3tasks runs). Both variants are s3tasks with the listed sentences changed and nothing else;
+their texts are not hand-written but derived from ``structure/s3tasks/`` and s3tasks's command documents by
+``S6_EDITS`` / ``S7_EDITS``, so that the difference from s3tasks is what those lists hold:
+
+    s6late    tasks.md moves behind the code change: create-tasks only creates the spec folder and studies the
+              change; implement-tasks makes the change (tests first), then writes tasks.md of the change that was
+              made and ticks it, then verifies. Same two documents, same rules, same tasks.md format.
+    s7noplan  tasks.md stays before the code change but holds no code change: a task group is the tests to write,
+              "change the code so that the behavior holds" and the test run. No task names a file, function,
+              condition or value. Exploration and the implementation steps are s3tasks's.
+
+    Both near s1report: writing the code change down before the code is what costs, and s7noplan keeps a plan.
+    s6late only: any document before the code costs. Both near s3tasks: the cost is in implement-tasks's rules.
+
 ``--check`` exits 1 when ``variants/`` is not what this file would write.
 """
 
@@ -84,8 +101,10 @@ STRUCTURE: dict[str, tuple[str, list[str]]] = {
     "agentos_bugfix_s3tasks": ("s3tasks", ["tasks", "impl"]),
     "agentos_bugfix_s4prompt": ("s4prompt", ["shape", "write", "tasks", "impl"]),
     "agentos_bugfix_s5think": ("s5think", ["shape", "write", "tasks", "impl"]),  # fourth round; not in STRUCTURE_RUN
+    "agentos_bugfix_s6late": ("s6late", ["tasks", "impl"]),  # fifth round; derived from s3tasks, not in STRUCTURE_RUN
+    "agentos_bugfix_s7noplan": ("s7noplan", ["tasks", "impl"]),  # fifth round; derived from s3tasks, not in STRUCTURE_RUN
 }
-STRUCTURE_RUN = [n for n in STRUCTURE if n != "agentos_bugfix_s5think"]
+STRUCTURE_RUN = [n for n in STRUCTURE if n not in ("agentos_bugfix_s5think", "agentos_bugfix_s6late", "agentos_bugfix_s7noplan")]
 
 OVERVIEW = "docs/overview.md"
 SHAPE = "docs/commands/shape-spec/shape-spec.md"
@@ -413,7 +432,7 @@ S3_EDITS: list[tuple[str, str, str]] = [
         "mkdir -p $SPEC_PATH/verifications\n\n"
         'echo "Created spec folder: $SPEC_PATH"\n'
         "```\n\n"
-        "Then study the change: read the task description in the task message again and explore the code it is about in the repository, until you know what has to change and where. In this run there is no spec.md and no requirements.md; the task description and the repository take their place.\n",
+        "Then study the change: read the task description in the task message again and explore the code it is about in the repository, until you know what has to change and where.\n",
     ),
     (TASKS, "Now that you have the spec.md AND/OR requirements.md, please break those down into", "Now that you know what has to change, please break that down into"),
     (
@@ -430,16 +449,197 @@ S3_EDITS: list[tuple[str, str, str]] = [
     (IMPL, "Now that we have a spec and tasks list ready for implementation", "Now that we have a tasks list ready for implementation"),
     (IMPL, "1. Analyze the provided spec.md and requirements.md", "1. Analyze the task description and the current task group in tasks.md"),
 ]
+PROC = "procedure.txt"  # the paragraph a structure variant adds to the system prompt; a key while its edits are applied
+TASKS_MD = "`/tmp/agent-os/specs/[this-spec]/tasks.md`"
+
+# s7noplan: s3tasks whose tasks.md holds no code change. What the change has to achieve and its tests stay in the
+# list; which file, function, condition or value changes is not written there. Exploration (create-tasks PHASE 1)
+# and the implementation steps (implement-tasks PHASE 2) are s3tasks's, word for word.
+S7_EDITS: list[tuple[str, str, str]] = [
+    (
+        OVERVIEW,
+        "PHASE 1 creates the spec folder and studies the change. PHASE 2 breaks the change into task groups\n   of checkbox tasks.",
+        "PHASE 1 creates the spec folder and studies the change. PHASE 2 writes task groups of checkbox tasks\n"
+        "   that say which behavior has to hold and which tests show it. No task states the code change: not the\n"
+        "   file, the function, the condition or the value to change.",
+    ),
+    (
+        OVERVIEW,
+        "PHASE 1 and PHASE 2 implement every task group in order, one group per pass of PHASE 2. PHASE 3\n   verifies the result and writes the final verification report.",
+        "PHASE 1 and PHASE 2 implement every task group in order, one group per pass of PHASE 2. PHASE 2 is\n"
+        "   where the code change is decided, with the code open. PHASE 3 verifies the result and writes the\n"
+        "   final verification report.",
+    ),
+    (
+        PROC,
+        "Before any code changes, create-tasks splits the change into task\ngroups; implement-tasks then builds them and verifies the result.",
+        "Before any code changes, create-tasks writes what the change has to\n"
+        "achieve as task groups, without the code change itself; implement-tasks\n"
+        "then decides the code change, builds it and verifies the result.",
+    ),
+    (TASKS, "Now that you know what has to change, please break that down into", "Now that you know what the change has to achieve, please break that down into"),
+    (
+        TASKS,
+        "  - [ ] 1.2 [First change to make] in [path of the file to change]\n    - [details]\n    - Reuse pattern from: [existing code if applicable]\n"
+        "  - [ ] 1.3 [Next change to make] in [path of the file to change]\n    - [details]\n"
+        "  - [ ] 1.4 Ensure the tests of this group pass\n",
+        "  - [ ] 1.2 Change the code so that [the behavior to change] holds\n  - [ ] 1.3 Ensure the tests of this group pass\n",
+    ),
+    (
+        TASKS,
+        "- **Name the file each change is made in**: every sub-task that changes code names, on its task line, the path in the repository of the file it changes. "
+        "A task added while implementing does the same, and is added before that file is edited.",
+        "- **Leave the code change out of the tasks list**: a task says which behavior has to hold and which tests show it. "
+        "No task names the file, function, condition or value to change, in code or in words; the code change is decided in implement-tasks PHASE 2, with the code open.",
+    ),
+    (IMPL, "(another file to change, a case the tasks miss)", "(a behavior or a case the tasks miss)"),
+]
+
+# s6late: s3tasks with tasks.md written after the code change. create-tasks keeps its PHASE 1; its tasks-list
+# section moves into implement-tasks as PHASE 2 (see ``_s6_move``), between the change (PHASE 1) and the
+# verification (PHASE 3). The x.1 "tests first" rule, which s3tasks carries in tasks.md, is stated in PHASE 1.
+S6_MOVE = ("# PHASE 2: Create Tasks List\n", "## Next step\n", "# PHASE 3: Verify Implementation\n")
+S6_TICK = (
+    "## Tick the tasks list\n\n"
+    f"Once {TASKS_MD} is written, go through it task by task. A task the change covers is ticked (`- [x]`) without changing the code again. "
+    "A sub-task whose tests could not be made to pass in five attempts is marked with ⚠️ instead of being ticked.\n\n"
+    "Once every task is ticked or marked with ⚠️, continue with PHASE 3 below.\n\n"
+)
+S6_EDITS: list[tuple[str, str, str]] = [
+    (
+        OVERVIEW,
+        "PHASE 1 creates the spec folder and studies the change. PHASE 2 breaks the change into task groups\n   of checkbox tasks.",
+        "Creates the spec folder and studies the change. In this run it writes no task list.",
+    ),
+    (
+        OVERVIEW,
+        "PHASE 1 and PHASE 2 implement every task group in order, one group per pass of PHASE 2. PHASE 3\n   verifies the result and writes the final verification report.",
+        "PHASE 1 implements the change. PHASE 2 writes the task list of the change that was made, as task\n"
+        "   groups of checkbox tasks, and ticks it. PHASE 3 verifies the result and writes the final\n"
+        "   verification report.",
+    ),
+    (OVERVIEW, "PHASE 3\nsends you back to PHASE 2 once when a test fails because of your change.", "PHASE 3\nsends you back to PHASE 1 once when a test fails because of your change."),
+    (
+        OVERVIEW,
+        "├── tasks.md                   create-tasks; implement-tasks ticks its checkboxes and may add tasks",
+        "├── tasks.md                   implement-tasks PHASE 2, after the code change; ticked there",
+    ),
+    (
+        OVERVIEW,
+        "implement-tasks ticks the checkboxes of `tasks.md`, and adds a task when the change\nneeds work no task covers.",
+        "implement-tasks writes `tasks.md` only after the change is made, and ticks\nits checkboxes then.",
+    ),
+    (
+        OVERVIEW,
+        "- Progress is kept in the files. The checkboxes in `S/tasks.md` are the record of what has been\n"
+        "  implemented; the TaskTracker tool may serve as a private scratch list, but it does not replace ticking\n"
+        "  `tasks.md`.",
+        "- The record is kept in the files. `S/tasks.md`, written after the change, is the record of what has been\n"
+        "  implemented; the TaskTracker tool may serve as a private scratch list, but it does not replace\n"
+        "  `tasks.md`.",
+    ),
+    (
+        OVERVIEW,
+        "- Only implement-tasks PHASE 2 changes the repository. create-tasks reads the repository and may run\n"
+        "  commands in it, but changes nothing. implement-tasks PHASE 3 runs tests and writes its report and\n"
+        "  changes no code itself; when a test fails because of your change it sends you back to PHASE 2 once,\n"
+        "  and that is the only code change after PHASE 3 has begun.",
+        "- implement-tasks PHASE 1 changes the repository. create-tasks reads the repository and may run\n"
+        "  commands in it, but changes nothing. implement-tasks PHASE 2 writes the task list and changes no\n"
+        "  code. PHASE 3 runs tests and writes its report and changes no code itself; when a test fails because\n"
+        "  of your change it sends you back to PHASE 1 once, and that is the only code change after PHASE 3 has\n"
+        "  begun.",
+    ),
+    (
+        PROC,
+        "Before any code changes, create-tasks splits the change into task\ngroups; implement-tasks then builds them and verifies the result.",
+        "create-tasks studies the change; implement-tasks then makes it, writes\nthe task list of what was done, and verifies the result.",
+    ),
+    # create-tasks: PHASE 1 only
+    (
+        TASKS,
+        "I want you to create a tasks breakdown from the task description for a new feature using the following MULTI-PHASE process and instructions.",
+        "I want you to prepare the implementation of a new feature from the task description using the following process and instructions.",
+    ),
+    (
+        TASKS,
+        f"Once the tasks list has been created at {TASKS_MD}, open `/agent-os/commands/implement-tasks/implement-tasks.md` and continue with that command.",
+        "Once you know what has to change and where, open `/agent-os/commands/implement-tasks/implement-tasks.md` and continue with that command. "
+        f"In this run no tasks list is written at this point: {TASKS_MD} is written in implement-tasks PHASE 2, after the change is made.",
+    ),
+    # implement-tasks: PHASE 1 makes the change, PHASE 2 (moved in from create-tasks) writes and ticks the list
+    (
+        IMPL,
+        "Now that we have a tasks list ready for implementation, we will proceed with implementation of this spec by following this multi-phase process:\n\n"
+        "PHASE 1: Determine which task group(s) from tasks.md should be implemented\n"
+        "PHASE 2: Implement the given task(s)\n"
+        "PHASE 3: After ALL task groups have been implemented, produce the final verification report.",
+        "Now that the change has been studied, we will proceed with implementation of this spec by following this multi-phase process:\n\n"
+        "PHASE 1: Implement the change\n"
+        "PHASE 2: After the change is made and tested, write the tasks list of the change and tick it\n"
+        "PHASE 3: After the tasks list is written and ticked, produce the final verification report.",
+    ),
+    (
+        IMPL,
+        "__BLOCK__# PHASE 1: Determine Tasks__TO__Add lines only: do not reword or remove the tasks that are there.\n",
+        "# PHASE 1: Implement the Change\n\n"
+        "Implement the change the task description asks for by following these instructions. "
+        f"In this run no tasks list exists while you implement: {TASKS_MD} is written in PHASE 2, after the change is made and tested.\n",
+    ),
+    (
+        IMPL,
+        "__BLOCK__1. Analyze the task description and the current task group in tasks.md__TO__checked state: `- [x]`\n",
+        "1. Analyze the task description and the code you studied in create-tasks\n"
+        "2. Analyze patterns in the codebase according to its built-in workflow\n"
+        "3. Write 2-8 focused tests for the behavior to change, before you change the code\n"
+        "4. Implement the change according to requirements and standards\n",
+    ),
+    (IMPL, "(each implementation task group writes them first, as its x.1 sub-task; they are", "(you write them first, before you change the code; they are"),
+    (
+        IMPL,
+        "run the tests again before you tick the task group's last sub-task. Make up to five attempts. If it still does not pass, mark that sub-task's checkbox with ⚠️ instead of ticking it, and go on; do not make a sixth attempt.",
+        "run the tests again before you go on to PHASE 2. Make up to five attempts. If it still does not pass, go on, and in PHASE 2 mark the task group's last sub-task with ⚠️ instead of ticking it; do not make a sixth attempt.",
+    ),
+    (
+        IMPL,
+        "__BLOCK__IF all tasks are now marked as done__TO__repeat PHASE 2 for the next task group with unchecked tasks.\n",
+        "When the change is made and its tests have been run, continue with PHASE 2 (after the standards below).\n",
+    ),
+    (IMPL, "# PHASE 2: Create Tasks List\n", "# PHASE 2: Write the Tasks List\n"),
+    (
+        IMPL,
+        "Now that you know what has to change, please break that down into an actionable tasks list with strategic grouping and ordering, by following these instructions:",
+        "Now that the change is made and tested, please write it down as a tasks list with strategic grouping and ordering, by following these instructions. "
+        'The instructions are written for a change that is still to be made ("write tests", "change to make"); read them as describing the change you have made: '
+        "the tasks are the work the change consisted of, and the tests of an x.1 sub-task are the tests you wrote in PHASE 1.",
+    ),
+    (IMPL, "Go over the task description and the code you studied in PHASE 1 to understand", "Go over the task description and the change you made in PHASE 1 to understand"),
+    (IMPL, "go back to PHASE 2 once, fix the change,", "go back to PHASE 1 once, fix the change,"),
+]
+# folder -> (folder under structure/ whose hand-written texts it starts from, its edits)
+DERIVED: dict[str, tuple[str, list[tuple[str, str, str]]]] = {"s6late": ("s3tasks", S6_EDITS), "s7noplan": ("s3tasks", S7_EDITS)}
 _COMMANDS = {"shape": SHAPE, "write": WRITE, "tasks": TASKS, "impl": IMPL}
 _SECTION = ("<PROBLEM_SOLVING_WORKFLOW>\n", "</PROBLEM_SOLVING_WORKFLOW>")
+
+
+def _s6_move(texts: dict[str, str]) -> None:
+    """Take create-tasks's tasks-list section out and put it, with the ticking step, in front of implement-tasks PHASE 3."""
+    start, end, before = S6_MOVE
+    text = texts[TASKS]
+    if text.count(start) != 1 or text.count(end) != 1 or text.index(start) > text.index(end):
+        raise SystemExit(f"{TASKS}: tasks-list section not found exactly once")
+    i, j = text.index(start), text.index(end)
+    texts[TASKS] = text[:i] + text[j:]
+    _replace(texts, IMPL, before, text[i:j] + S6_TICK + before)
 
 
 def render_structure(name: str) -> dict[str, str]:
     """A structure variant's files: agentos_bugfix's, with ``structure/<folder>/`` texts in place of its own."""
     folder, commands = STRUCTURE[name]
-    own = HERE / "structure" / folder
+    base, derived = DERIVED.get(folder, (folder, []))
+    own = HERE / "structure" / base
     texts = {_COMMANDS[c]: (SRC / _COMMANDS[c]).read_text() for c in commands}
-    if folder == "s3tasks":
+    if base == "s3tasks":
         for file, old, new in S3_EDITS:
             _replace(texts, file, old, new)
     for rel, src in ((OVERVIEW, own / "overview.md"), ("instruction.md", own / "instruction.md")):
@@ -448,12 +648,17 @@ def render_structure(name: str) -> dict[str, str]:
         # The control's overview revokes "any procedure you would otherwise follow"; with the default steps kept in
         # the system prompt that sentence would take them back again, so it says where they are carried out instead.
         _replace(texts, OVERVIEW, "it replaces any procedure you would otherwise follow.", "the steps of the procedure in your system prompt are carried out inside it.")
+    texts[PROC] = (own / "procedure.txt").read_text()
+    if folder == "s6late":
+        _s6_move(texts)
+    for file, old, new in derived:
+        _replace(texts, file, old, new)
     system = (SRC / SYSTEM).read_text()
     a, b = _SECTION
     if system.count(a) != 1 or system.count(b) != 1:
         raise SystemExit(f"{SYSTEM}: procedure section markers not found exactly once")
     i, j = system.index(a) + len(a), system.index(b)
-    texts[SYSTEM] = system[:i] + (HERE / "structure" / "default-procedure.txt").read_text() + (own / "procedure.txt").read_text() + system[j:]
+    texts[SYSTEM] = system[:i] + (HERE / "structure" / "default-procedure.txt").read_text() + texts.pop(PROC) + system[j:]
     return texts
 
 
