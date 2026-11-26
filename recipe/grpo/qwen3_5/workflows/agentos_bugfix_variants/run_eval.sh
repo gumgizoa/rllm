@@ -17,6 +17,9 @@
 #   REPO       코드 위치. 기본 이 스크립트가 든 저장소
 #   PY         파이썬 실행 파일. 기본 $REPO/.venv/bin/python (같은 폴더의 rllm 명령을 씀)
 #   CONC       endpoint 당 동시 실행 수. 기본 24
+#   DATASET    평가 데이터셋 이름. 기본 swebench_verified_all (499 과제). subset 은 swebench_verified_100
+#              (recipe/eval/swebench-verified/README.md 로 준비). 과제 수는 $RLLM_HOME/datasets/registry.json 에서 읽는다.
+#              결과 폴더 이름에는 들어가지 않으므로 run key 로 구분한다 (예: step27-s100)
 # 첫 실행 주의: 에이전트 이미지(rllm-agent-<hash>)가 없는 장비에서 여러 과제가 동시에 그 이미지를 빌드하면 일부가
 #   "image already exists" 로 실패하고, 재시도 없이 오류로 남는다. 과제 하나짜리 실행으로 이미지를 먼저 만들어 둔다 (README).
 set -uo pipefail
@@ -27,7 +30,10 @@ PY=${PY:-$REPO/.venv/bin/python}
 RLLM_BIN=$(dirname "$PY")/rllm
 [ -x "$PY" ] && [ -x "$RLLM_BIN" ] || { echo "python or rllm command not found: $PY, $RLLM_BIN (set PY)"; exit 2; }
 CONC=${CONC:-24}
+DATASET=${DATASET:-swebench_verified_all}
 export RLLM_HOME=${RLLM_HOME:-$HOME/.rllm}
+NTASKS=$($PY -c "import json,sys; print(json.load(open(sys.argv[1]))['datasets'][sys.argv[2]]['splits']['test']['num_examples'])" "$RLLM_HOME/datasets/registry.json" "$DATASET") \
+  || { echo "dataset not registered under $RLLM_HOME/datasets: $DATASET"; exit 2; }
 export RLLM_AGENT_IMAGE=auto
 export PYTHONPATH=$REPO
 NAME=${WF}__${KEY}_x${ATT}${IDX:+-smoke}
@@ -39,6 +45,7 @@ N=${#EP[@]}
 cd "$REPO"
 # 같은 결과 폴더를 다른 과제 목록이나 다른 endpoint 수로 다시 쓰면 끝난 shard 를 건너뛰어 일부 과제가 안 돈다. 그 경우 멈춘다.
 SIG="endpoints=$N indices=${IDX:-all}"
+[ "$DATASET" != swebench_verified_all ] && SIG="$SIG dataset=$DATASET"
 if [ -f "$BASE/run_sig.txt" ] && [ "$(cat "$BASE/run_sig.txt")" != "$SIG" ]; then
   echo "result folder $BASE was started with '$(cat "$BASE/run_sig.txt")' but this call is '$SIG'."
   echo "Use another run key, or the same number of endpoints and the same task indices."
@@ -48,7 +55,7 @@ echo "$SIG" > "$BASE/run_sig.txt"
 {
   echo "--- call at $(date -Is)"
   echo "workflow: $WF"; echo "run key: $KEY"; echo "served model: $SERVED"; echo "endpoints: $URLS"; echo "attempts: $ATT"
-  echo "concurrency per endpoint: $CONC"; echo "task indices: ${IDX:-all 499}"; echo "repo: $REPO @ $(git rev-parse --short HEAD) ($(git status --short | wc -l) uncommitted paths)"
+  echo "concurrency per endpoint: $CONC"; echo "dataset: $DATASET ($NTASKS tasks)"; echo "task indices: ${IDX:-all $NTASKS}"; echo "repo: $REPO @ $(git rev-parse --short HEAD) ($(git status --short | wc -l) uncommitted paths)"
   echo "workflow fingerprint: $($PY -c "import sys; from recipe.grpo.qwen3_5.workflows import get_workflow; print('-' if sys.argv[1]=='none' else get_workflow(sys.argv[1]).fingerprint('openhands-sdk'))" "$WF")"
   echo "started: $(date -Is)"
 } >> "$BASE/run_info.txt"
@@ -62,13 +69,13 @@ for g in $(seq 0 $((N - 1))); do
     [ "$g" -gt 0 ] && break
     SH="$IDX"
   else
-    SH=$(seq $g $N 498 | paste -sd,)
+    SH=$(seq $g $N $((NTASKS - 1)) | paste -sd,)
   fi
   OUT=$BASE/shards/s$g
   mkdir -p "$OUT"
   [ -f "$BASE/results/s$g.json" ] && { echo "[$(date -Is)] have shard s$g, skip" | tee -a "$BASE/run.log"; continue; }
   (
-    $RLLM_BIN eval swebench_verified_all --split test --task-indices "$SH" \
+    $RLLM_BIN eval "$DATASET" --split test --task-indices "$SH" \
       --agent recipe.grpo.qwen3_5.workflow_harness:OpenHandsSdkWorkflow \
       --agent-image auto --sandbox-backend docker --hide-git-history --no-agent-network --verify-network \
       --concurrency "$CONC" --sandbox-concurrency "$CONC" --attempts "$ATT" --no-ui \
