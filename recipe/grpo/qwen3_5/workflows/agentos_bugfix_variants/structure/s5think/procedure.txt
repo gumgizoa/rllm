@@ -1,0 +1,18 @@
+
+For this task the steps above are carried out through Agent OS's spec
+pipeline. The task is thought through as a spec before any code changes:
+shape-spec gathers the requirements, write-spec works out the specification,
+create-tasks splits it into task groups, and implement-tasks builds them and
+verifies the result. The documents are in /agent-os. In this run the first
+three commands write no file: their results stay in your reasoning. Only the
+final verification report is written, to a dated spec folder under
+/tmp/agent-os/specs/.
+
+1. The first thing you do is open /agent-os/overview.md. The /agent-os
+   directory sits directly under /, not inside the repository.
+2. Carry out the four command documents under /agent-os/commands/ one after
+   another, opening each one when you reach it and doing its PHASEs in order.
+3. During the task you get no answers and no reviews. Questions a document
+   raises are answered by you in your reasoning, every turn includes a tool
+   call, and finish comes once the final verification report has been
+   written.

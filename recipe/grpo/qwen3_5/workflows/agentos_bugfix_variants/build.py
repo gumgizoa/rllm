@@ -41,6 +41,16 @@ hand-written texts are in ``structure/<name>/``:
     none -> s1report -> s3tasks -> s4prompt -> agentos_bugfix adds one thing per step; s2after against s1report
     shows what the three planning documents cost when they come after the change.
 
+Fourth round (2026-11-26): the cost sits in the planning documents written before the code (about 6 points per
+document on the trained model, s1report 63.1 -> s3tasks 57.3 -> s4prompt 51.5), and the same four documents written
+after the change cost nothing against no workflow (s2after 58.3). That leaves two readings: the planning procedure
+costs, or putting the plan on paper does.
+
+    s5think   s4prompt with the three planning commands carried out in the model's reasoning only: the command
+              documents are the control's, read in order before any code change, and no planning file is written
+              (the final verification report is the one document). Near s1report: writing the plan down is what
+              costs. Near s4prompt: the planning procedure costs, written or not.
+
 ``--check`` exits 1 when ``variants/`` is not what this file would write.
 """
 
@@ -73,8 +83,9 @@ STRUCTURE: dict[str, tuple[str, list[str]]] = {
     "agentos_bugfix_s2after": ("s2after", ["shape", "write", "tasks", "impl"]),
     "agentos_bugfix_s3tasks": ("s3tasks", ["tasks", "impl"]),
     "agentos_bugfix_s4prompt": ("s4prompt", ["shape", "write", "tasks", "impl"]),
+    "agentos_bugfix_s5think": ("s5think", ["shape", "write", "tasks", "impl"]),  # fourth round; not in STRUCTURE_RUN
 }
-STRUCTURE_RUN = list(STRUCTURE)
+STRUCTURE_RUN = [n for n in STRUCTURE if n != "agentos_bugfix_s5think"]
 
 OVERVIEW = "docs/overview.md"
 SHAPE = "docs/commands/shape-spec/shape-spec.md"
