@@ -49,7 +49,7 @@ classify:
     brackets: false
     placeholder:
       - '<!--.*?-->'
-      - '`checks/<name>\.py`'
+      - '`checks/<name>\.\w+`'
       - '`<command>` → <[^<>\n]*>'
       - '`<command>`'
       - '<[A-Za-z][^<>\n]*>'
@@ -481,7 +481,7 @@ manual:
     stage: global
     class: evidence
     requirement: must
-    check: {kind: speckit_bug.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:assessment|fix(?:-[23])?|test(?:-[23])?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    check: {kind: speckit_bug.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:assessment|fix(?:-[23])?|test(?:-[23])?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
     availability: [trace]
     modality_evidence: "prohibition (CW:45-46 'Never write reports, checks, or scratch files into the repository')"
     sources:

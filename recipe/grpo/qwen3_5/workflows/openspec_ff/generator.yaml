@@ -483,7 +483,7 @@ manual:
     stage: global
     class: evidence
     requirement: must
-    check: {kind: openspec_ff.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:proposal|design|tasks|verify(?:-2)?|spec)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
+    check: {kind: openspec_ff.created_files, params: {pattern: '(?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:proposal|design|tasks|verify(?:-2)?|spec)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$'}}
     availability: [trace]
     modality_evidence: "prohibition (CW:79-80 'Leave nothing else behind in `/testbed`: no notes, summaries or scratch scripts')"
     sources:
@@ -494,7 +494,7 @@ manual:
     stage: global
     class: evidence
     requirement: should
-    check: {kind: openspec_ff.paths_written, params: {pattern: '^/tmp/.*\.(?:py|sh)$'}}
+    check: {kind: openspec_ff.paths_written, params: {pattern: '^/tmp/.*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go)$'}}
     availability: [trace]
     modality_evidence: "CW:36-37 'From the ff action on, scripts you write to reproduce or check behavior go in ... checks/' -- a script written to /tmp instead; a helper script that only edits code is not one, so should (explore writes none at all: the explore stage's no-write item)"
     sources:

@@ -2186,7 +2186,8 @@ items:
     - 19
     quote: '- [ ] Record the module or package that owns those files, and its boundary within the repository'
   note: Judging from the path strings alone, does every source path under `Files` (test files aside) sit inside the module
-    or package named as `Owning module` (its directory or dotted-package prefix matches)?
+    or package named as `Owning module` (its directory, its dotted-package prefix, or the directory its import path / package
+    name ends in matches)?
 - id: atom/D3b
   scope: specific
   class: content
@@ -3366,9 +3367,9 @@ items:
     - 36
     - 36
     quote: '- Error paths: which condition must raise, which must be handled, and what the observable result is'
-  note: 'Does at least one Edge Case entry state an error path: the condition, whether it raises or is handled, and what the
-    caller observes? Answer n/a if neither the issue nor the Functional requirements mention an error, exception or invalid
-    input.'
+  note: 'Does at least one Edge Case entry state an error path: the condition, whether it raises (or returns an error) or
+    is handled, and what the caller observes? Answer n/a if neither the issue nor the Functional requirements mention an error,
+    exception or invalid input.'
 - id: atom/E8c
   scope: specific
   class: structure

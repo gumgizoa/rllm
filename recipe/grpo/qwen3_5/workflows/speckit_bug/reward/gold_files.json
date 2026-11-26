@@ -17648,5 +17648,6166 @@
 "src": [
 "sympy/parsing/sympy_parser.py"
 ]
+},
+"99designs__gqlgen-1363_version-0.13": {
+"src": [
+"codegen/config/binder.go",
+"codegen/testserver/ptr_to_slice.go",
+"codegen/testserver/resolver.go",
+"codegen/testserver/stub.go",
+"codegen/type.go"
+]
+},
+"99designs__gqlgen-1449_version-0.13": {
+"src": [
+"codegen/field.go",
+"codegen/testserver/resolver.go",
+"codegen/testserver/stub.go",
+"codegen/testserver/v-ok.go"
+]
+},
+"99designs__gqlgen-3304_version-0.17": {
+"src": [
+"codegen/config/binder.go"
+]
+},
+"99designs__gqlgen-4148_version-0.17": {
+"src": [
+"graphql/handler/transport/websocket.go"
+]
+},
+"99designs__gqlgen-4256_version-0.17": {
+"src": [
+"codegen/testserver/followschema/prelude.generated.go",
+"codegen/testserver/followschema/ptr_to_any.generated.go",
+"codegen/testserver/singlefile/generated.go"
+]
+},
+"99designs__gqlgen-994_version-0.10": {
+"src": [
+"graphql/cache.go",
+"graphql/handler/executor.go",
+"graphql/handler/extension/apq.go",
+"graphql/handler/lru/lru.go",
+"handler/handler.go"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1003_version-1.42": {
+"src": [
+"src/steps/writing/creation/dotGitHub/createWorkflowFile.ts",
+"src/steps/writing/creation/dotGitHub/createWorkflows.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1063_version-1.48": {
+"src": [
+"src/bin/index.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1144_version-1.50": {
+"src": [
+"src/create/createRerunSuggestion.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1297_version-1.56": {
+"src": [
+".eslintrc.cjs",
+"src/steps/finalizeDependencies.ts",
+"src/steps/writing/creation/createESLintRC.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1307_version-1.57": {
+"src": [
+"src/create/createRerunSuggestion.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1809_version-1.77": {
+"src": [
+"src/steps/updateReadme.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1862_version-2.0": {
+"src": [
+"src/next/blocks/blockESLintNode.ts"
+]
+},
+"JoshuaKGoldberg__create-typescript-app-1868_version-2.0": {
+"src": [
+"src/next/blocks/blockDevelopmentDocs.ts",
+"src/steps/writing/creation/dotGitHub/createDevelopment/index.ts"
+]
+},
+"Koenkk__zigbee-herdsman-converters-13178_version-26.108": {
+"src": [
+"src/lib/utils.ts"
+]
+},
+"PlakarKorp__plakar-2132_version-1.0": {
+"src": [
+"subcommands/prune/prune.go"
+]
+},
+"PlakarKorp__plakar-2295_version-1.0": {
+"src": [
+"subcommands/ls/ls.go"
+]
+},
+"Project-HAMi__HAMi-1663_version-2.8": {
+"src": [
+"pkg/scheduler/scheduler.go",
+"pkg/util/nodelock/nodelock.go"
+]
+},
+"Project-HAMi__HAMi-1820_version-2.8": {
+"src": [
+"pkg/scheduler/policy/gpu_policy.go",
+"pkg/scheduler/policy/node_policy.go"
+]
+},
+"Project-HAMi__HAMi-1997_version-2.8": {
+"src": [
+"pkg/device/nvidia/device.go"
+]
+},
+"Project-HAMi__HAMi-2255_version-2.8": {
+"src": [
+"pkg/util/nodelock/nodelock.go"
+]
+},
+"Project-HAMi__HAMi-2259_version-2.8": {
+"src": [
+"pkg/scheduler/scheduler.go"
+]
+},
+"Project-HAMi__HAMi-2388_version-2.8": {
+"src": [
+"pkg/device/hygon/device.go",
+"pkg/device/metax/sdevice.go"
+]
+},
+"Project-HAMi__HAMi-2536_version-2.8": {
+"src": [
+"pkg/device/cambricon/device.go"
+]
+},
+"Project-HAMi__HAMi-2765_version-2.10": {
+"src": [
+"pkg/device/devices.go"
+]
+},
+"Project-HAMi__HAMi-2776_version-2.10": {
+"src": [
+"cmd/vGPUmonitor/metrics.go"
+]
+},
+"Project-HAMi__HAMi-2868_version-2.10": {
+"src": [
+"pkg/device/numa_refit.go",
+"pkg/scheduler/numa_refit.go",
+"pkg/scheduler/numa_refit_handler.go",
+"pkg/scheduler/score.go"
+]
+},
+"Project-HAMi__HAMi-2936_version-2.10": {
+"src": [
+"pkg/device/nvidia/device.go"
+]
+},
+"Project-HAMi__HAMi-2939_version-2.10": {
+"src": [
+"pkg/scheduler/scheduler.go"
+]
+},
+"Rel1cx__eslint-react-1818_version-5.8": {
+"src": [
+"packages/ast/src/extract.ts",
+"packages/core/src/class-component.ts"
+]
+},
+"Shopify__cli-3638_version-3.58": {
+"src": [
+"packages/app/src/cli/prompts/dev.ts",
+"packages/app/src/cli/services/app/select-app.ts",
+"packages/app/src/cli/services/dev/select-app.ts",
+"packages/app/src/cli/services/webhook/find-app-info.ts"
+]
+},
+"Shopify__cli-3656_version-3.58": {
+"src": [
+"packages/app/src/cli/constants.ts"
+]
+},
+"Shopify__cli-4497_version-3.67": {
+"src": [
+"packages/theme/src/cli/utilities/theme-environment/proxy.ts"
+]
+},
+"Shopify__cli-4544_version-3.67": {
+"src": [
+"packages/theme/src/cli/utilities/theme-environment/hot-reload/server.ts"
+]
+},
+"Shopify__cli-4569_version-3.68": {
+"src": [
+"packages/theme/src/cli/utilities/theme-environment/proxy.ts"
+]
+},
+"Shopify__cli-4624_version-3.68": {
+"src": [
+"packages/theme/src/cli/utilities/theme-environment/local-assets.ts"
+]
+},
+"Shopify__cli-4642_version-3.68": {
+"src": [
+"packages/theme/src/cli/utilities/asset-ignore.ts"
+]
+},
+"Shopify__cli-5727_version-3.78": {
+"src": [
+"packages/theme/src/cli/utilities/theme-fs.ts"
+]
+},
+"Tochemey__goakt-1004_version-3.11": {
+"src": [
+"actor/actor_system.go"
+]
+},
+"Tochemey__goakt-1030_version-3.11": {
+"src": [
+"actor/grain_pid.go"
+]
+},
+"Tochemey__goakt-1229_version-4.2": {
+"src": [
+"actor/grain_engine.go",
+"playground/issue-1227/main.go"
+]
+},
+"Tochemey__goakt-383_version-2.3": {
+"src": [
+"actors/pid.go"
+]
+},
+"TwiN__gatus-1283_version-5.24": {
+"src": [
+"storage/store/sql/sql.go"
+]
+},
+"TwiN__gatus-1586_version-5.35": {
+"src": [
+"alerting/provider/email/email.go"
+]
+},
+"TwiN__gatus-364_version-4.3": {
+"src": [
+"alerting/alert/alert.go",
+"alerting/provider/googlechat/googlechat.go"
+]
+},
+"TwiN__gatus-392_version-5.1": {
+"src": [
+"jsonpath/jsonpath.go"
+]
+},
+"TwiN__gatus-434_version-5.3": {
+"src": [
+"core/condition.go"
+]
+},
+"TwiN__gatus-531_version-5.5": {
+"src": [
+"config/web/web.go",
+"controller/controller.go"
+]
+},
+"TwiN__gatus-572_version-5.5": {
+"src": [
+"alerting/provider/email/email.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-10604_version-1.122": {
+"src": [
+"lib/mergeset/table.go",
+"lib/storage/partition.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-10625_version-1.136": {
+"src": [
+"app/vmalert/templates/template.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-10788_version-1.140": {
+"src": [
+"lib/handshake/handshake.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-10842_version-1.122": {
+"src": [
+"lib/netutil/proxyprotocol.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-11530_version-1.152": {
+"src": [
+"app/vmauth/auth_config.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-3586_version-1.85": {
+"src": [
+"lib/promscrape/discovery/dockerswarm/api.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-6486_version-0.19": {
+"src": [
+"lib/flagutil/duration.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-6621_version-1.102": {
+"src": [
+"lib/netutil/tls.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-8839_version-1.102": {
+"src": [
+"lib/protoparser/datadogsketches/parser.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-8938_version-1.102": {
+"src": [
+"lib/promauth/config.go"
+]
+},
+"VictoriaMetrics__VictoriaMetrics-9170_version-1.110": {
+"src": [
+"lib/streamaggr/rate.go"
+]
+},
+"VictoriaMetrics__operator-1542_version-0.63": {
+"src": [
+"internal/controller/operator/factory/reconcile/service.go",
+"internal/controller/operator/factory/vmcluster/vmcluster.go"
+]
+},
+"VictoriaMetrics__operator-1784_version-0.68": {
+"src": [
+"internal/controller/operator/converter/v1alpha1/apis.go"
+]
+},
+"VictoriaMetrics__operator-2133_version-0.69": {
+"src": [
+"internal/controller/operator/factory/vmalertmanager/config.go"
+]
+},
+"VictoriaMetrics__operator-2352_version-0.72": {
+"src": [
+"internal/converter/converter.go"
+]
+},
+"VictoriaMetrics__operator-2445_version-0.73": {
+"src": [
+"api/operator/v1beta1/vmagent_types.go",
+"api/operator/v1beta1/vmalert_types.go",
+"api/operator/v1beta1/vmalertmanager_types.go",
+"api/operator/v1beta1/vmauth_types.go",
+"api/operator/v1beta1/vmsingle_types.go"
+]
+},
+"VictoriaMetrics__operator-2568_version-0.75": {
+"src": [
+"api/operator/v1beta1/vmauth_types.go",
+"internal/controller/operator/factory/vmauth/vmusers_config.go"
+]
+},
+"actions__actions-runner-controller-2502_version-0.23": {
+"src": [
+"controllers/actions.summerwind.net/horizontal_runner_autoscaler_batch_scale.go"
+]
+},
+"actions__actions-runner-controller-3307_version-0.8": {
+"src": [
+"cmd/ghalistener/listener/listener.go"
+]
+},
+"algolia__autocomplete-1220_version-1.12": {
+"src": [
+"packages/autocomplete-plugin-algolia-insights/src/createAlgoliaInsightsPlugin.ts"
+]
+},
+"algolia__autocomplete-1231_version-1.13": {
+"src": [
+"packages/autocomplete-js/src/autocomplete.ts"
+]
+},
+"algolia__autocomplete-1278_version-1.17": {
+"src": [
+"packages/autocomplete-core/src/getPropGetters.ts",
+"packages/autocomplete-shared/src/core/AutocompletePropGetters.ts"
+]
+},
+"algolia__autocomplete-1331_version-1.19": {
+"src": [
+"packages/autocomplete-preset-algolia/src/highlight/isPartHighlighted.ts"
+]
+},
+"algolia__autocomplete-1354_version-1.19": {
+"src": [
+"packages/autocomplete-core/src/onKeyDown.ts",
+"packages/autocomplete-core/src/stateReducer.ts"
+]
+},
+"algolia__autocomplete-753_version-1.4": {
+"src": [
+"packages/autocomplete-core/src/onInput.ts",
+"packages/autocomplete-core/src/utils/createConcurrentSafePromise.ts"
+]
+},
+"algolia__autocomplete-803_version-1.4": {
+"src": [
+"packages/autocomplete-core/src/getPropGetters.ts"
+]
+},
+"algolia__instantsearch-4627_version-4.13": {
+"src": [
+"src/connectors/range/connectRange.ts"
+]
+},
+"algolia__instantsearch-5014_version-4.39": {
+"src": [
+"src/connectors/hits/connectHits.ts",
+"src/connectors/infinite-hits/connectInfiniteHits.ts"
+]
+},
+"algolia__instantsearch-6173_version-3.19": {
+"src": [
+"packages/instantsearch.js/src/widgets/index/index.ts"
+]
+},
+"algolia__instantsearch-6631_version-1.5": {
+"src": [
+"packages/instantsearch.js/src/middlewares/createInsightsMiddleware.ts"
+]
+},
+"algolia__instantsearch-7011_version-7.31": {
+"src": [
+"packages/instantsearch.js/src/lib/stateMappings/simple.ts"
+]
+},
+"ant-design__ant-design-mobile-7037_version-5.42": {
+"src": [
+"src/components/date-picker/date-picker-week-utils.ts"
+]
+},
+"apache__camel-k-6034_version-2.5": {
+"src": [
+"pkg/controller/integrationplatform/kamelets.go"
+]
+},
+"apache__camel-k-6112_version-2.5": {
+"src": [
+"pkg/trait/util.go"
+]
+},
+"apache__camel-k-6190_version-2.5": {
+"src": [
+"pkg/util/source/inspector_groovy.go",
+"pkg/util/source/inspector_java_script.go",
+"pkg/util/source/inspector_java_source.go",
+"pkg/util/source/inspector_kotlin.go",
+"pkg/util/source/inspector_xml.go",
+"pkg/util/source/inspector_yaml.go"
+]
+},
+"apache__camel-k-6460_version-2.5": {
+"src": [
+"pkg/cmd/bind.go",
+"pkg/cmd/run.go",
+"pkg/trait/cron.go",
+"pkg/trait/knative.go",
+"pkg/util/source/inspector_yaml.go"
+]
+},
+"apache__camel-k-6665_version-2.5": {
+"src": [
+"pkg/controller/build/build_controller.go"
+]
+},
+"apache__pulsar-client-go-1133_version-0.9": {
+"src": [
+"pulsar/table_view.go",
+"pulsar/table_view_impl.go"
+]
+},
+"apache__pulsar-client-go-1219_version-0.12": {
+"src": [
+"pulsar/reader_impl.go",
+"pulsar/table_view_impl.go"
+]
+},
+"apache__pulsar-client-go-305_version-0.1": {
+"src": [
+"pulsar/reader_impl.go"
+]
+},
+"apache__pulsar-client-go-329_version-0.1": {
+"src": [
+"pulsar/consumer_partition.go"
+]
+},
+"apollographql__apollo-client-10362_version-3.7": {
+"src": [
+"src/core/LocalState.ts"
+]
+},
+"apollographql__apollo-client-10368_version-3.7": {
+"src": [
+"config/bundlesize.ts",
+"src/core/QueryInfo.ts",
+"src/core/QueryManager.ts",
+"src/utilities/common/errorHandling.ts",
+"src/utilities/common/incrementalResult.ts"
+]
+},
+"apollographql__apollo-client-10408_version-3.7": {
+"src": [
+"src/link/batch/batching.ts"
+]
+},
+"apollographql__apollo-client-10425_version-3.7": {
+"src": [
+"src/react/hooks/useMutation.ts"
+]
+},
+"apollographql__apollo-client-10427_version-3.7": {
+"src": [
+"config/bundlesize.ts",
+"src/react/hooks/useLazyQuery.ts",
+"src/react/hooks/useQuery.ts"
+]
+},
+"apollographql__apollo-client-10499_version-3.7": {
+"src": [
+"config/bundlesize.ts",
+"src/react/hooks/useLazyQuery.ts",
+"src/utilities/common/mergeOptions.ts"
+]
+},
+"apollographql__apollo-client-10594_version-3.7": {
+"src": [
+"src/react/hooks/useSuspenseCache.ts",
+"src/react/hooks/useSuspenseQuery.ts",
+"src/react/types/types.ts"
+]
+},
+"apollographql__apollo-client-10601_version-3.8": {
+"src": [
+"config/bundlesize.ts",
+"src/react/hooks/useSuspenseQuery.ts"
+]
+},
+"apollographql__apollo-client-10651_version-3.8": {
+"src": [
+"src/react/hooks/useSuspenseQuery.ts"
+]
+},
+"apollographql__apollo-client-10931_version-3.8": {
+"src": [
+".size-limit.cjs",
+"src/react/hooks/useMutation.ts"
+]
+},
+"apollographql__apollo-client-11035_version-3.8": {
+"src": [
+".size-limit.cjs",
+"src/react/cache/QueryReference.ts",
+"src/react/hooks/useBackgroundQuery.ts",
+"src/react/hooks/useSuspenseQuery.ts"
+]
+},
+"apollographql__apollo-client-11058_version-3.8": {
+"src": [
+"src/config/jest/setup.ts",
+"src/link/batch-http/batchHttpLink.ts",
+"src/link/http/parseAndCheckHttpResponse.ts"
+]
+},
+"apollographql__apollo-client-11162_version-3.8": {
+"src": [
+".size-limit.cjs",
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-11180_version-3.8": {
+"src": [
+".size-limit.cjs",
+"src/core/ObservableQuery.ts",
+"src/react/cache/QueryReference.ts",
+"src/react/hooks/useQuery.ts"
+]
+},
+"apollographql__apollo-client-11186_version-3.8": {
+"src": [
+"src/core/QueryInfo.ts",
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-11515_version-3.9": {
+"src": [
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-11626_version-3.10": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-11638_version-3.9": {
+"src": [
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-11689_version-3.9": {
+"src": [
+"src/react/hooks/useFragment.ts"
+]
+},
+"apollographql__apollo-client-11706_version-3.9": {
+"src": [
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-11769_version-3.9": {
+"src": [
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-11821_version-3.10": {
+"src": [
+"src/react/hooks/useBackgroundQuery.ts",
+"src/react/hooks/useReadQuery.ts",
+"src/react/hooks/useSuspenseQuery.ts",
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-11844_version-3.10": {
+"src": [
+"src/cache/core/cache.ts"
+]
+},
+"apollographql__apollo-client-11926_version-3.11": {
+"src": [
+"src/cache/core/cache.ts"
+]
+},
+"apollographql__apollo-client-11984_version-3.11": {
+"src": [
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-12052_version-3.11": {
+"src": [
+"src/cache/core/cache.ts"
+]
+},
+"apollographql__apollo-client-12110_version-3.11": {
+"src": [
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-12236_version-3.12": {
+"src": [
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-12287_version-3.12": {
+"src": [
+"src/cache/core/cache.ts"
+]
+},
+"apollographql__apollo-client-12318_version-3.12": {
+"src": [
+"src/link/retry/retryLink.ts"
+]
+},
+"apollographql__apollo-client-12362_version-3.13": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-12461_version-3.13": {
+"src": [
+"src/core/QueryInfo.ts"
+]
+},
+"apollographql__apollo-client-12542_version-4.0": {
+"src": [
+"src/react/hooks/useLazyQuery.ts"
+]
+},
+"apollographql__apollo-client-12681_version-4.0": {
+"src": [
+"src/core/ObservableQuery.ts",
+"src/react/hooks/useLazyQuery.ts",
+"src/react/hooks/useQuery.ts",
+"src/react/internal/cache/QueryReference.ts"
+]
+},
+"apollographql__apollo-client-12750_version-3.13": {
+"src": [
+"src/cache/inmemory/policies.ts"
+]
+},
+"apollographql__apollo-client-12937_version-4.0": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-13086_version-4.1": {
+"src": [
+"src/cache/inmemory/readFromStore.ts"
+]
+},
+"apollographql__apollo-client-13094_version-4.0": {
+"src": [
+"src/utilities/internal/compact.ts"
+]
+},
+"apollographql__apollo-client-13103_version-4.1": {
+"src": [
+"src/local-state/LocalState.ts"
+]
+},
+"apollographql__apollo-client-13155_version-4.1": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-13184_version-4.2": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-13281_version-4.2": {
+"src": [
+"src/core/ApolloClient.ts"
+]
+},
+"apollographql__apollo-client-13364_version-4.2": {
+"src": [
+"src/cache/inmemory/readFromStore.ts"
+]
+},
+"apollographql__apollo-client-13367_version-4.2": {
+"src": [
+"src/core/ObservableQuery.ts",
+"src/core/QueryManager.ts",
+"src/core/types.ts"
+]
+},
+"apollographql__apollo-client-13464_version-2.2": {
+"src": [
+"src/react/hooks/useLazyQuery.ts"
+]
+},
+"apollographql__apollo-client-7652_version-3.3": {
+"src": [
+"src/react/hooks/useReactiveVar.ts"
+]
+},
+"apollographql__apollo-client-7657_version-3.3": {
+"src": [
+"src/cache/inmemory/inMemoryCache.ts",
+"src/cache/inmemory/reactiveVars.ts"
+]
+},
+"apollographql__apollo-client-7761_version-3.3": {
+"src": [
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-7778_version-3.4": {
+"src": [
+"src/cache/inmemory/entityStore.ts",
+"src/cache/inmemory/policies.ts",
+"src/cache/inmemory/types.ts"
+]
+},
+"apollographql__apollo-client-8018_version-3.3": {
+"src": [
+"src/react/data/MutationData.ts"
+]
+},
+"apollographql__apollo-client-8372_version-3.4": {
+"src": [
+"src/cache/inmemory/writeToStore.ts"
+]
+},
+"apollographql__apollo-client-8438_version-3.3": {
+"src": [
+"src/utilities/policies/pagination.ts"
+]
+},
+"apollographql__apollo-client-8449_version-3.3": {
+"src": [
+"src/link/http/selectHttpOptionsAndBody.ts"
+]
+},
+"apollographql__apollo-client-8574_version-3.4": {
+"src": [
+"src/react/data/QueryData.ts"
+]
+},
+"apollographql__apollo-client-8718_version-3.4": {
+"src": [
+"src/core/ObservableQuery.ts"
+]
+},
+"apollographql__apollo-client-8813_version-3.4": {
+"src": [
+"src/utilities/common/maybeDeepFreeze.ts"
+]
+},
+"apollographql__apollo-client-8832_version-3.4": {
+"src": [
+"src/cache/inmemory/inMemoryCache.ts"
+]
+},
+"apollographql__apollo-client-8979_version-3.5": {
+"src": [
+"src/core/QueryManager.ts"
+]
+},
+"apollographql__apollo-client-9573_version-3.7": {
+"src": [
+"config/bundlesize.ts",
+"src/core/LocalState.ts"
+]
+},
+"apollographql__apollo-client-9801_version-3.7": {
+"src": [
+"src/react/hooks/useQuery.ts"
+]
+},
+"apollographql__apollo-client-9808_version-3.6": {
+"src": [
+"src/cache/inmemory/policies.ts"
+]
+},
+"ardatan__graphql-mesh-3635_version-0.5": {
+"src": [
+"packages/handlers/openapi/src/openapi-to-graphql/resolver_builder.ts"
+]
+},
+"ardatan__graphql-mesh-4419_version-0.1": {
+"src": [
+"packages/loaders/openapi/src/getJSONSchemaOptionsFromOpenAPIOptions.ts"
+]
+},
+"ardatan__graphql-mesh-5895_version-0.87": {
+"src": [
+"packages/handlers/thrift/src/index.ts"
+]
+},
+"ardatan__graphql-mesh-5970_version-0.95": {
+"src": [
+"packages/cache/redis/src/index.ts"
+]
+},
+"ardatan__graphql-mesh-6421_version-0.96": {
+"src": [
+"packages/transforms/naming-convention/src/bareNamingConvention.ts"
+]
+},
+"ardatan__graphql-mesh-6480_version-0.97": {
+"src": [
+"packages/transforms/naming-convention/src/bareNamingConvention.ts"
+]
+},
+"ardatan__graphql-mesh-6951_version-0.99": {
+"src": [
+"packages/legacy/runtime/src/get-mesh.ts"
+]
+},
+"ardatan__graphql-mesh-7388_version-0.8": {
+"src": [
+"packages/loaders/json-schema/src/getTypeResolverFromOutputTCs.ts",
+"packages/loaders/json-schema/src/getUnionTypeComposers.ts",
+"packages/transports/rest/src/directives/getTypeResolverForAbstractType.ts"
+]
+},
+"ardatan__graphql-mesh-8640_version-1.4": {
+"src": [
+"packages/loaders/openapi/src/getJSONSchemaOptionsFromOpenAPIOptions.ts"
+]
+},
+"ardatan__graphql-mesh-9643_version-0.103": {
+"src": [
+"packages/loaders/json-schema/src/getComposerFromJSONSchema.ts"
+]
+},
+"ardatan__graphql-tools-4471_version-7.2": {
+"src": [
+"packages/import/src/index.ts"
+]
+},
+"ardatan__graphql-tools-7271_version-8.0": {
+"src": [
+"packages/graphql-tag-pluck/src/index.ts"
+]
+},
+"ardatan__graphql-tools-8204_version-8.1": {
+"src": [
+"packages/utils/src/mergeDeep.ts"
+]
+},
+"ardatan__graphql-tools-8368_version-8.0": {
+"src": [
+"packages/utils/src/print-schema-with-directives.ts"
+]
+},
+"argoproj-labs__argocd-operator-1553_version-0.12": {
+"src": [
+"controllers/argocd/ingress.go"
+]
+},
+"argoproj-labs__argocd-operator-305_version-0.0": {
+"src": [
+"pkg/controller/argocd/deployment.go",
+"pkg/controller/argocd/statefulset.go",
+"pkg/controller/argocd/testing.go"
+]
+},
+"argoproj-labs__argocd-operator-772_version-0.0": {
+"src": [
+"controllers/argocd/notifications.go"
+]
+},
+"argoproj-labs__argocd-operator-818_version-0.0": {
+"src": [
+"controllers/argocd/deployment.go",
+"controllers/argocd/status.go"
+]
+},
+"atlassian-labs__compiled-1467_version-0.19": {
+"src": [
+"packages/css/src/plugins/expand-shorthands/index.ts"
+]
+},
+"bash-lsp__bash-language-server-1371_version-5.6": {
+"src": [
+"server/src/shellcheck/index.ts"
+]
+},
+"bash-lsp__bash-language-server-1416_version-5.6": {
+"src": [
+"server/src/util/sourcing.ts"
+]
+},
+"bufbuild__buf-4600_version-1.71": {
+"src": [
+"private/buf/bufcli/env.go"
+]
+},
+"cel-expr__cel-go-1084_version-0.22": {
+"src": [
+"interpreter/interpretable.go"
+]
+},
+"cel-expr__cel-go-1126_version-0.24": {
+"src": [
+"cel/program.go",
+"interpreter/activation.go",
+"interpreter/attribute_patterns.go",
+"interpreter/interpretable.go"
+]
+},
+"cel-expr__cel-go-1290_version-0.28": {
+"src": [
+"common/types/err.go",
+"interpreter/attributes.go"
+]
+},
+"cel-expr__cel-go-1303_version-0.28": {
+"src": [
+"cel/program.go"
+]
+},
+"cel-expr__cel-go-1327_version-0.28": {
+"src": [
+"common/containers/container.go"
+]
+},
+"cel-expr__cel-go-1384_version-0.29": {
+"src": [
+"ext/native.go"
+]
+},
+"cel-expr__cel-go-332_version-0.4": {
+"src": [
+"checker/checker.go",
+"common/types/object.go",
+"common/types/pb/type.go",
+"common/types/provider.go",
+"common/types/ref/provider.go",
+"interpreter/interpretable.go"
+]
+},
+"cel-expr__cel-go-419_version-0.7": {
+"src": [
+"interpreter/prune.go"
+]
+},
+"cel-expr__cel-go-528_version-0.11": {
+"src": [
+"cel/options.go"
+]
+},
+"cel-expr__cel-go-686_version-0.14": {
+"src": [
+"parser/unparser.go"
+]
+},
+"cel-expr__cel-go-694_version-0.14": {
+"src": [
+"interpreter/attributes.go"
+]
+},
+"cel-expr__cel-go-747_version-0.16": {
+"src": [
+"cel/library.go"
+]
+},
+"cel-expr__cel-go-814_version-0.17": {
+"src": [
+"cel/env.go",
+"common/types/provider.go",
+"ext/native.go"
+]
+},
+"cel-expr__cel-go-817_version-0.17": {
+"src": [
+"common/decls/decls.go"
+]
+},
+"changesets__changesets-1357_version-7.0": {
+"src": [
+"packages/cli/src/utils/versionablePackages.ts"
+]
+},
+"changesets__changesets-1589_version-7.0": {
+"src": [
+"packages/assemble-release-plan/src/index.ts"
+]
+},
+"changesets__changesets-1806_version-0.2": {
+"src": [
+"packages/cli/src/commands/pre/index.ts",
+"packages/cli/src/run.ts",
+"packages/config/src/index.ts",
+"packages/get-release-plan/src/index.ts",
+"packages/pre/src/index.ts",
+"packages/read/src/index.ts",
+"packages/write/src/index.ts"
+]
+},
+"changesets__changesets-1860_version-8.0": {
+"src": [
+"packages/cli/src/commands/version/index.ts"
+]
+},
+"changesets__changesets-744_version-5.1": {
+"src": [
+"packages/cli/src/commands/add/index.ts"
+]
+},
+"chhoumann__quickadd-1006_version-2.8": {
+"src": [
+"src/quickAddApi.ts"
+]
+},
+"chhoumann__quickadd-1007_version-2.8": {
+"src": [
+"src/engine/helpers/openFileOptions.ts",
+"src/gui/MacroGUIs/OpenFileCommandSettingsModal.ts"
+]
+},
+"chhoumann__quickadd-1016_version-2.9": {
+"src": [
+"src/utils/FieldValueCollector.ts"
+]
+},
+"chhoumann__quickadd-1049_version-2.9": {
+"src": [
+"src/engine/TemplateChoiceEngine.ts"
+]
+},
+"chhoumann__quickadd-1096_version-2.10": {
+"src": [
+"src/formatters/helpers/getEndOfSection.ts"
+]
+},
+"chhoumann__quickadd-1097_version-2.10": {
+"src": [
+"src/gui/suggesters/FileIndex.ts"
+]
+},
+"chhoumann__quickadd-1101_version-2.10": {
+"src": [
+"src/formatters/formatter.ts"
+]
+},
+"chhoumann__quickadd-1128_version-2.11": {
+"src": [
+"src/constants.ts",
+"src/quickAddApi.ts",
+"src/utils/FieldSuggestionParser.ts",
+"src/utils/FieldValueCollector.ts",
+"src/utils/InlineFieldParser.ts"
+]
+},
+"chhoumann__quickadd-1296_version-2.12": {
+"src": [
+"src/formatters/captureChoiceFormatter.ts"
+]
+},
+"chhoumann__quickadd-1706_version-2.23": {
+"src": [
+"src/engine/TemplateEngine.ts",
+"src/utils/previewTargetFolder.ts"
+]
+},
+"chhoumann__quickadd-974_version-2.6": {
+"src": [
+"src/engine/CaptureChoiceEngine.ts"
+]
+},
+"cometbft__cometbft-5668_version-0.39": {
+"src": [
+"consensus/state.go",
+"mempool/clist_mempool.go",
+"scripts/metricsgen/metricsgen.go"
+]
+},
+"conventional-changelog__commitlint-3139_version-16.2": {
+"src": [
+"@commitlint/rules/src/footer-leading-blank.ts"
+]
+},
+"conventional-changelog__commitlint-3586_version-17.6": {
+"src": [
+"@commitlint/rules/src/subject-case.ts"
+]
+},
+"corazawaf__coraza-1473_version-3.3": {
+"src": [
+"internal/operators/strmatch.go"
+]
+},
+"corazawaf__coraza-1593_version-3.6": {
+"src": [
+"http/interceptor.go"
+]
+},
+"corazawaf__coraza-1693_version-3.7": {
+"src": [
+"internal/actions/accuracy.go",
+"internal/actions/actions.go"
+]
+},
+"corazawaf__coraza-1701_version-3.7": {
+"src": [
+"internal/seclang/directives.go"
+]
+},
+"corazawaf__coraza-452_version-2.0": {
+"src": [
+"bodyprocessors/multipart.go",
+"internal/corazawaf/transaction.go",
+"internal/corazawaf/waf.go",
+"types/variables.go",
+"types/variables/variables.go"
+]
+},
+"crossplane__crossplane-6812_version-2.1": {
+"src": [
+"cmd/crank/render/render.go"
+]
+},
+"crossplane__crossplane-6819_version-2.1": {
+"src": [
+"cmd/crank/render/render.go",
+"internal/xfn/required_resources.go"
+]
+},
+"cybertec-postgresql__pgwatch-1162_version-4.1": {
+"src": [
+"internal/reaper/database.go"
+]
+},
+"cybertec-postgresql__pgwatch-633_version-3.0": {
+"src": [
+"internal/sources/types.go",
+"internal/sources/yaml.go"
+]
+},
+"cybertec-postgresql__pgwatch-847_version-3.6": {
+"src": [
+"internal/reaper/reaper.go"
+]
+},
+"cybertec-postgresql__pgwatch-889_version-3.7": {
+"src": [
+"internal/metrics/yaml.go",
+"internal/sources/yaml.go"
+]
+},
+"danielgtaylor__huma-1007_version-2.37": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-1011_version-2.37": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-1045_version-2.38": {
+"src": [
+"validate.go"
+]
+},
+"danielgtaylor__huma-1058_version-2.38": {
+"src": [
+"adapters/humafiber/humafiber_v2.go"
+]
+},
+"danielgtaylor__huma-195_version-2.1": {
+"src": [
+"registry.go"
+]
+},
+"danielgtaylor__huma-235_version-2.4": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-247_version-2.4": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-320_version-2.8": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-328_version-2.9": {
+"src": [
+"huma.go",
+"schema.go"
+]
+},
+"danielgtaylor__huma-350_version-2.11": {
+"src": [
+"schema.go"
+]
+},
+"danielgtaylor__huma-367_version-2.12": {
+"src": [
+"registry.go"
+]
+},
+"danielgtaylor__huma-374_version-2.12": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-375_version-2.12": {
+"src": [
+"transforms.go"
+]
+},
+"danielgtaylor__huma-513_version-2.19": {
+"src": [
+"schema.go"
+]
+},
+"danielgtaylor__huma-518_version-2.19": {
+"src": [
+"schema.go"
+]
+},
+"danielgtaylor__huma-550_version-2.21": {
+"src": [
+"registry.go",
+"schema.go"
+]
+},
+"danielgtaylor__huma-573_version-2.22": {
+"src": [
+"schema.go"
+]
+},
+"danielgtaylor__huma-580_version-2.22": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-581_version-2.22": {
+"src": [
+"error.go"
+]
+},
+"danielgtaylor__huma-587_version-2.22": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-666_version-2.26": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-667_version-2.26": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-924_version-2.34": {
+"src": [
+"huma.go"
+]
+},
+"danielgtaylor__huma-970_version-2.35": {
+"src": [
+"schema.go"
+]
+},
+"dmachard__DNS-collector-1172_version-2.1": {
+"src": [
+"dnsutils/dns_parser.go"
+]
+},
+"dmachard__DNS-collector-1375_version-3.1": {
+"src": [
+"pkg/pipeline/pipelines.go"
+]
+},
+"dmachard__DNS-collector-573_version-0.40": {
+"src": [
+"pkgconfig/config.go"
+]
+},
+"dmachard__DNS-collector-640_version-0.41": {
+"src": [
+"dnsutils/message.go",
+"transformers/normalize.go"
+]
+},
+"dmachard__DNS-collector-664_version-0.42": {
+"src": [
+"pkgutils/configchecker.go"
+]
+},
+"dmachard__DNS-collector-889_version-1.2": {
+"src": [
+"dnsutils/dns_parser.go"
+]
+},
+"dubzzz__fast-check-1493_version-2.13": {
+"src": [
+"src/check/arbitrary/helpers/ArrayInt64.ts"
+]
+},
+"dubzzz__fast-check-1586_version-2.13": {
+"src": [
+"src/check/property/IgnoreEqualValuesProperty.ts",
+"src/check/runner/DecorateProperty.ts",
+"src/check/runner/configuration/Parameters.ts",
+"src/check/runner/configuration/QualifiedParameters.ts"
+]
+},
+"dubzzz__fast-check-2421_version-2.18": {
+"src": [
+"src/check/arbitrary/definition/NextArbitrary.ts"
+]
+},
+"dubzzz__fast-check-6107_version-0.2": {
+"src": [
+"packages/fast-check/src/arbitrary/_internals/StreamArbitrary.ts",
+"packages/fast-check/src/arbitrary/infiniteStream.ts"
+]
+},
+"eclipse-langium__langium-1000_version-1.1": {
+"src": [
+"packages/langium/src/grammar/references/grammar-references.ts",
+"packages/langium/src/lsp/call-hierarchy-provider.ts",
+"packages/langium/src/lsp/document-highlight-provider.ts",
+"packages/langium/src/references/references.ts"
+]
+},
+"eclipse-langium__langium-1020_version-1.1": {
+"src": [
+"packages/langium/src/grammar/internal-grammar-util.ts"
+]
+},
+"eclipse-langium__langium-1113_version-1.2": {
+"src": [
+"examples/requirements/src/language-server/generated/grammar.ts",
+"packages/langium-cli/src/generate.ts",
+"packages/langium/src/grammar/references/grammar-scope.ts"
+]
+},
+"eclipse-langium__langium-1861_version-3.4": {
+"src": [
+"packages/langium-cli/src/generator/ast-generator.ts"
+]
+},
+"eclipse-langium__langium-2217_version-4.3": {
+"src": [
+"examples/arithmetics/syntaxes/arithmetics.monarch.ts",
+"examples/domainmodel/syntaxes/domainmodel.monarch.ts",
+"examples/statemachine/syntaxes/statemachine.monarch.ts",
+"packages/langium-cli/src/generator/highlighting/monarch-generator.ts"
+]
+},
+"eclipse-langium__langium-289_version-0.2": {
+"src": [
+"packages/langium-cli/src/generator/textmate-generator.ts",
+"packages/langium/src/utils/regex-util.ts"
+]
+},
+"eclipse-langium__langium-487_version-0.3": {
+"src": [
+"packages/langium/src/grammar/langium-grammar-validator.ts"
+]
+},
+"eclipse-langium__langium-490_version-0.3": {
+"src": [
+"packages/langium-cli/src/generator/ast-generator.ts",
+"packages/langium/src/grammar/grammar-util.ts",
+"packages/langium/src/grammar/langium-grammar-validator.ts",
+"packages/langium/src/grammar/type-system/inferred-types.ts",
+"packages/langium/src/utils/collections.ts"
+]
+},
+"eclipse-langium__langium-586_version-0.4": {
+"src": [
+"packages/langium/src/grammar/langium-grammar-validator.ts"
+]
+},
+"eclipse-langium__langium-588_version-0.4": {
+"src": [
+"packages/langium/src/grammar/langium-grammar-validator.ts",
+"packages/langium/src/validation/document-validator.ts"
+]
+},
+"eclipse-langium__langium-955_version-1.1": {
+"src": [
+"packages/langium/src/lsp/formatter.ts"
+]
+},
+"eclipse-langium__langium-973_version-1.1": {
+"src": [
+"packages/langium/src/grammar/type-system/ast-collector.ts",
+"packages/langium/src/grammar/validation/types-validator.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-160_version-1.3": {
+"src": [
+"packages/eslint-plugin-js/rules/comma-dangle/comma-dangle.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-161_version-1.3": {
+"src": [
+"packages/eslint-plugin-ts/rules/lines-around-comment/lines-around-comment.ts",
+"packages/eslint-plugin-ts/rules/lines-around-comment/types.d.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-162_version-1.3": {
+"src": [
+"packages/eslint-plugin-ts/rules/padding-line-between-statements/padding-line-between-statements.ts",
+"packages/eslint-plugin-ts/rules/padding-line-between-statements/types.d.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-167_version-1.3": {
+"src": [
+"packages/eslint-plugin-ts/rules/comma-dangle/comma-dangle.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-213_version-1.5": {
+"src": [
+"packages/eslint-plugin-ts/rules/padding-line-between-statements/padding-line-between-statements.ts",
+"packages/eslint-plugin-ts/rules/padding-line-between-statements/types.d.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-401_version-2.1": {
+"src": [
+"packages/eslint-plugin-js/rules/quotes/quotes.ts",
+"packages/eslint-plugin-js/rules/quotes/types.d.ts",
+"packages/eslint-plugin-ts/rules/quotes/quotes.ts",
+"packages/eslint-plugin-ts/rules/quotes/types.d.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-416_version-2.1": {
+"src": [
+"packages/eslint-plugin-ts/rules/indent/indent.ts",
+"packages/eslint-plugin/configs/customize.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-424_version-2.2": {
+"src": [
+"packages/eslint-plugin-js/rules/indent/indent.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-430_version-2.2": {
+"src": [
+"packages/eslint-plugin-plus/rules/indent-binary-ops/indent-binary-ops.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-444_version-2.2": {
+"src": [
+"packages/eslint-plugin-js/rules/object-curly-newline/object-curly-newline.ts",
+"packages/eslint-plugin-js/rules/object-curly-newline/types.d.ts",
+"packages/eslint-plugin-ts/configs/disable-legacy.ts",
+"packages/eslint-plugin-ts/dts/rule-options.d.ts",
+"packages/eslint-plugin-ts/rules/index.ts",
+"packages/eslint-plugin-ts/rules/object-curly-newline/object-curly-newline.ts",
+"packages/eslint-plugin-ts/rules/object-curly-newline/types.d.ts",
+"packages/eslint-plugin-ts/rules/object-property-newline/object-property-newline.ts",
+"packages/eslint-plugin-ts/rules/object-property-newline/types.d.ts",
+"packages/metadata/src/metadata.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-467_version-2.3": {
+"src": [
+"packages/eslint-plugin-plus/rules/type-generic-spacing/type-generic-spacing.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-493_version-2.6": {
+"src": [
+"packages/eslint-plugin-ts/rules/quotes/quotes.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-594_version-2.10": {
+"src": [
+"packages/eslint-plugin/rules/key-spacing/key-spacing._js_.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-63_version-1.1": {
+"src": [
+"packages/eslint-plugin-js/dts/rule-options.d.ts",
+"packages/eslint-plugin-js/rules/function-call-spacing/function-call-spacing.js",
+"packages/eslint-plugin-js/rules/function-call-spacing/types.d.ts",
+"packages/eslint-plugin-js/rules/index.ts",
+"packages/eslint-plugin-ts/dts/rule-options.d.ts",
+"packages/eslint-plugin-ts/rules/function-call-spacing/function-call-spacing.ts",
+"packages/eslint-plugin-ts/rules/function-call-spacing/types.d.ts",
+"packages/eslint-plugin-ts/rules/index.ts",
+"packages/metadata/src/metadata.ts",
+"scripts/update.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-657_version-2.12": {
+"src": [
+"packages/eslint-plugin/rules/no-extra-parens/no-extra-parens._js_.ts",
+"packages/eslint-plugin/rules/no-extra-parens/types.d.ts"
+]
+},
+"eslint-stylistic__eslint-stylistic-774_version-4.2": {
+"src": [
+"packages/eslint-plugin/rules/indent/indent._ts_.ts"
+]
+},
+"favonia__cloudflare-ddns-173_version-1.4": {
+"src": [
+"internal/file/file.go"
+]
+},
+"firebase__extensions-2286_version-0.1": {
+"src": [
+"storage-resize-images/functions/src/util.ts"
+]
+},
+"firebase__extensions-3117_version-0.0": {
+"src": [
+"kits/firestore-incremental-capture/src/capture-config.ts",
+"kits/firestore-incremental-capture/src/tasks.ts"
+]
+},
+"fluent__fluent-operator-1901_version-3.5": {
+"src": [
+"apis/fluentbit/v1alpha2/plugins/input/systemd_types.go",
+"apis/fluentbit/v1alpha2/plugins/input/tail_types.go"
+]
+},
+"fluent__fluent-operator-819_version-0.4": {
+"src": [
+"apis/fluentbit/v1alpha2/clusteroutput_types.go",
+"apis/fluentbit/v1alpha2/plugins/output/s3_types.go"
+]
+},
+"fluxcd__flagger-1052_version-1.15": {
+"src": [
+"pkg/canary/config_tracker.go"
+]
+},
+"fluxcd__flagger-1185_version-1.21": {
+"src": [
+"pkg/apis/flagger/v1beta1/canary.go",
+"pkg/router/kubernetes_default.go"
+]
+},
+"fluxcd__flagger-1408_version-1.29": {
+"src": [
+"pkg/router/util.go"
+]
+},
+"fluxcd__flagger-1582_version-1.35": {
+"src": [
+"pkg/controller/scheduler_metrics.go"
+]
+},
+"getkin__kin-openapi-1156_version-0.135": {
+"src": [
+"openapi2conv/openapi2_conv.go"
+]
+},
+"getkin__kin-openapi-1229_version-0.142": {
+"src": [
+"openapi3gen/field_info.go"
+]
+},
+"getkin__kin-openapi-1245_version-0.146": {
+"src": [
+"openapi3/schema.go",
+"openapi3/schema_pattern.go"
+]
+},
+"getkin__kin-openapi-1249_version-0.146": {
+"src": [
+"openapi3filter/req_resp_decoder.go"
+]
+},
+"getkin__kin-openapi-1250_version-0.147": {
+"src": [
+"openapi3/schema_jsonschema_validator.go"
+]
+},
+"getkin__kin-openapi-1261_version-0.149": {
+"src": [
+"openapi3filter/req_resp_decoder.go"
+]
+},
+"getkin__kin-openapi-1276_version-0.149": {
+"src": [
+"openapi3/paths.go"
+]
+},
+"getkin__kin-openapi-1281_version-0.149": {
+"src": [
+"openapi3/media_type.go",
+"openapi3/request_body.go",
+"openapi3/response.go"
+]
+},
+"getkin__kin-openapi-229_version-0.12": {
+"src": [
+"openapi3/swagger_loader.go"
+]
+},
+"getkin__kin-openapi-237_version-0.17": {
+"src": [
+"openapi2conv/openapi2_conv.go",
+"openapi3/components.go"
+]
+},
+"getkin__kin-openapi-292_version-0.37": {
+"src": [
+"openapi3/schema.go"
+]
+},
+"getkin__kin-openapi-377_version-0.63": {
+"src": [
+"openapi3/loader.go",
+"openapi3/schema.go"
+]
+},
+"getkin__kin-openapi-445_version-0.80": {
+"src": [
+"openapi3/schema.go"
+]
+},
+"getkin__kin-openapi-575_version-0.97": {
+"src": [
+"openapi2conv/openapi2_conv.go"
+]
+},
+"getkin__kin-openapi-577_version-0.98": {
+"src": [
+"openapi3/schema.go"
+]
+},
+"getkin__kin-openapi-729_version-0.112": {
+"src": [
+"openapi3filter/req_resp_decoder.go"
+]
+},
+"getkin__kin-openapi-747_version-0.113": {
+"src": [
+"openapi3/schema.go"
+]
+},
+"getsentry__sentry-go-191_version-0.5": {
+"src": [
+"client.go",
+"interfaces.go",
+"scope.go"
+]
+},
+"getsentry__sentry-go-262_version-0.6": {
+"src": [
+"stacktrace.go"
+]
+},
+"getsentry__sentry-go-269_version-0.6": {
+"src": [
+"client.go"
+]
+},
+"getsentry__sentry-go-327_version-0.9": {
+"src": [
+"scope.go"
+]
+},
+"getsentry__sentry-go-520_version-0.16": {
+"src": [
+"dynamic_sampling_context.go"
+]
+},
+"getsentry__sentry-go-689_version-0.27": {
+"src": [
+"interfaces.go",
+"logrus/logrusentry.go"
+]
+},
+"getsentry__sentry-go-711_version-0.24": {
+"src": [
+"otel/span_processor.go"
+]
+},
+"getsentry__sentry-go-931_version-0.30": {
+"src": [
+"echo/sentryecho.go",
+"fasthttp/sentryfasthttp.go",
+"fiber/sentryfiber.go",
+"gin/sentrygin.go",
+"iris/sentryiris.go"
+]
+},
+"getsentry__sentry-go-957_version-0.31": {
+"src": [
+"logrus/logrusentry.go"
+]
+},
+"glayzzle__php-parser-1124_version-3.1": {
+"src": [
+"src/lexer/tokens.js"
+]
+},
+"glayzzle__php-parser-961_version-3.1": {
+"src": [
+"src/lexer/numbers.js",
+"src/lexer/utils.js"
+]
+},
+"goadesign__goa-2709_version-2.2": {
+"src": [
+"codegen/go_transform.go"
+]
+},
+"goadesign__goa-2748_version-3.2": {
+"src": [
+"expr/grpc_endpoint.go",
+"expr/service.go"
+]
+},
+"goadesign__goa-3667_version-3.20": {
+"src": [
+"codegen/service/service_data.go"
+]
+},
+"gogf__gf-2437_version-2.3": {
+"src": [
+"database/gdb/gdb_core_config.go"
+]
+},
+"gogf__gf-2994_version-2.5": {
+"src": [
+"util/gconv/gconv_struct.go"
+]
+},
+"gogf__gf-3224_version-2.6": {
+"src": [
+"os/gstructs/gstructs_field.go",
+"util/gutil/gutil_struct.go"
+]
+},
+"gogf__gf-3315_version-2.6": {
+"src": [
+"contrib/drivers/sqlite/sqlite.go",
+"contrib/drivers/sqlite/sqlite_do_filter.go",
+"contrib/drivers/sqlite/sqlite_format_upsert.go"
+]
+},
+"gogf__gf-3772_version-2.7": {
+"src": [
+"database/gdb/gdb_core_config.go"
+]
+},
+"gogf__gf-3807_version-2.7": {
+"src": [
+"frame/g/g.go",
+"os/gcmd/gcmd_command_object.go",
+"os/gcmd/gcmd_command_run.go"
+]
+},
+"gogf__gf-3841_version-2.7": {
+"src": [
+"encoding/ghtml/ghtml.go"
+]
+},
+"gogf__gf-3850_version-2.7": {
+"src": [
+"cmd/gf/gfcmd/gfcmd.go",
+"os/gcmd/gcmd_command.go",
+"os/gcmd/gcmd_command_run.go"
+]
+},
+"gogf__gf-4097_version-2.8": {
+"src": [
+"util/gvalid/gvalid_validator_check_value.go"
+]
+},
+"gogf__gf-4182_version-2.8": {
+"src": [
+"net/ghttp/ghttp_request_param.go",
+"net/ghttp/ghttp_request_param_request.go"
+]
+},
+"gogf__gf-4612_version-2.9": {
+"src": [
+"util/gconv/internal/converter/converter_maptomap.go"
+]
+},
+"gogf__gf-4627_version-2.9": {
+"src": [
+"internal/httputil/httputils.go",
+"net/gclient/gclient_request.go"
+]
+},
+"gogf__gf-4681_version-2.10": {
+"src": [
+"os/gstructs/gstructs_field_tag.go"
+]
+},
+"gogf__gf-4812_version-2.10": {
+"src": [
+"net/ghttp/ghttp_server_router_serve.go"
+]
+},
+"gogf__gf-4813_version-2.10": {
+"src": [
+"net/goai/goai_parameter_ref.go"
+]
+},
+"gogf__gf-4833_version-2.10": {
+"src": [
+"net/ghttp/ghttp_server_router_serve.go"
+]
+},
+"googleapis__api-linter-1026_version-1.36": {
+"src": [
+"rules/aip0133/http_uri_parent.go"
+]
+},
+"googleapis__api-linter-618_version-1.2": {
+"src": [
+"rules/aip0126/unspecified.go"
+]
+},
+"googleapis__api-linter-654_version-1.5": {
+"src": [
+"locations/field_locations.go",
+"rules/aip0203/aip0203.go",
+"rules/aip0203/required_and_optional.go"
+]
+},
+"googleapis__api-linter-743_version-1.12": {
+"src": [
+"rules/aip0135/aip0135.go",
+"rules/aip0135/http_uri_name.go"
+]
+},
+"googleapis__api-linter-856_version-1.25": {
+"src": [
+"rules/aip0132/request_show_deleted_required.go"
+]
+},
+"gopasspw__gopass-3053_version-1.15": {
+"src": [
+"internal/action/show.go"
+]
+},
+"gopasspw__gopass-3397_version-1.16": {
+"src": [
+"internal/backend/crypto/age/agent/agent.go",
+"internal/backend/crypto/age/agent/identity.go"
+]
+},
+"gopasspw__gopass-3443_version-1.16": {
+"src": [
+"internal/backend/crypto/gpg/cli/encrypt.go",
+"internal/store/leaf/store.go"
+]
+},
+"gopasspw__gopass-3529_version-1.16": {
+"src": [
+"internal/backend/crypto/age/agent/agent.go"
+]
+},
+"gopasspw__gopass-3602_version-1.17": {
+"src": [
+"internal/store/root/init.go",
+"internal/store/root/mount.go"
+]
+},
+"goplus__xgo-1242_version-1.1": {
+"src": [
+"cl/expr.go"
+]
+},
+"goplus__xgo-1372_version-1.1": {
+"src": [
+"cl/compile.go"
+]
+},
+"goplus__xgo-584_version-0.7": {
+"src": [
+"cl/expr.go"
+]
+},
+"goplus__xgo-653_version-0.7": {
+"src": [
+"exec/golang/expr.go"
+]
+},
+"goreleaser__nfpm-214_version-1.6": {
+"src": [
+"nfpm.go",
+"rpm/rpm.go"
+]
+},
+"goreleaser__nfpm-576_version-2.22": {
+"src": [
+"internal/glob/glob.go"
+]
+},
+"goreleaser__nfpm-754_version-2.34": {
+"src": [
+"files/files.go"
+]
+},
+"goreleaser__nfpm-779_version-2.35": {
+"src": [
+"files/files.go"
+]
+},
+"goreleaser__nfpm-836_version-2.37": {
+"src": [
+"rpm/rpm.go"
+]
+},
+"h3js__h3-1042_version-1.15": {
+"src": [
+"src/utils/internal/cookie.ts"
+]
+},
+"h3js__h3-1232_version-2.0": {
+"src": [
+"src/h3.ts"
+]
+},
+"h3js__h3-1248_version-2.0": {
+"src": [
+"src/utils/proxy.ts"
+]
+},
+"h3js__h3-1314_version-1.15": {
+"src": [
+"src/utils/request.ts"
+]
+},
+"h3js__h3-1352_version-1.15": {
+"src": [
+"src/event.ts",
+"src/response.ts",
+"src/utils/cors.ts"
+]
+},
+"h3js__h3-1485_version-2.0": {
+"src": [
+"src/handler.ts",
+"src/response.ts",
+"src/utils/sanitize.ts"
+]
+},
+"h3js__h3-1533_version-2.0": {
+"src": [
+"src/h3.ts"
+]
+},
+"h3js__h3-194_version-0.7": {
+"src": [
+"src/app.ts",
+"src/router.ts"
+]
+},
+"h3js__h3-409_version-1.6": {
+"src": [
+"src/app.ts",
+"src/router.ts"
+]
+},
+"h3js__h3-422_version-1.7": {
+"src": [
+"src/app.ts"
+]
+},
+"h3js__h3-479_version-1.8": {
+"src": [
+"src/app.ts",
+"src/error.ts"
+]
+},
+"h3js__h3-556_version-1.8": {
+"src": [
+"src/utils/request.ts"
+]
+},
+"h3js__h3-612_version-1.10": {
+"src": [
+"src/utils/session.ts"
+]
+},
+"h3js__h3-756_version-1.11": {
+"src": [
+"src/adapters/node.ts",
+"src/app.ts",
+"src/event/event.ts"
+]
+},
+"h3js__h3-912_version-1.12": {
+"src": [
+"src/utils/base.ts"
+]
+},
+"h3js__h3-974_version-1.12": {
+"src": [
+"src/utils/static.ts"
+]
+},
+"h3js__h3-981_version-1.15": {
+"src": [
+"src/utils/cookie.ts",
+"src/utils/internal/cookie.ts"
+]
+},
+"helm-unittest__helm-unittest-554_version-0.7": {
+"src": [
+"pkg/unittest/validators/contains_validator.go"
+]
+},
+"helm-unittest__helm-unittest-843_version-1.0": {
+"src": [
+"pkg/unittest/validators/is_type_validator.go"
+]
+},
+"helm-unittest__helm-unittest-902_version-1.1": {
+"src": [
+"pkg/unittest/validators/equal_validator.go"
+]
+},
+"helm-unittest__helm-unittest-903_version-1.1": {
+"src": [
+"pkg/unittest/valueutils/documentselector.go"
+]
+},
+"honojs__middleware-1137_version-2.0": {
+"src": [
+"packages/arktype-validator/src/index.ts"
+]
+},
+"honojs__middleware-1141_version-2.0": {
+"src": [
+"packages/node-ws/src/index.ts"
+]
+},
+"honojs__middleware-1315_version-1.0": {
+"src": [
+"packages/zod-validator/src/index.ts"
+]
+},
+"honojs__middleware-132_version-0.2": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-1491_version-0.1": {
+"src": [
+"packages/oidc-auth/src/index.ts"
+]
+},
+"honojs__middleware-1599_version-0.1": {
+"src": [
+"packages/trpc-server/src/index.ts"
+]
+},
+"honojs__middleware-1726_version-2.0": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-1760_version-1.8": {
+"src": [
+"packages/mcp/src/auth/router.ts",
+"packages/mcp/src/auth/simpleAuth.ts"
+]
+},
+"honojs__middleware-179_version-0.6": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-1824_version-0.1": {
+"src": [
+"packages/mcp/src/auth/helpers/authorize.ts"
+]
+},
+"honojs__middleware-1855_version-0.4": {
+"src": [
+"packages/oidc-auth/src/index.ts"
+]
+},
+"honojs__middleware-2033_version-2.1": {
+"src": [
+"eslint.config.mjs",
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-316_version-0.0": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-356_version-0.2": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-451_version-0.11": {
+"src": [
+"packages/esbuild-transpiler/src/transpiler.ts"
+]
+},
+"honojs__middleware-609_version-0.14": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"honojs__middleware-955_version-1.0": {
+"src": [
+"packages/zod-openapi/src/index.ts"
+]
+},
+"integrations__terraform-provider-github-3277_version-6.12": {
+"src": [
+"github/resource_github_repository_autolink_reference.go"
+]
+},
+"integrations__terraform-provider-github-3635_version-6.13": {
+"src": [
+"internal/ghclient/transport.go"
+]
+},
+"intuit__auto-1802_version-0.0": {
+"src": [
+"plugins/upload-assets/src/index.ts"
+]
+},
+"intuit__auto-2172_version-10.36": {
+"src": [
+"packages/core/src/types.ts"
+]
+},
+"intuit__auto-2175_version-10.36": {
+"src": [
+"packages/core/src/auto.ts"
+]
+},
+"jest-community__eslint-plugin-jest-1681_version-28.9": {
+"src": [
+"src/rules/unbound-method.ts"
+]
+},
+"jest-community__eslint-plugin-jest-1752_version-28.13": {
+"src": [
+"src/rules/prefer-ending-with-an-expect.ts"
+]
+},
+"jest-community__eslint-plugin-jest-1863_version-29.4": {
+"src": [
+"src/rules/no-unneeded-async-expect-function.ts"
+]
+},
+"jest-community__eslint-plugin-jest-1918_version-29.12": {
+"src": [
+"src/rules/no-unnecessary-assertion.ts"
+]
+},
+"jest-community__eslint-plugin-jest-2002_version-29.16": {
+"src": [
+"src/rules/prefer-expect-resolves.ts"
+]
+},
+"jest-community__eslint-plugin-jest-2006_version-29.16": {
+"src": [
+"src/rules/prefer-equality-matcher.ts"
+]
+},
+"kcp-dev__kcp-2060_version-0.8": {
+"src": [
+"pkg/admission/apibinding/apibinding_admission.go",
+"pkg/apis/apis/v1alpha1/types_apibinding.go"
+]
+},
+"kcp-dev__kcp-2588_version-0.10": {
+"src": [
+"pkg/admission/workspacetypeexists/admission.go"
+]
+},
+"kcp-dev__kcp-2690_version-0.10": {
+"src": [
+"pkg/admission/webhook/generic_webhook.go",
+"pkg/reconciler/workload/resource/resource_controller.go"
+]
+},
+"kcp-dev__kcp-4233_version-0.32": {
+"src": [
+"pkg/reconciler/apis/logicalclustercleanup/logicalclustercleanup_controller.go"
+]
+},
+"kedacore__http-add-on-1387_version-0.11": {
+"src": [
+"interceptor/config/timeouts.go",
+"pkg/net/backoff.go"
+]
+},
+"kedacore__http-add-on-1664_version-0.14": {
+"src": [
+"scaler/handlers.go"
+]
+},
+"kedacore__http-add-on-1708_version-0.15": {
+"src": [
+"pkg/queue/bucketing.go"
+]
+},
+"kedacore__http-add-on-1780_version-0.15": {
+"src": [
+"interceptor/handler/static.go",
+"interceptor/handler/upstream.go",
+"pkg/http/status.go"
+]
+},
+"knative__serving-15773_version-1.17": {
+"src": [
+"pkg/activator/handler/context.go",
+"pkg/activator/net/revision_backends.go",
+"pkg/reconciler/revision/resources/queue.go"
+]
+},
+"knative__serving-15815_version-1.17": {
+"src": [
+"cmd/schema-tweak/overrides.go",
+"pkg/apis/config/features.go",
+"pkg/apis/serving/fieldmask.go",
+"pkg/apis/serving/k8s_validation.go"
+]
+},
+"knative__serving-16109_version-1.19": {
+"src": [
+"cmd/activator/main.go",
+"pkg/http/handler/timeout.go",
+"pkg/queue/sharedmain/handlers.go"
+]
+},
+"knative__serving-16327_version-1.20": {
+"src": [
+"pkg/reconciler/autoscaling/kpa/scaler.go"
+]
+},
+"kptdev__kpt-4675_version-1.0": {
+"src": [
+"pkg/lib/kptops/render_executor.go"
+]
+},
+"kptdev__kpt-4750_version-1.0": {
+"src": [
+"api/kptfile/v1/validation.go"
+]
+},
+"kubeflow__trainer-1800_version-1.5": {
+"src": [
+"pkg/apis/kubeflow.org/v1/mpi_defaults.go"
+]
+},
+"kubernetes-sigs__aws-load-balancer-controller-1674_version-2.0": {
+"src": [
+"pkg/annotations/parser.go"
+]
+},
+"kubernetes-sigs__aws-load-balancer-controller-2327_version-2.3": {
+"src": [
+"pkg/ingress/model_build_target_group.go"
+]
+},
+"kubernetes-sigs__aws-load-balancer-controller-4749_version-3.3": {
+"src": [
+"pkg/equality/elbv2/compare_option_for_rule_conditions.go"
+]
+},
+"kubernetes-sigs__aws-load-balancer-controller-4909_version-3.5": {
+"src": [
+"pkg/networking/networking_manager.go"
+]
+},
+"kubernetes-sigs__cluster-api-12237_version-1.10": {
+"src": [
+"cmd/clusterctl/client/common.go",
+"cmd/clusterctl/client/config/providers_client.go"
+]
+},
+"kubernetes-sigs__cluster-api-12714_version-1.11": {
+"src": [
+"cmd/clusterctl/client/repository/metadata_client.go"
+]
+},
+"kubernetes-sigs__cluster-api-12729_version-1.11": {
+"src": [
+"internal/util/tree/tree.go"
+]
+},
+"kubernetes-sigs__cluster-api-12753_version-1.11": {
+"src": [
+"cmd/clusterctl/client/cluster/upgrader.go"
+]
+},
+"kubernetes-sigs__cluster-api-13404_version-1.12": {
+"src": [
+"internal/controllers/machine/machine_controller_status.go",
+"internal/controllers/machinedeployment/mdutil/util.go"
+]
+},
+"kubernetes-sigs__cluster-api-13850_version-1.14": {
+"src": [
+"cmd/clusterctl/client/cluster/cert_manager.go"
+]
+},
+"kubernetes-sigs__kro-1304_version-0.9": {
+"src": [
+"pkg/cel/unstructured/valunstructured.go"
+]
+},
+"kubernetes-sigs__kro-1340_version-0.9": {
+"src": [
+"pkg/graph/build_context.go"
+]
+},
+"kubernetes-sigs__kro-1378_version-0.9": {
+"src": [
+"pkg/graph/crd/compat/compat.go"
+]
+},
+"kubernetes-sigs__kro-200_version-0.1": {
+"src": [
+"pkg/graph/parser/parser.go",
+"pkg/graph/parser/schemaless.go",
+"pkg/graph/variable/variable.go"
+]
+},
+"kubernetes-sigs__kro-260_version-0.2": {
+"src": [
+"pkg/graph/parser/parser.go"
+]
+},
+"kubernetes-sigs__kro-939_version-0.7": {
+"src": [
+"pkg/simpleschema/transform.go"
+]
+},
+"lestrrat-go__jwx-1049_version-2.0": {
+"src": [
+"jws/jws.go"
+]
+},
+"lestrrat-go__jwx-1315_version-3.0": {
+"src": [
+"jwk/convert.go",
+"jwk/ecdsa.go"
+]
+},
+"lestrrat-go__jwx-1426_version-3.0": {
+"src": [
+"jwt/errors.go",
+"jwt/internal/errors/errors.go",
+"jwt/jwt.go",
+"jwt/validate.go",
+"tools/cmd/genjwt/main.go"
+]
+},
+"lestrrat-go__jwx-1483_version-3.0": {
+"src": [
+"jwt/jwt.go",
+"jwt/options.go"
+]
+},
+"lestrrat-go__jwx-1530_version-3.0": {
+"src": [
+"jwk/set.go"
+]
+},
+"lestrrat-go__jwx-1605_version-3.0": {
+"src": [
+"internal/json/json.go"
+]
+},
+"lestrrat-go__jwx-186_version-1.0": {
+"src": [
+"jwk/internal/cmd/genheader/main.go",
+"jwt/internal/cmd/gentoken/main.go"
+]
+},
+"lestrrat-go__jwx-1958_version-4.0": {
+"src": [
+"jwt/validate.go"
+]
+},
+"lestrrat-go__jwx-486_version-1.2": {
+"src": [
+"jws/interface.go",
+"jws/internal/cmd/genheader/main.go",
+"jws/jws.go",
+"jws/message.go"
+]
+},
+"lestrrat-go__jwx-543_version-1.2": {
+"src": [
+"jws/interface.go",
+"jws/jws.go",
+"jws/message.go",
+"jws/option.go"
+]
+},
+"lestrrat-go__jwx-735_version-2.0": {
+"src": [
+"jwt/internal/types/date.go",
+"jwt/jwt.go"
+]
+},
+"lestrrat-go__jwx-946_version-1.2": {
+"src": [
+"jwk/key_ops.go"
+]
+},
+"lestrrat-go__jwx-949_version-2.0": {
+"src": [
+"jwk/okp.go"
+]
+},
+"lestrrat-go__jwx-997_version-2.0": {
+"src": [
+"jws/ecdsa.go",
+"jws/eddsa.go",
+"jws/jws.go",
+"jws/options.go",
+"jws/rsa.go",
+"jwt/options.go"
+]
+},
+"lingui__js-lingui-1127_version-3.10": {
+"src": [
+"packages/cli/src/api/compile.ts"
+]
+},
+"lingui__js-lingui-1166_version-3.12": {
+"src": [
+"packages/cli/src/api/catalog.ts"
+]
+},
+"lingui__js-lingui-1342_version-3.15": {
+"src": [
+"packages/cli/src/api/catalog.ts",
+"packages/cli/src/lingui-compile.ts",
+"packages/cli/src/services/translationIO.ts"
+]
+},
+"lingui__js-lingui-1820_version-4.6": {
+"src": [
+"packages/cli/src/api/catalog/getCatalogs.ts"
+]
+},
+"lingui__js-lingui-1850_version-4.7": {
+"src": [
+"packages/core/src/interpolate.ts"
+]
+},
+"lingui__js-lingui-1890_version-4.7": {
+"src": [
+"packages/cli/src/api/catalog/getCatalogs.ts"
+]
+},
+"lingui__js-lingui-1928_version-4.10": {
+"src": [
+"packages/core/src/interpolate.ts"
+]
+},
+"lingui__js-lingui-1936_version-4.10": {
+"src": [
+"packages/cli/src/api/catalog/extractFromFiles.ts"
+]
+},
+"lingui__js-lingui-1938_version-4.11": {
+"src": [
+"packages/core/src/i18n.ts"
+]
+},
+"lingui__js-lingui-2129_version-5.1": {
+"src": [
+"packages/cli/src/lingui-compile.ts"
+]
+},
+"lingui__js-lingui-2479_version-5.9": {
+"src": [
+"packages/cli/src/api/catalog/mergeCatalog.ts"
+]
+},
+"lingui__js-lingui-2665_version-6.6": {
+"src": [
+"packages/cli/src/api/catalog.ts",
+"packages/conf/src/makeConfig.ts"
+]
+},
+"lingui__js-lingui-2677_version-6.7": {
+"src": [
+"packages/cli/src/api/catalog/mergeCatalog.ts"
+]
+},
+"lingui__js-lingui-2690_version-6.8": {
+"src": [
+"packages/format-po-gettext/src/po-gettext.ts"
+]
+},
+"lingui__js-lingui-961_version-3.4": {
+"src": [
+"packages/cli/src/api/pseudoLocalize.ts"
+]
+},
+"lint-staged__lint-staged-1119_version-12.3": {
+"src": [
+"lib/getRenderer.js",
+"lib/runAll.js"
+]
+},
+"lint-staged__lint-staged-1270_version-13.1": {
+"src": [
+"lib/gitWorkflow.js"
+]
+},
+"metal3-io__baremetal-operator-3069_version-0.12": {
+"src": [
+"internal/controller/metal3.io/baremetalhost_controller.go"
+]
+},
+"metal3-io__baremetal-operator-3342_version-0.13": {
+"src": [
+"internal/controller/metal3.io/baremetalhost_controller.go"
+]
+},
+"metal3-io__baremetal-operator-3443_version-0.13": {
+"src": [
+"internal/controller/metal3.io/baremetalhost_controller.go"
+]
+},
+"microsoft__terraform-provider-azuredevops-778_version-0.7": {
+"src": [
+"azuredevops/internal/service/core/data_team.go",
+"azuredevops/internal/service/core/data_teams.go",
+"azuredevops/internal/service/core/resource_team.go"
+]
+},
+"middleapi__orpc-1318_version-1.13": {
+"src": [
+"packages/zod/src/zod4/converter.ts"
+]
+},
+"middleapi__orpc-1500_version-1.13": {
+"src": [
+"packages/standard-server/src/utils.ts"
+]
+},
+"middleapi__orpc-1551_version-1.14": {
+"src": [
+"packages/server/src/router-utils.ts"
+]
+},
+"middleapi__orpc-1927_version-2.0": {
+"src": [
+"packages/json-schema/src/composition-utils.ts"
+]
+},
+"middleapi__orpc-2002_version-2.0": {
+"src": [
+"packages/openapi/src/openapi-generator-operation.ts"
+]
+},
+"middleapi__orpc-2176_version-2.0": {
+"src": [
+"packages/client/src/plugins/batch.ts"
+]
+},
+"middleapi__orpc-452_version-1.1": {
+"src": [
+"packages/server/src/procedure-action.ts"
+]
+},
+"miniflux__v2-4513_version-2.3": {
+"src": [
+"internal/reader/fetcher/request_builder.go"
+]
+},
+"miniscruff__changie-587_version-1.16": {
+"src": [
+"cmd/batch.go",
+"core/templatecache.go"
+]
+},
+"miniscruff__changie-676_version-1.19": {
+"src": [
+"core/prompt.go"
+]
+},
+"miniscruff__changie-708_version-1.19": {
+"src": [
+"core/change.go",
+"core/config.go",
+"core/utils.go"
+]
+},
+"miniscruff__changie-715_version-1.20": {
+"src": [
+"cmd/batch.go"
+]
+},
+"moov-io__ach-1833_version-1.63": {
+"src": [
+"server/files.go",
+"server/routing.go",
+"server/validate.go"
+]
+},
+"moov-io__ach-884_version-1.6": {
+"src": [
+"file.go",
+"server/files.go"
+]
+},
+"nats-io__nats.go-1713_version-1.37": {
+"src": [
+"nats.go"
+]
+},
+"nats-io__nats.go-1888_version-1.43": {
+"src": [
+"nats.go"
+]
+},
+"nats-io__nats.go-1896_version-1.43": {
+"src": [
+"nats.go"
+]
+},
+"nats-io__nats.go-1913_version-1.44": {
+"src": [
+"nats.go"
+]
+},
+"nats-io__nats.go-2076_version-1.52": {
+"src": [
+"jetstream/kv.go",
+"kv.go"
+]
+},
+"nats-io__nats.go-841_version-1.12": {
+"src": [
+"js.go",
+"jsm.go"
+]
+},
+"nats-io__nats.go-926_version-1.13": {
+"src": [
+"nats.go",
+"ws.go"
+]
+},
+"nicoespeon__abracadabra-244_version-4.13": {
+"src": [
+"src/refactorings/split-declaration-and-initialization/split-declaration-and-initialization.ts"
+]
+},
+"nuxt__content-3100_version-3.1": {
+"src": [
+"src/runtime/internal/security.ts"
+]
+},
+"nuxt__content-3131_version-3.1": {
+"src": [
+"src/utils/collection.ts"
+]
+},
+"nuxt__content-3802_version-3.14": {
+"src": [
+"src/utils/dev.ts"
+]
+},
+"nuxt__scripts-708_version-0.13": {
+"src": [
+"src/runtime/utils.ts"
+]
+},
+"oasdiff__oasdiff-1051_version-1.20": {
+"src": [
+"checker/check_media_type_schema_existence.go",
+"checker/localizations/localizations.go",
+"checker/rules.go"
+]
+},
+"oasdiff__oasdiff-1145_version-1.28": {
+"src": [
+"flatten/allof/merge_allof.go"
+]
+},
+"oasdiff__oasdiff-1192_version-1.29": {
+"src": [
+"diff/prefix_items_diff.go",
+"diff/schema_diff.go"
+]
+},
+"oasdiff__oasdiff-787_version-1.11": {
+"src": [
+"flatten/allof/merge_allof.go"
+]
+},
+"oasdiff__oasdiff-873_version-1.15": {
+"src": [
+"flatten/allof/merge_allof.go"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3384_version-7.18": {
+"src": [
+"src/Suggestor/Suggestor.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3402_version-7.18": {
+"src": [
+"src/Task/TaskRegularExpressions.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3698_version-7.22": {
+"src": [
+"src/Api/createTaskLineModal.ts",
+"src/Api/editTaskLineModal.ts",
+"src/Obsidian/TaskModal.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3704_version-7.22": {
+"src": [
+"src/Renderer/HtmlQueryResultsRenderer.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3711_version-7.22": {
+"src": [
+"src/Commands/ToggleDone.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3723_version-7.22": {
+"src": [
+"src/ui/Menus/PostponeMenu.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3762_version-7.22": {
+"src": [
+"src/Query/QueryResult.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3970_version-8.3": {
+"src": [
+"src/Commands/ToggleDone.ts",
+"src/Obsidian/File.ts",
+"src/Obsidian/LivePreviewExtension.ts",
+"src/Task/ListItem.ts",
+"src/Task/Task.ts"
+]
+},
+"obsidian-tasks-group__obsidian-tasks-3976_version-8.3": {
+"src": [
+"src/TaskSerializer/DefaultTaskSerializer.ts"
+]
+},
+"open-policy-agent__gatekeeper-1021_version-3.3": {
+"src": [
+"pkg/webhook/policy.go"
+]
+},
+"open-policy-agent__gatekeeper-2841_version-3.13": {
+"src": [
+"pkg/mutation/match/match.go",
+"pkg/wildcard/wildcard.go"
+]
+},
+"oras-project__oras-1107_version-1.1": {
+"src": [
+"cmd/oras/internal/option/remote.go"
+]
+},
+"oras-project__oras-2157_version-1.3": {
+"src": [
+"cmd/oras/root/cp.go"
+]
+},
+"oras-project__oras-2183_version-1.3": {
+"src": [
+"cmd/oras/internal/display/metadata/model/tag.go"
+]
+},
+"oras-project__oras-2201_version-1.3": {
+"src": [
+"cmd/oras/internal/option/packer.go"
+]
+},
+"peggyjs__peggy-366_version-3.0": {
+"src": [
+"lib/parser.js"
+]
+},
+"peggyjs__peggy-367_version-3.0": {
+"src": [
+"lib/compiler/passes/report-infinite-repetition.js"
+]
+},
+"peggyjs__peggy-376_version-3.0": {
+"src": [
+"bin/peggy-cli.js",
+"lib/grammar-error.js"
+]
+},
+"pion__dtls-314_version-2.0": {
+"src": [
+"extension.go",
+"extension_renegotiation_info.go",
+"flight1handler.go",
+"flight3handler.go"
+]
+},
+"pion__dtls-410_version-2.0": {
+"src": [
+"flight4handler.go"
+]
+},
+"pion__dtls-470_version-2.1": {
+"src": [
+"crypto.go",
+"pkg/crypto/selfsign/selfsign.go"
+]
+},
+"pion__dtls-644_version-2.2": {
+"src": [
+"conn.go",
+"fragment_buffer.go",
+"handshaker.go"
+]
+},
+"pion__dtls-713_version-3.0": {
+"src": [
+"internal/net/buffer.go"
+]
+},
+"pion__dtls-759_version-3.0": {
+"src": [
+"handshaker.go"
+]
+},
+"pion__webrtc-3218_version-4.1": {
+"src": [
+"sdp.go"
+]
+},
+"pion__webrtc-3347_version-4.2": {
+"src": [
+"icegatherer.go"
+]
+},
+"project-copacetic__copacetic-1275_version-0.11": {
+"src": [
+"pkg/pkgmgr/dpkg.go",
+"pkg/pkgmgr/rpm.go"
+]
+},
+"project-copacetic__copacetic-985_version-0.10": {
+"src": [
+"pkg/pkgmgr/dpkg.go",
+"pkg/pkgmgr/pkgmgr.go",
+"pkg/pkgmgr/rpm.go"
+]
+},
+"projectcapsule__capsule-1802_version-0.12": {
+"src": [
+"pkg/template/fast.go",
+"pkg/utils/tenant/metdata.go"
+]
+},
+"projectcapsule__capsule-181_version-0.0": {
+"src": [
+"pkg/utils/user_group.go"
+]
+},
+"projectdiscovery__katana-1823_version-1.6": {
+"src": [
+"pkg/engine/hybrid/hybrid.go"
+]
+},
+"projectdiscovery__katana-1824_version-1.6": {
+"src": [
+"pkg/engine/hybrid/crawl.go"
+]
+},
+"projectdiscovery__naabu-1466_version-2.3": {
+"src": [
+"pkg/scan/scan_unix.go"
+]
+},
+"projectdiscovery__naabu-823_version-2.1": {
+"src": [
+"v2/pkg/runner/ips.go",
+"v2/pkg/runner/runner.go"
+]
+},
+"prometheus-operator__prometheus-operator-4405_version-0.52": {
+"src": [
+"pkg/prometheus/promcfg.go"
+]
+},
+"prometheus-operator__prometheus-operator-4863_version-0.57": {
+"src": [
+"pkg/alertmanager/statefulset.go",
+"pkg/apis/monitoring/v1/types.go",
+"pkg/prometheus/statefulset.go",
+"pkg/webconfig/config.go"
+]
+},
+"quic-go__quic-go-5241_version-0.53": {
+"src": [
+"path_manager_outgoing.go"
+]
+},
+"react-native-community__cli-1709_version-9.1": {
+"src": [
+"packages/cli-platform-ios/src/commands/runIOS/findMatchingSimulator.ts"
+]
+},
+"react-native-community__cli-2423_version-14.0": {
+"src": [
+"packages/cli-config/src/findDependencies.ts"
+]
+},
+"react-native-community__cli-2795_version-20.1": {
+"src": [
+"packages/cli-platform-apple/src/commands/runCommand/createRun.ts"
+]
+},
+"redis__rueidis-232_version-1.0": {
+"src": [
+"mock/result.go"
+]
+},
+"redis__rueidis-522_version-1.0": {
+"src": [
+"helper.go"
+]
+},
+"scaleway__scaleway-cli-3468_version-2.24": {
+"src": [
+"internal/namespaces/instance/v1/custom_image.go"
+]
+},
+"shikijs__shiki-1169_version-3.18": {
+"src": [
+"packages/monaco/src/index.ts"
+]
+},
+"shikijs__shiki-1259_version-4.0": {
+"src": [
+"packages/core/src/highlight/code-to-tokens.ts",
+"packages/primitive/src/highlight/code-to-tokens-themes.ts"
+]
+},
+"shikijs__shiki-1308_version-4.4": {
+"src": [
+"packages/transformers/src/shared/notation-transformer.ts"
+]
+},
+"shikijs__shiki-1316_version-4.4": {
+"src": [
+"packages/twoslash/src/core.ts"
+]
+},
+"shikijs__shiki-1320_version-4.4": {
+"src": [
+"packages/cli/src/code-to-ansi.ts"
+]
+},
+"skupperproject__skupper-1821_version-2.0": {
+"src": [
+"pkg/kube/site/extended_bindings.go"
+]
+},
+"smallstep__certificates-1006_version-0.21": {
+"src": [
+"api/revoke.go"
+]
+},
+"smallstep__certificates-1123_version-0.23": {
+"src": [
+"authority/tls.go"
+]
+},
+"smallstep__certificates-247_version-0.14": {
+"src": [
+"authority/authority.go",
+"authority/config.go",
+"authority/options.go"
+]
+},
+"smallstep__certificates-257_version-0.14": {
+"src": [
+"acme/api/account.go"
+]
+},
+"smallstep__certificates-395_version-0.16": {
+"src": [
+"authority/provisioner/aws.go",
+"pki/pki.go"
+]
+},
+"smallstep__certificates-488_version-0.15": {
+"src": [
+"kms/cloudkms/cloudkms.go",
+"kms/cloudkms/signer.go"
+]
+},
+"smallstep__certificates-672_version-0.16": {
+"src": [
+"authority/authorize.go",
+"authority/provisioner/azure.go",
+"authority/provisioner/provisioner.go",
+"authority/tls.go"
+]
+},
+"smallstep__certificates-879_version-0.18": {
+"src": [
+"authority/options.go",
+"cas/apiv1/options.go",
+"cas/softcas/softcas.go"
+]
+},
+"smallstep__certificates-891_version-0.18": {
+"src": [
+"acme/challenge.go"
+]
+},
+"smallstep__certificates-946_version-0.19": {
+"src": [
+"acme/api/order.go"
+]
+},
+"starknet-io__starknet.js-1288_version-6.20": {
+"src": [
+"src/utils/typedData.ts"
+]
+},
+"stylelint__stylelint-5165_version-13.11": {
+"src": [
+"lib/rules/declaration-block-trailing-semicolon/index.js"
+]
+},
+"stylelint__stylelint-5194_version-13.12": {
+"src": [
+"lib/rules/color-named/index.js",
+"lib/rules/declaration-property-unit-allowed-list/index.js"
+]
+},
+"stylelint__stylelint-5202_version-13.12": {
+"src": [
+"lib/rules/index.js",
+"lib/rules/no-invalid-position-at-import-rule/index.js"
+]
+},
+"stylelint__stylelint-5203_version-13.12": {
+"src": [
+"lib/reference/mathFunctions.js"
+]
+},
+"stylelint__stylelint-5381_version-13.13": {
+"src": [
+"lib/utils/isStandardSyntaxDeclaration.js"
+]
+},
+"stylelint__stylelint-5672_version-14.0": {
+"src": [
+"lib/writeOutputFile.js"
+]
+},
+"stylelint__stylelint-5680_version-14.0": {
+"src": [
+"lib/utils/isStandardSyntaxDeclaration.js"
+]
+},
+"stylelint__stylelint-5690_version-14.0": {
+"src": [
+"lib/rules/color-no-invalid-hex/index.js",
+"lib/utils/isStandardSyntaxDeclaration.js",
+"lib/utils/isStandardSyntaxHexColor.js"
+]
+},
+"stylelint__stylelint-5717_version-14.0": {
+"src": [
+"lib/reference/keywordSets.js",
+"lib/rules/selector-type-case/index.js"
+]
+},
+"stylelint__stylelint-5734_version-14.1": {
+"src": [
+"lib/index.js",
+"lib/printConfig.js",
+"lib/resolveConfig.js",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-5806_version-14.3": {
+"src": [
+"lib/rules/font-family-name-quotes/index.js"
+]
+},
+"stylelint__stylelint-5830_version-14.2": {
+"src": [
+"lib/rules/block-opening-brace-newline-after/index.js",
+"lib/rules/block-opening-brace-space-after/index.js"
+]
+},
+"stylelint__stylelint-5849_version-14.2": {
+"src": [
+"lib/rules/value-keyword-case/index.js"
+]
+},
+"stylelint__stylelint-5852_version-14.2": {
+"src": [
+"lib/reference/keywordSets.js"
+]
+},
+"stylelint__stylelint-5857_version-14.2": {
+"src": [
+"lib/rules/unit-allowed-list/index.js"
+]
+},
+"stylelint__stylelint-5865_version-14.3": {
+"src": [
+"lib/rules/function-no-unknown/index.js",
+"lib/rules/index.js",
+"lib/utils/isCustomFunction.js"
+]
+},
+"stylelint__stylelint-5925_version-14.5": {
+"src": [
+"lib/rules/custom-property-pattern/index.js"
+]
+},
+"stylelint__stylelint-5949_version-14.5": {
+"src": [
+"lib/rules/custom-property-pattern/index.js"
+]
+},
+"stylelint__stylelint-5982_version-14.6": {
+"src": [
+"lib/rules/custom-property-pattern/index.js"
+]
+},
+"stylelint__stylelint-6024_version-14.7": {
+"src": [
+"lib/rules/index.js",
+"lib/rules/keyframe-block-no-duplicate-selectors/index.js"
+]
+},
+"stylelint__stylelint-6098_version-14.8": {
+"src": [
+"lib/rules/length-zero-no-unit/index.js"
+]
+},
+"stylelint__stylelint-6106_version-14.8": {
+"src": [
+"lib/rules/no-duplicate-selectors/index.js"
+]
+},
+"stylelint__stylelint-6140_version-14.9": {
+"src": [
+"lib/rules/selector-max-specificity/index.js"
+]
+},
+"stylelint__stylelint-6175_version-14.9": {
+"src": [
+"lib/cli.js"
+]
+},
+"stylelint__stylelint-6185_version-14.9": {
+"src": [
+"lib/utils/findAnimationName.js"
+]
+},
+"stylelint__stylelint-6190_version-14.9": {
+"src": [
+"lib/rules/declaration-property-value-allowed-list/index.js"
+]
+},
+"stylelint__stylelint-6250_version-14.9": {
+"src": [
+"lib/rules/selector-no-qualifying-type/index.js",
+"lib/utils/validateOptions.js"
+]
+},
+"stylelint__stylelint-6265_version-14.10": {
+"src": [
+"lib/rules/keyframes-name-pattern/index.js",
+"lib/utils/isStandardSyntaxKeyframesName.js"
+]
+},
+"stylelint__stylelint-6275_version-14.10": {
+"src": [
+"lib/rules/selector-max-universal/index.js"
+]
+},
+"stylelint__stylelint-6312_version-14.11": {
+"src": [
+"lib/rules/color-no-hex/index.js",
+"lib/utils/report.js",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-6384_version-14.13": {
+"src": [
+"lib/lintPostcssResult.js",
+"lib/lintSource.js",
+"lib/standalone.js",
+"lib/utils/report.js",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-6419_version-14.14": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.js"
+]
+},
+"stylelint__stylelint-6466_version-14.14": {
+"src": [
+"lib/utils/checkAgainstRule.js",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-6517_version-14.16": {
+"src": [
+"lib/rules/value-keyword-case/index.js"
+]
+},
+"stylelint__stylelint-6539_version-14.16": {
+"src": [
+"lib/rules/function-no-unknown/index.js"
+]
+},
+"stylelint__stylelint-6547_version-14.16": {
+"src": [
+"lib/augmentConfig.js",
+"lib/isPathIgnored.js"
+]
+},
+"stylelint__stylelint-6588_version-14.16": {
+"src": [
+"lib/rules/selector-max-type/index.js"
+]
+},
+"stylelint__stylelint-6592_version-14.16": {
+"src": [
+"lib/rules/unit-disallowed-list/index.js"
+]
+},
+"stylelint__stylelint-6608_version-14.16": {
+"src": [
+"lib/rules/selector-not-notation/index.js"
+]
+},
+"stylelint__stylelint-6660_version-15.1": {
+"src": [
+"lib/augmentConfig.js"
+]
+},
+"stylelint__stylelint-6669_version-15.1": {
+"src": [
+"lib/rules/declaration-property-value-no-unknown/index.js"
+]
+},
+"stylelint__stylelint-6745_version-15.3": {
+"src": [
+"lib/rules/function-url-quotes/index.js"
+]
+},
+"stylelint__stylelint-6747_version-15.3": {
+"src": [
+"lib/lintPostcssResult.js"
+]
+},
+"stylelint__stylelint-6767_version-15.4": {
+"src": [
+"lib/utils/isFirstNested.js",
+"lib/utils/typeGuards.js"
+]
+},
+"stylelint__stylelint-6772_version-15.4": {
+"src": [
+"lib/rules/declaration-block-no-duplicate-properties/index.js"
+]
+},
+"stylelint__stylelint-6773_version-15.4": {
+"src": [
+"lib/rules/declaration-block-no-duplicate-custom-properties/index.js"
+]
+},
+"stylelint__stylelint-6774_version-15.4": {
+"src": [
+"lib/utils/isStandardSyntaxColorFunction.js"
+]
+},
+"stylelint__stylelint-6777_version-15.5": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.js"
+]
+},
+"stylelint__stylelint-6782_version-15.4": {
+"src": [
+"lib/rules/block-no-empty/index.js"
+]
+},
+"stylelint__stylelint-6792_version-15.5": {
+"src": [
+"lib/rules/declaration-block-no-duplicate-properties/index.js"
+]
+},
+"stylelint__stylelint-6801_version-15.5": {
+"src": [
+"lib/rules/declaration-block-no-duplicate-properties/index.js"
+]
+},
+"stylelint__stylelint-6802_version-15.5": {
+"src": [
+"lib/rules/color-function-notation/index.js"
+]
+},
+"stylelint__stylelint-6815_version-15.6": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.js"
+]
+},
+"stylelint__stylelint-6896_version-15.6": {
+"src": [
+"lib/rules/selector-nested-pattern/index.js"
+]
+},
+"stylelint__stylelint-6909_version-15.7": {
+"src": [
+"lib/rules/max-nesting-depth/index.js"
+]
+},
+"stylelint__stylelint-6929_version-15.7": {
+"src": [
+"lib/standalone.js"
+]
+},
+"stylelint__stylelint-6956_version-15.8": {
+"src": [
+"lib/reference/properties.js"
+]
+},
+"stylelint__stylelint-6957_version-15.8": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.js"
+]
+},
+"stylelint__stylelint-6964_version-15.9": {
+"src": [
+"lib/rules/selector-pseudo-class-no-unknown/index.js"
+]
+},
+"stylelint__stylelint-6983_version-15.9": {
+"src": [
+"lib/prepareReturnValue.js"
+]
+},
+"stylelint__stylelint-6998_version-15.9": {
+"src": [
+"lib/augmentConfig.js"
+]
+},
+"stylelint__stylelint-7230_version-15.10": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.js"
+]
+},
+"stylelint__stylelint-7406_version-16.0": {
+"src": [
+"lib/utils/hasScssInterpolation.cjs",
+"lib/utils/hasScssInterpolation.mjs"
+]
+},
+"stylelint__stylelint-7416_version-16.0": {
+"src": [
+"lib/utils/isStandardSyntaxUrl.cjs",
+"lib/utils/isStandardSyntaxUrl.mjs"
+]
+},
+"stylelint__stylelint-7417_version-16.0": {
+"src": [
+"lib/rules/selector-disallowed-list/index.cjs",
+"lib/rules/selector-disallowed-list/index.mjs"
+]
+},
+"stylelint__stylelint-7425_version-16.0": {
+"src": [
+"lib/reference/selectors.cjs",
+"lib/reference/selectors.mjs"
+]
+},
+"stylelint__stylelint-7438_version-16.1": {
+"src": [
+"lib/reference/atKeywords.cjs",
+"lib/reference/atKeywords.mjs"
+]
+},
+"stylelint__stylelint-7474_version-16.2": {
+"src": [
+"lib/utils/report.cjs",
+"lib/utils/report.mjs"
+]
+},
+"stylelint__stylelint-7475_version-16.2": {
+"src": [
+"lib/rules/selector-max-specificity/index.cjs",
+"lib/rules/selector-max-specificity/index.mjs"
+]
+},
+"stylelint__stylelint-7476_version-16.2": {
+"src": [
+"lib/utils/validateOptions.cjs",
+"lib/utils/validateOptions.mjs"
+]
+},
+"stylelint__stylelint-7490_version-16.2": {
+"src": [
+"lib/reference/selectors.cjs",
+"lib/reference/selectors.mjs"
+]
+},
+"stylelint__stylelint-7544_version-16.2": {
+"src": [
+"lib/rules/selector-max-compound-selectors/index.cjs",
+"lib/rules/selector-max-compound-selectors/index.mjs"
+]
+},
+"stylelint__stylelint-7550_version-16.2": {
+"src": [
+"lib/augmentConfig.cjs",
+"lib/augmentConfig.mjs",
+"lib/createStylelint.cjs",
+"lib/prepareReturnValue.cjs",
+"lib/prepareReturnValue.mjs",
+"rollup.config.mjs"
+]
+},
+"stylelint__stylelint-7572_version-16.3": {
+"src": [
+"lib/rules/rule-selector-property-disallowed-list/index.cjs",
+"lib/rules/rule-selector-property-disallowed-list/index.mjs"
+]
+},
+"stylelint__stylelint-7607_version-16.3": {
+"src": [
+"lib/rules/function-no-unknown/index.cjs",
+"lib/rules/function-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-7626_version-16.3": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.cjs",
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.mjs"
+]
+},
+"stylelint__stylelint-7718_version-16.6": {
+"src": [
+"lib/reference/selectors.cjs",
+"lib/reference/selectors.mjs"
+]
+},
+"stylelint__stylelint-7868_version-16.7": {
+"src": [
+"lib/reference/selectors.cjs",
+"lib/reference/selectors.mjs"
+]
+},
+"stylelint__stylelint-7874_version-16.7": {
+"src": [
+"lib/utils/isStandardSyntaxUrl.cjs",
+"lib/utils/isStandardSyntaxUrl.mjs"
+]
+},
+"stylelint__stylelint-7913_version-16.8": {
+"src": [
+"lib/rules/selector-type-no-unknown/index.cjs",
+"lib/rules/selector-type-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-7968_version-16.9": {
+"src": [
+"lib/reference/atKeywords.cjs",
+"lib/reference/atKeywords.mjs"
+]
+},
+"stylelint__stylelint-7981_version-16.9": {
+"src": [
+"lib/formatters/stringFormatter.cjs",
+"lib/formatters/stringFormatter.mjs",
+"lib/utils/isUnicodeSupported.cjs",
+"lib/utils/isUnicodeSupported.mjs"
+]
+},
+"stylelint__stylelint-8060_version-16.10": {
+"src": [
+"lib/rules/media-query-no-invalid/index.cjs",
+"lib/rules/media-query-no-invalid/index.mjs",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-8116_version-16.11": {
+"src": [
+"lib/rules/custom-property-no-missing-var-function/index.cjs",
+"lib/rules/custom-property-no-missing-var-function/index.mjs"
+]
+},
+"stylelint__stylelint-8144_version-16.10": {
+"src": [
+"lib/rules/font-family-no-missing-generic-family-keyword/index.cjs",
+"lib/rules/font-family-no-missing-generic-family-keyword/index.mjs"
+]
+},
+"stylelint__stylelint-8176_version-16.11": {
+"src": [
+"lib/rules/selector-pseudo-class-allowed-list/index.cjs",
+"lib/rules/selector-pseudo-class-allowed-list/index.mjs"
+]
+},
+"stylelint__stylelint-8211_version-16.12": {
+"src": [
+"lib/rules/at-rule-descriptor-value-no-unknown/index.cjs",
+"lib/rules/at-rule-descriptor-value-no-unknown/index.mjs",
+"lib/rules/index.cjs",
+"lib/rules/index.mjs",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-8240_version-16.12": {
+"src": [
+"lib/rules/declaration-property-value-no-unknown/index.cjs",
+"lib/rules/declaration-property-value-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-8366_version-16.14": {
+"src": [
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.cjs",
+"lib/rules/declaration-block-no-redundant-longhand-properties/index.mjs"
+]
+},
+"stylelint__stylelint-8395_version-16.14": {
+"src": [
+"lib/reference/keywords.cjs",
+"lib/reference/keywords.mjs"
+]
+},
+"stylelint__stylelint-8468_version-16.16": {
+"src": [
+"lib/rules/custom-property-pattern/index.cjs",
+"lib/rules/custom-property-pattern/index.mjs"
+]
+},
+"stylelint__stylelint-8489_version-16.17": {
+"src": [
+"lib/utils/findFontFamily.cjs",
+"lib/utils/findFontFamily.mjs"
+]
+},
+"stylelint__stylelint-8495_version-16.16": {
+"src": [
+"lib/rules/declaration-property-value-no-unknown/index.cjs",
+"lib/rules/declaration-property-value-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-8528_version-16.18": {
+"src": [
+"lib/rules/declaration-property-value-no-unknown/index.cjs",
+"lib/rules/declaration-property-value-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-8534_version-16.18": {
+"src": [
+"lib/formatters/compactFormatter.cjs",
+"lib/formatters/compactFormatter.mjs"
+]
+},
+"stylelint__stylelint-8606_version-16.20": {
+"src": [
+"lib/rules/named-grid-areas-no-invalid/index.cjs",
+"lib/rules/named-grid-areas-no-invalid/index.mjs"
+]
+},
+"stylelint__stylelint-8643_version-16.21": {
+"src": [
+"lib/rules/function-linear-gradient-no-nonstandard-direction/index.cjs",
+"lib/rules/function-linear-gradient-no-nonstandard-direction/index.mjs"
+]
+},
+"stylelint__stylelint-8661_version-16.21": {
+"src": [
+"lib/rules/lightness-notation/index.cjs",
+"lib/rules/lightness-notation/index.mjs"
+]
+},
+"stylelint__stylelint-8665_version-16.22": {
+"src": [
+"lib/reference/properties.cjs",
+"lib/reference/properties.mjs",
+"lib/rules/declaration-block-no-duplicate-properties/index.cjs",
+"lib/rules/declaration-block-no-duplicate-properties/index.mjs"
+]
+},
+"stylelint__stylelint-8743_version-16.23": {
+"src": [
+"lib/rules/nesting-selector-no-missing-scoping-root/index.cjs",
+"lib/rules/nesting-selector-no-missing-scoping-root/index.mjs",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-8832_version-16.25": {
+"src": [
+"lib/rules/media-feature-range-notation/index.cjs",
+"lib/rules/media-feature-range-notation/index.mjs"
+]
+},
+"stylelint__stylelint-8890_version-16.26": {
+"src": [
+"lib/utils/findMediaFeatureNames.mjs"
+]
+},
+"stylelint__stylelint-8977_version-17.4": {
+"src": [
+"lib/utils/normalizeSelector.mjs"
+]
+},
+"stylelint__stylelint-8985_version-17.0": {
+"src": [
+"lib/rules/hue-degree-notation/index.mjs"
+]
+},
+"stylelint__stylelint-9039_version-17.1": {
+"src": [
+"lib/rules/named-grid-areas-no-invalid/index.mjs"
+]
+},
+"stylelint__stylelint-9105_version-17.4": {
+"src": [
+"lib/rules/declaration-property-value-no-unknown/index.mjs"
+]
+},
+"stylelint__stylelint-9116_version-17.4": {
+"src": [
+"lib/reference/functions.mjs",
+"lib/rules/declaration-property-value-keyword-no-deprecated/index.mjs"
+]
+},
+"stylelint__stylelint-9120_version-17.4": {
+"src": [
+"lib/reference/atKeywords.mjs",
+"lib/rules/no-invalid-position-declaration/index.mjs"
+]
+},
+"stylelint__stylelint-9154_version-17.5": {
+"src": [
+"lib/prepareReturnValue.mjs"
+]
+},
+"stylelint__stylelint-9166_version-17.5": {
+"src": [
+"lib/rules/unit-no-unknown/index.mjs",
+"lib/utils/getLexer.mjs",
+"lib/utils/mergeSyntaxDefinitions.mjs",
+"types/stylelint/index.d.ts"
+]
+},
+"stylelint__stylelint-9227_version-17.8": {
+"src": [
+"lib/rules/selector-no-deprecated/index.mjs"
+]
+},
+"stylelint__stylelint-9357_version-17.13": {
+"src": [
+"lib/rules/function-calc-no-unspaced-operator/index.mjs"
+]
+},
+"stylelint__stylelint-9387_version-17.14": {
+"src": [
+"lib/utils/reportCommentProblem.mjs"
+]
+},
+"stylelint__stylelint-9512_version-17.15": {
+"src": [
+"lib/getPostcssResult.mjs",
+"lib/lintSource.mjs",
+"lib/standalone.mjs",
+"types/stylelint/index.d.ts"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-2555": {
+"src": [
+"cmd/skaffold/app/cmd/config/list.go",
+"cmd/skaffold/app/cmd/config/set.go",
+"cmd/skaffold/app/cmd/config/unset.go",
+"cmd/skaffold/app/cmd/config/util.go",
+"cmd/skaffold/app/cmd/flags.go",
+"cmd/skaffold/app/cmd/runner.go",
+"pkg/skaffold/config/global_config.go",
+"pkg/skaffold/config/options.go",
+"pkg/skaffold/config/util.go",
+"pkg/skaffold/runner/deploy.go",
+"pkg/skaffold/runner/runcontext/context.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-3471": {
+"src": [
+"pkg/skaffold/constants/constants.go",
+"pkg/skaffold/schema/defaults/defaults.go",
+"pkg/skaffold/schema/latest/config.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-3645": {
+"src": [
+"pkg/skaffold/debug/transform.go",
+"pkg/skaffold/kubernetes/debugging/container_manager.go",
+"pkg/skaffold/runner/debugging.go",
+"pkg/skaffold/runner/dev.go",
+"pkg/skaffold/runner/runcontext/context.go",
+"pkg/skaffold/runner/runner.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-3742": {
+"src": [
+"pkg/diag/validator/pod.go",
+"pkg/diag/validator/resource.go",
+"pkg/diag/validator/validator.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4054": {
+"src": [
+"cmd/skaffold/app/cmd/flags.go",
+"pkg/skaffold/schema/profiles.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4385": {
+"src": [
+"cmd/skaffold/app/cmd/schema.go",
+"cmd/skaffold/app/cmd/schema/list.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4408": {
+"src": [
+"cmd/skaffold/skaffold.go",
+"pkg/skaffold/initializer/analyze/config.go",
+"pkg/skaffold/initializer/deploy/init.go",
+"pkg/skaffold/initializer/deploy/kubectl.go",
+"pkg/skaffold/initializer/deploy/kustomize.go",
+"pkg/skaffold/initializer/errors/errors.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4509": {
+"src": [
+"pkg/skaffold/kubernetes/log.go",
+"pkg/skaffold/runner/logger.go",
+"pkg/skaffold/schema/defaults/defaults.go",
+"pkg/skaffold/schema/latest/config.go",
+"pkg/skaffold/schema/validation/validation.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4557": {
+"src": [
+"pkg/skaffold/docker/image.go",
+"pkg/skaffold/docker/reference.go",
+"pkg/skaffold/schema/latest/config.go",
+"testutil/util.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4907": {
+"src": [
+"pkg/skaffold/deploy/util/logfile.go",
+"pkg/skaffold/runner/deploy.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-4973": {
+"src": [
+"pkg/skaffold/initializer/build/resolve.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-5322": {
+"src": [
+"pkg/skaffold/instrumentation/export.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-5554": {
+"src": [
+"cmd/skaffold/app/cmd/debug.go",
+"cmd/skaffold/app/cmd/flags.go",
+"pkg/skaffold/config/options.go",
+"pkg/skaffold/config/portforward.go",
+"pkg/skaffold/kubernetes/portforward/forwarder_manager.go",
+"pkg/skaffold/kubernetes/portforward/pod_forwarder.go",
+"pkg/skaffold/kubernetes/portforward/resource_forwarder.go",
+"pkg/skaffold/runner/portforwarder.go",
+"pkg/skaffold/runner/runcontext/context.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-5903": {
+"src": [
+"pkg/skaffold/build/gcb/docker.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-6446": {
+"src": [
+"cmd/skaffold/app/cmd/inspect.go",
+"cmd/skaffold/app/cmd/inspect_tests.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-6904": {
+"src": [
+"pkg/skaffold/build/docker/docker.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-8309": {
+"src": [
+"cmd/skaffold/app/cmd/inspect.go",
+"cmd/skaffold/app/cmd/inspect_namespaces.go",
+"pkg/skaffold/inspect/namespaces/list.go"
+]
+},
+"swe_feat/GoogleContainerTools__skaffold-8575": {
+"src": [
+"cmd/skaffold/app/cmd/inspect.go",
+"cmd/skaffold/app/cmd/inspect_job_manifest_paths.go",
+"cmd/skaffold/app/cmd/inspect_namespaces.go",
+"pkg/skaffold/inspect/jobManifestPaths/list.go",
+"pkg/skaffold/inspect/jobManifestPaths/modify.go",
+"pkg/skaffold/verify/docker/verify.go"
+]
+},
+"swe_feat/anchore__syft-1265": {
+"src": [
+"syft/formats/common/spdxhelpers/to_syft_model.go",
+"syft/formats/common/util/h_digest.go",
+"syft/formats/spdx22json/to_format_model.go",
+"syft/formats/spdx22tagvalue/to_format_model.go"
+]
+},
+"swe_feat/anchore__syft-1405": {
+"src": [
+"schema/json/generate.go",
+"syft/formats/common/spdxhelpers/to_format_model.go",
+"syft/formats/common/spdxhelpers/to_syft_model.go",
+"syft/pkg/cataloger/golang/package.go",
+"syft/pkg/cataloger/golang/parse_go_mod.go",
+"syft/pkg/cataloger/golang/test-fixtures/go-sum-hashes/go.mod",
+"syft/pkg/golang_metadata.go",
+"syft/pkg/metadata.go"
+]
+},
+"swe_feat/anchore__syft-2294": {
+"src": [
+"syft/format/common/cyclonedxhelpers/decoder.go",
+"syft/format/common/cyclonedxhelpers/format.go",
+"syft/format/common/cyclonedxhelpers/properties.go",
+"syft/source/stereoscope_image_metadata.go",
+"syft/source/stereoscope_image_source.go"
+]
+},
+"swe_feat/anchore__syft-3138": {
+"src": [
+"internal/task/scope_tasks.go",
+"syft/create_sbom_config.go",
+"syft/file/location.go",
+"syft/internal/fileresolver/container_image_deep_squash.go",
+"syft/source/scope.go",
+"syft/source/stereoscopesource/image_source.go"
+]
+},
+"swe_feat/anchore__syft-3257": {
+"src": [
+"cmd/syft/internal/options/catalog.go",
+"cmd/syft/internal/options/compliance.go",
+"internal/relationship/index.go",
+"internal/task/package_task_factory.go",
+"syft/cataloging/compliance.go",
+"syft/create_sbom_config.go"
+]
+},
+"swe_feat/anchore__syft-4439": {
+"src": [
+"syft/source/snapsource/snap.go",
+"syft/source/snapsource/snapcraft_api.go"
+]
+},
+"swe_feat/anchore__syft-4480": {
+"src": [
+"go.mod",
+"syft/pkg/cataloger/golang/scan_binary.go",
+"syft/pkg/cataloger/golang/test-fixtures/image-small-upx/.gitignore",
+"syft/pkg/cataloger/golang/test-fixtures/image-small-upx/Dockerfile",
+"syft/pkg/cataloger/golang/test-fixtures/image-small-upx/go.mod",
+"syft/pkg/cataloger/golang/test-fixtures/image-small-upx/main.go",
+"syft/pkg/cataloger/golang/upx.go"
+]
+},
+"swe_feat/anchore__syft-643": {
+"src": [
+"syft/pkg/cataloger/cataloger.go",
+"syft/pkg/cataloger/php/cataloger.go",
+"syft/pkg/cataloger/php/index_cataloger.go",
+"syft/pkg/cataloger/php/parse_installed_json.go"
+]
+},
+"swe_feat/anchore__syft-708": {
+"src": [
+"syft/pkg/cataloger/python/package_cataloger.go",
+"syft/pkg/cataloger/python/test-fixtures/dist-info/direct_url.json",
+"syft/pkg/python_package_metadata.go"
+]
+},
+"swe_feat/antrea-io__antrea-1116": {
+"src": [
+"cmd/antrea-controller/controller.go",
+"hack/update-codegen-dockerized.sh",
+"pkg/antctl/antctl.go",
+"pkg/antctl/command_definition.go",
+"pkg/antctl/command_list.go",
+"pkg/apiserver/apiserver.go",
+"pkg/apiserver/handlers/endpoint/handler.go",
+"pkg/controller/networkpolicy/endpoint_querier.go"
+]
+},
+"swe_feat/antrea-io__antrea-256": {
+"src": [
+"cmd/antrea-agent/agent.go",
+"cmd/antrea-controller/controller.go",
+"pkg/agent/controller/networkpolicy/cache.go",
+"pkg/agent/controller/networkpolicy/networkpolicy_controller.go",
+"pkg/apis/clusterinformation/v1beta1/types.go",
+"pkg/controller/networkpolicy/networkpolicy_controller.go",
+"pkg/monitor/monitor.go",
+"pkg/monitor/querier.go"
+]
+},
+"swe_feat/antrea-io__antrea-4254": {
+"src": [
+"pkg/antctl/antctl.go",
+"pkg/antctl/raw/multicluster/commands.go",
+"pkg/antctl/raw/multicluster/common/common.go",
+"pkg/antctl/raw/multicluster/create/member_token.go",
+"pkg/antctl/raw/multicluster/delete/member_token.go",
+"pkg/antctl/raw/multicluster/get/clusterset.go",
+"pkg/antctl/raw/multicluster/get/member_token.go",
+"pkg/antctl/transform/clusterset/transform.go",
+"pkg/antctl/transform/membertoken/transform.go"
+]
+},
+"swe_feat/antrea-io__antrea-4611": {
+"src": [
+"cmd/antrea-agent/agent.go",
+"hack/update-codegen-dockerized.sh",
+"pkg/agent/apiserver/apiserver.go",
+"pkg/agent/apiserver/handlers/memberlist/handler.go",
+"pkg/agent/querier/querier.go",
+"pkg/antctl/antctl.go",
+"pkg/apiserver/registry/system/supportbundle/rest.go",
+"pkg/support/dump.go"
+]
+},
+"swe_feat/antrea-io__antrea-5538": {
+"src": [
+"pkg/agent/supportbundlecollection/support_bundle_controller.go",
+"pkg/apiserver/registry/system/supportbundle/rest.go",
+"pkg/support/dump.go"
+]
+},
+"swe_feat/antrea-io__antrea-6480": {
+"src": [
+"pkg/agent/types/annotations.go",
+"pkg/controller/serviceexternalip/controller.go"
+]
+},
+"swe_feat/antrea-io__antrea-7552": {
+"src": [
+"pkg/agent/util/ipset/ipset.go",
+"pkg/support/dump.go",
+"pkg/support/dump_others.go"
+]
+},
+"swe_feat/antrea-io__antrea-932": {
+"src": [
+"cmd/antctl/main.go",
+"pkg/antctl/antctl.go",
+"pkg/antctl/raw/traceflow/command.go",
+"pkg/apis/ops/v1alpha1/types.go",
+"pkg/apiserver/apiserver.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-12413": {
+"src": [
+"Makefile",
+"workflow/common/common.go",
+"workflow/controller/controller.go",
+"workflow/controller/operator.go",
+"workflow/controller/workflowpod.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-12842": {
+"src": [
+"workflow/controller/workflowpod.go",
+"workflow/validate/validate.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-12953": {
+"src": [
+"cmd/argo/commands/lint.go",
+"cmd/argo/lint/formatter_pretty.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-14188": {
+"src": [
+"workflow/common/common.go",
+"workflow/controller/controller.go",
+"workflow/controller/ns_watcher.go",
+"workflow/sync/mocks/Throttler.go",
+"workflow/sync/multi_throttler.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-14491": {
+"src": [
+"Makefile",
+"hack/featuregen/components.go",
+"hack/featuregen/contents.go",
+"hack/featuregen/main.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-14989": {
+"src": [
+"Makefile",
+"config/sso.go",
+"manifests/components/sso/dex/dev-svc.yaml",
+"manifests/components/sso/dex/dex-cm.yaml",
+"manifests/components/sso/dex/dex-deploy.yaml",
+"manifests/components/sso/overlays/workflow-controller-configmap.yaml",
+"server/auth/sso/clients.go",
+"server/auth/sso/sso.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-16344": {
+"src": [
+"workflow/controller/controller.go",
+"workflow/util/merge.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-2836": {
+"src": [
+"config/config.go",
+"config/ttl.go",
+"manifests/quick-start-mysql.yaml",
+"manifests/quick-start-no-db.yaml",
+"manifests/quick-start-postgres.yaml",
+"manifests/quick-start/base/overlays/workflow-controller-configmap.yaml",
+"persist/sqldb/mocks/WorkflowArchive.go",
+"persist/sqldb/null_workflow_archive.go",
+"persist/sqldb/workflow_archive.go",
+"workflow/common/metrics.go",
+"workflow/controller/controller.go",
+"workflow/controller/operator.go",
+"workflow/metrics/collector.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-6444": {
+"src": [
+"server/auth/sso/sso.go",
+"server/auth/types/claims.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-6712": {
+"src": [
+"workflow/common/common.go",
+"workflow/controller/controller.go",
+"workflow/controller/exec_control.go",
+"workflow/controller/indexes/indexes.go",
+"workflow/controller/indexes/workflow_index.go",
+"workflow/controller/node_counters.go",
+"workflow/controller/operator.go",
+"workflow/controller/workflowpod.go",
+"workflow/util/pod_name.go",
+"workflow/util/util.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-6990": {
+"src": [
+"cmd/argo/commands/server.go",
+"manifests/cluster-install/argo-server-rbac/argo-server-clusterole.yaml",
+"manifests/install.yaml",
+"manifests/namespace-install.yaml",
+"manifests/namespace-install/argo-server-rbac/argo-server-role.yaml",
+"manifests/quick-start-minimal.yaml",
+"manifests/quick-start-mysql.yaml",
+"manifests/quick-start-postgres.yaml",
+"manifests/quick-start/sso/overlays/workflow-controller-configmap.yaml",
+"pkg/apiclient/argo-kube-client.go",
+"server/apiserver/argoserver.go",
+"server/artifacts/artifact_server.go",
+"server/auth/authorizing_server_stream.go",
+"server/auth/gatekeeper.go",
+"server/auth/mocks/Gatekeeper.go",
+"server/cache/cache.go",
+"server/types/namespaces.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-8517": {
+"src": [
+"pkg/apis/api-rules/violation_exceptions.list",
+"pkg/apis/workflow/v1alpha1/generated.proto",
+"pkg/apis/workflow/v1alpha1/openapi_generated.go",
+"pkg/apis/workflow/v1alpha1/workflow_types.go"
+]
+},
+"swe_feat/argoproj__argo-workflows-8973": {
+"src": [
+"util/archive/archive.go",
+"workflow/executor/executor.go"
+]
+},
+"swe_feat/cortexproject__cortex-1845": {
+"src": [
+"pkg/distributor/query.go",
+"pkg/ingester/client/cortex.proto",
+"pkg/ingester/ingester.go",
+"pkg/ingester/ingester_v2.go",
+"pkg/querier/distributor_queryable.go",
+"pkg/querier/timeseries_series_set.go",
+"pkg/util/chunkcompat/compat.go"
+]
+},
+"swe_feat/cortexproject__cortex-2042": {
+"src": [
+"pkg/ingester/ingester.go",
+"pkg/ingester/ingester_v2.go",
+"pkg/ingester/rate.go"
+]
+},
+"swe_feat/cortexproject__cortex-2220": {
+"src": [
+"Makefile",
+"pkg/chunk/grpc/grpc.proto",
+"pkg/chunk/grpc/grpc_client.go",
+"pkg/chunk/grpc/index_client.go",
+"pkg/chunk/grpc/storage_client.go",
+"pkg/chunk/grpc/table_client.go",
+"pkg/chunk/storage/factory.go"
+]
+},
+"swe_feat/cortexproject__cortex-2456": {
+"src": [
+"pkg/cortex/modules.go",
+"pkg/querier/frontend/worker.go",
+"pkg/querier/frontend/worker_frontend_manager.go"
+]
+},
+"swe_feat/cortexproject__cortex-2575": {
+"src": [
+"pkg/chunk/cassandra/storage_client.go",
+"pkg/chunk/cassandra/table_client.go"
+]
+},
+"swe_feat/cortexproject__cortex-2940": {
+"src": [
+"pkg/chunk/gcp/bigtable_index_client.go",
+"pkg/chunk/storage/factory.go",
+"pkg/cortex/cortex.go",
+"pkg/ingester/client/client.go",
+"pkg/querier/frontend/worker.go",
+"pkg/util/grpc/encoding/snappy/snappy.go",
+"pkg/util/grpcclient/grpcclient.go"
+]
+},
+"swe_feat/cortexproject__cortex-3275": {
+"src": [
+"cmd/cortex/main.go",
+"pkg/cortex/cortex.go",
+"pkg/cortex/modules.go",
+"pkg/cortex/server_service.go",
+"pkg/util/flagext/stringslicecsv.go",
+"pkg/util/modules/modules.go",
+"tools/doc-generator/parser.go"
+]
+},
+"swe_feat/cortexproject__cortex-3529": {
+"src": [
+"pkg/alertmanager/api.go",
+"pkg/api/api.go",
+"pkg/ruler/ruler.go",
+"pkg/util/http.go"
+]
+},
+"swe_feat/cortexproject__cortex-3651": {
+"src": [
+"pkg/chunk/aws/s3_storage_client.go",
+"pkg/chunk/aws/sse_config.go"
+]
+},
+"swe_feat/cortexproject__cortex-3752": {
+"src": [
+"integration/e2ecortex/services.go",
+"integration/util.go",
+"pkg/ruler/notifier.go",
+"pkg/ruler/ruler.go",
+"pkg/util/http.go"
+]
+},
+"swe_feat/cortexproject__cortex-3770": {
+"src": [
+"cmd/thanosconvert/Dockerfile",
+"cmd/thanosconvert/main.go",
+"tools/thanosconvert/thanosconvert.go"
+]
+},
+"swe_feat/cortexproject__cortex-3785": {
+"src": [
+"Makefile",
+"pkg/cortex/modules.go",
+"pkg/cortex/runtime_config.go",
+"pkg/util/validation/exporter.go"
+]
+},
+"swe_feat/cortexproject__cortex-3889": {
+"src": [
+"pkg/chunk/encoding/factory.go",
+"pkg/chunk/encoding/prometheus_chunk.go",
+"pkg/cortex/modules.go",
+"pkg/cortex/runtime_config.go",
+"pkg/ingester/ingester.go",
+"pkg/ingester/ingester_v2.go",
+"pkg/querier/distributor_queryable.go"
+]
+},
+"swe_feat/cortexproject__cortex-4151": {
+"src": [
+"pkg/api/api.go",
+"pkg/distributor/distributor.go",
+"pkg/distributor/distributor_ring.go",
+"pkg/ruler/ruler.go",
+"pkg/util/http.go"
+]
+},
+"swe_feat/cortexproject__cortex-4179": {
+"src": [
+"pkg/distributor/query.go",
+"pkg/querier/blocks_store_queryable.go",
+"pkg/querier/querier.go",
+"pkg/util/limiter/query_limiter.go",
+"pkg/util/validation/limits.go"
+]
+},
+"swe_feat/cortexproject__cortex-4216": {
+"src": [
+"pkg/distributor/query.go",
+"pkg/ingester/client/custom.go",
+"pkg/querier/blocks_store_queryable.go",
+"pkg/querier/querier.go",
+"pkg/util/limiter/query_limiter.go",
+"pkg/util/validation/limits.go"
+]
+},
+"swe_feat/cortexproject__cortex-4803": {
+"src": [
+"pkg/api/api.go",
+"pkg/api/middlewares.go",
+"pkg/cortex/cortex.go",
+"pkg/cortex/modules.go",
+"pkg/distributor/distributor.go",
+"pkg/ingester/ingester.go",
+"pkg/querier/queryrange/roundtrip.go",
+"pkg/util/grpcclient/instrumentation.go",
+"pkg/util/grpcutil/util.go",
+"pkg/util/log/log.go",
+"pkg/util/log/wrappers.go"
+]
+},
+"swe_feat/cortexproject__cortex-5813": {
+"src": [
+"go.mod",
+"integration/e2ecortex/client.go",
+"pkg/api/api.go",
+"pkg/util/push/otlp.go"
+]
+},
+"swe_feat/cortexproject__cortex-5869": {
+"src": [
+"pkg/ruler/manager_metrics.go",
+"pkg/ruler/ruler.go"
+]
+},
+"swe_feat/cortexproject__cortex-6104": {
+"src": [
+"pkg/cortexpb/histograms.go",
+"pkg/distributor/distributor.go",
+"pkg/util/validation/errors.go",
+"pkg/util/validation/limits.go",
+"pkg/util/validation/validate.go"
+]
+},
+"swe_feat/cortexproject__cortex-6151": {
+"src": [
+"pkg/cortex/modules.go",
+"pkg/ruler/compat.go",
+"pkg/ruler/frontend_client.go",
+"pkg/ruler/frontend_client_pool.go",
+"pkg/ruler/frontend_decoder.go",
+"pkg/ruler/manager.go",
+"pkg/ruler/ruler.go"
+]
+},
+"swe_feat/cortexproject__cortex-6163": {
+"src": [
+"pkg/api/api.go",
+"pkg/ingester/ingester.go",
+"pkg/ring/lifecycler.go",
+"pkg/ring/ring.go",
+"pkg/ring/ring.proto"
+]
+},
+"swe_feat/cortexproject__cortex-6178": {
+"src": [
+"pkg/api/api.go",
+"pkg/distributor/distributor.go",
+"pkg/distributor/http_server.go",
+"pkg/ingester/client/ingester.proto",
+"pkg/ingester/http_admin.go",
+"pkg/ingester/ingester.go"
+]
+},
+"swe_feat/cortexproject__cortex-6330": {
+"src": [
+"integration/e2ecortex/client.go",
+"pkg/api/api.go",
+"pkg/cortexpb/cortex.proto",
+"pkg/cortexpb/histograms.go",
+"pkg/distributor/distributor.go",
+"pkg/util/push/push.go"
+]
+},
+"swe_feat/cortexproject__cortex-6405": {
+"src": [
+"go.mod",
+"pkg/util/log/log.go",
+"pkg/util/log/slog_adapter.go"
+]
+},
+"swe_feat/cortexproject__cortex-6680": {
+"src": [
+"pkg/ruler/compat.go",
+"pkg/ruler/ruler.go",
+"pkg/util/validation/limits.go"
+]
+},
+"swe_feat/cortexproject__cortex-6713": {
+"src": [
+"pkg/cortex/modules.go",
+"pkg/querier/tenantfederation/regex_resolver.go",
+"pkg/querier/tenantfederation/tenant_federation.go",
+"pkg/tenant/resolver.go",
+"pkg/tenant/tenant.go"
+]
+},
+"swe_feat/cortexproject__cortex-6763": {
+"src": [
+"pkg/api/handlers.go",
+"pkg/api/queryapi/query_api.go",
+"pkg/api/queryapi/util.go",
+"pkg/querier/tripperware/instantquery/instant_query.go",
+"pkg/querier/tripperware/queryrange/query_range.go"
+]
+},
+"swe_feat/cortexproject__cortex-6920": {
+"src": [
+"pkg/querier/parquet_queryable.go",
+"pkg/querier/querier.go"
+]
+},
+"swe_feat/cortexproject__cortex-6996": {
+"src": [
+"pkg/ingester/ingester.go",
+"pkg/util/discardedseries/perlabelset_tracker.go",
+"pkg/util/discardedseries/tracker.go",
+"pkg/util/validation/validate.go"
+]
+},
+"swe_feat/cortexproject__cortex-7098": {
+"src": [
+"pkg/querier/parquet_queryable.go",
+"pkg/querier/querier.go",
+"schemas/cortex-config-schema.json"
+]
+},
+"swe_feat/cortexproject__cortex-7203": {
+"src": [
+"go.mod",
+"pkg/querier/blocks_store_queryable.go",
+"pkg/querier/querier.go",
+"pkg/storegateway/batchable.go",
+"pkg/storegateway/parquet_bucket_store.go",
+"schemas/cortex-config-schema.json"
+]
+},
+"swe_feat/cortexproject__cortex-7284": {
+"src": [
+"pkg/cortex/modules.go",
+"pkg/ha/ha_tracker.go",
+"pkg/ring/kv/memberlist/kv.proto",
+"pkg/ring/kv/memberlist/memberlist_client.go",
+"pkg/ring/kv/memberlist/metrics.go",
+"schemas/cortex-config-schema.json"
+]
+},
+"swe_feat/cortexproject__cortex-7625": {
+"src": [
+"pkg/parquetconverter/converter.go",
+"pkg/parquetconverter/metrics.go",
+"pkg/storage/parquet/no_convert_marker.go",
+"pkg/util/validation/limits.go",
+"schemas/cortex-config-schema.json"
+]
+},
+"swe_feat/cortexproject__cortex-7873": {
+"src": [
+"integration/e2ecortex/client.go",
+"pkg/api/api.go",
+"pkg/cortexpb/codec.go",
+"pkg/distributor/distributor.go",
+"pkg/util/fakeauth/fake_auth.go",
+"pkg/util/push/otlp.go",
+"pkg/util/push/otlp_grpc.go",
+"pkg/util/push/push.go",
+"schemas/cortex-config-schema.json"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-13604": {
+"src": [
+"tx/textual/internal/testpb/1.proto",
+"tx/textual/internal/testpb/1.pulsar.go",
+"tx/textual/valuerenderer/coins.go",
+"tx/textual/valuerenderer/message.go",
+"tx/textual/valuerenderer/types.go",
+"tx/textual/valuerenderer/valuerenderer.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-14582": {
+"src": [
+"testutil/mock/types_mock_appmodule.go",
+"types/module/core_module.go",
+"types/module/genesis.go",
+"types/module/module.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-3952": {
+"src": [
+"client/lcd/swagger-ui/swagger.yaml",
+"client/lcd/test_helpers.go",
+"client/rpc/validators.go",
+"client/tx/search.go",
+"types/rest/rest.go",
+"x/slashing/client/rest/query.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-4232": {
+"src": [
+"cmd/gaia/app/app.go",
+"cmd/gaia/cmd/gaiadebug/hack.go",
+"types/address.go",
+"types/config.go",
+"x/auth/ante.go",
+"x/mock/app.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-4558": {
+"src": [
+"types/coin.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-4592": {
+"src": [
+"client/lcd/statik/statik.go",
+"client/lcd/swagger-ui/swagger.yaml",
+"x/supply/client/cli/query.go",
+"x/supply/client/rest/query.go",
+"x/supply/keeper/querier.go",
+"x/supply/module.go",
+"x/supply/types/querier.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-5249": {
+"src": [
+"simapp/app.go",
+"simapp/test_helpers.go",
+"x/distribution/client/cli/tx.go",
+"x/distribution/client/rest/tx.go",
+"x/distribution/handler.go",
+"x/distribution/keeper/keeper.go",
+"x/distribution/types/msg.go"
+]
+},
+"swe_feat/cosmos__cosmos-sdk-8663": {
+"src": [
+"x/gov/keeper/migrations.go",
+"x/gov/legacy/v040/vote.go",
+"x/gov/legacy/v042/store.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-1040": {
+"src": [
+"charts/fluid/fluid/Chart.yaml",
+"charts/fluid/fluid/values.yaml",
+"pkg/ddc/alluxio/engine.go",
+"pkg/ddc/alluxio/node.go",
+"pkg/ddc/base/engine.go",
+"pkg/ddc/base/syncs.go",
+"pkg/ddc/goosefs/node.go",
+"pkg/ddc/jindo/engine.go",
+"pkg/ddc/jindo/node.go",
+"pkg/ddc/jindo/worker.go",
+"pkg/utils/dataset/lifecycle/node.go",
+"pkg/utils/kubeclient/metadata.go",
+"pkg/utils/kubeclient/statefulset.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-1849": {
+"src": [
+"charts/fluid/fluid/Chart.yaml",
+"charts/fluid/fluid/values.yaml",
+"pkg/application/inject/fuse/container_injector.go",
+"pkg/application/inject/fuse/injector.go",
+"pkg/common/types.go",
+"pkg/common/volume.go",
+"pkg/utils/applications/pod/pod.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-1901": {
+"src": [
+"pkg/common/constants.go",
+"pkg/utils/annotations.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-1929": {
+"src": [
+"charts/fluid/fluid/templates/webhook/webhook.yaml",
+"pkg/common/constants.go",
+"pkg/utils/annotations.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-2001": {
+"src": [
+"pkg/common/constants.go",
+"pkg/ctrl/watch/pod.go",
+"pkg/utils/annotations.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-2084": {
+"src": [
+"charts/fluid/fluid/templates/controller/alluxioruntime_controller.yaml",
+"charts/fluid/fluid/templates/controller/goosefsruntime_controller.yaml",
+"charts/fluid/fluid/templates/controller/jindoruntime_controller.yaml",
+"charts/fluid/fluid/templates/controller/juicefsruntime_controller.yaml",
+"charts/fluid/fluid/templates/role/dataset/rbac.yaml",
+"pkg/common/constants.go",
+"pkg/common/label.go",
+"pkg/controllers/v1alpha1/dataset/dataset_controller.go",
+"pkg/runtime/runtime_controllers.go",
+"pkg/utils/kubeclient/daemonset.go",
+"pkg/utils/kubeclient/deployment.go",
+"pkg/utils/runtime_checkers.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-2759": {
+"src": [
+"charts/fluid-dataloader/jindofsx/templates/dataloader.yaml",
+"charts/fluid-dataloader/jindofsx/values.yaml",
+"pkg/ddc/jindofsx/load_data.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-380": {
+"src": [
+"charts/fluid/fluid/VERSION",
+"charts/fluid/fluid/templates/controller/alluxioruntime_controller.yaml",
+"charts/fluid/fluid/templates/controller/dataset_controller.yaml",
+"charts/fluid/fluid/values.yaml",
+"pkg/common/alluxio.go",
+"pkg/common/constants.go",
+"pkg/controllers/v1alpha1/dataload/implement.go",
+"pkg/ddc/alluxio/transform.go",
+"pkg/ddc/alluxio/transform_fuse.go",
+"pkg/ddc/alluxio/transform_optimization.go",
+"pkg/ddc/alluxio/utils.go",
+"pkg/utils/docker/image.go",
+"pkg/utils/helm/utils.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-4178": {
+"src": [
+"pkg/ddc/efc/create_volume.go",
+"pkg/utils/dataset.go",
+"pkg/utils/dataset/volume/create.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-4285": {
+"src": [
+"charts/fluid/fluid/values.yaml",
+"pkg/common/label.go",
+"pkg/ddc/base/label.go",
+"pkg/webhook/plugins/datasetusageinjector/dataset_usage_injector.go",
+"pkg/webhook/plugins/plugins_impl.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-5295": {
+"src": [
+"charts/fluid/fluid/templates/webhook/webhook.yaml",
+"charts/fluid/fluid/values.yaml",
+"pkg/application/inject/fuse/injector.go",
+"pkg/application/inject/fuse/mutator/mutating_context.go",
+"pkg/application/inject/fuse/mutator/mutator_default.go",
+"pkg/application/inject/fuse/mutator/mutator_unprivileged.go",
+"pkg/common/env_names.go",
+"pkg/common/types.go",
+"sdk/java"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-5964": {
+"src": [
+"charts/fluid/fluid/templates/role/thin/rbac.yaml",
+"pkg/common/cacheruntime.go",
+"pkg/controllers/runtime_controller.go",
+"pkg/controllers/v1alpha1/thinruntime/thinruntime_controller.go",
+"pkg/ddc/base/runtime.go",
+"pkg/ddc/base/runtime_helper.go",
+"pkg/ddc/cache/engine/cm.go",
+"pkg/ddc/cache/engine/master.go",
+"pkg/ddc/cache/engine/runtime.go",
+"pkg/ddc/cache/engine/status.go",
+"pkg/ddc/cache/engine/sync.go",
+"pkg/ddc/cache/engine/transform.go",
+"pkg/ddc/cache/engine/transform_common.go",
+"pkg/ddc/cache/engine/util.go",
+"pkg/ddc/thin/referencedataset/cm.go",
+"pkg/ddc/thin/referencedataset/runtime.go",
+"pkg/ddc/thin/referencedataset/sync.go",
+"pkg/utils/mount.go",
+"tools/diagnose-fluid-curvine.sh"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-6111": {
+"src": [
+"api/v1alpha1/common.go",
+"api/v1alpha1/openapi_generated.go",
+"pkg/common/types.go",
+"pkg/ddc/cache/engine/dataset.go",
+"pkg/ddc/cache/engine/sync.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-766": {
+"src": [
+"pkg/common/alluxio.go",
+"pkg/common/constants.go",
+"pkg/common/fluid_ufs_scheme.go",
+"pkg/controllers/v1alpha1/databackup/databackup_controller.go",
+"pkg/controllers/v1alpha1/databackup/implement.go",
+"pkg/controllers/v1alpha1/dataload/implement.go",
+"pkg/ddc/alluxio/metadata.go",
+"pkg/ddc/alluxio/transform.go",
+"pkg/ddc/alluxio/transform_optimization.go",
+"pkg/ddc/alluxio/transform_ufs.go",
+"pkg/ddc/alluxio/ufs_internal.go",
+"pkg/ddc/alluxio/ufs_path_builder.go",
+"pkg/ddc/alluxio/utils.go",
+"pkg/utils/databackup.go"
+]
+},
+"swe_feat/fluid-cloudnative__fluid-885": {
+"src": [
+"api/v1alpha1/constant.go",
+"api/v1alpha1/dataset_types.go",
+"pkg/ddc/alluxio/dataset.go",
+"pkg/ddc/alluxio/operations/base.go",
+"pkg/ddc/alluxio/ufs.go",
+"pkg/ddc/alluxio/ufs_internal.go",
+"pkg/ddc/base/engine.go",
+"pkg/ddc/base/syncs.go",
+"pkg/ddc/goosefs/dataset.go",
+"pkg/ddc/goosefs/ufs.go",
+"pkg/ddc/jindo/dataset.go",
+"pkg/ddc/jindo/ufs.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-10315": {
+"src": [
+"storage/bucket.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-11580": {
+"src": [
+"firestore/watch.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-11786": {
+"src": [
+"compute/metadata/metadata.go",
+"compute/metadata/syscheck.go",
+"compute/metadata/syscheck_linux.go",
+"compute/metadata/syscheck_windows.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-11808": {
+"src": [
+"civil/civil.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-12101": {
+"src": [
+"bigquery/job.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-13874": {
+"src": [
+"storage/bucket.go",
+"storage/grpc_client.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-20671": {
+"src": [
+"firestore/transaction.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-20712": {
+"src": [
+"firestore/pipeline.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-3557": {
+"src": [
+"spanner/spansql/parser.go",
+"spanner/spansql/sql.go",
+"spanner/spansql/types.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-4403": {
+"src": [
+"spanner/spansql/parser.go",
+"spanner/spansql/sql.go",
+"spanner/spansql/types.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-4607": {
+"src": [
+"pubsub/subscription.go",
+"pubsub/topic.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-4937": {
+"src": [
+"spanner/spannertest/db.go",
+"spanner/spansql/parser.go",
+"spanner/spansql/sql.go",
+"spanner/spansql/types.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-4961": {
+"src": [
+"spanner/spannertest/db.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-5703": {
+"src": [
+"civil/civil.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-6119": {
+"src": [
+"pubsub/pstest/fake.go",
+"pubsub/subscription.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-6257": {
+"src": [
+"pubsub/pstest/fake.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-6389": {
+"src": [
+"spanner/spansql/parser.go",
+"spanner/spansql/sql.go",
+"spanner/spansql/types.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-6447": {
+"src": [
+"internal/godocfx/main.go",
+"internal/godocfx/parse.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-6596": {
+"src": [
+"bigquery/params.go",
+"bigquery/standardsql.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-7283": {
+"src": [
+"spanner/spansql/parser.go",
+"spanner/spansql/sql.go",
+"spanner/spansql/types.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-7940": {
+"src": [
+"pubsub/topic.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-9520": {
+"src": [
+"storage/bucket.go",
+"storage/client.go",
+"storage/grpc_client.go",
+"storage/http_client.go",
+"storage/storage.go"
+]
+},
+"swe_feat/googleapis__google-cloud-go-9722": {
+"src": [
+"pubsub/pstest/fake.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-2355": {
+"src": [
+"remote/remote_state_s3.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-2570": {
+"src": [
+"cli/args.go",
+"cli/cli_app.go",
+"cli/hclfmt.go",
+"options/options.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-2725": {
+"src": [
+"config/config_helpers.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-2757": {
+"src": [
+"config/config_helpers.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-3006": {
+"src": [
+"remote/remote_state_s3.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-3288": {
+"src": [
+"cli/commands/hclfmt/action.go",
+"cli/commands/hclfmt/command.go",
+"options/options.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-5963": {
+"src": [
+"internal/experiment/experiment.go",
+"internal/filter/ast.go",
+"internal/filter/doc.go",
+"internal/glob/glob.go",
+"internal/runner/run/run.go",
+"internal/services/catalog/ignore/ignore.go",
+"internal/util/file.go",
+"pkg/config/config.go",
+"pkg/config/config_helpers.go",
+"pkg/config/cty_helpers.go",
+"pkg/config/errors.go"
+]
+},
+"swe_feat/gruntwork-io__terragrunt-6112": {
+"src": [
+"internal/getter/tfr.go",
+"internal/getter/tfrhelpers.go"
+]
+},
+"swe_feat/kubescape__kubescape-1184": {
+"src": [
+"core/pkg/fixhandler/fixhandler.go",
+"core/pkg/resultshandling/printer/v2/sarifprinter.go"
+]
+},
+"swe_feat/kubescape__kubescape-2410": {
+"src": [
+"cmd/scan/framework.go",
+"cmd/scan/scan.go",
+"core/cautils/floatutils.go",
+"core/cautils/scancoverage.go",
+"core/pkg/opaprocessor/processorhandler.go",
+"core/pkg/resultshandling/printer/v2/prettyprinter.go",
+"core/pkg/resultshandling/printer/v2/prometheus.go",
+"core/pkg/resultshandling/printer/v2/prometheusutils.go"
+]
+},
+"swe_feat/kubescape__kubescape-2447": {
+"src": [
+"httphandler/handlerequests/v1/requestparser.go",
+"httphandler/handlerequests/v1/requestshandlerutils.go"
+]
+},
+"swe_feat/kubescape__kubescape-2479": {
+"src": [
+"cmd/mcpserver/mcpserver.go"
+]
+},
+"swe_feat/kubescape__kubescape-2512": {
+"src": [
+"cmd/mcpserver/mcpserver.go",
+"cmd/mcpserver/network_scan.go",
+"cmd/mcpserver/rbac_scan.go",
+"cmd/mcpserver/scan_helper.go"
+]
+},
+"swe_feat/kubescape__kubescape-2528": {
+"src": [
+"cmd/mcpserver/framework_scan.go",
+"cmd/mcpserver/mcpserver.go",
+"cmd/mcpserver/scan_helper.go"
+]
+},
+"swe_feat/kubescape__kubescape-2625": {
+"src": [
+"cmd/diff/diff.go",
+"cmd/scan/scan.go",
+"cmd/shared/scan.go",
+"core/core/diff.go",
+"core/core/scan.go",
+"core/pkg/resultshandling/diff/printer.go",
+"core/pkg/resultshandling/printer/printresults.go",
+"core/pkg/resultshandling/printer/v2/jsonprinter.go",
+"core/pkg/resultshandling/printer/v2/yamlprinter.go",
+"core/pkg/resultshandling/results.go"
+]
+},
+"swe_feat/kubescape__kubescape-2696": {
+"src": [
+"cmd/scan/image.go",
+"cmd/scan/scan.go",
+"cmd/shared/image_scan.go",
+"core/cautils/scaninfo.go",
+"core/core/image_scan.go",
+"core/core/scan.go",
+"core/meta/datastructures/v1/image_scan.go",
+"pkg/imagescan/imagescan.go"
+]
+},
+"swe_feat/kubescape__kubescape-2708": {
+"src": [
+"cmd/mcpserver/image_scan.go",
+"cmd/mcpserver/mcpserver.go",
+"pkg/imagescan/imagescan.go"
+]
+},
+"swe_feat/kubescape__kubescape-2852": {
+"src": [
+"cmd/list/list.go",
+"core/core/list.go"
+]
+},
+"swe_feat/kubescape__kubescape-2989": {
+"src": [
+"cmd/list/list.go",
+"core/core/list.go"
+]
+},
+"swe_feat/kubescape__kubescape-3019": {
+"src": [
+"core/cautils/terraform.go",
+"core/cautils/terraform_typed.go"
+]
+},
+"swe_feat/kubescape__kubescape-3210": {
+"src": [
+"pkg/imagescan/gitlab_adaptor.go"
+]
+},
+"swe_feat/kubescape__kubescape-3220": {
+"src": [
+"cmd/scan/scan.go",
+"core/cautils/scaninfo.go",
+"core/core/initutils.go",
+"core/pkg/resultshandling/printer/v2/pathvalue.go",
+"core/pkg/resultshandling/printer/v2/prettyprinter.go",
+"core/pkg/resultshandling/printer/v2/resourcetable.go",
+"core/pkg/resultshandling/results.go"
+]
+},
+"swe_feat/kubescape__kubescape-3392": {
+"src": [
+"cmd/scan/scan.go",
+"core/cautils/datastructures.go",
+"core/cautils/scaninfo.go",
+"core/pkg/opaprocessor/processorhandlerutils.go"
+]
+},
+"swe_feat/kubescape__kubescape-3419": {
+"src": [
+"cmd/scan/scan.go",
+"core/cautils/getter/customrules.go",
+"core/cautils/scaninfo.go",
+"core/pkg/policyhandler/handlepullpolicies.go",
+"core/pkg/resourcehandler/resourcehandlerutils.go"
+]
+},
+"swe_feat/kubescape__kubescape-3438": {
+"src": [
+"cmd/scan/fleetscan.go",
+"cmd/scan/scan.go",
+"core/cautils/scaninfo.go"
+]
+},
+"swe_feat/kubescape__kubescape-3440": {
+"src": [
+"cmd/scan/control.go",
+"cmd/scan/fleetscan.go",
+"cmd/scan/framework.go",
+"cmd/scan/scan.go",
+"cmd/scan/workload.go"
+]
+},
+"swe_feat/kubescape__kubescape-3461": {
+"src": [
+"httphandler/listener/setup.go"
+]
+},
+"swe_feat/kubescape__kubescape-3480": {
+"src": [
+"cmd/scan/scan.go",
+"core/cautils/datastructures.go",
+"core/cautils/scaninfo.go",
+"core/pkg/opaprocessor/processorhandler.go",
+"core/pkg/opaprocessor/processorhandlerutils.go"
+]
+},
+"swe_feat/kubescape__kubescape-3573": {
+"src": [
+"core/pkg/resultshandling/printer/printresults.go",
+"core/pkg/resultshandling/printer/v2/markdownprinter.go"
+]
+},
+"swe_feat/kubescape__kubescape-3622": {
+"src": [
+"cmd/scan/validate_contract.go"
+]
+},
+"swe_feat/kubescape__kubescape-3626": {
+"src": [
+"cmd/diff/diff.go",
+"core/core/diff.go",
+"core/meta/datastructures/v1/diff.go",
+"core/pkg/resultshandling/diff/summary.go"
+]
+},
+"swe_feat/kubescape__kubescape-3632": {
+"src": [
+"cmd/mcpserver/mcpserver.go",
+"cmd/mcpserver/vulnerability_exposure.go",
+"core/pkg/networkpolicy/exposure.go",
+"core/pkg/vulnexposure/correlate.go"
+]
+},
+"swe_feat/kubescape__kubescape-3639": {
+"src": [
+"core/pkg/resultshandling/printer/v2/sarifprinter.go"
+]
+},
+"swe_feat/kubescape__kubescape-3663": {
+"src": [
+"cmd/config/config.go",
+"cmd/config/validate.go",
+"core/cautils/config_validation.go",
+"core/core/cachedconfig.go",
+"core/meta/datastructures/v1/config.go",
+"core/meta/ksinterface.go",
+"core/mocks/cmd_mocks.go"
+]
+},
+"swe_feat/kubescape__kubescape-3853": {
+"src": [
+"pkg/imagescan/azure_adaptor.go",
+"pkg/imagescan/imagescan.go"
+]
+},
+"swe_feat/kubescape__kubescape-3880": {
+"src": [
+"cmd/fix/fix.go",
+"core/core/clusterfix.go",
+"core/core/fix.go",
+"core/meta/datastructures/v1/fix.go",
+"core/pkg/fixhandler/datastructures.go",
+"core/pkg/fixhandler/fixhandler.go"
+]
+},
+"swe_feat/kubescape__kubescape-4040": {
+"src": [
+"cmd/mcpserver/diff_reports.go",
+"cmd/mcpserver/mcpserver.go",
+"core/core/diff.go",
+"core/pkg/resultshandling/diff/diff.go"
+]
+},
+"swe_feat/kubescape__kubescape-4199": {
+"src": [
+"cmd/mcpserver/config_scan_filter.go",
+"cmd/mcpserver/mcpserver.go"
+]
+},
+"swe_feat/kubescape__kubescape-4208": {
+"src": [
+"core/pkg/anonymizer/exceptions.go",
+"core/pkg/anonymizer/session.go",
+"core/pkg/reportcrypto/report.go",
+"core/pkg/resultshandling/printer/v2/sarifexceptions.go",
+"core/pkg/resultshandling/printer/v2/sarifprinter.go",
+"go.mod"
+]
+},
+"swe_feat/kubescape__kubescape-4212": {
+"src": [
+"cmd/mcpserver/list_policies.go",
+"cmd/mcpserver/mcpserver.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-10907": {
+"src": [
+"confmap/provider/envprovider/provider.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-1113": {
+"src": [
+"config/config.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-11494": {
+"src": [
+"exporter/debugexporter/exporter.go",
+"exporter/debugexporter/factory.go",
+"exporter/debugexporter/go.mod",
+"exporter/debugexporter/internal/metadata/generated_status.go",
+"exporter/debugexporter/internal/normal/profiles.go",
+"exporter/debugexporter/metadata.yaml"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-12454": {
+"src": [
+"cmd/otelcorecol/builder-config.yaml",
+"cmd/otelcorecol/go.mod",
+"processor/memorylimiterprocessor/factory.go",
+"processor/memorylimiterprocessor/go.mod",
+"processor/memorylimiterprocessor/internal/metadata/generated_status.go",
+"processor/memorylimiterprocessor/memorylimiter.go",
+"processor/memorylimiterprocessor/metadata.yaml"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-1297": {
+"src": [
+"consumer/consumererror/partialerror.go",
+"consumer/consumererror/permanenterror.go",
+"processor/queuedprocessor/queued_processor.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-13044": {
+"src": [
+"config/configoptional/Makefile",
+"config/configoptional/go.mod",
+"config/configoptional/optional.go",
+"versions.yaml"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-1353": {
+"src": [
+"config/configgrpc/configgrpc.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-13679": {
+"src": [
+"cmd/mdatagen/go.mod",
+"otelcol/collector.go",
+"otelcol/command_print.go",
+"otelcol/go.mod",
+"otelcol/otelcoltest/go.mod",
+"service/go.mod",
+"service/hostcapabilities/go.mod",
+"service/telemetry/telemetrytest/go.mod"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-13837": {
+"src": [
+"pdata/xpdata/json.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-13859": {
+"src": [
+"config/configoptional/optional.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-15098": {
+"src": [
+"cmd/builder/internal/builder/config.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-1632": {
+"src": [
+"exporter/kafkaexporter/authentication.go",
+"exporter/kafkaexporter/config.go",
+"exporter/kafkaexporter/kafka_exporter.go",
+"receiver/kafkareceiver/config.go",
+"receiver/kafkareceiver/kafka_receiver.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-4506": {
+"src": [
+"config/configauth/serverauth.go",
+"config/confighttp/confighttp.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-4558": {
+"src": [
+"config/configauth/default_serverauthenticator.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-4837": {
+"src": [
+"config/configauth/default_clientauthenticator.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-5064": {
+"src": [
+"Makefile",
+"model/internal/cmd/pdatagen/internal/base_fields.go",
+"model/internal/cmd/pdatagen/internal/common_structs.go",
+"model/internal/cmd/pdatagen/internal/log_structs.go",
+"model/internal/cmd/pdatagen/internal/metrics_structs.go",
+"model/internal/cmd/pdatagen/internal/trace_structs.go",
+"model/internal/pdata/generated_common.go",
+"model/internal/pdata/generated_log.go",
+"model/internal/pdata/generated_metrics.go",
+"model/internal/pdata/generated_trace.go",
+"model/internal/pdata/metrics.go",
+"proto_patch.sed"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-5085": {
+"src": [
+"model/otlp/json_unmarshaler.go",
+"model/otlpgrpc/logs.go",
+"model/otlpgrpc/metrics.go",
+"model/otlpgrpc/traces.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-7570": {
+"src": [
+"receiver/otlpreceiver/config.go",
+"receiver/otlpreceiver/factory.go",
+"receiver/otlpreceiver/otlp.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-7835": {
+"src": [
+"otelcol/collector.go",
+"otelcol/command.go",
+"otelcol/command_validate.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-9168": {
+"src": [
+"config/configtls/configtls.go"
+]
+},
+"swe_feat/open-telemetry__opentelemetry-collector-9671": {
+"src": [
+"config/confignet/confignet.go"
+]
+},
+"swe_feat/quic-go__quic-go-2501": {
+"src": [
+"internal/mocks/qlog.go",
+"qlog/event.go",
+"qlog/qlog.go",
+"qlog/types.go",
+"session.go"
+]
+},
+"swe_feat/quic-go__quic-go-3411": {
+"src": [
+"http3/client.go",
+"http3/conn.go",
+"http3/request_writer.go",
+"http3/roundtrip.go"
+]
+},
+"swe_feat/quic-go__quic-go-4630": {
+"src": [
+"http3/response_writer.go",
+"http3/server.go"
+]
+},
+"swe_feat/quic-go__quic-go-4749": {
+"src": [
+"http3/client.go",
+"http3/conn.go",
+"http3/http_stream.go",
+"http3/ip_addr.go",
+"http3/request_writer.go",
+"http3/trace.go",
+"http3/transport.go"
+]
+},
+"swe_feat/quic-go__quic-go-4901": {
+"src": [
+"fuzzing/frames/fuzz.go",
+"internal/wire/frame.go",
+"internal/wire/interface.go"
+]
+},
+"swe_feat/quic-go__quic-go-4979": {
+"src": [
+"path_manager.go",
+"path_manager_outgoing.go"
+]
+},
+"swe_feat/quic-go__quic-go-5107": {
+"src": [
+"connection.go",
+"crypto_stream.go",
+"crypto_stream_manager.go",
+"packet_packer.go",
+"sni.go"
+]
+},
+"swe_feat/quic-go__quic-go-5143": {
+"src": [
+"http3/conn.go"
+]
+},
+"swe_feat/quic-go__quic-go-5271": {
+"src": [
+"connection.go",
+"internal/ackhandler/ackhandler.go",
+"internal/ackhandler/sent_packet_handler.go",
+"internal/protocol/protocol.go",
+"internal/utils/connstats.go",
+"internal/utils/rtt_stats.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-2993": {
+"src": [
+"pipeline/backend/kubernetes/pod.go",
+"pipeline/backend/kubernetes/service.go",
+"pipeline/backend/types/network.go",
+"pipeline/backend/types/step.go",
+"pipeline/frontend/yaml/compiler/convert.go",
+"pipeline/frontend/yaml/types/container.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-3123": {
+"src": [
+"pipeline/backend/kubernetes/pod.go",
+"pipeline/backend/types/backend_kubernetes.go",
+"pipeline/frontend/yaml/compiler/convert.go",
+"pipeline/frontend/yaml/linter/schema/schema.json",
+"pipeline/frontend/yaml/types/backend_options.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-3349": {
+"src": [
+"cmd/server/flags.go",
+"cmd/server/openapi/docs.go",
+"server/api/repo.go",
+"server/model/pagination.go",
+"server/model/repo.go",
+"server/services/config/http.go",
+"server/services/manager.go",
+"server/services/setup.go",
+"server/services/utils/hostmatcher/hostmatcher.go",
+"server/services/utils/hostmatcher/http.go",
+"server/services/utils/http.go",
+"web/components.d.ts",
+"web/src/assets/locales/en.json",
+"web/src/lib/api/index.ts",
+"web/src/lib/api/types/repo.ts",
+"web/src/router.ts",
+"web/src/views/repo/settings/Extensions.vue",
+"web/src/views/repo/settings/RepoSettings.vue"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-3609": {
+"src": [
+"pipeline/backend/kubernetes/backend_options.go",
+"pipeline/backend/kubernetes/flags.go",
+"pipeline/backend/kubernetes/kubernetes.go",
+"pipeline/backend/kubernetes/pod.go",
+"pipeline/frontend/yaml/linter/schema/schema.json"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-5633": {
+"src": [
+"server/grpc/filter.go",
+"server/queue/queue.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-5929": {
+"src": [
+"cli/context/context.go",
+"cli/internal/config/config.go",
+"cli/internal/config/context.go",
+"cli/setup/setup.go",
+"cmd/cli/app.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-6252": {
+"src": [
+"cmd/server/flags.go",
+"cmd/server/openapi/docs.go",
+"server/api/repo.go",
+"server/model/repo.go",
+"server/pipeline/items.go",
+"server/services/manager.go",
+"server/services/secret/combined.go",
+"server/services/secret/db.go",
+"server/services/secret/http.go",
+"server/services/secret/service.go",
+"server/services/setup.go",
+"web/src/assets/locales/en.json",
+"web/src/lib/api/types/repo.ts",
+"web/src/views/repo/settings/Extensions.vue"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-6644": {
+"src": [
+"pipeline/backend/kubernetes/backend_options.go",
+"pipeline/backend/kubernetes/pod.go"
+]
+},
+"swe_feat/woodpecker-ci__woodpecker-6839": {
+"src": [
+"cmd/server/flags.go",
+"cmd/server/server.go"
+]
+},
+"swe_feat/zarf-dev__zarf-1102": {
+"src": [
+"Makefile",
+"src/cmd/initialize.go",
+"src/cmd/package.go",
+"src/cmd/tools.go",
+"src/config/lang/english.go",
+"src/internal/agent/start.go",
+"src/internal/packager/git/auth.go",
+"src/internal/packager/git/clone.go",
+"src/internal/packager/git/common.go",
+"src/internal/packager/git/fetch.go",
+"src/pkg/utils/auth.go"
+]
+},
+"swe_feat/zarf-dev__zarf-1873": {
+"src": [
+"src/cmd/tools/wait.go",
+"src/config/lang/english.go",
+"src/pkg/utils/wait.go",
+"src/types/component.go",
+"src/ui/lib/api-types.ts",
+"zarf.schema.json"
+]
+},
+"swe_feat/zarf-dev__zarf-4252": {
+"src": [
+"examples/values-templating/values/values.schema.json",
+"examples/values-templating/zarf.yaml",
+"src/api/v1alpha1/component.go",
+"src/api/v1alpha1/package.go",
+"src/internal/value/value.go",
+"src/pkg/packager/create.go",
+"src/pkg/packager/deploy.go",
+"src/pkg/packager/layout/assemble.go",
+"src/pkg/packager/load/load.go",
+"src/pkg/packager/publish.go",
+"zarf.schema.json"
+]
+},
+"swe_feat/zarf-dev__zarf-4288": {
+"src": [
+"src/internal/packager/helm/images.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4301": {
+"src": [
+"src/api/v1alpha1/package.go",
+"src/cmd/package.go",
+"src/cmd/viper.go",
+"src/config/lang/english.go",
+"src/pkg/packager/layout/assemble.go",
+"src/pkg/packager/layout/package.go",
+"src/pkg/packager/publish.go",
+"src/pkg/utils/cosign.go",
+"zarf.schema.json"
+]
+},
+"swe_feat/zarf-dev__zarf-4304": {
+"src": [
+"go.mod",
+"src/internal/template/template.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4325": {
+"src": [
+"src/cmd/package.go",
+"src/config/lang/english.go",
+"src/pkg/packager/layout/package.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4335": {
+"src": [
+"src/cmd/dev.go",
+"src/config/lang/english.go",
+"src/pkg/packager/update.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4641": {
+"src": [
+"src/cmd/package.go",
+"src/config/lang/english.go",
+"src/pkg/packager/publish.go",
+"src/pkg/zoci/common.go",
+"src/pkg/zoci/copier.go",
+"src/pkg/zoci/utils.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4957": {
+"src": [
+"examples/values-templating/nginx-configmap.yaml",
+"src/api/v1alpha1/component.go",
+"src/internal/packager/template/template.go",
+"src/internal/template/template.go",
+"src/pkg/packager/actions/actions.go",
+"src/pkg/packager/deploy.go",
+"src/pkg/packager/find_images.go",
+"src/pkg/packager/inspect.go",
+"src/pkg/packager/layout/assemble.go",
+"src/pkg/packager/remove.go",
+"src/pkg/schema/zarf-v1alpha1-schema.json",
+"src/pkg/state/state.go",
+"zarf.schema.json"
+]
+},
+"swe_feat/zarf-dev__zarf-4968": {
+"src": [
+"src/internal/template/refs.go",
+"src/pkg/packager/deploy.go",
+"src/pkg/packager/inspect.go",
+"src/pkg/packager/layout/assemble.go",
+"src/pkg/packager/layout/layout.go",
+"src/pkg/packager/layout/sbom.go",
+"src/pkg/packager/values_preflight.go",
+"src/pkg/value/value.go"
+]
+},
+"swe_feat/zarf-dev__zarf-4983": {
+"src": [
+"src/pkg/lint/rules.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5092": {
+"src": [
+"examples/values-templating/nginx-configmap.yaml",
+"src/api/v1alpha1/package.go",
+"src/api/v1beta1/package.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5103": {
+"src": [
+"src/cmd/dev.go",
+"src/cmd/package.go",
+"src/config/lang/english.go",
+"src/pkg/value/value.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5234": {
+"src": [
+"src/cmd/dev.go",
+"src/cmd/initialize.go",
+"src/pkg/packager/deploy.go",
+"src/pkg/packager/dev.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5287": {
+"src": [
+"src/config/lang/english.go",
+"src/internal/packager/helm/chart.go",
+"src/pkg/packager/deploy.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5310": {
+"src": [
+"src/cmd/package.go",
+"src/config/lang/english.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5393": {
+"src": [
+"src/api/package.go",
+"src/api/validation.go",
+"src/internal/api/v1alpha1/convert.go",
+"src/internal/api/v1beta1/convert.go",
+"src/internal/pkgcfg/pkgcfg.go",
+"src/pkg/cluster/zarf.go",
+"src/pkg/packager/assemble/assemble.go",
+"src/pkg/packager/layout/package.go",
+"src/pkg/packager/remove.go"
+]
+},
+"swe_feat/zarf-dev__zarf-5526": {
+"src": [
+"src/internal/api/v1beta1/validate.go",
+"src/pkg/packager/load/import_v1beta1.go"
+]
+},
+"syself__cluster-api-provider-hetzner-2001_version-1.1": {
+"src": [
+"controllers/hcloudmachine_controller.go"
+]
+},
+"syself__cluster-api-provider-hetzner-2241_version-1.1": {
+"src": [
+"controllers/hcloudremediation_controller.go",
+"controllers/hetznerbaremetalremediation_controller.go",
+"main.go"
+]
+},
+"tact-lang__tact-2084_version-1.5": {
+"src": [
+"src/generator/writers/writeFunction.ts"
+]
+},
+"tact-lang__tact-2512_version-1.6": {
+"src": [
+"src/generator/writers/cast.ts"
+]
+},
+"tact-lang__tact-2703_version-1.6": {
+"src": [
+"src/generator/writers/writeFunction.ts"
+]
+},
+"tact-lang__tact-3252_version-1.6": {
+"src": [
+"src/generator/writers/writeExpression.ts",
+"src/generator/writers/writeStdlib.ts"
+]
+},
+"tact-lang__tact-3272_version-1.6": {
+"src": [
+"src/types/resolveDescriptors.ts"
+]
+},
+"tektoncd__pipeline-10007_version-1.13": {
+"src": [
+"pkg/apis/pipeline/v1/task_validation.go",
+"pkg/apis/pipeline/v1alpha1/stepaction_validation.go",
+"pkg/apis/pipeline/v1beta1/stepaction_validation.go"
+]
+},
+"tektoncd__pipeline-10186_version-1.12": {
+"src": [
+"pkg/pod/status.go"
+]
+},
+"tektoncd__pipeline-10403_version-1.14": {
+"src": [
+"internal/sidecarlogresults/sidecarlogresults.go"
+]
+},
+"tektoncd__pipeline-10822_version-1.16": {
+"src": [
+"pkg/pod/script.go"
+]
+},
+"tektoncd__pipeline-5287_version-0.38": {
+"src": [
+"pkg/reconciler/pipelinerun/resources/pipelinerunstate.go"
+]
+},
+"tektoncd__pipeline-8980_version-1.3": {
+"src": [
+"pkg/pipelinerunmetrics/metrics.go"
+]
+},
+"tektoncd__pipeline-9589_version-1.11": {
+"src": [
+"pkg/apis/config/feature_flags.go"
+]
+},
+"tektoncd__triggers-2084_version-0.36": {
+"src": [
+"pkg/adapter/adapter.go"
+]
+},
+"testcontainers__testcontainers-node-275_version-7.20": {
+"src": [
+"src/docker-image-name.ts"
+]
+},
+"testcontainers__testcontainers-node-425_version-9.1": {
+"src": [
+"src/registry-auth-locator/credential-provider.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1008_version-7.2": {
+"src": [
+"lib/node-utils/index.ts",
+"lib/rules/no-wait-for-multiple-assertions.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1009_version-7.2": {
+"src": [
+"lib/node-utils/index.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1047_version-7.6": {
+"src": [
+"lib/rules/await-async-utils.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1075_version-7.9": {
+"src": [
+"lib/rules/await-async-events.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1101_version-7.13": {
+"src": [
+"lib/rules/prefer-screen-queries.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1103_version-7.13": {
+"src": [
+"lib/rules/no-unnecessary-act.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-1264_version-7.16": {
+"src": [
+"src/create-testing-library-rule/detect-testing-library-utils.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-342_version-4.0": {
+"src": [
+"lib/detect-testing-library-utils.ts",
+"lib/rules/prefer-screen-queries.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-374_version-4.2": {
+"src": [
+"lib/rules/await-async-query.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-388_version-4.5": {
+"src": [
+"lib/rules/prefer-screen-queries.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-422_version-4.9": {
+"src": [
+"lib/rules/prefer-user-event.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-452_version-4.10": {
+"src": [
+"lib/rules/prefer-explicit-assert.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-476_version-4.12": {
+"src": [
+"lib/rules/prefer-explicit-assert.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-538_version-5.0": {
+"src": [
+"lib/rules/prefer-find-by.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-566_version-5.2": {
+"src": [
+"lib/rules/no-global-regexp-flag-in-query.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-611_version-5.5": {
+"src": [
+"lib/rules/no-node-access.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-639_version-5.6": {
+"src": [
+"lib/rules/prefer-query-by-disappearance.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-643_version-5.6": {
+"src": [
+"lib/rules/consistent-data-testid.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-657_version-5.7": {
+"src": [
+"lib/create-testing-library-rule/detect-testing-library-utils.ts",
+"lib/rules/no-dom-import.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-658_version-5.7": {
+"src": [
+"lib/rules/no-node-access.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-719_version-5.9": {
+"src": [
+"lib/rules/consistent-data-testid.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-733_version-5.10": {
+"src": [
+"lib/rules/await-async-utils.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-817_version-6.0": {
+"src": [
+"lib/rules/await-async-events.ts"
+]
+},
+"testing-library__eslint-plugin-testing-library-895_version-6.2": {
+"src": [
+"lib/rules/await-async-events.ts"
+]
+},
+"tsedio__tsed-2378_version-7.33": {
+"src": [
+"packages/orm/mikro-orm/src/MikroOrmModule.ts",
+"packages/orm/mikro-orm/src/index.ts",
+"packages/orm/mikro-orm/src/interceptors/TransactionalInterceptor.ts",
+"packages/orm/mikro-orm/src/interfaces/AfterTransactionCommit.ts",
+"packages/orm/mikro-orm/src/interfaces/BeforeTransactionCommit.ts",
+"packages/orm/mikro-orm/src/interfaces/RetryStrategy.ts"
+]
+},
+"unjs__unhead-681_version-3.0": {
+"src": [
+"packages/unhead/src/plugins/inferSeoMetaPlugin.ts"
+]
+},
+"unjs__unhead-772_version-3.1": {
+"src": [
+"packages/unhead/src/scripts/useScript.ts"
+]
+},
+"unjs__unhead-870_version-3.2": {
+"src": [
+"packages/unhead/src/stream/server.ts",
+"packages/unhead/src/utils/normalize.ts"
+]
+},
+"unjs__unhead-990_version-3.4": {
+"src": [
+"packages/bundler/src/devtools/vite.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-313_version-0.3": {
+"src": [
+"src/rules/no-done-callback.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-33_version-0.0": {
+"src": [
+"src/rules/expect-expect.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-617_version-1.1": {
+"src": [
+"src/rules/valid-expect.ts",
+"src/utils/parse-vitest-fn-call.ts",
+"src/utils/types.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-621_version-1.1": {
+"src": [
+"src/index.ts",
+"src/rules/valid-title.ts",
+"src/utils/index.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-906_version-1.6": {
+"src": [
+"src/rules/require-test-timeout.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-908_version-1.6": {
+"src": [
+"src/rules/valid-expect.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-909_version-1.6": {
+"src": [
+"src/rules/hoisted-apis-on-top.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-925_version-1.6": {
+"src": [
+"src/utils/parse-vitest-fn-call.ts"
+]
+},
+"vitest-dev__eslint-plugin-vitest-936_version-1.6": {
+"src": [
+"src/utils/parse-vitest-fn-call.ts"
+]
+},
+"vuejs__test-utils-1067_version-2.0": {
+"src": [
+"src/vueWrapper.ts"
+]
+},
+"vuejs__test-utils-1086_version-2.0": {
+"src": [
+"src/stubs.ts"
+]
+},
+"vuejs__test-utils-1145_version-2.0": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-1202_version-2.0": {
+"src": [
+"src/utils.ts"
+]
+},
+"vuejs__test-utils-1227_version-2.0": {
+"src": [
+"src/baseWrapper.ts"
+]
+},
+"vuejs__test-utils-1397_version-2.0": {
+"src": [
+"src/utils/getRootNodes.ts"
+]
+},
+"vuejs__test-utils-1434_version-2.0": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-1479_version-2.0": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-1723_version-2.0": {
+"src": [
+"src/baseWrapper.ts"
+]
+},
+"vuejs__test-utils-1856_version-2.2": {
+"src": [
+"src/baseWrapper.ts"
+]
+},
+"vuejs__test-utils-1860_version-2.2": {
+"src": [
+"src/vueWrapper.ts"
+]
+},
+"vuejs__test-utils-1979_version-2.3": {
+"src": [
+"src/createInstance.ts",
+"src/vnodeTransformers/stubComponentsTransformer.ts"
+]
+},
+"vuejs__test-utils-1996_version-2.3": {
+"src": [
+"src/domWrapper.ts",
+"src/wrapperFactory.ts"
+]
+},
+"vuejs__test-utils-2065_version-2.4": {
+"src": [
+"src/vnodeTransformers/util.ts"
+]
+},
+"vuejs__test-utils-2073_version-2.4": {
+"src": [
+"src/vnodeTransformers/stubComponentsTransformer.ts"
+]
+},
+"vuejs__test-utils-2327_version-2.4": {
+"src": [
+"src/baseWrapper.ts"
+]
+},
+"vuejs__test-utils-2386_version-2.4": {
+"src": [
+"src/vueWrapper.ts"
+]
+},
+"vuejs__test-utils-2397_version-2.4": {
+"src": [
+"src/vnodeTransformers/stubComponentsTransformer.ts"
+]
+},
+"vuejs__test-utils-2428_version-2.4": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-2890_version-2.4": {
+"src": [
+"src/vnodeTransformers/util.ts"
+]
+},
+"vuejs__test-utils-2898_version-2.4": {
+"src": [
+"src/emit.ts"
+]
+},
+"vuejs__test-utils-351_version-2.0": {
+"src": [
+"src/domWrapper.ts",
+"src/utils.ts",
+"src/vueWrapper.ts"
+]
+},
+"vuejs__test-utils-438_version-2.0": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-540_version-2.0": {
+"src": [
+"src/dataMixin.ts",
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-743_version-2.0": {
+"src": [
+"src/mount.ts"
+]
+},
+"vuejs__test-utils-813_version-2.0": {
+"src": [
+"src/stubs.ts"
+]
+},
+"wakatime__wakatime-cli-1356_version-2.4": {
+"src": [
+"pkg/api/option.go"
+]
+},
+"wakatime__wakatime-cli-1372_version-2.7": {
+"src": [
+"pkg/ai/claude.go"
+]
+},
+"wakatime__wakatime-cli-1504_version-2.21": {
+"src": [
+"pkg/ai/claude.go",
+"pkg/ai/cursor.go"
+]
+},
+"zitadel__oidc-311_version-2.0": {
+"src": [
+"pkg/oidc/types.go"
+]
+},
+"zitadel__oidc-358_version-2.2": {
+"src": [
+"pkg/op/auth_request.go"
+]
+},
+"zitadel__oidc-493_version-3.4": {
+"src": [
+"pkg/crypto/key.go"
+]
+},
+"zitadel__oidc-577_version-3.19": {
+"src": [
+"pkg/oidc/device_authorization.go"
+]
+},
+"zitadel__oidc-963_version-3.49": {
+"src": [
+"pkg/client/client.go"
+]
+},
+"zitadel__oidc-986_version-3.51": {
+"src": [
+"pkg/client/rp/relying_party.go"
+]
 }
 }

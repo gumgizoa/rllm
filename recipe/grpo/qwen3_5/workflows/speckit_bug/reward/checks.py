@@ -145,13 +145,33 @@ def _section(text: str, title: str) -> str | None:
 # --------------------------------------------------------------------------------------------
 # speckit_bug.checks_table
 # --------------------------------------------------------------------------------------------
+def _split_cells(s: str) -> list[str]:
+    """Split a table row at its column bars: a ``|`` inside a code span is the command's own pipe (``go test ./... |
+    tail -5``), not a column -- markdown renders it so only when escaped, but the reports are written as text and a
+    command cell holds what was typed. A row whose backticks do not pair up is split at every bar."""
+    if "`" not in s or s.count("`") % 2:
+        return re.split(r"(?<!\\)\|", s)
+    out, cur, code, prev = [], [], False, ""
+    for ch in s:
+        if ch == "`":
+            code = not code
+        if ch == "|" and not code and prev != "\\":
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+        prev = ch
+    out.append("".join(cur))
+    return out
+
+
 def _cells(line: str) -> list[str]:
     s = line.strip()
     if s.startswith("|"):
         s = s[1:]
     if s.endswith("|") and not s.endswith("\\|"):
         s = s[:-1]
-    return [c.strip() for c in re.split(r"(?<!\\)\|", s)]
+    return [c.strip() for c in _split_cells(s)]
 
 
 def table_rows(body: str) -> list[dict[str, str]]:
@@ -517,7 +537,11 @@ def written_checks(ctx: EvalContext, w) -> list[str]:
 
 
 # files a check run leaves or the agent keeps next to its checks (output, notes, data): not check scripts
-_DATA_FILE = re.compile(r"(?i)\.(?:txt|log|md|rst|json|out|err|diff|patch|csv|tsv|ya?ml|html?|xml|ini|cfg|toml|pyc|pkl|bin|dat)$")
+# (Go's module files, a JavaScript tool's configuration, a snapshot or golden file are data of that kind)
+_DATA_FILE = re.compile(
+    r"(?i)\.(?:txt|log|md|rst|json|out|err|diff|patch|csv|tsv|ya?ml|html?|xml|ini|cfg|toml|pyc|pkl|bin|dat|mod|sum|lock|snap|golden|map)$"
+    r"|(?:^|/)(?:jest|vitest|vite|babel|eslint|prettier|webpack|rollup|tsup|playwright)\.config\.[cm]?[jt]s$|(?:^|/)\.[\w.-]*rc(?:\.[cm]?js)?$|\.d\.ts$"
+)
 
 
 def check_writes(ctx: EvalContext) -> dict[str, list[int]]:
@@ -719,6 +743,7 @@ def checks_added(item: Item, ctx: EvalContext) -> Result:
 _FETCH = re.compile(
     r"(?i)(?:\b(?:curl|wget|lynx|w3m|aria2c)\b[^\n|;&]*\bhttps?://"
     r"|\b(?:urlopen|urlretrieve|requests\.(?:get|post|head|request)|httpx\.(?:get|post|head|stream))\s*\(\s*[rbuf]?['\"]https?://"
+    r"|\b(?:fetch|got|axios|axios\.(?:get|post|head|request)|https?\.(?:get|request)|http\.(?:Get|Post|Head|NewRequest)[A-Za-z]*)\s*\((?:\s*(?:ctx|\"GET\"|http\.MethodGet)\s*,)?\s*['\"`]https?://"
     r"|\bgit\s+clone\b[^\n|;&]*\bhttps?://)"
 )
 
@@ -769,7 +794,9 @@ def holds(item: Item, ctx: EvalContext) -> Result:
 _GOLD_PATH = posixpath.join(posixpath.dirname(__file__), "gold_files.json")
 _GOLD: dict[str, dict[str, list[str]]] | None = None
 _PATH_IN_TEXT = re.compile(r"`([^`\n]+)`")
-_PATHLIKE = re.compile(r"(?<![\w/.-])((?:/|\./)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z][A-Za-z0-9]*)(?![\w/])")
+# a path segment: plain, an npm scope (``@scope``), or a route file / group of the JavaScript frameworks (``[id]``, ``(app)``)
+_SEG = r"(?:@?[\w.+$-]+|\[[\w.-]+\][\w.-]*|\([\w.-]+\))"
+_PATHLIKE = re.compile(r"(?<![\w/.@-])((?:/|\./)?" + _SEG + r"(?:/" + _SEG + r")*\.[A-Za-z][A-Za-z0-9]*)(?![\w/])")
 
 
 def _gold_table() -> dict[str, dict[str, list[str]]]:
@@ -810,7 +837,9 @@ def _norm_repo_path(p: str, workdir: str | None) -> str:
     p = p.strip().strip("`'\"").split(":")[0]
     if workdir and p.startswith(workdir.rstrip("/") + "/"):
         p = p[len(workdir.rstrip("/")) + 1 :]
-    return p.lstrip("./")
+    while p.startswith("./"):  # not ``lstrip("./")``: ``.eslintrc.js`` and ``.github/x.yml`` keep their dot
+        p = p[2:]
+    return p.lstrip("/")
 
 
 def named_files(assessment: str | None, fix: str | None, workdir: str | None = None) -> set[str]:

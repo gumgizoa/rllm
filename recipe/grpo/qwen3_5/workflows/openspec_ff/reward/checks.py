@@ -575,6 +575,7 @@ def created_files(item: Item, ctx: EvalContext) -> Result:
 _FETCH = re.compile(
     r"(?i)(?:\b(?:curl|wget|lynx|w3m|aria2c)\b[^\n|;&]*\bhttps?://"
     r"|\b(?:urlopen|urlretrieve|requests\.(?:get|post|head|request)|httpx\.(?:get|post|head|stream))\s*\(\s*[rbuf]?['\"]https?://"
+    r"|\b(?:fetch|got|axios|axios\.(?:get|post|head|request)|https?\.(?:get|request)|http\.(?:Get|Post|Head|NewRequest)[A-Za-z]*)\s*\((?:\s*(?:ctx|\"GET\"|http\.MethodGet)\s*,)?\s*['\"`]https?://"
     r"|\bgit\s+clone\b[^\n|;&]*\bhttps?://)"
 )
 

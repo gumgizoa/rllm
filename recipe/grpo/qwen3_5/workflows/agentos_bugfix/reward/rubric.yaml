@@ -6402,7 +6402,7 @@ items:
   check:
     kind: agentos_bugfix.paths_written
     params:
-      pattern: ^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!verify/)\S*\.(?:py|sh|bash|js|ts|rb|pl)$
+      pattern: ^/tmp/(?!agent-os/specs/[^/]+/)\S+$|^/tmp/agent-os/specs/[^/]+/(?!verify/)\S*\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl)$
   requirement: should
   modality_evidence: 'CW:87 ''scratch files to S/verify/'' (where, not a prohibition: should)'
   none_allowed: '-'
@@ -6772,7 +6772,7 @@ items:
   check:
     kind: agentos_bugfix.created_files
     params:
-      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
+      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp|check|verify)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:spec|tasks|requirements|initialization|final-verification)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
       scratch: true
   requirement: must
   modality_evidence: CW:87-88 'Nothing that belongs to the workflow goes into /testbed'

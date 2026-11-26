@@ -130,7 +130,7 @@ MAX_CMD = 20_000
 MAX_TEXT = 400_000
 # the outcome of a script run is read by the common rule (workflow_rubric/results.py), shared with the other workflows
 _EXIT, _FAIL_TEXT, _PASS_TEXT, _MARK_WORDS = R.EXIT, R.FAIL_TEXT, R.PASS_TEXT, R.MARK_WORDS
-_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|ts|rb|pl|php)$")
+_SCRIPT_EXT = re.compile(r"\.(?:py|sh|bash|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|rb|pl|php)$")
 _NOT_READ = re.compile(r"No such file or directory|cannot open|Is a directory|not found", re.I)
 _WARN = "⚠"
 # a task group heading (create-tasks.md:54 ``#### Task Group 1: Data Models and Migrations``)
@@ -488,17 +488,20 @@ def _norm_lines(text: str) -> list[str]:
 # a basis that names no source: a path, a code span, an identifier or a word for the task or the repository would be one
 _SOURCE_WORD = re.compile(r"(?i)\b(?:task|issue|description|repository|repo|codebase|grep|search|traceback|error|test|docs?)\b")
 _CODEISH = re.compile(r"`[^`]+`|[\w.]*\w/[\w./-]+|\b\w+\.\w+\b|\b\w+_\w+\b|\w+\(\)")
+# an identifier in the casing Go and JavaScript / TypeScript use, read as snake_case is in a run of those languages
+# (``parseCookies``, ``RetryStrategy``)
+_CAMEL = re.compile(r"\b[a-z][a-z0-9]*[A-Z]\w*\b|\b[A-Z][a-z0-9]+[A-Z]\w*\b")
 _GENERIC = re.compile(
     r"(?i)^(?:(?:standard|common|best|general|generic|usual|typical|comprehensive)\b[\w\s-]{0,30}?\b(?:practices?|approach|patterns?|conventions?|testing)"
     r"|(?:correct|yes|no|n/?a|none|needed|assumed|obvious(?:ly)?|i think so|makes sense|reasonable|need to verify)(?: [\w-]+){0,3})\.?$"
 )
 
 
-def _no_basis(value: str) -> bool:
+def _no_basis(value: str, camel: bool = False) -> bool:
     """An answer's basis (after the dash) names nothing in the task description or the repository: no path, code span,
     identifier or source word, and three words or fewer or a generic phrase only ("Standard testing practice")."""
     basis = re.split(r"\s(?:—|–|--?)\s", value, maxsplit=1)[-1].strip()
-    if _SOURCE_WORD.search(basis) or _CODEISH.search(basis):
+    if _SOURCE_WORD.search(basis) or _CODEISH.search(basis) or (camel and _CAMEL.search(basis)):
         return False
     return len(re.findall(r"[\w'/.()-]+", basis)) <= 3 or _GENERIC.match(basis) is not None
 
@@ -528,7 +531,8 @@ def requirements(item: Item, ctx: EvalContext) -> Result:
                 qs[-1] = (qs[-1][0], M.clean_value(a.group("v")) if a.group("v") else a.group("v"))
         if not qs:
             return Result.no(item, "no **Qn:** question")
-        bad = [q for q, v in qs if not v or not _ANSWER_OK.match(v.strip()) or (p.get("basis_check") and _no_basis(v.strip()))]
+        camel = F.repo_language(ctx) in ("go", "js")
+        bad = [q for q, v in qs if not v or not _ANSWER_OK.match(v.strip()) or (p.get("basis_check") and _no_basis(v.strip(), camel))]
         return Result.ratio(item, len(qs) - len(bad), len(qs), f"without '(assumed) <answer> — <basis>': {bad[:5]}" if bad else f"{len(qs)} answers assumed with a basis")
     if rule == "initial_description":
         init = _text(ctx, "initialization")
@@ -765,7 +769,7 @@ def named_paths(desc: str, workdir: str | None) -> set[str]:
 
 # what a task line names as a file (``name_files``, the reward review's B-1): the last part of the name ends with one of
 # these extensions -- ``subprocess.run``, ``content_type.save``, ``wspace/hspace`` are code, not files
-FILE_EXT = re.compile(r"\.(?:py|pyx|pyi|c|h|cpp|js|ts|txt|rst|md|cfg|toml|ini|json|ya?ml|html|css|sh|in|po|mo|csv|xml|tex)$", re.I)
+FILE_EXT = re.compile(r"\.(?:py|pyx|pyi|c|h|cpp|js|ts|jsx|tsx|mjs|cjs|mts|cts|vue|svelte|go|proto|gotpl|pegjs|scss|snap|txt|rst|md|cfg|toml|ini|json|ya?ml|html|css|sh|in|po|mo|csv|xml|tex)$", re.I)
 # a task whose work is reading: its text starts with one of these verbs (Review tests from Task Group 1, Analyze ...)
 READ_VERB = re.compile(r"(?i)^\s*(?:\*\*)?\s*(?:analy[sz]e|review|investigate|identify|locate|examine|inspect|understand|read|study|explore|find|look|trace)\b")
 _INTERPRETERS = re.compile(r"^(?:python[0-9.]*|bash|sh|node)$")
@@ -773,7 +777,7 @@ _INTERPRETERS = re.compile(r"^(?:python[0-9.]*|bash|sh|node)$")
 
 def named_files(desc: str, workdir: str | None) -> set[str]:
     """The paths of :func:`named_paths` that name a file: the last part ends with a known extension (:data:`FILE_EXT`)."""
-    return {q for q in named_paths(desc, workdir) if "@" not in q and FILE_EXT.search(posixpath.basename(q.rstrip("/")))}
+    return {q for q in named_paths(desc, workdir) if "@" not in q and (FILE_EXT.search(posixpath.basename(q.rstrip("/"))) or posixpath.basename(q.rstrip("/")) in ("go.mod", "go.sum", "go.work"))}
 
 
 def _same_file(name: str, path: str) -> bool:
@@ -789,6 +793,7 @@ def file_evidence_steps(ctx: EvalContext, names: set[str], w, reads: bool = Fals
     steps = [e.step for path, evs in ctx.facts.writes.items() if any(_same_file(n, path) for n in names) for e in evs if e.ok is not False]
     steps += [e.step for e in ctx.facts.repo_writes if e.ok is not False and any(_same_file(n, e.path) for n in names)]
     steps += [st for st, path in F.executed_paths(ctx) if any(_same_file(n, path) for n in names)]
+    steps += _go_package_runs(ctx, {n for n in names if "/" in n})
     if reads:
         steps += [st for st, rel in _repo_reads(ctx, w) if any(_same_file(n, rel) for n in names)]
     return steps
@@ -834,7 +839,24 @@ def _evidence_steps(ctx: EvalContext, paths: set[str], checks_dir: str | None) -
     steps = [e.step for q in absolute for e in ctx.facts.writes.get(q, []) if e.ok is not False]
     steps += [e.step for e in ctx.facts.repo_writes if e.ok is not False and e.path in paths]
     steps += [st for st, path in F.executed_paths(ctx) if path in paths or path in absolute or (wd and f"{wd}/{path}" in absolute)]
+    steps += _go_package_runs(ctx, paths)
     return steps
+
+
+def _go_package_runs(ctx: EvalContext, paths: set[str]) -> list[int]:
+    """Steps of the ``go test`` runs that ran a ``_test.go`` file of ``paths`` (repository-relative): go runs a test
+    file by its package directory, never by the file's own path."""
+    dirs = {posixpath.dirname(q) for q in paths if q.endswith("_test.go") and not q.startswith("/")}
+    if not dirs:
+        return []
+    out = []
+    for r in ctx.facts.runs:
+        if r.runner != "go-test":
+            continue
+        targets = [t.strip("/") for t in (r.targets or [""]) if not t.endswith(".go")]
+        if any(d == t or t == "" or d.startswith(t + "/") for d in dirs for t in targets):
+            out.append(int(r.step))
+    return out
 
 
 def _norm_box(text: str) -> list[str]:
@@ -1126,7 +1148,21 @@ def _entries(section: str, forms: set[str]) -> list[str]:
 def _test_names_of(test_id: str) -> set[str]:
     """The function / class names of a test id (``file::Class::test_x[1]`` -> Class, test_x; ``mod.Class.test_x`` too)."""
     parts = test_id.split("::")[1:] if "::" in test_id else test_id.split(".")[-2:]
-    return {p.split("[")[0] for p in parts if p}
+    return {p.split("[")[0] for p in parts if p} | other_name_forms(test_id)
+
+
+def other_name_forms(test_id: str) -> set[str]:
+    """The names a jest / vitest or go test id holds besides python's: of ``file::describe › title`` the title, of
+    ``pkg::TestX/subtest`` the function."""
+    out: set[str] = set()
+    for p in test_id.split("::")[1:]:
+        if re.search(r"\s[›>]\s", p):
+            out.add(re.split(r"\s+[›>]\s+", p)[-1].strip())
+        elif " " in p:
+            out.add(p.strip())
+        if re.match(r"(?:Test|Example|Benchmark|Fuzz)\w*/", p):
+            out.add(p.split("/")[0])
+    return out
 
 
 def reported_as_expected(ctx: EvalContext, test_id: str) -> bool:
@@ -1402,12 +1438,18 @@ def tasks(item: Item, ctx: EvalContext) -> Result:
 # --------------------------------------------------------------------------------------------
 # a test function or class definition (create-tasks.md 127: "a new test function added to the existing repository test
 # module that covers the changed code")
-_TEST_DEF = re.compile(r"(?m)^\s*(?:async\s+)?def\s+(test\w*)\s*\(|^\s*class\s+(Test\w*)\b")
+# ... in Go a ``func TestX(`` (Example / Benchmark / Fuzz alike), in JavaScript / TypeScript the title of an ``it(...)`` /
+# ``test(...)`` / ``describe(...)`` call: what those runners name a failing test by
+_TEST_DEF = re.compile(
+    r"(?m)^\s*(?:async\s+)?def\s+(test\w*)\s*\(|^\s*class\s+(Test\w*)\b"
+    r"|^\s*func\s+((?:Test|Example|Benchmark|Fuzz)\w*)\s*\("
+    r"|(?<![\w.])(?:it|test|describe)(?:\.(?:only|skip|each|concurrent|failing|todo))*\s*\(\s*(?:'((?:[^'\\\n]|\\.)+)'|\"((?:[^\"\\\n]|\\.)+)\"|`((?:[^`\\\n]|\\.)+)`)"
+)
 
 
 def test_names(text: str | None) -> set[str]:
-    """The test functions and classes ``text`` defines."""
-    return {a or b for a, b in _TEST_DEF.findall(text or "")}
+    """The test functions and classes ``text`` defines (a JavaScript test or suite: its title)."""
+    return {next(g for g in m.groups() if g) for m in _TEST_DEF.finditer(text or "")}
 
 
 def _action_of(ctx: EvalContext, step: int, index: int | None):
@@ -1528,7 +1570,13 @@ def group_end_marks(ctx: EvalContext, aid: str = "tasks") -> dict[int, bool]:
 
 # what makes a script a test (D-6 row 21): it can come out failing -- an assertion, a raise, an exit status, a test
 # framework, or a printed verdict; a script that only prints what it finds explores
-_VERDICT = re.compile(r"\bassert\b|\braise\b|\bsys\.exit\(|\bexit\(\s*[1-9]|\bunittest\b|\bpytest\b|\bdef\s+test_|\b(?:PASS(?:ED)?|FAIL(?:ED|URE)?|OK)\b")
+# (Go: a panic, a non-zero exit, ``log.Fatal``, ``t.Error`` / ``t.Fatal``, a test function; JavaScript / TypeScript: a
+# throw, ``process.exit(1)``, ``expect(...)``, a test call; a shell wrapper: the test runner it starts)
+_VERDICT = re.compile(
+    r"\bassert\b|\braise\b|\bsys\.exit\(|\bexit\(\s*[1-9]|\bunittest\b|\bpytest\b|\bdef\s+test_|\b(?:PASS(?:ED)?|FAIL(?:ED|URE)?|OK)\b"
+    r"|\bpanic\(|\bos\.Exit\(\s*[1-9]|\blog\.(?:Fatal|Panic)\w*\(|\bt\.(?:Fatal|Error|Fail)\w*\(|\bfunc\s+Test\w*\("
+    r"|\bthrow\b|\bprocess\.exit\(\s*[1-9]|\bexpect\(|(?<![\w.])(?:it|test|describe)\(|\bgo\s+test\b|\b(?:jest|vitest|mocha)\b|\bnode\s+--test\b"
+)
 
 
 def has_verdict(ctx: EvalContext, script: str) -> bool:

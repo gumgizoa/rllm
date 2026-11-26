@@ -61,7 +61,7 @@ _TEST_NAME = re.compile(r"\b(test_\w+)(?!\w|\.py\b|/)")
 
 
 def test_names(text: str | None) -> list[str]:
-    return list(dict.fromkeys(_TEST_NAME.findall(text or "")))
+    return list(dict.fromkeys([*_TEST_NAME.findall(text or ""), *EV.other_test_ids(text)]))
 
 
 def on_stash(command: str) -> bool:
@@ -572,7 +572,7 @@ class Measures:
     @cached_property
     def edits_unseen(self) -> bool:
         """The patch changed a source file the trajectory never shows being edited (:attr:`unseen_sources`)."""
-        return self.final is not None and any(re.search(r"\.(?:py|pyx|js|ts|go|rs|java|rb|c|h|cpp)$", q) for q in self.unseen_sources)
+        return self.final is not None and any(re.search(r"\.(?:py|pyx|js|jsx|mjs|cjs|ts|tsx|mts|cts|go|rs|java|rb|c|h|cpp)$", q) for q in self.unseen_sources)
 
     @cached_property
     def art_writes(self) -> dict[int, list[int]]:

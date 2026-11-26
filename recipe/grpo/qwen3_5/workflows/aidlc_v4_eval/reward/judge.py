@@ -51,7 +51,7 @@ from pathlib import Path
 
 from . import skeleton as A
 from . import trace as F
-from .read import Observed, _field, _section_none, claimed_paths, is_none, norm_path, runs_script, same_file, task_text
+from .read import claimed_paths, _field, is_none, norm_path, Observed, other_test_ids, runs_script, same_file, _section_none, task_text
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         (
             "D3",
             "Judging from the path strings alone, does every source path under `Files` (test files aside) sit inside the module or"
-            " package named as `Owning module` (its directory or dotted-package prefix matches)?",
+            " package named as `Owning module` (its directory, its dotted-package prefix, or the directory its import path / package name ends in matches)?",
         ),
         (
             "D6",
@@ -120,7 +120,7 @@ QUESTIONS: dict[int, list[tuple[str, str]]] = {
         ),
         (
             "E8b",
-            "Does at least one Edge Case entry state an error path: the condition, whether it raises or is handled, and what the caller"
+            "Does at least one Edge Case entry state an error path: the condition, whether it raises (or returns an error) or is handled, and what the caller"
             " observes? Answer n/a if neither the issue nor the Functional requirements mention an error, exception or invalid input.",
         ),
         (
@@ -296,11 +296,32 @@ def _file_lines(run, paths: list[str]) -> tuple[dict[int, str], list[str]]:
     return numbered, blocks
 
 
+def _braced(lines: list[tuple[int | None, str]], i: int, indent: int) -> str:
+    """The block that starts on line ``i`` of ``lines`` and ends at its closing line (a ``}`` / ``})`` indented as the
+    opening line is), with a ``...`` where the run skipped lines: a go function, a jest / vitest test call."""
+    out = [lines[i][1]]
+    prev = lines[i][0]
+    for n, t in lines[i + 1 :]:
+        if prev is not None and n is not None and n > prev + 1:
+            out.append(" " * (indent + 4) + "...")
+        if t.strip() and len(t) - len(t.lstrip()) <= indent:
+            if t.lstrip()[:1] in "})":
+                out.append(t)
+            break
+        out.append(t)
+        prev = n
+    return "\n".join(out).rstrip()
+
+
 def _function(lines: list[tuple[int | None, str]], name: str) -> str | None:
     """The ``def name(`` block in ``lines`` ((line number or None, text) in order), with a ``...`` where the
     run skipped lines; it ends at the next line indented no deeper than the ``def``."""
     for i, (_, text) in enumerate(lines):
         m = re.match(rf"(\s*)(?:async\s+)?def {re.escape(name)}\s*\(", text)
+        if not m:  # go ``func TestX(``; jest / vitest ``it('title', ...`` / ``test("title", ...``
+            m = re.match(rf"(\s*)func (?:\([^)]*\)\s*)?{re.escape(name)}\s*\(", text) or re.match(rf"(\s*)(?:it|test)(?:\.\w+)*\(\s*['\"`]{re.escape(name)}['\"`]", text)
+            if m:
+                return _braced(lines, i, len(m.group(1)))
         if not m:
             continue
         indent = len(m.group(1))
@@ -361,7 +382,7 @@ def _test_text(run, parsed: dict) -> str | None:
         return None
     lines: list[tuple[int | None, str]] = sorted(numbered.items()) + [(None, t) for b in blocks for t in b.splitlines()]
     baseline = " ".join(v for k in ("Passing", "Failing") if (v := _field(p1, "Baseline", k)))
-    names = list(dict.fromkeys(re.findall(r"\b(test_\w+)\b(?!\.py)", baseline)))  # a test, not a test module
+    names = list(dict.fromkeys([*re.findall(r"\b(test_\w+)\b(?!\.py)", baseline), *other_test_ids(baseline)]))  # a test, not a test module
     if not names:
         return "\n".join(t for _, t in lines)
     found = {n: f for n in names if (f := _function(lines, n))}

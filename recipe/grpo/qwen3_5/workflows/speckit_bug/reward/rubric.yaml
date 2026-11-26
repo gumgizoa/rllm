@@ -2126,13 +2126,13 @@ items:
       - <One\ or\ two\ sentences\ describing\ the\ observed\ behavior\ and\ the\ expected\ behavior\.>
       - <step>
       - <Mark\ unknowns\ as\ \[NEEDS\ CLARIFICATION:\ …\]\.>
-      - '`path/to/file\.py:42`'
+      - '`path/to/file\.\w+:42`'
       - <why>
       - '`path/to/other\.ts:func\(\)`'
       - <One\ paragraph\.\ State\ confidence:\ high\ /\ medium\ /\ low\.>
       - <one\ or\ two\ paragraphs\ describing\ the\ change\.>
       - <alternative\ \+\ trade\-off>
-      - '`path/to/file\.py`'
+      - '`path/to/file\.\w+`'
       - <reproduction\ script\ under\ BUG_DIR/checks/,\ or\ an\ existing\ repository\ test\ to\ run>
       - <risk>
       - \[NEEDS\ CLARIFICATION:\ …\]
@@ -4134,11 +4134,11 @@ items:
       - none\ \|\ \./test\.md\ \|\ \./test\-2\.md
       - applied\ \|\ partial\ \|\ not\-applied
       - <One\ or\ two\ sentences\ describing\ what\ was\ changed\ and\ why\.>
-      - '`path/to/file\.py`'
+      - '`path/to/file\.\w+`'
       - <added\ /\ modified\ /\ removed>
       - <short\ note>
       - <Short,\ illustrative\ snippets\ of\ the\ most\ important\ hunks\ —\ not\ a\ full\ diff\ dump\.>
-      - '`checks/<name>\.py`'
+      - '`checks/<name>\.\w+`'
       - <issue\ example\ /\ reproduction>
       - <one\ line\ of\ output>
       - pass\ /\ fail
@@ -8422,11 +8422,11 @@ items:
       - none\ \|\ \./test\.md\ \|\ \./test\-2\.md
       - applied\ \|\ partial\ \|\ not\-applied
       - <One\ or\ two\ sentences\ describing\ what\ was\ changed\ and\ why\.>
-      - '`path/to/file\.py`'
+      - '`path/to/file\.\w+`'
       - <added\ /\ modified\ /\ removed>
       - <short\ note>
       - <Short,\ illustrative\ snippets\ of\ the\ most\ important\ hunks\ —\ not\ a\ full\ diff\ dump\.>
-      - '`checks/<name>\.py`'
+      - '`checks/<name>\.\w+`'
       - <issue\ example\ /\ reproduction>
       - <one\ line\ of\ output>
       - pass\ /\ fail
@@ -12131,11 +12131,11 @@ items:
       - none\ \|\ \./test\.md\ \|\ \./test\-2\.md
       - applied\ \|\ partial\ \|\ not\-applied
       - <One\ or\ two\ sentences\ describing\ what\ was\ changed\ and\ why\.>
-      - '`path/to/file\.py`'
+      - '`path/to/file\.\w+`'
       - <added\ /\ modified\ /\ removed>
       - <short\ note>
       - <Short,\ illustrative\ snippets\ of\ the\ most\ important\ hunks\ —\ not\ a\ full\ diff\ dump\.>
-      - '`checks/<name>\.py`'
+      - '`checks/<name>\.\w+`'
       - <issue\ example\ /\ reproduction>
       - <one\ line\ of\ output>
       - pass\ /\ fail
@@ -14893,7 +14893,7 @@ items:
   check:
     kind: speckit_bug.created_files
     params:
-      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp)[^/]*\.(?:py|sh|txt|md|log)$|(?:^|/)(?:assessment|fix(?:-[23])?|test(?:-[23])?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
+      pattern: (?i)(?:^|/)(?:repro|reproduce|reproduction|debug|scratch|tmp|temp)[^/]*\.(?:py|sh|js|mjs|cjs|jsx|ts|mts|cts|tsx|go|txt|md|log)$|(?:^|/)(?:assessment|fix(?:-[23])?|test(?:-[23])?)\.md$|(?:^|/)[^/]*(?:SUMMARY|NOTES)[^/]*\.(?:md|txt)$
   requirement: must
   modality_evidence: prohibition (CW:45-46 'Never write reports, checks, or scratch files into the repository')
   none_allowed: '-'

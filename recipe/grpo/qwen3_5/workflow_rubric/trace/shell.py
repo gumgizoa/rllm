@@ -87,6 +87,11 @@ _WRAPPERS: dict[str, tuple[str | None, frozenset[str], int]] = {
     "chronic": (None, frozenset(), 0),
     "taskset": (None, frozenset(), 1),
     "npx": (None, frozenset({"-p", "--package"}), 0),
+    "bunx": (None, frozenset({"-p", "--package"}), 0),
+    "cross-env": (None, frozenset(), 0),  # `cross-env NODE_ENV=test jest`: the assignments after it are skipped like a prefix
+    "cross-env-shell": (None, frozenset(), 0),
+    "dotenv": (None, frozenset({"-e", "-v", "-p", "-c"}), 0),  # `dotenv -e .env.test -- jest`
+    "corepack": (None, frozenset(), 0),  # `corepack yarn test`
     "npm": ("exec", frozenset({"-p", "--package", "-w", "--workspace"}), 0),  # `npm exec [--] jest`; other npm commands are npm's
     "pnpm": ("exec", frozenset({"-C", "--dir", "--filter", "-F"}), 0),
     "uv": ("run", frozenset({"--with", "-p", "--python", "--project", "--directory", "--extra", "--group", "--env-file", "--package"}), 0),
@@ -1863,7 +1868,8 @@ def _cp_mv(seg, args, stdin, files, depth):
         dst_w, srcs, into = Word(target_dir, target_dir), ops, True
     elif len(ops) >= 2:
         dst_w, srcs = ops[-1], ops[:-1]
-        into = True if (len(srcs) > 1 or dst_w.text.endswith("/")) else None
+        # `cp /tmp/checks/x_test.go .`: ``.`` / ``..`` name a directory whatever the replay knows of the tree
+        into = True if (len(srcs) > 1 or dst_w.text.endswith("/") or dst_w.text in (".", "..") or dst_w.text.endswith(("/.", "/.."))) else None
     else:
         return []
     if _flag(opts, "T", ("--no-target-directory",)):

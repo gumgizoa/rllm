@@ -47,7 +47,7 @@ from recipe.grpo.qwen3_5.workflow_rubric.facts import executed_paths
 from recipe.grpo.qwen3_5.workflow_rubric.schema import Item
 
 _CODE_SPAN = re.compile(r"`([^`\n]+)`")
-_PATH = re.compile(r"[\w.~/-]*[\w-]/[\w./-]+|[\w-]+\.[A-Za-z0-9]{1,8}\b")
+_PATH = re.compile(r"@?[\w.~/-]*[\w-]/[\w./@\[\]-]+|[\w-]+\.[A-Za-z0-9]{1,8}\b")  # (an npm scope: ``@commitlint/cli/src/x.ts``)
 STEP_KEYS = ("exec_of", "command_in", "valid_run", "read_of", "write_of")
 
 
@@ -108,7 +108,7 @@ def selection(command: str, cwd: str | None, workdir: str | None) -> frozenset[s
         nodes = {refs.norm_path(n, workdir) for n in hit.node_ids}
         files = {refs.norm_path(t, workdir) for t in hit.targets}
         files = {f for f in files if not any(n.startswith(f + "::") for n in nodes)}
-        return frozenset(nodes | files | {lbl for lbl, _ in hit.labels} | {f"runner:{hit.runner.name}"})
+        return frozenset(nodes | files | {lbl for lbl, _ in hit.labels} | {f"narrow:{n}" for n in hit.narrow} | {f"runner:{hit.runner.name}"})
     return frozenset()
 
 

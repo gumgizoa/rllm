@@ -16,6 +16,7 @@ the :class:`TestResult` list and asks here what is left failing.
 
 from __future__ import annotations
 
+import functools
 import posixpath
 import re
 import shlex
@@ -35,7 +36,10 @@ EXIT = re.compile(r"\[(?:The command completed with exit code|Command finished w
 _FAILED_WORD = r"(?<![\w-])(?<!\b0 )(?<!\bno )(?<!\bnot )(?<!\bif )(?<!\bno tests )(?<!\bnothing )failed\b(?![-_(])(?!\s*[:=]\s*0\b)"
 FAIL_TEXT = re.compile(
     r"Traceback \(most recent call last\)|\bAssertionError\b|^\s*(?:FAIL|FAILED|ERROR)\b|\b[1-9]\d* (?:failed|errors?)\b|\bFAILED \(|"
-    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b|❌|" + _FAILED_WORD,
+    r"^\s*E\s{2,}\S|\b(?:Error|Exception):\s|\bcommand not found\b|\bNo such file or directory\b|\bcan't open file\b|❌|"
+    # a verdict line behind a cross (``✗ FAIL: ...``); go: a panic, a compile error, ``go run``'s ``exit status N``, a failed test; node: an uncaught error with its stack
+    r"^\s*[✗✘]\s+(?:FAIL|FAILED|ERROR)\b|^panic: |^goroutine \d+ \[running\]|^exit status [1-9]\d*\s*$|^\S+\.go:\d+:\d+: |^--- FAIL\b|^Node\.js v\d|^\w*Error(?: \[\w+\])?: [^\n]*\n\s+at |"
+    + _FAILED_WORD,
     re.M,
 )
 # A verdict line a script prints about itself: read against an exit code of 0 only when the output is the script's alone.
@@ -127,6 +131,39 @@ def executed_by(seg: shell.Segment) -> set[str]:
     return out
 
 
+def runs_of(seg: shell.Segment, paths: set[str]) -> set[str]:
+    """Which of ``paths`` (absolute) the segment executes: :func:`executed_by`, and for go, which compiles a package
+    directory and not a file, the ``.go`` files of ``paths`` in a directory it runs -- ``go run ./cmd/repro`` runs
+    ``cmd/repro/*.go``; ``go test ./pkg`` runs the ``*_test.go`` files in ``pkg`` (``./pkg/...``: below it too); and
+    for jest / vitest, the files of ``paths`` a path pattern of the run names (``evidence.pattern_names``)."""
+    ran = executed_by(seg)
+    out = ran & paths
+    if paths - out and seg.verb != "go":  # jest / vitest by a path pattern that names the file (``--testPathPattern=repro.test``)
+        try:
+            hit = E.classify(seg)
+            patterns = E.path_patterns(hit) if hit is not None else []
+        except Exception:  # noqa: BLE001 -- agent text
+            patterns = []
+        out |= {p for p in paths - out if any(E.pattern_names(pat, p) for pat in patterns)}
+    go = [p for p in paths - out if p.endswith(".go")]
+    if not go or seg.verb != "go":
+        return out
+    try:
+        hit = E.classify(seg)
+        test = hit is not None and hit.runner.name == "go-test"
+        flat = set(hit.flat) if test else {d for d in ran if not d.endswith(".go")}
+        trees = {t for t in hit.targets if t not in flat and not t.endswith(".go")} if test else set()
+    except Exception:  # noqa: BLE001 -- agent text
+        return out
+    for p in go:
+        if test != p.endswith("_test.go"):
+            continue
+        d = posixpath.dirname(p)
+        if d in flat or any(d == t or d.startswith(t.rstrip("/") + "/") for t in trees):
+            out.add(p)
+    return out
+
+
 def _direct(seg: shell.Segment) -> set[str]:
     """Paths the segment executes itself (an interpreter's script, ``./x``, a ``python -c`` import), not as a runner's
     target."""
@@ -136,20 +173,30 @@ def _direct(seg: shell.Segment) -> set[str]:
         return set()
 
 
-_NOT_FOUND = re.compile(r"can't open file|No such file or directory|ERROR: file or directory not found|ERROR: not found:", re.I)
+_NOT_FOUND = re.compile(r"can't open file|No such file or directory|ERROR: file or directory not found|ERROR: not found:|Cannot find module|no required module provides package|cannot find package", re.I)
+
+
+# a JavaScript runner started through the package manager, which could not get it (``npx tsx x.ts`` offline)
+_FETCHED = frozenset({"npx", "bunx", "pnpm", "yarn", "npm"})
+_NO_RUNNER = re.compile(r"^npm (?:ERR!|error) code (?:EAI_AGAIN|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|E404)\b|could not determine executable to run|ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL[^\n]*not found", re.M)
 
 
 def started(segs: list[shell.Segment], i: int, observation: str, path: str, command: str = "") -> bool:
     """Segment ``i``'s run of ``path`` started: not a file that was not there (``can't open file``, ``No such file or
     directory``, pytest's ``file or directory not found`` naming it), and for a runner given it as a target or label,
     not a runner that died before it loaded the file (no result summary, and the output never names the file:
-    ``runtests.py tests/x.py`` stopping in ``build_suite``). A run that did not start has no result."""
+    ``runtests.py tests/x.py`` stopping in ``build_suite``), nor a package manager that could not get the runner
+    (``npx tsx x.ts``: ``npm ERR! code EAI_AGAIN``). A run that did not start has no result."""
     obs = E.clean_observation(observation or "", command)[-MAX_TEXT:]
     base = posixpath.basename(path)
     if any(_NOT_FOUND.search(ln) and base in ln for ln in obs.splitlines()):
         return False
+    if (segs[i].argv[:1] or [""])[0] in _FETCHED and _NO_RUNNER.search(obs):
+        return False  # `npx tsx repro.ts` with no network: the runner was never there to run it
     if path in _direct(segs[i]):
         return True
+    if segs[i].verb == "go" and path.endswith(".go") and not path.endswith("_test.go") and path in runs_of(segs[i], {path}):
+        return True  # `go run ./cmd/repro`: the package directory is what the command names
     stem = posixpath.splitext(base)[0]
     try:
         found = E.summaries(obs)
@@ -245,6 +292,8 @@ def outcome(segs: list[shell.Segment], i: int, observation: str, command: str = 
             return "fail" if any(x in ("FAILED", "ERROR") for x in lines) else ("pass" if "PASSED" in lines else None)
         hit = E.classify(segs[i])
         named = {posixpath.normpath(shell.resolve(t, segs[i].cwd)) for t in (hit.targets if hit else []) if t}
+        if hit is not None and hit.runner.name == "go-test" and path.endswith("_test.go"):
+            named = {path}  # go runs a package, not a file: the package's result is the result of the test file in it
         if hit is not None and named <= {path} and len(hit.labels) <= 1:
             found = E.summaries(body)
             if found:
@@ -377,7 +426,7 @@ def executions(ctx: EvalContext, paths: set[str]) -> dict[str, list[tuple[int, s
     for c in ctx.facts.commands:
         segs = segments(ctx, c)
         for i, seg in enumerate(segs):
-            hit = executed_by(seg) & paths
+            hit = runs_of(seg, paths)
             for p in sorted(hit):
                 if c.step < ctx.facts.n_steps and not started(segs, i, c.observation or "", p, c.command or ""):
                     continue
@@ -403,13 +452,13 @@ class TestResult:
     stopped: bool = False  # a runner run that stops at its first failures (``-x``, ``--maxfail``, ``--failfast``): what it covers need not have run
 
 
-_STOP_OPT = re.compile(r"(?:^|\s)(?:-x|--exitfirst|--maxfail(?:=|\s+)\d+|--failfast|-[a-wyz]*x[a-z]*)(?=\s|$)")
+_STOP_OPT = re.compile(r"(?:^|\s)(?:-x|--exitfirst|--maxfail(?:=|\s+)\d+|--failfast|-failfast|--bail(?:=\d+)?|-[a-wyz]*x[a-z]*)(?=\s|$)")
 _STOPPED = re.compile(r"stopping after \d+ failures?|Interrupted: stopping after", re.I)
 
 
 def stops_early(segment: str, observation: str = "") -> bool:
     """A runner run that may stop before it ran all it covers: ``-x`` / ``--exitfirst`` / ``--maxfail N`` /
-    ``--failfast`` on its command, or pytest's ``stopping after N failures`` in its output."""
+    ``--failfast`` (go: ``-failfast``; jest / vitest / mocha: ``--bail``) on its command, or pytest's ``stopping after N failures`` in its output."""
     return _STOP_OPT.search(segment or "") is not None or _STOPPED.search(observation or "") is not None
 
 
@@ -418,10 +467,34 @@ def stops_early(segment: str, observation: str = "") -> bool:
 _VALUE_OPTS = (E._PYTEST_ARG | {"-W", "-X"}) - {"-k", "-m", "--deselect", "--ignore", "--ignore-glob", "-c"}
 
 
+_OTHER_RUNNER = frozenset({"go-test", "npm-test", "jest", "vitest", "mocha", "jasmine"})
+
+
+@functools.lru_cache(maxsize=8192)
+def _other_narrow(segment: str) -> tuple[str, ...] | None:
+    """What narrows the runner run of a segment's text, for the runners whose arguments are not pytest's; None for
+    any other segment."""
+    try:
+        for seg in shell.flat(shell.split((segment or "")[:MAX_CMD], None)[0]):
+            hit = E.classify(seg)
+            if hit is not None:
+                return tuple(sorted(dict.fromkeys(hit.narrow))) if hit.runner.name in _OTHER_RUNNER else None
+    except Exception:  # noqa: BLE001 -- agent text
+        return None
+    return None
+
+
 def selection(segment: str) -> tuple[str, ...]:
     """What narrows a test run below its target files: ``-k``/``-m``/``--deselect``/``--ignore`` with their values,
     and ``file::test`` ids. Empty for a run of whole files or directories. The value of another option
-    (``-W ignore::DeprecationWarning``) selects nothing."""
+    (``-W ignore::DeprecationWarning``) selects nothing.
+
+    A ``go test`` / jest / vitest / package-script run is read by its own arguments (``evidence.Hit.narrow``): ``-run
+    X`` / ``-skip X``, ``-t X``, ``--testPathPattern X``, a positional file-name pattern, an import path, a script or
+    workspace -- never pytest's (``go test -mod vendor`` holds no ``-m`` marker)."""
+    other = _other_narrow(segment or "")
+    if other is not None:
+        return other
     try:
         toks = shlex.split(segment or "")
     except ValueError:
@@ -563,6 +636,8 @@ def run_failed_ids(failed: int, errors: int, observation: str) -> tuple[str, ...
     if n <= 0:
         return ()
     ids = E.failing_ids(observation or "")
+    packages = E.go_test_packages(E._sane(observation or "")) if ids else {}
+    ids = [f"{packages[i]}::{i}" if i in packages and "::" not in i else i for i in ids]  # a go test, with its package
     full = [i for i in ids if "::" in i]
     out = []
     for i in ids:
@@ -613,6 +688,59 @@ def _k_matches(expr: str, tid: str) -> bool | None:
         return None
 
 
+_OTHER_SELECTION = frozenset({"-run", "-skip", "-t", "--testPathPattern", "path", "pkg", "script", "workspace"} | set(E._JS_ONLY))
+
+
+def _package_under(key: str, test_id: str) -> bool:
+    """A go test id ``import/path::TestX`` (or ``import/path``: the package itself) is in the package directory ``key`` names (a path relative to the
+    repository, a tree): the directory's components are in the import path, in order, from one of its components on
+    (``pkg/auth`` in ``github.com/o/r/pkg/auth`` and in ``github.com/o/r/pkg/auth/internal``)."""
+    pkg, _, _ = test_id.partition("::")  # (a package that did not build is named by its import path alone)
+    if "/" not in pkg or re.search(r"\.\w{1,5}$", pkg.rsplit("/", 1)[-1]) or key == WHOLE or key.startswith("/"):
+        return False
+    kp, pp = [c for c in key.strip("/").split("/") if c and c != "."], pkg.split("/")
+    return bool(kp) and any(pp[j : j + len(kp)] == kp for j in range(len(pp) - len(kp) + 1))
+
+
+def _go_pattern(pattern: str, name: str) -> bool | None:
+    """go's ``-run`` / ``-skip`` pattern on test ``name`` (``TestX`` or ``TestX/sub``): slash-separated regular
+    expressions, one per level, each searched in that level's name; a level the pattern does not reach is taken.
+    None when a part is no regular expression."""
+    parts, levels = pattern.split("/"), name.split("/")
+    try:
+        return all(re.search(p, levels[k]) is not None for k, p in enumerate(parts) if k < len(levels))
+    except re.error:
+        return None
+
+
+def _other_keeps(sel: str, test_id: str) -> bool:
+    """A ``go test`` / jest / vitest narrowing ``sel`` leaves test ``test_id`` in the run. What cannot be read
+    (a pattern that is no regular expression, a project or changed-files option, a script or workspace of unknown
+    reach) leaves it out, as an unreadable ``-k`` does."""
+    opt, _, val = sel.partition(" ")
+    file_part, _, name = test_id.partition("::")
+    if not name:
+        file_part, name = "", test_id
+    if "::" not in test_id and opt in ("-run", "-skip", "-t"):
+        return True  # the unit is a package that did not build / a file that did not load: any test of it that ran shows it does
+    if opt in ("-run", "-skip"):
+        hit = _go_pattern(val, name)
+        return hit is not None and hit == (opt == "-run")
+    try:
+        if opt == "-t":  # a regular expression searched in the test's full name, its describe blocks joined by spaces
+            flat = re.sub(r"\s+[›>]\s+", " ", name)
+            return re.search(val, flat, re.I) is not None or re.search(val, name, re.I) is not None
+        if opt in ("--testPathPattern", "path"):
+            return bool(file_part) and re.search(val, file_part, re.I) is not None
+    except re.error:
+        return False
+    if opt == "pkg":  # an import path, with or without ``/...``
+        tree = val.endswith("/...")
+        want = val[:-4] if tree else val
+        return bool(file_part) and (file_part == want or (tree and file_part.startswith(want + "/")))
+    return False
+
+
 def runs_test(result: TestResult, test_id: str) -> bool:
     """The valid runner run ``result`` ran test ``test_id``: its targets cover the test (the same file, a directory or
     dotted label above it, the whole suite) and nothing it selects leaves the test out -- a ``file::test`` id it names is
@@ -621,8 +749,11 @@ def runs_test(result: TestResult, test_id: str) -> bool:
     if not result.runner:
         return False
     file_part = test_id.split("::")[0]
-    if not any(k == WHOLE or reruns(k, file_part) or reruns(k, test_id) for k in result.keys):
+    if not any(k == WHOLE or reruns(k, file_part) or reruns(k, test_id) or _package_under(k, test_id) for k in result.keys):
         return False
+    other = [s for s in result.selection if s.split(" ", 1)[0] in _OTHER_SELECTION]  # go / jest / vitest narrowing
+    if other:
+        return all(_other_keeps(s, test_id) for s in other)
     ids = [s for s in result.selection if not s.startswith("-")]
     if ids and not any(_under(test_id, s) for s in ids):
         return False
@@ -689,6 +820,7 @@ __all__ = [
     "TestResult",
     "segments",
     "executed_by",
+    "runs_of",
     "others_print",
     "exit_code",
     "own_exit_known",

@@ -42,6 +42,7 @@ import posixpath
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from .context import RunFact, WriteEvent
 from .refs import norm_path
@@ -135,6 +136,36 @@ _DJANGO_ARG = frozenset(
 )  # fmt: skip
 _SYMPY_ARG = frozenset({"-k", "--timeout", "--seed", "--split", "--durations", "--subprocess", "--rerun"})
 _GENERIC_ARG = frozenset({"-t", "--testNamePattern", "-g", "--grep", "--reporter", "-R", "--config", "-c", "--timeout", "--run", "-run", "-p", "--format", "-f"})
+# go test: the flags that take a value (``-run X`` or ``-run=X``; one dash or two)
+_GO_VALUE = frozenset(
+    "run skip count tags mod modfile timeout p parallel cpu bench benchtime blockprofile blockprofilerate coverprofile covermode coverpkg cpuprofile memprofile "
+    "memprofilerate mutexprofile mutexprofilefraction outputdir trace o exec ldflags gcflags asmflags gccgoflags shuffle vet list fuzz fuzztime fuzzminimizetime "
+    "overlay pkgdir toolexec C installsuffix buildmode compiler buildvcs".split()
+)  # fmt: skip
+# jest / vitest / mocha: the options that take a value (the next word, unless written ``--opt=value``)
+_JS_COMMON = frozenset({"--config", "-c", "--reporter", "--reporters", "--outputFile", "--testTimeout", "--maxWorkers", "--shard", "--testNamePattern", "-t"})
+_JEST_VALUE = _JS_COMMON | frozenset(
+    {"--testPathPattern", "--testPathPatterns", "--testPathIgnorePatterns", "--testRegex", "--testMatch", "--rootDir", "--roots", "--coverageDirectory", "--coverageReporters",
+     "--collectCoverageFrom", "--coverageThreshold", "--cacheDirectory", "--env", "--testEnvironment", "--selectProjects", "--ignoreProjects", "--projects", "--changedSince",
+     "--maxConcurrency", "--seed", "--setupFiles", "--setupFilesAfterEnv", "--transform", "--globals", "--moduleDirectories", "-w", "--testSequencer", "--runner", "--testRunner", "--filter"}
+)  # fmt: skip
+_VITEST_VALUE = _JS_COMMON | frozenset({"--root", "-r", "--dir", "--project", "--pool", "--environment", "--mode", "--hookTimeout", "--retry", "--exclude", "--minWorkers", "--api"})
+_MOCHA_VALUE = frozenset(
+    {"-g", "--grep", "-f", "--fgrep", "-t", "--timeout", "-R", "--reporter", "-r", "--require", "--config", "-s", "--slow", "--spec", "--extension", "--ui", "-u", "--file", "--ignore",
+     "--exclude", "-O", "--reporter-option", "--loader", "--import", "-j", "--jobs", "--retries"}
+)  # fmt: skip
+_JS_VALUE = {"jest": _JEST_VALUE, "vitest": _VITEST_VALUE, "mocha": _MOCHA_VALUE, "jasmine": frozenset({"--config", "--filter", "--reporter", "--seed"})}
+_PM_VALUE = _JEST_VALUE | _VITEST_VALUE  # behind ``npm test --``: the runner is not known
+_JS_NAME = frozenset({"-t", "--testNamePattern"})  # a test name pattern (mocha: -g / -f)
+_JS_PATH = frozenset({"--testPathPattern", "--testPathPatterns", "--testRegex", "--testMatch", "--spec"})
+_JS_ONLY = frozenset({"-o", "--onlyChanged", "--changed", "--changedSince", "--lastCommit", "--onlyFailures", "--findRelatedTests", "--selectProjects", "--project", "--filter"})
+_JS_NO_RUN = frozenset({"--listTests", "--showConfig", "--init", "--clearCache"})
+_NODE_RUNNER = {"jest": "jest", "jest.js": "jest", "vitest": "vitest", "vitest.mjs": "vitest", "vitest.js": "vitest", "mocha": "mocha", "_mocha": "mocha", "mocha.js": "mocha", "jasmine": "jasmine", "jasmine.js": "jasmine"}  # fmt: skip
+# a package script that runs tests, by its name: ``test``, ``test:unit``, ``unit-test``, ``jest``, ``spec``
+_TEST_SCRIPT = re.compile(r"^test|^(?:t|tst)$|(?:^|[:._-])(?:tests?|jest|vitest|mocha|jasmine|specs?|unit)(?:$|[:._-])")
+_PLAIN_SCRIPT = frozenset({"test", "t", "tst", "tests"})
+_PM_DIR = frozenset({"--prefix", "--cwd", "-C", "--dir"})  # npm / yarn / pnpm: run in another directory
+_PM_SCOPE = frozenset({"--filter", "-F", "-w", "--workspace"})  # ... or for some packages of the workspace
 _NO_RUN = frozenset({"--help", "-h", "--version", "-V", "--collect-only", "--co", "--fixtures", "--markers", "--setup-plan", "--dry-run", "--list", "-list", "--help-all"})
 _JS_RUNNERS = frozenset({"jest", "vitest", "mocha", "jasmine"})
 _MAKE_SKIP = frozenset({"clean", "distclean", "install", "uninstall", "help", "dist", "lint", "format", "fmt", "docs", "doc"})
@@ -156,6 +187,11 @@ class Hit:
     no_run: str = ""  # the flag that makes it a non-run
     loose: list[str] = field(default_factory=list)  # relative path targets written under a cwd the trace does not know
     code: str | None = None  # inline python source
+    # go test / jest / vitest / a package script: what narrows the run without naming a path the trace can resolve --
+    # ``-run X`` / ``-skip X`` (go), ``-t X`` (a test name pattern), ``--testPathPattern X``, ``path X`` (a positional
+    # file-name pattern), ``pkg X`` (a Go import path), ``script X`` (a package script other than ``test``)
+    narrow: list[str] = field(default_factory=list)
+    flat: list[str] = field(default_factory=list)  # go: targets that are one package (``./pkg``), not a tree (``./pkg/...``)
 
 
 def _texts(words: list[shell.Word]) -> list[str]:
@@ -209,14 +245,21 @@ def _no_run(opts: Iterable[str]) -> str:
     return next((o for o in opts if o in _NO_RUN), "")
 
 
-def _path_targets(hit: Hit, ops: list[str], *, all_paths: bool) -> None:
-    """Operands that name files/dirs -> ``hit.targets`` (abs); ``all_paths``: every operand is a path."""
-    cwd = hit.seg.cwd
+_UNSET = object()
+
+
+def _path_targets(hit: Hit, ops: list[str], *, all_paths: bool, cwd: Any = _UNSET, patterns: bool = False) -> None:
+    """Operands that name files/dirs -> ``hit.targets`` (abs); ``all_paths``: every operand is a path. ``cwd``: the
+    directory they are relative to, when it is not the segment's (``yarn --cwd pkg test``). ``patterns``: an operand
+    that is no path is a file-name pattern the runner filters by (``jest slug``) -> ``hit.narrow``."""
+    cwd = hit.seg.cwd if cwd is _UNSET else cwd
     for t in ops:
         if not t or t.startswith("-"):
             continue
         file_part = t.split("::", 1)[0]
         if not (all_paths or "/" in file_part or re.search(r"\.[A-Za-z]{1,6}$", file_part)):
+            if patterns:
+                hit.narrow.append(f"path {t}")
             continue
         if cwd is None and not file_part.startswith(("/", "~")):
             hit.loose.append(file_part)
@@ -356,6 +399,151 @@ def _test_file_hit(seg: shell.Segment, script: str | None, path_text: str) -> Hi
     return Hit(RUNNERS["test-file"], seg, script=script)
 
 
+def _inner(seg: shell.Segment, words: list[shell.Word], verb: str) -> shell.Segment:
+    """``seg`` from ``words`` on, run as ``verb``: the runner behind ``yarn jest``, ``node node_modules/.bin/jest``."""
+    return shell.Segment(text=seg.text, verb=verb, argv=seg.argv, redirects=seg.redirects, heredoc=seg.heredoc, cwd=seg.cwd,
+                         op_before=seg.op_before, cmd=_texts(words), words=words, cmd_start=0)  # fmt: skip
+
+
+def _go_test_hit(seg: shell.Segment, rest: list[shell.Word]) -> Hit:
+    """``go test [flags] [packages] [flags]``: its packages are its targets -- ``./pkg/...`` the directory tree,
+    ``./pkg`` and no package at all the one directory (``flat``), ``x_test.go`` the file; an import path
+    (``github.com/o/r/pkg``) names no path the trace can resolve and is kept as narrowing. ``-run`` / ``-skip`` narrow
+    the run; ``-list``, ``-c`` and ``-n`` run nothing; what follows ``-args`` is the test binary's."""
+    hit = Hit(RUNNERS["go-test"], seg)
+    words, pkgs, cwd, i = _texts(rest), [], seg.cwd, 0
+    while i < len(words):
+        t = words[i]
+        if t in ("-args", "--args"):
+            break
+        if t.startswith("-") and len(t) > 1:
+            name, eq, val = t.lstrip("-").partition("=")
+            name = name[5:] if name.startswith("test.") else name
+            if name in _GO_VALUE and not eq:
+                i += 1
+                val = words[i] if i < len(words) else ""
+            if name in ("list", "c", "n", "h", "help"):
+                hit.no_run = hit.no_run or "-" + name
+            elif name in ("run", "skip") and val:
+                hit.narrow.append(f"-{name} {val}")
+            elif name == "C" and val:
+                cwd = shell.resolve(val, cwd) if (cwd is not None or val.startswith(("/", "~"))) else None
+        elif t not in (">", ">>", "2>", "&>"):
+            pkgs.append(t)
+        i += 1
+    for p in pkgs or ["."]:
+        tree = p == "..." or p.endswith("/...")
+        d = (p[:-3].rstrip("/") or ("/" if p.startswith("/") else ".")) if tree else p
+        if d.endswith(".go"):
+            _path_targets(hit, [d], all_paths=True, cwd=cwd)
+        elif d in (".", "..") or d.startswith(("./", "../", "/", "~")):
+            if cwd is None and not d.startswith(("/", "~")):
+                if d not in (".", "./"):
+                    hit.loose.append(d)
+                continue
+            path = shell.resolve(d, cwd)
+            hit.targets.append(path)
+            if not tree:
+                hit.flat.append(path)
+        else:
+            hit.narrow.append(f"pkg {p}")
+    return hit
+
+
+def _js_args(hit: Hit, rest: list[shell.Word], with_arg: frozenset[str], cwd: Any = _UNSET) -> None:
+    """The arguments of jest / vitest / mocha (or of a package script that runs one) -> the hit's path targets and
+    what narrows it: a test name pattern (``-t``, mocha ``-g`` / ``-f``), a path pattern option, an operand that is a
+    file-name pattern, an option that runs only changed or failed tests or one project."""
+    mocha = hit.runner.name == "mocha"
+    names = frozenset({"-g", "--grep", "-f", "--fgrep"}) if mocha else _JS_NAME
+    words, ops, i = _texts(rest), [], 0
+    while i < len(words):
+        t = words[i]
+        if t == "--" or t in (">", ">>", "2>", "&>"):
+            i += 1
+            continue
+        if t.startswith("-") and len(t) > 1:
+            name, eq, val = t.partition("=")
+            if name in with_arg and not eq:
+                i += 1
+                val = words[i] if i < len(words) else ""
+            if name in _NO_RUN or name in _JS_NO_RUN:
+                hit.no_run = hit.no_run or name
+            elif name in names:
+                hit.narrow.append(f"-t {val}")
+            elif name in _JS_PATH:
+                hit.narrow.append(f"--testPathPattern {val}")
+            elif name in _JS_ONLY and not mocha:
+                hit.narrow.append(name)
+        else:
+            ops.append(t)
+        i += 1
+    if hit.runner.name == "vitest" and ops and ops[0] in ("run", "watch", "dev", "related", "bench", "typecheck", "list", "init"):
+        if ops[0] in ("list", "init"):
+            hit.no_run = hit.no_run or ops[0]
+        ops = ops[1:]
+    _path_targets(hit, ops, all_paths=False, cwd=cwd, patterns=True)
+
+
+def _package_script_hit(seg: shell.Segment, verb: str, rest: list[shell.Word]) -> Hit | None:
+    """``npm`` / ``yarn`` / ``pnpm`` / ``bun``: the runner run through the package manager (``yarn jest ...``,
+    ``pnpm exec vitest ...``), a test script (``npm test``, ``npm run test:unit``, ``yarn test:unit``, ``pnpm --filter
+    core test``) with what follows it as the runner's arguments (``npm test -- path -t name``, ``yarn test path``),
+    or a build script. Options before the subcommand that move the run (``--prefix``, ``--cwd``, ``-C``) or scope it
+    to some packages (``--filter``, ``-w``, ``yarn workspace NAME``) are read first."""
+    cwd, scoped, i = seg.cwd, False, 0
+    while i < len(rest):
+        t = rest[i].text
+        name, eq, val = t.partition("=")
+        if name in _PM_DIR or name in _PM_SCOPE:
+            if not eq:
+                i += 1
+                val = rest[i].text if i < len(rest) else ""
+            if name in _PM_SCOPE:
+                scoped = True
+            elif val:
+                cwd = shell.resolve(val, cwd) if (cwd is not None or val.startswith(("/", "~"))) else None
+                scoped = scoped or cwd is None or cwd.rstrip("/") != (seg.cwd or "").rstrip("/")  # the package in that directory
+        elif verb == "yarn" and t == "workspace" and i + 1 < len(rest):
+            scoped = True
+            i += 1
+        elif not (t.startswith("-") and len(t) > 1):
+            break
+        i += 1
+    rest = rest[i:]
+    args = _texts(rest)
+    if not args:
+        return None
+    if verb != "npm" and (args[0] in _JS_RUNNERS or (args[0] in ("run", "exec", "dlx", "x") and len(args) > 1 and args[1] in _JS_RUNNERS)):
+        k = 0 if args[0] in _JS_RUNNERS else 1  # `yarn jest ...`, `pnpm exec vitest ...`: the package's own runner
+        hit = classify(_inner(seg, rest[k:], args[k]))
+        if hit is not None and scoped:
+            hit.narrow.append("workspace")
+        return hit
+    script, tail = None, rest[1:]
+    if args[0] in ("test", "t", "tst"):
+        script = "test"
+    elif args[0] in ("run", "run-script"):
+        k = next((j for j in range(1, len(args)) if not args[j].startswith("-")), None)
+        if k is not None:
+            script, tail = args[k], rest[k + 1 :]
+    elif verb != "npm" and not args[0].startswith("-"):
+        script = args[0]
+    if script is None:
+        return None
+    if _TEST_SCRIPT.search(script):
+        hit = Hit(RUNNERS["npm-test"], seg)
+        _js_args(hit, tail, _PM_VALUE, cwd=cwd)
+        if script not in _PLAIN_SCRIPT:
+            hit.narrow.append(f"script {script}")
+        if scoped:
+            hit.narrow.append("workspace")
+        return hit
+    if script.startswith("build"):
+        return Hit(RUNNERS["npm-build"], seg)
+    return None
+
+
 def classify(seg: shell.Segment) -> Hit | None:
     """The runner ``seg`` invokes in command position, or None (``cat tox.ini``, ``pip install pytest``)."""
     words = seg.cmd_words
@@ -383,6 +571,10 @@ def classify(seg: shell.Segment) -> Hit | None:
             _path_targets(hit, ops, all_paths=True)
             return hit
         if ops and not ({"-e", "--eval", "-p", "--print"} & opts):
+            runner = _NODE_RUNNER.get(posixpath.basename(ops[0]))
+            if runner:  # `node node_modules/.bin/jest ...`, `node --experimental-vm-modules node_modules/jest/bin/jest.js ...`
+                k = next(j for j, w in enumerate(rest) if w.text == ops[0])
+                return classify(_inner(seg, rest[k:], runner))
             script = shell.resolve(ops[0], seg.cwd) if (seg.cwd is not None or ops[0].startswith(("/", "~"))) else None
             return _test_file_hit(seg, script, ops[0])
         return None
@@ -392,29 +584,17 @@ def classify(seg: shell.Segment) -> Hit | None:
         return _unittest_hit(seg, RUNNERS["trial"], rest)
     if verb == "go":
         if sub == "test":
-            _, opts = _operands(rest[1:], _GENERIC_ARG)
-            return Hit(RUNNERS["go-test"], seg, no_run=_no_run(opts))
+            return _go_test_hit(seg, rest[1:])
         return Hit(RUNNERS["go-build"], seg) if sub == "build" else Hit(RUNNERS["go-vet"], seg) if sub == "vet" else None
     if verb == "cargo":
         if sub == "test":
             return Hit(RUNNERS["cargo-test"], seg, no_run=_no_run(_texts(rest[1:])))
         return Hit(RUNNERS["cargo-build"], seg) if sub == "build" else None
-    if verb in ("yarn", "pnpm", "bun") and rest and (rest[0].text in _JS_RUNNERS or (rest[0].text in ("run", "exec", "dlx", "x") and len(rest) > 1 and rest[1].text in _JS_RUNNERS)):
-        k = 0 if rest[0].text in _JS_RUNNERS else 1  # `yarn jest ...`, `pnpm exec vitest ...`: the package's own runner
-        inner = shell.Segment(text=seg.text, verb=rest[k].text, argv=seg.argv, redirects=seg.redirects, heredoc=seg.heredoc, cwd=seg.cwd,
-                              op_before=seg.op_before, cmd=_texts(rest[k:]), words=rest[k:], cmd_start=0)  # fmt: skip
-        return classify(inner)
     if verb in ("npm", "yarn", "pnpm", "bun"):
-        args = _texts(rest)
-        if args[:1] in (["test"], ["t"]) or (args[:1] == ["run"] and len(args) > 1 and args[1].startswith("test")):
-            return Hit(RUNNERS["npm-test"], seg)
-        if (args[:1] == ["run"] and len(args) > 1 and args[1].startswith("build")) or (verb != "npm" and args[:1] == ["build"]):
-            return Hit(RUNNERS["npm-build"], seg)
-        return None
+        return _package_script_hit(seg, verb, rest)
     if verb in ("jest", "mocha", "vitest", "jasmine"):
-        ops, opts = _operands(rest, _GENERIC_ARG)
-        hit = Hit(RUNNERS[verb], seg, no_run=_no_run(opts))
-        _path_targets(hit, [o for o in ops if o not in ("run", "watch")], all_paths=False)
+        hit = Hit(RUNNERS[verb], seg)
+        _js_args(hit, rest, _JS_VALUE[verb])
         return hit
     if verb == "rspec":
         ops, opts = _operands(rest, _GENERIC_ARG)
@@ -487,6 +667,8 @@ def _runner_args(hit: Hit) -> list[str]:
 
 _VALUE_OPTS = {"pytest": _PYTEST_ARG, "unittest": _UNITTEST_ARG, "nose": _UNITTEST_ARG, "trial": _UNITTEST_ARG, "django-runtests": _DJANGO_ARG, "django-manage": _DJANGO_ARG,
                "django-admin": _DJANGO_ARG, "sympy-bin-test": _SYMPY_ARG, "tox": frozenset({"-e", "-c", "-s", "--session", "-r"}), "nox": frozenset({"-e", "-c", "-s", "--session", "-r"})}  # fmt: skip
+_PATTERN_OPERANDS = frozenset({"jest", "vitest", "npm-test"})
+_FIELD_SELECTION = frozenset({"go-test", "npm-test", "jest", "vitest", "mocha", "jasmine"})
 _SUBCOMMANDS = frozenset({"test", "run"})  # ``python -m django test``, ``manage.py test``, ``npm run test``
 
 
@@ -507,6 +689,10 @@ def selects(hit: Hit, workdir: str | None) -> bool | None:
 
     if any(not root(t) for t in hit.targets) or hit.node_ids or hit.labels:
         return True
+    if hit.runner.name in _FIELD_SELECTION:  # their arguments are read into the hit: the words are not read again
+        if hit.narrow or hit.loose or any(root(t) for t in hit.flat):  # `go test .` at the root is its one package
+            return True
+        return bool(cwd and wd and cwd.rstrip("/") != wd and cwd.startswith(wd + "/"))
     words = [w for w in _runner_args(hit) if w not in (">", ">>", "2>", "&>")]
     if any(w.split("=", 1)[0] in _NARROWING for w in words):
         return True
@@ -602,9 +788,22 @@ _SYMPY = re.compile(rf"tests finished: (?P<c>[^\n]*?),? in {_N} seconds", re.M)
 _SYMPY_ITEM = re.compile(r"^(\d+) (passed|failed|skipped|expected to fail but passed|expected to fail|exceptions?)$")
 _GO_TEST = re.compile(r"^--- (PASS|FAIL|SKIP): (\S+)", re.M)
 _GO_PKG = re.compile(rf"^(ok|FAIL)\s+(\S+)\s+(?:{_N}s|\(cached\))(?P<rest>[^\n]*)$", re.M)
+# a package whose tests never ran: it (or its test files) did not compile, or its imports could not be loaded
+_GO_BROKEN = re.compile(r"^FAIL\s+(\S+)\s+\[(build failed|setup failed)\]\s*$", re.M)
+_GO_BARE_FAIL = re.compile(r"^FAIL\s*$", re.M)  # go's last line when any package failed
+_GO_WARN_NONE = re.compile(r"^testing: warning: no tests to run\s*$", re.M)
+_GO_NO_TESTS = re.compile(r"^ok\s+\S+\s+[^\n]*\[no tests to run\]\s*$", re.M)
 _CARGO = re.compile(r"^test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored", re.M)
 _JEST = re.compile(r"^Tests:\s+(?P<c>[^\n]*?)(?P<t>\d+) total", re.M)
 _VITEST = re.compile(r"^\s*Tests\s+(?P<c>[^\n(]*)\((?P<t>\d+)\)", re.M)
+_JEST_SUITES = re.compile(r"(?:^|(?<=\S))Test Suites:\s+(?P<c>[^\n]*?)(?P<t>\d+) total", re.M)  # the line above jest's ``Tests:``
+_VITEST_FILES = re.compile(r"^\s*Test Files\s+(?P<c>[^\n(]*)\((?P<t>\d+)\)", re.M)  # the line above vitest's ``Tests``
+_JEST_PARTIAL = re.compile(r"\b\d+ of \d+ total")  # jest's files line while the run goes on (or of a run that stopped early)
+_JEST_TIME = re.compile(r"^Time:[^\n]*", re.M)
+_JEST_DONE = re.compile(r"Ran all test suites|Ran \d+ of \d+ test suites|Test run was interrupted")  # what ends jest's result block
+_VITEST_DURATION = re.compile(r"^\s*Duration\s+[^\n]*", re.M)
+_JEST_BROKEN = re.compile(r"^\s*● Test suite failed to run\s*$", re.M)
+_VITEST_BROKEN = re.compile(r"^\s*FAIL\s+(?:\|[^|\n]*\|\s+)?(\S+) \[ [^\]\n]+ \]\s*$", re.M)  # under ``Failed Suites``
 _MOCHA = re.compile(r"^\s*(\d+) (passing|failing|pending)\b", re.M)
 _RSPEC = re.compile(r"^(\d+) examples?, (\d+) failures?(?:, (\d+) pending)?", re.M)
 _PHPUNIT_OK = re.compile(r"^OK \((\d+) tests?, \d+ assertions?\)", re.M)
@@ -664,6 +863,150 @@ def _sane(text: str | None) -> str:
     if len(t) <= MAX_PARSE_LINE or all(len(ln) <= MAX_PARSE_LINE for ln in t.split("\n")):
         return t
     return "\n".join(ln[:MAX_PARSE_LINE] for ln in t.split("\n"))
+
+
+def _go_summary(text: str) -> Summary | None:
+    """``go test`` output as one summary. Tests are counted by their ``--- PASS / FAIL / SKIP`` lines (top level;
+    go prints the passing ones only with ``-v``), else packages by their ``ok`` / ``FAIL`` lines. What those counts
+    would miss is added:
+
+    * a package that failed with none of its failing tests in the output (``go test -v ... | tail`` cut the
+      ``--- FAIL`` line off; a panic, a timeout or ``os.Exit`` leaves none) is one failure;
+    * a package whose tests never ran -- ``FAIL pkg [build failed]`` / ``[setup failed]`` -- is one error: such a
+      package next to a passing one is not an all-pass run, and a run of nothing else says why it ran no test
+      (:func:`invocation_error`, as a pytest run of collection errors only);
+    * go's bare last line ``FAIL`` with no failure counted (the failing package's own lines cut off) is one failure.
+    """
+    tests = list(_GO_TEST.finditer(text))
+    every = list(_GO_PKG.finditer(text))
+    # run from inside the package (`cd pkg && go test -run X`), go says it on a line of its own, before ``PASS`` / ``ok``
+    empty = {nxt.start() for w in _GO_WARN_NONE.finditer(text) if (nxt := next((m for m in every if m.start() > w.start()), None)) is not None and not any(w.start() < t.start() < nxt.start() for t in tests)}
+    pkgs = [m for m in every if "[no tests to run]" not in m.group("rest") and m.start() not in empty]
+    broken = list(_GO_BROKEN.finditer(text))
+    bare = _GO_BARE_FAIL.search(text)
+    if not (tests or pkgs or broken):
+        none = _GO_NO_TESTS.search(text) or _GO_WARN_NONE.search(text)
+        if bare is None:
+            return Summary("go", none.start(), zero="no tests to run") if none else None
+        return Summary("go", bare.start(), failed=1)
+    s = Summary("go", max(m.start() for m in (*tests, *pkgs, *broken)))
+    if tests:
+        s.passed = sum(1 for m in tests if m.group(1) == "PASS")
+        s.failed = sum(1 for m in tests if m.group(1) == "FAIL")
+        s.skipped = sum(1 for m in tests if m.group(1) == "SKIP")
+        failed_here = False  # a ``--- FAIL`` since the last package line
+        for kind, m in sorted([("t", m) for m in tests] + [("p", m) for m in (*pkgs, *broken)], key=lambda x: x[1].start()):
+            if kind == "t":
+                failed_here = failed_here or m.group(1) == "FAIL"
+                continue
+            if m.re is _GO_PKG and m.group(1) == "FAIL" and not failed_here:
+                s.failed += 1
+            failed_here = False
+    else:
+        s.passed = sum(1 for m in pkgs if m.group(1) == "ok")
+        s.failed = sum(1 for m in pkgs if m.group(1) == "FAIL")
+    s.errors = len(broken)
+    if bare and not (s.failed or s.errors):
+        s.failed = 1
+    s.phrases = [f"ok  {m.group(2)}" for m in pkgs if m.group(1) == "ok"]
+    return s
+
+
+def _js_summaries(text: str) -> list[Summary]:
+    """jest's ``Tests: 1 failed, 2 passed, 3 total`` and vitest's ``Tests  1 failed | 2 passed (3)``, with the
+    line above them that counts files: a test file that could not be loaded (a syntax or type error, a missing
+    import: jest ``Test suite failed to run``, vitest ``Failed Suites``) fails no test, so the test counts alone would
+    read "no test ran" for a run of that file and "all passed" for a run of it next to another file. Each such file
+    is one error."""
+    out: list[Summary] = []
+    for rx, files_rx in ((_JEST, _JEST_SUITES), (_VITEST, _VITEST_FILES)):
+        tests = [m for m in rx.finditer(text)]
+        files = [m for m in files_rx.finditer(text)]
+        frames = _progress_frames(text, tests, files, rx is _JEST)
+        tests = [m for m in tests if m.start() not in frames]
+        files = [m for m in files if m.start() not in frames]
+        used: set[int] = set()
+        for m in tests:
+            s = Summary("jest", m.start(), collected=int(m.group("t")))
+            for n, word in _COUNT_WORD.findall(m.group("c")):
+                word = word.strip()
+                if word == "passed":
+                    s.passed += int(n)
+                    s.phrases.append(f"{n} passed")
+                elif word == "failed":
+                    s.failed += int(n)
+                elif word in ("skipped", "todo", "pending"):
+                    s.skipped += int(n)
+            f = next((f for f in reversed(files) if f.start() < m.start() and m.start() - f.end() < 200), None)
+            if f is not None:
+                used.add(f.start())
+                s.errors = _broken_files(text, f, s.failed, rx is _JEST)
+            if not re.search(r"\d", m.group("c")) and not s.errors:
+                continue
+            s.zero = "" if s.ran else "zero tests"
+            out.append(s)
+        for f in files:  # vitest prints no ``Tests`` line when no test was collected
+            if f.start() in used or any(abs(m.start() - f.end()) < 200 and m.start() > f.start() for m in tests):
+                continue
+            n = _broken_files(text, f, 0, rx is _JEST)
+            if n:
+                out.append(Summary("jest", f.start(), errors=n))
+    out.sort(key=lambda x: x.pos)
+    return out
+
+
+def _progress_frames(text: str, tests: list[re.Match], files: list[re.Match], jest: bool) -> set[int]:
+    """Starts of the ``Tests`` / files lines that are a frame of the runner's live progress, not a result. On a
+    terminal jest and vitest redraw their counts while the run goes on, and the captured output keeps every frame:
+    ``Tests 0 passed (0)``, ``Tests 30 passed (46)``, ... before the one that is the result. Adding them up would
+    multiply the counts.
+
+    * vitest: a frame's ``Duration`` line is a bare time; the result's holds the breakdown (``Duration 12.28s
+      (transform 4.71s, ...)``).
+    * jest: the result is the block that ends in ``Ran all test suites`` (``Test run was interrupted``); when the
+      output has such a block, every other is a frame -- the last frames already hold the final counts. Without one
+      (the end cut off), a frame is a block whose files line counts the files done so far (``Test Suites: 1 passed, 1
+      of 5 total``) with a later block after it or an ``estimated`` time; the last of them is what a run that stopped
+      early (``--bail``) prints.
+    """
+    frames: set[int] = set()
+    lines = sorted([*tests, *files], key=lambda m: m.start())
+
+    def files_of(m: re.Match) -> re.Match | None:
+        return next((f for f in reversed(files) if f.start() < m.start() and m.start() - f.end() < 200), None)
+
+    if jest:
+        done = {m.start() for i, m in enumerate(tests) if _JEST_DONE.search(text, m.end(), tests[i + 1].start() if i + 1 < len(tests) else min(len(text), m.end() + 600))}
+        if done:
+            keep = done | {f.start() for f in (files_of(m) for m in tests if m.start() in done) if f is not None}
+            return {m.start() for m in lines if m.start() not in keep}
+        for i, m in enumerate(lines):
+            f = m if m.re is _JEST_SUITES else files_of(m)
+            if f is None or not _JEST_PARTIAL.search(f.group(0)):
+                continue
+            later = any(n.re is _JEST_SUITES and n.start() > f.start() for n in lines[i + 1 :])
+            time = _JEST_TIME.search(text, m.end(), m.end() + 400)
+            if later or (time is not None and "estimated" in time.group(0)):
+                frames.add(m.start())
+        return frames
+    for i, m in enumerate(lines):
+        d = _VITEST_DURATION.search(text, m.end(), m.end() + 400)
+        nxt = next((n.start() for n in lines[i + 1 :] if n.re is m.re), None)
+        if d is not None and "(" not in d.group(0) and (nxt is None or d.start() < nxt):
+            frames.add(m.start())
+    return frames
+
+
+def _broken_files(text: str, files: re.Match, tests_failed: int, jest: bool) -> int:
+    """How many of the failed test files of a jest / vitest files line failed without running: all of them when no
+    test failed; else as many as the output says could not be loaded."""
+    failed = sum(int(n) for n, word in _COUNT_WORD.findall(files.group("c")) if word.strip() == "failed")
+    if not failed:
+        return 0
+    if not tests_failed:
+        return failed
+    said = len(_JEST_BROKEN.findall(text)) if jest else len(set(_VITEST_BROKEN.findall(text)))
+    return min(said, failed)
 
 
 def summaries(text: str) -> list[Summary]:
@@ -748,18 +1091,8 @@ def summaries(text: str) -> list[Summary]:
                 s.xfail += k
         s.zero = "" if s.ran else "zero tests"
         out.append(s)
-    go_tests = list(_GO_TEST.finditer(text))
-    go_pkgs = [m for m in _GO_PKG.finditer(text) if "[no tests to run]" not in m.group("rest")]
-    if go_tests or go_pkgs:
-        s = Summary("go", (go_pkgs or go_tests)[-1].start())
-        if go_tests:
-            s.passed = sum(1 for m in go_tests if m.group(1) == "PASS")
-            s.failed = sum(1 for m in go_tests if m.group(1) == "FAIL")
-            s.skipped = sum(1 for m in go_tests if m.group(1) == "SKIP")
-        else:
-            s.passed = sum(1 for m in go_pkgs if m.group(1) == "ok")
-            s.failed = sum(1 for m in go_pkgs if m.group(1) == "FAIL")
-        s.phrases = [f"ok  {m.group(2)}" for m in go_pkgs if m.group(1) == "ok"]
+    s = _go_summary(text)
+    if s is not None:
         out.append(s)
     cargo = list(_CARGO.finditer(text))
     if cargo:
@@ -772,22 +1105,7 @@ def summaries(text: str) -> list[Summary]:
                 s.phrases.append(f"test result: ok. {m.group(1)} passed")
         s.zero = "" if s.ran else "running 0 tests"
         out.append(s)
-    for rx in (_JEST, _VITEST):
-        for m in rx.finditer(text):
-            if not re.search(r"\d", m.group("c")):
-                continue
-            s = Summary("jest", m.start(), collected=int(m.group("t")))
-            for n, word in _COUNT_WORD.findall(m.group("c")):
-                word = word.strip()
-                if word == "passed":
-                    s.passed += int(n)
-                    s.phrases.append(f"{n} passed")
-                elif word == "failed":
-                    s.failed += int(n)
-                elif word in ("skipped", "todo", "pending"):
-                    s.skipped += int(n)
-            s.zero = "" if s.ran else "zero tests"
-            out.append(s)
+    out += _js_summaries(text)
     mocha = list(_MOCHA.finditer(text))
     if mocha:
         s = Summary("mocha", mocha[0].start())
@@ -976,9 +1294,35 @@ def _per_test_summary(text: str) -> Summary | None:
             else:
                 s.xfail += 1
     else:
-        return None
+        return _js_cut_summary(text)
     if s.ran == 0:
         s.zero = "only skipped"
+    return s
+
+
+def _js_cut_summary(text: str) -> Summary | None:
+    """A summary counted from jest's / vitest's own lines, for an output whose summary lines were cut (``npm test |
+    head -100``, ``| grep -A5 "FAIL test/"``): jest's ``PASS file`` / ``FAIL file`` lines and the ``● describe › name``
+    heads of its failures; vitest's ``✓ file (7 tests)`` / ``❯ file (10 tests | 1 failed)`` lines and its ``FAIL file >
+    name`` heads. Failures are tests when the output names them, else files; passes are files (jest) or the tests of
+    the files that passed (vitest)."""
+    files = list(_JEST_FILE.finditer(text))
+    heads = [m for m in _JEST_HEAD.finditer(text) if m.group(1) != "Test suite failed to run"]
+    vfiles = list(_VITEST_FILE_LINE.finditer(text))
+    vfails = list(_VITEST_FAIL.finditer(text))
+    if not (files or heads or vfiles or vfails) or _JEST.search(text) or _VITEST.search(text):
+        return None  # (count lines that are all frames of the live progress: the run did not get to its result)
+    s = Summary("jest", max(m.start() for m in (*files, *heads, *vfiles, *vfails)))
+    named = [i for i in js_failing_ids(text) if "::" in i or not _JS_FILE_ID.search(i)]
+    s.passed = sum(1 for m in files if m.group(1) == "PASS")
+    s.failed = len(named) or sum(1 for m in files if m.group(1) == "FAIL")
+    for m in vfiles:
+        n, bad = int(m.group(2)), int(m.group(3) or 0)
+        s.passed += n - bad
+        s.failed += bad if not named else 0
+    s.errors = len(_JEST_BROKEN.findall(text)) + len(set(_VITEST_BROKEN.findall(text)))
+    if s.ran == 0:
+        return None
     return s
 
 
@@ -1084,6 +1428,55 @@ _UT_LOADER_FAILING = re.compile(r"^ERROR: ([\w.]+) \(unittest\.loader\.(?:_Faile
 _PYTEST_SECTION = re.compile(r"^_{3,} (?:ERROR at (?:setup|teardown) of )?((?:\w+\.)?test\w*(?:\[[^\]\n]*\])?) _{3,}$", re.M)
 
 
+# jest: a failed test's section head ``  ● describe › nested › test name`` under its file's ``FAIL path`` line; a file
+# that could not be loaded has the head ``● Test suite failed to run`` and is named by the file alone
+# (a multi-project run names the project before the path: ``FAIL ReactDOM 18 src/x.test.tsx``)
+_JEST_FILE = re.compile(r"^\s*(PASS|FAIL)\s+(?:(?P<proj>\S[^\n>]*?)\s+)?(?P<file>\S+\.(?:[cm]?[jt]sx?|vue|svelte))(?:\s+\([\d.]+ ?m?s\))?\s*$", re.M)
+_JEST_HEAD = re.compile(r"^  ● (?!Console\b|Deprecation Warning|Validation Warning|Cannot log after)(.+?)\s*$", re.M)
+# vitest: `` FAIL  path > describe > test name`` under ``Failed Tests``, `` FAIL  path [ path ]`` under ``Failed Suites``
+# vitest's line of one test file: ``✓ test/cookie.test.ts (7 tests) 307ms``, ``❯ src/x.test.ts (10 tests | 1 failed) 10ms``
+_VITEST_FILE_LINE = re.compile(r"^\s*[✓❯×]\s+(?:\|[^|\n]*\|\s+)?(\S+\.(?:[cm]?[jt]sx?|vue|svelte))\s+\((\d+) tests?(?: \| (\d+) failed)?(?: \| \d+ skipped)?\)", re.M)
+_JS_FILE_ID = re.compile(r"\.(?:[cm]?[jt]sx?|vue|svelte)(?:\[[^\]]*\])?$")  # a failing id that is a file (it could not be loaded)
+_VITEST_FAIL = re.compile(r"^\s*FAIL\s+(?:\|[^|\n]*\|\s+)?(\S+\.(?:[cm]?[jt]sx?|vue|svelte)) > (.+?)\s*$", re.M)
+
+
+def js_failing_ids(text: str) -> list[str]:
+    """The tests a jest / vitest run's output reports as failed, as ``path::describe › test name`` (vitest: its own
+    ``describe > test name``); a test file that could not be loaded, as its path. jest's sections are read under the
+    ``FAIL path`` line they follow; a section with no such line above it (the output was cut) is named without a file.
+    In a multi-project jest run the project's name follows in brackets (``path::name[ReactDOM 18]``)."""
+    out: list[str] = []
+    marks = sorted([(m.start(), "file", m) for m in _JEST_FILE.finditer(text)] + [(m.start(), "head", m) for m in _JEST_HEAD.finditer(text)], key=lambda x: x[0])
+    file, proj = None, ""
+    for _pos, kind, m in marks:
+        if kind == "file":
+            file = m.group("file") if m.group(1) == "FAIL" else None
+            proj = f"[{m.group('proj')}]" if m.group("proj") else ""  # the same test of another project is another result
+        elif m.group(1) == "Test suite failed to run":
+            if file:
+                out.append(file + proj)
+        else:
+            out.append((f"{file}::{m.group(1)}" if file else m.group(1)) + proj)
+    out += [f"{m.group(1)}::{m.group(2)}" for m in _VITEST_FAIL.finditer(text)]
+    out += list(_VITEST_BROKEN.findall(text))
+    return list(dict.fromkeys(out))
+
+
+def go_test_packages(text: str) -> dict[str, str]:
+    """Each top-level go test the output names -> the package whose ``ok`` / ``FAIL`` line follows it (its import
+    path, as go prints it); a test whose package line was cut off is not in the map."""
+    out: dict[str, str] = {}
+    waiting: list[str] = []
+    for kind, m in sorted([("t", m) for m in _GO_TEST.finditer(text)] + [("p", m) for m in _GO_PKG.finditer(text)], key=lambda x: x[1].start()):
+        if kind == "t":
+            waiting.append(m.group(2))
+            continue
+        for name in waiting:
+            out.setdefault(name, m.group(2))
+        waiting = []
+    return out
+
+
 def failing_ids(text: str) -> list[str]:
     """Ids of the tests a run's output reports as failed or errored: pytest node ids (short summary, ``-v`` lines --
     a parameter id may hold spaces --, ``___ Class.test_x ___`` sections, ``___ ERROR at setup of test_x ___``),
@@ -1103,6 +1496,8 @@ def failing_ids(text: str) -> list[str]:
     out += [m.group(1) for m in _UT_LOADER_FAILING.finditer(text)]
     out += [m.group(1) for m in _PYTEST_SECTION.finditer(text)]
     out += [m.group(2) for m in _GO_TEST.finditer(text) if m.group(1) == "FAIL"]
+    out += [m.group(1) for m in _GO_BROKEN.finditer(text)]  # a package that did not build: every test of it, named by the package
+    out += js_failing_ids(text)
     return list(dict.fromkeys(out))[:MAX_IDS]
 
 
@@ -1111,8 +1506,8 @@ def own_name(test_id: str) -> str:
     return re.split(r"::|\.", (test_id or "").split("[", 1)[0])[-1]
 
 
-_STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b")
-_STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b")
+_STATE_FAIL = re.compile(r"\b(?:FAILED|FAIL|ERROR)\b|^\s*[✕×✗✖]\s")  # ... jest ``✕ name``, vitest ``× name``
+_STATE_PASS = re.compile(r"\bPASSED\b|\.\.\.\s*ok\b|--- PASS:|^\s*[✓✔√]\s")  # ... go ``--- PASS: TestX``, jest / vitest ``✓ name``
 _SYMPY_FILE_MARK = re.compile(r"\s*\[(?:OK|FAIL)\]\s*$")  # sympy's file-level mark at the end of a test's line
 _SYMPY_STATE = re.compile(r"^\s*test_\w+\s+(ok|E|F)\s*$")
 _UT_NAME_LINE = re.compile(r"^\s*test\w*\s+\([\w.]+\)\s*$")  # unittest -v: the result follows on the next line
@@ -1150,16 +1545,34 @@ def test_state(text: str, name: str) -> bool | None:
             passed |= nxt.group(1) == "ok"
     if not failed:
         own = own_name(name)
-        failed = any(i == name or own_name(i) == own for i in failing_ids(text or ""))
+        ids = failing_ids(text or "")
+        failed = any(i == name or own_name(i) == own for i in ids)
+        if not failed and " " in name:  # a jest / vitest test name is free text: the id's part after its file
+            failed = any(i.partition("::")[2] == name or i.partition("::")[2].endswith((" › " + name, " > " + name)) for i in ids)
     return False if failed else (True if passed else None)
 
 
 # ============================================================================================
 # Validity
 # ============================================================================================
-_BUILD_FAIL = re.compile(r"\berror(?:\[\w+\])?:|^Error:|\bFAILED\b|BUILD FAILURE|make: \*\*\*|SyntaxError|\*\*\* Error compiling|^E\d{4}:", re.M)
+# ... go's compile and vet errors (``./x.go:12:9: undefined: y``, ``vet: ...``), tsc's (``x.ts(3,5): error TS2322: ...``)
+_BUILD_FAIL = re.compile(r"\berror(?:\[\w+\])?:|^Error:|\bFAILED\b|BUILD FAILURE|make: \*\*\*|SyntaxError|\*\*\* Error compiling|^E\d{4}:|^\S+\.go:\d+:\d+: |^vet: |\berror TS\d+:", re.M)
+# What go and the JavaScript package managers print for a build that failed with no compiler error line: go could not
+# load the packages (``import cycle not allowed``, ``found packages a (x.go) and main (y.go)``, ``main module (m) does
+# not contain package p``, ``stat /repo/cmd/x: directory not found``, ``no Go files in``, ``go: ...`` on its own line);
+# the script's tool said so (tsup ``DTS Build error``) or the package manager did (``ELIFECYCLE``, ``npm ERR!``,
+# ``error Command failed with exit code 1.``), or a tool of the script was not installed (``sh: 1: eleventy: not found``).
+_GO_BUILD_FAIL = re.compile(
+    r"import cycle not allowed|^found packages \S+ \(|does not contain (?:package|main module)|: directory not found\s*$|^no Go files in |^package \S+ is not in (?:GOROOT|std)"
+    r"|no required module provides package|cannot find (?:package|module)|build constraints exclude all Go files|^go: (?!downloading |finding |extracting |found |added |upgraded |creating )",
+    re.M,
+)
+_PM_BUILD_FAIL = re.compile(r"\bELIFECYCLE\b|^npm ERR!|^npm error |\bCommand failed with exit code [1-9]|\bBuild (?:error|failed)\b|Process exited \(exit code [1-9]|\bexited with (?:code|status) [1-9]|^sh: \d+: [^:\n]+: not found\s*$|^(?:ba)?sh: (?:line \d+: )?[^:\n]+: command not found", re.M)
+_BUILD_BY_TOOL = {"go-build": _GO_BUILD_FAIL, "go-vet": _GO_BUILD_FAIL, "npm-build": _PM_BUILD_FAIL, "tsc": _PM_BUILD_FAIL}
+# the shell tool's notes for a command it stopped waiting for: it had printed no result yet
+_UNFINISHED = re.compile(r"\[The command (?:has no new output after|timed out after) [\d.]+ seconds")
 _SHADOW_HOOK = re.compile(r"pytest_runtest_makereport|pytest_report_teststatus|pytest_terminal_summary|pytest_runtest_protocol|pytest_runtest_call|pytest_runtestloop|pytest_sessionfinish")
-_EXEC_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "ruby", "perl", "php", "source", "."})
+_EXEC_VERBS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "node", "deno", "ts-node", "tsx", "bun", "ruby", "perl", "php", "source", "."})
 
 
 def _rel(path: str, workdir: str | None) -> str | None:
@@ -1208,6 +1621,8 @@ class _Ctx:
         if "$" in path:  # an unresolved shell variable (``${SPEC_PATH}/verify/test_x.py``): where the file is, is not known
             return f"{what} at an unresolved path ({path})"
         rel = _rel(path, self.workdir)
+        if rel == ".":  # the repository root itself (`cd /testbed && go test`: the package there) was there before the run
+            return ""
         if self.workdir and rel is None:
             return f"{what} outside the repository ({path})"
         if self.base_present is not None and rel is not None and rel in self.base_present:
@@ -1261,13 +1676,82 @@ def _shadowed(hit: Hit, c: _Ctx, step: int) -> str:
     return ""
 
 
+def path_patterns(hit: Hit, workdir: str | None = None) -> list[str]:
+    """The patterns on test paths a jest / vitest run (or a package script running one) is narrowed by: the values of
+    ``--testPathPattern`` and the operands (as typed: a bare word, or a path from the run's directory), which those runners match against the test files' paths."""
+    if hit.runner.name not in _PATTERN_OPERANDS:
+        return []
+    return [n.split(" ", 1)[1] for n in hit.narrow if n.startswith(("--testPathPattern ", "path "))] + [(_rel(t, hit.seg.cwd) if hit.seg.cwd else None) or _rel(t, workdir) or t for t in hit.targets if t]
+
+
+def pattern_names(pattern: str, path: str) -> bool:
+    """The path pattern names the test file ``path``: it holds the file's whole name, with or without the extension
+    and the ``.test`` / ``.spec`` before it, in the directory it gives, if any (``--testPathPattern="repro-on-error.test"``
+    and ``jest __tests__/repro-on-error`` name ``src/__tests__/repro-on-error.test.tsx``). A pattern holding less
+    (``on-error``) selects by a part of the name: other test files may match it as well. A pattern that is a file's own
+    path names that file only (``jest lib/__tests__/index.js`` does not name ``index.js.bak`` beside it), and only a
+    JavaScript / TypeScript file is a test file a pattern can name."""
+    base = posixpath.basename(path)
+    if not _JS_FILE_ID.search(base):
+        return False
+    plain = pattern.replace("\\", "").strip("^$'\"")
+    last = posixpath.basename(plain)
+    if _JS_FILE_ID.search(last):
+        if last != base:
+            return False
+    else:
+        bare = re.sub(r"[._-](?:test|spec)$", "", posixpath.splitext(base)[0])
+        if bare in ("", "index", "main", "test", "tests", "spec") or bare not in last:
+            return False
+    folder = posixpath.dirname(plain).strip("./")
+    return not folder or f"/{folder}/" in f"/{posixpath.dirname(path)}/"
+
+
+_GO_TEST_FUNC = re.compile(r"^func ((?:Test|Example|Benchmark|Fuzz)\w*)\(", re.M)
+
+
+def _go_own_test(hit: Hit, c: _Ctx, step: int) -> str | None:
+    """The test file the agent made that a ``go test -run`` run is a run of: go has no way to name a test file, so the
+    run's own test is run by its functions' names (``go test -run TestRepro ./pkg``). Every name of the pattern has to
+    be a function of one such file in a package the run covers; a pattern that is no plain list of names, or that
+    names a function of another file, selects among the repository's tests."""
+    runs = [n[5:] for n in hit.narrow if n.startswith("-run ")]
+    if len(runs) != 1 or any(n.startswith("-skip ") for n in hit.narrow):
+        return None
+    names = [a.strip("^$").split("/", 1)[0].rstrip("$") for a in runs[0].strip("'\"").split("|")]
+    if not names or not all(re.fullmatch(r"\w+", n) for n in names):
+        return None
+    dirs = [d for d in (hit.targets or [hit.seg.cwd]) if d]
+    live = set(c.written_before(step))
+    for p in c.created:
+        if not p.endswith("_test.go") or p not in live or not c.is_created(p, step):
+            continue
+        d = posixpath.dirname(p)
+        if not any(d == t.rstrip("/") or (t not in hit.flat and d.startswith(t.rstrip("/") + "/")) for t in dirs):
+            continue
+        if set(names) <= set(_GO_TEST_FUNC.findall(c.content(p, step) or "")):
+            return p
+    return None
+
+
 def _target_problem(hit: Hit, c: _Ctx, step: int) -> str:
     if hit.script:
         why = c.existed(hit.script, step, "runner script")
         if why:
             return why
+    if hit.runner.name == "go-test":
+        own = _go_own_test(hit, c, step)
+        if own:
+            return f"test target created by the agent ({_rel(own, c.workdir) or own})"
+    patterns = path_patterns(hit, c.workdir)
+    if patterns:  # jest / vitest by pattern: the run's own test file, when every pattern names one the agent made
+        made = [next((p for p in c.created if c.is_created(p, step) and pattern_names(pat, p)), None) for pat in patterns]
+        if all(made):
+            return f"test target created by the agent ({_rel(made[0], c.workdir) or made[0]})"
     for t in hit.targets:
         why = c.existed(t, step, "test target")
+        if why and hit.runner.name in _PATTERN_OPERANDS and "not in the base tree" in why and not c.is_created(t, step):
+            continue  # jest / vitest: an operand is a pattern on test paths (`jest lib/rules/foo`), not a file that must exist
         if why:
             return why
     for label, bases in hit.labels:
@@ -1378,8 +1862,10 @@ def _files_used(seg: shell.Segment, known: list[str]) -> list[str]:
         mode, val, _ = py_args(words[1:])
         if mode == "script" and val and (seg.cwd or val.startswith("/")):
             out.append(shell.resolve(val, seg.cwd))
+    elif verb == "go" and len(words) > 2 and words[1].text == "run":  # `go run x.go`: its prints are the program's
+        out += [shell.resolve(w.text, seg.cwd) for w in words[2:] if w.text.endswith(".go") and (seg.cwd or w.text.startswith("/"))]
     elif verb in _EXEC_VERBS and len(words) > 1:
-        ops = [w.text for w in words[1:] if not w.text.startswith("-")]
+        ops = [w.text for w in words[1:] if not w.text.startswith("-") and w.text != "run"]
         if ops and (seg.cwd or ops[0].startswith("/")):
             out.append(shell.resolve(ops[0], seg.cwd))
     elif words and "/" in words[0].text and (seg.cwd or words[0].text.startswith("/")):
@@ -1406,15 +1892,35 @@ _LOADER_CLASS = re.compile(r"\bunittest\.loader\.(?:_FailedTest|ModuleImportFail
 _LOADER_TEXT = re.compile(
     r"Failed to import test module|ModuleNotFoundError|ImportError|No module named|ERROR collecting|errors? during collection"
     r"|doesn't declare an explicit app_label|ImproperlyConfigured|settings are not configured|SyntaxError"
+    # go: the package or its tests did not compile; jest / vitest: the test file could not be loaded
+    r"|\[build failed\]|\[setup failed\]|Test suite failed to run|Failed Suites \d+"
 )
 
 
-def invocation_error(observation: str, summary: Summary | None) -> str:
+# A build that failed because the test uses what the code does not have: in a compiled language that is what a test
+# written before its implementation does when run (go ``undefined: pkg.NewThing``, ``x.Retry undefined (type T has no
+# field or method Retry)``, a call with the arguments the change will take; typescript ``TS2304 Cannot find name``,
+# ``TS2339 Property 'x' does not exist on type``, ``TS2305 ... has no exported member``, ``TS2554 Expected 2 arguments``;
+# an ES module that ``does not provide an export named`` it). A syntax error, a package that cannot be set up, a module
+# that cannot be found are not that: such a run loaded nothing for a reason of its own.
+_NOT_YET_THERE = re.compile(
+    r"^\S+\.go:\d+:\d+: (?:undefined: |[^\n]*\bhas no field or method\b|[^\n]*\bnot declared by package\b|unknown field |too many arguments in call|not enough arguments in call|[^\n]*\(missing method )"
+    r"|\bTS(?:2304|2339|2305|2551|2552|2554|2555|2724|2353)\b|does not provide an export named",
+    re.M,
+)
+
+
+def invocation_error(observation: str, summary: Summary | None, missing_code: bool = True) -> str:
     """Why a run whose only outcome is errors never ran a test of its selection ('' if it did, or had other outcomes).
 
     The runner could not load what it was asked to run: django's / unittest's ``unittest.loader._FailedTest``
     for a label that does not import, ``Failed to import test module``, a ``ModuleNotFoundError``, pytest's
-    ``ERROR collecting`` / ``errors during collection``. Such output counts the load failures as test errors
+    ``ERROR collecting`` / ``errors during collection``; go's ``FAIL pkg [build failed]`` / ``[setup failed]`` (the
+    package or its test files did not compile), jest's ``Test suite failed to run`` and vitest's ``Failed Suites``
+    (the test file could not be loaded) -- but not a go / typescript build that failed on something the code does not
+    have yet (:data:`_NOT_YET_THERE`): that is the failing run of a test written before its implementation, and it stays
+    a valid run of one error (``missing_code`` False: the caller knows the build could not have found the code, as
+    when go was given one test file). Such output counts the load failures as test errors
     ("Ran 1 test ... FAILED (errors=1)") but no test ran -- a baseline of it records nothing (legacy
     ``truth_none.py`` invocation errors). Errors of real tests (a unittest error header naming a test class)
     keep the run valid, as does any pass or failure next to the load errors."""
@@ -1426,6 +1932,8 @@ def invocation_error(observation: str, summary: Summary | None) -> str:
     if heads:
         return "invocation error (the runner could not load the selection: unittest.loader._FailedTest)" if all(_LOADER_CLASS.search(h) for h in heads) else ""
     m = _LOADER_TEXT.search(obs)
+    if missing_code and m and m.group(0).startswith(("[build failed]", "Test suite failed to run", "Failed Suites")) and _NOT_YET_THERE.search(obs):
+        return ""  # go / typescript: the test does not compile against code that is not there yet -- its failing run
     return f"invocation error (only load / collection errors: {m.group(0)})" if m else ""
 
 
@@ -1536,6 +2044,11 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
         if why:
             reasons.append(why)
         failed = _BUILD_FAIL.search(obs) is not None
+        if not failed and hit.runner.name in _BUILD_BY_TOOL:  # go / the package managers: what the tool itself says
+            tool = _BUILD_BY_TOOL[hit.runner.name]
+            if _UNFINISHED.search(obs) and not re.search(r"exit code 0\b", obs):
+                reasons.append("the build had not finished when its output stopped")
+            failed = tool.search(obs) is not None
         rf.passed, rf.errors, rf.collected = (0, 1, 1) if failed else (1, 0, 1)
     else:
         mixed = _repository_part(hit, obs, c, step, summary)
@@ -1576,7 +2089,10 @@ def _fact(step, idx, command, obs, segs, i, hit, hits, summary, ids_out, c: _Ctx
                 same = _in_command(summary.phrases, command)
                 if same:
                     reasons.append(f"summary text in the command ({same!r})")
-                why = invocation_error(obs, summary)
+                # `go test ./x_test.go` compiles that file alone: what the package's other files define is "undefined"
+                # there whatever the code has, so such a build failure is not the failing run of a test written first
+                files_only = hit.runner.name == "go-test" and any(t.endswith(".go") for t in hit.targets)
+                why = invocation_error(obs, summary, missing_code=not files_only)
                 if why:
                     reasons.append(why)
     rf.valid = not reasons
@@ -1598,6 +2114,8 @@ __all__ = [
     "clean_observation",
     "output_ids",
     "failing_ids",
+    "js_failing_ids",
+    "go_test_packages",
     "own_name",
     "test_state",
     "invocation_error",

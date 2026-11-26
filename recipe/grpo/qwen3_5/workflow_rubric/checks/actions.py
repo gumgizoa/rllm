@@ -47,8 +47,9 @@ _INSTALL = re.compile(
     r"""^(?:\S*/)?(?:
         (?:python[0-9.]*\s+-m\s+)?pip[0-9.]*\s+install\b | uv\s+(?:pip\s+install|add|sync)\b | poetry\s+(?:add|install)\b | pipenv\s+install\b
       | pipx\s+install\b | easy_install\b | (?:conda|mamba|micromamba)\s+(?:install|create)\b | apt(?:-get)?\s+install\b
-      | (?:yum|dnf|zypper)\s+install\b | apk\s+add\b | brew\s+install\b | npm\s+(?:install|i|ci|add)\b | yarn\s+(?:add|install)\b | yarn\s*$
-      | pnpm\s+(?:add|install|i)\b | gem\s+install\b | bundle\s+install\b | cargo\s+(?:install|add)\b | go\s+(?:get|install)\b
+      | (?:yum|dnf|zypper)\s+install\b | apk\s+add\b | brew\s+install\b | npm\s+(?:install|i|ci|add|update|rebuild|link)\b | yarn\s+(?:add|install|up)\b | yarn(?:\s+--?[\w-]+(?:=\S+)?)*\s*$
+      | pnpm\s+(?:add|install|i)\b | gem\s+install\b | bundle\s+install\b | cargo\s+(?:install|add)\b | go\s+get\b | go\s+install\b(?!(?:\s+-\S+)*\s+\.) | go\s+work\s+sync\b
+      | go\s+mod\s+(?:download|tidy|vendor)\b | bun\s+(?:add|install|i)\b | (?:pnpm|yarn)\s+dlx\b | npx\s+(?:--yes|-y)\b | corepack\s+(?:enable|prepare|install)\b
       | python[0-9.]*\s+(?:\S+/)?setup\.py\s+(?:install|develop)\b
     )""",
     re.X,
