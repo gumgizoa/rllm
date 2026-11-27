@@ -1,0 +1,54 @@
+# Items speckit_bug_repro adds to speckit_bug's rubric (reward/eval.py appends them; same schema as an entry of
+# speckit_bug/reward/rubric.yaml ``items``). Source lines are those of THIS workflow's docs/stages/01-assess.md.
+items:
+- id: speckit_bug.assess.penalty.reproduction.before_remediation
+  scope: specific
+  class: evidence
+  stage: assess
+  target:
+    type: action
+    ref: run
+    state: final
+  check:
+    kind: speckit_bug_repro.reproduction
+    params:
+      artifact: assessment
+      section: Proposed Remediation
+      issue_terms: false
+  requirement: must
+  modality_evidence: 'AS:29 ''Run what the issue reports against the code as it is''; AS:46 ''Work from what step 2 showed'';
+    AS:121 ''Never propose a remediation before step 2 has been run, or recorded as not runnable here''. Whether the run
+    was made is read from the trace, not from the Reproduction section; log-only: a penalty (D) term, not compliance'
+  none_allowed: '-'
+  applies_when: null
+  weight: 1.0
+  gate: null
+  availability:
+  - trace
+  sources:
+  - doc: AS
+    lines:
+    - 29
+    - 29
+    quote: 'Run what the issue reports against the code as it is: the snippet, command, or input the issue gives, with a
+      short command such as `python -c ''...''`.'
+  - doc: AS
+    lines:
+    - 46
+    - 46
+    quote: Work from what step 2 showed.
+  - doc: AS
+    lines:
+    - 121
+    - 121
+    quote: Never propose a remediation before step 2 has been run, or recorded as not runnable here.
+  impl_refs: []
+  derived_by: manual
+  template: ''
+  log_only: true
+  note: '1 when, before the first write of assessment.md that carries a Proposed Remediation, the run made a valid
+    repository test run, executed a file it created, ran inline python that imports the repository''s package and does
+    something with it, or ran the package''s command line (issue_terms true would also ask scripts and inline code to name
+    an identifier of the issue; off, see checks.py). 0 otherwise, and 0 for a run that wrote no assessment. The ``penalty`` id
+    segment routes it into speckit_bug/penalty (post hook), never into compliance: the fourth of its items, each a quarter
+    of the mean'

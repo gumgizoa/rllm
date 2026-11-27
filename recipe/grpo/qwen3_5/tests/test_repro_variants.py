@@ -45,7 +45,9 @@ def _fenced(text: str) -> str:
 def test_variant_is_the_original_with_other_documents(name):
     original, edited = VARIANTS[name]
     spec, base = workflows.WORKFLOWS[name], workflows.WORKFLOWS[original]
-    assert spec == dataclasses.replace(base, docs_dir=spec.docs_dir)
+    # speckit_bug_repro also scores with its own evaluation: speckit_bug's rubric plus its penalty item (test_repro_penalty.py)
+    assert spec == dataclasses.replace(base, docs_dir=spec.docs_dir, scorers=spec.scorers)
+    assert set(spec.scorers) == set(base.scorers) and (spec.scorers == base.scorers) == (name != "speckit_bug_repro")
     assert spec.docs_dir != base.docs_dir
     ours, theirs = _docs(name), _docs(original)
     assert sorted(ours) == sorted(theirs)

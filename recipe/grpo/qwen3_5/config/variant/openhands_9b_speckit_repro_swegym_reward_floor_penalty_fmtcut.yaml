@@ -1,0 +1,30 @@
+# @package _global_
+#
+# openhands_9b_speckit_swegym_reward_floor_penalty_fmtcut with speckit_bug_repro in place of speckit_bug:
+# the assess stage runs what the issue reports before it proposes a remediation, and the penalty term
+# has a fourth item for it.
+#
+#   reward = 0.7 * verifier * (0.7 + 0.3 * speckit_bug/compliance) + 0.3 * speckit_bug/penalty
+#
+# The formula and its weights are the inherited ones. What changes is what speckit_bug/penalty is the mean
+# of: speckit_bug's three items (gold source files named by the reports, a related existing test run after
+# the last edit, reports consistent with the change) and
+# assess.penalty.reproduction.before_remediation -- the repository's code was run before the first write
+# of assessment.md that carries a Proposed Remediation (workflows/speckit_bug_repro/reward/checks.py).
+# Each item is a quarter of the penalty, so 0.075 of the reward. The signals keep speckit_bug's names.
+#
+# A new arm, not a continuation of the speckit_bug run: the stage document and the penalty both differ.
+#
+#   bash recipe/grpo/qwen3_5/train_verl.sh variant=openhands_9b_speckit_repro_swegym_reward_floor_penalty_fmtcut \
+#       rllm.workflow.n_parallel_tasks=64 recipe.sandbox_concurrency=64 trainer.max_actor_ckpt_to_keep=5
+
+defaults:
+  - openhands_9b_speckit_swegym_reward_floor_penalty_fmtcut
+
+recipe:
+  workflow:
+    name: speckit_bug_repro
+
+rllm:
+  trainer:
+    experiment_name: qwen3_5-9b-openhands-sdk-think-swegym293-speckit-repro-floor07-pen03-fmtcut-topp1
