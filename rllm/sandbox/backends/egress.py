@@ -38,11 +38,42 @@ _thread_lock = threading.Lock()
 _LOCK_PATH = os.path.join(tempfile.gettempdir(), "rllm-egress-relay.lock")
 
 
+def _open_lock_file() -> int:
+    """The lock file, shared by every user on the host: the docker objects it guards are shared too.
+
+    Whoever runs first creates it, and a later user can neither write it (the creator's umask) nor open
+    it with ``O_CREAT`` (``fs.protected_regular`` in a sticky ``/tmp``). ``flock`` needs neither, so a
+    file that is already there is opened read-only.
+    """
+    try:
+        return os.open(_LOCK_PATH, os.O_RDONLY)
+    except FileNotFoundError:
+        pass
+    try:
+        fd = os.open(_LOCK_PATH, os.O_CREAT | os.O_RDWR, 0o666)
+    except PermissionError:
+        return os.open(_LOCK_PATH, os.O_RDONLY)  # another user created it in between
+    try:
+        os.fchmod(fd, 0o666)  # readable whatever the umask
+    except OSError:
+        pass
+    return fd
+
+
 class _ProcessLock:
     def __enter__(self):
         _thread_lock.acquire()
-        self._fd = os.open(_LOCK_PATH, os.O_CREAT | os.O_RDWR, 0o666)
-        fcntl.flock(self._fd, fcntl.LOCK_EX)
+        try:
+            self._fd = _open_lock_file()
+            try:
+                fcntl.flock(self._fd, fcntl.LOCK_EX)
+            except BaseException:
+                os.close(self._fd)
+                raise
+        except BaseException:
+            # __exit__ does not run when __enter__ raises: a lock left held here blocks every sandbox after it
+            _thread_lock.release()
+            raise
         return self
 
     def __exit__(self, *exc):
