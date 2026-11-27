@@ -26,7 +26,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Sequence
 
-from . import agentos_bugfix, agentos_v2, aidlc_v4, aidlc_v4_gen, aidlc_v4_eval, aidlc_v5, openspec_ff, speckit_bug, speckit_sdd
+from . import agentos_bugfix, agentos_v2, aidlc_v4, aidlc_v4_gen, aidlc_v4_eval, aidlc_v5, aidlc_v5_repro, openspec_ff, speckit_bug, speckit_bug_repro, speckit_sdd
 from .spec import WorkflowSpec
 
 # The plain harness as a member of a mix: nothing uploaded, the task text untouched.
@@ -39,7 +39,9 @@ WORKFLOWS: dict[str, WorkflowSpec] = {
     "aidlc_v4_eval": aidlc_v4_eval.SPEC,
     "aidlc_v4_gen": aidlc_v4_gen.SPEC,
     "aidlc_v5": aidlc_v5.SPEC,
+    "aidlc_v5_repro": aidlc_v5_repro.SPEC,  # aidlc_v5 with the reported behavior run before the plan
     "speckit_bug": speckit_bug.SPEC,
+    "speckit_bug_repro": speckit_bug_repro.SPEC,  # speckit_bug with the reproduction run before the plan
     "openspec_ff": openspec_ff.SPEC,
     "speckit_sdd": speckit_sdd.SPEC,
     "agentos_v2": agentos_v2.SPEC,
