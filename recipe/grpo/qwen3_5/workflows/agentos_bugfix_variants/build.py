@@ -68,6 +68,24 @@ their texts are not hand-written but derived from ``structure/s3tasks/`` and s3t
     Both near s1report: writing the code change down before the code is what costs, and s7noplan keeps a plan.
     s6late only: any document before the code costs. Both near s3tasks: the cost is in implement-tasks's rules.
 
+Sixth round (2026-11-26): on the 100-task subset, three attempts each, s7noplan stood at 56.0 against s3tasks's
+53.7 and s6late's 52.3 (no workflow 55.3). What s7noplan still fixes before the code changes is its tests: 88% of
+its runs write the x.1 tests before the first source edit. One variant, derived from s7noplan by ``S8_EDITS``:
+
+    s8tafter  s7noplan with the tests written after the code change: a task group is the code change (x.1), then
+              its 2-8 tests (x.2), then the test run. Where the tests go and what is run are s7noplan's.
+
+Two more, each derived from s7noplan alone (not from s8tafter) and each adding to what implement-tasks asks for
+rather than taking a rule away:
+
+    s10check   PHASE 3 gets a step between the tasks.md check and the test run: read the task description again
+               and find out whether the change makes each behavior, case and example it states hold; what is
+               missing is added to tasks.md and sends the run back to PHASE 2 once.
+    s16module  the tests a task group writes go into the existing repository test module that covers the changed
+               code (candidate E's sentences), and the group's test run is that module as a whole; verify/ is for
+               code no existing test module covers. s7noplan: 13% of runs add to an existing module, 24% run
+               more than one module after the change (no workflow: 48% and 45%).
+
 ``--check`` exits 1 when ``variants/`` is not what this file would write.
 """
 
@@ -103,8 +121,11 @@ STRUCTURE: dict[str, tuple[str, list[str]]] = {
     "agentos_bugfix_s5think": ("s5think", ["shape", "write", "tasks", "impl"]),  # fourth round; not in STRUCTURE_RUN
     "agentos_bugfix_s6late": ("s6late", ["tasks", "impl"]),  # fifth round; derived from s3tasks, not in STRUCTURE_RUN
     "agentos_bugfix_s7noplan": ("s7noplan", ["tasks", "impl"]),  # fifth round; derived from s3tasks, not in STRUCTURE_RUN
+    "agentos_bugfix_s8tafter": ("s8tafter", ["tasks", "impl"]),  # sixth round; derived from s7noplan, not in STRUCTURE_RUN
+    "agentos_bugfix_s10check": ("s10check", ["tasks", "impl"]),  # sixth round; derived from s7noplan, not in STRUCTURE_RUN
+    "agentos_bugfix_s16module": ("s16module", ["tasks", "impl"]),  # sixth round; derived from s7noplan, not in STRUCTURE_RUN
 }
-STRUCTURE_RUN = [n for n in STRUCTURE if n not in ("agentos_bugfix_s5think", "agentos_bugfix_s6late", "agentos_bugfix_s7noplan")]
+STRUCTURE_RUN = [n for n in STRUCTURE if n not in ("agentos_bugfix_s5think", "agentos_bugfix_s6late", "agentos_bugfix_s7noplan", "agentos_bugfix_s8tafter", "agentos_bugfix_s10check", "agentos_bugfix_s16module")]
 
 OVERVIEW = "docs/overview.md"
 SHAPE = "docs/commands/shape-spec/shape-spec.md"
@@ -616,8 +637,103 @@ S6_EDITS: list[tuple[str, str, str]] = [
     (IMPL, "Go over the task description and the code you studied in PHASE 1 to understand", "Go over the task description and the change you made in PHASE 1 to understand"),
     (IMPL, "go back to PHASE 2 once, fix the change,", "go back to PHASE 1 once, fix the change,"),
 ]
+# s8tafter: s7noplan with each task group's tests written after its code change instead of before it. Only the
+# order changes: the same 2-8 tests, in the same places, run the same way. Applied after S7_EDITS.
+S8_EDITS: list[tuple[str, str, str]] = [
+    (
+        TASKS,
+        "  - [ ] 1.1 Write 2-8 focused tests for [the behavior to change]\n    - Limit to 2-8 highly focused tests maximum\n    - Test only critical behaviors\n"
+        "    - Skip exhaustive coverage of all methods and edge cases\n  - [ ] 1.2 Change the code so that [the behavior to change] holds\n",
+        "  - [ ] 1.1 Change the code so that [the behavior to change] holds\n"
+        "  - [ ] 1.2 Write 2-8 focused tests for [the behavior to change]\n    - Limit to 2-8 highly focused tests maximum\n    - Test only critical behaviors\n"
+        "    - Skip exhaustive coverage of all methods and edge cases\n",
+    ),
+    (TASKS, "    - Run the 2-8 tests written in 1.1 and the existing", "    - Run the 2-8 tests written in 1.2 and the existing"),
+    (TASKS, "- The 2-8 tests written in 1.1 and the existing", "- The 2-8 tests written in 1.2 and the existing"),
+    (TASKS, "    - Review the 2-8 tests written in Task 1.1\n", "    - Review the 2-8 tests written in Task 1.2\n"),
+    (TASKS, "(tests from 1.1 and 2.3, and the existing tests of the changed code)", "(tests from 1.2 and 2.3, and the existing tests of the changed code)"),
+    (
+        TASKS,
+        "- **Use a focused test-driven approach** where each task group starts with writing 2-8 tests (x.1 sub-task) and ends with running those tests",
+        "- **Write the tests after the code change**: each task group starts with the code change (x.1 sub-task), then writes 2-8 tests for the changed behavior "
+        "(x.2 sub-task), and ends with running those tests",
+    ),
+    (TASKS, "(the x.1 sub-task, and the additional tests of a test-review group)", "(the x.2 sub-task, and the additional tests of a test-review group)"),
+    (IMPL, "(each implementation task group writes them first, as its x.1 sub-task;", "(each implementation task group writes them after its code change, as its x.2 sub-task;"),
+]
+# s10check: s7noplan with one step added to PHASE 3, between the tasks.md check and the test run: the change is
+# held against the task description, and what the description states and the change leaves out sends the run
+# back to PHASE 2 once. Nothing else of s7noplan changes; the steps after it are renumbered.
+S10_STEP = (
+    "### Step 2: Check the change against the task description\n\n"
+    "Read the task description in the task message once more, from beginning to end. For each behavior, case and example it states, find out whether your change makes it hold: "
+    "read the changed code, and when the description gives an example, run it.\n\n"
+    "IF the description states something your change does not make hold (a case, an input an example uses, another call that shows the same wrong behavior): "
+    f"add it to {TASKS_MD} as a new task group at the end, go back to PHASE 2 once and implement it, then carry out PHASE 3 again from Step 1. "
+    "Go back for this once only; what is still missing when you reach this step again is noted under Incomplete or Issues in the report.\n\n"
+)
+S10_EDITS: list[tuple[str, str, str]] = [
+    (
+        OVERVIEW,
+        "PHASE 3\nsends you back to PHASE 2 once when a test fails because of your change.",
+        "PHASE 3\nsends you back to PHASE 2 once when your change leaves out something the task description states, and\nonce when a test fails because of your change.",
+    ),
+    (
+        OVERVIEW,
+        "implement-tasks PHASE 3 runs tests and writes its report and\n  changes no code itself; when a test fails because of your change it sends you back to PHASE 2 once,\n  and that is the only code change after PHASE 3 has begun.",
+        "implement-tasks PHASE 3 checks the change against the task\n  description, runs tests and writes its report and changes no code itself; when the change leaves out\n"
+        "  something the description states, or a test fails because of your change, it sends you back to PHASE 2\n  once for each, and these are the only code changes after PHASE 3 has begun.",
+    ),
+    (IMPL, "### Step 3: Create final verification report", "### Step 4: Create final verification report"),
+    (IMPL, "### Step 2: Run the tests of the changed code", S10_STEP + "### Step 3: Run the tests of the changed code"),
+]
+
+# s16module: s7noplan with the tests a task group writes placed in the existing repository test module and run as
+# that module. The four sentences on where a test goes are candidate E's, word for word; the fifth makes the
+# group's test run the whole module. When the tests are written (first, x.1) is s7noplan's.
+_SCRIPT_OR_MODULE = (
+    f"is a script under `{V}`, run on its own, or a new test function added to the existing repository test module that covers the changed code; never change or remove an existing test line."
+)
+S16_EDITS: list[tuple[str, str, str]] = [
+    (
+        OVERVIEW,
+        "├── verify/                    the task groups' tests that are written as scripts; any scratch file",
+        "├── verify/                    check scripts for code no existing test module covers; any scratch file",
+    ),
+    (
+        OVERVIEW,
+        "- The tests the task groups call for are scripts in `S/verify/`, or new test functions added to the\n  existing repository test module that covers the changed code.",
+        "- The tests the task groups call for are new test functions added to the existing repository test module\n"
+        "  that covers the changed code, so that they run together with the tests already there; a script in\n  `S/verify/` is for code no existing test module covers.",
+    ),
+    (
+        TASKS,
+        "- **Write these tests as check scripts or as additions to an existing test module**: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) "
+        + _SCRIPT_OR_MODULE,
+        "- **Add these tests to the existing test module**: every test a task group writes (the x.1 sub-task, and the additional tests of a test-review group) "
+        "is a new test function added to the existing repository test module that covers the changed code, run through that module with the test runner; "
+        f"only where no existing test module covers that code is it a script under `{V}`, run on its own; never change or remove an existing test line.",
+    ),
+    (
+        IMPL,
+        f"they are check scripts under `{V}`, or test functions you added to an existing repository test module, run through that module with the test runner)",
+        "they are test functions you added to the existing repository test module that covers the changed code, run through that module with the test runner, "
+        f"or check scripts under `{V}` where no existing test module covers that code)",
+    ),
+    (
+        TASKS,
+        "    - Run the 2-8 tests written in 1.1 and the existing tests of the changed code\n",
+        "    - Run the whole test module the 2-8 tests of 1.1 were added to, and the other existing tests of the changed code\n",
+    ),
+]
 # folder -> (folder under structure/ whose hand-written texts it starts from, its edits)
-DERIVED: dict[str, tuple[str, list[tuple[str, str, str]]]] = {"s6late": ("s3tasks", S6_EDITS), "s7noplan": ("s3tasks", S7_EDITS)}
+DERIVED: dict[str, tuple[str, list[tuple[str, str, str]]]] = {
+    "s6late": ("s3tasks", S6_EDITS),
+    "s7noplan": ("s3tasks", S7_EDITS),
+    "s8tafter": ("s3tasks", S7_EDITS + S8_EDITS),
+    "s10check": ("s3tasks", S7_EDITS + S10_EDITS),
+    "s16module": ("s3tasks", S7_EDITS + S16_EDITS),
+}
 _COMMANDS = {"shape": SHAPE, "write": WRITE, "tasks": TASKS, "impl": IMPL}
 _SECTION = ("<PROBLEM_SOLVING_WORKFLOW>\n", "</PROBLEM_SOLVING_WORKFLOW>")
 
